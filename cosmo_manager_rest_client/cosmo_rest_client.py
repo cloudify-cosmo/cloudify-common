@@ -24,6 +24,9 @@ class CosmoManagerRestClient(object):
         self.executions_api = ExecutionsApi(api_client)
         self.deployments_api = DeploymentsApi(api_client)
 
+    def list_blueprints(self):
+        return self.blueprints_api.list()
+
     def publish_blueprint(self, blueprint_path):
         tempdir = tempfile.mkdtemp()
         try:
