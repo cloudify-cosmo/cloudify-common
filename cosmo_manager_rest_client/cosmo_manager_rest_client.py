@@ -85,6 +85,10 @@ class CosmoManagerRestClient(object):
                 raise RuntimeError('Execution of deployment operation {0} of deployment {1} failed. (status response:'
                                    ' {2})'.format(operation, deployment_id, execution.error))
 
+    def get_deployment_events(self, deployment_id, response_headers_buffer=None, from_param=0, count_param=500):
+        return self.deployments_api.readEvents(deployment_id, response_headers_buffer,
+                                               from_param=from_param, count_param=count_param)
+
     def _check_for_deployment_events(self, deployment_id, deployment_prev_events_size):
         response_headers_buffer = {}
         self.deployments_api.eventsHeaders(deployment_id, response_headers_buffer)
@@ -92,8 +96,8 @@ class CosmoManagerRestClient(object):
 
     def _get_and_handle_deployment_events(self, deployment_id, events_handler, from_param=0, count_param=500):
         response_headers_buffer = {}
-        deployment_events = self.deployments_api.readEvents(deployment_id, response_headers_buffer,
-                                                            from_param=from_param, count_param=count_param)
+        deployment_events = self.get_deployment_events(deployment_id, response_headers_buffer,
+                                                       from_param=from_param, count_param=count_param)
         events_handler(deployment_events.events)
         return (deployment_events.lastEvent + 1,
                 from_param + count_param < deployment_events.deploymentTotalEvents,
