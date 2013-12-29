@@ -1,3 +1,18 @@
+########
+# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    * See the License for the specific language governing permissions and
+#    * limitations under the License.
+
 __author__ = 'ran'
 
 import tempfile
@@ -14,6 +29,7 @@ from swagger.swagger import ApiClient
 from swagger.BlueprintsApi import BlueprintsApi
 from swagger.ExecutionsApi import ExecutionsApi
 from swagger.DeploymentsApi import DeploymentsApi
+from swagger.nodes_api import NodesApi
 
 
 class CosmoManagerRestClient(object):
@@ -24,6 +40,7 @@ class CosmoManagerRestClient(object):
         self._blueprints_api = BlueprintsApi(api_client)
         self._executions_api = ExecutionsApi(api_client)
         self._deployments_api = DeploymentsApi(api_client)
+        self._nodes_api = NodesApi(api_client)
 
     def list_blueprints(self):
         with self._protected_call_to_server('listing blueprints'):
@@ -99,6 +116,27 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('getting deployment events'):
             return self._deployments_api.readEvents(deployment_id, response_headers_buffer,
                                                     from_param=from_param, count_param=count_param)
+
+    def list_nodes(self, deployment_id=None):
+        """
+        List nodes for the provided deployment_id (if None, all nodes would be retrieved).
+        """
+        with self._protected_call_to_server('getting node'):
+            return self._nodes_api.list(deployment_id)
+
+    def get_node(self, node_id):
+        """
+        Gets node state from runtime storage for the provided node_id.
+        """
+        with self._protected_call_to_server('getting node'):
+            return self._nodes_api.get_by_id(node_id)
+
+    def get_node_reachable_state(self, node_id):
+        """
+        Gets node reachable state for the provided node_id as stated by the monitoring system.
+        """
+        with self._protected_call_to_server('getting node reachable state'):
+            return self._nodes_api.get_reachable_state_by_id(node_id)
 
     def _check_for_deployment_events(self, deployment_id, deployment_prev_events_size):
         response_headers_buffer = {}
