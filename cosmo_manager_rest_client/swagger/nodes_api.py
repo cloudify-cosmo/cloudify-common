@@ -31,8 +31,7 @@ class NodesApi(object):
         if not response:
             return None
 
-        response_object = self.client.deserialize(response, 'array[Node]')
-        return response_object
+        return response
 
     def get_by_id(self, node_id):
         query_params = {}
@@ -44,8 +43,7 @@ class NodesApi(object):
         if not response:
             return None
 
-        response_object = self.client.deserialize(response, 'Node')
-        return response_object
+        return response
 
     def get_reachable_state_by_id(self, node_id):
         query_params = {}
@@ -57,5 +55,4 @@ class NodesApi(object):
         if not response:
             return None
 
-        response_object = self.client.deserialize(response, 'Node')
-        return response_object
+        return response
