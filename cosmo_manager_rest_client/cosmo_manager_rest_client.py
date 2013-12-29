@@ -117,14 +117,14 @@ class CosmoManagerRestClient(object):
             return self._deployments_api.readEvents(deployment_id, response_headers_buffer,
                                                     from_param=from_param, count_param=count_param)
 
-    def list_nodes(self, deployment_id=None):
+    def list_deployment_nodes(self, deployment_id=None):
         """
         List nodes for the provided deployment_id (if None, all nodes would be retrieved).
         """
         with self._protected_call_to_server('getting node'):
             return self._nodes_api.list(deployment_id)
 
-    def get_node(self, node_id):
+    def get_node_state(self, node_id):
         """
         Gets node state from runtime storage for the provided node_id.
         """
