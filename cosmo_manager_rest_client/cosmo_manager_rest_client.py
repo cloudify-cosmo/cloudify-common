@@ -136,7 +136,12 @@ class CosmoManagerRestClient(object):
                 server_output = json.loads(ex.fp.read())
                 if 'message' in server_output:
                     server_message = server_output['message']
-            raise RuntimeError('Failed {0}: Error code - {1}; Message - "{2}"'
-                .format(action_name, ex.code, server_message if server_message else ex.msg))
+            raise CosmoManagerRestCallError('Failed {0}: Error code - {1}; '
+                                              'Message - "{2}"'.format(action_name, ex.code, server_message if
+                                                                       server_message else ex.msg))
         except URLError, ex:
-            raise RuntimeError('Failed {0}: Reason - {1}'.format(action_name, ex.reason))
+            raise CosmoManagerRestCallError('Failed {0}: Reason - {1}'.format(action_name, ex.reason))
+
+
+class CosmoManagerRestCallError(Exception):
+    pass
