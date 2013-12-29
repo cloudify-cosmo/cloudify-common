@@ -43,6 +43,10 @@ class CosmoManagerRestClient(object):
         finally:
             shutil.rmtree(tempdir)
 
+    def delete_blueprint(self, blueprint_id):
+        with self._protected_call_to_server('deleting blueprint'):
+            return self._blueprints_api.delete(blueprint_id)
+
     def validate_blueprint(self, blueprint_id):
         with self._protected_call_to_server('validating blueprint'):
             return self._blueprints_api.validate(blueprint_id)
