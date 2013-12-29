@@ -151,7 +151,7 @@ class BlueprintsApi(object):
 
         Args:
             blueprint_id, :  (optional)
-            
+
         Returns: BlueprintValidationStatus
         """
 
@@ -184,6 +184,46 @@ class BlueprintsApi(object):
             return None
 
         responseObject = self.apiClient.deserialize(response, 'BlueprintValidationStatus')
+        return responseObject
+
+    def delete(self, blueprint_id, **kwargs):
+        """Deletes a given blueprint.
+
+        Args:
+            blueprint_id: str
+
+        Returns: BlueprintState
+        """
+
+        allParams = ['blueprint_id']
+
+        params = locals()
+        for (key, val) in params['kwargs'].iteritems():
+            if key not in allParams:
+                raise TypeError("Got an unexpected keyword argument '%s' to method delete" % key)
+            params[key] = val
+        del params['kwargs']
+
+        resourcePath = '/blueprints'
+        resourcePath = resourcePath.replace('{format}', 'json')
+        method = 'DELETE'
+
+        queryParams = {}
+        headerParams = {}
+
+        if ('blueprint_id' in params):
+            replacement = str(self.apiClient.toPathValue(params['blueprint_id']))
+            resourcePath = resourcePath.replace('{' + 'blueprint_id' + '}',
+                                                replacement)
+        postData = (params['body'] if 'body' in params else None)
+
+        response = self.apiClient.callAPI(resourcePath, method, queryParams,
+                                          postData, headerParams)
+
+        if not response:
+            return None
+
+        responseObject = self.apiClient.deserialize(response, 'BlueprintState')
         return responseObject
         
         
