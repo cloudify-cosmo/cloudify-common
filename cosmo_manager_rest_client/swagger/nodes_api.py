@@ -26,12 +26,12 @@ class NodesApi(object):
         query_params = {}
         post_data = None
 
-        response = self.apiClient.callAPI('/nodes', 'GET', query_params, post_data)
+        response = self.client.callAPI('/nodes', 'GET', query_params, post_data)
 
         if not response:
             return None
 
-        response_object = self.apiClient.deserialize(response, 'array[Node]')
+        response_object = self.client.deserialize(response, 'array[Node]')
         return response_object
 
     def get_by_id(self, node_id):
@@ -39,12 +39,12 @@ class NodesApi(object):
         post_data = None
 
         resource_path = '/nodes/{0}'.format(self.client.toPathValue(node_id))
-        response = self.apiClient.callAPI(resource_path, 'GET', query_params, post_data)
+        response = self.client.callAPI(resource_path, 'GET', query_params, post_data)
 
         if not response:
             return None
 
-        response_object = self.apiClient.deserialize(response, 'Node')
+        response_object = self.client.deserialize(response, 'Node')
         return response_object
 
     def get_reachable_state_by_id(self, node_id):
@@ -52,10 +52,10 @@ class NodesApi(object):
         post_data = None
 
         resource_path = '/nodes/{0}?reachable'.format(self.client.toPathValue(node_id))
-        response = self.apiClient.callAPI(resource_path, 'GET', query_params, post_data)
+        response = self.client.callAPI(resource_path, 'GET', query_params, post_data)
 
         if not response:
             return None
 
-        response_object = self.apiClient.deserialize(response, 'Node')
+        response_object = self.client.deserialize(response, 'Node')
         return response_object
