@@ -117,6 +117,11 @@ class CosmoManagerRestClient(object):
             return self._deployments_api.readEvents(deployment_id, response_headers_buffer,
                                                     from_param=from_param, count_param=count_param)
 
+    def list_workflows(self, blueprint_id):
+        #with self._protected_call_to_server('listing workflows'):
+        #return self._workflows_api.list()
+        raise RuntimeError('NOT YET IMPLEMENTED')
+
     def list_deployment_nodes(self, deployment_id=None):
         """
         List nodes for the provided deployment_id (if None, all nodes would be retrieved).
