@@ -95,7 +95,7 @@ class CosmoManagerRestClient(object):
 
             while execution.status not in end_states:
                 if end < time.time():
-                    raise RuntimeError('Timeout executing deployment operation {0} of deployment {1}'.format(
+                    raise CosmoManagerRestCallError('execution of operation {0} for deployment {1} timed out'.format(
                         operation, deployment_id))
                 time.sleep(1)
 
@@ -109,8 +109,9 @@ class CosmoManagerRestClient(object):
                 self._handle_remaining_deployment_events(deployment_id, events_handler, next_event_index)
 
             if execution.status != 'terminated':
-                raise RuntimeError('Execution of deployment operation {0} of deployment {1} failed. (status response:'
-                                   ' {2})'.format(operation, deployment_id, execution.error))
+                raise CosmoManagerRestCallError('Execution of operation {0} for deployment {1} failed. '
+                                                '(status response: {2})'.format(operation,
+                                                                                deployment_id, execution.error))
 
     def get_deployment_events(self, deployment_id, response_headers_buffer=None, from_param=0, count_param=500):
         with self._protected_call_to_server('getting deployment events'):

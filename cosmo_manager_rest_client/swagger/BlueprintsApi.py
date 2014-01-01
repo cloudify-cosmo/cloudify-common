@@ -74,7 +74,7 @@ class BlueprintsApi(object):
 
         Args:
             
-        Returns: array[BlueprintState]
+        Returns: list[BlueprintState]
         """
 
         allParams = []
@@ -101,7 +101,7 @@ class BlueprintsApi(object):
         if not response:
             return None
 
-        responseObject = self.apiClient.deserialize(response, 'array[BlueprintState]')
+        responseObject = self.apiClient.deserialize(response, 'list[BlueprintState]')
         return responseObject
 
 

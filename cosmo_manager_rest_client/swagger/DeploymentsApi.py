@@ -34,7 +34,7 @@ class DeploymentsApi(object):
 
         Args:
             
-        Returns: array[Deployment]
+        Returns: list[Deployment]
         """
 
         allParams = []
@@ -61,7 +61,7 @@ class DeploymentsApi(object):
         if not response:
             return None
 
-        responseObject = self.apiClient.deserialize(response, 'array[Deployment]')
+        responseObject = self.apiClient.deserialize(response, 'list[Deployment]')
         return responseObject
         
         
@@ -143,45 +143,45 @@ class DeploymentsApi(object):
         return responseObject
         
         
-    def list(self, deployment_id, **kwargs):
-        """Returns a list of executions related to the provided blueprint.
-
-        Args:
-            deployment_id, :  (optional)
-            
-        Returns: array[Execution]
-        """
-
-        allParams = ['deployment_id']
-
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s' to method list" % key)
-            params[key] = val
-        del params['kwargs']
-
-        resourcePath = '/deployments/{deployment_id}/executions'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'GET'
-
-        queryParams = {}
-        headerParams = {}
-
-        if ('deployment_id' in params):
-            replacement = str(self.apiClient.toPathValue(params['deployment_id']))
-            resourcePath = resourcePath.replace('{' + 'deployment_id' + '}',
-                                                replacement)
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if not response:
-            return None
-
-        responseObject = self.apiClient.deserialize(response, 'array[Execution]')
-        return responseObject
+    # def list(self, deployment_id, **kwargs):
+    #     """Returns a list of executions related to the provided blueprint.
+    #
+    #     Args:
+    #         deployment_id, :  (optional)
+    #
+    #     Returns: list[Execution]
+    #     """
+    #
+    #     allParams = ['deployment_id']
+    #
+    #     params = locals()
+    #     for (key, val) in params['kwargs'].iteritems():
+    #         if key not in allParams:
+    #             raise TypeError("Got an unexpected keyword argument '%s' to method list" % key)
+    #         params[key] = val
+    #     del params['kwargs']
+    #
+    #     resourcePath = '/deployments/{deployment_id}/executions'
+    #     resourcePath = resourcePath.replace('{format}', 'json')
+    #     method = 'GET'
+    #
+    #     queryParams = {}
+    #     headerParams = {}
+    #
+    #     if ('deployment_id' in params):
+    #         replacement = str(self.apiClient.toPathValue(params['deployment_id']))
+    #         resourcePath = resourcePath.replace('{' + 'deployment_id' + '}',
+    #                                             replacement)
+    #     postData = (params['body'] if 'body' in params else None)
+    #
+    #     response = self.apiClient.callAPI(resourcePath, method, queryParams,
+    #                                       postData, headerParams)
+    #
+    #     if not response:
+    #         return None
+    #
+    #     responseObject = self.apiClient.deserialize(response, 'list[Execution]')
+    #     return responseObject
         
         
     def execute(self, deployment_id, body, **kwargs):
