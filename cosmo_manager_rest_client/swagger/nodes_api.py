@@ -33,23 +33,14 @@ class NodesApi(object):
 
         return response
 
-    def get_by_id(self, node_id):
+    def get_state_by_id(self, node_id, get_reachable_state=False, get_runtime_state=True):
         query_params = {}
         post_data = None
 
-        resource_path = '/nodes/{0}'.format(self.client.toPathValue(node_id))
-        response = self.client.callAPI(resource_path, 'GET', query_params, post_data)
-
-        if not response:
-            return None
-
-        return response
-
-    def get_reachable_state_by_id(self, node_id):
-        query_params = {}
-        post_data = None
-
-        resource_path = '/nodes/{0}?reachable'.format(self.client.toPathValue(node_id))
+        resource_path = '/nodes/{0}?reachable={1}&runtime={2}'.format(
+            self.client.toPathValue(node_id),
+            str(get_reachable_state).lower(),
+            str(get_runtime_state).lower())
         response = self.client.callAPI(resource_path, 'GET', query_params, post_data)
 
         if not response:

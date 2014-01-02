@@ -130,19 +130,12 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('getting node'):
             return self._nodes_api.list(deployment_id)
 
-    def get_node_state(self, node_id):
+    def get_node_state(self, node_id, get_reachable_state=False, get_runtime_state=True):
         """
-        Gets node state from runtime storage for the provided node_id.
+        Gets node runtime/reachable state for the provided node_id.
         """
         with self._protected_call_to_server('getting node'):
-            return self._nodes_api.get_by_id(node_id)
-
-    def get_node_reachable_state(self, node_id):
-        """
-        Gets node reachable state for the provided node_id as stated by the monitoring system.
-        """
-        with self._protected_call_to_server('getting node reachable state'):
-            return self._nodes_api.get_reachable_state_by_id(node_id)
+            return self._nodes_api.get_state_by_id(node_id, get_reachable_state, get_runtime_state)
 
     def _check_for_deployment_events(self, deployment_id, deployment_prev_events_size):
         response_headers_buffer = {}
@@ -185,8 +178,8 @@ class CosmoManagerRestClient(object):
                 if 'message' in server_output:
                     server_message = server_output['message']
             raise CosmoManagerRestCallError('Failed {0}: Error code - {1}; '
-                                              'Message - "{2}"'.format(action_name, ex.code, server_message if
-                                                                       server_message else ex.msg))
+                                            'Message - "{2}"'.format(action_name, ex.code, server_message if
+            server_message else ex.msg))
         except URLError, ex:
             raise CosmoManagerRestCallError('Failed {0}: Reason - {1}'.format(action_name, ex.reason))
 
