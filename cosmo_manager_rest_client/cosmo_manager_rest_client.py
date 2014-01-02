@@ -178,8 +178,8 @@ class CosmoManagerRestClient(object):
                 if 'message' in server_output:
                     server_message = server_output['message']
             raise CosmoManagerRestCallError('Failed {0}: Error code - {1}; '
-                                            'Message - "{2}"'.format(action_name, ex.code, server_message if
-            server_message else ex.msg))
+                                            'Message - "{2}"'.format(action_name, ex.code,
+                                                                     server_message if server_message else ex.msg))
         except URLError, ex:
             raise CosmoManagerRestCallError('Failed {0}: Reason - {1}'.format(action_name, ex.reason))
 
