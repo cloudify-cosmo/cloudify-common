@@ -21,7 +21,7 @@ import sys
 import os
 
 from models import *
-
+import requests
 
 class BlueprintsApi(object):
 
@@ -29,13 +29,13 @@ class BlueprintsApi(object):
         self.apiClient = apiClient
 
 
-    def upload(self, body, **kwargs):
+    def upload(self, tar_file_obj, **kwargs):
         """Upload a new blueprint to Cloudify
 
         Args:
-            body, binary: Binary form of the tar gzipped blueprint directory (required)
+            tar_file_obj, File object of the tar gzipped blueprint directory (required)
             application_file_name, : File name of yaml containing the &quot;main&quot; blueprint. (optional)
-            
+
         Returns: BlueprintState
         """
 
@@ -59,13 +59,22 @@ class BlueprintsApi(object):
             queryParams['application_file_name'] = self.apiClient.toPathValue(params['application_file_name'])
         postData = (params['body'] if 'body' in params else None)
 
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams, isPostDataBinary=True)
+        def file_gen():
+            buffer_size = 8192
+            while True:
+                read_bytes = tar_file_obj.read(buffer_size)
+                yield read_bytes
+                if len(read_bytes) < buffer_size:
+                    return
+
+        response = requests.post('{0}{1}'.format(self.apiClient.apiServer, resourcePath),
+                                 params=queryParams,
+                                 data=file_gen())
 
         if not response:
             return None
 
-        responseObject = self.apiClient.deserialize(response, 'BlueprintState')
+        responseObject = self.apiClient.deserialize(response.json(), 'BlueprintState')
         return responseObject
 
 
