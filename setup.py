@@ -28,4 +28,5 @@ setup(
                                                                                 '.models'],
     license='LICENSE',
     description='the cosmo manager rest client',
+    install_requires=['requests']
 )
