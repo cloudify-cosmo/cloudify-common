@@ -119,9 +119,8 @@ class CosmoManagerRestClient(object):
                                                     from_param=from_param, count_param=count_param)
 
     def list_workflows(self, blueprint_id):
-        #with self._protected_call_to_server('listing workflows'):
-        #return self._workflows_api.list()
-        raise RuntimeError('NOT YET IMPLEMENTED')
+        with self._protected_call_to_server('listing workflows'):
+            return self._deployments_api.listWorkflows()
 
     def list_deployment_nodes(self, deployment_id=None):
         """
