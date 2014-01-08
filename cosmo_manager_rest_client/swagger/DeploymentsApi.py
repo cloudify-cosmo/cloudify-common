@@ -69,7 +69,7 @@ class DeploymentsApi(object):
 
         Args:
 
-        Returns: list[Workflow]
+        Returns: Workflows
         """
 
         resourcePath = '/deployments'
@@ -79,7 +79,7 @@ class DeploymentsApi(object):
         if not response:
             return None
 
-        responseObject = self.apiClient.deserialize(response, 'list[Deployment]')
+        responseObject = self.apiClient.deserialize(response, 'Workflows')
         return responseObject
         
     def createDeployment(self, body, **kwargs):
