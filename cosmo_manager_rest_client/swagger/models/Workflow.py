@@ -6,8 +6,8 @@ class Workflow:
     def __init__(self):
         self.swaggerTypes = {
             'name': 'str',
-            'createdAt': 'date-time'
+            'createdAt': 'str'
         }
 
         self.name = None # str
-        self.createdAt = None # date-time
+        self.createdAt = None # str

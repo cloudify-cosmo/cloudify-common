@@ -118,9 +118,9 @@ class CosmoManagerRestClient(object):
             return self._deployments_api.readEvents(deployment_id, response_headers_buffer,
                                                     from_param=from_param, count_param=count_param)
 
-    def list_workflows(self, blueprint_id):
+    def list_workflows(self, deployment_id):
         with self._protected_call_to_server('listing workflows'):
-            return self._deployments_api.listWorkflows()
+            return self._deployments_api.listWorkflows(deployment_id)
 
     def list_deployment_nodes(self, deployment_id=None):
         """
