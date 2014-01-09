@@ -63,7 +63,25 @@ class DeploymentsApi(object):
 
         responseObject = self.apiClient.deserialize(response, 'list[Deployment]')
         return responseObject
-        
+
+    def listWorkflows(self, deployment_id, **kwargs):
+        """Returns a list of the deployments workflows.
+
+        Args:
+            deployment_id : str
+
+        Returns: Workflows
+        """
+
+        resourcePath = '/deployments/{0}/workflows'.format(deployment_id)
+        method = 'GET'
+        response = self.apiClient.callAPI(resourcePath, method, {}, None)
+
+        if not response:
+            return None
+
+        responseObject = self.apiClient.deserialize(response, 'Workflows')
+        return responseObject
         
     def createDeployment(self, body, **kwargs):
         """Creates a new deployment
