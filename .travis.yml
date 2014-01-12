@@ -6,6 +6,7 @@ install:
 
     # command to install dependencies
     - sudo pip install .
+    - sudo pip install flake8
 
 
 script:
