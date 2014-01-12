@@ -9,5 +9,5 @@ class Workflow:
             'createdAt': 'str'
         }
 
-        self.name = None # str
-        self.createdAt = None # str
+        self.name = None  # str
+        self.createdAt = None  # str

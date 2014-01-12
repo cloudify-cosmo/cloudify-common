@@ -4,23 +4,18 @@ server communication, and is invariant across implementations. Specifics of
 the methods and models for each application are generated from the Swagger
 templates."""
 
-import sys
-import os
 import re
 import urllib
 import urllib2
-import httplib
 import json
 import datetime
-
-from models import *
 
 
 class ApiClient:
     """Generic API client for Swagger client library builds"""
 
     def __init__(self, apiKey=None, apiServer=None):
-        if apiKey == None:
+        if apiKey is None:
             raise Exception('You must pass an apiKey when instantiating the '
                             'APIClient')
         self.apiKey = apiKey
@@ -28,7 +23,8 @@ class ApiClient:
         self.cookie = None
 
     def callAPI(self, resourcePath, method, queryParams, postData,
-                headerParams=None, responseHeadersBuffers=None, isPostDataBinary=False):
+                headerParams=None, responseHeadersBuffers=None,
+                isPostDataBinary=False):
 
         url = self.apiServer + resourcePath
         headers = {}
@@ -48,7 +44,7 @@ class ApiClient:
             # Need to remove None values, these should not be sent
             sentQueryParams = {}
             for param, value in queryParams.items():
-                if value != None:
+                if value is not None:
                     sentQueryParams[param] = value
             url = url + '?' + urllib.urlencode(sentQueryParams)
 
@@ -103,7 +99,7 @@ class ApiClient:
     def sanitizeForSerialization(self, obj):
         """Dump an object into JSON for POSTing."""
 
-        if type(obj) == type(None):
+        if obj is None:
             return None
         elif type(obj) in [str, int, long, float, bool]:
             return obj
@@ -119,15 +115,6 @@ class ApiClient:
             return {key: self.sanitizeForSerialization(val)
                     for (key, val) in objDict.iteritems()
                     if key != 'swaggerTypes'}
-
-        if type(postData) == list:
-            # Could be a list of objects
-            if type(postData[0]) in safeToDump:
-                data = json.dumps(postData)
-            else:
-                data = json.dumps([datum.__dict__ for datum in postData])
-        elif type(postData) not in safeToDump:
-            data = json.dumps(postData.__dict__)
 
     def deserialize(self, obj, objClass):
         """Derialize a JSON string into an object.
@@ -147,7 +134,8 @@ class ApiClient:
                 subClass = match.group(1)
                 return [self.deserialize(subObj, subClass) for subObj in obj]
 
-            if (objClass in ['int', 'float', 'long', 'dict', 'list', 'str', 'bool', 'datetime']):
+            if (objClass in ['int', 'float', 'long', 'dict', 'list', 'str',
+                             'bool', 'datetime']):
                 objClass = eval(objClass)
             else:  # not a native type, must be model class
                 objClass = eval(objClass + '.' + objClass)
@@ -176,8 +164,11 @@ class ApiClient:
                         value = value
                     setattr(instance, attr, value)
                 elif (attrType == 'datetime'):
-                    setattr(instance, attr, datetime.datetime.strptime(value[:-5],
-                                                                       "%Y-%m-%dT%H:%M:%S.%f"))
+                    setattr(instance,
+                            attr,
+                            datetime.datetime.strptime(
+                                value[:-5],
+                                "%Y-%m-%dT%H:%M:%S.%f"))
                 elif 'list[' in attrType:
                     match = re.match('list\[(.*)\]', attrType)
                     subClass = match.group(1)
@@ -210,5 +201,3 @@ class MethodRequest(urllib2.Request):
 
     def get_method(self):
         return getattr(self, 'method', urllib2.Request.get_method(self))
-
-

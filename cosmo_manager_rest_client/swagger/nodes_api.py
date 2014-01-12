@@ -26,14 +26,17 @@ class NodesApi(object):
         query_params = {}
         post_data = None
 
-        response = self.client.callAPI('/nodes', 'GET', query_params, post_data)
+        response = self.client.callAPI('/nodes', 'GET',
+                                       query_params,
+                                       post_data)
 
         if not response:
             return None
 
         return response
 
-    def get_state_by_id(self, node_id, get_reachable_state=False, get_runtime_state=True):
+    def get_state_by_id(self, node_id, get_reachable_state=False,
+                        get_runtime_state=True):
         query_params = {}
         post_data = None
 
@@ -41,7 +44,8 @@ class NodesApi(object):
             self.client.toPathValue(node_id),
             str(get_reachable_state).lower(),
             str(get_runtime_state).lower())
-        response = self.client.callAPI(resource_path, 'GET', query_params, post_data)
+        response = self.client.callAPI(resource_path, 'GET',
+                                       query_params, post_data)
 
         if not response:
             return None
