@@ -55,7 +55,9 @@ class CosmoManagerRestClient(object):
 
             with self._protected_call_to_server('publishing blueprint'):
                 with open(tar_path, 'rb') as f:
-                    blueprint_state = self._blueprints_api.upload(f, application_file_name=application_file)
+                    blueprint_state = self._blueprints_api.upload(
+                        f,
+                        application_file_name=application_file)
                 return blueprint_state
         finally:
             shutil.rmtree(tempdir)
@@ -75,14 +77,17 @@ class CosmoManagerRestClient(object):
             }
             return self._deployments_api.createDeployment(body=body)
 
-    def execute_deployment(self, deployment_id, operation, events_handler=None, timeout=900):
+    def execute_deployment(self, deployment_id, operation, events_handler=None,
+                           timeout=900):
         end = time.time() + timeout
 
         with self._protected_call_to_server('executing deployment operation'):
             body = {
                 'workflowId': operation
             }
-            execution = self._deployments_api.execute(deployment_id=deployment_id, body=body)
+            execution = self._deployments_api.execute(
+                deployment_id=deployment_id,
+                body=body)
 
             deployment_prev_events_size = 0
             next_event_index = 0
@@ -90,33 +95,50 @@ class CosmoManagerRestClient(object):
             end_states = ('terminated', 'failed')
 
             def is_handle_events():
-                return events_handler and \
-                       (has_more_events or self._check_for_deployment_events(deployment_id, deployment_prev_events_size))
+                return events_handler \
+                    and (has_more_events or self._check_for_deployment_events(
+                        deployment_id, deployment_prev_events_size))
 
             while execution.status not in end_states:
                 if end < time.time():
-                    raise CosmoManagerRestCallError('execution of operation {0} for deployment {1} timed out'.format(
-                        operation, deployment_id))
+                    raise CosmoManagerRestCallError(
+                        'execution of operation {0} for deployment {1} timed '
+                        'out'.format(operation, deployment_id))
                 time.sleep(1)
 
                 if is_handle_events():
-                    (next_event_index, has_more_events, deployment_prev_events_size) = \
-                        self._get_and_handle_deployment_events(deployment_id, events_handler, next_event_index)
+                    (next_event_index, has_more_events,
+                     deployment_prev_events_size) = \
+                        self._get_and_handle_deployment_events(
+                            deployment_id,
+                            events_handler,
+                            next_event_index)
 
                 execution = self._executions_api.getById(execution.id)
 
             if is_handle_events():
-                self._handle_remaining_deployment_events(deployment_id, events_handler, next_event_index)
+                self._handle_remaining_deployment_events(
+                    deployment_id,
+                    events_handler,
+                    next_event_index)
 
             if execution.status != 'terminated':
-                raise CosmoManagerRestCallError('Execution of operation {0} for deployment {1} failed. '
-                                                '(status response: {2})'.format(operation,
-                                                                                deployment_id, execution.error))
+                raise CosmoManagerRestCallError('Execution of operation {0} '
+                                                'for deployment {1} failed. '
+                                                '(status response: {2})'
+                                                .format(
+                                                    operation,
+                                                    deployment_id,
+                                                    execution.error))
 
-    def get_deployment_events(self, deployment_id, response_headers_buffer=None, from_param=0, count_param=500):
+    def get_deployment_events(self, deployment_id,
+                              response_headers_buffer=None,
+                              from_param=0, count_param=500):
         with self._protected_call_to_server('getting deployment events'):
-            return self._deployments_api.readEvents(deployment_id, response_headers_buffer,
-                                                    from_param=from_param, count_param=count_param)
+            return self._deployments_api.readEvents(deployment_id,
+                                                    response_headers_buffer,
+                                                    from_param=from_param,
+                                                    count_param=count_param)
 
     def list_workflows(self, deployment_id):
         with self._protected_call_to_server('listing workflows'):
@@ -124,37 +146,56 @@ class CosmoManagerRestClient(object):
 
     def list_deployment_nodes(self, deployment_id=None):
         """
-        List nodes for the provided deployment_id (if None, all nodes would be retrieved).
+        List nodes for the provided deployment_id (if None,
+        all nodes would be retrieved).
         """
         with self._protected_call_to_server('getting node'):
             return self._nodes_api.list(deployment_id)
 
-    def get_node_state(self, node_id, get_reachable_state=False, get_runtime_state=True):
+    def get_node_state(self, node_id, get_reachable_state=False,
+                       get_runtime_state=True):
         """
         Gets node runtime/reachable state for the provided node_id.
         """
         with self._protected_call_to_server('getting node'):
-            return self._nodes_api.get_state_by_id(node_id, get_reachable_state, get_runtime_state)
+            return self._nodes_api.get_state_by_id(node_id,
+                                                   get_reachable_state,
+                                                   get_runtime_state)
 
-    def _check_for_deployment_events(self, deployment_id, deployment_prev_events_size):
+    def _check_for_deployment_events(self, deployment_id,
+                                     deployment_prev_events_size):
         response_headers_buffer = {}
-        self._deployments_api.eventsHeaders(deployment_id, response_headers_buffer)
-        return response_headers_buffer['deployment-events-bytes'] > deployment_prev_events_size
+        self._deployments_api.eventsHeaders(
+            deployment_id,
+            response_headers_buffer)
+        events_bytes = response_headers_buffer['deployment-events-bytes']
+        return events_bytes > deployment_prev_events_size
 
-    def _get_and_handle_deployment_events(self, deployment_id, events_handler, from_param=0, count_param=500):
+    def _get_and_handle_deployment_events(self, deployment_id, events_handler,
+                                          from_param=0, count_param=500):
         response_headers_buffer = {}
-        deployment_events = self.get_deployment_events(deployment_id, response_headers_buffer,
-                                                       from_param=from_param, count_param=count_param)
+        deployment_events = self.get_deployment_events(
+            deployment_id,
+            response_headers_buffer,
+            from_param=from_param,
+            count_param=count_param)
         events_handler(deployment_events.events)
+        has_more_events = \
+            from_param + count_param < deployment_events.deploymentTotalEvents
         return (deployment_events.lastEvent + 1,
-                from_param + count_param < deployment_events.deploymentTotalEvents,
+                has_more_events,
                 response_headers_buffer['deployment-events-bytes'])
 
-    def _handle_remaining_deployment_events(self, deployment_id, events_handler, next_event_index=0):
+    def _handle_remaining_deployment_events(self, deployment_id,
+                                            events_handler,
+                                            next_event_index=0):
         has_more_events = True
         while has_more_events:
             (next_event_index, has_more_events, _) = \
-                self._get_and_handle_deployment_events(deployment_id, events_handler, next_event_index)
+                self._get_and_handle_deployment_events(
+                    deployment_id,
+                    events_handler,
+                    next_event_index)
 
     @staticmethod
     def _tar_blueprint(blueprint_path, tempdir):
@@ -166,7 +207,8 @@ class CosmoManagerRestClient(object):
             blueprint_directory = os.getcwd()
         tar_path = '{0}/{1}.tar.gz'.format(tempdir, blueprint_name)
         with tarfile.open(tar_path, "w:gz") as tar:
-            tar.add(blueprint_directory, arcname=os.path.basename(blueprint_directory))
+            tar.add(blueprint_directory,
+                    arcname=os.path.basename(blueprint_directory))
         return tar_path
 
     @staticmethod
@@ -181,10 +223,15 @@ class CosmoManagerRestClient(object):
                 if 'message' in server_output:
                     server_message = server_output['message']
             raise CosmoManagerRestCallError('Failed {0}: Error code - {1}; '
-                                            'Message - "{2}"'.format(action_name, ex.code,
-                                                                     server_message if server_message else ex.msg))
+                                            'Message - "{2}"'
+                                            .format(
+                                                action_name,
+                                                ex.code,
+                                                server_message if
+                                                server_message else ex.msg))
         except URLError, ex:
-            raise CosmoManagerRestCallError('Failed {0}: Reason - {1}'.format(action_name, ex.reason))
+            raise CosmoManagerRestCallError('Failed {0}: Reason - {1}'
+                                            .format(action_name, ex.reason))
 
 
 class CosmoManagerRestCallError(Exception):

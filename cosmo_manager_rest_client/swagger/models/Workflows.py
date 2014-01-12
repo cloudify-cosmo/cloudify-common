@@ -10,6 +10,6 @@ class Workflows:
             'blueprintId': 'str',
         }
 
-        self.workflows = None # list[Workflow]
-        self.deploymentId = None # str
-        self.blueprintId = None # str
+        self.workflows = None  # list[Workflow]
+        self.deploymentId = None  # str
+        self.blueprintId = None  # str
