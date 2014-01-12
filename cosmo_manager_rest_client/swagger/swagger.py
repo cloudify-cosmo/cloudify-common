@@ -9,6 +9,7 @@ import urllib
 import urllib2
 import json
 import datetime
+import models
 
 
 class ApiClient:
@@ -138,7 +139,7 @@ class ApiClient:
                              'bool', 'datetime']):
                 objClass = eval(objClass)
             else:  # not a native type, must be model class
-                objClass = eval(objClass + '.' + objClass)
+                objClass = eval(models.__name__ + '.' + objClass + '.' + objClass)
 
         if objClass in [int, long, float, dict, list, str, bool]:
             return objClass(obj)
