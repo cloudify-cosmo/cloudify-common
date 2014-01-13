@@ -10,14 +10,7 @@ import urllib2
 import json
 import datetime
 
-import models.BlueprintState
-import models.BlueprintValidationStatus
-import models.Deployment
-import models.DeploymentEvents
-import models.DeploymentRequest
-import models.Execution
-import models.Workflow
-import models.Workflows
+from models import *  # NOQA
 
 
 class ApiClient:
@@ -30,7 +23,6 @@ class ApiClient:
         self.apiKey = apiKey
         self.apiServer = apiServer
         self.cookie = None
-        models.BlueprintState.__name__
 
     def callAPI(self, resourcePath, method, queryParams, postData,
                 headerParams=None, responseHeadersBuffers=None,

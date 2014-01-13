@@ -24,8 +24,9 @@ setup(
     version=version,
     author='ran',
     author_email='ran@gigaspaces.com',
-    packages=['cosmo_manager_rest_client', 'cosmo_manager_rest_client.swagger', 'cosmo_manager_rest_client.swagger'
-                                                                                '.models'],
+    packages=['cosmo_manager_rest_client',
+              'cosmo_manager_rest_client.swagger',
+              'cosmo_manager_rest_client.swagger''.models'],
     license='LICENSE',
     description='the cosmo manager rest client',
     install_requires=['requests']
