@@ -218,10 +218,16 @@ class CosmoManagerRestClient(object):
             yield
         except HTTPError, ex:
             server_message = None
+            server_output = None
             if ex.fp:
                 server_output = json.loads(ex.fp.read())
-                if 'message' in server_output:
-                    server_message = server_output['message']
+            else:
+                try:
+                    server_output = json.loads(ex.reason)
+                except Exception:
+                    pass
+            if server_output and 'message' in server_output:
+                server_message = server_output['message']
             raise CosmoManagerRestCallError('Failed {0}: Error code - {1}; '
                                             'Message - "{2}"'
                                             .format(

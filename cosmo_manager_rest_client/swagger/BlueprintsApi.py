@@ -17,6 +17,7 @@ Copyright 2012 Wordnik, Inc.
 """
 
 import requests
+from urllib2 import HTTPError
 
 
 class BlueprintsApi(object):
@@ -66,13 +67,14 @@ class BlueprintsApi(object):
                 if len(read_bytes) < buffer_size:
                     return
 
-        response = requests.post('{0}{1}'.format(self.apiClient.apiServer,
-                                                 resourcePath),
+        url = '{0}{1}'.format(self.apiClient.apiServer, resourcePath)
+        response = requests.post(url,
                                  params=queryParams,
                                  data=file_gen())
 
-        if not response:
-            return None
+        if response.status_code != 201:
+            raise HTTPError(url, response.status_code,
+                            response.content, response.headers, None)
 
         responseObject = self.apiClient.deserialize(response.json(),
                                                     'BlueprintState')
