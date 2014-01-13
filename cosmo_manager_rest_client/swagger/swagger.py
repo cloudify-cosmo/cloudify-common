@@ -9,7 +9,15 @@ import urllib
 import urllib2
 import json
 import datetime
-import models
+
+import models.BlueprintState
+import models.BlueprintValidationStatus
+import models.Deployment
+import models.DeploymentEvents
+import models.DeploymentRequest
+import models.Execution
+import models.Workflow
+import models.Workflows
 
 
 class ApiClient:
@@ -22,6 +30,7 @@ class ApiClient:
         self.apiKey = apiKey
         self.apiServer = apiServer
         self.cookie = None
+        models.BlueprintState.__name__
 
     def callAPI(self, resourcePath, method, queryParams, postData,
                 headerParams=None, responseHeadersBuffers=None,
@@ -139,7 +148,7 @@ class ApiClient:
                              'bool', 'datetime']):
                 objClass = eval(objClass)
             else:  # not a native type, must be model class
-                objClass = eval(models.__name__ + '.' + objClass + '.' + objClass)
+                objClass = eval(objClass + '.' + objClass)
 
         if objClass in [int, long, float, dict, list, str, bool]:
             return objClass(obj)
