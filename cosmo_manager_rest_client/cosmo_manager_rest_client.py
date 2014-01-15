@@ -168,7 +168,7 @@ class CosmoManagerRestClient(object):
         self._deployments_api.eventsHeaders(
             deployment_id,
             response_headers_buffer)
-        events_bytes = response_headers_buffer['deployment-events-bytes']
+        events_bytes = int(response_headers_buffer['deployment-events-bytes'])
         return events_bytes > deployment_prev_events_size
 
     def _get_and_handle_deployment_events(self, deployment_id, events_handler,
@@ -184,7 +184,7 @@ class CosmoManagerRestClient(object):
             from_param + count_param < deployment_events.deploymentTotalEvents
         return (deployment_events.lastEvent + 1,
                 has_more_events,
-                response_headers_buffer['deployment-events-bytes'])
+                int(response_headers_buffer['deployment-events-bytes']))
 
     def _handle_remaining_deployment_events(self, deployment_id,
                                             events_handler,
