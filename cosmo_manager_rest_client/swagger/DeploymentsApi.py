@@ -16,6 +16,9 @@ Copyright 2012 Wordnik, Inc.
    limitations under the License.
 """
 
+import requests
+from urllib2 import HTTPError
+
 
 class DeploymentsApi(object):
 
@@ -319,4 +322,30 @@ class DeploymentsApi(object):
 
         responseObject = self.apiClient.deserialize(response,
                                                     'DeploymentEvents')
+        return responseObject
+
+    def listNodes(self, deployment_id, get_reachable_state=False):
+        """Returns a list of the deployments workflows.
+
+        Args:
+            deployment_id : str
+            get_reachable_state: bool (default: False)
+
+        Returns: DeploymentNodes
+        """
+
+        resourcePath = '/deployments/{0}/nodes'.format(deployment_id)
+        queryParams = {
+            'reachable': str(get_reachable_state).lower()
+        }
+
+        url = '{0}{1}'.format(self.apiClient.apiServer, resourcePath)
+        response = requests.get(url, params=queryParams)
+
+        if response.status_code != 200:
+            raise HTTPError(url, response.status_code,
+                            response.content, response.headers, None)
+
+        responseObject = self.apiClient.deserialize(response.json(),
+                                                    'DeploymentNodes')
         return responseObject
