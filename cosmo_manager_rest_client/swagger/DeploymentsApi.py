@@ -19,6 +19,7 @@ Copyright 2012 Wordnik, Inc.
 import requests
 from urllib2 import HTTPError
 
+
 class DeploymentsApi(object):
 
     def __init__(self, apiClient):
