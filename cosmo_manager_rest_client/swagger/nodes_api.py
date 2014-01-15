@@ -21,8 +21,7 @@ class NodesApi(object):
     def __init__(self, client):
         self.client = client
 
-    def list(self, deployment_id=None):
-        # TODO: list nodes for provided deployment id
+    def list(self):
         query_params = {}
         post_data = None
 
