@@ -25,6 +25,7 @@ import json
 from os.path import expanduser
 from contextlib import contextmanager
 from urllib2 import HTTPError, URLError
+from httplib import HTTPException
 
 from swagger.swagger import ApiClient
 from swagger.BlueprintsApi import BlueprintsApi
@@ -245,6 +246,10 @@ class CosmoManagerRestClient(object):
         except URLError, ex:
             raise CosmoManagerRestCallError('Failed {0}: Reason - {1}'
                                             .format(action_name, ex.reason))
+        except HTTPException, e:
+            raise CosmoManagerRestCallError('Failed {0} due to an HTTP '
+                                            'exception'.format(action_name),
+                                            e)
 
 
 class CosmoManagerRestCallError(Exception):
