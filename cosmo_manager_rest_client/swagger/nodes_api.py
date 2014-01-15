@@ -29,7 +29,7 @@ class NodesApi(object):
                                        query_params,
                                        post_data)
 
-        if not response:
+        if response is None:
             return None
 
         return response
@@ -46,7 +46,7 @@ class NodesApi(object):
         response = self.client.callAPI(resource_path, 'GET',
                                        query_params, post_data)
 
-        if not response:
+        if response is None:
             return None
 
         return response

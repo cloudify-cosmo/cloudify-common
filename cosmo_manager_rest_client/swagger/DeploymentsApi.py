@@ -53,7 +53,7 @@ class DeploymentsApi(object):
         response = self.apiClient.callAPI(resourcePath, method, queryParams,
                                           postData, headerParams)
 
-        if not response:
+        if response is None:
             return None
 
         responseObject = self.apiClient.deserialize(response,
@@ -73,7 +73,7 @@ class DeploymentsApi(object):
         method = 'GET'
         response = self.apiClient.callAPI(resourcePath, method, {}, None)
 
-        if not response:
+        if response is None:
             return None
 
         responseObject = self.apiClient.deserialize(response, 'Workflows')
@@ -108,7 +108,7 @@ class DeploymentsApi(object):
         response = self.apiClient.callAPI(resourcePath, method, queryParams,
                                           postData, headerParams)
 
-        if not response:
+        if response is None:
             return None
 
         responseObject = self.apiClient.deserialize(response, 'Deployment')
@@ -148,7 +148,7 @@ class DeploymentsApi(object):
         response = self.apiClient.callAPI(resourcePath, method, queryParams,
                                           postData, headerParams)
 
-        if not response:
+        if response is None:
             return None
 
         responseObject = self.apiClient.deserialize(response,
@@ -189,7 +189,7 @@ class DeploymentsApi(object):
     #     response = self.apiClient.callAPI(resourcePath, method, queryParams,
     #                                       postData, headerParams)
     #
-    #     if not response:
+    #     if response is None:
     #         return None
     #
     #    responseObject = self.apiClient.deserialize(response,
@@ -231,7 +231,7 @@ class DeploymentsApi(object):
         response = self.apiClient.callAPI(resourcePath, method, queryParams,
                                           postData, headerParams)
 
-        if not response:
+        if response is None:
             return None
 
         responseObject = self.apiClient.deserialize(response, 'Execution')
@@ -317,8 +317,12 @@ class DeploymentsApi(object):
             resourcePath, method, queryParams, postData, headerParams,
             responseHeadersBuffers=responseHeadersBuffers)
 
-        if not response:
+        if response is None:
             return None
+
+        import json
+        events_json_str = map(lambda x: json.dumps(x), response['events'])
+        response['events'] = events_json_str
 
         responseObject = self.apiClient.deserialize(response,
                                                     'DeploymentEvents')
