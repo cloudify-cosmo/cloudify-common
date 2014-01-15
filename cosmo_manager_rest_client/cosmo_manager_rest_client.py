@@ -144,13 +144,20 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('listing workflows'):
             return self._deployments_api.listWorkflows(deployment_id)
 
-    def list_deployment_nodes(self, deployment_id=None):
+    def list_nodes(self):
         """
-        List nodes for the provided deployment_id (if None,
-        all nodes would be retrieved).
+        List all nodes
         """
         with self._protected_call_to_server('getting node'):
-            return self._nodes_api.list(deployment_id)
+            return self._nodes_api.list()
+
+    def list_deployment_nodes(self, deployment_id, get_reachable_state=False):
+        """
+        List nodes for the provided deployment_id
+        """
+        with self._protected_call_to_server('getting deployment nodes'):
+            return self._deployments_api.listNodes(deployment_id,
+                                                   get_reachable_state)
 
     def get_node_state(self, node_id, get_reachable_state=False,
                        get_runtime_state=True):
