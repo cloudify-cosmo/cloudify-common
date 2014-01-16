@@ -17,6 +17,7 @@ __author__ = 'ran'
 
 import tempfile
 import os
+import sys
 import time
 import shutil
 import tarfile
@@ -236,20 +237,24 @@ class CosmoManagerRestClient(object):
                     pass
             if server_output and 'message' in server_output:
                 server_message = server_output['message']
-            raise CosmoManagerRestCallError('Failed {0}: Error code - {1}; '
-                                            'Message - "{2}"'
-                                            .format(
-                                                action_name,
-                                                ex.code,
-                                                server_message if
-                                                server_message else ex.msg))
+            trace = sys.exc_info()[2]
+            raise CosmoManagerRestCallError(
+                'Failed {0}: Error code - {1}; Message - "{2}"'
+                .format(
+                    action_name,
+                    ex.code,
+                    server_message if
+                    server_message else ex.msg)), None, trace
         except URLError, ex:
-            raise CosmoManagerRestCallError('Failed {0}: Reason - {1}'
-                                            .format(action_name, ex.reason))
-        except HTTPException, e:
-            raise CosmoManagerRestCallError('Failed {0} due to an HTTP '
-                                            'exception'.format(action_name),
-                                            e)
+            trace = sys.exc_info()[2]
+            raise CosmoManagerRestCallError(
+                'Failed {0}: Reason - {1}'
+                .format(action_name, ex.reason)), None, trace
+        except HTTPException, ex:
+            trace = sys.exc_info()[2]
+            raise CosmoManagerRestCallError(
+                'Failed {0}: Error - {1}'
+                .format(action_name, ex.message)), None, trace
 
 
 class CosmoManagerRestCallError(Exception):
