@@ -41,7 +41,7 @@ class CosmoManagerRestClient(object):
         self._blueprints_api = BlueprintsApi(api_client)
         self._executions_api = ExecutionsApi(api_client)
         self._deployments_api = DeploymentsApi(api_client)
-        self._nodes_api = NodesApi(api_client)
+        self._nodes_api = NodesApi(api_client, server_url)
 
     def list_blueprints(self):
         with self._protected_call_to_server('listing blueprints'):
@@ -161,6 +161,24 @@ class CosmoManagerRestClient(object):
             return self._nodes_api.get_state_by_id(node_id,
                                                    get_reachable_state,
                                                    get_runtime_state)
+
+    def update_node_state(self, node_id, updated_properties):
+        """Updates node runtime state for the provided node_id.
+        Args:
+            node_id: The node id.
+            updated_properties: The node's updated runtime properties as dict
+                where each key's value is a list of values (new, previous)
+                in order to provide the storage implementation a way to
+                perform the update with some kind of optimistic locking.
+                For new keys list should contain a single item.
+        Returns:
+            Updated node runtime properties.
+            Example:
+                { "id": "node...", "runtimeInfo" { ... } }
+        """
+        with self._protected_call_to_server('updating node runtime state'):
+            return self._nodes_api.update_node_state(node_id,
+                                                     updated_properties)
 
     def _check_for_deployment_events(self, deployment_id,
                                      deployment_prev_events_size):

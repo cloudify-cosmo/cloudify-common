@@ -16,10 +16,15 @@
 __author__ = 'idanmo'
 
 
+import requests
+import json
+
+
 class NodesApi(object):
 
-    def __init__(self, client):
+    def __init__(self, client, server_url):
         self.client = client
+        self.server_url = server_url
 
     def list(self, deployment_id=None):
         # TODO: list nodes for provided deployment id
@@ -46,8 +51,18 @@ class NodesApi(object):
             str(get_runtime_state).lower())
         response = self.client.callAPI(resource_path, 'GET',
                                        query_params, post_data)
-
         if not response:
             return None
 
         return response
+
+    def update_node_state(self, node_id, updated_properties):
+        response = requests.patch("{0}/nodes/{1}".format(
+            self.server_url, node_id),
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps(updated_properties))
+        if response.status_code != 200:
+            msg = 'Error updating node runtime state for node id '
+            '{0} [code={1}]'.format(node_id, response.status_code)
+            raise RuntimeError(msg)
+        return response.json()
