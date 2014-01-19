@@ -57,7 +57,7 @@ class ExecutionsApi(object):
         response = self.apiClient.callAPI(resourcePath, method, queryParams,
                                           postData, headerParams)
 
-        if not response:
+        if response is None:
             return None
 
         responseObject = self.apiClient.deserialize(response, 'Execution')

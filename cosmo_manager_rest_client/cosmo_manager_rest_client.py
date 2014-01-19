@@ -17,6 +17,7 @@ __author__ = 'ran'
 
 import tempfile
 import os
+import sys
 import time
 import shutil
 import tarfile
@@ -25,6 +26,7 @@ import json
 from os.path import expanduser
 from contextlib import contextmanager
 from urllib2 import HTTPError, URLError
+from httplib import HTTPException
 
 from swagger.swagger import ApiClient
 from swagger.BlueprintsApi import BlueprintsApi
@@ -144,13 +146,20 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('listing workflows'):
             return self._deployments_api.listWorkflows(deployment_id)
 
-    def list_deployment_nodes(self, deployment_id=None):
+    def list_nodes(self):
         """
-        List nodes for the provided deployment_id (if None,
-        all nodes would be retrieved).
+        List all nodes
         """
         with self._protected_call_to_server('getting node'):
-            return self._nodes_api.list(deployment_id)
+            return self._nodes_api.list()
+
+    def list_deployment_nodes(self, deployment_id, get_reachable_state=False):
+        """
+        List nodes for the provided deployment_id
+        """
+        with self._protected_call_to_server('getting deployment nodes'):
+            return self._deployments_api.listNodes(deployment_id,
+                                                   get_reachable_state)
 
     def get_node_state(self, node_id, get_reachable_state=False,
                        get_runtime_state=True):
@@ -186,7 +195,7 @@ class CosmoManagerRestClient(object):
         self._deployments_api.eventsHeaders(
             deployment_id,
             response_headers_buffer)
-        events_bytes = response_headers_buffer['deployment-events-bytes']
+        events_bytes = int(response_headers_buffer['deployment-events-bytes'])
         return events_bytes > deployment_prev_events_size
 
     def _get_and_handle_deployment_events(self, deployment_id, events_handler,
@@ -202,7 +211,7 @@ class CosmoManagerRestClient(object):
             from_param + count_param < deployment_events.deploymentTotalEvents
         return (deployment_events.lastEvent + 1,
                 has_more_events,
-                response_headers_buffer['deployment-events-bytes'])
+                int(response_headers_buffer['deployment-events-bytes']))
 
     def _handle_remaining_deployment_events(self, deployment_id,
                                             events_handler,
@@ -236,20 +245,34 @@ class CosmoManagerRestClient(object):
             yield
         except HTTPError, ex:
             server_message = None
+            server_output = None
             if ex.fp:
                 server_output = json.loads(ex.fp.read())
-                if 'message' in server_output:
-                    server_message = server_output['message']
-            raise CosmoManagerRestCallError('Failed {0}: Error code - {1}; '
-                                            'Message - "{2}"'
-                                            .format(
-                                                action_name,
-                                                ex.code,
-                                                server_message if
-                                                server_message else ex.msg))
+            else:
+                try:
+                    server_output = json.loads(ex.reason)
+                except Exception:
+                    pass
+            if server_output and 'message' in server_output:
+                server_message = server_output['message']
+            trace = sys.exc_info()[2]
+            raise CosmoManagerRestCallError(
+                'Failed {0}: Error code - {1}; Message - "{2}"'
+                .format(
+                    action_name,
+                    ex.code,
+                    server_message if
+                    server_message else ex.msg)), None, trace
         except URLError, ex:
-            raise CosmoManagerRestCallError('Failed {0}: Reason - {1}'
-                                            .format(action_name, ex.reason))
+            trace = sys.exc_info()[2]
+            raise CosmoManagerRestCallError(
+                'Failed {0}: Reason - {1}'
+                .format(action_name, ex.reason)), None, trace
+        except HTTPException, ex:
+            trace = sys.exc_info()[2]
+            raise CosmoManagerRestCallError(
+                'Failed {0}: Error - {1}'
+                .format(action_name, ex.message)), None, trace
 
 
 class CosmoManagerRestCallError(Exception):

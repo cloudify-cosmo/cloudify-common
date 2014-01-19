@@ -9,7 +9,8 @@ import urllib
 import urllib2
 import json
 import datetime
-import models
+
+from models import *  # NOQA
 
 
 class ApiClient:
@@ -139,7 +140,7 @@ class ApiClient:
                              'bool', 'datetime']):
                 objClass = eval(objClass)
             else:  # not a native type, must be model class
-                objClass = eval(models.__name__ + '.' + objClass + '.' + objClass)
+                objClass = eval(objClass + '.' + objClass)
 
         if objClass in [int, long, float, dict, list, str, bool]:
             return objClass(obj)

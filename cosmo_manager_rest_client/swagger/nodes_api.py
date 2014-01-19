@@ -26,8 +26,7 @@ class NodesApi(object):
         self.client = client
         self.server_url = server_url
 
-    def list(self, deployment_id=None):
-        # TODO: list nodes for provided deployment id
+    def list(self):
         query_params = {}
         post_data = None
 
@@ -35,7 +34,7 @@ class NodesApi(object):
                                        query_params,
                                        post_data)
 
-        if not response:
+        if response is None:
             return None
 
         return response
@@ -51,7 +50,8 @@ class NodesApi(object):
             str(get_runtime_state).lower())
         response = self.client.callAPI(resource_path, 'GET',
                                        query_params, post_data)
-        if not response:
+
+        if response is None:
             return None
 
         return response
