@@ -16,6 +16,10 @@
 __author__ = 'idanmo'
 
 
+import requests
+import json
+
+
 class NodesApi(object):
 
     def __init__(self, client):
@@ -50,3 +54,14 @@ class NodesApi(object):
             return None
 
         return response
+
+    def update_node_state(self, node_id, updated_properties):
+        response = requests.patch("{0}/nodes/{1}".format(
+            self.apiClient.apiServer, node_id),
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps(updated_properties))
+        if response.status_code != 200:
+            msg = 'Error updating node runtime state for node id '
+            '{0} [code={1}]'.format(node_id, response.status_code)
+            raise RuntimeError(msg)
+        return response.json()

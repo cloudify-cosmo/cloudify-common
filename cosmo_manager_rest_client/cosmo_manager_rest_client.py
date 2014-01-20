@@ -171,6 +171,28 @@ class CosmoManagerRestClient(object):
                                                    get_reachable_state,
                                                    get_runtime_state)
 
+    def update_node_state(self, node_id, updated_properties):
+        """Updates node runtime state for the provided node_id.
+        Args:
+            node_id: The node id.
+            updated_properties: The node's updated runtime properties as dict
+                where each key's value is a list of values [new, previous]
+                in order to provide the storage implementation a way to
+                perform the update with some kind of optimistic locking.
+                For new keys list should contain a single item.
+                For example: {
+                    "new_key": ["value"],
+                    "updated_key": ["new_value", "old_value"]
+                }
+        Returns:
+            Updated node runtime properties.
+            Example:
+                { "id": "node...", "runtimeInfo" { ... } }
+        """
+        with self._protected_call_to_server('updating node runtime state'):
+            return self._nodes_api.update_node_state(node_id,
+                                                     updated_properties)
+
     def _check_for_deployment_events(self, deployment_id,
                                      deployment_prev_events_size):
         response_headers_buffer = {}
