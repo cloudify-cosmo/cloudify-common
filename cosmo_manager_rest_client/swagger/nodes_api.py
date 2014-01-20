@@ -57,7 +57,7 @@ class NodesApi(object):
 
     def update_node_state(self, node_id, updated_properties):
         response = requests.patch("{0}/nodes/{1}".format(
-            self.apiClient.apiServer, node_id),
+            self.client.apiServer, node_id),
             headers={'Content-Type': 'application/json'},
             data=json.dumps(updated_properties))
         if response.status_code != 200:
