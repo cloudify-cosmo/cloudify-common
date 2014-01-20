@@ -16,13 +16,12 @@
 __author__ = 'idanmo'
 
 
-import requests
 import json
 
 
 class NodesApi(object):
 
-    def __init__(self, client, server_url):
+    def __init__(self, client):
         self.client = client
 
     def list(self):
