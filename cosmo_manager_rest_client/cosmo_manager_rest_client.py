@@ -176,7 +176,7 @@ class CosmoManagerRestClient(object):
         Args:
             node_id: The node id.
             updated_properties: The node's updated runtime properties as dict
-                where each key's value is a list of values (new, previous)
+                where each key's value is a list of values [new, previous]
                 in order to provide the storage implementation a way to
                 perform the update with some kind of optimistic locking.
                 For new keys list should contain a single item.
