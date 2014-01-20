@@ -43,7 +43,7 @@ class CosmoManagerRestClient(object):
         self._blueprints_api = BlueprintsApi(api_client)
         self._executions_api = ExecutionsApi(api_client)
         self._deployments_api = DeploymentsApi(api_client)
-        self._nodes_api = NodesApi(api_client, server_url)
+        self._nodes_api = NodesApi(api_client)
 
     def list_blueprints(self):
         with self._protected_call_to_server('listing blueprints'):
@@ -180,6 +180,10 @@ class CosmoManagerRestClient(object):
                 in order to provide the storage implementation a way to
                 perform the update with some kind of optimistic locking.
                 For new keys list should contain a single item.
+                For example: {
+                    "new_key": ["value"],
+                    "updated_key": ["new_value", "old_value"]
+                }
         Returns:
             Updated node runtime properties.
             Example:

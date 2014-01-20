@@ -24,7 +24,6 @@ class NodesApi(object):
 
     def __init__(self, client, server_url):
         self.client = client
-        self.server_url = server_url
 
     def list(self):
         query_params = {}
@@ -58,7 +57,7 @@ class NodesApi(object):
 
     def update_node_state(self, node_id, updated_properties):
         response = requests.patch("{0}/nodes/{1}".format(
-            self.server_url, node_id),
+            self.apiClient.apiServer, node_id),
             headers={'Content-Type': 'application/json'},
             data=json.dumps(updated_properties))
         if response.status_code != 200:
