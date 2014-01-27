@@ -276,7 +276,7 @@ class CosmoManagerRestClient(object):
             trace = sys.exc_info()[2]
             raise CosmoManagerRestCallError(
                 'Failed {0}: Error - {1}'
-                .format(action_name, ex.message)), None, trace
+                .format(action_name, str(ex))), None, trace
 
 
 class CosmoManagerRestCallError(Exception):
