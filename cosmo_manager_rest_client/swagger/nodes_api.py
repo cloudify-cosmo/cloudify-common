@@ -56,7 +56,7 @@ class NodesApi(object):
 
     def update_node_state(self, node_id, updated_properties):
 
-        resource_path = '/nodes/{1}'.format(node_id)
+        resource_path = '/nodes/{0}'.format(node_id)
         url = self.api_client.resource_url(resource_path)
         response = requests.patch(url,
                                   headers={'Content-Type': 'application/json'},
