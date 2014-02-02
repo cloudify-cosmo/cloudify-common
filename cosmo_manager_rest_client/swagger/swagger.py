@@ -9,6 +9,7 @@ import urllib
 import urllib2
 import json
 import datetime
+from urllib2 import HTTPError
 
 from models import *  # NOQA
 
@@ -187,6 +188,15 @@ class ApiClient:
                                                              objClass))
 
         return instance
+
+    def resource_url(self, resource_path):
+        return '{0}{1}'.format(self.apiServer, resource_path)
+
+    @staticmethod
+    def raise_if_not(status_code, response, url):
+        if response.status_code != status_code:
+            raise HTTPError(url, response.status_code,
+                            response.content, response.headers, None)
 
 
 class MethodRequest(urllib2.Request):
