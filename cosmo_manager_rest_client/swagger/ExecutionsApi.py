@@ -16,13 +16,15 @@ Copyright 2012 Wordnik, Inc.
    limitations under the License.
 """
 
+import requests
+
 
 class ExecutionsApi(object):
 
-    def __init__(self, apiClient):
-        self.apiClient = apiClient
+    def __init__(self, api_client):
+        self.api_client = api_client
 
-    def getById(self, execution_id, **kwargs):
+    def getById(self, execution_id):
         """Returns the execution state by its id.
         Args:
             execution_id, str: ID of the execution that needs to
@@ -30,35 +32,11 @@ class ExecutionsApi(object):
         Returns: Execution
         """
 
-        allParams = ['execution_id']
+        resource_path = '/executions/{0}'.format(execution_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.get(url)
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s' "
-                                "to method getById" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(200, response, url)
 
-        resourcePath = '/executions/{execution_id}'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'GET'
-
-        queryParams = {}
-        headerParams = {}
-
-        if ('execution_id' in params):
-            replacement = str(self.apiClient.toPathValue(
-                params['execution_id']))
-            resourcePath = resourcePath.replace('{' + 'execution_id' + '}',
-                                                replacement)
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if response is None:
-            return None
-
-        responseObject = self.apiClient.deserialize(response, 'Execution')
-        return responseObject
+        return self.api_client.deserialize(response.json(),
+                                           'Execution')

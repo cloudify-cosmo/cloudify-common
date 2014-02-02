@@ -87,7 +87,7 @@ class BlueprintsApi(object):
 
         self.api_client.raise_if_not(200, response, url)
 
-        return self.api_client.deserialize(response,
+        return self.api_client.deserialize(response.json(),
                                            'BlueprintState')
 
     def validate(self, blueprint_id):
@@ -105,7 +105,7 @@ class BlueprintsApi(object):
 
         self.api_client.raise_if_not(200, response, url)
 
-        return self.api_client.deserialize(response,
+        return self.api_client.deserialize(response.json(),
                                            'BlueprintValidationStatus')
 
     def delete(self, blueprint_id):
@@ -123,5 +123,5 @@ class BlueprintsApi(object):
 
         self.api_client.raise_if_not(201, response, url)
 
-        return self.api_client.deserialize(response,
+        return self.api_client.deserialize(response.json(),
                                            'BlueprintState')
