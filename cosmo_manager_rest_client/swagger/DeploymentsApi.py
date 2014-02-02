@@ -140,7 +140,7 @@ class DeploymentsApi(object):
         """
 
         resource_path = '/deployments/{0}/events'.format(id)
-        url = self.api_client(resource_path)
+        url = self.api_client.resource_url(resource_path)
 
         query_params = {
             'from': str(from_param),
