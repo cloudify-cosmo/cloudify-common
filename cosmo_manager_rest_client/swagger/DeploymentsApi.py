@@ -128,7 +128,7 @@ class DeploymentsApi(object):
         responseHeadersBuffers.update(response.headers)
 
     def readEvents(self, id, responseHeadersBuffers=None, from_param=0,
-                   count_param=500, **kwargs):
+                   count_param=500):
         """Returns deployments events.
         Args:
             id, str: ID of deployment that needs to be fetched (required)
