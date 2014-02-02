@@ -22,46 +22,46 @@ import json
 
 class NodesApi(object):
 
-    def __init__(self, client):
-        self.client = client
+    def __init__(self, api_client):
+        self.api_client = api_client
 
     def list(self):
-        query_params = {}
-        post_data = None
 
-        response = self.client.callAPI('/nodes', 'GET',
-                                       query_params,
-                                       post_data)
+        resource_path = '/nodes'
+        url = self.api_client.resource_url(resource_path)
+        response = requests.get(url)
 
-        if response is None:
-            return None
+        self.api_client.raise_if_not(200, response, url)
 
-        return response
+        return response.json()
 
     def get_state_by_id(self, node_id, get_reachable_state=False,
                         get_runtime_state=True):
-        query_params = {}
-        post_data = None
 
-        resource_path = '/nodes/{0}?reachable={1}&runtime={2}'.format(
-            self.client.toPathValue(node_id),
-            str(get_reachable_state).lower(),
-            str(get_runtime_state).lower())
-        response = self.client.callAPI(resource_path, 'GET',
-                                       query_params, post_data)
+        resource_path = '/nodes/{0}'.format(node_id)
 
-        if response is None:
-            return None
+        query_params = {
+            'reachable': str(get_reachable_state).lower(),
+            'runtime': str(get_runtime_state).lower()
+        }
 
-        return response
+        url = self.api_client.resource_url(resource_path)
+
+        response = requests.get(url,
+                                params=query_params)
+
+        self.api_client.raise_if_not(200, response, url)
+
+        return response.json()
 
     def update_node_state(self, node_id, updated_properties):
-        response = requests.patch("{0}/nodes/{1}".format(
-            self.client.apiServer, node_id),
-            headers={'Content-Type': 'application/json'},
-            data=json.dumps(updated_properties))
-        if response.status_code != 200:
-            msg = 'Error updating node runtime state for node id '
-            '{0} [code={1}]'.format(node_id, response.status_code)
-            raise RuntimeError(msg)
+
+        resource_path = '/nodes/{0}'.format(node_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.patch(url,
+                                  headers={'Content-Type': 'application/json'},
+                                  data=json.dumps(updated_properties))
+
+        self.api_client.raise_if_not(200, response, url)
+
         return response.json()

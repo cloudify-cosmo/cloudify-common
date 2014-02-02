@@ -1,63 +1,42 @@
-#!/usr/bin/env python
-"""
-WordAPI.py
-Copyright 2012 Wordnik, Inc.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-"""
+########
+# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    * See the License for the specific language governing permissions and
+#    * limitations under the License.
 
 import requests
-from urllib2 import HTTPError
 
 
 class BlueprintsApi(object):
 
-    def __init__(self, apiClient):
-        self.apiClient = apiClient
+    def __init__(self, api_client):
+        self.api_client = api_client
 
-    def upload(self, tar_file_obj, **kwargs):
+    def upload(self, tar_file_obj, application_file_name=None):
         """Upload a new blueprint to Cloudify
-
         Args:
             tar_file_obj, File object of the tar gzipped
                 blueprint directory (required)
             application_file_name, : File name of yaml containing
                 the main blueprint. (optional)
-
         Returns: BlueprintState
         """
 
-        allParams = ['body', 'application_file_name']
+        resource_path = '/blueprints'
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s' "
-                                "to method upload" % key)
-            params[key] = val
-        del params['kwargs']
-
-        resourcePath = '/blueprints'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'POST'
-
-        queryParams = {}
-        headerParams = {}
-
-        if ('application_file_name' in params):
-            queryParams['application_file_name'] = self.apiClient.toPathValue(
-                params['application_file_name'])
-        postData = (params['body'] if 'body' in params else None)
+        query_params = {}
+        if application_file_name is not None:
+            query_params['application_file_name'] = \
+                self.api_client.toPathValue(application_file_name)
 
         def file_gen():
             buffer_size = 8192
@@ -67,96 +46,48 @@ class BlueprintsApi(object):
                 if len(read_bytes) < buffer_size:
                     return
 
-        url = '{0}{1}'.format(self.apiClient.apiServer, resourcePath)
+        url = self.api_client.resource_url(resource_path)
         response = requests.post(url,
-                                 params=queryParams,
+                                 params=query_params,
                                  data=file_gen())
 
-        if response.status_code != 201:
-            raise HTTPError(url, response.status_code,
-                            response.content, response.headers, None)
+        self.api_client.raise_if_not(201, response, url)
 
-        responseObject = self.apiClient.deserialize(response.json(),
-                                                    'BlueprintState')
-        return responseObject
+        return self.api_client.deserialize(response.json(),
+                                           'BlueprintState')
 
-    def list(self, **kwargs):
+    def list(self):
         """Returns a list a submitted blueprints.
         Args:
         Returns: list[BlueprintState]
         """
 
-        allParams = []
+        resource_path = '/blueprints'
+        url = self.api_client.resource_url(resource_path)
+        response = requests.get(url)
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s'"
-                                "to method list" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(200, response, url)
 
-        resourcePath = '/blueprints'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'GET'
+        return self.api_client.deserialize(response.json(),
+                                           'list[BlueprintState]')
 
-        queryParams = {}
-        headerParams = {}
-
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if response is None:
-            return None
-
-        responseObject = self.apiClient.deserialize(response,
-                                                    'list[BlueprintState]')
-        return responseObject
-
-    def getById(self, blueprint_id, **kwargs):
+    def getById(self, blueprint_id):
         """Returns a blueprint by its id.
         Args:
             blueprint_id, :  (optional)
         Returns: BlueprintState
         """
 
-        allParams = ['blueprint_id']
+        resource_path = '/blueprints/{0}'.format(blueprint_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.get(url)
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s' to"
-                                " method getById" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(200, response, url)
 
-        resourcePath = '/blueprints/{blueprint_id}'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'GET'
+        return self.api_client.deserialize(response.json(),
+                                           'BlueprintState')
 
-        queryParams = {}
-        headerParams = {}
-
-        if ('blueprint_id' in params):
-            replacement = str(self.apiClient.toPathValue(
-                params['blueprint_id']))
-            resourcePath = resourcePath.replace('{' + 'blueprint_id' + '}',
-                                                replacement)
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if response is None:
-            return None
-
-        responseObject = self.apiClient.deserialize(response,
-                                                    'BlueprintState')
-        return responseObject
-
-    def validate(self, blueprint_id, **kwargs):
+    def validate(self, blueprint_id):
         """Validates a given blueprint.
 
         Args:
@@ -165,42 +96,16 @@ class BlueprintsApi(object):
         Returns: BlueprintValidationStatus
         """
 
-        allParams = ['blueprint_id']
+        resource_path = '/blueprints/{0}/validate'.format(blueprint_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.get(url)
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s' to"
-                                " method validate" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(200, response, url)
 
-        resourcePath = '/blueprints/{blueprint_id}/validate'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'GET'
+        return self.api_client.deserialize(response.json(),
+                                           'BlueprintValidationStatus')
 
-        queryParams = {}
-        headerParams = {}
-
-        if ('blueprint_id' in params):
-            replacement = str(self.apiClient.toPathValue(
-                params['blueprint_id']))
-            resourcePath = resourcePath.replace('{' + 'blueprint_id' + '}',
-                                                replacement)
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if response is None:
-            return None
-
-        responseObject = self.apiClient.deserialize(
-            response,
-            'BlueprintValidationStatus')
-        return responseObject
-
-    def delete(self, blueprint_id, **kwargs):
+    def delete(self, blueprint_id):
         """Deletes a given blueprint.
 
         Args:
@@ -209,37 +114,11 @@ class BlueprintsApi(object):
         Returns: BlueprintState
         """
 
-        allParams = ['blueprint_id']
+        resource_path = '/blueprints/{0}'.format(blueprint_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.delete(url)
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s' "
-                                "to method delete" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(201, response, url)
 
-        resourcePath = '/blueprints'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'DELETE'
-
-        queryParams = {}
-        headerParams = {}
-
-        if ('blueprint_id' in params):
-            replacement = str(self.apiClient.toPathValue(
-                params['blueprint_id']))
-            resourcePath = resourcePath.replace('{' + 'blueprint_id' + '}',
-                                                replacement)
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if response is None:
-            return None
-
-        responseObject = self.apiClient.deserialize(
-            response,
-            'BlueprintState')
-        return responseObject
+        return self.api_client.deserialize(response.json(),
+                                           'BlueprintState')
