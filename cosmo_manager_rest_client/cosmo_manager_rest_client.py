@@ -72,7 +72,7 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('validating blueprint'):
             return self._blueprints_api.validate(blueprint_id)
 
-    def list_deployments(self, blueprint_id=None):
+    def list_deployments(self):
         with self._protected_call_to_server('list deployments'):
             return self._deployments_api.list()
 
