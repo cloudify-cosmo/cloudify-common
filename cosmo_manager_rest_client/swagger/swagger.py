@@ -7,7 +7,6 @@ templates."""
 import re
 import urllib
 import urllib2
-import json
 import datetime
 
 from models import *  # NOQA
@@ -23,68 +22,6 @@ class ApiClient:
         self.apiKey = apiKey
         self.apiServer = apiServer
         self.cookie = None
-
-    def callAPI(self, resourcePath, method, queryParams, postData,
-                headerParams=None, responseHeadersBuffers=None,
-                isPostDataBinary=False):
-
-        url = self.apiServer + resourcePath
-        headers = {}
-        if headerParams:
-            for param, value in headerParams.iteritems():
-                headers[param] = value
-
-        #headers['Content-type'] = 'application/json'
-        headers['api_key'] = self.apiKey
-
-        if self.cookie:
-            headers['Cookie'] = self.cookie
-
-        data = None
-
-        if queryParams:
-            # Need to remove None values, these should not be sent
-            sentQueryParams = {}
-            for param, value in queryParams.items():
-                if value is not None:
-                    sentQueryParams[param] = value
-            url = url + '?' + urllib.urlencode(sentQueryParams)
-
-        if method in ['GET']:
-
-            #Options to add statements later on and for compatibility
-            pass
-
-        elif method in ['POST', 'PUT', 'DELETE', 'HEAD']:
-            headers['Content-type'] = 'application/json'
-            if postData:
-                if not isPostDataBinary:
-                    data = self.sanitizeForSerialization(postData)
-                    data = json.dumps(data)
-                else:
-                    headers['Content-type'] = 'application/octet-stream'
-                    data = postData
-
-        else:
-            raise Exception('Method ' + method + ' is not recognized.')
-
-        request = MethodRequest(method=method, url=url, headers=headers,
-                                data=data)
-
-        # Make the request
-        response = urllib2.urlopen(request)
-        if 'Set-Cookie' in response.headers:
-            self.cookie = response.headers['Set-Cookie']
-        if responseHeadersBuffers is not None:
-            responseHeadersBuffers.update(response.headers.dict)
-        string = response.read()
-
-        try:
-            data = json.loads(string)
-        except ValueError:  # PUT requests don't return anything
-            data = None
-
-        return data
 
     def toPathValue(self, obj):
         """Convert a string or object to a path-friendly value
@@ -188,18 +125,11 @@ class ApiClient:
 
         return instance
 
+    def resource_url(self, resource_path):
+        return '{0}{1}'.format(self.apiServer, resource_path)
 
-class MethodRequest(urllib2.Request):
-
-    def __init__(self, *args, **kwargs):
-        """Construct a MethodRequest. Usage is the same as for
-        `urllib2.Request` except it also takes an optional `method`
-        keyword argument. If supplied, `method` will be used instead of
-        the default."""
-
-        if 'method' in kwargs:
-            self.method = kwargs.pop('method')
-        return urllib2.Request.__init__(self, *args, **kwargs)
-
-    def get_method(self):
-        return getattr(self, 'method', urllib2.Request.get_method(self))
+    @staticmethod
+    def raise_if_not(status_code, response, url):
+        if response.status_code != status_code:
+            raise urllib2.HTTPError(url, response.status_code,
+                                    response.content, response.headers, None)

@@ -1,66 +1,43 @@
-#!/usr/bin/env python
-"""
-WordAPI.py
-Copyright 2012 Wordnik, Inc.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-"""
+########
+# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    * See the License for the specific language governing permissions and
+#    * limitations under the License.
 
 import requests
-from urllib2 import HTTPError
+import json
 
 
 class DeploymentsApi(object):
 
-    def __init__(self, apiClient):
-        self.apiClient = apiClient
+    def __init__(self, api_client):
+        self.api_client = api_client
 
-    def list(self, **kwargs):
+    def list(self):
         """Returns a list existing deployments.
         Args:
         Returns: list[Deployment]
         """
 
-        allParams = []
+        resource_path = '/deployments'
+        url = self.api_client.resource_url(resource_path)
+        response = requests.get(url)
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s' "
-                                "to method list" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(200, response, url)
 
-        resourcePath = '/deployments'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'GET'
+        return self.api_client.deserialize(response.json(),
+                                           'list[Deployment]')
 
-        queryParams = {}
-        headerParams = {}
-
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if response is None:
-            return None
-
-        responseObject = self.apiClient.deserialize(response,
-                                                    'list[Deployment]')
-        return responseObject
-
-    def listWorkflows(self, deployment_id, **kwargs):
+    def listWorkflows(self, deployment_id):
         """Returns a list of the deployments workflows.
 
         Args:
@@ -69,134 +46,50 @@ class DeploymentsApi(object):
         Returns: Workflows
         """
 
-        resourcePath = '/deployments/{0}/workflows'.format(deployment_id)
-        method = 'GET'
-        response = self.apiClient.callAPI(resourcePath, method, {}, None)
+        resource_path = '/deployments/{0}/workflows'.format(deployment_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.get(url)
 
-        if response is None:
-            return None
+        self.api_client.raise_if_not(200, response, url)
 
-        responseObject = self.apiClient.deserialize(response, 'Workflows')
-        return responseObject
+        return self.api_client.deserialize(response.json(),
+                                           'Workflows')
 
-    def createDeployment(self, body, **kwargs):
+    def createDeployment(self, body):
         """Creates a new deployment
         Args:
             body, DeploymentRequest: Deployment blue print (required)
         Returns: Deployment
         """
 
-        allParams = ['body']
+        resource_path = '/deployments'
+        url = self.api_client.resource_url(resource_path)
+        response = requests.post(url,
+                                 headers={'Content-type': 'application/json'},
+                                 data=json.dumps(body))
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s' "
-                                "to method createDeployment" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(201, response, url)
 
-        resourcePath = '/deployments'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'POST'
+        return self.api_client.deserialize(response.json(),
+                                           'Deployment')
 
-        queryParams = {}
-        headerParams = {}
-
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if response is None:
-            return None
-
-        responseObject = self.apiClient.deserialize(response, 'Deployment')
-        return responseObject
-
-    def getById(self, deployment_id, **kwargs):
+    def getById(self, deployment_id):
         """
         Args:
             deployment_id, :  (optional)
         Returns: BlueprintState
         """
 
-        allParams = ['deployment_id']
+        resource_path = '/deployments/{0}'.format(deployment_id)
+        url = self.api_client(resource_path)
+        response = requests.get(url)
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s' "
-                                "to method getById" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(200, response, url)
 
-        resourcePath = '/deployments/{deployment_id}'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'GET'
+        return self.api_client.deserialize(response.json(),
+                                           'BlueprintState')
 
-        queryParams = {}
-        headerParams = {}
-
-        if ('deployment_id' in params):
-            replacement = str(self.apiClient.toPathValue(
-                params['deployment_id']))
-            resourcePath = resourcePath.replace('{' + 'deployment_id' + '}',
-                                                replacement)
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if response is None:
-            return None
-
-        responseObject = self.apiClient.deserialize(response,
-                                                    'BlueprintState')
-        return responseObject
-
-    # def list(self, deployment_id, **kwargs):
-    #     """Returns a list of executions related to the provided blueprint.
-    #     Args:
-    #         deployment_id, :  (optional)
-    #     Returns: list[Execution]
-    #     """
-    #
-    #     allParams = ['deployment_id']
-    #
-    #     params = locals()
-    #     for (key, val) in params['kwargs'].iteritems():
-    #         if key not in allParams:
-    #             raise TypeError("Got an unexpected keyword argument '%s'"
-    #                             " to method list" % key)
-    #         params[key] = val
-    #     del params['kwargs']
-    #
-    #     resourcePath = '/deployments/{deployment_id}/executions'
-    #     resourcePath = resourcePath.replace('{format}', 'json')
-    #     method = 'GET'
-    #
-    #     queryParams = {}
-    #     headerParams = {}
-    #
-    #     if ('deployment_id' in params):
-    #         replacement = str(self.apiClient.toPathValue(
-    #             params['deployment_id']))
-    #         resourcePath = resourcePath.replace('{' + 'deployment_id' + '}',
-    #                                             replacement)
-    #     postData = (params['body'] if 'body' in params else None)
-    #
-    #     response = self.apiClient.callAPI(resourcePath, method, queryParams,
-    #                                       postData, headerParams)
-    #
-    #     if response is None:
-    #         return None
-    #
-    #    responseObject = self.apiClient.deserialize(response,
-    #                                                'list[Execution]')
-    #     return responseObject
-
-    def execute(self, deployment_id, body, **kwargs):
+    def execute(self, deployment_id, body):
         """Execute a workflow
         Args:
             deployment_id, :  (required)
@@ -204,40 +97,18 @@ class DeploymentsApi(object):
         Returns: Execution
         """
 
-        allParams = ['deployment_id', 'body']
+        resource_path = '/deployments/{0}/executions'.format(deployment_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.post(url,
+                                 headers={'Content-type': 'application/json'},
+                                 data=json.dumps(body))
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s'"
-                                " to method execute" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(201, response, url)
 
-        resourcePath = '/deployments/{deployment_id}/executions'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'POST'
+        return self.api_client.deserialize(response.json(),
+                                           'Execution')
 
-        queryParams = {}
-        headerParams = {}
-
-        if ('deployment_id' in params):
-            replacement = str(self.apiClient.toPathValue(
-                params['deployment_id']))
-            resourcePath = resourcePath.replace('{' + 'deployment_id' + '}',
-                                                replacement)
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(resourcePath, method, queryParams,
-                                          postData, headerParams)
-
-        if response is None:
-            return None
-
-        responseObject = self.apiClient.deserialize(response, 'Execution')
-        return responseObject
-
-    def eventsHeaders(self, id, responseHeadersBuffers, **kwargs):
+    def eventsHeaders(self, id, responseHeadersBuffers):
         """Get headers for events associated with the deployment
         Args:
             id, str: ID of deployment that needs to be fetched (required)
@@ -245,32 +116,50 @@ class DeploymentsApi(object):
         Returns:
         """
 
-        allParams = ['id']
+        resource_path = '/deployments/{0}/events'.format(id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.head(url)
 
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s'"
-                                " to method eventsHeaders" % key)
-            params[key] = val
-        del params['kwargs']
+        self.api_client.raise_if_not(200, response, url)
 
-        resourcePath = '/deployments/{id}/events'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'HEAD'
+        responseHeadersBuffers.update(response.headers)
 
-        queryParams = {}
-        headerParams = {}
+    def readEvents(self, id, responseHeadersBuffers=None, from_param=0,
+                   count_param=500):
+        """Returns deployments events.
+        Args:
+            id, str: ID of deployment that needs to be fetched (required)
+            from_param, int: Index of the first request event. (optional)
+            count_param, int: Maximum number of events to read. (optional)
+            responseHeadersBuffers, dict: a buffer for the response
+                headers (optional)
+        Returns: DeploymentEvents
+        """
 
-        if ('id' in params):
-            replacement = str(self.apiClient.toPathValue(params['id']))
-            resourcePath = resourcePath.replace('{' + 'id' + '}',
-                                                replacement)
-        postData = (params['body'] if 'body' in params else None)
+        resource_path = '/deployments/{0}/events'.format(id)
+        url = self.api_client.resource_url(resource_path)
 
-        response = self.apiClient.callAPI(
-            resourcePath, method, queryParams, postData, headerParams,
-            responseHeadersBuffers=responseHeadersBuffers)
+        query_params = {
+            'from': str(from_param),
+            'count': str(count_param)
+        }
+
+        response = requests.get(url,
+                                params=query_params)
+
+        self.api_client.raise_if_not(200, response, url)
+
+        if responseHeadersBuffers is not None:
+            responseHeadersBuffers.update(response.headers)
+
+        response_json = response.json()
+
+        events_json_str = map(lambda x: json.dumps(x),
+                              response_json['events'])
+        response_json['events'] = events_json_str
+
+        return self.api_client.deserialize(response_json,
+                                           'DeploymentEvents')
 
     def listNodes(self, deployment_id, get_reachable_state=False):
         """Returns a list of the deployments workflows.
@@ -282,18 +171,16 @@ class DeploymentsApi(object):
         Returns: DeploymentNodes
         """
 
-        resourcePath = '/deployments/{0}/nodes'.format(deployment_id)
-        queryParams = {
+        resource_path = '/deployments/{0}/nodes'.format(deployment_id)
+        url = self.api_client.resource_url(resource_path)
+        query_params = {
             'reachable': str(get_reachable_state).lower()
         }
 
-        url = '{0}{1}'.format(self.apiClient.apiServer, resourcePath)
-        response = requests.get(url, params=queryParams)
+        response = requests.get(url,
+                                params=query_params)
 
-        if response.status_code != 200:
-            raise HTTPError(url, response.status_code,
-                            response.content, response.headers, None)
+        self.api_client.raise_if_not(200, response, url)
 
-        responseObject = self.apiClient.deserialize(response.json(),
-                                                    'DeploymentNodes')
-        return responseObject
+        return self.api_client.deserialize(response.json(),
+                                           'DeploymentNodes')
