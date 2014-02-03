@@ -272,62 +272,6 @@ class DeploymentsApi(object):
             resourcePath, method, queryParams, postData, headerParams,
             responseHeadersBuffers=responseHeadersBuffers)
 
-    def readEvents(self, id, responseHeadersBuffers=None, from_param=0,
-                   count_param=500, **kwargs):
-        """Returns deployments events.
-        Args:
-            id, str: ID of deployment that needs to be fetched (required)
-            from_param, int: Index of the first request event. (optional)
-            count_param, int: Maximum number of events to read. (optional)
-            responseHeadersBuffers, dict: a buffer for the response
-                headers (optional)
-        Returns: DeploymentEvents
-        """
-
-        allParams = ['id', 'from_param', 'count_param']
-
-        params = locals()
-        for (key, val) in params['kwargs'].iteritems():
-            if key not in allParams:
-                raise TypeError("Got an unexpected keyword argument '%s'"
-                                " to method readEvents" % key)
-            params[key] = val
-        del params['kwargs']
-
-        resourcePath = '/deployments/{id}/events'
-        resourcePath = resourcePath.replace('{format}', 'json')
-        method = 'GET'
-
-        queryParams = {}
-        headerParams = {}
-
-        if ('from_param' in params):
-            queryParams['from'] = self.apiClient.toPathValue(
-                params['from_param'])
-        if ('count_param' in params):
-            queryParams['count'] = self.apiClient.toPathValue(
-                params['count_param'])
-        if ('id' in params):
-            replacement = str(self.apiClient.toPathValue(params['id']))
-            resourcePath = resourcePath.replace('{' + 'id' + '}',
-                                                replacement)
-        postData = (params['body'] if 'body' in params else None)
-
-        response = self.apiClient.callAPI(
-            resourcePath, method, queryParams, postData, headerParams,
-            responseHeadersBuffers=responseHeadersBuffers)
-
-        if response is None:
-            return None
-
-        import json
-        events_json_str = map(lambda x: json.dumps(x), response['events'])
-        response['events'] = events_json_str
-
-        responseObject = self.apiClient.deserialize(response,
-                                                    'DeploymentEvents')
-        return responseObject
-
     def listNodes(self, deployment_id, get_reachable_state=False):
         """Returns a list of the deployments workflows.
 
