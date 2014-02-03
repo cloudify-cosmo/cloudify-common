@@ -171,6 +171,10 @@ class CosmoManagerRestClient(object):
 
             # get remaining events after execution is over
             while events_handler is not None:
+                if end < time.time():
+                    raise CosmoManagerRestCallError(
+                        'execution of operation {0} for deployment {1} timed '
+                        'out'.format(operation, deployment_id))
                 time.sleep(1)
                 events, total_events, timestamp = \
                     self.get_execution_events(execution.id,
