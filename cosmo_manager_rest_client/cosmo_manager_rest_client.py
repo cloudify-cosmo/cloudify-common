@@ -32,6 +32,7 @@ from swagger.swagger import ApiClient
 from swagger.BlueprintsApi import BlueprintsApi
 from swagger.ExecutionsApi import ExecutionsApi
 from swagger.DeploymentsApi import DeploymentsApi
+from swagger.events_api import EventsApi
 from swagger.nodes_api import NodesApi
 
 
@@ -44,6 +45,7 @@ class CosmoManagerRestClient(object):
         self._executions_api = ExecutionsApi(api_client)
         self._deployments_api = DeploymentsApi(api_client)
         self._nodes_api = NodesApi(api_client)
+        self._events_api = EventsApi(api_client)
 
     def list_blueprints(self):
         with self._protected_call_to_server('listing blueprints'):
@@ -83,6 +85,53 @@ class CosmoManagerRestClient(object):
             }
             return self._deployments_api.createDeployment(body=body)
 
+    @staticmethod
+    def _create_events_query(execution_id, timestamp=None):
+        execution_id_match = {"match": {"context.execution_id": execution_id}}
+        if timestamp is not None:
+            query = {
+                "bool": {
+                    "must": [
+                        execution_id_match,
+                        {"range": {"@timestamp": {"gt": timestamp}}}
+                    ]
+                }
+            }
+        else:
+            query = execution_id_match
+        return query
+
+    def get_execution_events(self,
+                             execution_id,
+                             timestamp=None,
+                             from_event=0,
+                             batch_size=100):
+        """
+        Returns event for the provided execution id.
+
+        Args:
+            execution_id: Id of execution to get events for.
+            timestamp: The timestamp to get events after
+                (None for getting all available events).
+            from_event: Index of first event to retrieve on pagination.
+            batch_size: Maximum number of events to retrieve per call.
+
+        Returns (3 values):
+            Events list, total number of currently available events and
+            last event timestamp.
+        """
+        body = {
+            "from": from_event,
+            "size": batch_size,
+            "sort": [{"@timestamp": {"order": "asc"}}],
+            "query": self._create_events_query(execution_id, timestamp)
+        }
+        result = self.get_events(body)
+        events = map(lambda x: x['_source'], result.json()['hits']['hits'])
+        total_events = result.json()['hits']['total']
+        last_timestamp = events[-1]['@timestamp'] if len(events) > 0 else None
+        return events, total_events, last_timestamp
+
     def execute_deployment(self, deployment_id, operation, events_handler=None,
                            timeout=900):
         end = time.time() + timeout
@@ -95,64 +144,95 @@ class CosmoManagerRestClient(object):
                 deployment_id=deployment_id,
                 body=body)
 
-            deployment_prev_events_size = 0
-            next_event_index = 0
-            has_more_events = False
             end_states = ('terminated', 'failed')
+            timestamp = None
+            from_event = 0
 
-            def is_handle_events():
-                return events_handler \
-                    and (has_more_events or self._check_for_deployment_events(
-                        deployment_id, deployment_prev_events_size))
+            def handle_events(execution_events):
+                if len(execution_events) > 0:
+                    events_handler(execution_events)
+                return len(execution_events)
 
             while execution.status not in end_states:
                 if end < time.time():
                     raise CosmoManagerRestCallError(
                         'execution of operation {0} for deployment {1} timed '
                         'out'.format(operation, deployment_id))
-                time.sleep(1)
-
-                if is_handle_events():
-                    (next_event_index, has_more_events,
-                     deployment_prev_events_size) = \
-                        self._get_and_handle_deployment_events(
-                            deployment_id,
-                            events_handler,
-                            next_event_index)
+                time.sleep(3)
 
                 execution = self._executions_api.getById(execution.id)
 
-            if is_handle_events():
-                self._handle_remaining_deployment_events(
-                    deployment_id,
-                    events_handler,
-                    next_event_index)
+                if events_handler is not None:
+                    events, total_events, timestamp = \
+                        self.get_execution_events(execution.id,
+                                                  timestamp=timestamp,
+                                                  from_event=from_event)
+                    handle_events(events)
+
+            # get remaining events after execution is over
+            while events_handler is not None:
+                if end < time.time():
+                    raise CosmoManagerRestCallError(
+                        'execution of operation {0} for deployment {1} timed '
+                        'out'.format(operation, deployment_id))
+                time.sleep(1)
+                events, total_events, timestamp = \
+                    self.get_execution_events(execution.id,
+                                              timestamp=timestamp,
+                                              from_event=from_event)
+                handle_events(events)
+                if from_event >= total_events:
+                    break
 
             if execution.status != 'terminated':
                 raise CosmoManagerRestCallError('Execution of operation {0} '
                                                 'for deployment {1} failed. '
-                                                '(status response: {2})'
+                                                '[execution_id={2}, '
+                                                'status_response={3}]'
                                                 .format(
                                                     operation,
                                                     deployment_id,
+                                                    execution.id,
                                                     execution.error))
 
-    def get_deployment_events(self, deployment_id,
-                              response_headers_buffer=None,
-                              from_param=0, count_param=500):
-        with self._protected_call_to_server('getting deployment events'):
-            return self._deployments_api.readEvents(deployment_id,
-                                                    response_headers_buffer,
-                                                    from_param=from_param,
-                                                    count_param=count_param)
+    def get_events(self, query):
+        """
+        Returns events for the provided ElasticSearch query.
+
+        Args:
+            query: ElasticSearch query (dict), for example:
+                {
+                    "query": {
+                        "range": {
+                            "@timestamp": {
+                                "gt": "2014-01-28T13:27:56.231Z",
+                            }
+                        }
+                    }
+                }
+
+        Returns:
+            A list of events in ElasticSearch's response format.
+        """
+        with self._protected_call_to_server('getting events'):
+            return self._events_api.get_events(query)
 
     def list_workflows(self, deployment_id):
+        """
+        Returns a list of available workflows for the provided deployment id.
+
+        Args:
+            deployment_id: Deployment id to get available workflows for.
+
+        Returns:
+            Workflows list.
+        """
         with self._protected_call_to_server('listing workflows'):
             return self._deployments_api.listWorkflows(deployment_id)
 
     def list_nodes(self):
         """
-        List all nodes
+        List all nodes.
         """
         with self._protected_call_to_server('getting node'):
             return self._nodes_api.list()
@@ -196,41 +276,6 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('updating node runtime state'):
             return self._nodes_api.update_node_state(node_id,
                                                      updated_properties)
-
-    def _check_for_deployment_events(self, deployment_id,
-                                     deployment_prev_events_size):
-        response_headers_buffer = {}
-        self._deployments_api.eventsHeaders(
-            deployment_id,
-            response_headers_buffer)
-        events_bytes = int(response_headers_buffer['deployment-events-bytes'])
-        return events_bytes > deployment_prev_events_size
-
-    def _get_and_handle_deployment_events(self, deployment_id, events_handler,
-                                          from_param=0, count_param=500):
-        response_headers_buffer = {}
-        deployment_events = self.get_deployment_events(
-            deployment_id,
-            response_headers_buffer,
-            from_param=from_param,
-            count_param=count_param)
-        events_handler(deployment_events.events)
-        has_more_events = \
-            from_param + count_param < deployment_events.deploymentTotalEvents
-        return (deployment_events.lastEvent + 1,
-                has_more_events,
-                int(response_headers_buffer['deployment-events-bytes']))
-
-    def _handle_remaining_deployment_events(self, deployment_id,
-                                            events_handler,
-                                            next_event_index=0):
-        has_more_events = True
-        while has_more_events:
-            (next_event_index, has_more_events, _) = \
-                self._get_and_handle_deployment_events(
-                    deployment_id,
-                    events_handler,
-                    next_event_index)
 
     @staticmethod
     def _tar_blueprint(blueprint_path, tempdir):
