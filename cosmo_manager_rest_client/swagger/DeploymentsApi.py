@@ -81,7 +81,7 @@ class DeploymentsApi(object):
         """
 
         resource_path = '/deployments/{0}'.format(deployment_id)
-        url = self.api_client(resource_path)
+        url = self.api_client.resource_url(resource_path)
         response = requests.get(url)
 
         self.api_client.raise_if_not(200, response, url)
