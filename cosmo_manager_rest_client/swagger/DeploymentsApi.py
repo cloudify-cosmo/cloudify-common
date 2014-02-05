@@ -108,6 +108,22 @@ class DeploymentsApi(object):
         return self.api_client.deserialize(response.json(),
                                            'Execution')
 
+    def listExecutions(self, deployment_id):
+        """Returns deployment executions
+        Args:
+            deployment_id, :  (required)
+        Returns: Execution
+        """
+
+        resource_path = '/deployments/{0}/executions'.format(deployment_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.get(url)
+
+        self.api_client.raise_if_not(200, response, url)
+
+        return self.api_client.deserialize(response.json(),
+                                           'list[Execution]')
+
     def eventsHeaders(self, id, responseHeadersBuffers):
         """Get headers for events associated with the deployment
         Args:
