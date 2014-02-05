@@ -124,7 +124,6 @@ class DeploymentsApi(object):
         return self.api_client.deserialize(response.json(),
                                            'list[Execution]')
 
-
     def eventsHeaders(self, id, responseHeadersBuffers):
         """Get headers for events associated with the deployment
         Args:
