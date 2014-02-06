@@ -21,14 +21,14 @@ class BlueprintState:
     def __init__(self):
         self.swaggerTypes = {
             'id': 'str',
-            'createdAt': 'date-time',
+            'createdAt': 'str',
             'plan': 'str',
             'name': 'str',
-            'updatedAt': 'date-time'
+            'updatedAt': 'str'
         }
 
         self.id = None  # str
-        self.createdAt = None  # date-time
+        self.createdAt = None  # str
         self.plan = None  # str
         self.name = None  # str
-        self.updatedAt = None  # date-time
+        self.updatedAt = None  # str
