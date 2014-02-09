@@ -21,14 +21,14 @@ class Deployment:
     def __init__(self):
         self.swaggerTypes = {
             'blueprintId': 'str',
-            'updatedAt': 'date-time',
+            'updatedAt': 'str',
             'plan': 'str',
-            'createdAt': 'date-time',
+            'createdAt': 'str',
             'id': 'str'
         }
 
         self.blueprintId = None  # str
-        self.updatedAt = None  # date-time
+        self.updatedAt = None  # str
         self.plan = None  # str
-        self.createdAt = None  # date-time
+        self.createdAt = None  # str
         self.id = None  # str
