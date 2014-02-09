@@ -125,6 +125,10 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('list deployments'):
             return self._deployments_api.list()
 
+    def list_deployment_executions(self, deployment_id):
+        with self._protected_call_to_server('list executions'):
+            return self._deployments_api.listExecutions(deployment_id)
+
     def create_deployment(self, blueprint_id):
         with self._protected_call_to_server('creating new deployment'):
             body = {
