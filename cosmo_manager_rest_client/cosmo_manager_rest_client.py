@@ -36,6 +36,53 @@ from swagger.events_api import EventsApi
 from swagger.nodes_api import NodesApi
 
 
+class ExecutionEvents(object):
+
+    def __init__(self, rest_client, execution_id, batch_size=100,
+                 timeout=60, include_logs=False):
+        self._rest_client = rest_client
+        self._execution_id = execution_id
+        self._batch_size = batch_size
+        self._from_event = 0
+        self._timeout = timeout
+        self._include_logs = include_logs
+
+    def fetch_and_process_events(self,
+                                 get_remaining_events=False,
+                                 events_handler=None):
+        if events_handler is None:
+            return
+        events = self.fetch_events(get_remaining_events=get_remaining_events)
+        events_handler(events)
+
+    def fetch_events(self, get_remaining_events=False):
+        if get_remaining_events:
+            events = []
+            timeout = time.time() + self._timeout
+            while time.time() < timeout:
+                result = self._fetch_events()
+                if len(result) > 0:
+                    events.extend(result)
+                else:
+                    return events
+                time.sleep(1)
+            raise CosmoManagerRestCallError('events/log fetching timed out')
+        else:
+            return self._fetch_events()
+
+    def _fetch_events(self):
+        events, total = self._rest_client.get_execution_events(
+            self._execution_id,
+            from_event=self._from_event,
+            batch_size=self._batch_size,
+            include_logs=self._include_logs)
+        if total > len(events) > 0:
+            self._from_event += self._batch_size
+        else:
+            self._from_event += len(events)
+        return events
+
+
 class CosmoManagerRestClient(object):
 
     def __init__(self, server_ip, port=8100):
@@ -86,51 +133,57 @@ class CosmoManagerRestClient(object):
             return self._deployments_api.createDeployment(body=body)
 
     @staticmethod
-    def _create_events_query(execution_id, timestamp=None):
-        execution_id_match = {"match": {"context.execution_id": execution_id}}
-        if timestamp is not None:
-            query = {
-                "bool": {
-                    "must": [
-                        execution_id_match,
-                        {"range": {"@timestamp": {"gt": timestamp}}}
-                    ]
-                }
+    def _create_events_query(execution_id, include_logs):
+        query = {
+            "bool": {
+                "must": [
+                    {"match": {"context.execution_id": execution_id}},
+                ]
             }
+        }
+        match_cloudify_event = {"match": {"type": "cloudify_event"}}
+        if include_logs:
+            match_cloudify_log = {"match": {"type": "cloudify_log"}}
+            query['bool']['should'] = [
+                match_cloudify_event, match_cloudify_log
+            ]
         else:
-            query = execution_id_match
+            query['bool']['must'].append(match_cloudify_event)
         return query
+
+    def get_all_execution_events(self, execution_id, include_logs=False):
+        execution_events = ExecutionEvents(self,
+                                           execution_id,
+                                           include_logs=include_logs)
+        return execution_events.fetch_events(get_remaining_events=True)
 
     def get_execution_events(self,
                              execution_id,
-                             timestamp=None,
                              from_event=0,
-                             batch_size=100):
+                             batch_size=100,
+                             include_logs=False):
         """
         Returns event for the provided execution id.
 
         Args:
             execution_id: Id of execution to get events for.
-            timestamp: The timestamp to get events after
-                (None for getting all available events).
             from_event: Index of first event to retrieve on pagination.
             batch_size: Maximum number of events to retrieve per call.
+            include_logs: Whether to also get logs.
 
-        Returns (3 values):
-            Events list, total number of currently available events and
-            last event timestamp.
+        Returns (tuple):
+            Events list and total number of currently available events.
         """
         body = {
             "from": from_event,
             "size": batch_size,
             "sort": [{"@timestamp": {"order": "asc"}}],
-            "query": self._create_events_query(execution_id, timestamp)
+            "query": self._create_events_query(execution_id, include_logs)
         }
         result = self.get_events(body)
         events = map(lambda x: x['_source'], result.json()['hits']['hits'])
         total_events = result.json()['hits']['total']
-        last_timestamp = events[-1]['@timestamp'] if len(events) > 0 else None
-        return events, total_events, last_timestamp
+        return events, total_events
 
     def execute_deployment(self, deployment_id, operation, events_handler=None,
                            timeout=900):
@@ -145,44 +198,24 @@ class CosmoManagerRestClient(object):
                 body=body)
 
             end_states = ('terminated', 'failed')
-            timestamp = None
-            from_event = 0
-
-            def handle_events(execution_events):
-                if len(execution_events) > 0:
-                    events_handler(execution_events)
-                return len(execution_events)
+            execution_events = ExecutionEvents(self, execution.id)
 
             while execution.status not in end_states:
                 if end < time.time():
                     raise CosmoManagerRestCallError(
                         'execution of operation {0} for deployment {1} timed '
                         'out'.format(operation, deployment_id))
+
                 time.sleep(3)
 
                 execution = self._executions_api.getById(execution.id)
+                execution_events.fetch_and_process_events(
+                    events_handler=events_handler)
 
-                if events_handler is not None:
-                    events, total_events, timestamp = \
-                        self.get_execution_events(execution.id,
-                                                  timestamp=timestamp,
-                                                  from_event=from_event)
-                    handle_events(events)
-
-            # get remaining events after execution is over
-            while events_handler is not None:
-                if end < time.time():
-                    raise CosmoManagerRestCallError(
-                        'execution of operation {0} for deployment {1} timed '
-                        'out'.format(operation, deployment_id))
-                time.sleep(1)
-                events, total_events, timestamp = \
-                    self.get_execution_events(execution.id,
-                                              timestamp=timestamp,
-                                              from_event=from_event)
-                handle_events(events)
-                if from_event >= total_events:
-                    break
+            # Process remaining events
+            execution_events.fetch_and_process_events(
+                get_remaining_events=True,
+                events_handler=events_handler)
 
             if execution.status != 'terminated':
                 raise CosmoManagerRestCallError('Execution of operation {0} '
