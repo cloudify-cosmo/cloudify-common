@@ -110,3 +110,18 @@ class ExecutionEventsTest(unittest.TestCase):
             self.fail()
         except CosmoManagerRestCallError:
             pass
+
+    def test_events_progress(self):
+        mock_events = range(0, 5)
+        client = MockClient(mock_events)
+        execution_events = ExecutionEvents(client,
+                                           'execution_id',
+                                           batch_size=100)
+        events = execution_events.fetch_events()
+        self.assertEqual(5, len(events))
+        mock_events.extend(range(0, 10))
+        events = execution_events.fetch_events()
+        self.assertEqual(10, len(events))
+        mock_events.extend(range(0, 5))
+        events = execution_events.fetch_events()
+        self.assertEqual(5, len(events))

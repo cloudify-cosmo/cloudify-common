@@ -76,10 +76,7 @@ class ExecutionEvents(object):
             from_event=self._from_event,
             batch_size=self._batch_size,
             include_logs=self._include_logs)
-        if total > len(events) > 0:
-            self._from_event += self._batch_size
-        else:
-            self._from_event += len(events)
+        self._from_event += len(events)
         return events
 
 
