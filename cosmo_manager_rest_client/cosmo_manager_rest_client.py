@@ -221,16 +221,10 @@ class CosmoManagerRestClient(object):
                 get_remaining_events=True,
                 events_handler=events_handler)
 
+            error = None
             if execution.status != 'terminated':
-                raise CosmoManagerRestCallError('Execution of operation {0} '
-                                                'for deployment {1} failed. '
-                                                '[execution_id={2}, '
-                                                'status_response={3}]'
-                                                .format(
-                                                    operation,
-                                                    deployment_id,
-                                                    execution.id,
-                                                    execution.error))
+                error = execution.error
+            return execution.id, error
 
     def get_events(self, query):
         """
