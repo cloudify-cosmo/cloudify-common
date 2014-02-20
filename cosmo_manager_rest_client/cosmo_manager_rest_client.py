@@ -258,13 +258,6 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('listing workflows'):
             return self._deployments_api.listWorkflows(deployment_id)
 
-    def list_nodes(self):
-        """
-        List all nodes.
-        """
-        with self._protected_call_to_server('getting node'):
-            return self._nodes_api.list()
-
     def list_deployment_nodes(self, deployment_id, get_reachable_state=False):
         """
         List nodes for the provided deployment_id
@@ -288,14 +281,6 @@ class CosmoManagerRestClient(object):
         Args:
             node_id: The node id.
             updated_properties: The node's updated runtime properties as dict
-                where each key's value is a list of values [new, previous]
-                in order to provide the storage implementation a way to
-                perform the update with some kind of optimistic locking.
-                For new keys list should contain a single item.
-                For example: {
-                    "new_key": ["value"],
-                    "updated_key": ["new_value", "old_value"]
-                }
         Returns:
             Updated node runtime properties.
             Example:
