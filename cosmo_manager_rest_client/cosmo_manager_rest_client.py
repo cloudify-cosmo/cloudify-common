@@ -95,7 +95,7 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('listing blueprints'):
             return self._blueprints_api.list()
 
-    def publish_blueprint(self, blueprint_path):
+    def publish_blueprint(self, blueprint_path, blueprint_id=None):
         tempdir = tempfile.mkdtemp()
         try:
             tar_path = self._tar_blueprint(blueprint_path, tempdir)
@@ -105,7 +105,8 @@ class CosmoManagerRestClient(object):
                 with open(tar_path, 'rb') as f:
                     blueprint_state = self._blueprints_api.upload(
                         f,
-                        application_file_name=application_file)
+                        application_file_name=application_file,
+                        blueprint_id=blueprint_id)
                 return blueprint_state
         finally:
             shutil.rmtree(tempdir)
@@ -129,10 +130,11 @@ class CosmoManagerRestClient(object):
     def create_deployment(self, blueprint_id, deployment_id):
         with self._protected_call_to_server('creating new deployment'):
             body = {
-                'blueprintId': blueprint_id,
-                'deploymentId': deployment_id
+                'blueprintId': blueprint_id
             }
-            return self._deployments_api.createDeployment(body=body)
+            return self._deployments_api.createDeployment(
+                deployment_id=deployment_id,
+                body=body)
 
     @staticmethod
     def _create_events_query(execution_id, include_logs):

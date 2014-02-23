@@ -55,18 +55,18 @@ class DeploymentsApi(object):
         return self.api_client.deserialize(response.json(),
                                            'Workflows')
 
-    def createDeployment(self, body):
+    def createDeployment(self, body, deployment_id):
         """Creates a new deployment
         Args:
             body, DeploymentRequest: Deployment blue print (required)
         Returns: Deployment
         """
 
-        resource_path = '/deployments'
+        resource_path = '/deployments/{0}'.format(deployment_id)
         url = self.api_client.resource_url(resource_path)
-        response = requests.post(url,
-                                 headers={'Content-type': 'application/json'},
-                                 data=json.dumps(body))
+        response = requests.put(url,
+                                headers={'Content-type': 'application/json'},
+                                data=json.dumps(body))
 
         self.api_client.raise_if_not(201, response, url)
 
