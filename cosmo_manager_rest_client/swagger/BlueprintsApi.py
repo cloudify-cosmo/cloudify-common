@@ -21,17 +21,19 @@ class BlueprintsApi(object):
     def __init__(self, api_client):
         self.api_client = api_client
 
-    def upload(self, tar_file_obj, application_file_name=None):
+    def upload(self, tar_file_obj,
+               application_file_name=None,
+               blueprint_id=None):
         """Upload a new blueprint to Cloudify
         Args:
             tar_file_obj, File object of the tar gzipped
                 blueprint directory (required)
             application_file_name, : File name of yaml containing
                 the main blueprint. (optional)
+            blueprint_id: Uploaded blueprint id (optional, plan name is used
+                                                 if not provided)
         Returns: BlueprintState
         """
-
-        resource_path = '/blueprints'
 
         query_params = {}
         if application_file_name is not None:
@@ -46,10 +48,18 @@ class BlueprintsApi(object):
                 if len(read_bytes) < buffer_size:
                     return
 
-        url = self.api_client.resource_url(resource_path)
-        response = requests.post(url,
-                                 params=query_params,
-                                 data=file_gen())
+        if blueprint_id is not None:
+            resource_path = '/blueprints/{0}'.format(blueprint_id)
+            url = self.api_client.resource_url(resource_path)
+            response = requests.put(url,
+                                    params=query_params,
+                                    data=file_gen())
+        else:
+            resource_path = '/blueprints'
+            url = self.api_client.resource_url(resource_path)
+            response = requests.post(url,
+                                     params=query_params,
+                                     data=file_gen())
 
         self.api_client.raise_if_not(201, response, url)
 
