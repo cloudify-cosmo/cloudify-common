@@ -25,16 +25,6 @@ class NodesApi(object):
     def __init__(self, api_client):
         self.api_client = api_client
 
-    def list(self):
-
-        resource_path = '/nodes'
-        url = self.api_client.resource_url(resource_path)
-        response = requests.get(url)
-
-        self.api_client.raise_if_not(200, response, url)
-
-        return response.json()
-
     def get_state_by_id(self, node_id, get_reachable_state=False,
                         get_runtime_state=True):
 
