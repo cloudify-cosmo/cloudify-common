@@ -188,7 +188,7 @@ class CosmoManagerRestClient(object):
         }
         result = self.get_events(body)
         events = map(lambda x: x['_source'], result['hits']['hits'])
-        total_events = result.json()['hits']['total']
+        total_events = result['hits']['total']
         return events, total_events
 
     def execute_deployment(self, deployment_id, operation, events_handler=None,
