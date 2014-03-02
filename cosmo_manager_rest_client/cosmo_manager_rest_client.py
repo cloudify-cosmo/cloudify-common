@@ -33,6 +33,7 @@ from swagger.BlueprintsApi import BlueprintsApi
 from swagger.ExecutionsApi import ExecutionsApi
 from swagger.DeploymentsApi import DeploymentsApi
 from swagger.events_api import EventsApi
+from swagger.search_api import SearchApi
 from swagger.nodes_api import NodesApi
 
 
@@ -90,6 +91,7 @@ class CosmoManagerRestClient(object):
         self._deployments_api = DeploymentsApi(api_client)
         self._nodes_api = NodesApi(api_client)
         self._events_api = EventsApi(api_client)
+        self._search_api = SearchApi(api_client)
 
     def list_blueprints(self):
         with self._protected_call_to_server('listing blueprints'):
@@ -185,7 +187,7 @@ class CosmoManagerRestClient(object):
             "query": self._create_events_query(execution_id, include_logs)
         }
         result = self.get_events(body)
-        events = map(lambda x: x['_source'], result.json()['hits']['hits'])
+        events = map(lambda x: x['_source'], result['hits']['hits'])
         total_events = result.json()['hits']['total']
         return events, total_events
 
@@ -243,10 +245,32 @@ class CosmoManagerRestClient(object):
                 }
 
         Returns:
-            A list of events in ElasticSearch's response format.
+            A json list of events in ElasticSearch's response format.
         """
         with self._protected_call_to_server('getting events'):
-            return self._events_api.get_events(query)
+            return self._events_api.get_events(query).json()
+
+    def run_search(self, query):
+        """
+        Returns results from the storage for the provided ElasticSearch query.
+
+        Args:
+            query: ElasticSearch query (dict), for example:
+                {
+                    "query": {
+                        "range": {
+                            "@timestamp": {
+                                "gt": "2014-01-28T13:27:56.231Z",
+                            }
+                        }
+                    }
+                }
+
+        Returns:
+            json results from the storage in ElasticSearch's response format.
+        """
+        with self._protected_call_to_server('running search'):
+            return self._search_api.run_search(query).json()
 
     def list_workflows(self, deployment_id):
         """
