@@ -210,7 +210,8 @@ class CosmoManagerRestClient(object):
 
                 while execution.status not in end_states:
                     if end < time.time():
-                        raise CosmoManagerRestCallError(
+                        raise CosmoManagerRestCallTimeoutError(
+                            execution.id,
                             'execution of operation {0} for deployment {1} '
                             'timed out'.format(operation, deployment_id))
 
@@ -381,3 +382,10 @@ class CosmoManagerRestClient(object):
 
 class CosmoManagerRestCallError(Exception):
     pass
+
+
+class CosmoManagerRestCallTimeoutError(Exception):
+
+    def __init__(self, execution_id, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+        self.execution_id = execution_id
