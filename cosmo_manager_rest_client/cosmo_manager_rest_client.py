@@ -303,11 +303,12 @@ class CosmoManagerRestClient(object):
                                                    get_reachable_state,
                                                    get_runtime_state)
 
-    def update_node_state(self, node_id, updated_properties):
+    def update_node_state(self, node_id, updated_properties, state_version):
         """Updates node runtime state for the provided node_id.
         Args:
             node_id: The node id.
             updated_properties: The node's updated runtime properties as dict
+            state_version: The node's state's version as int
         Returns:
             Updated node runtime properties.
             Example:
@@ -315,7 +316,8 @@ class CosmoManagerRestClient(object):
         """
         with self._protected_call_to_server('updating node runtime state'):
             return self._nodes_api.update_node_state(node_id,
-                                                     updated_properties)
+                                                     updated_properties,
+                                                     state_version)
 
     @staticmethod
     def _tar_blueprint(blueprint_path, tempdir):
