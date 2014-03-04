@@ -44,13 +44,17 @@ class NodesApi(object):
 
         return response.json()
 
-    def update_node_state(self, node_id, updated_properties):
+    def update_node_state(self, node_id, updated_properties, state_version):
 
         resource_path = '/nodes/{0}'.format(node_id)
         url = self.api_client.resource_url(resource_path)
+        data = {
+            'runtime_info': updated_properties,
+            'state_version': state_version
+        }
         response = requests.patch(url,
                                   headers={'Content-Type': 'application/json'},
-                                  data=json.dumps(updated_properties))
+                                  data=json.dumps(data))
 
         self.api_client.raise_if_not(200, response, url)
 
