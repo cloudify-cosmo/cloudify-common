@@ -192,7 +192,8 @@ class CosmoManagerRestClient(object):
         return events, total_events
 
     def execute_deployment(self, deployment_id, operation, events_handler=None,
-                           timeout=900):
+                           timeout=900,
+                           wait_for_execution=True):
         end = time.time() + timeout
 
         with self._protected_call_to_server('executing deployment operation'):
@@ -203,30 +204,41 @@ class CosmoManagerRestClient(object):
                 deployment_id=deployment_id,
                 body=body)
 
-            end_states = ('terminated', 'failed')
-            execution_events = ExecutionEvents(self, execution.id)
+            if wait_for_execution:
+                end_states = ('terminated', 'failed')
+                execution_events = ExecutionEvents(self, execution.id)
 
-            while execution.status not in end_states:
-                if end < time.time():
-                    raise CosmoManagerRestCallError(
-                        'execution of operation {0} for deployment {1} timed '
-                        'out'.format(operation, deployment_id))
+                while execution.status not in end_states:
+                    if end < time.time():
+                        raise CosmoManagerRestCallTimeoutError(
+                            execution.id,
+                            'execution of operation {0} for deployment {1} '
+                            'timed out'.format(operation, deployment_id))
 
-                time.sleep(3)
+                    time.sleep(3)
 
-                execution = self._executions_api.getById(execution.id)
+                    execution = self._executions_api.getById(execution.id)
+                    execution_events.fetch_and_process_events(
+                        events_handler=events_handler)
+
+                # Process remaining events
                 execution_events.fetch_and_process_events(
+                    get_remaining_events=True,
                     events_handler=events_handler)
 
-            # Process remaining events
-            execution_events.fetch_and_process_events(
-                get_remaining_events=True,
-                events_handler=events_handler)
+                error = None
+                if execution.status != 'terminated':
+                    error = execution.error
+                return execution.id, error
+            else:
+                return execution.id, None
 
-            error = None
-            if execution.status != 'terminated':
-                error = execution.error
-            return execution.id, error
+    def cancel_execution(self, execution_id):
+        """
+        Cancel an execution by its id.
+        """
+        with self._protected_call_to_server('cancel execution'):
+            self._executions_api.cancel(execution_id)
 
     def get_events(self, query):
         """
@@ -372,3 +384,10 @@ class CosmoManagerRestClient(object):
 
 class CosmoManagerRestCallError(Exception):
     pass
+
+
+class CosmoManagerRestCallTimeoutError(Exception):
+
+    def __init__(self, execution_id, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+        self.execution_id = execution_id

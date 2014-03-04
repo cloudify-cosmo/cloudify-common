@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import json
+
 import requests
 
 
@@ -34,6 +36,24 @@ class ExecutionsApi(object):
         response = requests.get(url)
 
         self.api_client.raise_if_not(200, response, url)
+
+        return self.api_client.deserialize(response.json(),
+                                           'Execution')
+
+    def cancel(self, execution_id):
+        """
+        Cancels an execution by its id
+        """
+
+        resource_path = '/executions/{0}'.format(execution_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.post(url,
+                                 headers={'Content-type': 'application/json'},
+                                 data=json.dumps({
+                                     'action': 'cancel'
+                                 }))
+
+        self.api_client.raise_if_not(201, response, url)
 
         return self.api_client.deserialize(response.json(),
                                            'Execution')
