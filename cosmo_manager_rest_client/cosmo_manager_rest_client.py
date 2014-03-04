@@ -315,6 +315,20 @@ class CosmoManagerRestClient(object):
                                                    get_reachable_state,
                                                    get_runtime_state)
 
+    def put_node_state(self, node_id, runtime_properties):
+        """Puts node runtime state on the server
+        Args:
+            node_id: The node id.
+            runtime_properties: The node's runtime properties as dict
+        Returns:
+            Inserted node.
+            Example:
+                { "id": "node...", "runtimeInfo" { ... } }
+        """
+        with self._protected_call_to_server('putting node runtime state'):
+            return self._nodes_api.put_node_state(node_id,
+                                                  runtime_properties)
+
     def update_node_state(self, node_id, updated_properties, state_version):
         """Updates node runtime state for the provided node_id.
         Args:
@@ -322,7 +336,7 @@ class CosmoManagerRestClient(object):
             updated_properties: The node's updated runtime properties as dict
             state_version: The node's state's version as int
         Returns:
-            Updated node runtime properties.
+            Updated node.
             Example:
                 { "id": "node...", "runtimeInfo" { ... } }
         """
