@@ -52,7 +52,7 @@ class NodesApi(object):
                                 headers={'Content-Type': 'application/json'},
                                 data=json.dumps(runtime_properties))
 
-        self.api_client.raise_if_not(200, response, url)
+        self.api_client.raise_if_not(201, response, url)
 
         return response.json()
 
