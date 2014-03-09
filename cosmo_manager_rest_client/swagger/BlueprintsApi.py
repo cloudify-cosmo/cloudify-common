@@ -97,6 +97,16 @@ class BlueprintsApi(object):
         return self.api_client.deserialize(response.json(),
                                            'BlueprintState')
 
+    def get_source(self, blueprint_id):
+        resource_path = '/blueprints/{0}/source'.format(blueprint_id)
+        url = self.api_client.resource_url(resource_path)
+        response = requests.get(url)
+
+        self.api_client.raise_if_not(200, response, url)
+
+        return self.api_client.deserialize(response.json(),
+                                           'BlueprintState')
+
     def validate(self, blueprint_id):
         """Validates a given blueprint.
 
