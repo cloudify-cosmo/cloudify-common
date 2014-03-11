@@ -325,7 +325,6 @@ class CosmoManagerRestClient(object):
                                                    get_state,
                                                    get_runtime_properties)
 
-
     def put_node_state(self, node_id, runtime_properties):
         """Puts node runtime state on the server
         Args:
