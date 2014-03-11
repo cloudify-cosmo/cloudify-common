@@ -113,6 +113,10 @@ class CosmoManagerRestClient(object):
         finally:
             shutil.rmtree(tempdir)
 
+    def get_blueprint(self, blueprint_id):
+        with self._protected_call_to_server('getting blueprint'):
+            return self._blueprints_api.getById(blueprint_id)
+
     def get_blueprint_source(self, blueprint_id):
         with self._protected_call_to_server('getting blueprint source'):
             return self._blueprints_api.get_source(blueprint_id)
