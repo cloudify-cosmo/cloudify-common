@@ -23,12 +23,12 @@ class BlueprintState:
             'id': 'str',
             'createdAt': 'str',
             'plan': 'str',
-            'name': 'str',
+            'source': 'str',
             'updatedAt': 'str'
         }
 
         self.id = None  # str
         self.createdAt = None  # str
         self.plan = None  # str
-        self.name = None  # str
+        self.source = None  # str
         self.updatedAt = None  # str
