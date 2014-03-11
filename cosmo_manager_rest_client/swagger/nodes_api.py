@@ -25,14 +25,14 @@ class NodesApi(object):
     def __init__(self, api_client):
         self.api_client = api_client
 
-    def get_state_by_id(self, node_id, get_reachable_state=False,
-                        get_runtime_state=True):
+    def get_state_by_id(self, node_id, get_state=False,
+                        get_runtime_properties=True):
 
         resource_path = '/nodes/{0}'.format(node_id)
 
         query_params = {
-            'reachable': str(get_reachable_state).lower(),
-            'runtime': str(get_runtime_state).lower()
+            'state': str(get_state).lower(),
+            'runtime': str(get_runtime_properties).lower()
         }
 
         url = self.api_client.resource_url(resource_path)
