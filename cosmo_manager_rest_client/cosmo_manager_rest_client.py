@@ -311,15 +311,16 @@ class CosmoManagerRestClient(object):
             return self._deployments_api.listNodes(deployment_id,
                                                    get_reachable_state)
 
-    def get_node_state(self, node_id, get_reachable_state=False,
-                       get_runtime_state=True):
+    def get_node_state(self, node_id, get_state=False,
+                       get_runtime_properties=True):
         """
         Gets node runtime/reachable state for the provided node_id.
         """
         with self._protected_call_to_server('getting node'):
             return self._nodes_api.get_state_by_id(node_id,
-                                                   get_reachable_state,
-                                                   get_runtime_state)
+                                                   get_state,
+                                                   get_runtime_properties)
+
 
     def put_node_state(self, node_id, runtime_properties):
         """Puts node runtime state on the server
