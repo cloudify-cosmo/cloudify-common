@@ -138,7 +138,7 @@ class BlueprintsApi(object):
         url = self.api_client.resource_url(resource_path)
         response = requests.delete(url)
 
-        self.api_client.raise_if_not(201, response, url)
+        self.api_client.raise_if_not(200, response, url)
 
         return self.api_client.deserialize(response.json(),
                                            'BlueprintState')
