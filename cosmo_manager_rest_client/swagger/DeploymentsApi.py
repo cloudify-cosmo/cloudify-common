@@ -183,7 +183,7 @@ class DeploymentsApi(object):
         return self.api_client.deserialize(response_json,
                                            'DeploymentEvents')
 
-    def listNodes(self, deployment_id, get_reachable_state=False):
+    def listNodes(self, deployment_id, get_state=False):
         """Returns a list of the deployments workflows.
 
         Args:
@@ -196,7 +196,7 @@ class DeploymentsApi(object):
         resource_path = '/deployments/{0}/nodes'.format(deployment_id)
         url = self.api_client.resource_url(resource_path)
         query_params = {
-            'reachable': str(get_reachable_state).lower()
+            'state': str(get_state).lower()
         }
 
         response = requests.get(url,
