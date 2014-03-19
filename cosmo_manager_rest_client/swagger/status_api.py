@@ -23,7 +23,7 @@ import json
 class StatusApi(object):
 
     def __init__(self, client):
-        self.api_client = client.api_client
+        self.api_client = client
 
     def status(self):
         resource_path = '/status'
