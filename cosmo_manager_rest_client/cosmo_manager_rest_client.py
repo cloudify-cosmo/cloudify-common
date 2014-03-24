@@ -35,6 +35,7 @@ from swagger.DeploymentsApi import DeploymentsApi
 from swagger.events_api import EventsApi
 from swagger.search_api import SearchApi
 from swagger.nodes_api import NodesApi
+from swagger.status_api import StatusApi
 
 
 class ExecutionEvents(object):
@@ -92,6 +93,11 @@ class CosmoManagerRestClient(object):
         self._nodes_api = NodesApi(api_client)
         self._events_api = EventsApi(api_client)
         self._search_api = SearchApi(api_client)
+        self._status_api = StatusApi(api_client)
+
+    def status(self):
+        with self._protected_call_to_server('status'):
+            return self._status_api.status()
 
     def list_blueprints(self):
         with self._protected_call_to_server('listing blueprints'):
