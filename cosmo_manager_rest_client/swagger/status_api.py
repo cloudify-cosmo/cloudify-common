@@ -17,7 +17,6 @@ __author__ = 'ran'
 
 
 import requests
-import json
 
 
 class StatusApi(object):
