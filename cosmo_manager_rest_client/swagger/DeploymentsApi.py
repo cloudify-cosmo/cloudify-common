@@ -89,19 +89,28 @@ class DeploymentsApi(object):
         return self.api_client.deserialize(response.json(),
                                            'BlueprintState')
 
-    def execute(self, deployment_id, body):
+    def execute(self, deployment_id, body, force=False):
         """Execute a workflow
         Args:
             deployment_id, :  (required)
-            body, : Workflow execution request (required)
+            body, : Workflow execution request (required),
+            force : Should workflow be executed even though there is a running
+                    workflow under the same deployment (optional,
+                                                        default: false)
         Returns: Execution
         """
 
         resource_path = '/deployments/{0}/executions'.format(deployment_id)
+
+        query_params = {
+            'force': str(force).lower()
+        }
+
         url = self.api_client.resource_url(resource_path)
         response = requests.post(url,
                                  headers={'Content-type': 'application/json'},
-                                 data=json.dumps(body))
+                                 data=json.dumps(body),
+                                 params=query_params)
 
         self.api_client.raise_if_not(201, response, url)
 
