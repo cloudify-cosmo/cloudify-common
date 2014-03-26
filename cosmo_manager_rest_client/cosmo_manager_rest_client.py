@@ -209,7 +209,8 @@ class CosmoManagerRestClient(object):
 
     def execute_deployment(self, deployment_id, operation, events_handler=None,
                            timeout=900,
-                           wait_for_execution=True):
+                           wait_for_execution=True,
+                           force=False):
         end = time.time() + timeout
 
         with self._protected_call_to_server('executing deployment operation'):
@@ -218,7 +219,8 @@ class CosmoManagerRestClient(object):
             }
             execution = self._deployments_api.execute(
                 deployment_id=deployment_id,
-                body=body)
+                body=body,
+                force=force)
 
             if wait_for_execution:
                 end_states = ('terminated', 'failed')
@@ -366,7 +368,7 @@ class CosmoManagerRestClient(object):
         blueprint_name = os.path.basename(os.path.splitext(blueprint_path)[0])
         blueprint_directory = os.path.dirname(blueprint_path)
         if not blueprint_directory:
-            #blueprint path only contains a file name from the local directory
+            # blueprint path only contains a file name from the local directory
             blueprint_directory = os.getcwd()
         tar_path = '{0}/{1}.tar.gz'.format(tempdir, blueprint_name)
         with tarfile.open(tar_path, "w:gz") as tar:
