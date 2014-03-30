@@ -33,8 +33,7 @@ class ProviderContextApi(object):
 
         self.api_client.raise_if_not(200, response, url)
 
-        return self.api_client.deserialize(response.json(),
-                                           'ProviderContext')
+        return response.json()
 
     def post_context(self, provider_context):
         resource_path = '/provider/context'
@@ -42,6 +41,7 @@ class ProviderContextApi(object):
         url = self.api_client.resource_url(resource_path)
 
         response = requests.post(url,
+                                 headers={'Content-Type': 'application/json'},
                                  data=json.dumps({
                                      'context': provider_context
                                  }))
