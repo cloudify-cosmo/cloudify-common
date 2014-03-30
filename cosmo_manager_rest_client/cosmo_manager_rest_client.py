@@ -36,6 +36,7 @@ from swagger.events_api import EventsApi
 from swagger.search_api import SearchApi
 from swagger.nodes_api import NodesApi
 from swagger.status_api import StatusApi
+from swagger.provider_context_api import ProviderContextApi
 
 
 class ExecutionEvents(object):
@@ -94,6 +95,7 @@ class CosmoManagerRestClient(object):
         self._events_api = EventsApi(api_client)
         self._search_api = SearchApi(api_client)
         self._status_api = StatusApi(api_client)
+        self._provider_context_api = ProviderContextApi(api_client)
 
     def status(self):
         with self._protected_call_to_server('status'):
@@ -361,6 +363,22 @@ class CosmoManagerRestClient(object):
             return self._nodes_api.update_node_state(node_id,
                                                      updated_properties,
                                                      state_version)
+
+    def post_provider_context(self, provider_context):
+        """
+        Sets the provider context on at the manager server.
+        Args:
+            provider_context: The context to store
+        """
+        with self._protected_call_to_server('posting provider context'):
+            return self._provider_context_api.post_context(provider_context)
+
+    def get_provider_context(self):
+        """
+        Gets the provider context from the manager server.
+        """
+        with self._protected_call_to_server('getting provider context'):
+            return self._provider_context_api.get_context()
 
     @staticmethod
     def _tar_blueprint(blueprint_path, tempdir):
