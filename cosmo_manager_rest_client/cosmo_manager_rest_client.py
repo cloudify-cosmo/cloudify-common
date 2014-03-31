@@ -424,7 +424,7 @@ class CosmoManagerRestClient(object):
             raise CosmoManagerRestCallError(
                 'Failed {0}: Reason - {1}'
                 .format(action_name, ex.reason)), None, trace
-        except HTTPException, ex:
+        except (HTTPException, IOError), ex:
             trace = sys.exc_info()[2]
             raise CosmoManagerRestCallError(
                 'Failed {0}: Error - {1}'
