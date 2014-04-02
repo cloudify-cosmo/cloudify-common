@@ -33,7 +33,7 @@ class ProviderContextApi(object):
 
         self.api_client.raise_if_not(200, response, url)
 
-        return response.json()
+        return response.json()['context']
 
     def post_context(self, provider_context):
         resource_path = '/provider/context'
