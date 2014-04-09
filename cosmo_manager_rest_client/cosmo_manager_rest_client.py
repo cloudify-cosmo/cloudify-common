@@ -364,14 +364,15 @@ class CosmoManagerRestClient(object):
                                                      updated_properties,
                                                      state_version)
 
-    def post_provider_context(self, provider_context):
+    def post_provider_context(self, name, context):
         """
         Sets the provider context on at the manager server.
         Args:
+            name: The name of the provider
             provider_context: The context to store
         """
         with self._protected_call_to_server('posting provider context'):
-            return self._provider_context_api.post_context(provider_context)
+            return self._provider_context_api.post_context(name, context)
 
     def get_provider_context(self):
         """
