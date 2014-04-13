@@ -176,6 +176,11 @@ class CosmoManagerRestClient(object):
         return query
 
     def get_all_execution_events(self, execution_id, include_logs=False):
+        # make sure execution exists before proceeding
+        # a 404 will be raised otherwise
+        with self._protected_call_to_server('fetch execution'):
+            self._executions_api.getById(execution_id)
+
         execution_events = ExecutionEvents(self,
                                            execution_id,
                                            include_logs=include_logs)
@@ -413,7 +418,8 @@ class CosmoManagerRestClient(object):
             if server_output and 'message' in server_output:
                 server_message = server_output['message']
             trace = sys.exc_info()[2]
-            raise CosmoManagerRestCallError(
+            raise CosmoManagerRestCallHTTPError(
+                ex.code,
                 'Failed {0}: Error code - {1}; Message - "{2}"'
                 .format(
                     action_name,
@@ -434,6 +440,15 @@ class CosmoManagerRestClient(object):
 
 class CosmoManagerRestCallError(Exception):
     pass
+
+
+class CosmoManagerRestCallHTTPError(CosmoManagerRestCallError):
+
+    def __init__(self, status_code, *args, **kwargs):
+        super(CosmoManagerRestCallHTTPError, self).__init__(self,
+                                                            *args,
+                                                            **kwargs)
+        self.status_code = status_code
 
 
 class CosmoManagerRestCallTimeoutError(Exception):

@@ -139,59 +139,6 @@ class DeploymentsApi(object):
         return self.api_client.deserialize(response.json(),
                                            'list[Execution]')
 
-    def eventsHeaders(self, id, responseHeadersBuffers):
-        """Get headers for events associated with the deployment
-        Args:
-            id, str: ID of deployment that needs to be fetched (required)
-            responseHeadersBuffers, dict: a buffer for the response headers
-        Returns:
-        """
-
-        resource_path = '/deployments/{0}/events'.format(id)
-        url = self.api_client.resource_url(resource_path)
-        response = requests.head(url)
-
-        self.api_client.raise_if_not(200, response, url)
-
-        responseHeadersBuffers.update(response.headers)
-
-    def readEvents(self, id, responseHeadersBuffers=None, from_param=0,
-                   count_param=500):
-        """Returns deployments events.
-        Args:
-            id, str: ID of deployment that needs to be fetched (required)
-            from_param, int: Index of the first request event. (optional)
-            count_param, int: Maximum number of events to read. (optional)
-            responseHeadersBuffers, dict: a buffer for the response
-                headers (optional)
-        Returns: DeploymentEvents
-        """
-
-        resource_path = '/deployments/{0}/events'.format(id)
-        url = self.api_client.resource_url(resource_path)
-
-        query_params = {
-            'from': str(from_param),
-            'count': str(count_param)
-        }
-
-        response = requests.get(url,
-                                params=query_params)
-
-        self.api_client.raise_if_not(200, response, url)
-
-        if responseHeadersBuffers is not None:
-            responseHeadersBuffers.update(response.headers)
-
-        response_json = response.json()
-
-        events_json_str = map(lambda x: json.dumps(x),
-                              response_json['events'])
-        response_json['events'] = events_json_str
-
-        return self.api_client.deserialize(response_json,
-                                           'DeploymentEvents')
-
     def listNodes(self, deployment_id, get_state=False):
         """Returns a list of the deployments workflows.
 
