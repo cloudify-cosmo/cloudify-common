@@ -176,6 +176,11 @@ class CosmoManagerRestClient(object):
         return query
 
     def get_all_execution_events(self, execution_id, include_logs=False):
+        # make sure execution exists before proceeding
+        # a 404 will be raised otherwise
+        with self._protected_call_to_server('fetch execution'):
+            self._executions_api.getById(execution_id)
+
         execution_events = ExecutionEvents(self,
                                            execution_id,
                                            include_logs=include_logs)
