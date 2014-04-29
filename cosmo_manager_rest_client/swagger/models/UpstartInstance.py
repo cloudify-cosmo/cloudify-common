@@ -22,7 +22,7 @@ class UpstartInstance:
             'display_name': 'str',
             'name': 'str',
             'description': 'str',
-            'instances': 'list[str]'
+            'instances': 'list[dict]'
         }
 
         self.display_name = None
