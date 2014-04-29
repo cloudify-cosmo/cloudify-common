@@ -101,6 +101,10 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('status'):
             return self._status_api.status()
 
+    def list_services(self):
+        with self._protected_call_to_server('listing services'):
+            return self._status_api.listservices()
+
     def list_blueprints(self):
         with self._protected_call_to_server('listing blueprints'):
             return self._blueprints_api.list()

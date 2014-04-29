@@ -34,3 +34,18 @@ class StatusApi(object):
 
         return self.api_client.deserialize(response.json(),
                                            'Status')
+
+    def listservices(self):
+        """Returns a list of services (daemons).
+        Args:
+        Returns: list[UpstartInstance]
+        """
+        resource_path = '/status'
+        url = self.api_client.resource_url(resource_path)
+
+        response = requests.get(url)
+
+        self.api_client.raise_if_not(200, response, url)
+
+        return self.api_client.deserialize(response.json()['services'],
+                                           'list[UpstartInstance]')
