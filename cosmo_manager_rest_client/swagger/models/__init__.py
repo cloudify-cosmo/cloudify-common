@@ -6,7 +6,7 @@ import sys
 __all__ = []
 
 if getattr(sys, 'frozen', None):
-    basedir = sys._MEIPASS + '/models/swagger'
+    basedir = sys._MEIPASS + '/swagger/models'
 else:
     basedir = os.path.dirname(__file__)
 
