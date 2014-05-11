@@ -17,7 +17,7 @@ __author__ = 'ran'
 
 from setuptools import setup
 
-VERSION = '3.0b1'
+VERSION = '3.0'
 
 setup(
     name='cloudify-rest-client',
