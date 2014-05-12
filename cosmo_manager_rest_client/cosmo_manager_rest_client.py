@@ -215,9 +215,8 @@ class CosmoManagerRestClient(object):
         return events, total_events
 
     def execute_deployment(self, deployment_id, operation, events_handler=None,
-                           timeout=900,
-                           wait_for_execution=True,
-                           force=False):
+                           timeout=900, include_logs=False,
+                           wait_for_execution=True, force=False):
         end = time.time() + timeout
 
         with self._protected_call_to_server('executing deployment operation'):
@@ -231,7 +230,8 @@ class CosmoManagerRestClient(object):
 
             if wait_for_execution:
                 end_states = ('terminated', 'failed')
-                execution_events = ExecutionEvents(self, execution.id)
+                execution_events = ExecutionEvents(self, execution.id,
+                                                   include_logs=include_logs)
 
                 while execution.status not in end_states:
                     if end < time.time():
