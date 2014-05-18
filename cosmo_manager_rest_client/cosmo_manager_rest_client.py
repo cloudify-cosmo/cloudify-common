@@ -141,11 +141,9 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('list deployments'):
             return self._deployments_api.list()
 
-    def list_deployment_executions(self, deployment_id,
-                                   get_executions_statuses=False):
+    def list_deployment_executions(self, deployment_id):
         with self._protected_call_to_server('list executions'):
-            return self._deployments_api.listExecutions(
-                deployment_id, get_executions_statuses)
+            return self._deployments_api.listExecutions(deployment_id)
 
     def create_deployment(self, blueprint_id, deployment_id):
         with self._protected_call_to_server('creating new deployment'):
@@ -257,6 +255,14 @@ class CosmoManagerRestClient(object):
                 return execution.id, error
             else:
                 return execution.id, None
+
+    def update_execution_status(self, execution_id, status, error=None):
+        """
+        Update an execution's status by its id.
+        """
+        with self._protected_call_to_server('update execution status'):
+            self._executions_api.update_execution_status(execution_id,
+                                                         status, error)
 
     def cancel_execution(self, execution_id):
         """
