@@ -165,6 +165,10 @@ class CosmoManagerRestClient(object):
                 deployment_id=deployment_id,
                 body=body)
 
+    def get_execution(self, execution_id):
+        with self._protected_call_to_server('get execution'):
+            return self._executions_api.getById(execution_id)
+
     @staticmethod
     def _create_events_query(execution_id, include_logs):
         query = {
