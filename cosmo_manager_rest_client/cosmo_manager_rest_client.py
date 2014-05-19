@@ -276,7 +276,7 @@ class CosmoManagerRestClient(object):
         Cancel an execution by its id.
         """
         with self._protected_call_to_server('cancel execution'):
-            self._executions_api.cancel(execution_id)
+            return self._executions_api.cancel(execution_id)
 
     def get_events(self, query):
         """
