@@ -20,8 +20,10 @@ class DeploymentNode:
     def __init__(self):
         self.swaggerTypes = {
             'id': 'str',
-            'reachable': 'bool'
+            'state': 'str',
+            'stateVersion': 'int'
         }
 
         self.id = None  # str
-        self.reachable = None  # bool
+        self.state = None  # str
+        self.stateVersion = None  # int

@@ -25,14 +25,14 @@ class NodesApi(object):
     def __init__(self, api_client):
         self.api_client = api_client
 
-    def get_state_by_id(self, node_id, get_state=False,
-                        get_runtime_properties=True):
+    def get_node_instance(self, node_id,
+                          get_state_and_runtime_properties=True):
 
         resource_path = '/nodes/{0}'.format(node_id)
 
         query_params = {
-            'state': str(get_state).lower(),
-            'runtime': str(get_runtime_properties).lower()
+            'state_and_runtime_properties':
+            str(get_state_and_runtime_properties).lower()
         }
 
         url = self.api_client.resource_url(resource_path)
@@ -44,7 +44,7 @@ class NodesApi(object):
 
         return response.json()
 
-    def put_node_state(self, node_id, runtime_properties):
+    def put_node_instance(self, node_id, runtime_properties):
         resource_path = '/nodes/{0}'.format(node_id)
         url = self.api_client.resource_url(resource_path)
 
@@ -56,14 +56,19 @@ class NodesApi(object):
 
         return response.json()
 
-    def update_node_state(self, node_id, updated_properties, state_version):
+    def update_node_instance(self, node_id, state_version,
+                             runtime_properties=None, state=None):
 
         resource_path = '/nodes/{0}'.format(node_id)
         url = self.api_client.resource_url(resource_path)
         data = {
-            'runtime_info': updated_properties,
             'state_version': state_version
         }
+        if state:
+            data['state'] = state
+        if runtime_properties:
+            data['runtime_info'] = runtime_properties
+
         response = requests.patch(url,
                                   headers={'Content-Type': 'application/json'},
                                   data=json.dumps(data))
