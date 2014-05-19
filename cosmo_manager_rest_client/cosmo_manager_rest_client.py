@@ -342,17 +342,17 @@ class CosmoManagerRestClient(object):
         with self._protected_call_to_server('getting deployment nodes'):
             return self._deployments_api.listNodes(deployment_id, get_state)
 
-    def get_node_state(self, node_id, get_state=False,
-                       get_runtime_properties=True):
+    def get_node_instance(self, node_id,
+                          get_state_and_runtime_properties=True):
         """
-        Gets node runtime/reachable state for the provided node_id.
+        Gets node runtime/state for the provided node_id.
         """
-        with self._protected_call_to_server('getting node'):
-            return self._nodes_api.get_state_by_id(node_id,
-                                                   get_state,
-                                                   get_runtime_properties)
+        with self._protected_call_to_server('getting node instance'):
+            return self._nodes_api.get_node_instance(
+                node_id,
+                get_state_and_runtime_properties)
 
-    def put_node_state(self, node_id, runtime_properties):
+    def put_node_instance(self, node_id, runtime_properties):
         """Puts node runtime state on the server
         Args:
             node_id: The node id.
@@ -362,25 +362,28 @@ class CosmoManagerRestClient(object):
             Example:
                 { "id": "node...", "runtimeInfo" { ... } }
         """
-        with self._protected_call_to_server('putting node runtime state'):
-            return self._nodes_api.put_node_state(node_id,
-                                                  runtime_properties)
+        with self._protected_call_to_server('putting node instance'):
+            return self._nodes_api.put_node_instance(
+                node_id, runtime_properties)
 
-    def update_node_state(self, node_id, updated_properties, state_version):
-        """Updates node runtime state for the provided node_id.
+    def update_node_instance(self, node_id, state_version,
+                             runtime_properties=None, state=None):
+        """Updates node instance for the provided node_id.
+           Will not override existing values if None is passed (e.g.
+           it's possible to change updated_properties without modifying state)
         Args:
             node_id: The node id.
-            updated_properties: The node's updated runtime properties as dict
             state_version: The node's state's version as int
+            runtime_properties: The node's updated runtime properties as dict
+            state: The node's updated state
         Returns:
             Updated node.
             Example:
-                { "id": "node...", "runtimeInfo" { ... } }
+                { "id": "node...", "runtimeInfo" { ... }, ... }
         """
-        with self._protected_call_to_server('updating node runtime state'):
-            return self._nodes_api.update_node_state(node_id,
-                                                     updated_properties,
-                                                     state_version)
+        with self._protected_call_to_server('updating node instance'):
+            return self._nodes_api.update_node_instance(
+                node_id, state_version, runtime_properties, state)
 
     def post_provider_context(self, name, context):
         """

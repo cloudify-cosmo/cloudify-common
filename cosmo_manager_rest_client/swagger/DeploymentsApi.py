@@ -164,7 +164,7 @@ class DeploymentsApi(object):
 
         Args:
             deployment_id : str
-            get_reachable_state: bool (default: False)
+            get_state: bool (default: False)
 
         Returns: DeploymentNodes
         """
