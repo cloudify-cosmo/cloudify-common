@@ -85,7 +85,7 @@ class ExecutionEvents(object):
 
 class CosmoManagerRestClient(object):
 
-    def __init__(self, server_ip, port=8100):
+    def __init__(self, server_ip, port=80):
         server_url = 'http://{0}:{1}'.format(server_ip, port)
         api_client = ApiClient(apiServer=server_url, apiKey='')
         self._blueprints_api = BlueprintsApi(api_client)
