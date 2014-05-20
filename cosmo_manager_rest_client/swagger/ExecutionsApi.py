@@ -55,9 +55,10 @@ class ExecutionsApi(object):
         params = {'status': status}
         if error:
             params['error'] = error
-        response = requests.post(url,
-                                 headers={'Content-type': 'application/json'},
-                                 data=json.dumps(params))
+        response = requests.patch(
+            url,
+            headers={'Content-type': 'application/json'},
+            data=json.dumps(params))
 
         self.api_client.raise_if_not(200, response, url)
 
