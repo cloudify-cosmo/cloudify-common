@@ -77,7 +77,7 @@ class DeploymentsApi(object):
         """
         Args:
             deployment_id, :  (optional)
-        Returns: BlueprintState
+        Returns: Deployment
         """
 
         resource_path = '/deployments/{0}'.format(deployment_id)
@@ -87,7 +87,27 @@ class DeploymentsApi(object):
         self.api_client.raise_if_not(200, response, url)
 
         return self.api_client.deserialize(response.json(),
-                                           'BlueprintState')
+                                           'Deployment')
+
+    def delete(self, deployment_id, ignore_live_nodes=False):
+        """Deletes a given deployment.
+
+        Args:
+            deployment_id: str
+            ignore_live_nodes: bool
+
+        Returns: Deployment
+        """
+
+        resource_path = '/deployments/{0}'.format(deployment_id)
+        url = self.api_client.resource_url(resource_path)
+        query_params = {'ignore_live_nodes': str(ignore_live_nodes).lower()}
+
+        response = requests.delete(url, params=query_params)
+
+        self.api_client.raise_if_not(200, response, url)
+
+        return self.api_client.deserialize(response.json(), 'Deployment')
 
     def execute(self, deployment_id, body, force=False):
         """Execute a workflow
@@ -138,7 +158,7 @@ class DeploymentsApi(object):
 
         Args:
             deployment_id : str
-            get_reachable_state: bool (default: False)
+            get_state: bool (default: False)
 
         Returns: DeploymentNodes
         """
