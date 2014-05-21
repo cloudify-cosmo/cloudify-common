@@ -253,7 +253,7 @@ class CosmoManagerRestClient(object):
 
                     time.sleep(3)
 
-                    execution = self._executions_api.getById(execution.id)
+                    execution = self.get_execution(execution.id)
                     execution_events.fetch_and_process_events(
                         events_handler=events_handler)
 
