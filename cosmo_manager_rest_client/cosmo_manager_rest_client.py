@@ -274,8 +274,8 @@ class CosmoManagerRestClient(object):
         Update an execution's status by its id.
         """
         with self._protected_call_to_server('update execution status'):
-            self._executions_api.update_execution_status(execution_id,
-                                                         status, error)
+            return self._executions_api.update_execution_status(
+                execution_id, status, error)
 
     def cancel_execution(self, execution_id):
         """
