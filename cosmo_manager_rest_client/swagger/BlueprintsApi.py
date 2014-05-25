@@ -13,10 +13,14 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import os
 import requests
+from requests.exceptions import HTTPError
 
 
 class BlueprintsApi(object):
+
+    CONTENT_DISPOSITION_HEADER = 'content-disposition'
 
     def __init__(self, api_client):
         self.api_client = api_client
@@ -142,3 +146,44 @@ class BlueprintsApi(object):
 
         return self.api_client.deserialize(response.json(),
                                            'BlueprintState')
+
+    def download(self, blueprint_id, output_file=None):
+        """
+        Downloads a previously uploaded blueprint from Cloudify's manager
+        to a file and returns its file name.
+
+        :param blueprint_id: Blueprint Id to download.
+        :param output_file: An optional parameter for specifying the local
+         target file name.
+        :return: Downloaded blueprint file name.
+        """
+        resource_path = '/blueprints/{0}?download'.format(blueprint_id)
+        url = self.api_client.resource_url(resource_path)
+
+        r = requests.get(url, stream=True)
+        if r.status_code != requests.codes.ok:
+            try:
+                message = r.json()['message']
+            except Exception:
+                r.raise_for_status()
+            raise HTTPError(message, r)
+
+        if not output_file:
+            if self.CONTENT_DISPOSITION_HEADER not in r.headers:
+                raise RuntimeError(
+                    'Cannot determine attachment filename: {0} header not'
+                    ' found in response headers'.format(
+                        self.CONTENT_DISPOSITION_HEADER))
+            output_file = r.headers[
+                self.CONTENT_DISPOSITION_HEADER].split('filename=')[1]
+
+        if os.path.exists(output_file):
+            raise OSError("Output file '%s' already exists" % output_file)
+
+        with open(output_file, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8096):
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
+
+        return output_file
