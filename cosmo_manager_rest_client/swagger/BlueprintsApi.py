@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 import os
+
 import requests
 from requests.exceptions import HTTPError
 
@@ -161,12 +162,7 @@ class BlueprintsApi(object):
         url = self.api_client.resource_url(resource_path)
 
         r = requests.get(url, stream=True)
-        if r.status_code != requests.codes.ok:
-            try:
-                message = r.json()['message']
-            except Exception:
-                r.raise_for_status()
-            raise HTTPError(message, r)
+        self.api_client.raise_if_not(requests.codes.ok, r, url)
 
         if not output_file:
             if self.CONTENT_DISPOSITION_HEADER not in r.headers:

@@ -445,7 +445,7 @@ class CosmoManagerRestClient(object):
             else:
                 try:
                     server_output = json.loads(ex.reason)
-                except Exception:
+                except Exception, e:
                     pass
             if server_output and 'message' in server_output:
                 server_message = server_output['message']
