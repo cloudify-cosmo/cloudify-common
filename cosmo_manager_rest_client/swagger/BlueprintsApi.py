@@ -157,7 +157,7 @@ class BlueprintsApi(object):
          target file name.
         :return: Downloaded blueprint file name.
         """
-        resource_path = '/blueprints/{0}?download'.format(blueprint_id)
+        resource_path = '/blueprints/{0}/archive'.format(blueprint_id)
         url = self.api_client.resource_url(resource_path)
 
         r = requests.get(url, stream=True)
