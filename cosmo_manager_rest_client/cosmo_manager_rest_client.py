@@ -85,7 +85,7 @@ class ExecutionEvents(object):
 
 class CosmoManagerRestClient(object):
 
-    def __init__(self, server_ip, port=8100):
+    def __init__(self, server_ip, port=80):
         server_url = 'http://{0}:{1}'.format(server_ip, port)
         api_client = ApiClient(apiServer=server_url, apiKey='')
         self._blueprints_api = BlueprintsApi(api_client)
@@ -100,6 +100,10 @@ class CosmoManagerRestClient(object):
     def status(self):
         with self._protected_call_to_server('status'):
             return self._status_api.status()
+
+    def list_services(self):
+        with self._protected_call_to_server('listing services'):
+            return self._status_api.listservices()
 
     def list_blueprints(self):
         with self._protected_call_to_server('listing blueprints'):
@@ -136,6 +140,18 @@ class CosmoManagerRestClient(object):
     def validate_blueprint(self, blueprint_id):
         with self._protected_call_to_server('validating blueprint'):
             return self._blueprints_api.validate(blueprint_id)
+
+    def download_blueprint(self, blueprint_id, output_file=None):
+        """
+        Downloads a previously uploaded blueprint from Cloudify's manager.
+
+        :param blueprint_id: The Id of the blueprint to be downloaded.
+        :param output_file: The file path of the downloaded blueprint file
+         (optional)
+        :return: The file path of the downloaded blueprint.
+        """
+        with self._protected_call_to_server('downloading blueprint'):
+            return self._blueprints_api.download(blueprint_id, output_file)
 
     def list_deployments(self):
         with self._protected_call_to_server('list deployments'):
