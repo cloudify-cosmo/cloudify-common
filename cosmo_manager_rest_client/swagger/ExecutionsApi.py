@@ -40,6 +40,31 @@ class ExecutionsApi(object):
         return self.api_client.deserialize(response.json(),
                                            'Execution')
 
+    def update_execution_status(self, execution_id, status, error=None):
+        """Updates the execution status by its id.
+        Args:
+            execution_id, str: ID of the execution that needs to
+                be updated (required)
+            status, str: the new status for the execution (required)
+            error, str: an error message for erroneous statuses (optional)
+        Returns: Execution
+        """
+
+        resource_path = '/executions/{0}'.format(execution_id)
+        url = self.api_client.resource_url(resource_path)
+        params = {'status': status}
+        if error:
+            params['error'] = error
+        response = requests.patch(
+            url,
+            headers={'Content-type': 'application/json'},
+            data=json.dumps(params))
+
+        self.api_client.raise_if_not(200, response, url)
+
+        return self.api_client.deserialize(response.json(),
+                                           'Execution')
+
     def cancel(self, execution_id):
         """
         Cancels an execution by its id

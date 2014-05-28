@@ -137,22 +137,16 @@ class DeploymentsApi(object):
         return self.api_client.deserialize(response.json(),
                                            'Execution')
 
-    def listExecutions(self, deployment_id, get_executions_statuses=False):
+    def listExecutions(self, deployment_id):
         """Returns deployment executions
         Args:
             deployment_id, :  (required)
-            get_execution_status: (optional)
         Returns: Execution
         """
 
         resource_path = '/deployments/{0}/executions'.format(deployment_id)
         url = self.api_client.resource_url(resource_path)
-
-        query_params = {
-            'statuses': str(get_executions_statuses).lower()
-        }
-
-        response = requests.get(url, params=query_params)
+        response = requests.get(url)
 
         self.api_client.raise_if_not(200, response, url)
 
