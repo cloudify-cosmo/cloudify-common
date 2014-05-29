@@ -3,14 +3,9 @@ python:
   - "2.7"
 
 install:
-
-    # command to install dependencies
     - pip install .
     - pip install flake8
 
-
 script:
-
     - flake8 .
-    # command to run tests
     - nosetests cosmo_manager_rest_client/tests
