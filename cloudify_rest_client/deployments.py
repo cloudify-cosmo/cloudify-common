@@ -26,8 +26,46 @@ class Deployment(dict):
         return self['id']
 
 
+class Workflows(dict):
+
+    def __init__(self, workflows):
+        self.update(workflows)
+        self['workflows'] = [Workflow(item) for item in self['workflows']]
+
+    @property
+    def blueprint_id(self):
+        return self['blueprintId']
+
+    @property
+    def deployment_id(self):
+        return self['deploymentId']
+
+    @property
+    def workflows(self):
+        return self['workflows']
+
+
+class Workflow(dict):
+
+    def __init__(self, workflow):
+        self.update(workflow)
+
+    @property
+    def id(self):
+        return self['name']
+
+
 class DeploymentsClient(object):
 
-    def __init__(self, rest_client):
-        self.rest_client = rest_client
+    def __init__(self, api):
+        self.api = api
 
+    def list(self):
+        response = self.api.get('/deployments')
+        return [Deployment(item) for item in response]
+
+    def list_workflows(self, deployment_id):
+        assert deployment_id
+        uri = '/deployments/{0}/workflows'.format(deployment_id)
+        response = self.api.get(uri)
+        return Workflows(response)
