@@ -32,18 +32,39 @@ class ExecutionsClient(object):
         self.api = api
 
     def list(self, deployment_id):
+        """
+        Returns a list of executions for the provided deployment's id.
+
+        :param deployment_id: Deployment id to get a list of executions for.
+        :return: Executions list.
+        """
         assert deployment_id
         uri = '/deployments/{0}/executions'.format(deployment_id)
         response = self.api.get(uri)
         return [Execution(item) for item in response]
 
     def get(self, execution_id):
+        """
+        Get execution by its id.
+
+        :param execution_id: Id of the execution to get.
+        :return: Execution.
+        """
         assert execution_id
         uri = '/executions/{0}'.format(execution_id)
         response = self.api.get(uri)
         return Execution(response)
 
     def update(self, execution_id, status, error=None):
+        """
+        Update execution with the provided status and optional error.
+
+        :param execution_id: Id of the execution to update.
+        :param status: Updated execution status.
+        :param error: Updated execution error (optional).
+        :return: Updated execution.
+        """
+
         uri = '/executions/{0}'.format(execution_id)
         params = {'status': status}
         if error:
@@ -52,6 +73,11 @@ class ExecutionsClient(object):
         return Execution(response)
 
     def cancel(self, execution_id):
+        """
+        Cancels the execution who matches the provided execution id.
+        :param execution_id: Id of the execution to cancel.
+        :return: Cancelled execution.
+        """
         uri = '/executions/{0}'.format(execution_id)
-        response = self.api.post(uri, data={'action':'cancel'})
+        response = self.api.post(uri, data={'action': 'cancel'})
         return Execution(response)

@@ -16,8 +16,4 @@
 __author__ = 'idanmo'
 
 
-from client import CloudifyClient
-
-
-
-
+from client import CloudifyClient  # noqa

@@ -21,7 +21,7 @@ from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.deployments import DeploymentsClient
 from cloudify_rest_client.executions import ExecutionsClient
 from cloudify_rest_client.node_instances import NodeInstancesClient
-from cloudify_rest_client.exceptions import *
+from cloudify_rest_client.exceptions import CloudifyClientError
 
 
 class HTTPClient(object):
@@ -49,7 +49,9 @@ class HTTPClient(object):
         response = requests_method(request_url,
                                    data=data,
                                    params=params,
-                                   headers={'Content-type': 'application/json'})
+                                   headers={
+                                       'Content-type': 'application/json'
+                                   })
         if response.status_code != expected_status_code:
             self._raise_client_error(response)
         return response.json()
@@ -91,11 +93,20 @@ class HTTPClient(object):
 
 
 class CloudifyClient(object):
+    """
+    Cloudify's management client.
 
+    """
     def __init__(self, host, port=80):
+        """
+        Creates a Cloudify client with the provided host and optional port.
+
+        :param host: Host of Cloudify's management machine.
+        :param port: Port of REST API service on management machine.
+        :return: Cloudify client instance.
+        """
         self._client = HTTPClient(host, port)
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
         self.node_instances = NodeInstancesClient(self._client)
-

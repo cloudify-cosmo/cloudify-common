@@ -40,10 +40,30 @@ class BlueprintsClient(object):
         self.api = api
 
     def list(self):
+        """
+        Returns a list of currently stored blueprints.
+
+        :return: Blueprints list.
+        """
         response = self.api.get('/blueprints')
         return [Blueprint(item) for item in response]
 
     def upload_blueprint(self, blueprint_path, blueprint_id):
+        """
+        Uploads a blueprint to Cloudify's manager.
+
+        :param blueprint_path: Main blueprint yaml file path.
+        :param blueprint_id: Id of the uploaded blueprint (optional).
+        :return: Created blueprint.
+
+        Blueprint path should point to the main yaml file of the blueprint
+        to be uploaded. Its containing folder will be packed to an archive
+        and get uploaded to the manager.
+        An optional blueprint_id parameter is available for specifying the
+        blueprint's unique Id. If not specified, blueprint id will be
+        determined after parsing the blueprint's yaml file.
+
+        """
         tempdir = tempfile.mkdtemp()
         try:
             tar_path = self._tar_blueprint(blueprint_path, tempdir)
@@ -60,15 +80,33 @@ class BlueprintsClient(object):
             shutil.rmtree(tempdir)
 
     def get(self, blueprint_id):
+        """
+        Gets a blueprint by its id.
+
+        :param blueprint_id: Blueprint's id to get.
+        :return: The blueprint.
+        """
         assert blueprint_id
         response = self.api.get('/blueprints/{0}'.format(blueprint_id))
         return Blueprint(response)
 
     def get_source(self, blueprint_id):
+        """
+        Gets a blueprint's source by the blueprint's id.
+
+        :param blueprint_id: Blueprint's id to get the source for.
+        :return: The blueprint's source.
+        """
         assert blueprint_id
         return self.api.get('/blueprints/{0}/source'.format(blueprint_id))
 
     def delete(self, blueprint_id):
+        """
+        Deletes the blueprint whose id matches the provided blueprint id.
+
+        :param blueprint_id: The id of the blueprint to be deleted.
+        :return: Deleted blueprint.
+        """
         assert blueprint_id
         response = self.api.delete('/blueprints/{0}'.format(blueprint_id))
         return response
@@ -107,5 +145,3 @@ class BlueprintsClient(object):
                     f.flush()
 
         return output_file
-
-

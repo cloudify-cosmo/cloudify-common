@@ -64,15 +64,34 @@ class DeploymentsClient(object):
         self.api = api
 
     def list(self):
+        """
+        Returns a list of all deployments.
+
+        :return: Deployments list.
+        """
         response = self.api.get('/deployments')
         return [Deployment(item) for item in response]
 
     def get(self, deployment_id):
+        """
+        Returns a deployment by its id.
+
+        :param deployment_id: Id of the deployment to get.
+        :return: Deployment.
+        """
         assert deployment_id
         response = self.api.get('/deployments/{0}'.format(deployment_id))
         return Deployment(response)
 
     def create(self, blueprint_id, deployment_id):
+        """
+        Creates a new deployment for the provided blueprint id and
+        deployment id.
+
+        :param blueprint_id: Blueprint id to create a deployment of.
+        :param deployment_id: Deployment id of the new created deployment.
+        :return: The created deployment.
+        """
         assert blueprint_id
         assert deployment_id
         data = {
@@ -83,23 +102,51 @@ class DeploymentsClient(object):
         return Deployment(response)
 
     def delete(self, deployment_id):
+        """
+        Deletes the deployment whose id matches the provided deployment id.
+
+        :param deployment_id: The deployment's to be deleted id.
+        :return: The deleted deployment.
+        """
         assert deployment_id
         response = self.api.delete('/deployments/{0}'.format(deployment_id))
         return response
 
     def list_executions(self, deployment_id):
+        """
+        Returns a list of executions for the provided deployment's id.
+
+        :param deployment_id: Deployment id to get a list of executions for.
+        :return: List of executions.
+        """
         assert deployment_id
         uri = '/deployments/{0}/executions'.format(deployment_id)
         response = self.api.get(uri)
         return [Execution(item) for item in response]
 
     def list_workflows(self, deployment_id):
+        """
+        Returns a list of available workflows for the provided deployment's id.
+
+        :param deployment_id: Deployment id to get a list of workflows for.
+        :return: Workflows list.
+        """
         assert deployment_id
         uri = '/deployments/{0}/workflows'.format(deployment_id)
         response = self.api.get(uri)
         return Workflows(response)
 
     def execute(self, deployment_id, workflow_id, force=False):
+        """
+        Executes a deployment's workflow whose id is provided.
+
+        :param deployment_id: The deployment's id to execute a workflow for.
+        :param workflow_id: The workflow to be executed id.
+        :param force: Determines whether to force the execution of the workflow
+         in a case where there's an already running execution for this
+          deployment.
+        :return: The created execution.
+        """
         assert deployment_id
         assert workflow_id
         data = {
@@ -113,4 +160,3 @@ class DeploymentsClient(object):
                                  data=data,
                                  query_params=query_params)
         return Execution(response)
-
