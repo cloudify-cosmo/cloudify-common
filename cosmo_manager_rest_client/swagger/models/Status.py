@@ -19,5 +19,7 @@ class Status:
     def __init__(self):
         self.swaggerTypes = {
             'status': 'str',
+            'services': 'list[UpstartInstance]'
         }
         self.status = None
+        self.services = None
