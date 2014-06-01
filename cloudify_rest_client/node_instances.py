@@ -16,11 +16,17 @@
 __author__ = 'idanmo'
 
 
-class CloudifyClientError(Exception):
+class NodeInstance(dict):
 
-    def __init__(self, message):
-        self.message = message
+    def __init__(self, node_instance):
+        self.update(node_instance)
 
-    def __str__(self):
-        return self.message
+
+class NodeInstancesClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+
+
 

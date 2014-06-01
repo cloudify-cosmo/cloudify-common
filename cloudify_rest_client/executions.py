@@ -37,3 +37,21 @@ class ExecutionsClient(object):
         response = self.api.get(uri)
         return [Execution(item) for item in response]
 
+    def get(self, execution_id):
+        assert execution_id
+        uri = '/executions/{0}'.format(execution_id)
+        response = self.api.get(uri)
+        return Execution(response)
+
+    def update(self, execution_id, status, error=None):
+        uri = '/executions/{0}'.format(execution_id)
+        params = {'status': status}
+        if error:
+            params['error'] = error
+        response = self.api.patch(uri, data=params)
+        return Execution(response)
+
+    def cancel(self, execution_id):
+        uri = '/executions/{0}'.format(execution_id)
+        response = self.api.post(uri, data={'action':'cancel'})
+        return Execution(response)

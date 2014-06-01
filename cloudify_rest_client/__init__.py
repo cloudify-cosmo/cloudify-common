@@ -16,7 +16,7 @@
 __author__ = 'idanmo'
 
 
-from rest_client import RestClient
+from client import CloudifyClient
 
 
 

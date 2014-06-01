@@ -16,6 +16,9 @@
 __author__ = 'idanmo'
 
 
+from cloudify_rest_client.executions import Execution
+
+
 class Deployment(dict):
 
     def __init__(self, deployment):
@@ -64,8 +67,50 @@ class DeploymentsClient(object):
         response = self.api.get('/deployments')
         return [Deployment(item) for item in response]
 
+    def get(self, deployment_id):
+        assert deployment_id
+        response = self.api.get('/deployments/{0}'.format(deployment_id))
+        return Deployment(response)
+
+    def create(self, blueprint_id, deployment_id):
+        assert blueprint_id
+        assert deployment_id
+        data = {
+            'blueprintId': blueprint_id
+        }
+        uri = '/deployments/{0}'.format(deployment_id)
+        response = self.api.put(uri, data)
+        return Deployment(response)
+
+    def delete(self, deployment_id):
+        assert deployment_id
+        response = self.api.delete('/deployments/{0}'.format(deployment_id))
+        return response
+
+    def list_executions(self, deployment_id):
+        assert deployment_id
+        uri = '/deployments/{0}/executions'.format(deployment_id)
+        response = self.api.get(uri)
+        return [Execution(item) for item in response]
+
     def list_workflows(self, deployment_id):
         assert deployment_id
         uri = '/deployments/{0}/workflows'.format(deployment_id)
         response = self.api.get(uri)
         return Workflows(response)
+
+    def execute(self, deployment_id, workflow_id, force=False):
+        assert deployment_id
+        assert workflow_id
+        data = {
+            'workflowId': workflow_id
+        }
+        query_params = {
+            'force': str(force).lower()
+        }
+        uri = '/deployments/{0}/executions'.format(deployment_id)
+        response = self.api.post(uri,
+                                 data=data,
+                                 query_params=query_params)
+        return Execution(response)
+
