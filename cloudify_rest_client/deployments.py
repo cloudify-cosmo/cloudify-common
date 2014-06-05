@@ -20,12 +20,18 @@ from cloudify_rest_client.executions import Execution
 
 
 class Deployment(dict):
+    """
+    Cloudify deployment.
+    """
 
     def __init__(self, deployment):
         self.update(deployment)
 
     @property
     def id(self):
+        """
+        :return: The identifier of the deployment.
+        """
         return self['id']
 
 
