@@ -16,6 +16,7 @@
 __author__ = 'idanmo'
 
 import requests
+import json
 
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.deployments import DeploymentsClient
@@ -32,11 +33,13 @@ class HTTPClient(object):
         self.url = 'http://{0}:{1}'.format(host, port)
 
     @staticmethod
-    def _raise_client_error(response):
+    def _raise_client_error(response, url=None):
         try:
             message = response.json()['message']
         except Exception:
             message = response.content
+        if url:
+            message = '{0} [{1}]'.format(message, url)
         raise CloudifyClientError(message)
 
     def do_request(self,
@@ -46,14 +49,15 @@ class HTTPClient(object):
                    params=None,
                    expected_status_code=200):
         request_url = '{0}{1}'.format(self.url, uri)
+        body = json.dumps(data) if data else None
         response = requests_method(request_url,
-                                   data=data,
+                                   data=body,
                                    params=params,
                                    headers={
                                        'Content-type': 'application/json'
                                    })
         if response.status_code != expected_status_code:
-            self._raise_client_error(response)
+            self._raise_client_error(response, request_url)
         return response.json()
 
     def get(self, uri, data=None, params=None, expected_status_code=200):
