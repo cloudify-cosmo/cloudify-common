@@ -27,7 +27,7 @@ setup(
     version='3.0',
     author='ran',
     author_email='ran@gigaspaces.com',
-    packages=['cloudify_rest_client'
+    packages=['cloudify_rest_client',
               'cosmo_manager_rest_client',
               'cosmo_manager_rest_client.swagger',
               'cosmo_manager_rest_client.swagger.models'],
