@@ -20,6 +20,10 @@ import os
 import tempfile
 import shutil
 import requests
+import tarfile
+import urllib
+
+from os.path import expanduser
 
 
 class Blueprint(dict):
@@ -38,6 +42,46 @@ class BlueprintsClient(object):
 
     def __init__(self, api):
         self.api = api
+
+    @staticmethod
+    def _tar_blueprint(blueprint_path, tempdir):
+        blueprint_path = expanduser(blueprint_path)
+        blueprint_name = os.path.basename(os.path.splitext(blueprint_path)[0])
+        blueprint_directory = os.path.dirname(blueprint_path)
+        if not blueprint_directory:
+            # blueprint path only contains a file name from the local directory
+            blueprint_directory = os.getcwd()
+        tar_path = '{0}/{1}.tar.gz'.format(tempdir, blueprint_name)
+        with tarfile.open(tar_path, "w:gz") as tar:
+            tar.add(blueprint_directory,
+                    arcname=os.path.basename(blueprint_directory))
+        return tar_path
+
+    def _upload(self, tar_file_obj,
+                application_file_name=None,
+                blueprint_id=None):
+        query_params = {}
+        if application_file_name is not None:
+            query_params['application_file_name'] = \
+                urllib.quote(application_file_name)
+
+        def file_gen():
+            buffer_size = 8192
+            while True:
+                read_bytes = tar_file_obj.read(buffer_size)
+                yield read_bytes
+                if len(read_bytes) < buffer_size:
+                    return
+
+        if blueprint_id is not None:
+            uri = '/blueprints/{0}'.format(blueprint_id)
+            url = '{0}{1}'.format(self.api.url, uri)
+            response = requests.put(url, params=query_params, data=file_gen())
+        else:
+            url = '{0}/blueprints'.format(self.api.url)
+            response = requests.post(url, params=query_params, data=file_gen())
+            self.api.verify_response_status(response, 201)
+        return response.json()
 
     def list(self):
         """
@@ -69,13 +113,12 @@ class BlueprintsClient(object):
             tar_path = self._tar_blueprint(blueprint_path, tempdir)
             application_file = os.path.basename(blueprint_path)
 
-            with self._protected_call_to_server('publishing blueprint'):
-                with open(tar_path, 'rb') as f:
-                    blueprint_state = self._blueprints_api.upload(
-                        f,
-                        application_file_name=application_file,
-                        blueprint_id=blueprint_id)
-                return blueprint_state
+            with open(tar_path, 'rb') as f:
+                blueprint = self._upload(
+                    f,
+                    application_file_name=application_file,
+                    blueprint_id=blueprint_id)
+            return Blueprint(blueprint)
         finally:
             shutil.rmtree(tempdir)
 

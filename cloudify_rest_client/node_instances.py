@@ -41,7 +41,7 @@ class NodeInstance(dict):
     @property
     def runtime_properties(self):
         """
-        :return: The runtime properties of the node instnace.
+        :return: The runtime properties of the node instance.
         """
         return self['runtimeProperties']
 
