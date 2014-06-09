@@ -92,7 +92,7 @@ class BlueprintsClient(object):
         response = self.api.get('/blueprints')
         return [Blueprint(item) for item in response]
 
-    def upload_blueprint(self, blueprint_path, blueprint_id):
+    def upload(self, blueprint_path, blueprint_id):
         """
         Uploads a blueprint to Cloudify's manager.
 
