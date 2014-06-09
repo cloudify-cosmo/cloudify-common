@@ -80,7 +80,7 @@ class BlueprintsClient(object):
         else:
             url = '{0}/blueprints'.format(self.api.url)
             response = requests.post(url, params=query_params, data=file_gen())
-            self.api.verify_response_status(response, 201)
+        self.api.verify_response_status(response, 201)
         return response.json()
 
     def list(self):
