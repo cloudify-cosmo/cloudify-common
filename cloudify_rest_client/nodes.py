@@ -117,11 +117,11 @@ class NodesClient(object):
 
     def list(self, deployment_id=None):
         """
-        Returns a list of nodes belong to the deployment identified by the
-         provided deployment id.
+        Returns a list of nodes which belong to the deployment identified
+         by the provided deployment id.
         :param deployment_id: The deployment's id to list nodes for.
-        :return: Deployment nodes.
-        :rtype: list of Node
+        :return: Nodes.
+        :rtype: list
         """
         params = {'deployment_id': deployment_id} if deployment_id else None
         response = self.api.get('/nodes', params=params)

@@ -36,14 +36,14 @@ class NodeInstance(dict):
         """
         :return: The deployment id the node instance belongs to.
         """
-        return self['deploymentId']
+        return self['deployment_id']
 
     @property
     def runtime_properties(self):
         """
         :return: The runtime properties of the node instance.
         """
-        return self['runtimeProperties']
+        return self['runtime_properties']
 
     @property
     def state(self):
@@ -84,8 +84,8 @@ class NodeInstancesClient(object):
         assert deployment_id
         data = {
             'id': node_instance_id,
-            'deploymentId': deployment_id,
-            'runtimeProperties': runtime_properties or {}
+            'deployment_id': deployment_id,
+            'runtime_properties': runtime_properties or {}
         }
         uri = self._get_node_instance_uri(node_instance_id)
         response = self.api.put(uri, data=data, expected_status_code=201)
@@ -122,8 +122,20 @@ class NodeInstancesClient(object):
         uri = self._get_node_instance_uri(node_instance_id)
         data = {'version': version}
         if runtime_properties:
-            data['runtimeProperties'] = runtime_properties
+            data['runtime_properties'] = runtime_properties
         if state:
             data['state'] = state
         response = self.api.patch(uri, data=data)
         return NodeInstance(response)
+
+    def list(self, deployment_id=None):
+        """
+        Returns a list of node instances which belong to the deployment
+         identified by the provided deployment id.
+        :param deployment_id: The deployment's id to list node instances for.
+        :return: Node instances.
+        :rtype: list
+        """
+        params = {'deployment_id': deployment_id} if deployment_id else None
+        response = self.api.get('/node-instances', params=params)
+        return [NodeInstance(item) for item in response]
