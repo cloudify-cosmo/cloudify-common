@@ -123,6 +123,6 @@ class NodesClient(object):
         :return: Deployment nodes.
         :rtype: list of Node
         """
-        params = {'deployment-id': deployment_id} if deployment_id else None
+        params = {'deployment_id': deployment_id} if deployment_id else None
         response = self.api.get('/nodes', params=params)
         return [Node(item) for item in response]
