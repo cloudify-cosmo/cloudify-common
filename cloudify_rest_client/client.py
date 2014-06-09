@@ -21,6 +21,7 @@ import json
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.deployments import DeploymentsClient
 from cloudify_rest_client.executions import ExecutionsClient
+from cloudify_rest_client.nodes import NodesClient
 from cloudify_rest_client.node_instances import NodeInstancesClient
 from cloudify_rest_client.exceptions import CloudifyClientError
 
@@ -40,7 +41,12 @@ class HTTPClient(object):
             message = response.content
         if url:
             message = '{0} [{1}]'.format(message, url)
-        raise CloudifyClientError(message)
+        error_msg = '{0}: {1}'.format(response.status_code, message)
+        raise CloudifyClientError(error_msg)
+
+    def verify_response_status(self, response, expected_code=200):
+        if response.status_code != expected_code:
+            self._raise_client_error(response)
 
     def do_request(self,
                    requests_method,
@@ -113,4 +119,5 @@ class CloudifyClient(object):
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
+        self.nodes = NodesClient(self._client)
         self.node_instances = NodeInstancesClient(self._client)

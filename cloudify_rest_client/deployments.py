@@ -104,7 +104,7 @@ class DeploymentsClient(object):
             'blueprintId': blueprint_id
         }
         uri = '/deployments/{0}'.format(deployment_id)
-        response = self.api.put(uri, data)
+        response = self.api.put(uri, data, expected_status_code=201)
         return Deployment(response)
 
     def delete(self, deployment_id):
