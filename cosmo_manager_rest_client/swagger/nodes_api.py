@@ -44,18 +44,6 @@ class NodesApi(object):
 
         return response.json()
 
-    def put_node_instance(self, node_id, runtime_properties):
-        resource_path = '/nodes/{0}'.format(node_id)
-        url = self.api_client.resource_url(resource_path)
-
-        response = requests.put(url,
-                                headers={'Content-Type': 'application/json'},
-                                data=json.dumps(runtime_properties))
-
-        self.api_client.raise_if_not(201, response, url)
-
-        return response.json()
-
     def update_node_instance(self, node_id, state_version,
                              runtime_properties=None, state=None):
 
