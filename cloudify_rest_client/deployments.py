@@ -128,7 +128,7 @@ class DeploymentsClient(object):
         params = {'ignore_live_nodes': 'true'} if ignore_live_nodes else None
         response = self.api.delete('/deployments/{0}'.format(deployment_id),
                                    params=params)
-        return response
+        return Deployment(response)
 
     def list_executions(self, deployment_id):
         """

@@ -33,6 +33,9 @@ class Blueprint(dict):
 
     @property
     def id(self):
+        """
+        :return: The identifier of the blueprint.
+        """
         return self['id']
 
 
@@ -152,7 +155,7 @@ class BlueprintsClient(object):
         """
         assert blueprint_id
         response = self.api.delete('/blueprints/{0}'.format(blueprint_id))
-        return response
+        return Blueprint(response)
 
     def download(self, blueprint_id, output_file=None):
         """
