@@ -65,4 +65,3 @@ class EventsClient(object):
         events = map(lambda x: x['_source'], response['hits']['hits'])
         total_events = response['hits']['total']
         return events, total_events
-
