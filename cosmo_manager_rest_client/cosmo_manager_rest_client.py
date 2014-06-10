@@ -18,7 +18,6 @@ __author__ = 'ran'
 import tempfile
 import os
 import sys
-import time
 import shutil
 import tarfile
 import json
@@ -32,55 +31,10 @@ from swagger.swagger import ApiClient
 from swagger.BlueprintsApi import BlueprintsApi
 from swagger.ExecutionsApi import ExecutionsApi
 from swagger.DeploymentsApi import DeploymentsApi
-from swagger.events_api import EventsApi
 from swagger.search_api import SearchApi
 from swagger.nodes_api import NodesApi
 from swagger.status_api import StatusApi
 from swagger.provider_context_api import ProviderContextApi
-
-
-class ExecutionEvents(object):
-
-    def __init__(self, rest_client, execution_id, batch_size=100,
-                 timeout=60, include_logs=False):
-        self._rest_client = rest_client
-        self._execution_id = execution_id
-        self._batch_size = batch_size
-        self._from_event = 0
-        self._timeout = timeout
-        self._include_logs = include_logs
-
-    def fetch_and_process_events(self,
-                                 get_remaining_events=False,
-                                 events_handler=None):
-        if events_handler is None:
-            return
-        events = self.fetch_events(get_remaining_events=get_remaining_events)
-        events_handler(events)
-
-    def fetch_events(self, get_remaining_events=False):
-        if get_remaining_events:
-            events = []
-            timeout = time.time() + self._timeout
-            while time.time() < timeout:
-                result = self._fetch_events()
-                if len(result) > 0:
-                    events.extend(result)
-                else:
-                    return events
-                time.sleep(1)
-            raise CosmoManagerRestCallError('events/log fetching timed out')
-        else:
-            return self._fetch_events()
-
-    def _fetch_events(self):
-        events, total = self._rest_client.get_execution_events(
-            self._execution_id,
-            from_event=self._from_event,
-            batch_size=self._batch_size,
-            include_logs=self._include_logs)
-        self._from_event += len(events)
-        return events
 
 
 class CosmoManagerRestClient(object):
@@ -92,7 +46,6 @@ class CosmoManagerRestClient(object):
         self._executions_api = ExecutionsApi(api_client)
         self._deployments_api = DeploymentsApi(api_client)
         self._nodes_api = NodesApi(api_client)
-        self._events_api = EventsApi(api_client)
         self._search_api = SearchApi(api_client)
         self._status_api = StatusApi(api_client)
         self._provider_context_api = ProviderContextApi(api_client)
@@ -175,112 +128,6 @@ class CosmoManagerRestClient(object):
                 deployment_id=deployment_id,
                 body=body)
 
-    def get_execution(self, execution_id):
-        with self._protected_call_to_server('get execution'):
-            return self._executions_api.getById(execution_id)
-
-    @staticmethod
-    def _create_events_query(execution_id, include_logs):
-        query = {
-            "bool": {
-                "must": [
-                    {"match": {"context.execution_id": execution_id}},
-                ]
-            }
-        }
-        match_cloudify_event = {"match": {"type": "cloudify_event"}}
-        if include_logs:
-            match_cloudify_log = {"match": {"type": "cloudify_log"}}
-            query['bool']['should'] = [
-                match_cloudify_event, match_cloudify_log
-            ]
-        else:
-            query['bool']['must'].append(match_cloudify_event)
-        return query
-
-    def get_all_execution_events(self, execution_id, include_logs=False):
-        # make sure execution exists before proceeding
-        # a 404 will be raised otherwise
-        with self._protected_call_to_server('fetch execution'):
-            self._executions_api.getById(execution_id)
-
-        execution_events = ExecutionEvents(self,
-                                           execution_id,
-                                           include_logs=include_logs)
-        return execution_events.fetch_events(get_remaining_events=True)
-
-    def get_execution_events(self,
-                             execution_id,
-                             from_event=0,
-                             batch_size=100,
-                             include_logs=False):
-        """
-        Returns event for the provided execution id.
-
-        Args:
-            execution_id: Id of execution to get events for.
-            from_event: Index of first event to retrieve on pagination.
-            batch_size: Maximum number of events to retrieve per call.
-            include_logs: Whether to also get logs.
-
-        Returns (tuple):
-            Events list and total number of currently available events.
-        """
-        body = {
-            "from": from_event,
-            "size": batch_size,
-            "sort": [{"@timestamp": {"order": "asc"}}],
-            "query": self._create_events_query(execution_id, include_logs)
-        }
-        result = self.get_events(body)
-        events = map(lambda x: x['_source'], result['hits']['hits'])
-        total_events = result['hits']['total']
-        return events, total_events
-
-    def execute_deployment(self, deployment_id, operation, events_handler=None,
-                           timeout=900, include_logs=False,
-                           wait_for_execution=True, force=False):
-        end = time.time() + timeout
-
-        with self._protected_call_to_server('executing deployment operation'):
-            body = {
-                'workflowId': operation
-            }
-            execution = self._deployments_api.execute(
-                deployment_id=deployment_id,
-                body=body,
-                force=force)
-
-            if wait_for_execution:
-                end_states = ('terminated', 'failed')
-                execution_events = ExecutionEvents(self, execution.id,
-                                                   include_logs=include_logs)
-
-                while execution.status not in end_states:
-                    if end < time.time():
-                        raise CosmoManagerRestCallTimeoutError(
-                            execution.id,
-                            'execution of operation {0} for deployment {1} '
-                            'timed out'.format(operation, deployment_id))
-
-                    time.sleep(3)
-
-                    execution = self.get_execution(execution.id)
-                    execution_events.fetch_and_process_events(
-                        events_handler=events_handler)
-
-                # Process remaining events
-                execution_events.fetch_and_process_events(
-                    get_remaining_events=True,
-                    events_handler=events_handler)
-
-                error = None
-                if execution.status != 'terminated':
-                    error = execution.error
-                return execution.id, error
-            else:
-                return execution.id, None
-
     def update_execution_status(self, execution_id, status, error=None):
         """
         Update an execution's status by its id.
@@ -295,28 +142,6 @@ class CosmoManagerRestClient(object):
         """
         with self._protected_call_to_server('cancel execution'):
             return self._executions_api.cancel(execution_id)
-
-    def get_events(self, query):
-        """
-        Returns events for the provided ElasticSearch query.
-
-        Args:
-            query: ElasticSearch query (dict), for example:
-                {
-                    "query": {
-                        "range": {
-                            "@timestamp": {
-                                "gt": "2014-01-28T13:27:56.231Z",
-                            }
-                        }
-                    }
-                }
-
-        Returns:
-            A json list of events in ElasticSearch's response format.
-        """
-        with self._protected_call_to_server('getting events'):
-            return self._events_api.get_events(query).json()
 
     def run_search(self, query):
         """

@@ -17,13 +17,40 @@ __author__ = 'idanmo'
 
 
 class Execution(dict):
+    """
+    Cloudify workflow execution.
+    """
 
     def __init__(self, execution):
         self.update(execution)
 
     @property
     def id(self):
+        """
+        :return: The execution's id.
+        """
         return self['id']
+
+    @property
+    def status(self):
+        """
+        :return: The execution's status.
+        """
+        return self['status']
+
+    @property
+    def error(self):
+        """
+        :return: The execution error in a case of failure, otherwise None.
+        """
+        return self['error']
+
+    @property
+    def workflow_id(self):
+        """
+        :return: The id of the workflow this execution represents.
+        """
+        return self['workflow_id']
 
 
 class ExecutionsClient(object):
@@ -79,5 +106,7 @@ class ExecutionsClient(object):
         :return: Cancelled execution.
         """
         uri = '/executions/{0}'.format(execution_id)
-        response = self.api.post(uri, data={'action': 'cancel'})
+        response = self.api.post(uri,
+                                 data={'action': 'cancel'},
+                                 expected_status_code=201)
         return Execution(response)
