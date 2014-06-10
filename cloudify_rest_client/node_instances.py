@@ -32,6 +32,27 @@ class NodeInstance(dict):
         return self['id']
 
     @property
+    def node_id(self):
+        """
+        :return: The identifier of the node whom this is in instance of.
+        """
+        return self['node_id']
+
+    @property
+    def relationships(self):
+        """
+        :return: The node instance relationships.
+        """
+        return self['relationships']
+
+    @property
+    def host_id(self):
+        """
+        :return: The node instance host_id.
+        """
+        return self['host_id']
+
+    @property
     def deployment_id(self):
         """
         :return: The deployment id the node instance belongs to.
