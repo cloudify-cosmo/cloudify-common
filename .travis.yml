@@ -8,4 +8,3 @@ install:
 
 script:
     - flake8 .
-    - nosetests cosmo_manager_rest_client/tests
