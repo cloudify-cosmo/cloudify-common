@@ -91,27 +91,6 @@ class NodeInstancesClient(object):
     def _get_node_instance_uri(node_instance_id):
         return '/node-instances/{0}'.format(node_instance_id)
 
-    def create(self, node_instance_id, deployment_id, runtime_properties=None):
-        """
-        Creates a node instance in Cloudify's storage.
-
-        :param node_instance_id: The node instance's identifier.
-        :param deployment_id: The deployment id the node instance belongs to.
-        :param runtime_properties: Initial runtime properties for the created
-         node instance.
-        :return: The created node instance.
-        """
-        assert node_instance_id
-        assert deployment_id
-        data = {
-            'id': node_instance_id,
-            'deployment_id': deployment_id,
-            'runtime_properties': runtime_properties or {}
-        }
-        uri = self._get_node_instance_uri(node_instance_id)
-        response = self.api.put(uri, data=data, expected_status_code=201)
-        return NodeInstance(response)
-
     def get(self, node_instance_id):
         """
         Returns the node instance for the provided node instance id.
