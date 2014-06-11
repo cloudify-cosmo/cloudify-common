@@ -33,6 +33,9 @@ class Blueprint(dict):
 
     @property
     def id(self):
+        """
+        :return: The identifier of the blueprint.
+        """
         return self['id']
 
 
@@ -152,7 +155,7 @@ class BlueprintsClient(object):
         """
         assert blueprint_id
         response = self.api.delete('/blueprints/{0}'.format(blueprint_id))
-        return response
+        return Blueprint(response)
 
     def download(self, blueprint_id, output_file=None):
         """
@@ -163,26 +166,25 @@ class BlueprintsClient(object):
          (optional)
         :return: The file path of the downloaded blueprint.
         """
-        resource_path = '/blueprints/{0}/archive'.format(blueprint_id)
-        url = self.api_client.resource_url(resource_path)
-
-        r = requests.get(url, stream=True)
-        self.api_client.raise_if_not(requests.codes.ok, r, url)
+        url = '{0}{1}'.format(self.api.url,
+                              '/blueprints/{0}/archive'.format(blueprint_id))
+        response = requests.get(url, stream=True)
+        self.api.verify_response_status(response, 200)
 
         if not output_file:
-            if self.CONTENT_DISPOSITION_HEADER not in r.headers:
+            if self.CONTENT_DISPOSITION_HEADER not in response.headers:
                 raise RuntimeError(
                     'Cannot determine attachment filename: {0} header not'
                     ' found in response headers'.format(
                         self.CONTENT_DISPOSITION_HEADER))
-            output_file = r.headers[
+            output_file = response.headers[
                 self.CONTENT_DISPOSITION_HEADER].split('filename=')[1]
 
         if os.path.exists(output_file):
             raise OSError("Output file '%s' already exists" % output_file)
 
         with open(output_file, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=8096):
+            for chunk in response.iter_content(chunk_size=8096):
                 if chunk:
                     f.write(chunk)
                     f.flush()

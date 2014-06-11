@@ -23,6 +23,7 @@ from cloudify_rest_client.deployments import DeploymentsClient
 from cloudify_rest_client.executions import ExecutionsClient
 from cloudify_rest_client.nodes import NodesClient
 from cloudify_rest_client.node_instances import NodeInstancesClient
+from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.exceptions import CloudifyClientError
 
 
@@ -121,3 +122,4 @@ class CloudifyClient(object):
         self.executions = ExecutionsClient(self._client)
         self.nodes = NodesClient(self._client)
         self.node_instances = NodeInstancesClient(self._client)
+        self.events = EventsClient(self._client)

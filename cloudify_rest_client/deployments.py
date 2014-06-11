@@ -34,6 +34,13 @@ class Deployment(dict):
         """
         return self['id']
 
+    @property
+    def blueprint_id(self):
+        """
+        :return: The identifier of the blueprint this deployment belongs to.
+        """
+        return self['blueprint_id']
+
 
 class Workflows(dict):
 
@@ -43,11 +50,11 @@ class Workflows(dict):
 
     @property
     def blueprint_id(self):
-        return self['blueprintId']
+        return self['blueprint_id']
 
     @property
     def deployment_id(self):
-        return self['deploymentId']
+        return self['deployment_id']
 
     @property
     def workflows(self):
@@ -61,6 +68,10 @@ class Workflow(dict):
 
     @property
     def id(self):
+        return self['name']
+
+    @property
+    def name(self):
         return self['name']
 
 
@@ -101,22 +112,27 @@ class DeploymentsClient(object):
         assert blueprint_id
         assert deployment_id
         data = {
-            'blueprintId': blueprint_id
+            'blueprint_id': blueprint_id
         }
         uri = '/deployments/{0}'.format(deployment_id)
         response = self.api.put(uri, data, expected_status_code=201)
         return Deployment(response)
 
-    def delete(self, deployment_id):
+    def delete(self, deployment_id, ignore_live_nodes=False):
         """
         Deletes the deployment whose id matches the provided deployment id.
+        By default, deployment with live nodes deletion is not allowed and
+         this behavior can be changed using the ignore_live_nodes argument.
 
         :param deployment_id: The deployment's to be deleted id.
+        :param ignore_live_nodes: Determines whether to ignore live nodes.
         :return: The deleted deployment.
         """
         assert deployment_id
-        response = self.api.delete('/deployments/{0}'.format(deployment_id))
-        return response
+        params = {'ignore_live_nodes': 'true'} if ignore_live_nodes else None
+        response = self.api.delete('/deployments/{0}'.format(deployment_id),
+                                   params=params)
+        return Deployment(response)
 
     def list_executions(self, deployment_id):
         """
@@ -156,13 +172,14 @@ class DeploymentsClient(object):
         assert deployment_id
         assert workflow_id
         data = {
-            'workflowId': workflow_id
+            'workflow_id': workflow_id
         }
-        query_params = {
+        params = {
             'force': str(force).lower()
         }
         uri = '/deployments/{0}/executions'.format(deployment_id)
         response = self.api.post(uri,
                                  data=data,
-                                 query_params=query_params)
+                                 params=params,
+                                 expected_status_code=201)
         return Execution(response)
