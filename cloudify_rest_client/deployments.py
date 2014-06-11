@@ -50,11 +50,11 @@ class Workflows(dict):
 
     @property
     def blueprint_id(self):
-        return self['blueprintId']
+        return self['blueprint_id']
 
     @property
     def deployment_id(self):
-        return self['deploymentId']
+        return self['deployment_id']
 
     @property
     def workflows(self):
@@ -68,6 +68,10 @@ class Workflow(dict):
 
     @property
     def id(self):
+        return self['name']
+
+    @property
+    def name(self):
         return self['name']
 
 
