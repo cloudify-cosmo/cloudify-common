@@ -1,4 +1,4 @@
-cosmo-manager-rest-client
-=========================
+Cloudify REST Client
+====================
  
-Rest client for cosmo manager
+Client for interacting with Cloudify's management machine.
