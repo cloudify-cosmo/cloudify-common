@@ -1,0 +1,344 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>cloudify_rest_client.blueprints &mdash; cloudify-rest-client 3.0 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="cloudify-rest-client 3.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="../../index.html" class="fa fa-home"> cloudify-rest-client</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="simple">
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">cloudify-rest-client</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>cloudify_rest_client.blueprints</li>
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <h1>Source code for cloudify_rest_client.blueprints</h1><div class="highlight"><pre>
+<span class="c">########</span>
+<span class="c"># Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#        http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c">#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c">#    * See the License for the specific language governing permissions and</span>
+<span class="c">#    * limitations under the License.</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&#39;idanmo&#39;</span>
+
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">tarfile</span>
+<span class="kn">import</span> <span class="nn">urllib</span>
+
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">expanduser</span>
+
+
+<div class="viewcode-block" id="Blueprint"><a class="viewcode-back" href="../../index.html#cloudify_rest_client.blueprints.Blueprint">[docs]</a><span class="k">class</span> <span class="nc">Blueprint</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blueprint</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">blueprint</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Blueprint.id"><a class="viewcode-back" href="../../index.html#cloudify_rest_client.blueprints.Blueprint.id">[docs]</a>    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :return: The identifier of the blueprint.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">]</span>
+
+</div></div>
+<div class="viewcode-block" id="BlueprintsClient"><a class="viewcode-back" href="../../index.html#cloudify_rest_client.blueprints.BlueprintsClient">[docs]</a><span class="k">class</span> <span class="nc">BlueprintsClient</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="n">CONTENT_DISPOSITION_HEADER</span> <span class="o">=</span> <span class="s">&#39;content-disposition&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">api</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api</span> <span class="o">=</span> <span class="n">api</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_tar_blueprint</span><span class="p">(</span><span class="n">blueprint_path</span><span class="p">,</span> <span class="n">tempdir</span><span class="p">):</span>
+        <span class="n">blueprint_path</span> <span class="o">=</span> <span class="n">expanduser</span><span class="p">(</span><span class="n">blueprint_path</span><span class="p">)</span>
+        <span class="n">blueprint_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">blueprint_path</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">blueprint_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">blueprint_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">blueprint_directory</span><span class="p">:</span>
+            <span class="c"># blueprint path only contains a file name from the local directory</span>
+            <span class="n">blueprint_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="n">tar_path</span> <span class="o">=</span> <span class="s">&#39;{0}/{1}.tar.gz&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="n">blueprint_name</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">tar_path</span><span class="p">,</span> <span class="s">&quot;w:gz&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tar</span><span class="p">:</span>
+            <span class="n">tar</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">blueprint_directory</span><span class="p">,</span>
+                    <span class="n">arcname</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">blueprint_directory</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">tar_path</span>
+
+    <span class="k">def</span> <span class="nf">_upload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tar_file_obj</span><span class="p">,</span>
+                <span class="n">application_file_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                <span class="n">blueprint_id</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">query_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">application_file_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">query_params</span><span class="p">[</span><span class="s">&#39;application_file_name&#39;</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">urllib</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">application_file_name</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">file_gen</span><span class="p">():</span>
+            <span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">8192</span>
+            <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+                <span class="n">read_bytes</span> <span class="o">=</span> <span class="n">tar_file_obj</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">buffer_size</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">read_bytes</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">read_bytes</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">buffer_size</span><span class="p">:</span>
+                    <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">blueprint_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">uri</span> <span class="o">=</span> <span class="s">&#39;/blueprints/{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">blueprint_id</span><span class="p">)</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="s">&#39;{0}{1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">uri</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">file_gen</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="s">&#39;{0}/blueprints&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">query_params</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">file_gen</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">verify_response_status</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="mi">201</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BlueprintsClient.list"><a class="viewcode-back" href="../../index.html#cloudify_rest_client.blueprints.BlueprintsClient.list">[docs]</a>    <span class="k">def</span> <span class="nf">list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a list of currently stored blueprints.</span>
+
+<span class="sd">        :return: Blueprints list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/blueprints&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">Blueprint</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">response</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="BlueprintsClient.upload"><a class="viewcode-back" href="../../index.html#cloudify_rest_client.blueprints.BlueprintsClient.upload">[docs]</a>    <span class="k">def</span> <span class="nf">upload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blueprint_path</span><span class="p">,</span> <span class="n">blueprint_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Uploads a blueprint to Cloudify&#39;s manager.</span>
+
+<span class="sd">        :param blueprint_path: Main blueprint yaml file path.</span>
+<span class="sd">        :param blueprint_id: Id of the uploaded blueprint (optional).</span>
+<span class="sd">        :return: Created blueprint.</span>
+
+<span class="sd">        Blueprint path should point to the main yaml file of the blueprint</span>
+<span class="sd">        to be uploaded. Its containing folder will be packed to an archive</span>
+<span class="sd">        and get uploaded to the manager.</span>
+<span class="sd">        An optional blueprint_id parameter is available for specifying the</span>
+<span class="sd">        blueprint&#39;s unique Id. If not specified, blueprint id will be</span>
+<span class="sd">        determined after parsing the blueprint&#39;s yaml file.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tempdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">tar_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tar_blueprint</span><span class="p">(</span><span class="n">blueprint_path</span><span class="p">,</span> <span class="n">tempdir</span><span class="p">)</span>
+            <span class="n">application_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">blueprint_path</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tar_path</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">blueprint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upload</span><span class="p">(</span>
+                    <span class="n">f</span><span class="p">,</span>
+                    <span class="n">application_file_name</span><span class="o">=</span><span class="n">application_file</span><span class="p">,</span>
+                    <span class="n">blueprint_id</span><span class="o">=</span><span class="n">blueprint_id</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">Blueprint</span><span class="p">(</span><span class="n">blueprint</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tempdir</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="BlueprintsClient.get"><a class="viewcode-back" href="../../index.html#cloudify_rest_client.blueprints.BlueprintsClient.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blueprint_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets a blueprint by its id.</span>
+
+<span class="sd">        :param blueprint_id: Blueprint&#39;s id to get.</span>
+<span class="sd">        :return: The blueprint.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">blueprint_id</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/blueprints/{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">blueprint_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">Blueprint</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="BlueprintsClient.get_source"><a class="viewcode-back" href="../../index.html#cloudify_rest_client.blueprints.BlueprintsClient.get_source">[docs]</a>    <span class="k">def</span> <span class="nf">get_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blueprint_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets a blueprint&#39;s source by the blueprint&#39;s id.</span>
+
+<span class="sd">        :param blueprint_id: Blueprint&#39;s id to get the source for.</span>
+<span class="sd">        :return: The blueprint&#39;s source.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">blueprint_id</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/blueprints/{0}/source&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">blueprint_id</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="BlueprintsClient.delete"><a class="viewcode-back" href="../../index.html#cloudify_rest_client.blueprints.BlueprintsClient.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blueprint_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deletes the blueprint whose id matches the provided blueprint id.</span>
+
+<span class="sd">        :param blueprint_id: The id of the blueprint to be deleted.</span>
+<span class="sd">        :return: Deleted blueprint.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">blueprint_id</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s">&#39;/blueprints/{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">blueprint_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">Blueprint</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="BlueprintsClient.download"><a class="viewcode-back" href="../../index.html#cloudify_rest_client.blueprints.BlueprintsClient.download">[docs]</a>    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blueprint_id</span><span class="p">,</span> <span class="n">output_file</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Downloads a previously uploaded blueprint from Cloudify&#39;s manager.</span>
+
+<span class="sd">        :param blueprint_id: The Id of the blueprint to be downloaded.</span>
+<span class="sd">        :param output_file: The file path of the downloaded blueprint file</span>
+<span class="sd">         (optional)</span>
+<span class="sd">        :return: The file path of the downloaded blueprint.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s">&#39;{0}{1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+                              <span class="s">&#39;/blueprints/{0}/archive&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">blueprint_id</span><span class="p">))</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">verify_response_status</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">output_file</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">CONTENT_DISPOSITION_HEADER</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s">&#39;Cannot determine attachment filename: {0} header not&#39;</span>
+                    <span class="s">&#39; found in response headers&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">CONTENT_DISPOSITION_HEADER</span><span class="p">))</span>
+            <span class="n">output_file</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">CONTENT_DISPOSITION_HEADER</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;filename=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_file</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s">&quot;Output file &#39;</span><span class="si">%s</span><span class="s">&#39; already exists&quot;</span> <span class="o">%</span> <span class="n">output_file</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">8096</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">chunk</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">output_file</span></div></div>
+</pre></div>
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Gigaspaces.
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

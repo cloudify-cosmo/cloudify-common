@@ -1,0 +1,1097 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Welcome to cloudify-rest-client’s documentation! &mdash; cloudify-rest-client 3.0 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="cloudify-rest-client 3.0 documentation" href="#"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="#" class="fa fa-home"> cloudify-rest-client</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="simple">
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="#">cloudify-rest-client</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="#">Docs</a> &raquo;</li>
+      
+    <li>Welcome to cloudify-rest-client&#8217;s documentation!</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/index.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="welcome-to-cloudify-rest-client-s-documentation">
+<h1>Welcome to cloudify-rest-client&#8217;s documentation!<a class="headerlink" href="#welcome-to-cloudify-rest-client-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+<span class="target" id="module-cloudify_rest_client.blueprints"></span><dl class="class">
+<dt id="cloudify_rest_client.blueprints.Blueprint">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.blueprints.</tt><tt class="descname">Blueprint</tt><big>(</big><em>blueprint</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/blueprints.html#Blueprint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.blueprints.Blueprint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></p>
+<dl class="attribute">
+<dt id="cloudify_rest_client.blueprints.Blueprint.id">
+<tt class="descname">id</tt><a class="reference internal" href="_modules/cloudify_rest_client/blueprints.html#Blueprint.id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.blueprints.Blueprint.id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The identifier of the blueprint.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cloudify_rest_client.blueprints.BlueprintsClient">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.blueprints.</tt><tt class="descname">BlueprintsClient</tt><big>(</big><em>api</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/blueprints.html#BlueprintsClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.blueprints.BlueprintsClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="attribute">
+<dt id="cloudify_rest_client.blueprints.BlueprintsClient.CONTENT_DISPOSITION_HEADER">
+<tt class="descname">CONTENT_DISPOSITION_HEADER</tt><em class="property"> = 'content-disposition'</em><a class="headerlink" href="#cloudify_rest_client.blueprints.BlueprintsClient.CONTENT_DISPOSITION_HEADER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.blueprints.BlueprintsClient.list">
+<tt class="descname">list</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/blueprints.html#BlueprintsClient.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.blueprints.BlueprintsClient.list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of currently stored blueprints.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Blueprints list.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.blueprints.BlueprintsClient.upload">
+<tt class="descname">upload</tt><big>(</big><em>blueprint_path</em>, <em>blueprint_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/blueprints.html#BlueprintsClient.upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.blueprints.BlueprintsClient.upload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uploads a blueprint to Cloudify&#8217;s manager.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>blueprint_path</strong> &#8211; Main blueprint yaml file path.</li>
+<li><strong>blueprint_id</strong> &#8211; Id of the uploaded blueprint (optional).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Created blueprint.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Blueprint path should point to the main yaml file of the blueprint
+to be uploaded. Its containing folder will be packed to an archive
+and get uploaded to the manager.
+An optional blueprint_id parameter is available for specifying the
+blueprint&#8217;s unique Id. If not specified, blueprint id will be
+determined after parsing the blueprint&#8217;s yaml file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.blueprints.BlueprintsClient.get">
+<tt class="descname">get</tt><big>(</big><em>blueprint_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/blueprints.html#BlueprintsClient.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.blueprints.BlueprintsClient.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets a blueprint by its id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>blueprint_id</strong> &#8211; Blueprint&#8217;s id to get.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The blueprint.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.blueprints.BlueprintsClient.get_source">
+<tt class="descname">get_source</tt><big>(</big><em>blueprint_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/blueprints.html#BlueprintsClient.get_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.blueprints.BlueprintsClient.get_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets a blueprint&#8217;s source by the blueprint&#8217;s id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>blueprint_id</strong> &#8211; Blueprint&#8217;s id to get the source for.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The blueprint&#8217;s source.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.blueprints.BlueprintsClient.delete">
+<tt class="descname">delete</tt><big>(</big><em>blueprint_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/blueprints.html#BlueprintsClient.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.blueprints.BlueprintsClient.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the blueprint whose id matches the provided blueprint id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>blueprint_id</strong> &#8211; The id of the blueprint to be deleted.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Deleted blueprint.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.blueprints.BlueprintsClient.download">
+<tt class="descname">download</tt><big>(</big><em>blueprint_id</em>, <em>output_file=None</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/blueprints.html#BlueprintsClient.download"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.blueprints.BlueprintsClient.download" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloads a previously uploaded blueprint from Cloudify&#8217;s manager.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>blueprint_id</strong> &#8211; The Id of the blueprint to be downloaded.</li>
+<li><strong>output_file</strong> &#8211; The file path of the downloaded blueprint file
+(optional)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The file path of the downloaded blueprint.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-cloudify_rest_client.client"></span><dl class="class">
+<dt id="cloudify_rest_client.client.HTTPClient">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.client.</tt><tt class="descname">HTTPClient</tt><big>(</big><em>host</em>, <em>port=80</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/client.html#HTTPClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.client.HTTPClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="cloudify_rest_client.client.HTTPClient.verify_response_status">
+<tt class="descname">verify_response_status</tt><big>(</big><em>response</em>, <em>expected_code=200</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/client.html#HTTPClient.verify_response_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.client.HTTPClient.verify_response_status" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.client.HTTPClient.do_request">
+<tt class="descname">do_request</tt><big>(</big><em>requests_method</em>, <em>uri</em>, <em>data=None</em>, <em>params=None</em>, <em>expected_status_code=200</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/client.html#HTTPClient.do_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.client.HTTPClient.do_request" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.client.HTTPClient.get">
+<tt class="descname">get</tt><big>(</big><em>uri</em>, <em>data=None</em>, <em>params=None</em>, <em>expected_status_code=200</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/client.html#HTTPClient.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.client.HTTPClient.get" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.client.HTTPClient.put">
+<tt class="descname">put</tt><big>(</big><em>uri</em>, <em>data=None</em>, <em>params=None</em>, <em>expected_status_code=200</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/client.html#HTTPClient.put"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.client.HTTPClient.put" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.client.HTTPClient.patch">
+<tt class="descname">patch</tt><big>(</big><em>uri</em>, <em>data=None</em>, <em>params=None</em>, <em>expected_status_code=200</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/client.html#HTTPClient.patch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.client.HTTPClient.patch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.client.HTTPClient.post">
+<tt class="descname">post</tt><big>(</big><em>uri</em>, <em>data=None</em>, <em>params=None</em>, <em>expected_status_code=200</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/client.html#HTTPClient.post"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.client.HTTPClient.post" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.client.HTTPClient.delete">
+<tt class="descname">delete</tt><big>(</big><em>uri</em>, <em>data=None</em>, <em>params=None</em>, <em>expected_status_code=200</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/client.html#HTTPClient.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.client.HTTPClient.delete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cloudify_rest_client.client.CloudifyClient">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.client.</tt><tt class="descname">CloudifyClient</tt><big>(</big><em>host</em>, <em>port=80</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/client.html#CloudifyClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.client.CloudifyClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Cloudify&#8217;s management client.</p>
+</dd></dl>
+
+<span class="target" id="module-cloudify_rest_client.deployments"></span><dl class="class">
+<dt id="cloudify_rest_client.deployments.Deployment">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.deployments.</tt><tt class="descname">Deployment</tt><big>(</big><em>deployment</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Deployment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Deployment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></p>
+<p>Cloudify deployment.</p>
+<dl class="attribute">
+<dt id="cloudify_rest_client.deployments.Deployment.id">
+<tt class="descname">id</tt><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Deployment.id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Deployment.id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The identifier of the deployment.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.deployments.Deployment.blueprint_id">
+<tt class="descname">blueprint_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Deployment.blueprint_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Deployment.blueprint_id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The identifier of the blueprint this deployment belongs to.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cloudify_rest_client.deployments.Workflows">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.deployments.</tt><tt class="descname">Workflows</tt><big>(</big><em>workflows</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Workflows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Workflows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></p>
+<dl class="attribute">
+<dt id="cloudify_rest_client.deployments.Workflows.blueprint_id">
+<tt class="descname">blueprint_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Workflows.blueprint_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Workflows.blueprint_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.deployments.Workflows.deployment_id">
+<tt class="descname">deployment_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Workflows.deployment_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Workflows.deployment_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.deployments.Workflows.workflows">
+<tt class="descname">workflows</tt><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Workflows.workflows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Workflows.workflows" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cloudify_rest_client.deployments.Workflow">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.deployments.</tt><tt class="descname">Workflow</tt><big>(</big><em>workflow</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Workflow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></p>
+<dl class="attribute">
+<dt id="cloudify_rest_client.deployments.Workflow.id">
+<tt class="descname">id</tt><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Workflow.id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Workflow.id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.deployments.Workflow.name">
+<tt class="descname">name</tt><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#Workflow.name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.Workflow.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cloudify_rest_client.deployments.DeploymentsClient">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.deployments.</tt><tt class="descname">DeploymentsClient</tt><big>(</big><em>api</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#DeploymentsClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.DeploymentsClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="cloudify_rest_client.deployments.DeploymentsClient.list">
+<tt class="descname">list</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#DeploymentsClient.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.DeploymentsClient.list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all deployments.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Deployments list.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.deployments.DeploymentsClient.get">
+<tt class="descname">get</tt><big>(</big><em>deployment_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#DeploymentsClient.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.DeploymentsClient.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a deployment by its id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deployment_id</strong> &#8211; Id of the deployment to get.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Deployment.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.deployments.DeploymentsClient.create">
+<tt class="descname">create</tt><big>(</big><em>blueprint_id</em>, <em>deployment_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#DeploymentsClient.create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.DeploymentsClient.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new deployment for the provided blueprint id and
+deployment id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>blueprint_id</strong> &#8211; Blueprint id to create a deployment of.</li>
+<li><strong>deployment_id</strong> &#8211; Deployment id of the new created deployment.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The created deployment.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.deployments.DeploymentsClient.delete">
+<tt class="descname">delete</tt><big>(</big><em>deployment_id</em>, <em>ignore_live_nodes=False</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#DeploymentsClient.delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.DeploymentsClient.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the deployment whose id matches the provided deployment id.
+By default, deployment with live nodes deletion is not allowed and
+this behavior can be changed using the ignore_live_nodes argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>deployment_id</strong> &#8211; The deployment&#8217;s to be deleted id.</li>
+<li><strong>ignore_live_nodes</strong> &#8211; Determines whether to ignore live nodes.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The deleted deployment.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.deployments.DeploymentsClient.list_executions">
+<tt class="descname">list_executions</tt><big>(</big><em>deployment_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#DeploymentsClient.list_executions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.DeploymentsClient.list_executions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of executions for the provided deployment&#8217;s id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deployment_id</strong> &#8211; Deployment id to get a list of executions for.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of executions.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.deployments.DeploymentsClient.list_workflows">
+<tt class="descname">list_workflows</tt><big>(</big><em>deployment_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#DeploymentsClient.list_workflows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.DeploymentsClient.list_workflows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of available workflows for the provided deployment&#8217;s id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deployment_id</strong> &#8211; Deployment id to get a list of workflows for.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Workflows list.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.deployments.DeploymentsClient.execute">
+<tt class="descname">execute</tt><big>(</big><em>deployment_id</em>, <em>workflow_id</em>, <em>force=False</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/deployments.html#DeploymentsClient.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.deployments.DeploymentsClient.execute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes a deployment&#8217;s workflow whose id is provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>deployment_id</strong> &#8211; The deployment&#8217;s id to execute a workflow for.</li>
+<li><strong>workflow_id</strong> &#8211; The workflow to be executed id.</li>
+<li><strong>force</strong> &#8211; Determines whether to force the execution of the workflow
+in a case where there&#8217;s an already running execution for this
+deployment.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The created execution.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-cloudify_rest_client.events"></span><dl class="class">
+<dt id="cloudify_rest_client.events.EventsClient">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.events.</tt><tt class="descname">EventsClient</tt><big>(</big><em>api</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/events.html#EventsClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.events.EventsClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="cloudify_rest_client.events.EventsClient.get">
+<tt class="descname">get</tt><big>(</big><em>execution_id</em>, <em>from_event=0</em>, <em>batch_size=100</em>, <em>include_logs=False</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/events.html#EventsClient.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.events.EventsClient.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns event for the provided execution id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>execution_id</strong> &#8211; Id of execution to get events for.</li>
+<li><strong>from_event</strong> &#8211; Index of first event to retrieve on pagination.</li>
+<li><strong>batch_size</strong> &#8211; Maximum number of events to retrieve per call.</li>
+<li><strong>include_logs</strong> &#8211; Whether to also get logs.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Events list and total number of currently available
+events (tuple).</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-cloudify_rest_client.exceptions"></span><dl class="exception">
+<dt id="cloudify_rest_client.exceptions.CloudifyClientError">
+<em class="property">exception </em><tt class="descclassname">cloudify_rest_client.exceptions.</tt><tt class="descname">CloudifyClientError</tt><big>(</big><em>message</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/exceptions.html#CloudifyClientError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.exceptions.CloudifyClientError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
+<span class="target" id="module-cloudify_rest_client.executions"></span><dl class="class">
+<dt id="cloudify_rest_client.executions.Execution">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.executions.</tt><tt class="descname">Execution</tt><big>(</big><em>execution</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#Execution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.Execution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></p>
+<p>Cloudify workflow execution.</p>
+<dl class="attribute">
+<dt id="cloudify_rest_client.executions.Execution.id">
+<tt class="descname">id</tt><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#Execution.id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.Execution.id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The execution&#8217;s id.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.executions.Execution.status">
+<tt class="descname">status</tt><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#Execution.status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.Execution.status" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The execution&#8217;s status.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.executions.Execution.error">
+<tt class="descname">error</tt><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#Execution.error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.Execution.error" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The execution error in a case of failure, otherwise None.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.executions.Execution.workflow_id">
+<tt class="descname">workflow_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#Execution.workflow_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.Execution.workflow_id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The id of the workflow this execution represents.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cloudify_rest_client.executions.ExecutionsClient">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.executions.</tt><tt class="descname">ExecutionsClient</tt><big>(</big><em>api</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#ExecutionsClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.ExecutionsClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="cloudify_rest_client.executions.ExecutionsClient.list">
+<tt class="descname">list</tt><big>(</big><em>deployment_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#ExecutionsClient.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.ExecutionsClient.list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of executions for the provided deployment&#8217;s id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deployment_id</strong> &#8211; Deployment id to get a list of executions for.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Executions list.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.executions.ExecutionsClient.get">
+<tt class="descname">get</tt><big>(</big><em>execution_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#ExecutionsClient.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.ExecutionsClient.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get execution by its id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>execution_id</strong> &#8211; Id of the execution to get.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Execution.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.executions.ExecutionsClient.update">
+<tt class="descname">update</tt><big>(</big><em>execution_id</em>, <em>status</em>, <em>error=None</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#ExecutionsClient.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.ExecutionsClient.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update execution with the provided status and optional error.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>execution_id</strong> &#8211; Id of the execution to update.</li>
+<li><strong>status</strong> &#8211; Updated execution status.</li>
+<li><strong>error</strong> &#8211; Updated execution error (optional).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Updated execution.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.executions.ExecutionsClient.cancel">
+<tt class="descname">cancel</tt><big>(</big><em>execution_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/executions.html#ExecutionsClient.cancel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.executions.ExecutionsClient.cancel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cancels the execution who matches the provided execution id.
+:param execution_id: Id of the execution to cancel.
+:return: Cancelled execution.</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-cloudify_rest_client.node_instances"></span><dl class="class">
+<dt id="cloudify_rest_client.node_instances.NodeInstance">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.node_instances.</tt><tt class="descname">NodeInstance</tt><big>(</big><em>node_instance</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></p>
+<p>Cloudify node instance.</p>
+<dl class="attribute">
+<dt id="cloudify_rest_client.node_instances.NodeInstance.id">
+<tt class="descname">id</tt><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstance.id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstance.id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The identifier of the node instance.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.node_instances.NodeInstance.node_id">
+<tt class="descname">node_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstance.node_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstance.node_id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The identifier of the node whom this is in instance of.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.node_instances.NodeInstance.relationships">
+<tt class="descname">relationships</tt><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstance.relationships"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstance.relationships" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The node instance relationships.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.node_instances.NodeInstance.host_id">
+<tt class="descname">host_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstance.host_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstance.host_id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The node instance host_id.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.node_instances.NodeInstance.deployment_id">
+<tt class="descname">deployment_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstance.deployment_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstance.deployment_id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The deployment id the node instance belongs to.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.node_instances.NodeInstance.runtime_properties">
+<tt class="descname">runtime_properties</tt><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstance.runtime_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstance.runtime_properties" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The runtime properties of the node instance.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.node_instances.NodeInstance.state">
+<tt class="descname">state</tt><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstance.state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstance.state" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The current state of the node instance.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.node_instances.NodeInstance.version">
+<tt class="descname">version</tt><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstance.version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstance.version" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The current version of the node instance
+(used for optimistic locking on update)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cloudify_rest_client.node_instances.NodeInstancesClient">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.node_instances.</tt><tt class="descname">NodeInstancesClient</tt><big>(</big><em>api</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstancesClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstancesClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="cloudify_rest_client.node_instances.NodeInstancesClient.get">
+<tt class="descname">get</tt><big>(</big><em>node_instance_id</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstancesClient.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstancesClient.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the node instance for the provided node instance id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>node_instance_id</strong> &#8211; The identifier of the node instance to get.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The retrieved node instance.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.node_instances.NodeInstancesClient.update">
+<tt class="descname">update</tt><big>(</big><em>node_instance_id</em>, <em>state=None</em>, <em>runtime_properties=None</em>, <em>version=0</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstancesClient.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstancesClient.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update node instance with the provided state &amp; runtime_properties.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>node_instance_id</strong> &#8211; The identifier of the node instance to update.</li>
+<li><strong>state</strong> &#8211; The updated state.</li>
+<li><strong>runtime_properties</strong> &#8211; The updated runtime properties.</li>
+<li><strong>version</strong> &#8211; Current version value of this node instance in
+Cloudify&#8217;s storage (used for optimistic locking).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The updated node instance.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cloudify_rest_client.node_instances.NodeInstancesClient.list">
+<tt class="descname">list</tt><big>(</big><em>deployment_id=None</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/node_instances.html#NodeInstancesClient.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.node_instances.NodeInstancesClient.list" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Returns a list of node instances which belong to the deployment</dt>
+<dd>identified by the provided deployment id.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deployment_id</strong> &#8211; The deployment&#8217;s id to list node instances for.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Node instances.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-cloudify_rest_client.nodes"></span><dl class="class">
+<dt id="cloudify_rest_client.nodes.Node">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.nodes.</tt><tt class="descname">Node</tt><big>(</big><em>node_instance</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></p>
+<p>Cloudify node.</p>
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.id">
+<tt class="descname">id</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The identifier of the node.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.deployment_id">
+<tt class="descname">deployment_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.deployment_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.deployment_id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The deployment id the node belongs to.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.properties">
+<tt class="descname">properties</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.properties" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The static properties of the node.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.operations">
+<tt class="descname">operations</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.operations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.operations" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The node operations mapped to plugins.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.relationships">
+<tt class="descname">relationships</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.relationships"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.relationships" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The node relationships with other nodes.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.blueprint_id">
+<tt class="descname">blueprint_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.blueprint_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.blueprint_id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The id of the blueprint this node belongs to.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.plugins">
+<tt class="descname">plugins</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.plugins"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.plugins" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The plugins this node has operations mapped to.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.number_of_instances">
+<tt class="descname">number_of_instances</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.number_of_instances"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.number_of_instances" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The number of instances this node has.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.host_id">
+<tt class="descname">host_id</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.host_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.host_id" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The id of the node instance which hosts this node.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.type_hierarchy">
+<tt class="descname">type_hierarchy</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.type_hierarchy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.type_hierarchy" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The type hierarchy of this node.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cloudify_rest_client.nodes.Node.type">
+<tt class="descname">type</tt><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#Node.type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.Node.type" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The type of this node.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cloudify_rest_client.nodes.NodesClient">
+<em class="property">class </em><tt class="descclassname">cloudify_rest_client.nodes.</tt><tt class="descname">NodesClient</tt><big>(</big><em>api</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#NodesClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.NodesClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="cloudify_rest_client.nodes.NodesClient.list">
+<tt class="descname">list</tt><big>(</big><em>deployment_id=None</em><big>)</big><a class="reference internal" href="_modules/cloudify_rest_client/nodes.html#NodesClient.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cloudify_rest_client.nodes.NodesClient.list" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Returns a list of nodes which belong to the deployment identified</dt>
+<dd>by the provided deployment id.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deployment_id</strong> &#8211; The deployment&#8217;s id to list nodes for.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Nodes.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
+
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Gigaspaces.
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

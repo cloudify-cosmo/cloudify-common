@@ -7,4 +7,6 @@ install:
     - pip install flake8
 
 script:
-    - flake8 .
+    - flake8 . --exclude docs
+notifications:
+    flowdock: a73d66c41c6e4406e1c47e042dfd2b59
