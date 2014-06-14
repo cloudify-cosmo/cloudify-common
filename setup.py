@@ -16,11 +16,6 @@
 __author__ = 'ran'
 
 from setuptools import setup
-from pip.req import parse_requirements
-
-install_requires = [
-    str(ir.req) for ir in parse_requirements('requirements.txt')]
-
 
 setup(
     name='cloudify-rest-client',
@@ -33,5 +28,7 @@ setup(
               'cosmo_manager_rest_client.swagger.models'],
     license='LICENSE',
     description='Cloudify REST client',
-    install_requires=install_requires
+    install_requires=[
+        'requests',
+    ]
 )
