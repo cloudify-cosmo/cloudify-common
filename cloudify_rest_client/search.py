@@ -13,18 +13,19 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-__author__ = 'ran'
+__author__ = 'idanmo'
 
 
-class Workflows:
+class SearchClient(object):
 
-    def __init__(self):
-        self.swaggerTypes = {
-            'workflows': 'list[Workflow]',
-            'deploymentId': 'str',
-            'blueprintId': 'str',
-        }
+    def __init__(self, api):
+        self.api = api
 
-        self.workflows = None  # list[Workflow]
-        self.deploymentId = None  # str
-        self.blueprintId = None  # str
+    def run_query(self, query):
+        """
+        Run the provided Elasticsearch query.
+
+        :param query: Elasticsearch query.
+        :return: Elasticsearch result hits.
+        """
+        return self.api.post('/search', data=query)

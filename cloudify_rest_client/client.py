@@ -24,6 +24,8 @@ from cloudify_rest_client.executions import ExecutionsClient
 from cloudify_rest_client.nodes import NodesClient
 from cloudify_rest_client.node_instances import NodeInstancesClient
 from cloudify_rest_client.events import EventsClient
+from cloudify_rest_client.manager import ManagerClient
+from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.exceptions import CloudifyClientError
 
 
@@ -43,7 +45,7 @@ class HTTPClient(object):
         if url:
             message = '{0} [{1}]'.format(message, url)
         error_msg = '{0}: {1}'.format(response.status_code, message)
-        raise CloudifyClientError(error_msg)
+        raise CloudifyClientError(error_msg, response.status_code)
 
     def verify_response_status(self, response, expected_code=200):
         if response.status_code != expected_code:
@@ -56,7 +58,8 @@ class HTTPClient(object):
                    params=None,
                    expected_status_code=200):
         request_url = '{0}{1}'.format(self.url, uri)
-        body = json.dumps(data) if data else None
+        body = json.dumps(data) if data is not None else None
+
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
@@ -122,4 +125,6 @@ class CloudifyClient(object):
         self.executions = ExecutionsClient(self._client)
         self.nodes = NodesClient(self._client)
         self.node_instances = NodeInstancesClient(self._client)
+        self.manager = ManagerClient(self._client)
         self.events = EventsClient(self._client)
+        self.search = SearchClient(self._client)

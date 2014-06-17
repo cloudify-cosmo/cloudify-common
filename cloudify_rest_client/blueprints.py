@@ -136,16 +136,6 @@ class BlueprintsClient(object):
         response = self.api.get('/blueprints/{0}'.format(blueprint_id))
         return Blueprint(response)
 
-    def get_source(self, blueprint_id):
-        """
-        Gets a blueprint's source by the blueprint's id.
-
-        :param blueprint_id: Blueprint's id to get the source for.
-        :return: The blueprint's source.
-        """
-        assert blueprint_id
-        return self.api.get('/blueprints/{0}/source'.format(blueprint_id))
-
     def delete(self, blueprint_id):
         """
         Deletes the blueprint whose id matches the provided blueprint id.

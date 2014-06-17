@@ -18,8 +18,9 @@ __author__ = 'idanmo'
 
 class CloudifyClientError(Exception):
 
-    def __init__(self, message):
+    def __init__(self, message, status_code=-1):
         self.message = message
+        self.status_code = status_code
 
     def __str__(self):
         return self.message
