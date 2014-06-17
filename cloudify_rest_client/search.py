@@ -22,4 +22,10 @@ class SearchClient(object):
         self.api = api
 
     def run_query(self, query):
+        """
+        Run the provided Elasticsearch query.
+
+        :param query: Elasticsearch query.
+        :return: Elasticsearch result hits.
+        """
         return self.api.post('/search', data=query)
