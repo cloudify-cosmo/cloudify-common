@@ -24,3 +24,19 @@ class CloudifyClientError(Exception):
 
     def __str__(self):
         return self.message
+
+
+class CreateDeploymentInProgressError(CloudifyClientError):
+    """
+    Raised when there's attempt to execute a deployment workflow and
+     deployment creation workflow execution is still running.
+    In such a case, workflow execution should be retried after a reasonable
+    time or after the execution of deployment workers installation
+     has terminated.
+    """
+
+    ERROR_CODE = 'deployment_workers_not_yet_installed_error'
+
+    def __init__(self, message, status_code=-1):
+        super(CreateDeploymentInProgressError, self).__init__(message,
+                                                              status_code)

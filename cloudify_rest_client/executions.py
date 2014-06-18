@@ -17,6 +17,15 @@ __author__ = 'idanmo'
 
 
 class Execution(dict):
+
+    TERMINATED = 'terminated'
+    FAILED = 'failed'
+    CANCELLED = 'cancelled'
+    PENDING = 'pending'
+    STARTED = 'started'
+    CANCELLING = 'cancelling'
+    FORCE_CANCELLING = 'force_cancelling'
+
     """
     Cloudify workflow execution.
     """
