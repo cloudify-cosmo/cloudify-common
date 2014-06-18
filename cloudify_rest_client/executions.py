@@ -17,7 +17,9 @@ __author__ = 'idanmo'
 
 
 class Execution(dict):
-
+    """
+    Cloudify workflow execution.
+    """
     TERMINATED = 'terminated'
     FAILED = 'failed'
     CANCELLED = 'cancelled'
@@ -25,10 +27,7 @@ class Execution(dict):
     STARTED = 'started'
     CANCELLING = 'cancelling'
     FORCE_CANCELLING = 'force_cancelling'
-
-    """
-    Cloudify workflow execution.
-    """
+    END_STATES = [TERMINATED, FAILED, CANCELLED]
 
     def __init__(self, execution):
         self.update(execution)
