@@ -20,6 +20,14 @@ class Execution(dict):
     """
     Cloudify workflow execution.
     """
+    TERMINATED = 'terminated'
+    FAILED = 'failed'
+    CANCELLED = 'cancelled'
+    PENDING = 'pending'
+    STARTED = 'started'
+    CANCELLING = 'cancelling'
+    FORCE_CANCELLING = 'force_cancelling'
+    END_STATES = [TERMINATED, FAILED, CANCELLED]
 
     def __init__(self, execution):
         self.update(execution)

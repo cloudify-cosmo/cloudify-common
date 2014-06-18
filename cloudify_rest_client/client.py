@@ -27,6 +27,7 @@ from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.exceptions import CloudifyClientError
+from cloudify_rest_client.exceptions import CreateDeploymentInProgressError
 
 
 class HTTPClient(object):
@@ -39,13 +40,19 @@ class HTTPClient(object):
     @staticmethod
     def _raise_client_error(response, url=None):
         try:
-            message = response.json()['message']
+            result = response.json()
         except Exception:
             message = response.content
-        if url:
-            message = '{0} [{1}]'.format(message, url)
-        error_msg = '{0}: {1}'.format(response.status_code, message)
-        raise CloudifyClientError(error_msg, response.status_code)
+            if url:
+                message = '{0} [{1}]'.format(message, url)
+            error_msg = '{0}: {1}'.format(response.status_code, message)
+            raise CloudifyClientError(error_msg, response.status_code)
+        message = result['message']
+        code = result['error_code']
+        if code == CreateDeploymentInProgressError.ERROR_CODE:
+            raise CreateDeploymentInProgressError(message,
+                                                  response.status_code)
+        raise CloudifyClientError(message, response.status_code)
 
     def verify_response_status(self, response, expected_code=200):
         if response.status_code != expected_code:
