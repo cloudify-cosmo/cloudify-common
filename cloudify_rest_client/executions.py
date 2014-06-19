@@ -107,14 +107,16 @@ class ExecutionsClient(object):
         response = self.api.patch(uri, data=params)
         return Execution(response)
 
-    def cancel(self, execution_id):
+    def cancel(self, execution_id, force=False):
         """
-        Cancels the execution who matches the provided execution id.
+        Cancels the execution which matches the provided execution id.
         :param execution_id: Id of the execution to cancel.
+        :param force: Boolean describing whether to send a 'cancel' or a 'force-cancel' action  # NOQA
         :return: Cancelled execution.
         """
         uri = '/executions/{0}'.format(execution_id)
+        action = 'force-cancel' if force else 'cancel'
         response = self.api.post(uri,
-                                 data={'action': 'cancel'},
+                                 data={'action': action},
                                  expected_status_code=201)
         return Execution(response)
