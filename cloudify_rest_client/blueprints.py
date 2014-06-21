@@ -100,7 +100,7 @@ class BlueprintsClient(object):
         Uploads a blueprint to Cloudify's manager.
 
         :param blueprint_path: Main blueprint yaml file path.
-        :param blueprint_id: Id of the uploaded blueprint (optional).
+        :param blueprint_id: Id of the uploaded blueprint.
         :return: Created blueprint.
 
         Blueprint path should point to the main yaml file of the blueprint
