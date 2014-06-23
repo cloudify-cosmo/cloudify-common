@@ -158,12 +158,14 @@ class DeploymentsClient(object):
         response = self.api.get(uri)
         return Workflows(response)
 
-    def execute(self, deployment_id, workflow_id, force=False):
+    def execute(self, deployment_id, workflow_id, parameters=None,
+                force=False):
         """
         Executes a deployment's workflow whose id is provided.
 
         :param deployment_id: The deployment's id to execute a workflow for.
         :param workflow_id: The workflow to be executed id.
+        :param parameters: Parameters for the workflow execution
         :param force: Determines whether to force the execution of the workflow
          in a case where there's an already running execution for this
           deployment.
@@ -172,7 +174,8 @@ class DeploymentsClient(object):
         assert deployment_id
         assert workflow_id
         data = {
-            'workflow_id': workflow_id
+            'workflow_id': workflow_id,
+            'parameters': parameters
         }
         params = {
             'force': str(force).lower()
