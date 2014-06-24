@@ -74,6 +74,10 @@ class Workflow(dict):
     def name(self):
         return self['name']
 
+    @property
+    def parameters(self):
+        return self['parameters']
+
 
 class DeploymentsClient(object):
 
