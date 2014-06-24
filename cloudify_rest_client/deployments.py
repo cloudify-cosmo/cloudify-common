@@ -68,14 +68,23 @@ class Workflow(dict):
 
     @property
     def id(self):
+        """
+        :return: The workflow's id
+        """
         return self['name']
 
     @property
     def name(self):
+        """
+        :return: The workflow's name
+        """
         return self['name']
 
     @property
     def parameters(self):
+        """
+        :return: The workflow's parameters
+        """
         return self['parameters']
 
 
