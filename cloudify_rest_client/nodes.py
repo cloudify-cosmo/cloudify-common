@@ -119,6 +119,7 @@ class NodesClient(object):
         """
         Returns a list of nodes which belong to the deployment identified
          by the provided deployment id.
+
         :param deployment_id: The deployment's id to list nodes for.
         :return: Nodes.
         :rtype: list

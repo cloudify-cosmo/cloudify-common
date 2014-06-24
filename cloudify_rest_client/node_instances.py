@@ -132,6 +132,7 @@ class NodeInstancesClient(object):
         """
         Returns a list of node instances which belong to the deployment
          identified by the provided deployment id.
+
         :param deployment_id: The deployment's id to list node instances for.
         :return: Node instances.
         :rtype: list

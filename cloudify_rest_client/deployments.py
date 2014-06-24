@@ -122,7 +122,7 @@ class DeploymentsClient(object):
         """
         Deletes the deployment whose id matches the provided deployment id.
         By default, deployment with live nodes deletion is not allowed and
-         this behavior can be changed using the ignore_live_nodes argument.
+        this behavior can be changed using the ignore_live_nodes argument.
 
         :param deployment_id: The deployment's to be deleted id.
         :param ignore_live_nodes: Determines whether to ignore live nodes.
@@ -166,7 +166,7 @@ class DeploymentsClient(object):
         :param workflow_id: The workflow to be executed id.
         :param force: Determines whether to force the execution of the workflow
          in a case where there's an already running execution for this
-          deployment.
+         deployment.
         :return: The created execution.
         """
         assert deployment_id
