@@ -60,6 +60,13 @@ class Execution(dict):
         """
         return self['workflow_id']
 
+    @property
+    def parameters(self):
+        """
+        :return: the execution's parameters
+        """
+        return self['parameters']
+
 
 class ExecutionsClient(object):
 

@@ -26,6 +26,9 @@ class Deployment(dict):
 
     def __init__(self, deployment):
         self.update(deployment)
+        if self['workflows']:
+            # might be None, for example in response for delete deployment
+            self['workflows'] = [Workflow(item) for item in self['workflows']]
 
     @property
     def id(self):
@@ -41,23 +44,11 @@ class Deployment(dict):
         """
         return self['blueprint_id']
 
-
-class Workflows(dict):
-
-    def __init__(self, workflows):
-        self.update(workflows)
-        self['workflows'] = [Workflow(item) for item in self['workflows']]
-
-    @property
-    def blueprint_id(self):
-        return self['blueprint_id']
-
-    @property
-    def deployment_id(self):
-        return self['deployment_id']
-
     @property
     def workflows(self):
+        """
+        :return: The workflows of this deployment
+        """
         return self['workflows']
 
 
@@ -68,11 +59,24 @@ class Workflow(dict):
 
     @property
     def id(self):
+        """
+        :return: The workflow's id
+        """
         return self['name']
 
     @property
     def name(self):
+        """
+        :return: The workflow's name
+        """
         return self['name']
+
+    @property
+    def parameters(self):
+        """
+        :return: The workflow's parameters
+        """
+        return self['parameters']
 
 
 class DeploymentsClient(object):
@@ -146,33 +150,25 @@ class DeploymentsClient(object):
         response = self.api.get(uri)
         return [Execution(item) for item in response]
 
-    def list_workflows(self, deployment_id):
-        """
-        Returns a list of available workflows for the provided deployment's id.
-
-        :param deployment_id: Deployment id to get a list of workflows for.
-        :return: Workflows list.
-        """
-        assert deployment_id
-        uri = '/deployments/{0}/workflows'.format(deployment_id)
-        response = self.api.get(uri)
-        return Workflows(response)
-
-    def execute(self, deployment_id, workflow_id, force=False):
+    def execute(self, deployment_id, workflow_id, parameters=None,
+                force=False):
         """
         Executes a deployment's workflow whose id is provided.
 
         :param deployment_id: The deployment's id to execute a workflow for.
         :param workflow_id: The workflow to be executed id.
+        :param parameters: Parameters for the workflow execution
         :param force: Determines whether to force the execution of the workflow
          in a case where there's an already running execution for this
          deployment.
+        :raises: MissingExecutionParametersError
         :return: The created execution.
         """
         assert deployment_id
         assert workflow_id
         data = {
-            'workflow_id': workflow_id
+            'workflow_id': workflow_id,
+            'parameters': parameters
         }
         params = {
             'force': str(force).lower()
