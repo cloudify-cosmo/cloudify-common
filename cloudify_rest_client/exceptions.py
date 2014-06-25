@@ -40,3 +40,15 @@ class CreateDeploymentInProgressError(CloudifyClientError):
     def __init__(self, message, status_code=-1):
         super(CreateDeploymentInProgressError, self).__init__(message,
                                                               status_code)
+
+
+class MissingExecutionParametersError(CloudifyClientError):
+    """
+
+    """
+
+    ERROR_CODE = 'missing_execution_parameters_error'
+
+    def __init__(self, message, status_code=-1):
+        super(MissingExecutionParametersError, self).__init__(
+            message, status_code)

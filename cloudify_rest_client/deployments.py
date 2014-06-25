@@ -161,6 +161,7 @@ class DeploymentsClient(object):
         :param force: Determines whether to force the execution of the workflow
          in a case where there's an already running execution for this
          deployment.
+        :raises: MissingExecutionParametersError
         :return: The created execution.
         """
         assert deployment_id
