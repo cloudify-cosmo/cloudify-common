@@ -26,6 +26,9 @@ class Deployment(dict):
 
     def __init__(self, deployment):
         self.update(deployment)
+        if self['workflows']:
+            # might be None, for example in response for delete deployment
+            self['workflows'] = [Workflow(item) for item in self['workflows']]
 
     @property
     def id(self):
@@ -41,23 +44,11 @@ class Deployment(dict):
         """
         return self['blueprint_id']
 
-
-class Workflows(dict):
-
-    def __init__(self, workflows):
-        self.update(workflows)
-        self['workflows'] = [Workflow(item) for item in self['workflows']]
-
-    @property
-    def blueprint_id(self):
-        return self['blueprint_id']
-
-    @property
-    def deployment_id(self):
-        return self['deployment_id']
-
     @property
     def workflows(self):
+        """
+        :return: The workflows of this deployment
+        """
         return self['workflows']
 
 
@@ -158,18 +149,6 @@ class DeploymentsClient(object):
         uri = '/deployments/{0}/executions'.format(deployment_id)
         response = self.api.get(uri)
         return [Execution(item) for item in response]
-
-    def list_workflows(self, deployment_id):
-        """
-        Returns a list of available workflows for the provided deployment's id.
-
-        :param deployment_id: Deployment id to get a list of workflows for.
-        :return: Workflows list.
-        """
-        assert deployment_id
-        uri = '/deployments/{0}/workflows'.format(deployment_id)
-        response = self.api.get(uri)
-        return Workflows(response)
 
     def execute(self, deployment_id, workflow_id, parameters=None,
                 force=False):
