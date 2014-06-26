@@ -28,7 +28,7 @@ from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.exceptions import CreateDeploymentInProgressError
-from cloudify_rest_client.exceptions import MissingExecutionParametersError
+from cloudify_rest_client.exceptions import IllegalExecutionParametersError
 
 
 class HTTPClient(object):
@@ -53,8 +53,8 @@ class HTTPClient(object):
         if code == CreateDeploymentInProgressError.ERROR_CODE:
             raise CreateDeploymentInProgressError(message,
                                                   response.status_code)
-        if code == MissingExecutionParametersError.ERROR_CODE:
-            raise MissingExecutionParametersError(message,
+        if code == IllegalExecutionParametersError.ERROR_CODE:
+            raise IllegalExecutionParametersError(message,
                                                   response.status_code)
         raise CloudifyClientError(message, response.status_code)
 
