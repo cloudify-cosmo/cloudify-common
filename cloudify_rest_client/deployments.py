@@ -151,17 +151,20 @@ class DeploymentsClient(object):
         return [Execution(item) for item in response]
 
     def execute(self, deployment_id, workflow_id, parameters=None,
-                force=False):
+                allow_custom_parameters=False, force=False):
         """
         Executes a deployment's workflow whose id is provided.
 
         :param deployment_id: The deployment's id to execute a workflow for.
         :param workflow_id: The workflow to be executed id.
-        :param parameters: Parameters for the workflow execution
+        :param parameters: Parameters for the workflow execution.
+        :param allow_custom_parameters: Determines whether to allow
+         parameters which weren't defined in the workflow parameters schema
+         in the blueprint.
         :param force: Determines whether to force the execution of the workflow
          in a case where there's an already running execution for this
          deployment.
-        :raises: MissingExecutionParametersError
+        :raises: IllegalExecutionParametersError
         :return: The created execution.
         """
         assert deployment_id
@@ -169,6 +172,7 @@ class DeploymentsClient(object):
         data = {
             'workflow_id': workflow_id,
             'parameters': parameters,
+            'allow_custom_parameters': str(allow_custom_parameters).lower(),
             'force': str(force).lower()
         }
         uri = '/deployments/{0}/executions'.format(deployment_id)
