@@ -172,14 +172,11 @@ class DeploymentsClient(object):
         data = {
             'workflow_id': workflow_id,
             'parameters': parameters,
-            'allow_custom_parameters': str(allow_custom_parameters).lower()
-        }
-        params = {
+            'allow_custom_parameters': str(allow_custom_parameters).lower(),
             'force': str(force).lower()
         }
         uri = '/deployments/{0}/executions'.format(deployment_id)
         response = self.api.post(uri,
                                  data=data,
-                                 params=params,
                                  expected_status_code=201)
         return Execution(response)
