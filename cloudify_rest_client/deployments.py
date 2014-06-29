@@ -168,14 +168,11 @@ class DeploymentsClient(object):
         assert workflow_id
         data = {
             'workflow_id': workflow_id,
-            'parameters': parameters
-        }
-        params = {
+            'parameters': parameters,
             'force': str(force).lower()
         }
         uri = '/deployments/{0}/executions'.format(deployment_id)
         response = self.api.post(uri,
                                  data=data,
-                                 params=params,
                                  expected_status_code=201)
         return Execution(response)
