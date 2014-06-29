@@ -172,7 +172,7 @@ class DeploymentsClient(object):
         data = {
             'workflow_id': workflow_id,
             'parameters': parameters,
-            'allow_custom_parameters': allow_custom_parameters
+            'allow_custom_parameters': str(allow_custom_parameters).lower()
         }
         params = {
             'force': str(force).lower()
