@@ -19,10 +19,12 @@ __author__ = 'idanmo'
 class CloudifyClientError(Exception):
 
     def __init__(self, message, status_code=-1):
-        self.message = message
+        super(CloudifyClientError, self).__init__(message)
         self.status_code = status_code
 
     def __str__(self):
+        if self.status_code != -1:
+            return '{}: {}'.format(self.status_code, self.message)
         return self.message
 
 
