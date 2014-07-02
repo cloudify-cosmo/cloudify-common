@@ -60,7 +60,7 @@ class HTTPClient(object):
         if code == NoSuchIncludeFieldError.ERROR_CODE:
             raise NoSuchIncludeFieldError(message, response.status_code)
 
-        raise CloudifyClientError(  message, response.status_code)
+        raise CloudifyClientError(message, response.status_code)
 
     def verify_response_status(self, response, expected_code=200):
         if response.status_code != expected_code:
