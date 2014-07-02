@@ -26,7 +26,7 @@ class Deployment(dict):
 
     def __init__(self, deployment):
         self.update(deployment)
-        if 'workflows' in self:
+        if 'workflows' in self and self['workflows']:
             # might be None, for example in response for delete deployment
             self['workflows'] = [Workflow(item) for item in self['workflows']]
 
