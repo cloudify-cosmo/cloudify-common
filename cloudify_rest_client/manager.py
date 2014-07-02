@@ -28,15 +28,16 @@ class ManagerClient(object):
         response = self.api.get('/status')
         return response
 
-    def get_context(self):
+    def get_context(self, _include=None):
         """
         Gets the context which was stored on management machine bootstrap.
         The context contains Cloudify specific information and Cloud provider
         specific information.
 
+        :param _include: List of fields to include in response.
         :return: Context stored in manager.
         """
-        response = self.api.get('/provider/context')
+        response = self.api.get('/provider/context', _include=_include)
         return response
 
     def create_context(self, name, context):

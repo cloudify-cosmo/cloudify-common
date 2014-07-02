@@ -81,7 +81,10 @@ class HTTPClient(object):
             self._raise_client_error(response, request_url)
         return response.json()
 
-    def get(self, uri, data=None, params=None, expected_status_code=200):
+    def get(self, uri, data=None, params=None,
+            _include=None, expected_status_code=200):
+        if _include:
+            uri = '{}?_include={}'.format(uri, ','.join(_include))
         return self.do_request(requests.get,
                                uri,
                                data=data,
@@ -118,11 +121,9 @@ class HTTPClient(object):
 
 
 class CloudifyClient(object):
-    """
-    Cloudify's management client.
+    """Cloudify's management client."""
 
-    """
-    def __init__(self, host, port=80):
+    def __init__(self, host='localhost', port=80):
         """
         Creates a Cloudify client with the provided host and optional port.
 
