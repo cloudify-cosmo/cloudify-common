@@ -29,49 +29,49 @@ class NodeInstance(dict):
         """
         :return: The identifier of the node instance.
         """
-        return self['id']
+        return self.get('id')
 
     @property
     def node_id(self):
         """
         :return: The identifier of the node whom this is in instance of.
         """
-        return self['node_id']
+        return self.get('node_id')
 
     @property
     def relationships(self):
         """
         :return: The node instance relationships.
         """
-        return self['relationships']
+        return self.get('relationships')
 
     @property
     def host_id(self):
         """
         :return: The node instance host_id.
         """
-        return self['host_id']
+        return self.get('host_id')
 
     @property
     def deployment_id(self):
         """
         :return: The deployment id the node instance belongs to.
         """
-        return self['deployment_id']
+        return self.get('deployment_id')
 
     @property
     def runtime_properties(self):
         """
         :return: The runtime properties of the node instance.
         """
-        return self['runtime_properties']
+        return self.get('runtime_properties')
 
     @property
     def state(self):
         """
         :return: The current state of the node instance.
         """
-        return self['state']
+        return self.get('state')
 
     @property
     def version(self):
@@ -79,7 +79,7 @@ class NodeInstance(dict):
         :return: The current version of the node instance
          (used for optimistic locking on update)
         """
-        return self['version']
+        return self.get('version')
 
 
 class NodeInstancesClient(object):
@@ -91,16 +91,17 @@ class NodeInstancesClient(object):
     def _get_node_instance_uri(node_instance_id):
         return '/node-instances/{0}'.format(node_instance_id)
 
-    def get(self, node_instance_id):
+    def get(self, node_instance_id, _include=None):
         """
         Returns the node instance for the provided node instance id.
 
         :param node_instance_id: The identifier of the node instance to get.
+        :param _include: List of fields to include in response.
         :return: The retrieved node instance.
         """
         assert node_instance_id
         uri = self._get_node_instance_uri(node_instance_id)
-        response = self.api.get(uri)
+        response = self.api.get(uri, _include=_include)
         return NodeInstance(response)
 
     def update(self,
@@ -128,15 +129,18 @@ class NodeInstancesClient(object):
         response = self.api.patch(uri, data=data)
         return NodeInstance(response)
 
-    def list(self, deployment_id=None):
+    def list(self, deployment_id=None, _include=None):
         """
         Returns a list of node instances which belong to the deployment
          identified by the provided deployment id.
 
         :param deployment_id: The deployment's id to list node instances for.
+        :param _include: List of fields to include in response.
         :return: Node instances.
         :rtype: list
         """
         params = {'deployment_id': deployment_id} if deployment_id else None
-        response = self.api.get('/node-instances', params=params)
+        response = self.api.get('/node-instances',
+                                params=params,
+                                _include=_include)
         return [NodeInstance(item) for item in response]

@@ -37,35 +37,35 @@ class Execution(dict):
         """
         :return: The execution's id.
         """
-        return self['id']
+        return self.get('id')
 
     @property
     def status(self):
         """
         :return: The execution's status.
         """
-        return self['status']
+        return self.get('status')
 
     @property
     def error(self):
         """
         :return: The execution error in a case of failure, otherwise None.
         """
-        return self['error']
+        return self.get('error')
 
     @property
     def workflow_id(self):
         """
         :return: The id of the workflow this execution represents.
         """
-        return self['workflow_id']
+        return self.get('workflow_id')
 
     @property
     def parameters(self):
         """
         :return: the execution's parameters
         """
-        return self['parameters']
+        return self.get('parameters')
 
 
 class ExecutionsClient(object):
@@ -73,28 +73,30 @@ class ExecutionsClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, deployment_id):
+    def list(self, deployment_id, _include=None):
         """
         Returns a list of executions for the provided deployment's id.
 
         :param deployment_id: Deployment id to get a list of executions for.
+        :param _include: List of fields to include in response.
         :return: Executions list.
         """
         assert deployment_id
         uri = '/deployments/{0}/executions'.format(deployment_id)
-        response = self.api.get(uri)
+        response = self.api.get(uri, _include=_include)
         return [Execution(item) for item in response]
 
-    def get(self, execution_id):
+    def get(self, execution_id, _include=None):
         """
         Get execution by its id.
 
         :param execution_id: Id of the execution to get.
+        :param _include: List of fields to include in response.
         :return: Execution.
         """
         assert execution_id
         uri = '/executions/{0}'.format(execution_id)
-        response = self.api.get(uri)
+        response = self.api.get(uri, _include=_include)
         return Execution(response)
 
     def update(self, execution_id, status, error=None):
