@@ -46,7 +46,8 @@ class CreateDeploymentInProgressError(CloudifyClientError):
 
 class IllegalExecutionParametersError(CloudifyClientError):
     """
-
+    Raised when an attempt to execute a workflow with wrong/missing parameters
+    has been made.
     """
 
     ERROR_CODE = 'illegal_execution_parameters_error'
@@ -54,3 +55,12 @@ class IllegalExecutionParametersError(CloudifyClientError):
     def __init__(self, message, status_code=-1):
         super(IllegalExecutionParametersError, self).__init__(
             message, status_code)
+
+
+class NoSuchIncludeFieldError(CloudifyClientError):
+    """
+    Raised when an _include query parameter contains a field which does not
+    exist for the queried data model.
+    """
+
+    ERROR_CODE = 'no_such_include_field_error'
