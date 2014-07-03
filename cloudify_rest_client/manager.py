@@ -28,6 +28,13 @@ class ManagerClient(object):
         response = self.api.get('/status')
         return response
 
+    def get_version(self):
+        """
+        :return: Cloudify's management machine version information.
+        """
+        response = self.api.get('/version')
+        return response
+
     def get_context(self, _include=None):
         """
         Gets the context which was stored on management machine bootstrap.
