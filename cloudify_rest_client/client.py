@@ -29,6 +29,7 @@ from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.exceptions import CreateDeploymentInProgressError
 from cloudify_rest_client.exceptions import IllegalExecutionParametersError
+from cloudify_rest_client.exceptions import NoSuchIncludeFieldError
 
 
 class HTTPClient(object):
@@ -56,6 +57,9 @@ class HTTPClient(object):
         if code == IllegalExecutionParametersError.ERROR_CODE:
             raise IllegalExecutionParametersError(message,
                                                   response.status_code)
+        if code == NoSuchIncludeFieldError.ERROR_CODE:
+            raise NoSuchIncludeFieldError(message, response.status_code)
+
         raise CloudifyClientError(message, response.status_code)
 
     def verify_response_status(self, response, expected_code=200):
@@ -84,7 +88,10 @@ class HTTPClient(object):
     def get(self, uri, data=None, params=None,
             _include=None, expected_status_code=200):
         if _include:
-            uri = '{}?_include={}'.format(uri, ','.join(_include))
+            fields = ','.join(_include)
+            if not params:
+                params = {}
+            params['_include'] = fields
         return self.do_request(requests.get,
                                uri,
                                data=data,
