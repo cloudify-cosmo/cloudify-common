@@ -88,7 +88,10 @@ class HTTPClient(object):
     def get(self, uri, data=None, params=None,
             _include=None, expected_status_code=200):
         if _include:
-            uri = '{}?_include={}'.format(uri, ','.join(_include))
+            fields = ','.join(_include)
+            if not params:
+                params = {}
+            params['_include'] = fields
         return self.do_request(requests.get,
                                uri,
                                data=data,
