@@ -26,7 +26,7 @@ class Deployment(dict):
 
     def __init__(self, deployment):
         self.update(deployment)
-        if self['workflows']:
+        if 'workflows' in self and self['workflows']:
             # might be None, for example in response for delete deployment
             self['workflows'] = [Workflow(item) for item in self['workflows']]
 
@@ -35,21 +35,21 @@ class Deployment(dict):
         """
         :return: The identifier of the deployment.
         """
-        return self['id']
+        return self.get('id')
 
     @property
     def blueprint_id(self):
         """
         :return: The identifier of the blueprint this deployment belongs to.
         """
-        return self['blueprint_id']
+        return self.get('blueprint_id')
 
     @property
     def workflows(self):
         """
         :return: The workflows of this deployment
         """
-        return self['workflows']
+        return self.get('workflows')
 
 
 class Workflow(dict):
@@ -84,24 +84,27 @@ class DeploymentsClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self):
+    def list(self, _include=None):
         """
         Returns a list of all deployments.
 
+        :param _include: List of fields to include in response.
         :return: Deployments list.
         """
-        response = self.api.get('/deployments')
+        response = self.api.get('/deployments', _include=_include)
         return [Deployment(item) for item in response]
 
-    def get(self, deployment_id):
+    def get(self, deployment_id, _include=None):
         """
         Returns a deployment by its id.
 
         :param deployment_id: Id of the deployment to get.
+        :param _include: List of fields to include in response.
         :return: Deployment.
         """
         assert deployment_id
-        response = self.api.get('/deployments/{0}'.format(deployment_id))
+        uri = '/deployments/{}'.format(deployment_id)
+        response = self.api.get(uri, _include=_include)
         return Deployment(response)
 
     def create(self, blueprint_id, deployment_id):

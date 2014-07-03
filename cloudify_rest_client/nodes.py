@@ -29,21 +29,21 @@ class Node(dict):
         """
         :return: The identifier of the node.
         """
-        return self['id']
+        return self.get('id')
 
     @property
     def deployment_id(self):
         """
         :return: The deployment id the node belongs to.
         """
-        return self['deployment_id']
+        return self.get('deployment_id')
 
     @property
     def properties(self):
         """
         :return: The static properties of the node.
         """
-        return self['properties']
+        return self.get('properties')
 
     @property
     def operations(self):
@@ -51,7 +51,7 @@ class Node(dict):
         :return: The node operations mapped to plugins.
         :rtype: dict
         """
-        return self['operations']
+        return self.get('operations')
 
     @property
     def relationships(self):
@@ -59,7 +59,7 @@ class Node(dict):
         :return: The node relationships with other nodes.
         :rtype: list
         """
-        return self['relationships']
+        return self.get('relationships')
 
     @property
     def blueprint_id(self):
@@ -67,7 +67,7 @@ class Node(dict):
         :return: The id of the blueprint this node belongs to.
         :rtype: str
         """
-        return self['blueprint_id']
+        return self.get('blueprint_id')
 
     @property
     def plugins(self):
@@ -75,7 +75,7 @@ class Node(dict):
         :return: The plugins this node has operations mapped to.
         :rtype: dict
         """
-        return self['plugins']
+        return self.get('plugins')
 
     @property
     def number_of_instances(self):
@@ -83,7 +83,9 @@ class Node(dict):
         :return: The number of instances this node has.
         :rtype: int
         """
-        return int(self['number_of_instances'])
+
+        return int(self.get(
+            'number_of_instances')) if 'number_of_instances' in self else None
 
     @property
     def host_id(self):
@@ -91,7 +93,7 @@ class Node(dict):
         :return: The id of the node instance which hosts this node.
         :rtype: str
         """
-        return self['host_id']
+        return self.get('host_id')
 
     @property
     def type_hierarchy(self):
@@ -115,15 +117,16 @@ class NodesClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, deployment_id=None):
+    def list(self, deployment_id=None, _include=None):
         """
         Returns a list of nodes which belong to the deployment identified
          by the provided deployment id.
 
         :param deployment_id: The deployment's id to list nodes for.
+        :param _include: List of fields to include in response.
         :return: Nodes.
         :rtype: list
         """
         params = {'deployment_id': deployment_id} if deployment_id else None
-        response = self.api.get('/nodes', params=params)
+        response = self.api.get('/nodes', params=params, _include=_include)
         return [Node(item) for item in response]

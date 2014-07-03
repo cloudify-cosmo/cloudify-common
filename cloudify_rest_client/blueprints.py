@@ -36,7 +36,23 @@ class Blueprint(dict):
         """
         :return: The identifier of the blueprint.
         """
-        return self['id']
+        return self.get('id')
+
+    @property
+    def created_at(self):
+        """
+        :return: Timestamp of blueprint creation.
+        """
+        return self.get('created_at')
+
+    @property
+    def plan(self):
+        """
+        Gets the plan the blueprint represents: nodes, relationships etc...
+
+        :return: The content of the blueprint.
+        """
+        return self.get('plan')
 
 
 class BlueprintsClient(object):
@@ -86,13 +102,14 @@ class BlueprintsClient(object):
         self.api.verify_response_status(response, 201)
         return response.json()
 
-    def list(self):
+    def list(self, _include=None):
         """
         Returns a list of currently stored blueprints.
 
+        :param _include: List of fields to include in response.
         :return: Blueprints list.
         """
-        response = self.api.get('/blueprints')
+        response = self.api.get('/blueprints', _include=_include)
         return [Blueprint(item) for item in response]
 
     def upload(self, blueprint_path, blueprint_id):
@@ -125,15 +142,17 @@ class BlueprintsClient(object):
         finally:
             shutil.rmtree(tempdir)
 
-    def get(self, blueprint_id):
+    def get(self, blueprint_id, _include=None):
         """
         Gets a blueprint by its id.
 
         :param blueprint_id: Blueprint's id to get.
+        :param _include: List of fields to include in response.
         :return: The blueprint.
         """
         assert blueprint_id
-        response = self.api.get('/blueprints/{0}'.format(blueprint_id))
+        uri = '/blueprints/{0}'.format(blueprint_id)
+        response = self.api.get(uri, _include=_include)
         return Blueprint(response)
 
     def delete(self, blueprint_id):
