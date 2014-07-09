@@ -117,16 +117,44 @@ class NodesClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, deployment_id=None, _include=None):
+    def list(self, deployment_id=None, node_id=None, _include=None):
         """
         Returns a list of nodes which belong to the deployment identified
          by the provided deployment id.
 
         :param deployment_id: The deployment's id to list nodes for.
+        :param node_id: If provided, returns only the requested node.
         :param _include: List of fields to include in response.
         :return: Nodes.
         :rtype: list
         """
-        params = {'deployment_id': deployment_id} if deployment_id else None
+        params = {}
+        if deployment_id:
+            params['deployment_id'] = deployment_id
+        if node_id:
+            params['node_id'] = node_id
+        if not params:
+            params = None
         response = self.api.get('/nodes', params=params, _include=_include)
         return [Node(item) for item in response]
+
+    def get(self, deployment_id, node_id, _include=None):
+        """
+        Returns the node which belongs to the deployment identified
+         by the provided deployment id .
+
+        :param deployment_id: The deployment's id of the node.
+        :param node_id: The node id.
+        :param _include: List of fields to include in response.
+        :return: Nodes.
+        :rtype: Node
+        """
+        assert deployment_id
+        assert node_id
+        result = self.list(deployment_id=deployment_id,
+                           node_id=node_id,
+                           _include=_include)
+        if not result:
+            return None
+        else:
+            return next(result)
