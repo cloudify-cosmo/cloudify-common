@@ -157,4 +157,4 @@ class NodesClient(object):
         if not result:
             return None
         else:
-            return next(result)
+            return result[0]
