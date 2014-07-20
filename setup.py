@@ -17,17 +17,15 @@ __author__ = 'ran'
 
 from setuptools import setup
 
-VERSION = '3.0'
-
 setup(
     name='cloudify-rest-client',
-    version=VERSION,
+    version='3.0',
     author='ran',
     author_email='ran@gigaspaces.com',
-    packages=['cosmo_manager_rest_client',
-              'cosmo_manager_rest_client.swagger',
-              'cosmo_manager_rest_client.swagger.models'],
+    packages=['cloudify_rest_client'],
     license='LICENSE',
     description='Cloudify REST client',
-    install_requires=['requests']
+    install_requires=[
+        'requests',
+    ]
 )

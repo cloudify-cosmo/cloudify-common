@@ -13,18 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-__author__ = 'ran'
+__author__ = 'idanmo'
 
 
-class Workflows:
-
-    def __init__(self):
-        self.swaggerTypes = {
-            'workflows': 'list[Workflow]',
-            'deploymentId': 'str',
-            'blueprintId': 'str',
-        }
-
-        self.workflows = None  # list[Workflow]
-        self.deploymentId = None  # str
-        self.blueprintId = None  # str
+from cloudify_rest_client.client import CloudifyClient  # noqa

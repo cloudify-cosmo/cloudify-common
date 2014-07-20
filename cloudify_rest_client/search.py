@@ -12,16 +12,20 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-__author__ = 'dank'
+
+__author__ = 'idanmo'
 
 
-class DeploymentNode:
+class SearchClient(object):
 
-    def __init__(self):
-        self.swaggerTypes = {
-            'id': 'str',
-            'reachable': 'bool'
-        }
+    def __init__(self, api):
+        self.api = api
 
-        self.id = None  # str
-        self.reachable = None  # bool
+    def run_query(self, query):
+        """
+        Run the provided Elasticsearch query.
+
+        :param query: Elasticsearch query.
+        :return: Elasticsearch result hits.
+        """
+        return self.api.post('/search', data=query)
