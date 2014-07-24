@@ -16,4 +16,16 @@
 __author__ = 'idanmo'
 
 
-from cloudify_rest_client.client import CloudifyClient  # noqa
+import json
+import pkgutil
+
+
+try:
+    from cloudify_rest_client.client import CloudifyClient  # noqa
+except ImportError:
+    pass
+
+
+def get_version():
+    data = pkgutil.get_data('cloudify_rest_client', 'VERSION')
+    return json.loads(data)['version']
