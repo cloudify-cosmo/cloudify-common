@@ -17,9 +17,10 @@ __author__ = 'ran'
 
 from setuptools import setup
 
+
 setup(
     name='cloudify-rest-client',
-    version='3.0',
+    version='3.1',
     author='ran',
     author_email='ran@gigaspaces.com',
     packages=['cloudify_rest_client'],
