@@ -9,3 +9,4 @@ Client API
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: HTTPClient

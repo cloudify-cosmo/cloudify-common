@@ -132,7 +132,7 @@ class NodeInstancesClient(object):
     def list(self, deployment_id=None, _include=None):
         """
         Returns a list of node instances which belong to the deployment
-         identified by the provided deployment id.
+        identified by the provided deployment id.
 
         :param deployment_id: The deployment's id to list node instances for.
         :param _include: List of fields to include in response.

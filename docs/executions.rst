@@ -9,3 +9,4 @@ Executions API
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: TERMINATED, FAILED, CANCELLED, PENDING, STARTED, CANCELLING, FORCE_CANCELLING, END_STATES

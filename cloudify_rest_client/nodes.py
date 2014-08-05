@@ -120,7 +120,7 @@ class NodesClient(object):
     def list(self, deployment_id=None, node_id=None, _include=None):
         """
         Returns a list of nodes which belong to the deployment identified
-         by the provided deployment id.
+        by the provided deployment id.
 
         :param deployment_id: The deployment's id to list nodes for.
         :param node_id: If provided, returns only the requested node.
@@ -141,7 +141,7 @@ class NodesClient(object):
     def get(self, deployment_id, node_id, _include=None):
         """
         Returns the node which belongs to the deployment identified
-         by the provided deployment id .
+        by the provided deployment id .
 
         :param deployment_id: The deployment's id of the node.
         :param node_id: The node id.

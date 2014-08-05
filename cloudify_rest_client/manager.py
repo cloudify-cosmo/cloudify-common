@@ -52,7 +52,7 @@ class ManagerClient(object):
         Creates context in Cloudify's management machine.
         This method is usually invoked right after management machine
         bootstrap with relevant Cloudify and cloud provider
-         context information.
+        context information.
 
         :param name: Cloud provider name.
         :param context: Context as dict.

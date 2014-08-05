@@ -6,6 +6,25 @@
 Welcome to cloudify-rest-client's documentation!
 ================================================
 
+What is it?
+-----------
+This rest client provides access to the REST API exposed by a `Cloudify manager <http://getcloudify.org/guide/3.0/quickstart.html>`_.
+
+
+Basic Usage
+------------
+This client's API tries to be as consistent as possible when accessing different resource types. The example below will fetch the blueprints currently uploaded to the manager.
+
+.. code-block:: python
+
+   from cloudify_rest_client import CloudifyClient
+
+   client = CloudifyClient('http://MANAGER_HOST')
+   blueprints = client.blueprints.list()
+
+   for blueprint in blueprints:
+      print blueprint.id
+
 Contents:
 
 .. toctree::
@@ -20,7 +39,7 @@ Contents:
    manager
    node_instances
    nodes
-   search
+   searching
 
 
 Indices and tables

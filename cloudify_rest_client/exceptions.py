@@ -31,10 +31,10 @@ class CloudifyClientError(Exception):
 class CreateDeploymentInProgressError(CloudifyClientError):
     """
     Raised when there's attempt to execute a deployment workflow and
-     deployment creation workflow execution is still running.
+    deployment creation workflow execution is still running.
     In such a case, workflow execution should be retried after a reasonable
     time or after the execution of deployment workers installation
-     has terminated.
+    has terminated.
     """
 
     ERROR_CODE = 'deployment_workers_not_yet_installed_error'

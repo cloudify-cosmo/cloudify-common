@@ -9,3 +9,4 @@ Blueprints API
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: CONTENT_DISPOSITION_HEADER
