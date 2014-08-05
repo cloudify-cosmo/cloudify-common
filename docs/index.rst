@@ -11,45 +11,17 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: cloudify_rest_client.blueprints
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   blueprints
+   clients
+   deployments
+   events
+   exceptions
+   executions
+   manager
+   node_instances
+   nodes
+   search
 
-.. automodule:: cloudify_rest_client.client
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: cloudify_rest_client.deployments
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: cloudify_rest_client.events
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: cloudify_rest_client.exceptions
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: cloudify_rest_client.executions
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: cloudify_rest_client.node_instances
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: cloudify_rest_client.nodes
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Indices and tables
 ==================
@@ -57,4 +29,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
