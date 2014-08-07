@@ -23,7 +23,7 @@ import errno
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 
-from ctx_proxy import CtxProxyServer, CTX_SOCKET_PATH
+from ctx_proxy import UnixCtxProxyServer, CTX_SOCKET_URL
 
 
 @operation
@@ -59,9 +59,9 @@ def get_script_to_run(ctx):
 def execute(command, ctx):
     ctx.logger.info('Running command: {}'.format(command))
 
-    ctx_proxy_server = CtxProxyServer(ctx)
+    ctx_proxy_server = UnixCtxProxyServer(ctx)
     env = os.environ.copy()
-    env[CTX_SOCKET_PATH] = ctx_proxy_server.socket_path
+    env[CTX_SOCKET_URL] = ctx_proxy_server.socket_url
 
     process = subprocess.Popen(command,
                                shell=True,

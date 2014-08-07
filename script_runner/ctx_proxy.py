@@ -22,21 +22,18 @@ import collections
 
 import zmq
 
-# Unix socket
-PROTOCOL = 'ipc'
-
 # Environment variable pointing to the unix socket used by clients
-CTX_SOCKET_PATH = 'CTX_SOCKET_PATH'
+CTX_SOCKET_URL = 'CTX_SOCKET_URL'
 
 
 class CtxProxyServer(object):
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, socket_url):
         self.ctx = ctx
-        self.socket_path = tempfile.mktemp(prefix='ctx-', suffix='.socket')
+        self.socket_url = socket_url
         self.z_context = zmq.Context()
         self.sock = self.z_context.socket(zmq.REP)
-        self.sock.bind('{}://{}'.format(PROTOCOL, self.socket_path))
+        self.sock.bind(self.socket_url)
         self.poller = zmq.Poller()
         self.poller.register(self.sock, zmq.POLLIN)
 
@@ -56,6 +53,21 @@ class CtxProxyServer(object):
 
     def close(self):
         self.sock.close()
+
+
+class UnixCtxProxyServer(CtxProxyServer):
+
+    def __init__(self, ctx):
+        socket_path = tempfile.mktemp(prefix='ctx-', suffix='.socket')
+        socket_url = 'ipc://{}'.format(socket_path)
+        super(UnixCtxProxyServer, self).__init__(ctx, socket_url)
+
+
+class TCPCtxProxyServer(CtxProxyServer):
+
+    def __init__(self, ctx, host='127.0.0.1', port=9000):
+        socket_url = 'tcp://{}:{}'.format(host, port)
+        super(TCPCtxProxyServer, self).__init__(ctx, socket_url)
 
 
 def process_ctx_request(ctx, args):
@@ -148,10 +160,10 @@ class PathDictAccess(object):
         raise RuntimeError('illegal path: {0}'.format(prop_path))
 
 
-def client_req(socket_path, args, timeout=1):
+def client_req(socket_url, args, timeout=1):
     context = zmq.Context()
     sock = context.socket(zmq.REQ)
-    sock.connect('{}://{}'.format(PROTOCOL, socket_path))
+    sock.connect(socket_url)
     sock.send_json(args)
     if sock.poll(1000*timeout):
         return sock.recv_json()
@@ -160,10 +172,10 @@ def client_req(socket_path, args, timeout=1):
 
 
 def main():
-    socket_path = os.environ.get(CTX_SOCKET_PATH)
-    if not socket_path:
-        raise RuntimeError('Missing CTX_SOCKET_PATH environment variable')
-    sys.stdout.write(client_req(socket_path, sys.argv[1:]))
+    socket_url = os.environ.get(CTX_SOCKET_URL)
+    if not socket_url:
+        raise RuntimeError('Missing CTX_SOCKET_URL environment variable')
+    sys.stdout.write(client_req(socket_url, sys.argv[1:]))
 
 
 if __name__ == '__main__':

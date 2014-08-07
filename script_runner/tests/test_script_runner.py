@@ -19,11 +19,14 @@ import time
 import logging
 import tempfile
 
+from nose.tools import nottest, istest
+
 from cloudify.context import CloudifyContext
 from cloudify.exceptions import NonRecoverableError
 
 from script_runner import tasks
-from script_runner.ctx_proxy import (CtxProxyServer,
+from script_runner.ctx_proxy import (UnixCtxProxyServer,
+                                     TCPCtxProxyServer,
                                      client_req)
 
 
@@ -67,6 +70,7 @@ def base_ctx():
     }
 
 
+@nottest
 class TestCtxProxy(unittest.TestCase):
 
     @staticmethod
@@ -82,7 +86,7 @@ class TestCtxProxy(unittest.TestCase):
         self.ctx = CloudifyContext(self.raw_ctx)
         self.ctx.stub_method = self.stub_method
         self.ctx.stub_sleep = self.stub_sleep
-        self.server = CtxProxyServer(self.ctx)
+        self.server = self.proxy_server_class(self.ctx)
         self._start_server()
 
     def _start_server(self):
@@ -92,6 +96,7 @@ class TestCtxProxy(unittest.TestCase):
         def serve():
             while not self.stop_server:
                 self.server.poll_and_process(timeout=0.1)
+            self.server.close()
             self.server_stopped = True
         self.server_thread = threading.Thread(target=serve)
         self.server_thread.daemon = True
@@ -106,7 +111,7 @@ class TestCtxProxy(unittest.TestCase):
         self._stop_server()
 
     def request(self, *args):
-        return client_req(self.server.socket_path, args)
+        return client_req(self.server.socket_url, args)
 
     def test_attribute_access(self):
         response = self.request('related', 'node_id')
@@ -152,9 +157,25 @@ class TestCtxProxy(unittest.TestCase):
     def test_client_request_timeout(self):
         self.assertRaises(RuntimeError,
                           client_req,
-                          self.server.socket_path,
+                          self.server.socket_url,
                           ['stub-sleep', '0.5'],
                           0.1)
+
+
+@istest
+class TestUnixCtxProxy(TestCtxProxy):
+
+    def setUp(self):
+        self.proxy_server_class = UnixCtxProxyServer
+        super(TestUnixCtxProxy, self).setUp()
+
+
+@istest
+class TestTCPCtxProxy(TestCtxProxy):
+
+    def setUp(self):
+        self.proxy_server_class = TCPCtxProxyServer
+        super(TestTCPCtxProxy, self).setUp()
 
 
 class TestScriptRunner(unittest.TestCase):
