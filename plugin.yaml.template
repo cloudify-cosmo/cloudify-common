@@ -1,0 +1,76 @@
+##################################################################################
+# Cloudify Script built in types and plugins definitions.
+##################################################################################
+
+plugins:
+    script_runner:
+        derived_from: cloudify.plugins.agent_plugin
+        properties:
+            url: https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/{{ plugin_branch }}.zip
+
+types:
+
+    # A web server configured with scripts
+    cloudify.types.script.web_server:
+        derived_from: cloudify.types.web_server
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                - create: script_runner.tasks.run
+                - configure: script_runner.tasks.run
+                - start: script_runner.tasks.run
+                - stop: script_runner.tasks.run
+                - delete: script_runner.tasks.run
+        properties:
+            - scripts
+
+    # An app server configured with scripts
+    cloudify.types.script.app_server:
+        derived_from: cloudify.types.app_server
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                - create: script_runner.tasks.run
+                - configure: script_runner.tasks.run
+                - start: script_runner.tasks.run
+                - stop: script_runner.tasks.run
+                - delete: script_runner.tasks.run
+        properties:
+            - scripts
+
+    # A db server configured with scripts
+    cloudify.types.script.db_server:
+        derived_from: cloudify.types.db_server
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                - create: script_runner.tasks.run
+                - configure: script_runner.tasks.run
+                - start: script_runner.tasks.run
+                - stop: script_runner.tasks.run
+                - delete: script_runner.tasks.run
+        properties:
+            - scripts
+
+    # A message bus server configured with scripts
+    cloudify.types.script.message_bus_server:
+        derived_from: cloudify.types.message_bus_server
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                - create: script_runner.tasks.run
+                - configure: script_runner.tasks.run
+                - start: script_runner.tasks.run
+                - stop: script_runner.tasks.run
+                - delete: script_runner.tasks.run
+        properties:
+            - scripts
+
+    # An app module configured with scripts
+    cloudify.types.script.app_module:
+        derived_from: cloudify.types.app_module
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                - create: script_runner.tasks.run
+                - configure: script_runner.tasks.run
+                - start: script_runner.tasks.run
+                - stop: script_runner.tasks.run
+                - delete: script_runner.tasks.run
+        properties:
+            - scripts
