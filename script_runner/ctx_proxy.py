@@ -32,7 +32,7 @@ class CtxProxyServer(object):
     def __init__(self, ctx, socket_url):
         self.ctx = ctx
         self.socket_url = socket_url
-        self.z_context = zmq.Context()
+        self.z_context = zmq.Context(io_threads=1)
         self.sock = self.z_context.socket(zmq.REP)
         self.sock.bind(self.socket_url)
         self.poller = zmq.Poller()
@@ -54,6 +54,7 @@ class CtxProxyServer(object):
 
     def close(self):
         self.sock.close()
+        self.z_context.term()
 
 
 class UnixCtxProxyServer(CtxProxyServer):
