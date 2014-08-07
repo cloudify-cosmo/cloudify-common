@@ -22,7 +22,8 @@ import collections
 
 import zmq
 
-# Environment variable pointing to the unix socket used by clients
+# Environment variable for the socket url
+# (used by zmq clients to create the socket)
 CTX_SOCKET_URL = 'CTX_SOCKET_URL'
 
 
