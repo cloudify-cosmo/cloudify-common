@@ -77,8 +77,8 @@ class BlueprintsClient(object):
         return tar_path
 
     def _upload(self, tar_file_obj,
-                application_file_name=None,
-                blueprint_id=None):
+                blueprint_id,
+                application_file_name=None):
         query_params = {}
         if application_file_name is not None:
             query_params['application_file_name'] = \
@@ -92,13 +92,10 @@ class BlueprintsClient(object):
                 if len(read_bytes) < buffer_size:
                     return
 
-        if blueprint_id is not None:
-            uri = '/blueprints/{0}'.format(blueprint_id)
-            url = '{0}{1}'.format(self.api.url, uri)
-            response = requests.put(url, params=query_params, data=file_gen())
-        else:
-            url = '{0}/blueprints'.format(self.api.url)
-            response = requests.post(url, params=query_params, data=file_gen())
+        uri = '/blueprints/{0}'.format(blueprint_id)
+        url = '{0}{1}'.format(self.api.url, uri)
+        response = requests.put(url, params=query_params, data=file_gen())
+
         self.api.verify_response_status(response, 201)
         return response.json()
 
@@ -123,10 +120,8 @@ class BlueprintsClient(object):
         Blueprint path should point to the main yaml file of the blueprint
         to be uploaded. Its containing folder will be packed to an archive
         and get uploaded to the manager.
-        An optional blueprint_id parameter is available for specifying the
-        blueprint's unique Id. If not specified, blueprint id will be
-        determined after parsing the blueprint's yaml file.
-
+        Blueprint ID parameter is available for specifying the
+        blueprint's unique Id.
         """
         tempdir = tempfile.mkdtemp()
         try:
@@ -136,8 +131,8 @@ class BlueprintsClient(object):
             with open(tar_path, 'rb') as f:
                 blueprint = self._upload(
                     f,
-                    application_file_name=application_file,
-                    blueprint_id=blueprint_id)
+                    blueprint_id=blueprint_id,
+                    application_file_name=application_file)
             return Blueprint(blueprint)
         finally:
             shutil.rmtree(tempdir)
