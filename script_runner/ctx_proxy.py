@@ -65,8 +65,8 @@ class UnixCtxProxyServer(CtxProxyServer):
 
 class TCPCtxProxyServer(CtxProxyServer):
 
-    def __init__(self, ctx, host='127.0.0.1', port=9000):
-        socket_url = 'tcp://{}:{}'.format(host, port)
+    def __init__(self, ctx, ip='127.0.0.1', port=29635):
+        socket_url = 'tcp://{}:{}'.format(ip, port)
         super(TCPCtxProxyServer, self).__init__(ctx, socket_url)
 
 
