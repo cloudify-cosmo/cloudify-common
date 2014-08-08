@@ -103,6 +103,10 @@ def process_ctx_request(ctx, args):
             raise RuntimeError('{} cannot be process in {}'
                                .format(arg, args))
         index += 1
+
+    if callable(current):
+        current = current()
+
     return current
 
 
