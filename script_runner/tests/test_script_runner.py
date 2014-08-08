@@ -150,6 +150,10 @@ class TestCtxProxy(unittest.TestCase):
         response_args = self.request('stub-method', *args)
         self.assertEqual(args, response_args)
 
+    def test_method_invocation_no_args(self):
+        response = self.request('stub-method')
+        self.assertEqual('', response)
+
     def test_empty_return_value(self):
         response = self.request('related', 'properties')
         self.assertEqual(response, '')
@@ -280,3 +284,20 @@ class TestScriptRunner(unittest.TestCase):
                              'command_that_does_not_exist: command not found' \
                              .format(actual_script_path)
             self.assertEqual(e.stderr.strip(), expected_error)
+
+    def test_ruby_ctx(self):
+        actual_script_path = self._create_script(
+            '''#! /bin/ruby
+            load '/home/dan/work/ruby-ctx/ctx.rb'
+            ''')
+        ctx = self._run(
+            updated={
+                'node_properties': {
+                    'map': {'list': [1, 2, 3, 4]},
+                    'script_path': 'expected_script_path'
+                }
+            },
+            expected_script_path='expected_script_path',
+            actual_script_path=actual_script_path
+        )
+        print ctx.properties['map']['new_key']
