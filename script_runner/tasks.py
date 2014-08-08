@@ -19,6 +19,7 @@ import fcntl
 import select
 import os
 import errno
+from StringIO import StringIO
 
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
@@ -29,18 +30,15 @@ from ctx_proxy import UnixCtxProxyServer, CTX_SOCKET_URL
 @operation
 def run(ctx, **kwargs):
     script_path = get_script_to_run(ctx)
-    if not script_path:
-        return
-    execute(script_path, ctx)
-    return '[{0}] succeeded. return code 0' \
-           .format(os.path.basename(script_path))
+    if script_path:
+        execute(script_path, ctx)
 
 
 def get_script_to_run(ctx):
     script_path = ctx.properties.get('script_path')
     if script_path:
         script_path = ctx.download_resource(script_path)
-    if 'scripts' in ctx.properties:
+    elif 'scripts' in ctx.properties:
         operation_simple_name = ctx.operation.split('.')[-1:].pop()
         scripts = ctx.properties['scripts']
         if operation_simple_name not in scripts:
@@ -56,73 +54,82 @@ def get_script_to_run(ctx):
     return script_path
 
 
-def execute(command, ctx):
-    ctx.logger.info('Running command: {}'.format(command))
+def execute(script_path, ctx):
+    ctx.logger.info('Executing: {}'.format(script_path))
 
     ctx_proxy_server = UnixCtxProxyServer(ctx)
     env = os.environ.copy()
     env[CTX_SOCKET_URL] = ctx_proxy_server.socket_url
 
-    process = subprocess.Popen(command,
+    process = subprocess.Popen(script_path,
                                shell=True,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE,
                                env=env)
-    make_async(process.stdout)
-    make_async(process.stderr)
 
-    stdout = ''
-    stderr = ''
+    make_async(process.stdout, process.stderr)
+
+    stdout = StringIO()
+    stderr = StringIO()
     return_code = None
 
     while True:
-        # Wait for data to become available
+        # Wait for process output (stdout, stderr)
         select.select([process.stdout, process.stderr], [], [], 0.1)
 
+        # Check if a context request is pending and process it
         ctx_proxy_server.poll_and_process(timeout=0.1)
 
         return_code = process.poll()
 
-        # Try reading some data from each
+        # Try reading some stdout/stderr from process
         stdout_chunk = read_async(process.stdout)
         stderr_chunk = read_async(process.stderr)
 
-        stdout += stdout_chunk
-        stderr += stderr_chunk
+        stdout.write(stdout_chunk)
+        stderr.write(stderr_chunk)
 
         if return_code is not None and not (stdout_chunk or stderr_chunk):
             break
 
     ctx_proxy_server.close()
 
-    ctx.logger.info('Done running command (return_code={}): {}'
-                    .format(return_code, command))
+    ctx.logger.info('Execution done (return_code={}): {}'
+                    .format(return_code, script_path))
 
-    if return_code == 0:
-        return stdout
-    else:
-        raise ProcessException(command, return_code, stdout, stderr)
-
-
-# Helper function to add the O_NONBLOCK flag to a file descriptor
-def make_async(fd):
-    flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+    if return_code != 0:
+        raise ProcessException(script_path,
+                               return_code,
+                               stdout.getvalue(),
+                               stderr.getvalue())
 
 
-# Helper function to read some data from a file descriptor,
-# ignoring EAGAIN errors
+def make_async(*fds):
+    """
+    Helper function to add the O_NONBLOCK flag to a file descriptor
+    list.
+    """
+    for fd in fds:
+        flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
+        fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+
+
 def read_async(fd):
+    """
+    Helper function to read some data from a file descriptor,
+    ignoring EAGAIN errors.
+    """
     try:
         return fd.readline()
     except IOError, e:
         if e.errno != errno.EAGAIN:
-            raise e
+            raise
         else:
             return ''
 
 
 class ProcessException(Exception):
+
     def __init__(self, command, exit_code, stdout, stderr):
         super(ProcessException, self).__init__(stderr)
         self.command = command
