@@ -185,6 +185,7 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--timeout', type=int, default=5)
     parser.add_argument('--socket_url', default=os.environ.get(CTX_SOCKET_URL))
+    parser.add_argument('--json_arg_prefix', default='@')
     parser.add_argument('args', nargs='*')
     args = parser.parse_args(args)
     if not args.socket_url:
@@ -192,10 +193,10 @@ def parse_args(args=None):
                            ' or socket_url command line argument')
     return args
 
-def process_args(args):
+def process_args(prefix, args):
     processed_args = []
     for arg in args:
-        if arg.startswith('@'):
+        if arg.startswith(prefix):
             arg = json.loads(arg[1:])
         processed_args.append(arg)
     return processed_args
@@ -204,7 +205,8 @@ def process_args(args):
 def main(args=None):
     args = parse_args(args)
     response = client_req(args.socket_url,
-                          process_args(args.args),
+                          process_args(args.json_arg_prefix,
+                                       args.args),
                           args.timeout)
     if not response:
         response = ''

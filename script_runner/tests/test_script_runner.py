@@ -383,3 +383,10 @@ class TestArgumentParsing(unittest.TestCase):
         self.expected.update(dict(
             args=expected_args))
         ctx_proxy.main(args)
+
+    def test_json_arg_prefix(self):
+        args = ['_1', '@1']
+        expected_args = [1, '@1']
+        self.expected.update(dict(
+            args=expected_args))
+        ctx_proxy.main(args + ['--json_arg_prefix', '_'])
