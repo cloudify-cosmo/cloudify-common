@@ -20,6 +20,7 @@ import os
 import tempfile
 import re
 import collections
+import json
 
 import zmq
 
@@ -191,11 +192,19 @@ def parse_args(args=None):
                            ' or socket_url command line argument')
     return args
 
+def process_args(args):
+    processed_args = []
+    for arg in args:
+        if arg.startswith('@'):
+            arg = json.loads(arg[1:])
+        processed_args.append(arg)
+    return processed_args
+
 
 def main(args=None):
     args = parse_args(args)
     response = client_req(args.socket_url,
-                          args.args,
+                          process_args(args.args),
                           args.timeout)
     if not response:
         response = ''

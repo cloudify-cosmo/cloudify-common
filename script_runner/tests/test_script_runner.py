@@ -238,6 +238,7 @@ class TestScriptRunner(unittest.TestCase):
         actual_script_path = self._create_script(
             '''#! /bin/bash -e
             ctx properties map.key value
+            ctx properties map.key2 '@{"inner_key": 100}'
             ''')
         expected_script_path = 'expected_script_path'
         ctx = self._run(
@@ -252,6 +253,8 @@ class TestScriptRunner(unittest.TestCase):
             actual_script_path=actual_script_path
         )
         self.assertEqual(ctx.properties['map']['key'], 'value')
+        self.assertDictEqual(ctx.properties['map']['key2'],
+                             {'inner_key': 100})
 
     def test_no_script_path(self):
         self.assertRaises(NonRecoverableError,
@@ -373,3 +376,10 @@ class TestArgumentParsing(unittest.TestCase):
             self.expected.get('args') +
             ['-t', self.expected.get('timeout')] +
             ['--socket_url', self.expected.get('socket_url')])
+
+    def test_json_args(self):
+        args = ['@1', '@[1,2,3]', '@{"key":"value"}']
+        expected_args = [1, [1, 2, 3], {'key': 'value'}]
+        self.expected.update(dict(
+            args=expected_args))
+        ctx_proxy.main(args)
