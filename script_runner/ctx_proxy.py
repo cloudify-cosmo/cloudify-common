@@ -196,10 +196,10 @@ def parse_args(args=None):
     return args
 
 
-def process_args(prefix, args):
+def process_args(json_prefix, args):
     processed_args = []
     for arg in args:
-        if arg.startswith(prefix):
+        if arg.startswith(json_prefix):
             arg = json.loads(arg[1:])
         processed_args.append(arg)
     return processed_args
