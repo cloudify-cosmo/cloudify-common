@@ -18,16 +18,18 @@ import threading
 import time
 import logging
 import tempfile
+import os
 
 from nose.tools import nottest, istest
 
 from cloudify.context import CloudifyContext
 from cloudify.exceptions import NonRecoverableError
 
-from script_runner import tasks
+from script_runner import tasks, ctx_proxy
 from script_runner.ctx_proxy import (UnixCtxProxyServer,
                                      TCPCtxProxyServer,
-                                     client_req)
+                                     client_req,
+                                     parse_args)
 
 
 def base_ctx():
@@ -301,3 +303,73 @@ class TestScriptRunner(unittest.TestCase):
             actual_script_path=actual_script_path
         )
         print ctx.properties['map']['new_key']
+
+class TestArgumentParsing(unittest.TestCase):
+
+    def mock_client_req(self, socket_url, args, timeout):
+        # self.assertEqual(socket_url, self.expected.get('socket_url'))
+        self.assertEqual(args, self.expected.get('args'))
+        self.assertEqual(timeout, int(self.expected.get('timeout')))
+
+    def setUp(self):
+        self.original_client_req = ctx_proxy.client_req
+        ctx_proxy.client_req = self.mock_client_req
+        self.addCleanup(self.restore)
+        self.expected = dict(
+            args=[],
+            timeout=5,
+            socket_url='stub')
+        os.environ['CTX_SOCKET_URL'] = 'stub'
+
+    def restore(self):
+        ctx_proxy.client_req = self.original_client_req
+        if 'CTX_SOCKET_URL' in os.environ:
+            del os.environ['CTX_SOCKET_URL']
+
+    def test_socket_url_arg(self):
+        self.expected.update(dict(
+            socket_url='sock_url'))
+        ctx_proxy.main(['--socket_url', self.expected.get('socket_url')])
+
+    def test_socket_url_env(self):
+        expected_socket_url = 'env_sock_url'
+        os.environ['CTX_SOCKET_URL'] = expected_socket_url
+        self.expected.update(dict(
+            socket_url=expected_socket_url))
+        ctx_proxy.main([])
+
+    def test_socket_url_missing(self):
+        del os.environ['CTX_SOCKET_URL']
+        self.assertRaises(RuntimeError,
+                          ctx_proxy.main, [])
+
+    def test_args(self):
+        self.expected.update(dict(
+            args=['1', '2', '3']))
+        ctx_proxy.main(self.expected.get('args'))
+
+    def test_timeout(self):
+        self.expected.update(dict(
+            timeout='10'))
+        ctx_proxy.main(['--timeout', self.expected.get('timeout')])
+        self.expected.update(dict(
+            timeout='15'))
+        ctx_proxy.main(['-t', self.expected.get('timeout')])
+
+    def test_mixed_order(self):
+        self.expected.update(dict(
+            args=['1', '2', '3'],
+            timeout='20',
+            socket_url='mixed_socket_url'))
+        ctx_proxy.main(
+            ['-t', self.expected.get('timeout')] +
+            ['--socket_url', self.expected.get('socket_url')] +
+            self.expected.get('args'))
+        ctx_proxy.main(
+            ['-t', self.expected.get('timeout')] +
+            self.expected.get('args') +
+            ['--socket_url', self.expected.get('socket_url')])
+        ctx_proxy.main(
+            self.expected.get('args') +
+            ['-t', self.expected.get('timeout')] +
+            ['--socket_url', self.expected.get('socket_url')])

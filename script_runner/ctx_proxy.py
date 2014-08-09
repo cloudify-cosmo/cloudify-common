@@ -14,6 +14,7 @@
 #  * limitations under the License.
 
 
+import argparse
 import sys
 import os
 import tempfile
@@ -168,19 +169,34 @@ class PathDictAccess(object):
 def client_req(socket_url, args, timeout=5):
     context = zmq.Context()
     sock = context.socket(zmq.REQ)
-    sock.connect(socket_url)
-    sock.send_json(args)
-    if sock.poll(1000*timeout):
-        return sock.recv_json()
-    else:
-        raise RuntimeError('Timed out while waiting for response')
+    try:
+        sock.connect(socket_url)
+        sock.send_json(args)
+        if sock.poll(1000*timeout):
+            return sock.recv_json()
+        else:
+            raise RuntimeError('Timed out while waiting for response')
+    finally:
+        sock.close()
+        context.term()
+
+def parse_args(args=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--timeout', type=int, default=5)
+    parser.add_argument('--socket_url', default=os.environ.get(CTX_SOCKET_URL))
+    parser.add_argument('args', nargs='*')
+    args = parser.parse_args(args)
+    if not args.socket_url:
+        raise RuntimeError('Missing CTX_SOCKET_URL environment variable'
+                           ' or socket_url command line argument')
+    return args
 
 
-def main():
-    socket_url = os.environ.get(CTX_SOCKET_URL)
-    if not socket_url:
-        raise RuntimeError('Missing CTX_SOCKET_URL environment variable')
-    response = client_req(socket_url, sys.argv[1:])
+def main(args=None):
+    args = parse_args(args)
+    response = client_req(args.socket_url,
+                          args.args,
+                          args.timeout)
     if not response:
         response = ''
     sys.stdout.write(response)
