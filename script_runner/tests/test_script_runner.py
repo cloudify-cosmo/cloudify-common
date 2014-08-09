@@ -307,7 +307,7 @@ class TestScriptRunner(unittest.TestCase):
 class TestArgumentParsing(unittest.TestCase):
 
     def mock_client_req(self, socket_url, args, timeout):
-        # self.assertEqual(socket_url, self.expected.get('socket_url'))
+        self.assertEqual(socket_url, self.expected.get('socket_url'))
         self.assertEqual(args, self.expected.get('args'))
         self.assertEqual(timeout, int(self.expected.get('timeout')))
 
