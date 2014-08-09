@@ -78,7 +78,7 @@ def execute(script_path, ctx):
         select.select([process.stdout, process.stderr], [], [], 0.1)
 
         # Check if a context request is pending and process it
-        ctx_proxy_server.poll_and_process(timeout=0.1)
+        ctx_proxy_server.poll_and_process(timeout=0)
 
         return_code = process.poll()
 

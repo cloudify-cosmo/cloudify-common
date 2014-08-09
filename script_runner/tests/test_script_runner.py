@@ -152,11 +152,11 @@ class TestCtxProxy(unittest.TestCase):
 
     def test_method_invocation_no_args(self):
         response = self.request('stub-method')
-        self.assertEqual('', response)
+        self.assertEqual([], response)
 
     def test_empty_return_value(self):
         response = self.request('related', 'properties')
-        self.assertEqual(response, '')
+        self.assertEqual(response, {})
 
     def test_client_request_timeout(self):
         self.assertRaises(RuntimeError,

@@ -44,8 +44,6 @@ class CtxProxyServer(object):
             return False
         args = self.sock.recv_json()
         result = self._process(args)
-        if not result:
-            result = ''
         self.sock.send_json(result)
         return True
 
@@ -181,7 +179,10 @@ def main():
     socket_url = os.environ.get(CTX_SOCKET_URL)
     if not socket_url:
         raise RuntimeError('Missing CTX_SOCKET_URL environment variable')
-    sys.stdout.write(client_req(socket_url, sys.argv[1:]))
+    response = client_req(socket_url, sys.argv[1:])
+    if not response:
+        response = ''
+    sys.stdout.write(response)
 
 
 if __name__ == '__main__':
