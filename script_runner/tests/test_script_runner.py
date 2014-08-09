@@ -19,6 +19,8 @@ import time
 import logging
 import tempfile
 import os
+import sys
+from StringIO import StringIO
 
 from nose.tools import nottest, istest
 
@@ -28,8 +30,7 @@ from cloudify.exceptions import NonRecoverableError
 from script_runner import tasks, ctx_proxy
 from script_runner.ctx_proxy import (UnixCtxProxyServer,
                                      TCPCtxProxyServer,
-                                     client_req,
-                                     parse_args)
+                                     client_req)
 
 
 def base_ctx():
@@ -307,12 +308,14 @@ class TestScriptRunner(unittest.TestCase):
         )
         print ctx.properties['map']['new_key']
 
+
 class TestArgumentParsing(unittest.TestCase):
 
     def mock_client_req(self, socket_url, args, timeout):
         self.assertEqual(socket_url, self.expected.get('socket_url'))
         self.assertEqual(args, self.expected.get('args'))
         self.assertEqual(timeout, int(self.expected.get('timeout')))
+        return self.mock_response
 
     def setUp(self):
         self.original_client_req = ctx_proxy.client_req
@@ -322,6 +325,7 @@ class TestArgumentParsing(unittest.TestCase):
             args=[],
             timeout=5,
             socket_url='stub')
+        self.mock_response = None
         os.environ['CTX_SOCKET_URL'] = 'stub'
 
     def restore(self):
@@ -332,7 +336,7 @@ class TestArgumentParsing(unittest.TestCase):
     def test_socket_url_arg(self):
         self.expected.update(dict(
             socket_url='sock_url'))
-        ctx_proxy.main(['--socket_url', self.expected.get('socket_url')])
+        ctx_proxy.main(['--socket-url', self.expected.get('socket_url')])
 
     def test_socket_url_env(self):
         expected_socket_url = 'env_sock_url'
@@ -366,16 +370,16 @@ class TestArgumentParsing(unittest.TestCase):
             socket_url='mixed_socket_url'))
         ctx_proxy.main(
             ['-t', self.expected.get('timeout')] +
-            ['--socket_url', self.expected.get('socket_url')] +
+            ['--socket-url', self.expected.get('socket_url')] +
             self.expected.get('args'))
         ctx_proxy.main(
             ['-t', self.expected.get('timeout')] +
             self.expected.get('args') +
-            ['--socket_url', self.expected.get('socket_url')])
+            ['--socket-url', self.expected.get('socket_url')])
         ctx_proxy.main(
             self.expected.get('args') +
             ['-t', self.expected.get('timeout')] +
-            ['--socket_url', self.expected.get('socket_url')])
+            ['--socket-url', self.expected.get('socket_url')])
 
     def test_json_args(self):
         args = ['@1', '@[1,2,3]', '@{"key":"value"}']
@@ -389,4 +393,33 @@ class TestArgumentParsing(unittest.TestCase):
         expected_args = [1, '@1']
         self.expected.update(dict(
             args=expected_args))
-        ctx_proxy.main(args + ['--json_arg_prefix', '_'])
+        ctx_proxy.main(args + ['--json-arg-prefix', '_'])
+
+    def test_json_output(self):
+        self.assert_valid_output('string', 'string', '"string"')
+        self.assert_valid_output(1, '1', '1')
+        self.assert_valid_output([1, '2'], "[1, '2']", '[1, "2"]')
+        self.assert_valid_output({'key': 1},
+                                 "{'key': 1}",
+                                 '{"key": 1}')
+        self.assert_valid_output(False, '', 'false')
+        self.assert_valid_output(True, 'True', 'true')
+        self.assert_valid_output([], '', '[]')
+        self.assert_valid_output({}, '', '{}')
+
+    def assert_valid_output(self, response, ex_typed_output, ex_json_output):
+        self.mock_response = response
+        current_stdout = sys.stdout
+
+        def run(args, expected):
+            output = StringIO()
+            sys.stdout = output
+            ctx_proxy.main(args)
+            self.assertEqual(output.getvalue(), expected)
+
+        try:
+            run([], ex_typed_output)
+            run(['-j'], ex_json_output)
+            run(['--json-output'], ex_json_output)
+        finally:
+            sys.stdout = current_stdout

@@ -181,17 +181,20 @@ def client_req(socket_url, args, timeout=5):
         sock.close()
         context.term()
 
+
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--timeout', type=int, default=5)
-    parser.add_argument('--socket_url', default=os.environ.get(CTX_SOCKET_URL))
-    parser.add_argument('--json_arg_prefix', default='@')
+    parser.add_argument('--socket-url', default=os.environ.get(CTX_SOCKET_URL))
+    parser.add_argument('--json-arg-prefix', default='@')
+    parser.add_argument('-j', '--json-output', action='store_true')
     parser.add_argument('args', nargs='*')
     args = parser.parse_args(args)
     if not args.socket_url:
         raise RuntimeError('Missing CTX_SOCKET_URL environment variable'
                            ' or socket_url command line argument')
     return args
+
 
 def process_args(prefix, args):
     processed_args = []
@@ -208,8 +211,12 @@ def main(args=None):
                           process_args(args.json_arg_prefix,
                                        args.args),
                           args.timeout)
-    if not response:
-        response = ''
+    if args.json_output:
+        response = json.dumps(response)
+    else:
+        if not response:
+            response = ''
+        response = str(response)
     sys.stdout.write(response)
 
 
