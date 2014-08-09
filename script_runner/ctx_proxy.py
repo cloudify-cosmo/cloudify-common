@@ -96,8 +96,12 @@ def process_ctx_request(ctx, args):
                 raise RuntimeError('Illegal argument while accessing dict')
             break
         elif callable(current):
+            kwargs = {}
             remaining_args = args[index:]
-            current = current(*remaining_args)
+            if isinstance(remaining_args[-1], collections.MutableMapping):
+                kwargs = remaining_args[-1]
+                remaining_args = remaining_args[:-1]
+            current = current(*remaining_args, **kwargs)
             break
         else:
             raise RuntimeError('{} cannot be process in {}'

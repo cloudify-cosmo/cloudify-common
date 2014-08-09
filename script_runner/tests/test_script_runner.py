@@ -84,11 +84,22 @@ class TestCtxProxy(unittest.TestCase):
     def stub_sleep(seconds):
         time.sleep(float(seconds))
 
+    @staticmethod
+    def stub_args(arg1, arg2, arg3='arg3', arg4='arg4', *args, **kwargs):
+        return dict(
+            arg1=arg1,
+            arg2=arg2,
+            arg3=arg3,
+            arg4=arg4,
+            args=args,
+            kwargs=kwargs)
+
     def setUp(self):
         self.raw_ctx = base_ctx()
         self.ctx = CloudifyContext(self.raw_ctx)
         self.ctx.stub_method = self.stub_method
         self.ctx.stub_sleep = self.stub_sleep
+        self.ctx.stub_args = self.stub_args
         self.server = self.proxy_server_class(self.ctx)
         self._start_server()
 
@@ -156,6 +167,24 @@ class TestCtxProxy(unittest.TestCase):
     def test_method_invocation_no_args(self):
         response = self.request('stub-method')
         self.assertEqual([], response)
+
+    def test_method_invocation_kwargs(self):
+        arg1 = 'arg1'
+        arg2 = 'arg2'
+        arg4 = 'arg4_override'
+        arg5 = 'arg5'
+        kwargs = dict(
+            arg4=arg4,
+            arg5=arg5)
+        response = self.request('stub_args', arg1, arg2, kwargs)
+        self.assertDictEqual(response, dict(
+            arg1=arg1,
+            arg2=arg2,
+            arg3='arg3',
+            arg4=arg4,
+            args=[],
+            kwargs=dict(
+                arg5=arg5)))
 
     def test_empty_return_value(self):
         response = self.request('related', 'properties')
