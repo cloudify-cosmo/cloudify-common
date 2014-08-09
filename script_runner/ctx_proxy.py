@@ -164,7 +164,8 @@ class PathDictAccess(object):
         raise RuntimeError('illegal path: {0}'.format(prop_path))
 
 
-def client_req(socket_url, args, timeout=1):
+# TODO make request timeout configurable in command line
+def client_req(socket_url, args, timeout=5):
     context = zmq.Context()
     sock = context.socket(zmq.REQ)
     sock.connect(socket_url)
