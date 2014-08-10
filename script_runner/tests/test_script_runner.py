@@ -201,6 +201,10 @@ class TestCtxProxy(unittest.TestCase):
         self.assertRaises(ctx_proxy.RequestError,
                           self.request, 'property_that_does_not_exist')
 
+    def test_not_json_serializable(self):
+        self.assertRaises(ctx_proxy.RequestError,
+                          self.request, 'logger')
+
 
 
 @istest

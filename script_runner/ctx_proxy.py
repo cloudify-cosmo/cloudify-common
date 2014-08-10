@@ -48,8 +48,11 @@ class CtxProxy(object):
             return False
         request = self.sock.recv_json()
         try:
-            response_type = 'result'
             payload = self._process(request['args'])
+            result = json.dumps({
+                'type': 'result',
+                'payload': payload
+            })
         except Exception, e:
             tb = StringIO()
             traceback.print_exc(file=tb)
@@ -59,11 +62,11 @@ class CtxProxy(object):
                 'message': str(e),
                 'traceback': tb.getvalue()
             }
-        result = {
-            'type': response_type,
-            'payload': payload
-        }
-        self.sock.send_json(result)
+            result = json.dumps({
+                'type': 'error',
+                'payload': payload
+            })
+        self.sock.send(result)
         return True
 
     def _process(self, args):
