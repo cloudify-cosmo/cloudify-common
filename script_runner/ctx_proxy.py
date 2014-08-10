@@ -60,7 +60,6 @@ class CtxProxy(object):
         except Exception, e:
             tb = StringIO()
             traceback.print_exc(file=tb)
-            response_type = 'error'
             payload = {
                 'type': type(e).__name__,
                 'message': str(e),
