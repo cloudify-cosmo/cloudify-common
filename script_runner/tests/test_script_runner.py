@@ -205,6 +205,11 @@ class TestCtxProxy(unittest.TestCase):
         self.assertRaises(ctx_proxy.RequestError,
                           self.request, 'logger')
 
+    def test_no_string_arg(self):
+        args = ['stub_method', 1, 2]
+        response = self.request(*args)
+        self.assertEqual(args[1:], response)
+
 
 
 @istest
