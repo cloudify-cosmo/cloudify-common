@@ -16,7 +16,6 @@
 import unittest
 import threading
 import time
-import logging
 import tempfile
 import os
 import sys
@@ -24,7 +23,7 @@ from StringIO import StringIO
 
 from nose.tools import nottest, istest
 
-from cloudify.context import CloudifyContext
+from cloudify.mocks import MockCloudifyContext
 from cloudify.exceptions import NonRecoverableError
 
 from script_runner import tasks, ctx_proxy
@@ -33,48 +32,11 @@ from script_runner.ctx_proxy import (UnixCtxProxy,
                                      client_req)
 
 
-def base_ctx():
-    return {
-        '__cloudify_context': '0.3',
-        'task_id': '@task_id',
-        'task_name': '@task_name',
-        'task_target': '@task_target',
-        'blueprint_id': '@blueprint_id',
-        'deployment_id': '@deployment_id',
-        'execution_id': '@execution_id',
-        'workflow_id': '@workflow_id',
-        'node_id': '@node_id',
-        'node_name': '@node_name',
-        'node_properties': {
-            'prop1': 'value1',
-            'prop2': {
-                'nested_prop1': 'nested_value1'
-            },
-            'prop3': [
-                {'index': 0, 'value': 'value_0'},
-                {'index': 1, 'value': 'value_1'},
-                {'index': 2, 'value': 'value_2'}
-            ],
-            'prop4': {
-                # place holder because properties is read only and we can't
-                # use runtime_properties here
-                'key': 'value'
-            }
-        },
-        'plugin': '@plugin',
-        'operation': '@operation',
-        'relationships': ['@rel1', '@rel2'],
-        'related': {
-            'node_id': '@rel_node_id',
-            'node_properties': {
-
-            }
-        }
-    }
-
-
 @nottest
 class TestCtxProxy(unittest.TestCase):
+
+    class StubAttribute(object):
+        some_property = 'some_value'
 
     @staticmethod
     def stub_method(*args):
@@ -95,11 +57,24 @@ class TestCtxProxy(unittest.TestCase):
             kwargs=kwargs)
 
     def setUp(self):
-        self.raw_ctx = base_ctx()
-        self.ctx = CloudifyContext(self.raw_ctx)
+        self.ctx = MockCloudifyContext(properties={
+            'prop1': 'value1',
+            'prop2': {
+                'nested_prop1': 'nested_value1'
+            },
+            'prop3': [
+                {'index': 0, 'value': 'value_0'},
+                {'index': 1, 'value': 'value_1'},
+                {'index': 2, 'value': 'value_2'}
+            ],
+            'prop4': {
+                'key': 'value'
+            }
+        })
         self.ctx.stub_method = self.stub_method
         self.ctx.stub_sleep = self.stub_sleep
         self.ctx.stub_args = self.stub_args
+        self.ctx.stub_attr = self.StubAttribute()
         self.server = self.proxy_server_class(self.ctx)
         self._start_server()
 
@@ -128,12 +103,12 @@ class TestCtxProxy(unittest.TestCase):
         return client_req(self.server.socket_url, args)
 
     def test_attribute_access(self):
-        response = self.request('related', 'node_id')
-        self.assertEqual(response, '@rel_node_id')
+        response = self.request('stub_attr', 'some_property')
+        self.assertEqual(response, 'some_value')
 
     def test_sugared_attribute_access(self):
-        response = self.request('related', 'node-id')
-        self.assertEqual(response, '@rel_node_id')
+        response = self.request('stub-attr', 'some-property')
+        self.assertEqual(response, 'some_value')
 
     def test_dict_prop_access_get_key(self):
         response = self.request('properties', 'prop1')
@@ -187,8 +162,8 @@ class TestCtxProxy(unittest.TestCase):
                 arg5=arg5)))
 
     def test_empty_return_value(self):
-        response = self.request('related', 'properties')
-        self.assertEqual(response, {})
+        response = self.request('blueprint-id')
+        self.assertIsNone(response)
 
     def test_client_request_timeout(self):
         self.assertRaises(RuntimeError,
@@ -235,15 +210,12 @@ class TestScriptRunner(unittest.TestCase):
             f.write(script)
         return script_path
 
-    def _run(self, updated, expected_script_path, actual_script_path,
+    def _run(self, ctx_kwargs, expected_script_path, actual_script_path,
              return_result=False):
         def mock_download_resource(script_path):
             self.assertEqual(script_path, expected_script_path)
             return actual_script_path
-        raw_ctx = base_ctx()
-        raw_ctx.update(updated)
-        CloudifyContext.logger = logging.getLogger()
-        ctx = CloudifyContext(raw_ctx)
+        ctx = MockCloudifyContext(**ctx_kwargs)
         ctx.download_resource = mock_download_resource
         result = tasks.run(ctx)
         if return_result:
@@ -258,8 +230,8 @@ class TestScriptRunner(unittest.TestCase):
             ''')
         expected_script_path = 'expected_script_path'
         ctx = self._run(
-            updated={
-                'node_properties': {
+            ctx_kwargs={
+                'properties': {
                     'map': {},
                     'script_path': expected_script_path
                 }
@@ -276,8 +248,8 @@ class TestScriptRunner(unittest.TestCase):
             ''')
         expected_script_path = 'expected_script_path'
         ctx, result = self._run(
-            updated={
-                'node_properties': {
+            ctx_kwargs={
+                'properties': {
                     'map': {},
                     'script_path': expected_script_path
                 }
@@ -296,8 +268,8 @@ class TestScriptRunner(unittest.TestCase):
             ''')
         expected_script_path = 'expected_script_path'
         ctx, result = self._run(
-            updated={
-                'node_properties': {
+            ctx_kwargs={
+                'properties': {
                     'map': {},
                     'script_path': expected_script_path,
                     'process': {
@@ -323,8 +295,8 @@ class TestScriptRunner(unittest.TestCase):
             ''')
         expected_script_path = 'expected_script_path'
         ctx, result = self._run(
-            updated={
-                'node_properties': {
+            ctx_kwargs={
+                'properties': {
                     'map': {},
                     'script_path': expected_script_path,
                     'process': {
@@ -359,9 +331,9 @@ class TestScriptRunner(unittest.TestCase):
             ''')
         expected_script_path = 'expected_script_path'
         ctx = self._run(
-            updated={
+            ctx_kwargs={
                 'operation': operation,
-                'node_properties': {
+                'properties': {
                     'map': {},
                     'scripts': {scripts_operation: expected_script_path}
                 }
@@ -376,7 +348,7 @@ class TestScriptRunner(unittest.TestCase):
     def test_no_script_path(self):
         self.assertRaises(NonRecoverableError,
                           self._run,
-                          updated={},
+                          ctx_kwargs={},
                           expected_script_path=None,
                           actual_script_path=None)
 
@@ -389,8 +361,8 @@ class TestScriptRunner(unittest.TestCase):
         expected_script_path = 'expected_script_path'
         try:
             self._run(
-                updated={
-                    'node_properties': {
+                ctx_kwargs={
+                    'properties': {
                         'script_path': expected_script_path
                     }
                 },
@@ -415,8 +387,8 @@ class TestScriptRunner(unittest.TestCase):
         expected_script_path = 'expected_script_path'
         try:
             self._run(
-                updated={
-                    'node_properties': {
+                ctx_kwargs={
+                    'properties': {
                         'script_path': expected_script_path
                     }
                 },
@@ -436,8 +408,8 @@ class TestScriptRunner(unittest.TestCase):
             load '/home/dan/work/ruby-ctx/ctx.rb'
             ''')
         ctx = self._run(
-            updated={
-                'node_properties': {
+            ctx_kwargs={
+                'properties': {
                     'map': {'list': [1, 2, 3, 4]},
                     'script_path': 'expected_script_path'
                 }
