@@ -32,7 +32,14 @@ CTX_SOCKET_URL = 'CTX_SOCKET_URL'
 
 
 class RequestError(RuntimeError):
-    pass
+
+    def __init__(self, ex_message, ex_type, ex_traceback):
+        super(RequestError, self).__init__(
+            self,
+            '{}: {}'.format(ex_type, ex_message))
+        self.ex_type = ex_type
+        self.ex_message = ex_message
+        self.ex_traceback = ex_traceback
 
 
 class CtxProxy(object):
@@ -202,8 +209,8 @@ def client_req(socket_url, args, timeout=5):
     try:
         sock.connect(socket_url)
         sock.send_json({
-                'args': args
-            })
+            'args': args
+        })
         if sock.poll(1000*timeout):
             response = sock.recv_json()
             payload = response['payload']
@@ -211,7 +218,9 @@ def client_req(socket_url, args, timeout=5):
                 ex_type = payload['type']
                 ex_message = payload['message']
                 ex_traceback = payload['traceback']
-                raise RequestError('{}: {}'.format(ex_type, ex_message))
+                raise RequestError(ex_message,
+                                   ex_type,
+                                   ex_traceback)
             else:
                 return payload
         else:

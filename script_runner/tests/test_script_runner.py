@@ -211,7 +211,6 @@ class TestCtxProxy(unittest.TestCase):
         self.assertEqual(args[1:], response)
 
 
-
 @istest
 class TestUnixCtxProxy(TestCtxProxy):
 
@@ -339,7 +338,6 @@ class TestScriptRunner(unittest.TestCase):
         )
         p_map = ctx.properties['map']
         self.assertEqual(p_map['cwd'], '/tmp')
-
 
     def test_operation_scripts(self):
         self._operation_scripts_impl('start', 'start')

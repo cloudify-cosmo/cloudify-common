@@ -31,6 +31,7 @@ from ctx_proxy import UnixCtxProxy, CTX_SOCKET_URL
 def run(ctx, **kwargs):
     script_path = get_script_to_run(ctx)
     if script_path:
+        ctx.__return_value = None
         execute(script_path, ctx)
         return ctx.__return_value
 
@@ -69,10 +70,8 @@ def execute(script_path, ctx):
 
     cwd = process_config.get('cwd')
 
-    ctx.__return_value = None
     def set_return_value(value):
         ctx.__return_value = value
-
     ctx.set_return_value = set_return_value
 
     process = subprocess.Popen(script_path,

@@ -53,12 +53,13 @@ def parse_args(args=None):
 
 def load_ctx(module_path):
     module_dir = os.path.dirname(module_path)
-    if not module_dir in sys.path:
+    if module_dir not in sys.path:
         sys.path.append(module_dir)
     ctx_module = importlib.import_module(
         os.path.basename(os.path.splitext(module_path)[0]))
     ctx_module = reload(ctx_module)
     return getattr(ctx_module, 'ctx')
+
 
 def admin_function(ctx_server, module_path):
     def admin(action, new_module_path=None, **kwargs):
