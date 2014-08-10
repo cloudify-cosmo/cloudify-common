@@ -69,6 +69,8 @@ def admin_function(ctx_server, module_path):
             ctx_server.proxy.ctx = ctx
         elif action == 'stop':
             ctx_server.stop()
+        else:
+            raise RuntimeError('unknown action: {}'.format(action))
     return admin
 
 

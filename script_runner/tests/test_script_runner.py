@@ -236,7 +236,8 @@ class TestScriptRunner(unittest.TestCase):
             f.write(script)
         return script_path
 
-    def _run(self, updated, expected_script_path, actual_script_path):
+    def _run(self, updated, expected_script_path, actual_script_path,
+             return_result=False):
         def mock_download_resource(script_path):
             self.assertEqual(script_path, expected_script_path)
             return actual_script_path
@@ -245,8 +246,11 @@ class TestScriptRunner(unittest.TestCase):
         CloudifyContext.logger = logging.getLogger()
         ctx = CloudifyContext(raw_ctx)
         ctx.download_resource = mock_download_resource
-        tasks.run(ctx)
-        return ctx
+        result = tasks.run(ctx)
+        if return_result:
+            return ctx, result
+        else:
+            return ctx
 
     def test_script_path(self):
         actual_script_path = self._create_script(
@@ -265,6 +269,77 @@ class TestScriptRunner(unittest.TestCase):
             actual_script_path=actual_script_path
         )
         self.assertEqual(ctx.properties['map']['key'], 'value')
+
+    def test_return_value(self):
+        actual_script_path = self._create_script(
+            '''#! /bin/bash -e
+            ctx set-return-value '@["1", 2, true]'
+            ''')
+        expected_script_path = 'expected_script_path'
+        ctx, result = self._run(
+            updated={
+                'node_properties': {
+                    'map': {},
+                    'script_path': expected_script_path
+                }
+            },
+            expected_script_path=expected_script_path,
+            actual_script_path=actual_script_path,
+            return_result=True
+        )
+        self.assertEqual(result, ['1', 2, True])
+
+    def test_process_env(self):
+        actual_script_path = self._create_script(
+            '''#! /bin/bash -e
+            ctx properties map.key1 $key1
+            ctx properties map.key2 $key2
+            ''')
+        expected_script_path = 'expected_script_path'
+        ctx, result = self._run(
+            updated={
+                'node_properties': {
+                    'map': {},
+                    'script_path': expected_script_path,
+                    'process': {
+                        'env': {
+                            'key1': 'value1',
+                            'key2': 'value2'
+                        }
+                    }
+                }
+            },
+            expected_script_path=expected_script_path,
+            actual_script_path=actual_script_path,
+            return_result=True
+        )
+        p_map = ctx.properties['map']
+        self.assertEqual(p_map['key1'], 'value1')
+        self.assertEqual(p_map['key2'], 'value2')
+
+    def test_process_cwd(self):
+        actual_script_path = self._create_script(
+            '''#! /bin/bash -e
+            ctx properties map.cwd $PWD
+            ''')
+        expected_script_path = 'expected_script_path'
+        ctx, result = self._run(
+            updated={
+                'node_properties': {
+                    'map': {},
+                    'script_path': expected_script_path,
+                    'process': {
+                        'cwd': '/tmp'
+                    }
+                }
+            },
+            expected_script_path=expected_script_path,
+            actual_script_path=actual_script_path,
+            return_result=True
+        )
+        p_map = ctx.properties['map']
+        self.assertEqual(p_map['cwd'], '/tmp')
+
 
     def test_operation_scripts(self):
         self._operation_scripts_impl('start', 'start')

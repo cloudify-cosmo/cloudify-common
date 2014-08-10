@@ -32,6 +32,7 @@ def run(ctx, **kwargs):
     script_path = get_script_to_run(ctx)
     if script_path:
         execute(script_path, ctx)
+        return ctx.__return_value
 
 
 def get_script_to_run(ctx):
@@ -58,14 +59,28 @@ def execute(script_path, ctx):
     ctx.logger.info('Executing: {}'.format(script_path))
 
     proxy = UnixCtxProxy(ctx)
+
+    process_config = ctx.properties.get('process', {})
+
     env = os.environ.copy()
+    process_env = process_config.get('env', {})
+    env.update(process_env)
     env[CTX_SOCKET_URL] = proxy.socket_url
+
+    cwd = process_config.get('cwd')
+
+    ctx.__return_value = None
+    def set_return_value(value):
+        ctx.__return_value = value
+
+    ctx.set_return_value = set_return_value
 
     process = subprocess.Popen(script_path,
                                shell=True,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE,
-                               env=env)
+                               env=env,
+                               cwd=cwd)
 
     make_async(process.stdout, process.stderr)
 
