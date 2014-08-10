@@ -24,7 +24,7 @@ from StringIO import StringIO
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 
-from ctx_proxy import UnixCtxProxyServer, CTX_SOCKET_URL
+from ctx_proxy import UnixCtxProxy, CTX_SOCKET_URL
 
 
 @operation
@@ -57,9 +57,9 @@ def get_script_to_run(ctx):
 def execute(script_path, ctx):
     ctx.logger.info('Executing: {}'.format(script_path))
 
-    ctx_proxy_server = UnixCtxProxyServer(ctx)
+    proxy = UnixCtxProxy(ctx)
     env = os.environ.copy()
-    env[CTX_SOCKET_URL] = ctx_proxy_server.socket_url
+    env[CTX_SOCKET_URL] = proxy.socket_url
 
     process = subprocess.Popen(script_path,
                                shell=True,
@@ -78,7 +78,7 @@ def execute(script_path, ctx):
         select.select([process.stdout, process.stderr], [], [], 0.1)
 
         # Check if a context request is pending and process it
-        ctx_proxy_server.poll_and_process(timeout=0)
+        proxy.poll_and_process(timeout=0)
 
         return_code = process.poll()
 
@@ -92,7 +92,7 @@ def execute(script_path, ctx):
         if return_code is not None and not (stdout_chunk or stderr_chunk):
             break
 
-    ctx_proxy_server.close()
+    proxy.close()
 
     ctx.logger.info('Execution done (return_code={}): {}'
                     .format(return_code, script_path))

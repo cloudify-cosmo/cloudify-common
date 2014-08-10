@@ -29,7 +29,7 @@ import zmq
 CTX_SOCKET_URL = 'CTX_SOCKET_URL'
 
 
-class CtxProxyServer(object):
+class CtxProxy(object):
 
     def __init__(self, ctx, socket_url):
         self.ctx = ctx
@@ -57,19 +57,19 @@ class CtxProxyServer(object):
         self.z_context.term()
 
 
-class UnixCtxProxyServer(CtxProxyServer):
+class UnixCtxProxy(CtxProxy):
 
     def __init__(self, ctx):
         socket_path = tempfile.mktemp(prefix='ctx-', suffix='.socket')
         socket_url = 'ipc://{}'.format(socket_path)
-        super(UnixCtxProxyServer, self).__init__(ctx, socket_url)
+        super(UnixCtxProxy, self).__init__(ctx, socket_url)
 
 
-class TCPCtxProxyServer(CtxProxyServer):
+class TCPCtxProxy(CtxProxy):
 
     def __init__(self, ctx, ip='127.0.0.1', port=29635):
         socket_url = 'tcp://{}:{}'.format(ip, port)
-        super(TCPCtxProxyServer, self).__init__(ctx, socket_url)
+        super(TCPCtxProxy, self).__init__(ctx, socket_url)
 
 
 def process_ctx_request(ctx, args):

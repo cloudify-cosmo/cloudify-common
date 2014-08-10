@@ -28,8 +28,8 @@ from cloudify.context import CloudifyContext
 from cloudify.exceptions import NonRecoverableError
 
 from script_runner import tasks, ctx_proxy
-from script_runner.ctx_proxy import (UnixCtxProxyServer,
-                                     TCPCtxProxyServer,
+from script_runner.ctx_proxy import (UnixCtxProxy,
+                                     TCPCtxProxy,
                                      client_req)
 
 
@@ -202,7 +202,7 @@ class TestCtxProxy(unittest.TestCase):
 class TestUnixCtxProxy(TestCtxProxy):
 
     def setUp(self):
-        self.proxy_server_class = UnixCtxProxyServer
+        self.proxy_server_class = UnixCtxProxy
         super(TestUnixCtxProxy, self).setUp()
 
 
@@ -210,7 +210,7 @@ class TestUnixCtxProxy(TestCtxProxy):
 class TestTCPCtxProxy(TestCtxProxy):
 
     def setUp(self):
-        self.proxy_server_class = TCPCtxProxyServer
+        self.proxy_server_class = TCPCtxProxy
         super(TestTCPCtxProxy, self).setUp()
 
 
