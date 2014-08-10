@@ -104,7 +104,7 @@ def process_ctx_request(ctx, args):
             current = current(*remaining_args, **kwargs)
             break
         else:
-            raise RuntimeError('{} cannot be process in {}'
+            raise RuntimeError('{} cannot be processed in {}'
                                .format(arg, args))
         index += 1
 
@@ -226,3 +226,31 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+
+class CtxProxyServer(object):
+
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.proxy = UnixCtxProxy(ctx)
+
+    def close(self):
+        self.proxy.close()
+
+    def serve(self):
+        while True:
+            try:
+                self.proxy.poll_and_process(timeout=1)
+            except RuntimeError, e:
+                print 'ignoring: {}'.format(e)
+
+
+def server():
+    import importlib
+    ctx_module_path = sys.argv[1]
+    sys.path.append(os.path.dirname(ctx_module_path))
+    ctx_module = __import__(os.path.basename(os.path.splitext(ctx_module_path)[0]))
+    ctx = getattr(ctx_module, 'ctx')
+    server = CtxProxyServer(ctx)
+    print server.proxy.socket_url
+    server.serve()

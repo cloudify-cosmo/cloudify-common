@@ -31,6 +31,9 @@ setup(
     ],
     license='LICENSE',
     entry_points={
-        'console_scripts': ['ctx = script_runner.ctx_proxy:main']
+        'console_scripts': [
+            'ctx = script_runner.ctx_proxy:main',
+            'ctx-server = script_runner.ctx_proxy:server'
+        ]
     }
 )
