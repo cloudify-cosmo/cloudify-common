@@ -51,21 +51,24 @@ def parse_args(args=None):
     return parser.parse_args(args)
 
 
-def load_ctx(module_path):
+def load_ctx(module_path, **kwargs):
     module_dir = os.path.dirname(module_path)
     if module_dir not in sys.path:
         sys.path.append(module_dir)
     ctx_module = importlib.import_module(
         os.path.basename(os.path.splitext(module_path)[0]))
     ctx_module = reload(ctx_module)
-    return getattr(ctx_module, 'ctx')
+    ctx = getattr(ctx_module, 'ctx')
+    if callable(ctx):
+        ctx = ctx(**kwargs)
+    return ctx
 
 
 def admin_function(ctx_server, module_path):
     def admin(action, new_module_path=None, **kwargs):
         if action == 'load':
             loaded_path = new_module_path if new_module_path else module_path
-            ctx = load_ctx(loaded_path)
+            ctx = load_ctx(loaded_path, **kwargs)
             ctx._admin_ = admin_function(ctx_server, loaded_path)
             ctx_server.proxy.ctx = ctx
         elif action == 'stop':
