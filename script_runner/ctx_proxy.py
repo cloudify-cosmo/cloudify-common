@@ -44,8 +44,12 @@ class CtxProxy(object):
         state = dict(self.poller.poll(1000*timeout)).get(self.sock)
         if state != zmq.POLLIN:
             return False
-        args = self.sock.recv_json()
-        result = self._process(args)
+        request = self.sock.recv_json()
+        payload = self._process(request['args'])
+        result = {
+            'type': 'result',
+            'payload': payload
+        }
         self.sock.send_json(result)
         return True
 
@@ -170,15 +174,24 @@ class PathDictAccess(object):
         raise RuntimeError('illegal path: {0}'.format(prop_path))
 
 
-# TODO make request timeout configurable in command line
 def client_req(socket_url, args, timeout=5):
     context = zmq.Context()
     sock = context.socket(zmq.REQ)
     try:
         sock.connect(socket_url)
-        sock.send_json(args)
+        sock.send_json({
+                'args': args
+            })
         if sock.poll(1000*timeout):
-            return sock.recv_json()
+            response = sock.recv_json()
+            payload = response['payload']
+            if response.get('type') == 'error':
+                ex_type = payload['type']
+                ex_message = payload['message']
+                ex_traceback = payload['traceback']
+                raise RequestError('{}: {}'.format(ex_type, ex_message))
+            else:
+                return payload
         else:
             raise RuntimeError('Timed out while waiting for response')
     finally:
@@ -254,3 +267,7 @@ def server():
     server = CtxProxyServer(ctx)
     print server.proxy.socket_url
     server.serve()
+
+
+class RequestError(RuntimeError):
+    pass
