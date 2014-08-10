@@ -31,6 +31,10 @@ import zmq
 CTX_SOCKET_URL = 'CTX_SOCKET_URL'
 
 
+class RequestError(RuntimeError):
+    pass
+
+
 class CtxProxy(object):
 
     def __init__(self, ctx, socket_url):
@@ -258,36 +262,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-
-class CtxProxyServer(object):
-
-    def __init__(self, ctx, socket_path=None):
-        self.ctx = ctx
-        self.proxy = UnixCtxProxy(ctx, socket_path)
-
-    def close(self):
-        self.proxy.close()
-
-    def serve(self):
-        while True:
-            try:
-                self.proxy.poll_and_process(timeout=1)
-            except RuntimeError, e:
-                print 'ignoring: {}'.format(e)
-
-
-def server():
-    import importlib
-    socket_path = sys.argv[1]
-    ctx_module_path = sys.argv[2]
-    sys.path.append(os.path.dirname(ctx_module_path))
-    ctx_module = __import__(os.path.basename(os.path.splitext(ctx_module_path)[0]))
-    ctx = getattr(ctx_module, 'ctx')
-    server = CtxProxyServer(ctx, socket_path)
-    print server.proxy.socket_url
-    server.serve()
-
-
-class RequestError(RuntimeError):
-    pass

@@ -13,7 +13,6 @@
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
 
-__author__ = 'dank'
 
 from setuptools import setup
 
@@ -33,7 +32,7 @@ setup(
     entry_points={
         'console_scripts': [
             'ctx = script_runner.ctx_proxy:main',
-            'ctx-server = script_runner.ctx_proxy:server'
+            'ctx-server = script_runner.ctx_server:main'
         ]
     }
 )
