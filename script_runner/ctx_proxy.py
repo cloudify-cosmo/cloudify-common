@@ -14,6 +14,7 @@
 #  * limitations under the License.
 
 
+import traceback
 import argparse
 import sys
 import os
@@ -21,6 +22,7 @@ import tempfile
 import re
 import collections
 import json
+from StringIO import StringIO
 
 import zmq
 
@@ -45,9 +47,20 @@ class CtxProxy(object):
         if state != zmq.POLLIN:
             return False
         request = self.sock.recv_json()
-        payload = self._process(request['args'])
+        try:
+            response_type = 'result'
+            payload = self._process(request['args'])
+        except Exception, e:
+            tb = StringIO()
+            traceback.print_exc(file=tb)
+            response_type = 'error'
+            payload = {
+                'type': type(e).__name__,
+                'message': str(e),
+                'traceback': tb.getvalue()
+            }
         result = {
-            'type': 'result',
+            'type': response_type,
             'payload': payload
         }
         self.sock.send_json(result)

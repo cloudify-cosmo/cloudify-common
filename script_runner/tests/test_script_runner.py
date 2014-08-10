@@ -197,6 +197,11 @@ class TestCtxProxy(unittest.TestCase):
                           ['stub-sleep', '0.5'],
                           0.1)
 
+    def test_processing_exception(self):
+        self.assertRaises(ctx_proxy.RequestError,
+                          self.request, 'property_that_does_not_exist')
+
+
 
 @istest
 class TestUnixCtxProxy(TestCtxProxy):
@@ -319,6 +324,29 @@ class TestScriptRunner(unittest.TestCase):
                              'command_that_does_not_exist: command not found' \
                              .format(actual_script_path)
             self.assertEqual(e.stderr.strip(), expected_error)
+
+    def test_script_error_from_bad_ctx_request(self):
+        actual_script_path = self._create_script(
+            '''#! /bin/bash -e
+            ctx property_that_does_not_exist
+            ''')
+        expected_script_path = 'expected_script_path'
+        try:
+            self._run(
+                updated={
+                    'node_properties': {
+                        'script_path': expected_script_path
+                    }
+                },
+                expected_script_path=expected_script_path,
+                actual_script_path=actual_script_path
+            )
+            self.fail()
+        except tasks.ProcessException, e:
+            self.assertEqual(e.command, actual_script_path)
+            self.assertEqual(e.exit_code, 1)
+            self.assertIn('RequestError', e.stderr)
+            self.assertIn('property_that_does_not_exist', e.stderr)
 
     def test_ruby_ctx(self):
         actual_script_path = self._create_script(
