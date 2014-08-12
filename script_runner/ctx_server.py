@@ -18,7 +18,7 @@ import argparse
 import os
 import sys
 import importlib
-
+import re
 
 from ctx_proxy import UnixCtxProxy
 
@@ -47,28 +47,48 @@ class CtxProxyServer(object):
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--socket-path', default=None)
-    parser.add_argument('module_path')
+    parser.add_argument('-e', '--expression', default=None)
+    parser.add_argument('-p', '--module-path', default=None)
     return parser.parse_args(args)
 
 
-def load_ctx(module_path, **kwargs):
+def load_ctx_from_module_path(module_path):
     module_dir = os.path.dirname(module_path)
     if module_dir not in sys.path:
         sys.path.append(module_dir)
     ctx_module = importlib.import_module(
         os.path.basename(os.path.splitext(module_path)[0]))
     ctx_module = reload(ctx_module)
-    ctx = getattr(ctx_module, 'ctx')
+    return getattr(ctx_module, 'ctx')
+
+
+# impl taken from 'pythonpy' package
+def load_ctx_from_expression(expression, prefix=''):
+    regex = r"({}[a-zA-Z_][a-zA-Z0-9_]*)\.?".format(prefix)
+    matches = set(re.findall(regex, expression))
+    for module_name in matches:
+        try:
+            module = importlib.import_module(module_name)
+            globals()[module_name] = module
+            load_ctx_from_expression(expression, prefix='{}.'.format(module_name))
+        except ImportError as e:
+            pass
+    if not prefix:
+        return eval(expression)
+
+
+def load_ctx(load_ctx_function, **kwargs):
+    ctx = load_ctx_function()
     if callable(ctx):
         ctx = ctx(**kwargs)
     return ctx
 
 
-def admin_function(ctx_server, module_path):
+def admin_function(ctx_server, load_ctx_function):
     def admin(action, **kwargs):
         if action == 'load':
-            ctx = load_ctx(module_path, **kwargs)
-            ctx._admin_ = admin_function(ctx_server, module_path)
+            ctx = load_ctx(load_ctx_function, **kwargs)
+            ctx._admin_ = admin_function(ctx_server, load_ctx_function)
             ctx_server.proxy.ctx = ctx
         elif action == 'stop':
             ctx_server.stop()
@@ -79,11 +99,21 @@ def admin_function(ctx_server, module_path):
 
 def main():
     args = parse_args()
-    ctx = load_ctx(args.module_path)
+    if (args.module_path and args.expression) or not \
+        (args.module_path or args.expression):
+        sys.exit('ctx-server: error: use either --module-path or --expression')
+    if args.module_path:
+        def load_ctx_function():
+            return load_ctx_from_module_path(args.module_path)
+    else:
+        def load_ctx_function():
+            return load_ctx_from_expression(args.expression)
+
+    ctx = load_ctx(load_ctx_function)
     server = CtxProxyServer(ctx,
                             args.socket_path)
     ctx._admin_ = admin_function(server,
-                                 args.module_path)
+                                 load_ctx_function)
     print server.proxy.socket_url
     server.serve()
 
