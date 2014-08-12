@@ -65,11 +65,10 @@ def load_ctx(module_path, **kwargs):
 
 
 def admin_function(ctx_server, module_path):
-    def admin(action, new_module_path=None, **kwargs):
+    def admin(action, **kwargs):
         if action == 'load':
-            loaded_path = new_module_path if new_module_path else module_path
-            ctx = load_ctx(loaded_path, **kwargs)
-            ctx._admin_ = admin_function(ctx_server, loaded_path)
+            ctx = load_ctx(module_path, **kwargs)
+            ctx._admin_ = admin_function(ctx_server, module_path)
             ctx_server.proxy.ctx = ctx
         elif action == 'stop':
             ctx_server.stop()
