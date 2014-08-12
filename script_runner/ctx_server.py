@@ -70,8 +70,9 @@ def load_ctx_from_expression(expression, prefix=''):
         try:
             module = importlib.import_module(module_name)
             globals()[module_name] = module
-            load_ctx_from_expression(expression, prefix='{}.'.format(module_name))
-        except ImportError as e:
+            load_ctx_from_expression(expression,
+                                     prefix='{}.'.format(module_name))
+        except ImportError:
             pass
     if not prefix:
         return eval(expression)
@@ -100,7 +101,7 @@ def admin_function(ctx_server, load_ctx_function):
 def main():
     args = parse_args()
     if (args.module_path and args.expression) or not \
-        (args.module_path or args.expression):
+            (args.module_path or args.expression):
         sys.exit('ctx-server: error: use either --module-path or --expression')
     if args.module_path:
         def load_ctx_function():
