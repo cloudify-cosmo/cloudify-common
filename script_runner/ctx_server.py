@@ -116,7 +116,10 @@ def main():
     ctx._admin_ = admin_function(server,
                                  load_ctx_function)
     print server.proxy.socket_url
-    server.serve()
+    try:
+        server.serve()
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == '__main__':
