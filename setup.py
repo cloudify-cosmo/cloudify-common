@@ -27,8 +27,7 @@ setup(
     install_requires=[
         'cloudify-plugins-common==3.1a1',
         'pyzmq==14.3.1',
-        'bottle==0.12.7',
-        'lockfile==0.9.1'
+        'bottle==0.12.7'
     ],
     license='LICENSE',
     entry_points={

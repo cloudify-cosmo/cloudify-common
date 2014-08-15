@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 
+import socket
 import subprocess
 import os
 import sys
@@ -124,9 +125,9 @@ def start_ctx_proxy(ctx, process_config):
     if ctx_proxy_type == 'unix':
         return UnixCtxProxy(ctx)
     elif ctx_proxy_type == 'tcp':
-        return TCPCtxProxy(ctx, port=29635)
+        return TCPCtxProxy(ctx, port=get_unused_port())
     elif ctx_proxy_type == 'http':
-        return HTTPCtxProxy(ctx, port=29635)
+        return HTTPCtxProxy(ctx, port=get_unused_port())
     else:
         raise NonRecoverableError('Unsupported proxy type: {}'
                                   .format(ctx_proxy_type))
@@ -137,6 +138,14 @@ def process_ctx_request(proxy):
         # processed in its own thread
         return
     proxy.poll_and_process(timeout=0)
+
+
+def get_unused_port():
+    sock = socket.socket()
+    sock.bind(('127.0.0.1', 0))
+    _, port = sock.getsockname()
+    sock.close()
+    return port
 
 
 class OutputConsumer(object):
