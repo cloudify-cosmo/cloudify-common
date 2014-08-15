@@ -25,6 +25,7 @@ from StringIO import StringIO
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 
+import eval_env
 from ctx_proxy import (UnixCtxProxy,
                        TCPCtxProxy,
                        HTTPCtxProxy,
@@ -44,14 +45,20 @@ IS_WINDOWS = os.name == 'nt'
 def run(ctx, **kwargs):
     script_path = get_script_to_run(ctx)
     if script_path:
+
+        def set_return_value(value):
+            ctx._return_value = value
+        ctx.set_return_value = set_return_value
+        ctx._return_value = None
+
         eval_python = ctx.properties.get('process', {}).get('eval_python')
         if eval_python is True or (script_path.endswith('.py') and
                                    eval_python is not False):
-            return eval_script(script_path, ctx)
+            eval_script(script_path, ctx)
         else:
-            ctx.__return_value = None
             execute(script_path, ctx)
-            return ctx.__return_value
+
+        return ctx._return_value
 
 
 def get_script_to_run(ctx):
@@ -92,10 +99,6 @@ def execute(script_path, ctx):
         command = '{} {}'.format(command_prefix, script_path)
     else:
         command = script_path
-
-    def set_return_value(value):
-        ctx.__return_value = value
-    ctx.set_return_value = set_return_value
 
     ctx.logger.info('Executing: {}'.format(command))
 
@@ -174,7 +177,11 @@ def get_unused_port():
 
 
 def eval_script(script_path, ctx):
-    pass
+    eval_globals = eval_env.setup_env_and_globals(ctx, script_path)
+    try:
+        execfile(script_path, eval_globals)
+    finally:
+        eval_env.clean_env()
 
 
 class OutputConsumer(object):
