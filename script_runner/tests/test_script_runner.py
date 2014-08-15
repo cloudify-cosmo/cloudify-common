@@ -516,7 +516,7 @@ class TestScriptRunner(unittest.TestCase):
 
     def test_ruby_ctx(self):
         if IS_WINDOWS:
-            return
+            raise unittest.SkipTest('ruby test skipped on windows')
         actual_script_path = self._create_script(
             linux_script='''#! /bin/ruby
             load '/home/dan/work/ruby-ctx/ctx.rb'
