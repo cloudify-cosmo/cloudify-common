@@ -370,8 +370,8 @@ class TestScriptRunner(unittest.TestCase):
     def test_process_command_prefix(self):
         actual_script_path = self._create_script(
             linux_script='''
-            import subprocess
-            subproces.check_output('ctx properties map.key value'.split(' '))
+import subprocess
+subprocess.check_output('ctx properties map.key value'.split(' '))
             ''',
             windows_script='''
             ctx properties map.key $env:TEST_KEY
