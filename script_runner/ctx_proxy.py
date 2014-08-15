@@ -22,12 +22,14 @@ import tempfile
 import re
 import collections
 import json
+import threading
 from StringIO import StringIO
 
-import zmq
+import bottle
+import requests
 
 # Environment variable for the socket url
-# (used by zmq clients to create the socket)
+# (used by clients to locate the socket [http, zmq(unix, tcp)])
 CTX_SOCKET_URL = 'CTX_SOCKET_URL'
 
 
@@ -47,19 +49,10 @@ class CtxProxy(object):
     def __init__(self, ctx, socket_url):
         self.ctx = ctx
         self.socket_url = socket_url
-        self.z_context = zmq.Context(io_threads=1)
-        self.sock = self.z_context.socket(zmq.REP)
-        self.sock.bind(self.socket_url)
-        self.poller = zmq.Poller()
-        self.poller.register(self.sock, zmq.POLLIN)
 
-    def poll_and_process(self, timeout=1):
-        state = dict(self.poller.poll(1000*timeout)).get(self.sock)
-        if state != zmq.POLLIN:
-            return False
-        request = self.sock.recv_json()
+    def process(self, request):
         try:
-            payload = self._process(request['args'])
+            payload = process_ctx_request(self.ctx, request['args'])
             result = json.dumps({
                 'type': 'result',
                 'payload': payload
@@ -76,18 +69,65 @@ class CtxProxy(object):
                 'type': 'error',
                 'payload': payload
             })
-        self.sock.send(result)
-        return True
+        return result
 
-    def _process(self, args):
-        return process_ctx_request(self.ctx, args)
+    def close(self):
+        pass
+
+
+class HTTPCtxProxy(CtxProxy):
+
+    class Server(object):
+
+        def __init__(self, proxy):
+            self.proxy = proxy
+
+        @bottle.route('/')
+        def endpoint(self):
+            response = self.proxy.process(bottle.request.json)
+            return bottle.LocalResponse(
+                body=response,
+                status=200,
+                headers={'content-type': 'application/json'})
+
+    def __init__(self, ctx, port):
+        socket_url = 'http://localhost:{}'.format(port)
+        super(HTTPCtxProxy, self).__init__(ctx, socket_url)
+
+
+    def _start_server(self):
+
+
+    def close(self):
+        pass
+
+
+class ZMQCtxProxy(CtxProxy):
+
+    def __init__(self, ctx, socket_url):
+        super(ZMQCtxProxy, self).__init__(ctx, socket_url)
+        import zmq
+        self.z_context = zmq.Context(io_threads=1)
+        self.sock = self.z_context.socket(zmq.REP)
+        self.sock.bind(self.socket_url)
+        self.poller = zmq.Poller()
+        self.poller.register(self.sock, zmq.POLLIN)
+
+    def poll_and_process(self, timeout=1):
+        import zmq
+        state = dict(self.poller.poll(1000*timeout)).get(self.sock)
+        if not state == zmq.POLLIN:
+            return False
+        request = self.sock.recv_json()
+        self.sock.send(self.process(request))
+        return True
 
     def close(self):
         self.sock.close()
         self.z_context.term()
 
 
-class UnixCtxProxy(CtxProxy):
+class UnixCtxProxy(ZMQCtxProxy):
 
     def __init__(self, ctx, socket_path=None):
         if not socket_path:
@@ -96,7 +136,7 @@ class UnixCtxProxy(CtxProxy):
         super(UnixCtxProxy, self).__init__(ctx, socket_url)
 
 
-class TCPCtxProxy(CtxProxy):
+class TCPCtxProxy(ZMQCtxProxy):
 
     def __init__(self, ctx, ip='127.0.0.1', port=29635):
         socket_url = 'tcp://{}:{}'.format(ip, port)
@@ -203,31 +243,56 @@ class PathDictAccess(object):
         raise RuntimeError('illegal path: {0}'.format(prop_path))
 
 
-def client_req(socket_url, args, timeout=5):
+def zmq_client_req(socket_url, request, timeout):
+    import zmq
     context = zmq.Context()
     sock = context.socket(zmq.REQ)
     try:
         sock.connect(socket_url)
-        sock.send_json({
-            'args': args
-        })
+        sock.send_json(request)
         if sock.poll(1000*timeout):
-            response = sock.recv_json()
-            payload = response['payload']
-            if response.get('type') == 'error':
-                ex_type = payload['type']
-                ex_message = payload['message']
-                ex_traceback = payload['traceback']
-                raise RequestError(ex_message,
-                                   ex_type,
-                                   ex_traceback)
-            else:
-                return payload
+            return sock.recv_json()
         else:
             raise RuntimeError('Timed out while waiting for response')
     finally:
         sock.close()
         context.term()
+
+
+def http_client_req(socket_url, request, timeout):
+    response = requests.post(
+        socket_url,
+        data=json.dumps(request),
+        headers = {'content-type': 'application/json'})
+    if response.status_code != 200:
+        raise RuntimeError('Requeste failed: {}'.format(response))
+    return response.json()
+
+
+def client_req(socket_url, args, timeout=5):
+    request = {
+        'args': args
+    }
+
+    schema, _ = socket_url.split('://')
+    if schema in ['ipc', 'tcp']:
+        request_method = zmq_client_req
+    elif schema in ['http']:
+        request_method = http_client_req
+    else:
+        raise RuntimeError('Unsupported protocol: {}'.format(schema))
+
+    response = request_method(socket_url, request, timeout)
+    payload = response['payload']
+    if response.get('type') == 'error':
+        ex_type = payload['type']
+        ex_message = payload['message']
+        ex_traceback = payload['traceback']
+        raise RequestError(ex_message,
+                           ex_type,
+                           ex_traceback)
+    else:
+        return payload
 
 
 def parse_args(args=None):
