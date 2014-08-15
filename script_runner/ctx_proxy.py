@@ -117,8 +117,8 @@ class HTTPCtxProxy(CtxProxy):
                     app,
                     Server,
                     Handler)
-                self.port = self.srv.server_port
                 proxy.server = self.srv
+                self.port = self.srv.server_port
                 self.srv.serve_forever(poll_interval=0.1)
 
         bottle.post('/', callback=self._request_handler)
@@ -187,6 +187,14 @@ class TCPCtxProxy(ZMQCtxProxy):
     def __init__(self, ctx, ip='127.0.0.1', port=29635):
         socket_url = 'tcp://{}:{}'.format(ip, port)
         super(TCPCtxProxy, self).__init__(ctx, socket_url)
+
+
+class StubCtxProxy(object):
+
+    socket_url = ''
+
+    def close(self):
+        pass
 
 
 def process_ctx_request(ctx, args):

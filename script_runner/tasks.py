@@ -28,7 +28,16 @@ from cloudify.exceptions import NonRecoverableError
 from ctx_proxy import (UnixCtxProxy,
                        TCPCtxProxy,
                        HTTPCtxProxy,
+                       StubCtxProxy,
                        CTX_SOCKET_URL)
+
+try:
+    import zmq  # noqa
+    HAS_ZMQ = True
+except ImportError:
+    HAS_ZMQ = False
+
+IS_WINDOWS = os.name == 'nt'
 
 
 @operation
@@ -121,21 +130,32 @@ def execute(script_path, ctx):
 
 
 def start_ctx_proxy(ctx, process_config):
-    ctx_proxy_type = process_config.get('ctx_proxy_type', 'unix')
-    if ctx_proxy_type == 'unix':
+    ctx_proxy_type = process_config.get('ctx_proxy_type')
+    if not ctx_proxy_type or ctx_proxy_type == 'auto':
+        if HAS_ZMQ:
+            if IS_WINDOWS:
+                return TCPCtxProxy(ctx, port=get_unused_port())
+            else:
+                return UnixCtxProxy(ctx)
+        else:
+            return HTTPCtxProxy(ctx, port=get_unused_port())
+    elif ctx_proxy_type == 'unix':
         return UnixCtxProxy(ctx)
     elif ctx_proxy_type == 'tcp':
         return TCPCtxProxy(ctx, port=get_unused_port())
     elif ctx_proxy_type == 'http':
         return HTTPCtxProxy(ctx, port=get_unused_port())
+    elif ctx_proxy_type == 'none':
+        return StubCtxProxy()
     else:
         raise NonRecoverableError('Unsupported proxy type: {}'
                                   .format(ctx_proxy_type))
 
 
 def process_ctx_request(proxy):
+    if isinstance(proxy, StubCtxProxy):
+        return
     if isinstance(proxy, HTTPCtxProxy):
-        # processed in its own thread
         return
     proxy.poll_and_process(timeout=0)
 

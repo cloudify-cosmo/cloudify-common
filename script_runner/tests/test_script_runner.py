@@ -31,6 +31,7 @@ from script_runner import tasks, ctx_proxy
 from script_runner.ctx_proxy import (UnixCtxProxy,
                                      TCPCtxProxy,
                                      HTTPCtxProxy,
+                                     StubCtxProxy,
                                      client_req)
 
 IS_WINDOWS = os.name == 'nt'
@@ -559,6 +560,59 @@ class TestScriptRunnerHTTPCtxProxy(TestScriptRunner):
     def setUp(self):
         self.ctx_proxy_type = 'http'
         super(TestScriptRunner, self).setUp()
+
+
+class TestCtxProxyType(unittest.TestCase):
+
+    def test_http_ctx_type(self):
+        self.assert_valid_ctx_proxy('http', HTTPCtxProxy)
+
+    def test_tcp_ctx_type(self):
+        self.assert_valid_ctx_proxy('tcp', TCPCtxProxy)
+
+    def test_unix_ctx_type(self):
+        if IS_WINDOWS:
+            raise unittest.SkipTest('Skipped on windows')
+        self.assert_valid_ctx_proxy('unix', UnixCtxProxy)
+
+    def test_none_ctx_type(self):
+        self.assert_valid_ctx_proxy('none', StubCtxProxy)
+
+    def test_illegal_type(self):
+        self.assertRaises(
+            NonRecoverableError,
+            self.assert_valid_ctx_proxy, 'doesnotexist', None)
+
+    def test_explicit_auto_type(self):
+        self._test_auto_type(explicit=True)
+
+    def test_implicit_auto_type(self):
+        self._test_auto_type(explicit=False)
+
+    def _test_auto_type(self, explicit):
+        if IS_WINDOWS:
+            expected_type = TCPCtxProxy
+        else:
+            expected_type = UnixCtxProxy
+        if explicit:
+            ctx_proxy_type = 'auto'
+        else:
+            ctx_proxy_type = None
+        self.assert_valid_ctx_proxy(ctx_proxy_type, expected_type)
+
+    def assert_valid_ctx_proxy(self, ctx_proxy_type, expected_type):
+        process_config = {}
+        if ctx_proxy_type:
+            process_config['ctx_proxy_type'] = ctx_proxy_type
+        proxy = tasks.start_ctx_proxy(None, process_config)
+        try:
+            self.assertEqual(type(proxy), expected_type)
+        finally:
+            if isinstance(proxy, HTTPCtxProxy):
+                timeout = time.time() + 5
+                while time.time() < timeout and not hasattr(proxy, 'server'):
+                    time.sleep(0.1)
+            proxy.close()
 
 
 class TestArgumentParsing(unittest.TestCase):
