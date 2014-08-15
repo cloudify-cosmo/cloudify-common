@@ -438,10 +438,6 @@ class TestScriptRunner(unittest.TestCase):
             self.assertIn('property_that_does_not_exist', e.stderr)
 
     def test_ruby_ctx(self):
-        if self.ctx_proxy_type == 'http':
-            # to be implemented
-            return
-
         actual_script_path = self._create_script(
             '''#! /bin/ruby
             load '/home/dan/work/ruby-ctx/ctx.rb'
