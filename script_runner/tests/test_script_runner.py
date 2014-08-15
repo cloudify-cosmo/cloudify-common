@@ -21,6 +21,7 @@ import os
 import sys
 from StringIO import StringIO
 
+import requests
 from nose.tools import nottest, istest
 
 from cloudify.mocks import MockCloudifyContext
@@ -29,6 +30,7 @@ from cloudify.exceptions import NonRecoverableError
 from script_runner import tasks, ctx_proxy
 from script_runner.ctx_proxy import (UnixCtxProxy,
                                      TCPCtxProxy,
+                                     HTTPCtxProxy,
                                      client_req)
 
 
@@ -76,9 +78,9 @@ class TestCtxProxy(unittest.TestCase):
         self.ctx.stub_args = self.stub_args
         self.ctx.stub_attr = self.StubAttribute()
         self.server = self.proxy_server_class(self.ctx)
-        self._start_server()
+        self.start_server()
 
-    def _start_server(self):
+    def start_server(self):
         self.stop_server = False
         self.server_stopped = False
 
@@ -91,13 +93,13 @@ class TestCtxProxy(unittest.TestCase):
         self.server_thread.daemon = True
         self.server_thread.start()
 
-    def _stop_server(self):
+    def stop_server_now(self):
         self.stop_server = True
         while not self.server_stopped:
             time.sleep(0.1)
 
     def tearDown(self):
-        self._stop_server()
+        self.stop_server_now()
 
     def request(self, *args):
         return client_req(self.server.socket_url, args)
@@ -166,7 +168,11 @@ class TestCtxProxy(unittest.TestCase):
         self.assertIsNone(response)
 
     def test_client_request_timeout(self):
-        self.assertRaises(RuntimeError,
+        if hasattr(self, 'expected_exception'):
+            expected_exception = self.expected_exception
+        else:
+            expected_exception = RuntimeError
+        self.assertRaises(expected_exception,
                           client_req,
                           self.server.socket_url,
                           ['stub-sleep', '0.5'],
@@ -200,6 +206,24 @@ class TestTCPCtxProxy(TestCtxProxy):
     def setUp(self):
         self.proxy_server_class = TCPCtxProxy
         super(TestTCPCtxProxy, self).setUp()
+
+
+@istest
+class TestHTTPCtxProxy(TestCtxProxy):
+
+    def setUp(self):
+        self.proxy_server_class = HTTPCtxProxy
+        super(TestHTTPCtxProxy, self).setUp()
+
+    def start_server(self):
+        pass
+
+    def stop_server_now(self):
+        self.server.close()
+
+    def test_client_request_timeout(self):
+        self.expected_exception = requests.Timeout
+        super(TestHTTPCtxProxy, self).test_client_request_timeout()
 
 
 @nottest
@@ -413,7 +437,11 @@ class TestScriptRunner(unittest.TestCase):
             self.assertIn('RequestError', e.stderr)
             self.assertIn('property_that_does_not_exist', e.stderr)
 
-    def _test_ruby_ctx(self):
+    def test_ruby_ctx(self):
+        if self.ctx_proxy_type == 'http':
+            # to be implemented
+            return
+
         actual_script_path = self._create_script(
             '''#! /bin/ruby
             load '/home/dan/work/ruby-ctx/ctx.rb'

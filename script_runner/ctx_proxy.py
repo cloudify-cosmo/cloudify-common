@@ -82,7 +82,7 @@ class CtxProxy(object):
 
 class HTTPCtxProxy(CtxProxy):
 
-    def __init__(self, ctx, port):
+    def __init__(self, ctx, port=29635):
         socket_url = 'http://localhost:{}'.format(port)
         super(HTTPCtxProxy, self).__init__(ctx, socket_url)
         self.port = port
@@ -306,7 +306,8 @@ def http_client_req(socket_url, request, timeout):
     response = requests.post(
         socket_url,
         data=json.dumps(request),
-        headers={'content-type': 'application/json'})
+        headers={'content-type': 'application/json'},
+        timeout=timeout)
     if response.status_code != 200:
         raise RuntimeError('Requeste failed: {}'.format(response))
     return response.json()

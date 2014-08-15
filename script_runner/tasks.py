@@ -126,9 +126,9 @@ def start_ctx_proxy(ctx, process_config):
     if ctx_proxy_type == 'unix':
         return UnixCtxProxy(ctx)
     elif ctx_proxy_type == 'tcp':
-        return TCPCtxProxy(ctx, port=9573)
+        return TCPCtxProxy(ctx, port=29635)
     elif ctx_proxy_type == 'http':
-        return HTTPCtxProxy(ctx, port=9573)
+        return HTTPCtxProxy(ctx, port=29635)
     else:
         raise NonRecoverableError('Unsupported proxy type: {}'
                                   .format(ctx_proxy_type))
