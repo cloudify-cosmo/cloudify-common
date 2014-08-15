@@ -52,7 +52,9 @@ class CtxProxy(object):
 
     def process(self, request):
         try:
-            payload = process_ctx_request(self.ctx, request['args'])
+            typed_request = json.loads(request)
+            args = typed_request['args']
+            payload = process_ctx_request(self.ctx, args)
             result = json.dumps({
                 'type': 'result',
                 'payload': payload
@@ -77,29 +79,28 @@ class CtxProxy(object):
 
 class HTTPCtxProxy(CtxProxy):
 
-    class Server(object):
-
-        def __init__(self, proxy):
-            self.proxy = proxy
-
-        @bottle.route('/')
-        def endpoint(self):
-            response = self.proxy.process(bottle.request.json)
-            return bottle.LocalResponse(
-                body=response,
-                status=200,
-                headers={'content-type': 'application/json'})
-
     def __init__(self, ctx, port):
         socket_url = 'http://localhost:{}'.format(port)
         super(HTTPCtxProxy, self).__init__(ctx, socket_url)
-
+        self.thread = None
 
     def _start_server(self):
-
+        bottle.route('/', callback=self._request_handler)
+        def serve():
+            bottle.run(host='localhost', port=self.port)
+        self.thread = threading.Thread(target=self.serve)
+        self.thread.start()
 
     def close(self):
         pass
+
+    def _request_handler(self):
+        request = bottle.request.body.read()
+        response = self.process(request)
+        return bottle.LocalResponse(
+            body=response,
+            status=200,
+            headers={'content-type': 'application/json'})
 
 
 class ZMQCtxProxy(CtxProxy):
@@ -118,8 +119,9 @@ class ZMQCtxProxy(CtxProxy):
         state = dict(self.poller.poll(1000*timeout)).get(self.sock)
         if not state == zmq.POLLIN:
             return False
-        request = self.sock.recv_json()
-        self.sock.send(self.process(request))
+        request = self.sock.recv()
+        response = self.process(request)
+        self.sock.send(response)
         return True
 
     def close(self):

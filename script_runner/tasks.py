@@ -24,7 +24,10 @@ from StringIO import StringIO
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 
-from ctx_proxy import UnixCtxProxy, CTX_SOCKET_URL
+from ctx_proxy import (UnixCtxProxy,
+                       TCPCtxProxy,
+                       HTTPCtxProxy,
+                       CTX_SOCKET_URL)
 
 
 @operation
@@ -59,9 +62,9 @@ def get_script_to_run(ctx):
 def execute(script_path, ctx):
     ctx.logger.info('Executing: {}'.format(script_path))
 
-    proxy = UnixCtxProxy(ctx)
-
     process_config = ctx.properties.get('process', {})
+
+    proxy = start_ctx_proxy(ctx, process_config)
 
     env = os.environ.copy()
     process_env = process_config.get('env', {})
@@ -92,7 +95,7 @@ def execute(script_path, ctx):
         select.select([process.stdout, process.stderr], [], [], 0.1)
 
         # Check if a context request is pending and process it
-        proxy.poll_and_process(timeout=0)
+        process_ctx_request(proxy)
 
         return_code = process.poll()
 
@@ -116,6 +119,25 @@ def execute(script_path, ctx):
                                return_code,
                                stdout.getvalue(),
                                stderr.getvalue())
+
+
+def start_ctx_proxy(ctx, process_config):
+    ctx_proxy_type = process_config.get('ctx_proxy_type', 'unix')
+    if ctx_proxy_type == 'unix':
+        return UnixCtxProxy(ctx)
+    elif ctx_proxy_type == 'tcp':
+        return TCPCtxProxy(ctx, port=9573)
+    elif ctx_proxy_type == 'http':
+        return HTTPCtxProxy(ctx, port=9573)
+    else:
+        raise NonRecoverableError('Unsupported proxy type: {}'
+                                  .format(ctx_proxy_type))
+
+def process_ctx_request(proxy):
+    if isinstance(proxy, HTTPCtxProxy):
+        # processed in its own thread
+        return
+    proxy.poll_and_process(timeout=0)
 
 
 def make_async(*fds):

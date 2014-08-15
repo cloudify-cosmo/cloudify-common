@@ -202,6 +202,7 @@ class TestTCPCtxProxy(TestCtxProxy):
         super(TestTCPCtxProxy, self).setUp()
 
 
+@nottest
 class TestScriptRunner(unittest.TestCase):
 
     def _create_script(self, script):
@@ -215,6 +216,16 @@ class TestScriptRunner(unittest.TestCase):
         def mock_download_resource(script_path):
             self.assertEqual(script_path, expected_script_path)
             return actual_script_path
+
+        if 'properties' not in ctx_kwargs:
+            ctx_kwargs['properties'] = {}
+        if 'process' not in ctx_kwargs['properties']:
+            ctx_kwargs['properties']['process'] = {}
+        process_config = ctx_kwargs['properties']['process']
+        process_config.update({
+            'ctx_proxy_type': self.ctx_proxy_type
+        })
+
         ctx = MockCloudifyContext(**ctx_kwargs)
         ctx.download_resource = mock_download_resource
         result = tasks.run(ctx)
@@ -418,6 +429,22 @@ class TestScriptRunner(unittest.TestCase):
             actual_script_path=actual_script_path
         )
         print ctx.properties['map']['new_key']
+
+
+@istest
+class TestScriptRunnerUnixCxtProxy(TestScriptRunner):
+
+    def setUp(self):
+        self.ctx_proxy_type = 'unix'
+        super(TestScriptRunner, self).setUp()
+
+
+@istest
+class TestScriptRunnerTCPCxtProxy(TestScriptRunner):
+
+    def setUp(self):
+        self.ctx_proxy_type = 'tcp'
+        super(TestScriptRunner, self).setUp()
 
 
 class TestArgumentParsing(unittest.TestCase):
