@@ -44,9 +44,14 @@ IS_WINDOWS = os.name == 'nt'
 def run(ctx, **kwargs):
     script_path = get_script_to_run(ctx)
     if script_path:
-        ctx.__return_value = None
-        execute(script_path, ctx)
-        return ctx.__return_value
+        eval_python = ctx.properties.get('process', {}).get('eval_python')
+        if eval_python is True or (script_path.endswith('.py') and
+                                   eval_python is not False):
+            return eval_script(script_path, ctx)
+        else:
+            ctx.__return_value = None
+            execute(script_path, ctx)
+            return ctx.__return_value
 
 
 def get_script_to_run(ctx):
@@ -168,6 +173,10 @@ def get_unused_port():
     return port
 
 
+def eval_script(script_path, ctx):
+    pass
+
+
 class OutputConsumer(object):
 
     def __init__(self, out):
@@ -194,3 +203,5 @@ class ProcessException(Exception):
         self.exit_code = exit_code
         self.stdout = stdout
         self.stderr = stderr
+
+

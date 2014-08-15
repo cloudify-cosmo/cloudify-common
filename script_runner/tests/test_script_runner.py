@@ -729,3 +729,66 @@ class TestArgumentParsing(unittest.TestCase):
             run(['--json-output'], ex_json_output)
         finally:
             sys.stdout = current_stdout
+
+
+class TestEvalPythonConfiguration(unittest.TestCase):
+
+    def setUp(self):
+        self.original_eval_script = tasks.eval_script
+        self.original_execute = tasks.execute
+        self.original_get_script_to_run = tasks.get_script_to_run
+        self.addCleanup(self.cleanup)
+
+        def eval_script(script_path, ctx):
+            if self.expected_call != 'eval':
+                self.fail()
+
+        def execute(script_path, ctx):
+            if self.expected_call != 'execute':
+                self.fail()
+
+        tasks.eval_script = eval_script
+        tasks.execute = execute
+
+    def cleanup(self):
+        tasks.eval_script = self.original_eval_script
+        tasks.execute = self.original_execute
+        tasks.get_script_to_run = self.original_get_script_to_run
+
+    def test_explicit_eval_without_py_extenstion(self):
+        self.expected_call = 'eval'
+        tasks.get_script_to_run = lambda ctx: 'script_path'
+        tasks.run(MockCloudifyContext(properties={
+            'process': {'eval_python': True}
+        }))
+
+    def test_explicit_eval_with_py_extenstion(self):
+        self.expected_call = 'eval'
+        tasks.get_script_to_run = lambda ctx: 'script_path.py'
+        tasks.run(MockCloudifyContext(properties={
+            'process': {'eval_python': True}
+        }))
+
+    def test_implicit_eval(self):
+        self.expected_call = 'eval'
+        tasks.get_script_to_run = lambda ctx: 'script_path.py'
+        tasks.run(MockCloudifyContext())
+
+    def test_explicit_execute_without_py_extension(self):
+        self.expected_call = 'execute'
+        tasks.get_script_to_run = lambda ctx: 'script_path'
+        tasks.run(MockCloudifyContext(properties={
+            'process': {'eval_python': False}
+        }))
+
+    def test_explicit_execute_with_py_extension(self):
+        self.expected_call = 'execute'
+        tasks.get_script_to_run = lambda ctx: 'script_path.py'
+        tasks.run(MockCloudifyContext(properties={
+            'process': {'eval_python': False}
+        }))
+
+    def test_implicit_execute(self):
+        self.expected_call = 'execute'
+        tasks.get_script_to_run = lambda ctx: 'script_path'
+        tasks.run(MockCloudifyContext())
