@@ -413,7 +413,7 @@ class TestScriptRunner(unittest.TestCase):
             self.assertIn('RequestError', e.stderr)
             self.assertIn('property_that_does_not_exist', e.stderr)
 
-    def test_ruby_ctx(self):
+    def _test_ruby_ctx(self):
         actual_script_path = self._create_script(
             '''#! /bin/ruby
             load '/home/dan/work/ruby-ctx/ctx.rb'
@@ -444,6 +444,14 @@ class TestScriptRunnerTCPCxtProxy(TestScriptRunner):
 
     def setUp(self):
         self.ctx_proxy_type = 'tcp'
+        super(TestScriptRunner, self).setUp()
+
+
+@istest
+class TestScriptRunnerHTTPCxtProxy(TestScriptRunner):
+
+    def setUp(self):
+        self.ctx_proxy_type = 'http'
         super(TestScriptRunner, self).setUp()
 
 

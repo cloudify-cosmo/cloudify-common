@@ -133,6 +133,7 @@ def start_ctx_proxy(ctx, process_config):
         raise NonRecoverableError('Unsupported proxy type: {}'
                                   .format(ctx_proxy_type))
 
+
 def process_ctx_request(proxy):
     if isinstance(proxy, HTTPCtxProxy):
         # processed in its own thread

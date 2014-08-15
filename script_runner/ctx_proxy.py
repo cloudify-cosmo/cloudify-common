@@ -24,6 +24,9 @@ import collections
 import json
 import threading
 from StringIO import StringIO
+from wsgiref.simple_server import WSGIServer, WSGIRequestHandler
+from wsgiref.simple_server import make_server as make_wsgi_server
+
 
 import bottle
 import requests
@@ -82,17 +85,55 @@ class HTTPCtxProxy(CtxProxy):
     def __init__(self, ctx, port):
         socket_url = 'http://localhost:{}'.format(port)
         super(HTTPCtxProxy, self).__init__(ctx, socket_url)
-        self.thread = None
+        self.port = port
+        self.thread = self._start_server()
 
     def _start_server(self):
-        bottle.route('/', callback=self._request_handler)
+
+        proxy = self
+
+        class BottleServerAdapter(bottle.ServerAdapter):
+
+            def run(self, app):
+
+                class Server(WSGIServer):
+                    allow_reuse_address = True
+
+                class Handler(WSGIRequestHandler):
+                    def address_string(self):
+                        return self.client_address[0]
+
+                    def log_request(*args, **kwargs):
+                        if not self.quiet:
+                            return WSGIRequestHandler.log_request(
+                                *args, **kwargs)
+
+                self.srv = make_wsgi_server(
+                    self.host,
+                    self.port,
+                    app,
+                    Server,
+                    Handler)
+                self.port = self.srv.server_port
+                proxy.server = self.srv
+                self.srv.serve_forever(poll_interval=0.1)
+
+        bottle.post('/', callback=self._request_handler)
+
         def serve():
-            bottle.run(host='localhost', port=self.port)
-        self.thread = threading.Thread(target=self.serve)
-        self.thread.start()
+            bottle.run(
+                host='localhost',
+                port=self.port,
+                quiet=True,
+                server=BottleServerAdapter)
+        thread = threading.Thread(target=serve)
+        thread.daemon = True
+        thread.start()
+        return thread
 
     def close(self):
-        pass
+        self.server.shutdown()
+        self.server.server_close()
 
     def _request_handler(self):
         request = bottle.request.body.read()
@@ -265,7 +306,7 @@ def http_client_req(socket_url, request, timeout):
     response = requests.post(
         socket_url,
         data=json.dumps(request),
-        headers = {'content-type': 'application/json'})
+        headers={'content-type': 'application/json'})
     if response.status_code != 200:
         raise RuntimeError('Requeste failed: {}'.format(response))
     return response.json()
