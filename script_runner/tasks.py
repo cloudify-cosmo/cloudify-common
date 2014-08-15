@@ -203,5 +203,3 @@ class ProcessException(Exception):
         self.exit_code = exit_code
         self.stdout = stdout
         self.stderr = stderr
-
-
