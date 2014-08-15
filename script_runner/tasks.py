@@ -15,7 +15,6 @@
 
 
 import subprocess
-import fcntl
 import select
 import os
 import errno
@@ -146,6 +145,7 @@ def make_async(*fds):
     Helper function to add the O_NONBLOCK flag to a file descriptor
     list.
     """
+    import fcntl
     for fd in fds:
         flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
         fcntl.fcntl(fd, fcntl.F_SETFL, flags)
