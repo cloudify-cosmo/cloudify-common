@@ -235,8 +235,8 @@ class TestHTTPCtxProxy(TestCtxProxy):
 class TestScriptRunner(unittest.TestCase):
 
     def _create_script(self, linux_script, windows_script,
-                       windows_suffix='.bat'):
-        suffix = windows_suffix if IS_WINDOWS else ''
+                       windows_suffix='.bat', linux_suffix=''):
+        suffix = windows_suffix if IS_WINDOWS else linux_suffix
         script = windows_script if IS_WINDOWS else linux_script
         script_path = tempfile.mktemp(suffix=suffix)
         with open(script_path, 'w') as f:
@@ -514,6 +514,30 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
             self.assertEqual(e.exit_code, 1)
             self.assertIn('RequestError', e.stderr)
             self.assertIn('property_that_does_not_exist', e.stderr)
+
+    def test_python_script(self):
+        script = '''
+from ctx_holder import ctx
+ctx.properties['map']['key'] = 'value'
+'''
+        suffix='.py'
+        actual_script_path = self._create_script(
+            linux_script=script,
+            windows_script=script,
+            linux_suffix=suffix,
+            windows_suffix=suffix)
+        ctx = self._run(
+            ctx_kwargs={
+                'properties': {
+                    'map': {},
+                    'script_path': 'expected_script_path'
+                }
+            },
+            expected_script_path='expected_script_path',
+            actual_script_path=actual_script_path
+        )
+        self.assertEqual(ctx.properties['map']['key'], 'value')
+
 
     def test_ruby_ctx(self):
         if IS_WINDOWS:
