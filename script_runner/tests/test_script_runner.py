@@ -367,6 +367,41 @@ class TestScriptRunner(unittest.TestCase):
         p_map = ctx.properties['map']
         self.assertEqual(p_map['cwd'], tmpdir)
 
+    def test_process_command_prefix(self):
+        actual_script_path = self._create_script(
+            linux_script='''
+            import subprocess
+            subproces.check_output('ctx properties map.key value'.split(' '))
+            ''',
+            windows_script='''
+            ctx properties map.key $env:TEST_KEY
+            ''',
+            windows_suffix='.ps1')
+        expected_script_path = 'expected_script_path'
+
+        if IS_WINDOWS:
+            command_prefix = 'powershell'
+        else:
+            command_prefix = 'python'
+
+        ctx, result = self._run(
+            ctx_kwargs={
+                'properties': {
+                    'map': {},
+                    'script_path': expected_script_path,
+                    'process': {
+                        'env': {'TEST_KEY': 'value'},
+                        'command_prefix': command_prefix
+                    }
+                }
+            },
+            expected_script_path=expected_script_path,
+            actual_script_path=actual_script_path,
+            return_result=True
+        )
+        p_map = ctx.properties['map']
+        self.assertEqual(p_map['key'], 'value')
+
     def test_operation_scripts(self):
         self._operation_scripts_impl('start', 'start')
 

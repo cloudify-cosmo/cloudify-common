@@ -60,8 +60,6 @@ def get_script_to_run(ctx):
 
 
 def execute(script_path, ctx):
-    ctx.logger.info('Executing: {}'.format(script_path))
-
     on_posix = 'posix' in sys.builtin_module_names
     process_config = ctx.properties.get('process', {})
 
@@ -74,11 +72,19 @@ def execute(script_path, ctx):
 
     cwd = process_config.get('cwd')
 
+    command_prefix = process_config.get('command_prefix')
+    if command_prefix:
+        command = '{} {}'.format(command_prefix, script_path)
+    else:
+        command = script_path
+
     def set_return_value(value):
         ctx.__return_value = value
     ctx.set_return_value = set_return_value
 
-    process = subprocess.Popen(script_path,
+    ctx.logger.info('Executing: {}'.format(command))
+
+    process = subprocess.Popen(command,
                                shell=True,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE,
@@ -104,10 +110,10 @@ def execute(script_path, ctx):
     stderr_consumer.join()
 
     ctx.logger.info('Execution done (return_code={}): {}'
-                    .format(return_code, script_path))
+                    .format(return_code, command))
 
     if return_code != 0:
-        raise ProcessException(script_path,
+        raise ProcessException(command,
                                return_code,
                                stdout_consumer.buffer.getvalue(),
                                stderr_consumer.buffer.getvalue())
