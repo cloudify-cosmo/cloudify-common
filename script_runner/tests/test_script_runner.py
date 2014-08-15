@@ -19,6 +19,7 @@ import time
 import tempfile
 import os
 import sys
+import unittest
 from StringIO import StringIO
 
 import requests
@@ -32,6 +33,8 @@ from script_runner.ctx_proxy import (UnixCtxProxy,
                                      TCPCtxProxy,
                                      HTTPCtxProxy,
                                      client_req)
+
+IS_WINDOWS = os.name == 'nt'
 
 
 @nottest
@@ -196,6 +199,8 @@ class TestCtxProxy(unittest.TestCase):
 class TestUnixCtxProxy(TestCtxProxy):
 
     def setUp(self):
+        if IS_WINDOWS:
+            raise unittest.SkipTest('Test skipped on windows')
         self.proxy_server_class = UnixCtxProxy
         super(TestUnixCtxProxy, self).setUp()
 
@@ -229,8 +234,10 @@ class TestHTTPCtxProxy(TestCtxProxy):
 @nottest
 class TestScriptRunner(unittest.TestCase):
 
-    def _create_script(self, script):
-        script_path = tempfile.mktemp()
+    def _create_script(self, linux_script, windows_script, windows_suffix='.bat'):
+        suffix = windows_suffix if IS_WINDOWS else ''
+        script = windows_script if IS_WINDOWS else linux_script
+        script_path = tempfile.mktemp(suffix=suffix)
         with open(script_path, 'w') as f:
             f.write(script)
         return script_path
@@ -260,7 +267,10 @@ class TestScriptRunner(unittest.TestCase):
 
     def test_script_path(self):
         actual_script_path = self._create_script(
-            '''#! /bin/bash -e
+            linux_script='''#! /bin/bash -e
+            ctx properties map.key value
+            ''',
+            windows_script='''
             ctx properties map.key value
             ''')
         expected_script_path = 'expected_script_path'
@@ -278,8 +288,11 @@ class TestScriptRunner(unittest.TestCase):
 
     def test_return_value(self):
         actual_script_path = self._create_script(
-            '''#! /bin/bash -e
+            linux_script='''#! /bin/bash -e
             ctx set-return-value '@["1", 2, true]'
+            ''',
+            windows_script='''
+            ctx set-return-value "@[""1"", 2, true]"
             ''')
         expected_script_path = 'expected_script_path'
         ctx, result = self._run(
@@ -297,9 +310,13 @@ class TestScriptRunner(unittest.TestCase):
 
     def test_process_env(self):
         actual_script_path = self._create_script(
-            '''#! /bin/bash -e
+            linux_script='''#! /bin/bash -e
             ctx properties map.key1 $key1
             ctx properties map.key2 $key2
+            ''',
+            windows_script='''
+            ctx properties map.key1 %key1%
+            ctx properties map.key2 %key2%
             ''')
         expected_script_path = 'expected_script_path'
         ctx, result = self._run(
@@ -325,17 +342,21 @@ class TestScriptRunner(unittest.TestCase):
 
     def test_process_cwd(self):
         actual_script_path = self._create_script(
-            '''#! /bin/bash -e
+            linux_script='''#! /bin/bash -e
             ctx properties map.cwd $PWD
+            ''',
+            windows_script='''#! /bin/bash -e
+            ctx properties map.cwd %CD%
             ''')
         expected_script_path = 'expected_script_path'
+        tmpdir = tempfile.gettempdir()
         ctx, result = self._run(
             ctx_kwargs={
                 'properties': {
                     'map': {},
                     'script_path': expected_script_path,
                     'process': {
-                        'cwd': '/tmp'
+                        'cwd': tmpdir
                     }
                 }
             },
@@ -344,7 +365,7 @@ class TestScriptRunner(unittest.TestCase):
             return_result=True
         )
         p_map = ctx.properties['map']
-        self.assertEqual(p_map['cwd'], '/tmp')
+        self.assertEqual(p_map['cwd'], tmpdir)
 
     def test_operation_scripts(self):
         self._operation_scripts_impl('start', 'start')
@@ -360,9 +381,13 @@ class TestScriptRunner(unittest.TestCase):
 
     def _operation_scripts_impl(self, operation, scripts_operation):
         actual_script_path = self._create_script(
-            '''#! /bin/bash -e
+            linux_script='''#! /bin/bash -e
             ctx properties map.key value
             ctx properties map.key2 '@{"inner_key": 100}'
+            ''',
+            windows_script='''
+            ctx properties map.key value
+            ctx properties map.key2 "@{""inner_key"": 100}"
             ''')
         expected_script_path = 'expected_script_path'
         ctx = self._run(
@@ -389,7 +414,12 @@ class TestScriptRunner(unittest.TestCase):
 
     def test_script_error(self):
         actual_script_path = self._create_script(
-            '''#! /bin/bash -e
+            linux_script='''#! /bin/bash -e
+            echo 123123
+            command_that_does_not_exist
+            ''',
+            windows_script='''
+            @echo off
             echo 123123
             command_that_does_not_exist
             ''')
@@ -406,17 +436,28 @@ class TestScriptRunner(unittest.TestCase):
             )
             self.fail()
         except tasks.ProcessException, e:
-            self.assertEqual(e.command, actual_script_path)
-            self.assertEqual(e.exit_code, 127)
-            self.assertEqual(e.stdout.strip(), '123123')
-            expected_error = '{}: line 3: ' \
+            expected_exit_code = 1 if IS_WINDOWS else 127
+            if IS_WINDOWS:
+                expected_stderr = "'command_that_does_not_exist' is not " \
+                                  "recognized as an internal or external " \
+                                  "command,\r\noperable program or batch " \
+                                  "file."                             
+            else:
+                expected_stderr = '{}: line 3: ' \
                              'command_that_does_not_exist: command not found' \
-                             .format(actual_script_path)
-            self.assertEqual(e.stderr.strip(), expected_error)
+                             .format(actual_script_path)                             
+        
+            self.assertEqual(e.command, actual_script_path)
+            self.assertEqual(e.exit_code, expected_exit_code)
+            self.assertEqual(e.stdout.strip(), '123123')
+            self.assertEqual(e.stderr.strip(), expected_stderr)
 
     def test_script_error_from_bad_ctx_request(self):
         actual_script_path = self._create_script(
-            '''#! /bin/bash -e
+            linux_script='''#! /bin/bash -e
+            ctx property_that_does_not_exist
+            ''',
+            windows_script='''
             ctx property_that_does_not_exist
             ''')
         expected_script_path = 'expected_script_path'
@@ -438,10 +479,13 @@ class TestScriptRunner(unittest.TestCase):
             self.assertIn('property_that_does_not_exist', e.stderr)
 
     def test_ruby_ctx(self):
+        if IS_WINDOWS:
+            return
         actual_script_path = self._create_script(
-            '''#! /bin/ruby
+            linux_script='''#! /bin/ruby
             load '/home/dan/work/ruby-ctx/ctx.rb'
-            ''')
+            ''',
+            windows_script='')
         ctx = self._run(
             ctx_kwargs={
                 'properties': {
@@ -456,15 +500,17 @@ class TestScriptRunner(unittest.TestCase):
 
 
 @istest
-class TestScriptRunnerUnixCxtProxy(TestScriptRunner):
+class TestScriptRunnerUnixCtxProxy(TestScriptRunner):
 
     def setUp(self):
+        if IS_WINDOWS:
+            raise unittest.SkipTest('Test skipped on windows')
         self.ctx_proxy_type = 'unix'
         super(TestScriptRunner, self).setUp()
 
 
 @istest
-class TestScriptRunnerTCPCxtProxy(TestScriptRunner):
+class TestScriptRunnerTCPCtxProxy(TestScriptRunner):
 
     def setUp(self):
         self.ctx_proxy_type = 'tcp'
@@ -472,7 +518,7 @@ class TestScriptRunnerTCPCxtProxy(TestScriptRunner):
 
 
 @istest
-class TestScriptRunnerHTTPCxtProxy(TestScriptRunner):
+class TestScriptRunnerHTTPCtxProxy(TestScriptRunner):
 
     def setUp(self):
         self.ctx_proxy_type = 'http'

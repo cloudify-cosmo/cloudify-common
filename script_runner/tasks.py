@@ -15,9 +15,11 @@
 
 
 import subprocess
-import select
 import os
 import errno
+import sys
+import time
+import threading
 from StringIO import StringIO
 
 from cloudify.decorators import operation
@@ -61,6 +63,7 @@ def get_script_to_run(ctx):
 def execute(script_path, ctx):
     ctx.logger.info('Executing: {}'.format(script_path))
 
+    on_posix = 'posix' in sys.builtin_module_names 
     process_config = ctx.properties.get('process', {})
 
     proxy = start_ctx_proxy(ctx, process_config)
@@ -81,34 +84,25 @@ def execute(script_path, ctx):
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE,
                                env=env,
-                               cwd=cwd)
+                               cwd=cwd,
+                               bufsize=1,
+                               close_fds=on_posix)
 
-    make_async(process.stdout, process.stderr)
-
-    stdout = StringIO()
-    stderr = StringIO()
     return_code = None
 
+    stdout_consumer = OutputConsumer(process.stdout)
+    stderr_consumer = OutputConsumer(process.stderr)
+    
     while True:
-        # Wait for process output (stdout, stderr)
-        select.select([process.stdout, process.stderr], [], [], 0.1)
-
-        # Check if a context request is pending and process it
         process_ctx_request(proxy)
-
         return_code = process.poll()
-
-        # Try reading some stdout/stderr from process
-        stdout_chunk = read_async(process.stdout)
-        stderr_chunk = read_async(process.stderr)
-
-        stdout.write(stdout_chunk)
-        stderr.write(stderr_chunk)
-
-        if return_code is not None and not (stdout_chunk or stderr_chunk):
+        if return_code is not None:
             break
-
+        time.sleep(0.1)
+            
     proxy.close()
+    stdout_consumer.join()
+    stderr_consumer.join()
 
     ctx.logger.info('Execution done (return_code={}): {}'
                     .format(return_code, script_path))
@@ -116,8 +110,8 @@ def execute(script_path, ctx):
     if return_code != 0:
         raise ProcessException(script_path,
                                return_code,
-                               stdout.getvalue(),
-                               stderr.getvalue())
+                               stdout_consumer.buffer.getvalue(),
+                               stderr_consumer.buffer.getvalue())
 
 
 def start_ctx_proxy(ctx, process_config):
@@ -139,31 +133,24 @@ def process_ctx_request(proxy):
         return
     proxy.poll_and_process(timeout=0)
 
+ 
+class OutputConsumer(object):
 
-def make_async(*fds):
-    """
-    Helper function to add the O_NONBLOCK flag to a file descriptor
-    list.
-    """
-    import fcntl
-    for fd in fds:
-        flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags)
-
-
-def read_async(fd):
-    """
-    Helper function to read some data from a file descriptor,
-    ignoring EAGAIN errors.
-    """
-    try:
-        return fd.readline()
-    except IOError, e:
-        if e.errno != errno.EAGAIN:
-            raise
-        else:
-            return ''
-
+    def __init__(self, out):
+        self.out = out
+        self.buffer = StringIO()
+        self.consumer = threading.Thread(target=self.consume_output)
+        self.consumer.daemon = True
+        self.consumer.start()
+        
+    def consume_output(self):
+        for line in iter(self.out.readline, b''):
+            self.buffer.write(line)
+        self.out.close()
+    
+    def join(self):
+        self.consumer.join()
+    
 
 class ProcessException(Exception):
 
