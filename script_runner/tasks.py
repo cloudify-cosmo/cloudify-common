@@ -16,7 +16,6 @@
 
 import subprocess
 import os
-import errno
 import sys
 import time
 import threading
@@ -63,7 +62,7 @@ def get_script_to_run(ctx):
 def execute(script_path, ctx):
     ctx.logger.info('Executing: {}'.format(script_path))
 
-    on_posix = 'posix' in sys.builtin_module_names 
+    on_posix = 'posix' in sys.builtin_module_names
     process_config = ctx.properties.get('process', {})
 
     proxy = start_ctx_proxy(ctx, process_config)
@@ -92,14 +91,14 @@ def execute(script_path, ctx):
 
     stdout_consumer = OutputConsumer(process.stdout)
     stderr_consumer = OutputConsumer(process.stderr)
-    
+
     while True:
         process_ctx_request(proxy)
         return_code = process.poll()
         if return_code is not None:
             break
         time.sleep(0.1)
-            
+
     proxy.close()
     stdout_consumer.join()
     stderr_consumer.join()
@@ -133,7 +132,7 @@ def process_ctx_request(proxy):
         return
     proxy.poll_and_process(timeout=0)
 
- 
+
 class OutputConsumer(object):
 
     def __init__(self, out):
@@ -142,15 +141,15 @@ class OutputConsumer(object):
         self.consumer = threading.Thread(target=self.consume_output)
         self.consumer.daemon = True
         self.consumer.start()
-        
+
     def consume_output(self):
         for line in iter(self.out.readline, b''):
             self.buffer.write(line)
         self.out.close()
-    
+
     def join(self):
         self.consumer.join()
-    
+
 
 class ProcessException(Exception):
 

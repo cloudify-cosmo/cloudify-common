@@ -19,7 +19,6 @@ import time
 import tempfile
 import os
 import sys
-import unittest
 from StringIO import StringIO
 
 import requests
@@ -234,7 +233,8 @@ class TestHTTPCtxProxy(TestCtxProxy):
 @nottest
 class TestScriptRunner(unittest.TestCase):
 
-    def _create_script(self, linux_script, windows_script, windows_suffix='.bat'):
+    def _create_script(self, linux_script, windows_script,
+                       windows_suffix='.bat'):
         suffix = windows_suffix if IS_WINDOWS else ''
         script = windows_script if IS_WINDOWS else linux_script
         script_path = tempfile.mktemp(suffix=suffix)
@@ -441,12 +441,13 @@ class TestScriptRunner(unittest.TestCase):
                 expected_stderr = "'command_that_does_not_exist' is not " \
                                   "recognized as an internal or external " \
                                   "command,\r\noperable program or batch " \
-                                  "file."                             
+                                  "file."
             else:
                 expected_stderr = '{}: line 3: ' \
-                             'command_that_does_not_exist: command not found' \
-                             .format(actual_script_path)                             
-        
+                                  'command_that_does_not_exist: command ' \
+                                  'not found' \
+                                  .format(actual_script_path)
+
             self.assertEqual(e.command, actual_script_path)
             self.assertEqual(e.exit_code, expected_exit_code)
             self.assertEqual(e.stdout.strip(), '123123')
