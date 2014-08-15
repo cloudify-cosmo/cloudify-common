@@ -99,6 +99,9 @@ class HTTPCtxProxy(CtxProxy):
                 class Server(WSGIServer):
                     allow_reuse_address = True
 
+                    def handle_error(self, request, client_address):
+                        pass
+
                 class Handler(WSGIRequestHandler):
                     def address_string(self):
                         return self.client_address[0]
