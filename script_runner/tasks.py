@@ -46,9 +46,9 @@ def run(ctx, **kwargs):
     script_path = get_script_to_run(ctx)
     if script_path:
 
-        def set_return_value(value):
+        def returns(value):
             ctx._return_value = value
-        ctx.set_return_value = set_return_value
+        ctx.returns = returns
         ctx._return_value = None
 
         eval_python = ctx.properties.get('process', {}).get('eval_python')

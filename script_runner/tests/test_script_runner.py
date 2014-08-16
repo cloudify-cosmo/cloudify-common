@@ -290,10 +290,10 @@ class TestScriptRunner(unittest.TestCase):
     def test_return_value(self):
         actual_script_path = self._create_script(
             linux_script='''#! /bin/bash -e
-            ctx set-return-value '@["1", 2, true]'
+            ctx returns '@["1", 2, true]'
             ''',
             windows_script='''
-            ctx set-return-value "@[""1"", 2, true]"
+            ctx returns "@[""1"", 2, true]"
             ''')
         expected_script_path = 'expected_script_path'
         ctx, result = self._run(
