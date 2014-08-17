@@ -103,6 +103,9 @@ class HTTPCtxProxy(CtxProxy):
                         pass
 
                 class Handler(WSGIRequestHandler):
+                    def address_string(self):
+                        return self.client_address[0]
+
                     def log_request(*args, **kwargs):
                         if not self.quiet:
                             return WSGIRequestHandler.log_request(
