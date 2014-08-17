@@ -521,7 +521,7 @@ if __name__ == '__main__':
     from cloudify import ctx
     ctx.properties['map']['key'] = 'value'
 '''
-        suffix='.py'
+        suffix = '.py'
         actual_script_path = self._create_script(
             linux_script=script,
             windows_script=script,
@@ -538,7 +538,6 @@ if __name__ == '__main__':
             actual_script_path=actual_script_path
         )
         self.assertEqual(ctx.properties['map']['key'], 'value')
-
 
     def test_ruby_ctx(self):
         if IS_WINDOWS:
