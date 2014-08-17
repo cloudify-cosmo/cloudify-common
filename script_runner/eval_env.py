@@ -16,23 +16,11 @@
 
 __doc__ = """Used to obtain a clean global environment for eval"""
 
+
 def setup_env_and_globals(ctx, script_path):
     copied_globals = globals().copy()
     del copied_globals['setup_env_and_globals']
-    del copied_globals['clean_env']
-    from os import path
     copied_globals['__file__'] = script_path
     copied_globals['__name__'] = '__main__'
     copied_globals['__package__'] = None
-
-    import sys
-    import imp
-    ctx_holder = imp.new_module('ctx_holder')
-    ctx_holder.ctx = ctx
-    sys.modules['ctx_holder'] = ctx_holder
-
     return copied_globals
-
-def clean_env():
-    import sys
-    del sys.modules['ctx_holder']

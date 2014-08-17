@@ -178,10 +178,7 @@ def get_unused_port():
 
 def eval_script(script_path, ctx):
     eval_globals = eval_env.setup_env_and_globals(ctx, script_path)
-    try:
-        execfile(script_path, eval_globals)
-    finally:
-        eval_env.clean_env()
+    execfile(script_path, eval_globals)
 
 
 class OutputConsumer(object):

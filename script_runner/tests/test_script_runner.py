@@ -518,7 +518,7 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
     def test_python_script(self):
         script = '''
 if __name__ == '__main__':
-    from ctx_holder import ctx
+    from cloudify import ctx
     ctx.properties['map']['key'] = 'value'
 '''
         suffix='.py'
