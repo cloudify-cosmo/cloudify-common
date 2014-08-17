@@ -21,8 +21,9 @@ types:
                 - stop: script_runner.tasks.run
                 - delete: script_runner.tasks.run
         properties:
-            - scripts
-            - process: {}
+            scripts: {}
+            process:
+                default: {}
 
     # An app server configured with scripts
     cloudify.types.script.app_server:
@@ -35,8 +36,9 @@ types:
                 - stop: script_runner.tasks.run
                 - delete: script_runner.tasks.run
         properties:
-            - scripts
-            - process: {}
+            scripts: {}
+            process:
+                default: {}
 
     # A db server configured with scripts
     cloudify.types.script.db_server:
@@ -49,8 +51,9 @@ types:
                 - stop: script_runner.tasks.run
                 - delete: script_runner.tasks.run
         properties:
-            - scripts
-            - process: {}
+            scripts: {}
+            process:
+                default: {}
 
     # A message bus server configured with scripts
     cloudify.types.script.message_bus_server:
@@ -63,8 +66,9 @@ types:
                 - stop: script_runner.tasks.run
                 - delete: script_runner.tasks.run
         properties:
-            - scripts
-            - process: {}
+            scripts: {}
+            process:
+                default: {}
 
     # An app module configured with scripts
     cloudify.types.script.app_module:
@@ -77,5 +81,6 @@ types:
                 - stop: script_runner.tasks.run
                 - delete: script_runner.tasks.run
         properties:
-            - scripts
-            - process: {}
+            scripts: {}
+            process:
+                default: {}
