@@ -22,7 +22,7 @@ def setup_env_and_globals(ctx, script_path):
     del copied_globals['clean_env']
     from os import path
     copied_globals['__file__'] = script_path
-    copied_globals['__name__'] = path.basename(path.splitext(script_path)[0])
+    copied_globals['__name__'] = '__main__'
     copied_globals['__package__'] = None
 
     import sys

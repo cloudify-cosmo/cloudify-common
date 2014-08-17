@@ -517,8 +517,9 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
 
     def test_python_script(self):
         script = '''
-from ctx_holder import ctx
-ctx.properties['map']['key'] = 'value'
+if __name__ == '__main__':
+    from ctx_holder import ctx
+    ctx.properties['map']['key'] = 'value'
 '''
         suffix='.py'
         actual_script_path = self._create_script(
