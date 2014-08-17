@@ -632,10 +632,6 @@ class TestCtxProxyType(unittest.TestCase):
         try:
             self.assertEqual(type(proxy), expected_type)
         finally:
-            if isinstance(proxy, HTTPCtxProxy):
-                timeout = time.time() + 5
-                while time.time() < timeout and not hasattr(proxy, 'server'):
-                    time.sleep(0.1)
             proxy.close()
 
 

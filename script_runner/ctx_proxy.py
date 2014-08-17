@@ -23,6 +23,7 @@ import re
 import collections
 import json
 import threading
+from Queue import Queue
 from StringIO import StringIO
 from wsgiref.simple_server import WSGIServer, WSGIRequestHandler
 from wsgiref.simple_server import make_server as make_wsgi_server
@@ -86,7 +87,9 @@ class HTTPCtxProxy(CtxProxy):
         socket_url = 'http://localhost:{}'.format(port)
         super(HTTPCtxProxy, self).__init__(ctx, socket_url)
         self.port = port
+        self._started = Queue(1)
         self.thread = self._start_server()
+        self._started.get(timeout=5)
 
     def _start_server(self):
 
@@ -119,6 +122,7 @@ class HTTPCtxProxy(CtxProxy):
                     Handler)
                 proxy.server = self.srv
                 self.port = self.srv.server_port
+                proxy._started.put(True)
                 self.srv.serve_forever(poll_interval=0.1)
 
         bottle.post('/', callback=self._request_handler)
