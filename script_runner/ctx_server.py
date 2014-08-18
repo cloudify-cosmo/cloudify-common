@@ -19,16 +19,20 @@ import os
 import sys
 import importlib
 import re
+import time
 
-from ctx_proxy import UnixCtxProxy
+from ctx_proxy import (UnixCtxProxy,
+                       TCPCtxProxy,
+                       HTTPCtxProxy)
 
 
 class CtxProxyServer(object):
 
-    def __init__(self, ctx, socket_path=None):
+    def __init__(self, ctx, proxy_type, socket_descriptor):
         self.ctx = ctx
-        self.proxy = UnixCtxProxy(ctx, socket_path)
+        self.proxy = self._ctx_proxy(ctx, proxy_type, socket_descriptor)
         self.stopped = False
+        self.proxy_type = proxy_type
 
     def close(self):
         self.proxy.close()
@@ -39,14 +43,31 @@ class CtxProxyServer(object):
     def serve(self):
         while not self.stopped:
             try:
-                self.proxy.poll_and_process(timeout=0.1)
+                if self.proxy_type == 'http':
+                    time.sleep(0.1)
+                else:
+                    self.proxy.poll_and_process(timeout=0.1)
             except RuntimeError, e:
                 print 'ignoring: {}'.format(e)
+
+    @staticmethod
+    def _ctx_proxy(ctx, proxy_type, socket_descriptor):
+        if proxy_type == 'unix':
+            return UnixCtxProxy(ctx, socket_descriptor)
+        port = str(29635)
+        if proxy_type == 'tcp':
+            return TCPCtxProxy(ctx, port=int(socket_descriptor or port))
+        elif proxy_type == 'http':
+            return HTTPCtxProxy(ctx, port=int(socket_descriptor or port))
+        else:
+            raise RuntimeError('illegal proxy type: {}'.format(proxy_type))
 
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--socket-path', default=None)
+    parser.add_argument('-t', '--proxy-type', default='unix',
+                        choices=['unix', 'tcp', 'http'])
+    parser.add_argument('-s', '--socket-descriptor', default=None)
     parser.add_argument('-e', '--expression', default=None)
     parser.add_argument('-p', '--module-path', default=None)
     return parser.parse_args(args)
@@ -112,14 +133,15 @@ def main():
 
     ctx = load_ctx(load_ctx_function)
     server = CtxProxyServer(ctx,
-                            args.socket_path)
+                            args.proxy_type,
+                            args.socket_descriptor)
     ctx._admin_ = admin_function(server,
                                  load_ctx_function)
     print server.proxy.socket_url
     try:
         server.serve()
     except KeyboardInterrupt:
-        pass
+        server.close()
 
 
 if __name__ == '__main__':
