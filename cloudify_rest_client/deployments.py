@@ -47,9 +47,16 @@ class Deployment(dict):
     @property
     def workflows(self):
         """
-        :return: The workflows of this deployment
+        :return: The workflows of this deployment.
         """
         return self.get('workflows')
+
+    @property
+    def inputs(self):
+        """
+        :return: The inputs provided on deployment creation.
+        """
+        return self.get('inputs')
 
 
 class Workflow(dict):
@@ -107,13 +114,14 @@ class DeploymentsClient(object):
         response = self.api.get(uri, _include=_include)
         return Deployment(response)
 
-    def create(self, blueprint_id, deployment_id):
+    def create(self, blueprint_id, deployment_id, inputs=None):
         """
         Creates a new deployment for the provided blueprint id and
         deployment id.
 
         :param blueprint_id: Blueprint id to create a deployment of.
         :param deployment_id: Deployment id of the new created deployment.
+        :param inputs: Inputs dict for the deployment.
         :return: The created deployment.
         """
         assert blueprint_id
@@ -121,6 +129,8 @@ class DeploymentsClient(object):
         data = {
             'blueprint_id': blueprint_id
         }
+        if inputs:
+            data['inputs'] = inputs
         uri = '/deployments/{0}'.format(deployment_id)
         response = self.api.put(uri, data, expected_status_code=201)
         return Deployment(response)
