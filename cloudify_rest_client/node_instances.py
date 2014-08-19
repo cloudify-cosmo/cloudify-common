@@ -122,9 +122,9 @@ class NodeInstancesClient(object):
         assert node_instance_id
         uri = self._get_node_instance_uri(node_instance_id)
         data = {'version': version}
-        if runtime_properties:
+        if runtime_properties is not None:
             data['runtime_properties'] = runtime_properties
-        if state:
+        if state is not None:
             data['state'] = state
         response = self.api.patch(uri, data=data)
         return NodeInstance(response)
