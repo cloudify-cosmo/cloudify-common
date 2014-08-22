@@ -46,7 +46,7 @@ IS_WINDOWS = os.name == 'nt'
 
 
 @operation
-def run(**kwargs):
+def run(ctx, **kwargs):
     script_path = get_script_to_run(ctx)
     if script_path:
         prepare_ctx(ctx)
