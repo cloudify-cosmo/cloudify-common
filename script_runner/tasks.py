@@ -22,8 +22,12 @@ import time
 import threading
 from StringIO import StringIO
 
-from cloudify.decorators import operation
+from cloudify import ctx
+from cloudify.workflows import ctx as workflow_ctx
+from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
+from cloudify.manager import download_blueprint_resource
+
 
 import eval_env
 from ctx_proxy import (UnixCtxProxy,
@@ -42,15 +46,10 @@ IS_WINDOWS = os.name == 'nt'
 
 
 @operation
-def run(ctx, **kwargs):
+def run(**kwargs):
     script_path = get_script_to_run(ctx)
     if script_path:
-
-        def returns(value):
-            ctx._return_value = value
-        ctx.returns = returns
-        ctx._return_value = None
-
+        prepare_ctx(ctx)
         eval_python = ctx.properties.get('process', {}).get('eval_python')
         if eval_python is True or (script_path.endswith('.py') and
                                    eval_python is not False):
@@ -58,7 +57,28 @@ def run(ctx, **kwargs):
         else:
             execute(script_path, ctx)
 
-        return ctx._return_value
+        return ctx_return_value(ctx)
+
+
+@workflow
+def execute_workflow(script_path, **kwargs):
+    script_path = download_blueprint_resource(workflow_ctx.blueprint_id,
+                                              script_path,
+                                              workflow_ctx.logger)
+    prepare_ctx(workflow_ctx)
+    eval_script(script_path, workflow_ctx)
+    return ctx_return_value(workflow_ctx)
+
+
+def prepare_ctx(ctx):
+    def returns(value):
+            ctx._return_value = value
+    ctx.returns = returns
+    ctx._return_value = None
+
+
+def ctx_return_value(ctx):
+    return ctx._return_value
 
 
 def get_script_to_run(ctx):
