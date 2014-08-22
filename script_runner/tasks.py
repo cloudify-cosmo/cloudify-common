@@ -61,7 +61,7 @@ def run(ctx, **kwargs):
 
 
 @workflow
-def execute_workflow(script_path, **kwargs):
+def execute_workflow(ctx, script_path, **kwargs):
     script_path = download_blueprint_resource(workflow_ctx.blueprint_id,
                                               script_path,
                                               workflow_ctx.logger)
