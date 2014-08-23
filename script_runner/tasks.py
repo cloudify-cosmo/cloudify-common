@@ -45,16 +45,10 @@ IS_WINDOWS = os.name == 'nt'
 @operation
 def run(ctx, **kwargs):
     script_path = get_script_to_run(ctx)
-    if script_path:
-        prepare_ctx(ctx)
-        eval_python = ctx.properties.get('process', {}).get('eval_python')
-        if eval_python is True or (script_path.endswith('.py') and
-                                   eval_python is not False):
-            eval_script(script_path)
-        else:
-            execute(script_path, ctx)
-
-        return ctx_return_value(ctx)
+    if not script_path:
+        return
+    script_func = get_run_script_func(script_path, ctx)
+    return process(script_func, script_path, ctx)
 
 
 @workflow
@@ -62,19 +56,15 @@ def execute_workflow(ctx, script_path, **kwargs):
     script_path = download_blueprint_resource(ctx.blueprint_id,
                                               script_path,
                                               ctx.logger)
-    prepare_ctx(ctx)
-    eval_script(script_path)
-    return ctx_return_value(ctx)
+    return process(eval_script, script_path, ctx)
 
 
-def prepare_ctx(ctx):
+def process(script_func, script_path, ctx):
     def returns(value):
-            ctx._return_value = value
+        ctx._return_value = value
     ctx.returns = returns
     ctx._return_value = None
-
-
-def ctx_return_value(ctx):
+    script_func(script_path, ctx)
     return ctx._return_value
 
 
@@ -96,6 +86,15 @@ def get_script_to_run(ctx):
                                   '"scripts/{operation}" node property')
     os.chmod(script_path, 0755)
     return script_path
+
+
+def get_run_script_func(script_path, ctx):
+    eval_python = ctx.properties.get('process', {}).get('eval_python')
+    if eval_python is True or (script_path.endswith('.py') and
+                               eval_python is not False):
+        return eval_script
+    else:
+        return execute
 
 
 def execute(script_path, ctx):
@@ -193,7 +192,7 @@ def get_unused_port():
     return port
 
 
-def eval_script(script_path):
+def eval_script(script_path, ctx):
     eval_globals = eval_env.setup_env_and_globals(script_path)
     execfile(script_path, eval_globals)
 
