@@ -24,7 +24,6 @@ from StringIO import StringIO
 import requests
 from nose.tools import nottest, istest
 
-from cloudify import decorators, manager
 from cloudify.mocks import MockCloudifyContext
 from cloudify.exceptions import NonRecoverableError
 

@@ -14,12 +14,10 @@
 #    * limitations under the License.
 
 
-__doc__ = """Used to obtain a clean global environment for eval"""
-
-
-def setup_env_and_globals(ctx, script_path):
+def setup_env_and_globals(script_path):
     copied_globals = globals().copy()
     del copied_globals['setup_env_and_globals']
+    copied_globals['__doc__'] = 'empty globals for eval'
     copied_globals['__file__'] = script_path
     copied_globals['__name__'] = '__main__'
     copied_globals['__package__'] = None

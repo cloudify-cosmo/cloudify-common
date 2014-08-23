@@ -22,19 +22,16 @@ import time
 import threading
 from StringIO import StringIO
 
-from cloudify import ctx
-from cloudify.workflows import ctx as workflow_ctx
 from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
 from cloudify.manager import download_blueprint_resource
 
-
-import eval_env
-from ctx_proxy import (UnixCtxProxy,
-                       TCPCtxProxy,
-                       HTTPCtxProxy,
-                       StubCtxProxy,
-                       CTX_SOCKET_URL)
+from script_runner import eval_env
+from script_runner.ctx_proxy import (UnixCtxProxy,
+                                     TCPCtxProxy,
+                                     HTTPCtxProxy,
+                                     StubCtxProxy,
+                                     CTX_SOCKET_URL)
 
 try:
     import zmq  # noqa
@@ -53,7 +50,7 @@ def run(ctx, **kwargs):
         eval_python = ctx.properties.get('process', {}).get('eval_python')
         if eval_python is True or (script_path.endswith('.py') and
                                    eval_python is not False):
-            eval_script(script_path, ctx)
+            eval_script(script_path)
         else:
             execute(script_path, ctx)
 
@@ -62,12 +59,12 @@ def run(ctx, **kwargs):
 
 @workflow
 def execute_workflow(ctx, script_path, **kwargs):
-    script_path = download_blueprint_resource(workflow_ctx.blueprint_id,
+    script_path = download_blueprint_resource(ctx.blueprint_id,
                                               script_path,
-                                              workflow_ctx.logger)
-    prepare_ctx(workflow_ctx)
-    eval_script(script_path, workflow_ctx)
-    return ctx_return_value(workflow_ctx)
+                                              ctx.logger)
+    prepare_ctx(ctx)
+    eval_script(script_path)
+    return ctx_return_value(ctx)
 
 
 def prepare_ctx(ctx):
@@ -196,8 +193,8 @@ def get_unused_port():
     return port
 
 
-def eval_script(script_path, ctx):
-    eval_globals = eval_env.setup_env_and_globals(ctx, script_path)
+def eval_script(script_path):
+    eval_globals = eval_env.setup_env_and_globals(script_path)
     execfile(script_path, eval_globals)
 
 
