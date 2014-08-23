@@ -244,7 +244,7 @@ class TestScriptRunner(unittest.TestCase):
         return script_path
 
     def _run(self, ctx_kwargs, expected_script_path, actual_script_path,
-             return_result=False):
+             return_result=False, pass_parameter=False):
         def mock_download_resource(script_path):
             self.assertEqual(script_path, expected_script_path)
             return actual_script_path
@@ -260,7 +260,10 @@ class TestScriptRunner(unittest.TestCase):
 
         ctx = MockCloudifyContext(**ctx_kwargs)
         ctx.download_resource = mock_download_resource
-        result = tasks.run(ctx)
+        if pass_parameter:
+            result = tasks.run(ctx, expected_script_path)
+        else:
+            result = tasks.run(ctx)
         if return_result:
             return ctx, result
         else:
@@ -284,6 +287,27 @@ class TestScriptRunner(unittest.TestCase):
             },
             expected_script_path=expected_script_path,
             actual_script_path=actual_script_path
+        )
+        self.assertEqual(ctx.properties['map']['key'], 'value')
+
+    def test_script_path_parameter(self):
+        actual_script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx properties map.key value
+            ''',
+            windows_script='''
+            ctx properties map.key value
+            ''')
+        expected_script_path = 'expected_script_path'
+        ctx = self._run(
+            ctx_kwargs={
+                'properties': {
+                    'map': {}
+                }
+            },
+            expected_script_path=expected_script_path,
+            actual_script_path=actual_script_path,
+            pass_parameter=True
         )
         self.assertEqual(ctx.properties['map']['key'], 'value')
 
@@ -777,38 +801,38 @@ class TestEvalPythonConfiguration(unittest.TestCase):
 
     def test_explicit_eval_without_py_extenstion(self):
         self.expected_call = 'eval'
-        tasks.get_script_to_run = lambda ctx: 'script_path'
+        tasks.get_script_to_run = lambda script_path, ctx: 'script_path'
         tasks.run(MockCloudifyContext(properties={
             'process': {'eval_python': True}
         }))
 
     def test_explicit_eval_with_py_extenstion(self):
         self.expected_call = 'eval'
-        tasks.get_script_to_run = lambda ctx: 'script_path.py'
+        tasks.get_script_to_run = lambda script_path, ctx: 'script_path.py'
         tasks.run(MockCloudifyContext(properties={
             'process': {'eval_python': True}
         }))
 
     def test_implicit_eval(self):
         self.expected_call = 'eval'
-        tasks.get_script_to_run = lambda ctx: 'script_path.py'
+        tasks.get_script_to_run = lambda script_path, ctx: 'script_path.py'
         tasks.run(MockCloudifyContext())
 
     def test_explicit_execute_without_py_extension(self):
         self.expected_call = 'execute'
-        tasks.get_script_to_run = lambda ctx: 'script_path'
+        tasks.get_script_to_run = lambda script_path, ctx: 'script_path'
         tasks.run(MockCloudifyContext(properties={
             'process': {'eval_python': False}
         }))
 
     def test_explicit_execute_with_py_extension(self):
         self.expected_call = 'execute'
-        tasks.get_script_to_run = lambda ctx: 'script_path.py'
+        tasks.get_script_to_run = lambda script_path, ctx: 'script_path.py'
         tasks.run(MockCloudifyContext(properties={
             'process': {'eval_python': False}
         }))
 
     def test_implicit_execute(self):
         self.expected_call = 'execute'
-        tasks.get_script_to_run = lambda ctx: 'script_path'
+        tasks.get_script_to_run = lambda script_path, ctx: 'script_path'
         tasks.run(MockCloudifyContext())

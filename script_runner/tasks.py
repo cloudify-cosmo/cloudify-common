@@ -43,8 +43,8 @@ IS_WINDOWS = os.name == 'nt'
 
 
 @operation
-def run(ctx, **kwargs):
-    script_path = get_script_to_run(ctx)
+def run(ctx, script_path=None, **kwargs):
+    script_path = get_script_to_run(script_path, ctx)
     if not script_path:
         return
     script_func = get_run_script_func(script_path, ctx)
@@ -68,22 +68,21 @@ def process(script_func, script_path, ctx):
     return ctx._return_value
 
 
-def get_script_to_run(ctx):
-    script_path = ctx.properties.get('script_path')
-    if script_path:
-        script_path = ctx.download_resource(script_path)
-    elif 'scripts' in ctx.properties:
-        operation_simple_name = ctx.operation.split('.')[-1:].pop()
+def get_script_to_run(script_path, ctx):
+    script_path = script_path or ctx.properties.get('script_path')
+    if not script_path and 'scripts' in ctx.properties:
+        operation_simple_name = ctx.operation.split('.')[-1]
         scripts = ctx.properties['scripts']
         if operation_simple_name not in scripts:
             ctx.logger.info("No script mapping found for operation {0}. "
                             "Nothing to do.".format(operation_simple_name))
             return None
-        script_path = ctx.download_resource(scripts[operation_simple_name])
+        script_path = scripts[operation_simple_name]
     if not script_path:
         raise NonRecoverableError('No script to run was defined either in '
-                                  '"script_path" node property on under '
-                                  '"scripts/{operation}" node property')
+                                  '"script_path" node property or as an '
+                                  'operation parameter')
+    script_path = ctx.download_resource(script_path)
     os.chmod(script_path, 0755)
     return script_path
 
