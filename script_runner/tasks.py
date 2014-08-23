@@ -22,6 +22,8 @@ import time
 import threading
 from StringIO import StringIO
 
+from cloudify import ctx as operation_ctx
+from cloudify.workflows import ctx as workflows_ctx
 from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
 from cloudify.manager import download_blueprint_resource
@@ -44,6 +46,7 @@ IS_WINDOWS = os.name == 'nt'
 
 @operation
 def run(ctx, script_path=None, **kwargs):
+    ctx = operation_ctx._get_current_object()
     script_path = get_script_to_run(script_path, ctx)
     if not script_path:
         return
@@ -53,6 +56,7 @@ def run(ctx, script_path=None, **kwargs):
 
 @workflow
 def execute_workflow(ctx, script_path, **kwargs):
+    ctx = workflows_ctx._get_current_object()
     script_path = download_blueprint_resource(ctx.blueprint_id,
                                               script_path,
                                               ctx.logger)
