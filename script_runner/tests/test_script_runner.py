@@ -759,7 +759,7 @@ class TestEvalPythonConfiguration(unittest.TestCase):
         self.original_get_script_to_run = tasks.get_script_to_run
         self.addCleanup(self.cleanup)
 
-        def eval_script(script_path, ctx):
+        def eval_script(script_path):
             if self.expected_call != 'eval':
                 self.fail()
 
