@@ -45,7 +45,7 @@ IS_WINDOWS = os.name == 'nt'
 
 
 @operation
-def run(ctx, script_path=None, **kwargs):
+def run(script_path=None, **kwargs):
     ctx = operation_ctx._get_current_object()
     script_path = get_script_to_run(script_path, ctx)
     if not script_path:
@@ -55,7 +55,7 @@ def run(ctx, script_path=None, **kwargs):
 
 
 @workflow
-def execute_workflow(ctx, script_path, **kwargs):
+def execute_workflow(script_path, **kwargs):
     ctx = workflows_ctx._get_current_object()
     script_path = download_blueprint_resource(ctx.blueprint_id,
                                               script_path,
