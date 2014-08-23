@@ -24,7 +24,7 @@ from StringIO import StringIO
 import requests
 from nose.tools import nottest, istest
 
-from cloudify import decorators
+from cloudify import decorators, manager
 from cloudify.mocks import MockCloudifyContext
 from cloudify.exceptions import NonRecoverableError
 
@@ -539,41 +539,6 @@ if __name__ == '__main__':
             actual_script_path=actual_script_path
         )
         self.assertEqual(ctx.properties['map']['key'], 'value')
-
-    def test_execute_workflow(self):
-        if IS_WINDOWS:
-            raise unittest.SkipTest('workflow test skipped on windows')
-        script = '''
-if __name__ == '__main__':
-    from cloudify.workflows import ctx
-    from cloudify.workflows import parameters as p
-    ctx.properties['map']['key'] = p.one
-    return 100
-'''
-        script_path = self._create_script(
-            linux_script=script,
-            windows_script='')
-
-        original_get_rest = decorators.get_rest_client
-        original_download = tasks.download_blueprint_resource
-        def mock_download(script_path):
-            return script_path
-        def mock_get_rest():
-            class MockRest(object):
-
-        tasks.download_blueprint_resource = mock_download
-        class MockCloudifyWorkflowContext(MockCloudifyContext):
-            pass
-        ctx = MockCloudifyWorkflowContext(properties={'map':{}})
-        try:
-            parameters = {'one': 1}
-            result = tasks.execute_workflow(ctx, script_path, **parameters)
-            self.assertEqual(result, 100)
-        finally:
-            decorators.get_rest_client = original_get_rest
-            tasks.download_blueprint_resource = original_download
-        self.assertEqual(ctx.properties['map']['key'], 1)
-
 
     def test_ruby_ctx(self):
         if IS_WINDOWS:
