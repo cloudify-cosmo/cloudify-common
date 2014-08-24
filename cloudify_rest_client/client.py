@@ -66,9 +66,12 @@ class HTTPClient(object):
                                           response.status_code)
         if code == MissingRequiredDeploymentInputError.ERROR_CODE:
             raise MissingRequiredDeploymentInputError(message,
+                                                      server_traceback,
                                                       response.status_code)
         if code == UnknownDeploymentInputError.ERROR_CODE:
-            raise UnknownDeploymentInputError(message, response.status_code)
+            raise UnknownDeploymentInputError(message,
+                                              server_traceback,
+                                              response.status_code)
 
         raise CloudifyClientError(message,
                                   server_traceback,
