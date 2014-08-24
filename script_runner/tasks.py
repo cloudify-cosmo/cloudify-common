@@ -22,15 +22,18 @@ import time
 import threading
 from StringIO import StringIO
 
-from cloudify.decorators import operation
+from cloudify import ctx as operation_ctx
+from cloudify.workflows import ctx as workflows_ctx
+from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
+from cloudify.manager import download_blueprint_resource
 
-import eval_env
-from ctx_proxy import (UnixCtxProxy,
-                       TCPCtxProxy,
-                       HTTPCtxProxy,
-                       StubCtxProxy,
-                       CTX_SOCKET_URL)
+from script_runner import eval_env
+from script_runner.ctx_proxy import (UnixCtxProxy,
+                                     TCPCtxProxy,
+                                     HTTPCtxProxy,
+                                     StubCtxProxy,
+                                     CTX_SOCKET_URL)
 
 try:
     import zmq  # noqa
@@ -42,43 +45,59 @@ IS_WINDOWS = os.name == 'nt'
 
 
 @operation
-def run(ctx, **kwargs):
-    script_path = get_script_to_run(ctx)
-    if script_path:
-
-        def returns(value):
-            ctx._return_value = value
-        ctx.returns = returns
-        ctx._return_value = None
-
-        eval_python = ctx.properties.get('process', {}).get('eval_python')
-        if eval_python is True or (script_path.endswith('.py') and
-                                   eval_python is not False):
-            eval_script(script_path, ctx)
-        else:
-            execute(script_path, ctx)
-
-        return ctx._return_value
+def run(script_path=None, **kwargs):
+    ctx = operation_ctx._get_current_object()
+    script_path = get_script_to_run(script_path, ctx)
+    if not script_path:
+        return
+    script_func = get_run_script_func(script_path, ctx)
+    return process(script_func, script_path, ctx)
 
 
-def get_script_to_run(ctx):
-    script_path = ctx.properties.get('script_path')
-    if script_path:
-        script_path = ctx.download_resource(script_path)
-    elif 'scripts' in ctx.properties:
-        operation_simple_name = ctx.operation.split('.')[-1:].pop()
+@workflow
+def execute_workflow(script_path, **kwargs):
+    ctx = workflows_ctx._get_current_object()
+    script_path = download_blueprint_resource(ctx.blueprint_id,
+                                              script_path,
+                                              ctx.logger)
+    return process(eval_script, script_path, ctx)
+
+
+def process(script_func, script_path, ctx):
+    def returns(value):
+        ctx._return_value = value
+    ctx.returns = returns
+    ctx._return_value = None
+    script_func(script_path, ctx)
+    return ctx._return_value
+
+
+def get_script_to_run(script_path, ctx):
+    script_path = script_path or ctx.properties.get('script_path')
+    if not script_path and 'scripts' in ctx.properties:
+        operation_simple_name = ctx.operation.split('.')[-1]
         scripts = ctx.properties['scripts']
         if operation_simple_name not in scripts:
             ctx.logger.info("No script mapping found for operation {0}. "
                             "Nothing to do.".format(operation_simple_name))
             return None
-        script_path = ctx.download_resource(scripts[operation_simple_name])
+        script_path = scripts[operation_simple_name]
     if not script_path:
         raise NonRecoverableError('No script to run was defined either in '
-                                  '"script_path" node property on under '
-                                  '"scripts/{operation}" node property')
+                                  '"script_path" node property or as an '
+                                  'operation parameter')
+    script_path = ctx.download_resource(script_path)
     os.chmod(script_path, 0755)
     return script_path
+
+
+def get_run_script_func(script_path, ctx):
+    eval_python = ctx.properties.get('process', {}).get('eval_python')
+    if eval_python is True or (script_path.endswith('.py') and
+                               eval_python is not False):
+        return eval_script
+    else:
+        return execute
 
 
 def execute(script_path, ctx):
@@ -177,7 +196,7 @@ def get_unused_port():
 
 
 def eval_script(script_path, ctx):
-    eval_globals = eval_env.setup_env_and_globals(ctx, script_path)
+    eval_globals = eval_env.setup_env_and_globals(script_path)
     execfile(script_path, eval_globals)
 
 
