@@ -70,3 +70,26 @@ class NoSuchIncludeFieldError(CloudifyClientError):
     def __init__(self, message, server_traceback=None, status_code=-1):
         super(NoSuchIncludeFieldError, self).__init__(
             message, server_traceback, status_code)
+
+
+class MissingRequiredDeploymentInputError(CloudifyClientError):
+    """
+    Raised when a required deployment input was not specified on deployment
+    creation.
+    """
+    ERROR_CODE = 'missing_required_deployment_input_error'
+
+    def __init__(self, message, server_traceback=None, status_code=-1):
+        super(MissingRequiredDeploymentInputError, self).__init__(
+            message, server_traceback, status_code)
+
+
+class UnknownDeploymentInputError(CloudifyClientError):
+    """
+    Raised when an unexpected input was specified on deployment creation.
+    """
+    ERROR_CODE = 'unknown_deployment_input_error'
+
+    def __init__(self, message, server_traceback=None, status_code=-1):
+        super(UnknownDeploymentInputError, self).__init__(
+            message, server_traceback, status_code)

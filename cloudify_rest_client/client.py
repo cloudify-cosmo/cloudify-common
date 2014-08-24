@@ -13,10 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-__author__ = 'idanmo'
-
 import json
-
 import requests
 
 from cloudify_rest_client.blueprints import BlueprintsClient
@@ -31,6 +28,8 @@ from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.exceptions import CreateDeploymentInProgressError
 from cloudify_rest_client.exceptions import IllegalExecutionParametersError
 from cloudify_rest_client.exceptions import NoSuchIncludeFieldError
+from cloudify_rest_client.exceptions import MissingRequiredDeploymentInputError
+from cloudify_rest_client.exceptions import UnknownDeploymentInputError
 
 
 class HTTPClient(object):
@@ -65,6 +64,14 @@ class HTTPClient(object):
             raise NoSuchIncludeFieldError(message,
                                           server_traceback,
                                           response.status_code)
+        if code == MissingRequiredDeploymentInputError.ERROR_CODE:
+            raise MissingRequiredDeploymentInputError(message,
+                                                      server_traceback,
+                                                      response.status_code)
+        if code == UnknownDeploymentInputError.ERROR_CODE:
+            raise UnknownDeploymentInputError(message,
+                                              server_traceback,
+                                              response.status_code)
 
         raise CloudifyClientError(message,
                                   server_traceback,
