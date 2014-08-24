@@ -15,8 +15,9 @@
 
 __author__ = 'idanmo'
 
-import requests
 import json
+
+import requests
 
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.deployments import DeploymentsClient
@@ -51,16 +52,23 @@ class HTTPClient(object):
             raise CloudifyClientError(error_msg, response.status_code)
         message = result['message']
         code = result['error_code']
+        server_traceback = result['server_traceback']
         if code == CreateDeploymentInProgressError.ERROR_CODE:
             raise CreateDeploymentInProgressError(message,
+                                                  server_traceback,
                                                   response.status_code)
         if code == IllegalExecutionParametersError.ERROR_CODE:
             raise IllegalExecutionParametersError(message,
+                                                  server_traceback,
                                                   response.status_code)
         if code == NoSuchIncludeFieldError.ERROR_CODE:
-            raise NoSuchIncludeFieldError(message, response.status_code)
+            raise NoSuchIncludeFieldError(message,
+                                          server_traceback,
+                                          response.status_code)
 
-        raise CloudifyClientError(message, response.status_code)
+        raise CloudifyClientError(message,
+                                  server_traceback,
+                                  response.status_code)
 
     def verify_response_status(self, response, expected_code=200):
         if response.status_code != expected_code:
