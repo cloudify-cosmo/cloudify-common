@@ -26,7 +26,12 @@ from cloudify_rest_client.node_instances import NodeInstancesClient
 from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.search import SearchClient
-from cloudify_rest_client.exceptions import *
+from cloudify_rest_client.exceptions import CloudifyClientError
+from cloudify_rest_client.exceptions import CreateDeploymentInProgressError
+from cloudify_rest_client.exceptions import IllegalExecutionParametersError
+from cloudify_rest_client.exceptions import NoSuchIncludeFieldError
+from cloudify_rest_client.exceptions import MissingRequiredDeploymentInputError
+from cloudify_rest_client.exceptions import UnknownDeploymentInputError
 
 
 class HTTPClient(object):
