@@ -18,9 +18,10 @@ __author__ = 'idanmo'
 
 class CloudifyClientError(Exception):
 
-    def __init__(self, message, status_code=-1):
+    def __init__(self, message, server_traceback=None, status_code=-1):
         super(CloudifyClientError, self).__init__(message)
         self.status_code = status_code
+        self.server_traceback = server_traceback
 
     def __str__(self):
         if self.status_code != -1:
@@ -39,8 +40,9 @@ class CreateDeploymentInProgressError(CloudifyClientError):
 
     ERROR_CODE = 'deployment_workers_not_yet_installed_error'
 
-    def __init__(self, message, status_code=-1):
+    def __init__(self, message, server_traceback=None, status_code=-1):
         super(CreateDeploymentInProgressError, self).__init__(message,
+                                                              server_traceback,
                                                               status_code)
 
 
@@ -52,9 +54,9 @@ class IllegalExecutionParametersError(CloudifyClientError):
 
     ERROR_CODE = 'illegal_execution_parameters_error'
 
-    def __init__(self, message, status_code=-1):
+    def __init__(self, message, server_traceback=None, status_code=-1):
         super(IllegalExecutionParametersError, self).__init__(
-            message, status_code)
+            message, server_traceback, status_code)
 
 
 class NoSuchIncludeFieldError(CloudifyClientError):
@@ -65,6 +67,10 @@ class NoSuchIncludeFieldError(CloudifyClientError):
 
     ERROR_CODE = 'no_such_include_field_error'
 
+    def __init__(self, message, server_traceback=None, status_code=-1):
+        super(NoSuchIncludeFieldError, self).__init__(
+            message, server_traceback, status_code)
+
 
 class MissingRequiredDeploymentInputError(CloudifyClientError):
     """
@@ -73,9 +79,17 @@ class MissingRequiredDeploymentInputError(CloudifyClientError):
     """
     ERROR_CODE = 'missing_required_deployment_input_error'
 
+    def __init__(self, message, server_traceback=None, status_code=-1):
+        super(MissingRequiredDeploymentInputError, self).__init__(
+            message, server_traceback, status_code)
+
 
 class UnknownDeploymentInputError(CloudifyClientError):
     """
     Raised when an unexpected input was specified on deployment creation.
     """
     ERROR_CODE = 'unknown_deployment_input_error'
+
+    def __init__(self, message, server_traceback=None, status_code=-1):
+        super(UnknownDeploymentInputError, self).__init__(
+            message, server_traceback, status_code)
