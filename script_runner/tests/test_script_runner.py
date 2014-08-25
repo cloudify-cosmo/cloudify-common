@@ -244,7 +244,7 @@ class TestScriptRunner(unittest.TestCase):
         return script_path
 
     def _run(self, ctx_kwargs, expected_script_path, actual_script_path,
-             return_result=False, pass_parameter=False):
+             return_result=False):
         def mock_download_resource(script_path):
             self.assertEqual(script_path, expected_script_path)
             return actual_script_path
@@ -260,35 +260,11 @@ class TestScriptRunner(unittest.TestCase):
 
         ctx = MockCloudifyContext(**ctx_kwargs)
         ctx.download_resource = mock_download_resource
-        if pass_parameter:
-            result = tasks.run(expected_script_path, ctx=ctx)
-        else:
-            result = tasks.run(ctx=ctx)
+        result = tasks.run(expected_script_path, ctx=ctx)
         if return_result:
             return ctx, result
         else:
             return ctx
-
-    def test_script_path(self):
-        actual_script_path = self._create_script(
-            linux_script='''#! /bin/bash -e
-            ctx properties map.key value
-            ''',
-            windows_script='''
-            ctx properties map.key value
-            ''')
-        expected_script_path = 'expected_script_path'
-        ctx = self._run(
-            ctx_kwargs={
-                'properties': {
-                    'map': {},
-                    'script_path': expected_script_path
-                }
-            },
-            expected_script_path=expected_script_path,
-            actual_script_path=actual_script_path
-        )
-        self.assertEqual(ctx.properties['map']['key'], 'value')
 
     def test_script_path_parameter(self):
         actual_script_path = self._create_script(
@@ -307,7 +283,6 @@ class TestScriptRunner(unittest.TestCase):
             },
             expected_script_path=expected_script_path,
             actual_script_path=actual_script_path,
-            pass_parameter=True
         )
         self.assertEqual(ctx.properties['map']['key'], 'value')
 
@@ -324,7 +299,6 @@ class TestScriptRunner(unittest.TestCase):
             ctx_kwargs={
                 'properties': {
                     'map': {},
-                    'script_path': expected_script_path
                 }
             },
             expected_script_path=expected_script_path,
@@ -348,7 +322,6 @@ class TestScriptRunner(unittest.TestCase):
             ctx_kwargs={
                 'properties': {
                     'map': {},
-                    'script_path': expected_script_path,
                     'process': {
                         'env': {
                             'key1': 'value1',
@@ -379,7 +352,6 @@ class TestScriptRunner(unittest.TestCase):
             ctx_kwargs={
                 'properties': {
                     'map': {},
-                    'script_path': expected_script_path,
                     'process': {
                         'cwd': tmpdir
                     }
@@ -413,7 +385,6 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
             ctx_kwargs={
                 'properties': {
                     'map': {},
-                    'script_path': expected_script_path,
                     'process': {
                         'env': {'TEST_KEY': 'value'},
                         'command_prefix': command_prefix
@@ -426,44 +397,6 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
         )
         p_map = ctx.properties['map']
         self.assertEqual(p_map['key'], 'value')
-
-    def test_operation_scripts(self):
-        self._operation_scripts_impl('start', 'start')
-
-    def test_operation_scripts_no_mapping(self):
-        # This is the same as the test above only now we map start
-        # while the current operation is actually not_start
-        # so nothing should be executed, so no map.key should exist
-        # thus KeyError (small workaround)
-        self.assertRaises(KeyError,
-                          self._operation_scripts_impl,
-                          'not_start', 'start')
-
-    def _operation_scripts_impl(self, operation, scripts_operation):
-        actual_script_path = self._create_script(
-            linux_script='''#! /bin/bash -e
-            ctx properties map.key value
-            ctx properties map.key2 '@{"inner_key": 100}'
-            ''',
-            windows_script='''
-            ctx properties map.key value
-            ctx properties map.key2 "@{""inner_key"": 100}"
-            ''')
-        expected_script_path = 'expected_script_path'
-        ctx = self._run(
-            ctx_kwargs={
-                'operation': operation,
-                'properties': {
-                    'map': {},
-                    'scripts': {scripts_operation: expected_script_path}
-                }
-            },
-            expected_script_path=expected_script_path,
-            actual_script_path=actual_script_path
-        )
-        self.assertEqual(ctx.properties['map']['key'], 'value')
-        self.assertDictEqual(ctx.properties['map']['key2'],
-                             {'inner_key': 100})
 
     def test_no_script_path(self):
         self.assertRaises(NonRecoverableError,
@@ -488,7 +421,6 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
             self._run(
                 ctx_kwargs={
                     'properties': {
-                        'script_path': expected_script_path
                     }
                 },
                 expected_script_path=expected_script_path,
@@ -526,7 +458,6 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
             self._run(
                 ctx_kwargs={
                     'properties': {
-                        'script_path': expected_script_path
                     }
                 },
                 expected_script_path=expected_script_path,
@@ -555,7 +486,6 @@ if __name__ == '__main__':
             ctx_kwargs={
                 'properties': {
                     'map': {},
-                    'script_path': 'expected_script_path'
                 }
             },
             expected_script_path='expected_script_path',
@@ -575,7 +505,6 @@ if __name__ == '__main__':
             ctx_kwargs={
                 'properties': {
                     'map': {'list': [1, 2, 3, 4]},
-                    'script_path': 'expected_script_path'
                 }
             },
             expected_script_path='expected_script_path',
@@ -780,7 +709,7 @@ class TestEvalPythonConfiguration(unittest.TestCase):
     def setUp(self):
         self.original_eval_script = tasks.eval_script
         self.original_execute = tasks.execute
-        self.original_get_script_to_run = tasks.get_script_to_run
+        self.original_os_chmod = os.chmod
         self.addCleanup(self.cleanup)
 
         def eval_script(script_path, ctx):
@@ -793,46 +722,46 @@ class TestEvalPythonConfiguration(unittest.TestCase):
 
         tasks.eval_script = eval_script
         tasks.execute = execute
+        os.chmod = lambda p, m: None
 
     def cleanup(self):
         tasks.eval_script = self.original_eval_script
         tasks.execute = self.original_execute
-        tasks.get_script_to_run = self.original_get_script_to_run
+        os.chmod = self.original_os_chmod
+
+    def mock_ctx(self, **kwargs):
+        ctx = MockCloudifyContext(**kwargs)
+        ctx.download_resource = lambda s_path: s_path
+        return ctx
 
     def test_explicit_eval_without_py_extenstion(self):
         self.expected_call = 'eval'
-        tasks.get_script_to_run = lambda script_path, ctx: 'script_path'
-        tasks.run(ctx=MockCloudifyContext(properties={
+        tasks.run('script_path', ctx=self.mock_ctx(properties={
             'process': {'eval_python': True}
         }))
 
     def test_explicit_eval_with_py_extenstion(self):
         self.expected_call = 'eval'
-        tasks.get_script_to_run = lambda script_path, ctx: 'script_path.py'
-        tasks.run(ctx=MockCloudifyContext(properties={
+        tasks.run('script_path.py', ctx=self.mock_ctx(properties={
             'process': {'eval_python': True}
         }))
 
     def test_implicit_eval(self):
         self.expected_call = 'eval'
-        tasks.get_script_to_run = lambda script_path, ctx: 'script_path.py'
-        tasks.run(ctx=MockCloudifyContext())
+        tasks.run('script_path.py', ctx=self.mock_ctx())
 
     def test_explicit_execute_without_py_extension(self):
         self.expected_call = 'execute'
-        tasks.get_script_to_run = lambda script_path, ctx: 'script_path'
-        tasks.run(ctx=MockCloudifyContext(properties={
+        tasks.run('script_path', ctx=self.mock_ctx(properties={
             'process': {'eval_python': False}
         }))
 
     def test_explicit_execute_with_py_extension(self):
         self.expected_call = 'execute'
-        tasks.get_script_to_run = lambda script_path, ctx: 'script_path.py'
-        tasks.run(ctx=MockCloudifyContext(properties={
+        tasks.run('script_path.py', ctx=self.mock_ctx(properties={
             'process': {'eval_python': False}
         }))
 
     def test_implicit_execute(self):
         self.expected_call = 'execute'
-        tasks.get_script_to_run = lambda script_path, ctx: 'script_path'
-        tasks.run(ctx=MockCloudifyContext())
+        tasks.run('script_path', ctx=self.mock_ctx())
