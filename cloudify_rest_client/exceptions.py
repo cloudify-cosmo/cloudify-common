@@ -29,21 +29,20 @@ class CloudifyClientError(Exception):
         return self.message
 
 
-class CreateDeploymentInProgressError(CloudifyClientError):
+class DeploymentEnvironmentCreationInProgressError(CloudifyClientError):
     """
     Raised when there's attempt to execute a deployment workflow and
-    deployment creation workflow execution is still running.
+    deployment environment creation workflow execution is still running.
     In such a case, workflow execution should be retried after a reasonable
-    time or after the execution of deployment workers installation
+    time or after the execution of deployment environment creation workflow
     has terminated.
     """
 
-    ERROR_CODE = 'deployment_workers_not_yet_installed_error'
+    ERROR_CODE = 'deployment_environment_creation_in_progress_error'
 
     def __init__(self, message, server_traceback=None, status_code=-1):
-        super(CreateDeploymentInProgressError, self).__init__(message,
-                                                              server_traceback,
-                                                              status_code)
+        super(DeploymentEnvironmentCreationInProgressError,
+              self).__init__(message, server_traceback, status_code)
 
 
 class IllegalExecutionParametersError(CloudifyClientError):
