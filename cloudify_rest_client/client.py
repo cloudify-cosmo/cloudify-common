@@ -49,7 +49,8 @@ class HTTPClient(object):
             if url:
                 message = '{0} [{1}]'.format(message, url)
             error_msg = '{0}: {1}'.format(response.status_code, message)
-            raise CloudifyClientError(error_msg, response.status_code)
+            raise CloudifyClientError(error_msg,
+                                      status_code=response.status_code)
         message = result['message']
         code = result['error_code']
         server_traceback = result['server_traceback']
