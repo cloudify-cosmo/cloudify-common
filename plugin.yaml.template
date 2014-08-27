@@ -3,7 +3,7 @@
 ##################################################################################
 
 plugins:
-    scripts:
+    script:
         derived_from: cloudify.plugins.agent_plugin
         properties:
             url: https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/{{ plugin_branch }}.zip
