@@ -26,7 +26,6 @@ setup(
     description='Plugin for running scripts',
     install_requires=[
         'cloudify-plugins-common==3.1a2',
-        'pyzmq==14.3.1',
         'bottle==0.12.7'
     ],
     license='LICENSE',
