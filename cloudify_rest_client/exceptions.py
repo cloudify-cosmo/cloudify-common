@@ -25,7 +25,7 @@ class CloudifyClientError(Exception):
 
     def __str__(self):
         if self.status_code != -1:
-            return '{}: {}'.format(self.status_code, self.message)
+            return '{0}: {1}'.format(self.status_code, self.message)
         return self.message
 
 

@@ -110,7 +110,7 @@ class DeploymentsClient(object):
         :return: Deployment.
         """
         assert deployment_id
-        uri = '/deployments/{}'.format(deployment_id)
+        uri = '/deployments/{0}'.format(deployment_id)
         response = self.api.get(uri, _include=_include)
         return Deployment(response)
 
