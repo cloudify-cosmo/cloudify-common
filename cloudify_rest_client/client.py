@@ -13,10 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-__author__ = 'idanmo'
-
 import json
-
 import requests
 
 from cloudify_rest_client.blueprints import BlueprintsClient
@@ -28,9 +25,12 @@ from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.exceptions import CloudifyClientError
-from cloudify_rest_client.exceptions import CreateDeploymentInProgressError
+from cloudify_rest_client.exceptions import \
+    DeploymentEnvironmentCreationInProgressError
 from cloudify_rest_client.exceptions import IllegalExecutionParametersError
 from cloudify_rest_client.exceptions import NoSuchIncludeFieldError
+from cloudify_rest_client.exceptions import MissingRequiredDeploymentInputError
+from cloudify_rest_client.exceptions import UnknownDeploymentInputError
 
 
 class HTTPClient(object):
@@ -49,14 +49,14 @@ class HTTPClient(object):
             if url:
                 message = '{0} [{1}]'.format(message, url)
             error_msg = '{0}: {1}'.format(response.status_code, message)
-            raise CloudifyClientError(error_msg, response.status_code)
+            raise CloudifyClientError(error_msg,
+                                      status_code=response.status_code)
         message = result['message']
         code = result['error_code']
         server_traceback = result['server_traceback']
-        if code == CreateDeploymentInProgressError.ERROR_CODE:
-            raise CreateDeploymentInProgressError(message,
-                                                  server_traceback,
-                                                  response.status_code)
+        if code == DeploymentEnvironmentCreationInProgressError.ERROR_CODE:
+            raise DeploymentEnvironmentCreationInProgressError(
+                message, server_traceback, response.status_code)
         if code == IllegalExecutionParametersError.ERROR_CODE:
             raise IllegalExecutionParametersError(message,
                                                   server_traceback,
@@ -65,6 +65,14 @@ class HTTPClient(object):
             raise NoSuchIncludeFieldError(message,
                                           server_traceback,
                                           response.status_code)
+        if code == MissingRequiredDeploymentInputError.ERROR_CODE:
+            raise MissingRequiredDeploymentInputError(message,
+                                                      server_traceback,
+                                                      response.status_code)
+        if code == UnknownDeploymentInputError.ERROR_CODE:
+            raise UnknownDeploymentInputError(message,
+                                              server_traceback,
+                                              response.status_code)
 
         raise CloudifyClientError(message,
                                   server_traceback,
