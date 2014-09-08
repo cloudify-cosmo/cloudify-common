@@ -13,8 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-__author__ = 'idanmo'
-
 
 from cloudify_rest_client.executions import Execution
 
@@ -58,6 +56,13 @@ class Deployment(dict):
         """
         return self.get('inputs')
 
+    @property
+    def outputs(self):
+        """
+        :return: The outputs definition of this deployment.
+        """
+        return self.get('outputs')
+
 
 class Workflow(dict):
 
@@ -86,10 +91,44 @@ class Workflow(dict):
         return self['parameters']
 
 
+class DeploymentOutputs(dict):
+
+    def __init__(self, outputs):
+        self.update(outputs)
+
+    @property
+    def deployment_id(self):
+        """Deployment Id the outputs belong to."""
+        return self['deployment_id']
+
+    @property
+    def outputs(self):
+        """Deployment outputs as dict."""
+        return self['outputs']
+
+
+class DeploymentOutputsClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+    def get(self, deployment_id):
+        """Gets the outputs for the provided deployment's Id.
+
+        :param deployment_id: Deployment Id to get outputs for.
+        :return: Outputs as dict.
+        """
+        assert deployment_id
+        uri = '/deployments/{0}/outputs'.format(deployment_id)
+        response = self.api.get(uri)
+        return DeploymentOutputs(response)
+
+
 class DeploymentsClient(object):
 
     def __init__(self, api):
         self.api = api
+        self.outputs = DeploymentOutputsClient(api)
 
     def list(self, _include=None):
         """
