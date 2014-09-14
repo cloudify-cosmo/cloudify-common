@@ -150,7 +150,7 @@ class ExecutionsClient(object):
             'allow_custom_parameters': str(allow_custom_parameters).lower(),
             'force': str(force).lower()
         }
-        uri = '/executions'.format(deployment_id)
+        uri = '/executions'
         response = self.api.post(uri,
                                  data=data,
                                  expected_status_code=201)
