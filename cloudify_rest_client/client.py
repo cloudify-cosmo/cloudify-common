@@ -55,28 +55,19 @@ class HTTPClient(object):
         code = result['error_code']
         server_traceback = result['server_traceback']
         if code == DeploymentEnvironmentCreationInProgressError.ERROR_CODE:
-            raise DeploymentEnvironmentCreationInProgressError(
-                message, server_traceback, response.status_code)
-        if code == IllegalExecutionParametersError.ERROR_CODE:
-            raise IllegalExecutionParametersError(message,
-                                                  server_traceback,
-                                                  response.status_code)
-        if code == NoSuchIncludeFieldError.ERROR_CODE:
-            raise NoSuchIncludeFieldError(message,
-                                          server_traceback,
-                                          response.status_code)
-        if code == MissingRequiredDeploymentInputError.ERROR_CODE:
-            raise MissingRequiredDeploymentInputError(message,
-                                                      server_traceback,
-                                                      response.status_code)
-        if code == UnknownDeploymentInputError.ERROR_CODE:
-            raise UnknownDeploymentInputError(message,
-                                              server_traceback,
-                                              response.status_code)
-
-        raise CloudifyClientError(message,
-                                  server_traceback,
-                                  response.status_code)
+            error = DeploymentEnvironmentCreationInProgressError
+        elif code == IllegalExecutionParametersError.ERROR_CODE:
+            error = IllegalExecutionParametersError
+        elif code == NoSuchIncludeFieldError.ERROR_CODE:
+            error = NoSuchIncludeFieldError
+        elif code == MissingRequiredDeploymentInputError.ERROR_CODE:
+            error = MissingRequiredDeploymentInputError
+        elif code == UnknownDeploymentInputError.ERROR_CODE:
+            error = UnknownDeploymentInputError
+        else:
+            error = CloudifyClientError
+        raise error(message, server_traceback,
+                    response.status_code, error_code=code)
 
     def verify_response_status(self, response, expected_code=200):
         if response.status_code != expected_code:
