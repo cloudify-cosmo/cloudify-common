@@ -14,9 +14,6 @@
 #    * limitations under the License.
 
 
-from cloudify_rest_client.executions import Execution
-
-
 class Deployment(dict):
     """
     Cloudify deployment.
