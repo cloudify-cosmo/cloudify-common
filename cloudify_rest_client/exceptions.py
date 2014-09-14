@@ -13,14 +13,14 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-__author__ = 'idanmo'
-
 
 class CloudifyClientError(Exception):
 
-    def __init__(self, message, server_traceback=None, status_code=-1):
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
         super(CloudifyClientError, self).__init__(message)
         self.status_code = status_code
+        self.error_code = error_code
         self.server_traceback = server_traceback
 
     def __str__(self):
@@ -40,9 +40,11 @@ class DeploymentEnvironmentCreationInProgressError(CloudifyClientError):
 
     ERROR_CODE = 'deployment_environment_creation_in_progress_error'
 
-    def __init__(self, message, server_traceback=None, status_code=-1):
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
         super(DeploymentEnvironmentCreationInProgressError,
-              self).__init__(message, server_traceback, status_code)
+              self).__init__(message, server_traceback,
+                             status_code, error_code)
 
 
 class IllegalExecutionParametersError(CloudifyClientError):
@@ -53,9 +55,10 @@ class IllegalExecutionParametersError(CloudifyClientError):
 
     ERROR_CODE = 'illegal_execution_parameters_error'
 
-    def __init__(self, message, server_traceback=None, status_code=-1):
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
         super(IllegalExecutionParametersError, self).__init__(
-            message, server_traceback, status_code)
+            message, server_traceback, status_code, error_code)
 
 
 class NoSuchIncludeFieldError(CloudifyClientError):
@@ -66,9 +69,10 @@ class NoSuchIncludeFieldError(CloudifyClientError):
 
     ERROR_CODE = 'no_such_include_field_error'
 
-    def __init__(self, message, server_traceback=None, status_code=-1):
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
         super(NoSuchIncludeFieldError, self).__init__(
-            message, server_traceback, status_code)
+            message, server_traceback, status_code, error_code)
 
 
 class MissingRequiredDeploymentInputError(CloudifyClientError):
@@ -78,9 +82,10 @@ class MissingRequiredDeploymentInputError(CloudifyClientError):
     """
     ERROR_CODE = 'missing_required_deployment_input_error'
 
-    def __init__(self, message, server_traceback=None, status_code=-1):
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
         super(MissingRequiredDeploymentInputError, self).__init__(
-            message, server_traceback, status_code)
+            message, server_traceback, status_code, error_code)
 
 
 class UnknownDeploymentInputError(CloudifyClientError):
@@ -89,6 +94,7 @@ class UnknownDeploymentInputError(CloudifyClientError):
     """
     ERROR_CODE = 'unknown_deployment_input_error'
 
-    def __init__(self, message, server_traceback=None, status_code=-1):
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
         super(UnknownDeploymentInputError, self).__init__(
-            message, server_traceback, status_code)
+            message, server_traceback, status_code, error_code)

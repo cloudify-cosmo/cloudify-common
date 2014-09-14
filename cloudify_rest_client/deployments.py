@@ -14,9 +14,6 @@
 #    * limitations under the License.
 
 
-from cloudify_rest_client.executions import Execution
-
-
 class Deployment(dict):
     """
     Cloudify deployment.
@@ -189,46 +186,3 @@ class DeploymentsClient(object):
         response = self.api.delete('/deployments/{0}'.format(deployment_id),
                                    params=params)
         return Deployment(response)
-
-    def list_executions(self, deployment_id):
-        """
-        Returns a list of executions for the provided deployment's id.
-
-        :param deployment_id: Deployment id to get a list of executions for.
-        :return: List of executions.
-        """
-        assert deployment_id
-        uri = '/deployments/{0}/executions'.format(deployment_id)
-        response = self.api.get(uri)
-        return [Execution(item) for item in response]
-
-    def execute(self, deployment_id, workflow_id, parameters=None,
-                allow_custom_parameters=False, force=False):
-        """
-        Executes a deployment's workflow whose id is provided.
-
-        :param deployment_id: The deployment's id to execute a workflow for.
-        :param workflow_id: The workflow to be executed id.
-        :param parameters: Parameters for the workflow execution.
-        :param allow_custom_parameters: Determines whether to allow
-         parameters which weren't defined in the workflow parameters schema
-         in the blueprint.
-        :param force: Determines whether to force the execution of the workflow
-         in a case where there's an already running execution for this
-         deployment.
-        :raises: IllegalExecutionParametersError
-        :return: The created execution.
-        """
-        assert deployment_id
-        assert workflow_id
-        data = {
-            'workflow_id': workflow_id,
-            'parameters': parameters,
-            'allow_custom_parameters': str(allow_custom_parameters).lower(),
-            'force': str(force).lower()
-        }
-        uri = '/deployments/{0}/executions'.format(deployment_id)
-        response = self.api.post(uri,
-                                 data=data,
-                                 expected_status_code=201)
-        return Execution(response)
