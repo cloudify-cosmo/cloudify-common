@@ -1,0 +1,26 @@
+tosca_definitions_version: cloudify_1_0
+
+inputs:
+    script_path: {}
+    process:     {}
+
+node_templates:
+    test:
+        type: type
+        interfaces:
+            test:
+                - run:
+                    mapping: script.script_runner.tasks.run
+                    properties:
+                        script_path: { get_input: script_path }
+                        process:     { get_input: process     }
+
+workflows:
+    execute_operation: script.script_runner.tests.test_script_runner.execute_operation
+
+plugins:
+    script:
+        executor: central_deployment_agent
+        install: false
+
+node_types: { type: {} }

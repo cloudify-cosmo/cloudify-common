@@ -24,6 +24,9 @@ from StringIO import StringIO
 import requests
 from nose.tools import nottest, istest
 
+from cloudify.decorators import workflow
+from cloudify.workflows import local
+from cloudify.workflows import ctx as workflow_ctx
 from cloudify.mocks import MockCloudifyContext
 from cloudify.exceptions import NonRecoverableError
 
@@ -243,169 +246,120 @@ class TestScriptRunner(unittest.TestCase):
             f.write(script)
         return script_path
 
-    def _run(self, ctx_kwargs, expected_script_path, actual_script_path,
-             return_result=False, process=None):
-        def mock_download_resource(script_path):
-            self.assertEqual(script_path, expected_script_path)
-            return actual_script_path
-
-        if 'properties' not in ctx_kwargs:
-            ctx_kwargs['properties'] = {}
+    def _run(self, script_path, process=None):
 
         process = process or {}
         process.update({
             'ctx_proxy_type': self.ctx_proxy_type
         })
 
-        ctx = MockCloudifyContext(**ctx_kwargs)
-        ctx.download_resource = mock_download_resource
-        result = tasks.run(expected_script_path, process=process, ctx=ctx)
-        if return_result:
-            return ctx, result
-        else:
-            return ctx
+        inputs = {
+            'script_path': script_path,
+            'process': process
+        }
+        blueprint_path = os.path.join(os.path.dirname(__file__),
+                                      'blueprint', 'blueprint.yaml')
+        self.env = local.init_env(blueprint_path,
+                                  name=self._testMethodName,
+                                  inputs=inputs)
+        result = self.env.execute('execute_operation',
+                                  task_retries=0)
+        if not result:
+            result = self.env.storage.get_node_instances()[0][
+                'runtime_properties']
+        return result
 
     def test_script_path_parameter(self):
-        actual_script_path = self._create_script(
+        script_path = self._create_script(
             linux_script='''#! /bin/bash -e
-            ctx properties map.key value
+            ctx runtime-properties map.key value
             ''',
             windows_script='''
-            ctx properties map.key value
+            ctx runtime-properties map.key value
             ''')
-        expected_script_path = 'expected_script_path'
-        ctx = self._run(
-            ctx_kwargs={
-                'properties': {
-                    'map': {}
-                }
-            },
-            expected_script_path=expected_script_path,
-            actual_script_path=actual_script_path,
-        )
-        self.assertEqual(ctx.properties['map']['key'], 'value')
+        props = self._run(script_path=script_path)
+        self.assertEqual(props['map']['key'], 'value')
 
     def test_return_value(self):
-        actual_script_path = self._create_script(
+        script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx returns '@["1", 2, true]'
             ''',
             windows_script='''
             ctx returns "@[""1"", 2, true]"
             ''')
-        expected_script_path = 'expected_script_path'
-        ctx, result = self._run(
-            ctx_kwargs={
-                'properties': {
-                    'map': {},
-                }
-            },
-            expected_script_path=expected_script_path,
-            actual_script_path=actual_script_path,
-            return_result=True
-        )
+        result = self._run(script_path=script_path)
         self.assertEqual(result, ['1', 2, True])
 
     def test_process_env(self):
-        actual_script_path = self._create_script(
+        script_path = self._create_script(
             linux_script='''#! /bin/bash -e
-            ctx properties map.key1 $key1
-            ctx properties map.key2 $key2
+            ctx runtime-properties map.key1 $key1
+            ctx runtime-properties map.key2 $key2
             ''',
             windows_script='''
-            ctx properties map.key1 %key1%
-            ctx properties map.key2 %key2%
+            ctx runtime-properties map.key1 %key1%
+            ctx runtime-properties map.key2 %key2%
             ''')
-        expected_script_path = 'expected_script_path'
-        ctx, result = self._run(
-            ctx_kwargs={
-                'properties': {
-                    'map': {},
-                }
-            },
-            expected_script_path=expected_script_path,
-            actual_script_path=actual_script_path,
-            return_result=True,
+        props = self._run(
+            script_path=script_path,
             process={
                 'env': {
                     'key1': 'value1',
                     'key2': 'value2'
                 }
-            }
-        )
-        p_map = ctx.properties['map']
+            })
+        p_map = props['map']
         self.assertEqual(p_map['key1'], 'value1')
         self.assertEqual(p_map['key2'], 'value2')
 
     def test_process_cwd(self):
-        actual_script_path = self._create_script(
+        script_path = self._create_script(
             linux_script='''#! /bin/bash -e
-            ctx properties map.cwd $PWD
+            ctx runtime-properties map.cwd $PWD
             ''',
             windows_script='''#! /bin/bash -e
-            ctx properties map.cwd %CD%
+            ctx runtime-properties map.cwd %CD%
             ''')
-        expected_script_path = 'expected_script_path'
         tmpdir = tempfile.gettempdir()
-        ctx, result = self._run(
-            ctx_kwargs={
-                'properties': {
-                    'map': {},
-                }
-            },
-            expected_script_path=expected_script_path,
-            actual_script_path=actual_script_path,
-            return_result=True,
+        props = self._run(
+            script_path=script_path,
             process={
                 'cwd': tmpdir
-            }
-        )
-        p_map = ctx.properties['map']
+            })
+        p_map = props['map']
         self.assertEqual(p_map['cwd'], tmpdir)
 
     def test_process_command_prefix(self):
-        actual_script_path = self._create_script(
+        script_path = self._create_script(
             linux_script='''
 import subprocess
-subprocess.check_output('ctx properties map.key value'.split(' '))
+subprocess.check_output('ctx runtime-properties map.key value'.split(' '))
             ''',
             windows_script='''
-            ctx properties map.key $env:TEST_KEY
+            ctx runtime-properties map.key $env:TEST_KEY
             ''',
             windows_suffix='.ps1')
-        expected_script_path = 'expected_script_path'
-
         if IS_WINDOWS:
             command_prefix = 'powershell'
         else:
             command_prefix = 'python'
 
-        ctx, result = self._run(
-            ctx_kwargs={
-                'properties': {
-                    'map': {},
-                }
-            },
-            expected_script_path=expected_script_path,
-            actual_script_path=actual_script_path,
-            return_result=True,
+        props = self._run(
+            script_path=script_path,
             process={
                 'env': {'TEST_KEY': 'value'},
                 'command_prefix': command_prefix
-            }
-        )
-        p_map = ctx.properties['map']
+            })
+        p_map = props['map']
         self.assertEqual(p_map['key'], 'value')
 
     def test_no_script_path(self):
         self.assertRaises(NonRecoverableError,
-                          self._run,
-                          ctx_kwargs={},
-                          expected_script_path=None,
-                          actual_script_path=None)
+                          self._run, script_path=None)
 
     def test_script_error(self):
-        actual_script_path = self._create_script(
+        script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             echo 123123
             command_that_does_not_exist
@@ -415,16 +369,8 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
             echo 123123
             command_that_does_not_exist
             ''')
-        expected_script_path = 'expected_script_path'
         try:
-            self._run(
-                ctx_kwargs={
-                    'properties': {
-                    }
-                },
-                expected_script_path=expected_script_path,
-                actual_script_path=actual_script_path
-            )
+            self._run(script_path=script_path)
             self.fail()
         except tasks.ProcessException, e:
             expected_exit_code = 1 if IS_WINDOWS else 127
@@ -434,37 +380,28 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
                                   "command,\r\noperable program or batch " \
                                   "file."
             else:
-                expected_stderr = '{}: line 3: ' \
+                expected_stderr = ': line 3: ' \
                                   'command_that_does_not_exist: command ' \
-                                  'not found' \
-                                  .format(actual_script_path)
+                                  'not found'
 
-            self.assertEqual(e.command, actual_script_path)
+            self.assertIn(os.path.basename(script_path), e.command)
             self.assertEqual(e.exit_code, expected_exit_code)
             self.assertEqual(e.stdout.strip(), '123123')
-            self.assertEqual(e.stderr.strip(), expected_stderr)
+            self.assertIn(expected_stderr, e.stderr.strip())
 
     def test_script_error_from_bad_ctx_request(self):
-        actual_script_path = self._create_script(
+        script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx property_that_does_not_exist
             ''',
             windows_script='''
             ctx property_that_does_not_exist
             ''')
-        expected_script_path = 'expected_script_path'
         try:
-            self._run(
-                ctx_kwargs={
-                    'properties': {
-                    }
-                },
-                expected_script_path=expected_script_path,
-                actual_script_path=actual_script_path
-            )
+            self._run(script_path=script_path)
             self.fail()
         except tasks.ProcessException, e:
-            self.assertEqual(e.command, actual_script_path)
+            self.assertIn(os.path.basename(script_path), e.command)
             self.assertEqual(e.exit_code, 1)
             self.assertIn('RequestError', e.stderr)
             self.assertIn('property_that_does_not_exist', e.stderr)
@@ -473,43 +410,16 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
         script = '''
 if __name__ == '__main__':
     from cloudify import ctx
-    ctx.properties['map']['key'] = 'value'
+    ctx.runtime_properties['key'] = 'value'
 '''
         suffix = '.py'
-        actual_script_path = self._create_script(
+        script_path = self._create_script(
             linux_script=script,
             windows_script=script,
             linux_suffix=suffix,
             windows_suffix=suffix)
-        ctx = self._run(
-            ctx_kwargs={
-                'properties': {
-                    'map': {},
-                }
-            },
-            expected_script_path='expected_script_path',
-            actual_script_path=actual_script_path
-        )
-        self.assertEqual(ctx.properties['map']['key'], 'value')
-
-    def test_ruby_ctx(self):
-        if IS_WINDOWS:
-            raise unittest.SkipTest('ruby test skipped on windows')
-        actual_script_path = self._create_script(
-            linux_script='''#! /bin/ruby
-            load '/home/dan/work/ruby-ctx/ctx.rb'
-            ''',
-            windows_script='')
-        ctx = self._run(
-            ctx_kwargs={
-                'properties': {
-                    'map': {'list': [1, 2, 3, 4]},
-                }
-            },
-            expected_script_path='expected_script_path',
-            actual_script_path=actual_script_path
-        )
-        print ctx.properties['map']['new_key']
+        props = self._run(script_path=script_path)
+        self.assertEqual(props['key'], 'value')
 
 
 @istest
@@ -766,3 +676,10 @@ class TestEvalPythonConfiguration(unittest.TestCase):
         self.expected_call = 'execute'
         tasks.run('script_path',
                   ctx=self.mock_ctx())
+
+
+@workflow
+def execute_operation(**_):
+    node = next(workflow_ctx.nodes)
+    instance = next(node.instances)
+    return instance.execute_operation('test.run').get()
