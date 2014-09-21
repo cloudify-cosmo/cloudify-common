@@ -448,6 +448,7 @@ if __name__ == '__main__':
                            parameters={'key': 'value'})
         self.assertEqual(result, 'value')
 
+
 @istest
 class TestScriptRunnerUnixCtxProxy(TestScriptRunner):
 
