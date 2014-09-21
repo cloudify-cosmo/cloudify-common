@@ -26,7 +26,6 @@ from cloudify import ctx as operation_ctx
 from cloudify.workflows import ctx as workflows_ctx
 from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
-from cloudify.manager import download_blueprint_resource
 
 from script_runner import eval_env
 from script_runner.ctx_proxy import (UnixCtxProxy,
@@ -99,6 +98,10 @@ def execute(script_path, ctx, process):
         command = '{} {}'.format(command_prefix, script_path)
     else:
         command = script_path
+
+    args = process.get('args')
+    if args:
+        command = ' '.join([command] + args)
 
     ctx.logger.info('Executing: {}'.format(command))
 

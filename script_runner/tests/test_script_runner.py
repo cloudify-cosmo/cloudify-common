@@ -322,7 +322,7 @@ class TestScriptRunner(unittest.TestCase):
             linux_script='''#! /bin/bash -e
             ctx runtime-properties map.cwd $PWD
             ''',
-            windows_script='''#! /bin/bash -e
+            windows_script='''
             ctx runtime-properties map.cwd %CD%
             ''')
         tmpdir = tempfile.gettempdir()
@@ -357,6 +357,23 @@ subprocess.check_output('ctx runtime-properties map.key value'.split(' '))
             })
         p_map = props['map']
         self.assertEqual(p_map['key'], 'value')
+
+    def test_process_args(self):
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx runtime-properties map.arg1 "$1"
+            ctx runtime-properties map.arg2 $2
+            ''',
+            windows_script='''
+
+            ''')
+        props = self._run(
+            script_path=script_path,
+            process={
+                'args': ['"arg with spaces"', 'arg2']
+            })
+        self.assertEqual('arg with spaces', props['map']['arg1'])
+        self.assertEqual('arg2', props['map']['arg2'])
 
     def test_no_script_path(self):
         self.assertRaises(NonRecoverableError,
