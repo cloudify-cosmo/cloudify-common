@@ -246,7 +246,10 @@ class TestScriptRunner(unittest.TestCase):
             f.write(script)
         return script_path
 
-    def _run(self, script_path, process=None):
+    def _run(self, script_path,
+             process=None,
+             workflow_name='execute_operation',
+             parameters=None):
 
         process = process or {}
         process.update({
@@ -262,7 +265,8 @@ class TestScriptRunner(unittest.TestCase):
         self.env = local.init_env(blueprint_path,
                                   name=self._testMethodName,
                                   inputs=inputs)
-        result = self.env.execute('execute_operation',
+        result = self.env.execute(workflow_name,
+                                  parameters=parameters,
                                   task_retries=0)
         if not result:
             result = self.env.storage.get_node_instances()[0][
@@ -421,6 +425,11 @@ if __name__ == '__main__':
         props = self._run(script_path=script_path)
         self.assertEqual(props['key'], 'value')
 
+    def test_execute_workflow(self):
+        result = self._run(script_path=None,  # overridden by workflow
+                           workflow_name='workflow_script',
+                           parameters={'key': 'value'})
+        self.assertEqual(result, 'value')
 
 @istest
 class TestScriptRunnerUnixCtxProxy(TestScriptRunner):

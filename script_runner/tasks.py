@@ -59,9 +59,8 @@ def run(script_path, process=None, **kwargs):
 @workflow
 def execute_workflow(script_path, **kwargs):
     ctx = workflows_ctx._get_current_object()
-    script_path = download_blueprint_resource(ctx.blueprint_id,
-                                              script_path,
-                                              ctx.logger)
+    script_path = ctx.internal.handler.download_blueprint_resource(
+        script_path)
     return process_execution(eval_script, script_path, ctx)
 
 
