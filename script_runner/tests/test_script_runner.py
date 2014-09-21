@@ -365,7 +365,8 @@ subprocess.check_output('ctx runtime-properties map.key value'.split(' '))
             ctx runtime-properties map.arg2 $2
             ''',
             windows_script='''
-
+            ctx runtime-properties map.arg1 %1
+            ctx runtime-properties map.arg2 %2
             ''')
         props = self._run(
             script_path=script_path,
