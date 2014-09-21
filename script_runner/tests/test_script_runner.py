@@ -244,23 +244,22 @@ class TestScriptRunner(unittest.TestCase):
         return script_path
 
     def _run(self, ctx_kwargs, expected_script_path, actual_script_path,
-             return_result=False):
+             return_result=False, process=None):
         def mock_download_resource(script_path):
             self.assertEqual(script_path, expected_script_path)
             return actual_script_path
 
         if 'properties' not in ctx_kwargs:
             ctx_kwargs['properties'] = {}
-        if 'process' not in ctx_kwargs['properties']:
-            ctx_kwargs['properties']['process'] = {}
-        process_config = ctx_kwargs['properties']['process']
-        process_config.update({
+
+        process = process or {}
+        process.update({
             'ctx_proxy_type': self.ctx_proxy_type
         })
 
         ctx = MockCloudifyContext(**ctx_kwargs)
         ctx.download_resource = mock_download_resource
-        result = tasks.run(expected_script_path, ctx=ctx)
+        result = tasks.run(expected_script_path, process=process, ctx=ctx)
         if return_result:
             return ctx, result
         else:
@@ -322,17 +321,17 @@ class TestScriptRunner(unittest.TestCase):
             ctx_kwargs={
                 'properties': {
                     'map': {},
-                    'process': {
-                        'env': {
-                            'key1': 'value1',
-                            'key2': 'value2'
-                        }
-                    }
                 }
             },
             expected_script_path=expected_script_path,
             actual_script_path=actual_script_path,
-            return_result=True
+            return_result=True,
+            process={
+                'env': {
+                    'key1': 'value1',
+                    'key2': 'value2'
+                }
+            }
         )
         p_map = ctx.properties['map']
         self.assertEqual(p_map['key1'], 'value1')
@@ -352,14 +351,14 @@ class TestScriptRunner(unittest.TestCase):
             ctx_kwargs={
                 'properties': {
                     'map': {},
-                    'process': {
-                        'cwd': tmpdir
-                    }
                 }
             },
             expected_script_path=expected_script_path,
             actual_script_path=actual_script_path,
-            return_result=True
+            return_result=True,
+            process={
+                'cwd': tmpdir
+            }
         )
         p_map = ctx.properties['map']
         self.assertEqual(p_map['cwd'], tmpdir)
@@ -385,15 +384,15 @@ subprocess.check_output('ctx properties map.key value'.split(' '))
             ctx_kwargs={
                 'properties': {
                     'map': {},
-                    'process': {
-                        'env': {'TEST_KEY': 'value'},
-                        'command_prefix': command_prefix
-                    }
                 }
             },
             expected_script_path=expected_script_path,
             actual_script_path=actual_script_path,
-            return_result=True
+            return_result=True,
+            process={
+                'env': {'TEST_KEY': 'value'},
+                'command_prefix': command_prefix
+            }
         )
         p_map = ctx.properties['map']
         self.assertEqual(p_map['key'], 'value')
@@ -578,10 +577,10 @@ class TestCtxProxyType(unittest.TestCase):
         self.assert_valid_ctx_proxy(ctx_proxy_type, expected_type)
 
     def assert_valid_ctx_proxy(self, ctx_proxy_type, expected_type):
-        process_config = {}
+        process = {}
         if ctx_proxy_type:
-            process_config['ctx_proxy_type'] = ctx_proxy_type
-        proxy = tasks.start_ctx_proxy(None, process_config)
+            process['ctx_proxy_type'] = ctx_proxy_type
+        proxy = tasks.start_ctx_proxy(None, process)
         try:
             self.assertEqual(type(proxy), expected_type)
         finally:
@@ -712,11 +711,11 @@ class TestEvalPythonConfiguration(unittest.TestCase):
         self.original_os_chmod = os.chmod
         self.addCleanup(self.cleanup)
 
-        def eval_script(script_path, ctx):
+        def eval_script(script_path, ctx, process):
             if self.expected_call != 'eval':
                 self.fail()
 
-        def execute(script_path, ctx):
+        def execute(script_path, ctx, process):
             if self.expected_call != 'execute':
                 self.fail()
 
@@ -736,32 +735,34 @@ class TestEvalPythonConfiguration(unittest.TestCase):
 
     def test_explicit_eval_without_py_extenstion(self):
         self.expected_call = 'eval'
-        tasks.run('script_path', ctx=self.mock_ctx(properties={
-            'process': {'eval_python': True}
-        }))
+        tasks.run('script_path',
+                  process={'eval_python': True},
+                  ctx=self.mock_ctx())
 
     def test_explicit_eval_with_py_extenstion(self):
         self.expected_call = 'eval'
-        tasks.run('script_path.py', ctx=self.mock_ctx(properties={
-            'process': {'eval_python': True}
-        }))
+        tasks.run('script_path.py',
+                  process={'eval_python': True},
+                  ctx=self.mock_ctx())
 
     def test_implicit_eval(self):
         self.expected_call = 'eval'
-        tasks.run('script_path.py', ctx=self.mock_ctx())
+        tasks.run('script_path.py',
+                  ctx=self.mock_ctx())
 
     def test_explicit_execute_without_py_extension(self):
         self.expected_call = 'execute'
-        tasks.run('script_path', ctx=self.mock_ctx(properties={
-            'process': {'eval_python': False}
-        }))
+        tasks.run('script_path',
+                  process={'eval_python': False},
+                  ctx=self.mock_ctx())
 
     def test_explicit_execute_with_py_extension(self):
         self.expected_call = 'execute'
-        tasks.run('script_path.py', ctx=self.mock_ctx(properties={
-            'process': {'eval_python': False}
-        }))
+        tasks.run('script_path.py',
+                  process={'eval_python': False},
+                  ctx=self.mock_ctx())
 
     def test_implicit_execute(self):
         self.expected_call = 'execute'
-        tasks.run('script_path', ctx=self.mock_ctx())
+        tasks.run('script_path',
+                  ctx=self.mock_ctx())
