@@ -26,7 +26,6 @@ from cloudify import ctx as operation_ctx
 from cloudify.workflows import ctx as workflows_ctx
 from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
-from cloudify.manager import download_blueprint_resource
 
 from script_runner import eval_env
 from script_runner.ctx_proxy import (UnixCtxProxy,
@@ -45,36 +44,36 @@ IS_WINDOWS = os.name == 'nt'
 
 
 @operation
-def run(script_path, **kwargs):
+def run(script_path, process=None, **kwargs):
     ctx = operation_ctx._get_current_object()
     if script_path is None:
         raise NonRecoverableError('Script path parameter not defined')
+    process = process or {}
     script_path = ctx.download_resource(script_path)
     os.chmod(script_path, 0755)
-    script_func = get_run_script_func(script_path, ctx)
-    return process(script_func, script_path, ctx)
+    script_func = get_run_script_func(script_path, process)
+    return process_execution(script_func, script_path, ctx, process)
 
 
 @workflow
 def execute_workflow(script_path, **kwargs):
     ctx = workflows_ctx._get_current_object()
-    script_path = download_blueprint_resource(ctx.blueprint_id,
-                                              script_path,
-                                              ctx.logger)
-    return process(eval_script, script_path, ctx)
+    script_path = ctx.internal.handler.download_blueprint_resource(
+        script_path)
+    return process_execution(eval_script, script_path, ctx)
 
 
-def process(script_func, script_path, ctx):
+def process_execution(script_func, script_path, ctx, process=None):
     def returns(value):
         ctx._return_value = value
     ctx.returns = returns
     ctx._return_value = None
-    script_func(script_path, ctx)
+    script_func(script_path, ctx, process)
     return ctx._return_value
 
 
-def get_run_script_func(script_path, ctx):
-    eval_python = ctx.properties.get('process', {}).get('eval_python')
+def get_run_script_func(script_path, process):
+    eval_python = process.get('eval_python')
     if eval_python is True or (script_path.endswith('.py') and
                                eval_python is not False):
         return eval_script
@@ -82,24 +81,27 @@ def get_run_script_func(script_path, ctx):
         return execute
 
 
-def execute(script_path, ctx):
+def execute(script_path, ctx, process):
     on_posix = 'posix' in sys.builtin_module_names
-    process_config = ctx.properties.get('process', {})
 
-    proxy = start_ctx_proxy(ctx, process_config)
+    proxy = start_ctx_proxy(ctx, process)
 
     env = os.environ.copy()
-    process_env = process_config.get('env', {})
+    process_env = process.get('env', {})
     env.update(process_env)
     env[CTX_SOCKET_URL] = proxy.socket_url
 
-    cwd = process_config.get('cwd')
+    cwd = process.get('cwd')
 
-    command_prefix = process_config.get('command_prefix')
+    command_prefix = process.get('command_prefix')
     if command_prefix:
         command = '{} {}'.format(command_prefix, script_path)
     else:
         command = script_path
+
+    args = process.get('args')
+    if args:
+        command = ' '.join([command] + args)
 
     ctx.logger.info('Executing: {}'.format(command))
 
@@ -138,8 +140,8 @@ def execute(script_path, ctx):
                                stderr_consumer.buffer.getvalue())
 
 
-def start_ctx_proxy(ctx, process_config):
-    ctx_proxy_type = process_config.get('ctx_proxy_type')
+def start_ctx_proxy(ctx, process):
+    ctx_proxy_type = process.get('ctx_proxy_type')
     if not ctx_proxy_type or ctx_proxy_type == 'auto':
         if HAS_ZMQ:
             if IS_WINDOWS:
@@ -177,7 +179,7 @@ def get_unused_port():
     return port
 
 
-def eval_script(script_path, ctx):
+def eval_script(script_path, ctx, process=None):
     eval_globals = eval_env.setup_env_and_globals(script_path)
     execfile(script_path, eval_globals)
 
