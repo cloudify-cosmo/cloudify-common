@@ -15,6 +15,7 @@
 
 import json
 import requests
+import logging
 
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.deployments import DeploymentsClient
@@ -32,6 +33,7 @@ from cloudify_rest_client.exceptions import NoSuchIncludeFieldError
 from cloudify_rest_client.exceptions import MissingRequiredDeploymentInputError
 from cloudify_rest_client.exceptions import UnknownDeploymentInputError
 
+log = logging.getLogger(__name__)
 
 class HTTPClient(object):
 
@@ -81,13 +83,23 @@ class HTTPClient(object):
                    expected_status_code=200):
         request_url = '{0}{1}'.format(self.url, uri)
         body = json.dumps(data) if data is not None else None
-
+        print_content = ''
+        if body is not None:
+            print_content = body
+        log.debug('Sending request: "%s %s" %s'
+                  %(requests_method.func_name.upper(), request_url, print_content))
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
                                    headers={
                                        'Content-type': 'application/json'
                                    })
+        for hdr, hdr_content in response.request.headers.iteritems():
+            log.debug('request header:  %s: %s' % (hdr, hdr_content))
+        log.debug('reply:  "%s %s" %s' % (response.status_code, response.reason, response.content))
+        for hdr, hdr_content in response.headers.iteritems():
+            log.debug('response header:  %s: %s' % (hdr, hdr_content))
+
         if response.status_code != expected_status_code:
             self._raise_client_error(response, request_url)
         return response.json()
@@ -98,7 +110,7 @@ class HTTPClient(object):
             fields = ','.join(_include)
             if not params:
                 params = {}
-            params['_include'] = fields
+            params['_include'] = fieldskeys
         return self.do_request(requests.get,
                                uri,
                                data=data,
