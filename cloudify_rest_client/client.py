@@ -83,10 +83,8 @@ class HTTPClient(object):
                    expected_status_code=200):
         request_url = '{0}{1}'.format(self.url, uri)
         body = json.dumps(data) if data is not None else None
-        print_content = ''
         if self.logger.isEnabledFor(logging.DEBUG):
-            if body is not None:
-                print_content = body
+            print_content = body if body is not None else ''
             self.logger.debug('Sending request: "%s %s" %s'
                               % (requests_method.func_name.upper(),
                                  request_url, print_content))
