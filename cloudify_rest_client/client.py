@@ -33,7 +33,6 @@ from cloudify_rest_client.exceptions import NoSuchIncludeFieldError
 from cloudify_rest_client.exceptions import MissingRequiredDeploymentInputError
 from cloudify_rest_client.exceptions import UnknownDeploymentInputError
 
-log = logging.getLogger(__name__)
 
 class HTTPClient(object):
 
@@ -41,6 +40,7 @@ class HTTPClient(object):
         self.port = port
         self.host = host
         self.url = 'http://{0}:{1}'.format(host, port)
+        self.logger = logging.getLogger('cloudify.rest_client.http')
 
     @staticmethod
     def _raise_client_error(response, url=None):
@@ -86,7 +86,7 @@ class HTTPClient(object):
         print_content = ''
         if body is not None:
             print_content = body
-        log.debug('Sending request: "%s %s" %s'
+        self.logger.debug('Sending request: "%s %s" %s'
                   %(requests_method.func_name.upper(), request_url, print_content))
         response = requests_method(request_url,
                                    data=body,
@@ -95,10 +95,10 @@ class HTTPClient(object):
                                        'Content-type': 'application/json'
                                    })
         for hdr, hdr_content in response.request.headers.iteritems():
-            log.debug('request header:  %s: %s' % (hdr, hdr_content))
-        log.debug('reply:  "%s %s" %s' % (response.status_code, response.reason, response.content))
+            self.logger.debug('request header:  %s: %s' % (hdr, hdr_content))
+        self.logger.debug('reply:  "%s %s" %s' % (response.status_code, response.reason, response.content))
         for hdr, hdr_content in response.headers.iteritems():
-            log.debug('response header:  %s: %s' % (hdr, hdr_content))
+            self.logger.debug('response header:  %s: %s' % (hdr, hdr_content))
 
         if response.status_code != expected_status_code:
             self._raise_client_error(response, request_url)
