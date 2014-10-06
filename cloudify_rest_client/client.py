@@ -98,12 +98,14 @@ class HTTPClient(object):
                                    })
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.iteritems():
-                self.logger.debug('request header:  %s: %s' % (hdr, hdr_content))
+                self.logger.debug('request header:  %s: %s'
+                                  % (hdr, hdr_content))
             self.logger.debug('reply:  "%s %s" %s'
                               % (response.status_code,
                                  response.reason, response.content))
             for hdr, hdr_content in response.headers.iteritems():
-                self.logger.debug('response header:  %s: %s' % (hdr, hdr_content))
+                self.logger.debug('response header:  %s: %s'
+                                  % (hdr, hdr_content))
 
         if response.status_code != expected_status_code:
             self._raise_client_error(response, request_url)
