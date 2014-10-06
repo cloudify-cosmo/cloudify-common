@@ -84,9 +84,9 @@ class HTTPClient(object):
         request_url = '{0}{1}'.format(self.url, uri)
         body = json.dumps(data) if data is not None else None
         print_content = ''
-        if body is not None:
-            print_content = body
         if self.logger.isEnabledFor(logging.DEBUG):
+            if body is not None:
+                print_content = body
             self.logger.debug('Sending request: "%s %s" %s'
                               % (requests_method.func_name.upper(),
                                  request_url, print_content))
