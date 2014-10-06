@@ -20,7 +20,7 @@ from setuptools import setup
 
 setup(
     name='cloudify-rest-client',
-    version='3.1a4',
+    version='3.1a5',
     author='ran',
     author_email='ran@gigaspaces.com',
     packages=['cloudify_rest_client'],
