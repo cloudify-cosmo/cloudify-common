@@ -87,7 +87,8 @@ class HTTPClient(object):
         if body is not None:
             print_content = body
         self.logger.debug('Sending request: "%s %s" %s'
-                  %(requests_method.func_name.upper(), request_url, print_content))
+                          % (requests_method.func_name.upper(),
+                             request_url, print_content))
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
@@ -96,7 +97,9 @@ class HTTPClient(object):
                                    })
         for hdr, hdr_content in response.request.headers.iteritems():
             self.logger.debug('request header:  %s: %s' % (hdr, hdr_content))
-        self.logger.debug('reply:  "%s %s" %s' % (response.status_code, response.reason, response.content))
+        self.logger.debug('reply:  "%s %s" %s'
+                          % (response.status_code,
+                             response.reason, response.content))
         for hdr, hdr_content in response.headers.iteritems():
             self.logger.debug('response header:  %s: %s' % (hdr, hdr_content))
 
@@ -110,7 +113,7 @@ class HTTPClient(object):
             fields = ','.join(_include)
             if not params:
                 params = {}
-            params['_include'] = fieldskeys
+            params['_include'] = fields
         return self.do_request(requests.get,
                                uri,
                                data=data,
