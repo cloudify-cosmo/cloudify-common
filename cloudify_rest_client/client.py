@@ -15,6 +15,7 @@
 
 import json
 import requests
+import logging
 
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.deployments import DeploymentsClient
@@ -39,6 +40,7 @@ class HTTPClient(object):
         self.port = port
         self.host = host
         self.url = 'http://{0}:{1}'.format(host, port)
+        self.logger = logging.getLogger('cloudify.rest_client.http')
 
     @staticmethod
     def _raise_client_error(response, url=None):
@@ -55,28 +57,19 @@ class HTTPClient(object):
         code = result['error_code']
         server_traceback = result['server_traceback']
         if code == DeploymentEnvironmentCreationInProgressError.ERROR_CODE:
-            raise DeploymentEnvironmentCreationInProgressError(
-                message, server_traceback, response.status_code)
-        if code == IllegalExecutionParametersError.ERROR_CODE:
-            raise IllegalExecutionParametersError(message,
-                                                  server_traceback,
-                                                  response.status_code)
-        if code == NoSuchIncludeFieldError.ERROR_CODE:
-            raise NoSuchIncludeFieldError(message,
-                                          server_traceback,
-                                          response.status_code)
-        if code == MissingRequiredDeploymentInputError.ERROR_CODE:
-            raise MissingRequiredDeploymentInputError(message,
-                                                      server_traceback,
-                                                      response.status_code)
-        if code == UnknownDeploymentInputError.ERROR_CODE:
-            raise UnknownDeploymentInputError(message,
-                                              server_traceback,
-                                              response.status_code)
-
-        raise CloudifyClientError(message,
-                                  server_traceback,
-                                  response.status_code)
+            error = DeploymentEnvironmentCreationInProgressError
+        elif code == IllegalExecutionParametersError.ERROR_CODE:
+            error = IllegalExecutionParametersError
+        elif code == NoSuchIncludeFieldError.ERROR_CODE:
+            error = NoSuchIncludeFieldError
+        elif code == MissingRequiredDeploymentInputError.ERROR_CODE:
+            error = MissingRequiredDeploymentInputError
+        elif code == UnknownDeploymentInputError.ERROR_CODE:
+            error = UnknownDeploymentInputError
+        else:
+            error = CloudifyClientError
+        raise error(message, server_traceback,
+                    response.status_code, error_code=code)
 
     def verify_response_status(self, response, expected_code=200):
         if response.status_code != expected_code:
@@ -90,13 +83,28 @@ class HTTPClient(object):
                    expected_status_code=200):
         request_url = '{0}{1}'.format(self.url, uri)
         body = json.dumps(data) if data is not None else None
-
+        if self.logger.isEnabledFor(logging.DEBUG):
+            print_content = body if body is not None else ''
+            self.logger.debug('Sending request: "%s %s" %s'
+                              % (requests_method.func_name.upper(),
+                                 request_url, print_content))
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
                                    headers={
                                        'Content-type': 'application/json'
                                    })
+        if self.logger.isEnabledFor(logging.DEBUG):
+            for hdr, hdr_content in response.request.headers.iteritems():
+                self.logger.debug('request header:  %s: %s'
+                                  % (hdr, hdr_content))
+            self.logger.debug('reply:  "%s %s" %s'
+                              % (response.status_code,
+                                 response.reason, response.content))
+            for hdr, hdr_content in response.headers.iteritems():
+                self.logger.debug('response header:  %s: %s'
+                                  % (hdr, hdr_content))
+
         if response.status_code != expected_status_code:
             self._raise_client_error(response, request_url)
         return response.json()

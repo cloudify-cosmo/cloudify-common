@@ -13,11 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-__author__ = 'idanmo'
-
-
-from cloudify_rest_client.executions import Execution
-
 
 class Deployment(dict):
     """
@@ -58,6 +53,13 @@ class Deployment(dict):
         """
         return self.get('inputs')
 
+    @property
+    def outputs(self):
+        """
+        :return: The outputs definition of this deployment.
+        """
+        return self.get('outputs')
+
 
 class Workflow(dict):
 
@@ -86,10 +88,44 @@ class Workflow(dict):
         return self['parameters']
 
 
+class DeploymentOutputs(dict):
+
+    def __init__(self, outputs):
+        self.update(outputs)
+
+    @property
+    def deployment_id(self):
+        """Deployment Id the outputs belong to."""
+        return self['deployment_id']
+
+    @property
+    def outputs(self):
+        """Deployment outputs as dict."""
+        return self['outputs']
+
+
+class DeploymentOutputsClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+    def get(self, deployment_id):
+        """Gets the outputs for the provided deployment's Id.
+
+        :param deployment_id: Deployment Id to get outputs for.
+        :return: Outputs as dict.
+        """
+        assert deployment_id
+        uri = '/deployments/{0}/outputs'.format(deployment_id)
+        response = self.api.get(uri)
+        return DeploymentOutputs(response)
+
+
 class DeploymentsClient(object):
 
     def __init__(self, api):
         self.api = api
+        self.outputs = DeploymentOutputsClient(api)
 
     def list(self, _include=None):
         """
@@ -150,46 +186,3 @@ class DeploymentsClient(object):
         response = self.api.delete('/deployments/{0}'.format(deployment_id),
                                    params=params)
         return Deployment(response)
-
-    def list_executions(self, deployment_id):
-        """
-        Returns a list of executions for the provided deployment's id.
-
-        :param deployment_id: Deployment id to get a list of executions for.
-        :return: List of executions.
-        """
-        assert deployment_id
-        uri = '/deployments/{0}/executions'.format(deployment_id)
-        response = self.api.get(uri)
-        return [Execution(item) for item in response]
-
-    def execute(self, deployment_id, workflow_id, parameters=None,
-                allow_custom_parameters=False, force=False):
-        """
-        Executes a deployment's workflow whose id is provided.
-
-        :param deployment_id: The deployment's id to execute a workflow for.
-        :param workflow_id: The workflow to be executed id.
-        :param parameters: Parameters for the workflow execution.
-        :param allow_custom_parameters: Determines whether to allow
-         parameters which weren't defined in the workflow parameters schema
-         in the blueprint.
-        :param force: Determines whether to force the execution of the workflow
-         in a case where there's an already running execution for this
-         deployment.
-        :raises: IllegalExecutionParametersError
-        :return: The created execution.
-        """
-        assert deployment_id
-        assert workflow_id
-        data = {
-            'workflow_id': workflow_id,
-            'parameters': parameters,
-            'allow_custom_parameters': str(allow_custom_parameters).lower(),
-            'force': str(force).lower()
-        }
-        uri = '/deployments/{0}/executions'.format(deployment_id)
-        response = self.api.post(uri,
-                                 data=data,
-                                 expected_status_code=201)
-        return Execution(response)
