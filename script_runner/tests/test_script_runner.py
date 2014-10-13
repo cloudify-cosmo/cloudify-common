@@ -65,7 +65,7 @@ class TestCtxProxy(unittest.TestCase):
             kwargs=kwargs)
 
     def setUp(self):
-        self.ctx = MockCloudifyContext(properties={
+        self.ctx = MockCloudifyContext(node_id='instance_id', properties={
             'prop1': 'value1',
             'prop2': {
                 'nested_prop1': 'nested_value1'
@@ -119,27 +119,28 @@ class TestCtxProxy(unittest.TestCase):
         self.assertEqual(response, 'some_value')
 
     def test_dict_prop_access_get_key(self):
-        response = self.request('properties', 'prop1')
+        response = self.request('node', 'properties', 'prop1')
         self.assertEqual(response, 'value1')
 
     def test_dict_prop_access_get_key_nested(self):
-        response = self.request('properties', 'prop2.nested_prop1')
+        response = self.request('node', 'properties', 'prop2.nested_prop1')
         self.assertEqual(response, 'nested_value1')
 
     def test_dict_prop_access_get_with_list_index(self):
-        response = self.request('properties', 'prop3[2].value')
+        response = self.request('node', 'properties', 'prop3[2].value')
         self.assertEqual(response, 'value_2')
 
     def test_dict_prop_access_set(self):
-        self.request('properties', 'prop4.key', 'new_value')
-        self.request('properties', 'prop3[2].value', 'new_value_2')
-        self.request('properties', 'prop4.some.new.path', 'some_new_value')
-        self.assertEqual(self.ctx.properties['prop4']['key'], 'new_value')
+        self.request('node', 'properties', 'prop4.key', 'new_value')
+        self.request('node', 'properties', 'prop3[2].value', 'new_value_2')
+        self.request('node', 'properties', 'prop4.some.new.path',
+                     'some_new_value')
+        self.assertEqual(self.ctx.node.properties['prop4']['key'], 'new_value')
         self.assertEqual(
-            self.ctx.properties['prop3'][2]['value'],
+            self.ctx.node.properties['prop3'][2]['value'],
             'new_value_2')
         self.assertEqual(
-            self.ctx.properties['prop4']['some']['new']['path'],
+            self.ctx.node.properties['prop4']['some']['new']['path'],
             'some_new_value')
 
     def test_method_invocation(self):
@@ -170,7 +171,7 @@ class TestCtxProxy(unittest.TestCase):
                 arg5=arg5)))
 
     def test_empty_return_value(self):
-        response = self.request('blueprint-id')
+        response = self.request('blueprint', 'id')
         self.assertIsNone(response)
 
     def test_client_request_timeout(self):
@@ -276,10 +277,10 @@ class TestScriptRunner(unittest.TestCase):
     def test_script_path_parameter(self):
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
-            ctx runtime-properties map.key value
+            ctx instance runtime-properties map.key value
             ''',
             windows_script='''
-            ctx runtime-properties map.key value
+            ctx instance runtime-properties map.key value
             ''')
         props = self._run(script_path=script_path)
         self.assertEqual(props['map']['key'], 'value')
@@ -298,12 +299,12 @@ class TestScriptRunner(unittest.TestCase):
     def test_process_env(self):
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
-            ctx runtime-properties map.key1 $key1
-            ctx runtime-properties map.key2 $key2
+            ctx instance runtime-properties map.key1 $key1
+            ctx instance runtime-properties map.key2 $key2
             ''',
             windows_script='''
-            ctx runtime-properties map.key1 %key1%
-            ctx runtime-properties map.key2 %key2%
+            ctx instance runtime-properties map.key1 %key1%
+            ctx instance runtime-properties map.key2 %key2%
             ''')
         props = self._run(
             script_path=script_path,
@@ -320,10 +321,10 @@ class TestScriptRunner(unittest.TestCase):
     def test_process_cwd(self):
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
-            ctx runtime-properties map.cwd $PWD
+            ctx instance runtime-properties map.cwd $PWD
             ''',
             windows_script='''
-            ctx runtime-properties map.cwd %CD%
+            ctx instance runtime-properties map.cwd %CD%
             ''')
         tmpdir = tempfile.gettempdir()
         props = self._run(
@@ -338,10 +339,11 @@ class TestScriptRunner(unittest.TestCase):
         script_path = self._create_script(
             linux_script='''
 import subprocess
-subprocess.check_output('ctx runtime-properties map.key value'.split(' '))
+subprocess.check_output(
+    'ctx instance runtime-properties map.key value'.split(' '))
             ''',
             windows_script='''
-            ctx runtime-properties map.key $env:TEST_KEY
+            ctx instance runtime-properties map.key $env:TEST_KEY
             ''',
             windows_suffix='.ps1')
         if IS_WINDOWS:
@@ -361,12 +363,12 @@ subprocess.check_output('ctx runtime-properties map.key value'.split(' '))
     def test_process_args(self):
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
-            ctx runtime-properties map.arg1 "$1"
-            ctx runtime-properties map.arg2 $2
+            ctx instance runtime-properties map.arg1 "$1"
+            ctx instance runtime-properties map.arg2 $2
             ''',
             windows_script='''
-            ctx runtime-properties map.arg1 %1
-            ctx runtime-properties map.arg2 %2
+            ctx instance runtime-properties map.arg1 %1
+            ctx instance runtime-properties map.arg2 %2
             ''')
         props = self._run(
             script_path=script_path,
@@ -432,7 +434,7 @@ subprocess.check_output('ctx runtime-properties map.key value'.split(' '))
         script = '''
 if __name__ == '__main__':
     from cloudify import ctx
-    ctx.runtime_properties['key'] = 'value'
+    ctx.instance.runtime_properties['key'] = 'value'
 '''
         suffix = '.py'
         script_path = self._create_script(
