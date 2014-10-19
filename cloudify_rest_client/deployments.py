@@ -14,6 +14,9 @@
 #    * limitations under the License.
 
 
+from cloudify_rest_client.node_instances import NodeInstance
+
+
 class Deployment(dict):
     """
     Cloudify deployment.
@@ -121,11 +124,86 @@ class DeploymentOutputsClient(object):
         return DeploymentOutputs(response)
 
 
+class DeploymentModificationNodeInstances(dict):
+
+    def __init__(self, node_instances):
+        self.update(node_instances)
+        self['current'] = [NodeInstance(instance) for instance
+                           in self['current']]
+        self['added_and_related'] = [NodeInstance(instance) for instance
+                                     in self['added_and_related']]
+        self['removed_and_related'] = [NodeInstance(instance) for instance
+                                       in self['removed_and_related']]
+
+    @property
+    def current(self):
+        return self['current']
+
+    @property
+    def removed_ids(self):
+        return self['removed_ids']
+
+    @property
+    def added_and_related(self):
+        return self['added_and_related']
+
+    @property
+    def removed_and_related(self):
+        return self['removed_and_related']
+
+
+class DeploymentModification(dict):
+
+    def __init__(self, modification):
+        self.update(modification)
+        self['node_instances'] = DeploymentModificationNodeInstances(
+            self['node_instances'])
+
+    @property
+    def deployment_id(self):
+        """Deployment Id the outputs belong to."""
+        return self['deployment_id']
+
+    @property
+    def node_instances(self):
+        return self['node_instances']
+
+    @property
+    def modified_nodes(self):
+        return self['modified_nodes']
+
+
+class DeploymentModifyClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+    def start(self, deployment_id, nodes):
+        assert deployment_id
+        data = {
+            'stage': 'start',
+            'nodes': nodes
+        }
+        uri = '/deployments/{0}/modify'.format(deployment_id)
+        response = self.api.patch(uri, data)
+        return DeploymentModification(response)
+
+    def finish(self, deployment_id, modification):
+        assert deployment_id
+        data = {
+            'stage': 'finish',
+            'modification': modification
+        }
+        uri = '/deployments/{0}/modify'.format(deployment_id)
+        self.api.patch(uri, data)
+
+
 class DeploymentsClient(object):
 
     def __init__(self, api):
         self.api = api
         self.outputs = DeploymentOutputsClient(api)
+        self.modify = DeploymentModifyClient(api)
 
     def list(self, _include=None):
         """
