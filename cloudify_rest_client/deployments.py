@@ -128,20 +128,10 @@ class DeploymentModificationNodeInstances(dict):
 
     def __init__(self, node_instances):
         self.update(node_instances)
-        self['current'] = [NodeInstance(instance) for instance
-                           in self['current']]
         self['added_and_related'] = [NodeInstance(instance) for instance
                                      in self['added_and_related']]
         self['removed_and_related'] = [NodeInstance(instance) for instance
                                        in self['removed_and_related']]
-
-    @property
-    def current(self):
-        return self['current']
-
-    @property
-    def removed_ids(self):
-        return self['removed_ids']
 
     @property
     def added_and_related(self):
@@ -195,7 +185,8 @@ class DeploymentModifyClient(object):
             'modification': modification
         }
         uri = '/deployments/{0}/modify'.format(deployment_id)
-        self.api.patch(uri, data)
+        response = self.api.patch(uri, data)
+        return DeploymentModification(response)
 
 
 class DeploymentsClient(object):
