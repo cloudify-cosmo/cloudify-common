@@ -9,12 +9,12 @@ node_templates:
         type: type
         interfaces:
             test:
-                - run:
-                    mapping: script.script_runner.tasks.run
-                    properties:
+                run:
+                    implementation: script.script_runner.tasks.run
+                    inputs:
                         script_path: { get_input: script_path }
                         process:     { get_input: process     }
-                - script: script.script_runner.tasks.run
+                script: script.script_runner.tasks.run
 
 workflows:
     execute_operation: script.script_runner.tests.test_script_runner.execute_operation
