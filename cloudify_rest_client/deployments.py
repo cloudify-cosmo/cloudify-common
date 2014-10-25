@@ -186,7 +186,7 @@ class DeploymentModifyClient(object):
         }
         uri = '/deployments/{0}/modify'.format(deployment_id)
         response = self.api.patch(uri, data)
-        return DeploymentModification(response)
+        # return DeploymentModification(response)
 
 
 class DeploymentsClient(object):
