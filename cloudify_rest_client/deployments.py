@@ -135,10 +135,12 @@ class DeploymentModificationNodeInstances(dict):
 
     @property
     def added_and_related(self):
+        """List of added nodes and nodes that are related to them"""
         return self['added_and_related']
 
     @property
     def removed_and_related(self):
+        """List of removed nodes and nodes that are related to them"""
         return self['removed_and_related']
 
 
@@ -156,10 +158,13 @@ class DeploymentModification(dict):
 
     @property
     def node_instances(self):
+        """Dict containing added_and_related and remove_and_related node
+        instances list"""
         return self['node_instances']
 
     @property
     def modified_nodes(self):
+        """Original request modified nodes dict"""
         return self['modified_nodes']
 
 
@@ -169,6 +174,14 @@ class DeploymentModifyClient(object):
         self.api = api
 
     def start(self, deployment_id, nodes):
+        """Start deployment modification.
+
+        :param deployment_id: The deployment id
+        :param nodes: the nodes to modify
+        :return: DeploymentModification dict
+        :rtype: DeploymentModification
+        """
+
         assert deployment_id
         data = {
             'stage': 'start',
@@ -179,6 +192,12 @@ class DeploymentModifyClient(object):
         return DeploymentModification(response)
 
     def finish(self, deployment_id, modification):
+        """Finish deployment modification
+
+        :param deployment_id: The deployment id
+        :param modification: The modification response received on 'start'
+        """
+
         assert deployment_id
         data = {
             'stage': 'finish',
