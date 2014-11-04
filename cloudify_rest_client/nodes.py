@@ -88,6 +88,18 @@ class Node(dict):
             'number_of_instances')) if 'number_of_instances' in self else None
 
     @property
+    def deploy_number_of_instances(self):
+        """
+        :return: The number of instances this set for this node when the
+                 deployment was created.
+        :rtype: int
+        """
+
+        return int(self.get(
+            'deploy_number_of_instances')) if 'deploy_number_of_instances' \
+                                              in self else None
+
+    @property
     def host_id(self):
         """
         :return: The id of the node instance which hosts this node.
