@@ -98,3 +98,27 @@ class UnknownDeploymentInputError(CloudifyClientError):
                  status_code=-1, error_code=None):
         super(UnknownDeploymentInputError, self).__init__(
             message, server_traceback, status_code, error_code)
+
+
+class AttributesProcessingError(CloudifyClientError):
+    """
+    Raised when an an attribute processing failed.
+    """
+    ERROR_CODE = 'attributes_processing_error'
+
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
+        super(AttributesProcessingError, self).__init__(
+            message, server_traceback, status_code, error_code)
+
+
+class UnknownModificationStageError(CloudifyClientError):
+    """
+    Raised when an unknown modification stage was provided.
+    """
+    ERROR_CODE = 'unknown_modification_stage_error'
+
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
+        super(UnknownModificationStageError, self).__init__(
+            message, server_traceback, status_code, error_code)

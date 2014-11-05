@@ -54,8 +54,6 @@ class AttributesClient(object):
         :rtype: ProcessedAttributes
         """
         assert deployment_id
-        assert context
-        assert payload
         result = self.api.post('/attributes', data={
             'deployment_id': deployment_id,
             'context': context,

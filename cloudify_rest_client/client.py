@@ -32,6 +32,8 @@ from cloudify_rest_client.exceptions import \
 from cloudify_rest_client.exceptions import IllegalExecutionParametersError
 from cloudify_rest_client.exceptions import NoSuchIncludeFieldError
 from cloudify_rest_client.exceptions import MissingRequiredDeploymentInputError
+from cloudify_rest_client.exceptions import UnknownModificationStageError
+from cloudify_rest_client.exceptions import AttributesProcessingError
 from cloudify_rest_client.exceptions import UnknownDeploymentInputError
 
 
@@ -67,6 +69,10 @@ class HTTPClient(object):
             error = MissingRequiredDeploymentInputError
         elif code == UnknownDeploymentInputError.ERROR_CODE:
             error = UnknownDeploymentInputError
+        elif code == AttributesProcessingError.ERROR_CODE:
+            error = AttributesProcessingError
+        elif code == UnknownModificationStageError.ERROR_CODE:
+            error = UnknownModificationStageError
         else:
             error = CloudifyClientError
         raise error(message, server_traceback,
