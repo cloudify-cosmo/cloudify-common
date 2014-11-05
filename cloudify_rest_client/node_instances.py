@@ -129,17 +129,23 @@ class NodeInstancesClient(object):
         response = self.api.patch(uri, data=data)
         return NodeInstance(response)
 
-    def list(self, deployment_id=None, _include=None):
+    def list(self, deployment_id=None, node_id=None, _include=None):
         """
         Returns a list of node instances which belong to the deployment
         identified by the provided deployment id.
 
         :param deployment_id: The deployment's id to list node instances for.
+        :param node_id: Optional node id to read only node instances of this
+                        node
         :param _include: List of fields to include in response.
         :return: Node instances.
         :rtype: list
         """
-        params = {'deployment_id': deployment_id} if deployment_id else None
+        params = {}
+        if deployment_id:
+            params['deployment_id'] = deployment_id
+        if node_id:
+            params['node_id'] = node_id
         response = self.api.get('/node-instances',
                                 params=params,
                                 _include=_include)
