@@ -25,6 +25,7 @@ from cloudify_rest_client.node_instances import NodeInstancesClient
 from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.search import SearchClient
+from cloudify_rest_client.attributes import AttributesClient
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.exceptions import \
     DeploymentEnvironmentCreationInProgressError
@@ -171,3 +172,4 @@ class CloudifyClient(object):
         self.manager = ManagerClient(self._client)
         self.events = EventsClient(self._client)
         self.search = SearchClient(self._client)
+        self.attributes = AttributesClient(self._client)
