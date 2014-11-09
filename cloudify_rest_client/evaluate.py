@@ -14,13 +14,13 @@
 #    * limitations under the License.
 
 
-class ProcessedAttributes(dict):
+class EvaluatedFunctions(dict):
     """
-    Processed attributes.
+    Evaluated functions.
     """
 
-    def __init__(self, processed_attributes):
-        self.update(processed_attributes)
+    def __init__(self, evaluated_functions):
+        self.update(evaluated_functions)
 
     @property
     def deployment_id(self):
@@ -32,31 +32,32 @@ class ProcessedAttributes(dict):
     @property
     def payload(self):
         """
-        :return: The processed payload.
+        :return: The evaluation payload.
         """
         return self['payload']
 
 
-class AttributesClient(object):
+class EvaluateClient(object):
 
     def __init__(self, api):
         self.api = api
 
-    def process(self, deployment_id, context, payload):
-        """Processes `get_attribute` references in payload in respect to the
+    def functions(self, deployment_id, context, payload):
+        """Evaluate intrinsic functions in payload in respect to the
         provided context.
 
         :param deployment_id: The deployment's id of the node.
         :param context: The processing context
                         (dict with optional self, source, target).
         :param payload: The payload to process.
-        :return: The payload with its `get_attribute` references processed.
-        :rtype: ProcessedAttributes
+        :return: The payload with its intrinsic functions references
+                 evaluated.
+        :rtype: EvaluatedFunctions
         """
         assert deployment_id
-        result = self.api.post('/attributes', data={
+        result = self.api.post('/evaluate/functions', data={
             'deployment_id': deployment_id,
             'context': context,
             'payload': payload
         })
-        return ProcessedAttributes(result)
+        return EvaluatedFunctions(result)

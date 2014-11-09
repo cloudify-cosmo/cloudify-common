@@ -100,15 +100,15 @@ class UnknownDeploymentInputError(CloudifyClientError):
             message, server_traceback, status_code, error_code)
 
 
-class AttributesProcessingError(CloudifyClientError):
+class FunctionsEvaluationError(CloudifyClientError):
     """
-    Raised when an an attribute processing failed.
+    Raised when function evaluation failed.
     """
-    ERROR_CODE = 'attributes_processing_error'
+    ERROR_CODE = 'functions_evaluation_error'
 
     def __init__(self, message, server_traceback=None,
                  status_code=-1, error_code=None):
-        super(AttributesProcessingError, self).__init__(
+        super(FunctionsEvaluationError, self).__init__(
             message, server_traceback, status_code, error_code)
 
 
