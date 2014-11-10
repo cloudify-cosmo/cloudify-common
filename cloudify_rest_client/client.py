@@ -25,12 +25,15 @@ from cloudify_rest_client.node_instances import NodeInstancesClient
 from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.search import SearchClient
+from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.exceptions import \
     DeploymentEnvironmentCreationInProgressError
 from cloudify_rest_client.exceptions import IllegalExecutionParametersError
 from cloudify_rest_client.exceptions import NoSuchIncludeFieldError
 from cloudify_rest_client.exceptions import MissingRequiredDeploymentInputError
+from cloudify_rest_client.exceptions import UnknownModificationStageError
+from cloudify_rest_client.exceptions import FunctionsEvaluationError
 from cloudify_rest_client.exceptions import UnknownDeploymentInputError
 
 
@@ -66,6 +69,10 @@ class HTTPClient(object):
             error = MissingRequiredDeploymentInputError
         elif code == UnknownDeploymentInputError.ERROR_CODE:
             error = UnknownDeploymentInputError
+        elif code == FunctionsEvaluationError.ERROR_CODE:
+            error = FunctionsEvaluationError
+        elif code == UnknownModificationStageError.ERROR_CODE:
+            error = UnknownModificationStageError
         else:
             error = CloudifyClientError
         raise error(message, server_traceback,
@@ -171,3 +178,4 @@ class CloudifyClient(object):
         self.manager = ManagerClient(self._client)
         self.events = EventsClient(self._client)
         self.search = SearchClient(self._client)
+        self.evaluate = EvaluateClient(self._client)
