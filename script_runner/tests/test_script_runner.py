@@ -20,6 +20,7 @@ import tempfile
 import os
 import sys
 from StringIO import StringIO
+from collections import namedtuple
 
 import requests
 from nose.tools import nottest, istest
@@ -706,6 +707,39 @@ class TestEvalPythonConfiguration(unittest.TestCase):
         self.expected_call = 'execute'
         tasks.run('script_path',
                   ctx=self.mock_ctx())
+
+
+class TestDownloadResource(unittest.TestCase):
+
+    def _test_url(self, url):
+        def mock_requests_get(url):
+            return namedtuple('Response', 'text')(url)
+        script_path = url
+        original_requests_get = requests.get
+        try:
+            requests.get = mock_requests_get
+            result = tasks.download_resource(None, script_path)
+            with open(result) as f:
+                self.assertEqual(script_path, f.read())
+            self.assertTrue(result.endswith('-some_script.py'))
+        finally:
+            requests.get = original_requests_get
+
+    def test_http_url(self):
+        self._test_url('http://localhost/some_script.py')
+
+    def test_https_url(self):
+        self._test_url('https://localhost/some_script.py')
+
+    def test_blueprint_resource(self):
+        test_script_path = 'my_script.py'
+
+        def mock_download_resource(script_path):
+            self.assertEqual(script_path, test_script_path)
+            return script_path
+        result = tasks.download_resource(mock_download_resource,
+                                         test_script_path)
+        self.assertEqual(result, test_script_path)
 
 
 @workflow
