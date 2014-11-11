@@ -711,13 +711,18 @@ class TestEvalPythonConfiguration(unittest.TestCase):
 
 class TestDownloadResource(unittest.TestCase):
 
+    def setUp(self):
+        self.status_code = 200
+
+    def _mock_requests_get(self, url):
+        response = namedtuple('Response', 'text status_code')
+        return response(url, self.status_code)
+
     def _test_url(self, url):
-        def mock_requests_get(url):
-            return namedtuple('Response', 'text')(url)
         script_path = url
         original_requests_get = requests.get
         try:
-            requests.get = mock_requests_get
+            requests.get = self._mock_requests_get
             result = tasks.download_resource(None, script_path)
             with open(result) as f:
                 self.assertEqual(script_path, f.read())
@@ -730,6 +735,14 @@ class TestDownloadResource(unittest.TestCase):
 
     def test_https_url(self):
         self._test_url('https://localhost/some_script.py')
+
+    def test_url_status_code_404(self):
+        self.status_code = 404
+        try:
+            self.test_http_url()
+            self.fail()
+        except NonRecoverableError, e:
+            self.assertIn('status code: 404', str(e))
 
     def test_blueprint_resource(self):
         test_script_path = 'my_script.py'

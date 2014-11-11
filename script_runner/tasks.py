@@ -190,19 +190,21 @@ def eval_script(script_path, ctx, process=None):
 def download_resource(download_resource_func, script_path):
     split = script_path.split('://')
     schema = split[0]
-    try:
-        if schema in ['http', 'https']:
-            content = requests.get(script_path).text
-            suffix = script_path.split('/')[-1]
-            script_path = tempfile.mktemp(suffix='-{0}'.format(suffix))
-            with open(script_path, 'w') as f:
-                f.write(content)
-            return script_path
-        else:
-            return download_resource_func(script_path)
-    except IOError as e:
-        raise NonRecoverableError('Failed downloading script: {} ({})'
-                                  .format(script_path, e))
+    if schema in ['http', 'https']:
+        response = requests.get(script_path)
+        if response.status_code == 404:
+            raise NonRecoverableError('Failed downloading script: {} ('
+                                      'status code: {})'
+                                      .format(script_path,
+                                              response.status_code))
+        content = response.text
+        suffix = script_path.split('/')[-1]
+        script_path = tempfile.mktemp(suffix='-{0}'.format(suffix))
+        with open(script_path, 'w') as f:
+            f.write(content)
+        return script_path
+    else:
+        return download_resource_func(script_path)
 
 
 class OutputConsumer(object):
