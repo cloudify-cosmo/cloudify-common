@@ -21,6 +21,9 @@ import sys
 import time
 import threading
 from StringIO import StringIO
+import tempfile
+
+import requests
 
 from cloudify import ctx as operation_ctx
 from cloudify.workflows import ctx as workflows_ctx
@@ -49,7 +52,7 @@ def run(script_path, process=None, **kwargs):
     if script_path is None:
         raise NonRecoverableError('Script path parameter not defined')
     process = process or {}
-    script_path = ctx.download_resource(script_path)
+    script_path = download_resource(ctx.download_resource, script_path)
     os.chmod(script_path, 0755)
     script_func = get_run_script_func(script_path, process)
     return process_execution(script_func, script_path, ctx, process)
@@ -58,8 +61,8 @@ def run(script_path, process=None, **kwargs):
 @workflow
 def execute_workflow(script_path, **kwargs):
     ctx = workflows_ctx._get_current_object()
-    script_path = ctx.internal.handler.download_blueprint_resource(
-        script_path)
+    script_path = download_resource(
+        ctx.internal.handler.download_blueprint_resource, script_path)
     return process_execution(eval_script, script_path, ctx)
 
 
@@ -182,6 +185,26 @@ def get_unused_port():
 def eval_script(script_path, ctx, process=None):
     eval_globals = eval_env.setup_env_and_globals(script_path)
     execfile(script_path, eval_globals)
+
+
+def download_resource(download_resource_func, script_path):
+    split = script_path.split('://')
+    schema = split[0]
+    if schema in ['http', 'https']:
+        response = requests.get(script_path)
+        if response.status_code == 404:
+            raise NonRecoverableError('Failed downloading script: {} ('
+                                      'status code: {})'
+                                      .format(script_path,
+                                              response.status_code))
+        content = response.text
+        suffix = script_path.split('/')[-1]
+        script_path = tempfile.mktemp(suffix='-{0}'.format(suffix))
+        with open(script_path, 'w') as f:
+            f.write(content)
+        return script_path
+    else:
+        return download_resource_func(script_path)
 
 
 class OutputConsumer(object):

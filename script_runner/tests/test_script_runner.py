@@ -20,6 +20,7 @@ import tempfile
 import os
 import sys
 from StringIO import StringIO
+from collections import namedtuple
 
 import requests
 from nose.tools import nottest, istest
@@ -706,6 +707,52 @@ class TestEvalPythonConfiguration(unittest.TestCase):
         self.expected_call = 'execute'
         tasks.run('script_path',
                   ctx=self.mock_ctx())
+
+
+class TestDownloadResource(unittest.TestCase):
+
+    def setUp(self):
+        self.status_code = 200
+
+    def _mock_requests_get(self, url):
+        response = namedtuple('Response', 'text status_code')
+        return response(url, self.status_code)
+
+    def _test_url(self, url):
+        script_path = url
+        original_requests_get = requests.get
+        try:
+            requests.get = self._mock_requests_get
+            result = tasks.download_resource(None, script_path)
+            with open(result) as f:
+                self.assertEqual(script_path, f.read())
+            self.assertTrue(result.endswith('-some_script.py'))
+        finally:
+            requests.get = original_requests_get
+
+    def test_http_url(self):
+        self._test_url('http://localhost/some_script.py')
+
+    def test_https_url(self):
+        self._test_url('https://localhost/some_script.py')
+
+    def test_url_status_code_404(self):
+        self.status_code = 404
+        try:
+            self.test_http_url()
+            self.fail()
+        except NonRecoverableError, e:
+            self.assertIn('status code: 404', str(e))
+
+    def test_blueprint_resource(self):
+        test_script_path = 'my_script.py'
+
+        def mock_download_resource(script_path):
+            self.assertEqual(script_path, test_script_path)
+            return script_path
+        result = tasks.download_resource(mock_download_resource,
+                                         test_script_path)
+        self.assertEqual(result, test_script_path)
 
 
 @workflow
