@@ -98,7 +98,7 @@ def execute(script_path, ctx, process):
 
     command_prefix = process.get('command_prefix')
     if command_prefix:
-        command = '{} {}'.format(command_prefix, script_path)
+        command = '{0} {1}'.format(command_prefix, script_path)
     else:
         command = script_path
 
@@ -106,7 +106,7 @@ def execute(script_path, ctx, process):
     if args:
         command = ' '.join([command] + args)
 
-    ctx.logger.info('Executing: {}'.format(command))
+    ctx.logger.info('Executing: {0}'.format(command))
 
     process = subprocess.Popen(command,
                                shell=True,
@@ -133,7 +133,7 @@ def execute(script_path, ctx, process):
     stdout_consumer.join()
     stderr_consumer.join()
 
-    ctx.logger.info('Execution done (return_code={}): {}'
+    ctx.logger.info('Execution done (return_code={0}): {1}'
                     .format(return_code, command))
 
     if return_code != 0:
@@ -162,7 +162,7 @@ def start_ctx_proxy(ctx, process):
     elif ctx_proxy_type == 'none':
         return StubCtxProxy()
     else:
-        raise NonRecoverableError('Unsupported proxy type: {}'
+        raise NonRecoverableError('Unsupported proxy type: {0}'
                                   .format(ctx_proxy_type))
 
 
@@ -193,8 +193,8 @@ def download_resource(download_resource_func, script_path):
     if schema in ['http', 'https']:
         response = requests.get(script_path)
         if response.status_code == 404:
-            raise NonRecoverableError('Failed downloading script: {} ('
-                                      'status code: {})'
+            raise NonRecoverableError('Failed downloading script: {0} ('
+                                      'status code: {1})'
                                       .format(script_path,
                                               response.status_code))
         content = response.text
