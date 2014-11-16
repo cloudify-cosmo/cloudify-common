@@ -23,6 +23,7 @@ from StringIO import StringIO
 from collections import namedtuple
 
 import requests
+import testtools
 from nose.tools import nottest, istest
 
 from cloudify.decorators import workflow
@@ -42,7 +43,7 @@ IS_WINDOWS = os.name == 'nt'
 
 
 @nottest
-class TestCtxProxy(unittest.TestCase):
+class TestCtxProxy(testtools.TestCase):
 
     class StubAttribute(object):
         some_property = 'some_value'
@@ -66,6 +67,7 @@ class TestCtxProxy(unittest.TestCase):
             kwargs=kwargs)
 
     def setUp(self):
+        super(TestCtxProxy, self).setUp()
         self.ctx = MockCloudifyContext(node_id='instance_id', properties={
             'prop1': 'value1',
             'prop2': {
@@ -107,6 +109,7 @@ class TestCtxProxy(unittest.TestCase):
 
     def tearDown(self):
         self.stop_server_now()
+        super(TestCtxProxy, self).tearDown()
 
     def request(self, *args):
         return client_req(self.server.socket_url, args)
@@ -162,7 +165,7 @@ class TestCtxProxy(unittest.TestCase):
             arg4=arg4,
             arg5=arg5)
         response = self.request('stub_args', arg1, arg2, kwargs)
-        self.assertDictEqual(response, dict(
+        self.assertEqual(response, dict(
             arg1=arg1,
             arg2=arg2,
             arg3='arg3',
@@ -237,7 +240,7 @@ class TestHTTPCtxProxy(TestCtxProxy):
 
 
 @nottest
-class TestScriptRunner(unittest.TestCase):
+class TestScriptRunner(testtools.TestCase):
 
     def _create_script(self, linux_script, windows_script,
                        windows_suffix='.bat', linux_suffix=''):
@@ -340,8 +343,8 @@ class TestScriptRunner(unittest.TestCase):
         script_path = self._create_script(
             linux_script='''
 import subprocess
-subprocess.check_output(
-    'ctx instance runtime-properties map.key value'.split(' '))
+subprocess.Popen(
+    'ctx instance runtime-properties map.key value'.split(' ')).communicate()[0]  # NOQA
             ''',
             windows_script='''
             ctx instance runtime-properties map.key $env:TEST_KEY
@@ -479,7 +482,7 @@ class TestScriptRunnerHTTPCtxProxy(TestScriptRunner):
         super(TestScriptRunner, self).setUp()
 
 
-class TestCtxProxyType(unittest.TestCase):
+class TestCtxProxyType(testtools.TestCase):
 
     def test_http_ctx_type(self):
         self.assert_valid_ctx_proxy('http', HTTPCtxProxy)
@@ -528,7 +531,7 @@ class TestCtxProxyType(unittest.TestCase):
             proxy.close()
 
 
-class TestArgumentParsing(unittest.TestCase):
+class TestArgumentParsing(testtools.TestCase):
 
     def mock_client_req(self, socket_url, args, timeout):
         self.assertEqual(socket_url, self.expected.get('socket_url'))
@@ -537,6 +540,7 @@ class TestArgumentParsing(unittest.TestCase):
         return self.mock_response
 
     def setUp(self):
+        super(TestArgumentParsing, self).setUp()
         self.original_client_req = ctx_proxy.client_req
         ctx_proxy.client_req = self.mock_client_req
         self.addCleanup(self.restore)
@@ -644,9 +648,10 @@ class TestArgumentParsing(unittest.TestCase):
             sys.stdout = current_stdout
 
 
-class TestEvalPythonConfiguration(unittest.TestCase):
+class TestEvalPythonConfiguration(testtools.TestCase):
 
     def setUp(self):
+        super(TestEvalPythonConfiguration, self).setUp()
         self.original_eval_script = tasks.eval_script
         self.original_execute = tasks.execute
         self.original_os_chmod = os.chmod
@@ -709,9 +714,10 @@ class TestEvalPythonConfiguration(unittest.TestCase):
                   ctx=self.mock_ctx())
 
 
-class TestDownloadResource(unittest.TestCase):
+class TestDownloadResource(testtools.TestCase):
 
     def setUp(self):
+        super(TestDownloadResource, self).setUp()
         self.status_code = 200
 
     def _mock_requests_get(self, url):

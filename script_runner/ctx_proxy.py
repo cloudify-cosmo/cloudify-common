@@ -42,7 +42,7 @@ class RequestError(RuntimeError):
     def __init__(self, ex_message, ex_type, ex_traceback):
         super(RequestError, self).__init__(
             self,
-            '{}: {}'.format(ex_type, ex_message))
+            '{0}: {1}'.format(ex_type, ex_message))
         self.ex_type = ex_type
         self.ex_message = ex_message
         self.ex_traceback = ex_traceback
@@ -84,7 +84,7 @@ class CtxProxy(object):
 class HTTPCtxProxy(CtxProxy):
 
     def __init__(self, ctx, port=29635):
-        socket_url = 'http://localhost:{}'.format(port)
+        socket_url = 'http://localhost:{0}'.format(port)
         super(HTTPCtxProxy, self).__init__(ctx, socket_url)
         self.port = port
         self._started = Queue(1)
@@ -182,14 +182,14 @@ class UnixCtxProxy(ZMQCtxProxy):
     def __init__(self, ctx, socket_path=None):
         if not socket_path:
             socket_path = tempfile.mktemp(prefix='ctx-', suffix='.socket')
-        socket_url = 'ipc://{}'.format(socket_path)
+        socket_url = 'ipc://{0}'.format(socket_path)
         super(UnixCtxProxy, self).__init__(ctx, socket_url)
 
 
 class TCPCtxProxy(ZMQCtxProxy):
 
     def __init__(self, ctx, ip='127.0.0.1', port=29635):
-        socket_url = 'tcp://{}:{}'.format(ip, port)
+        socket_url = 'tcp://{0}:{1}'.format(ip, port)
         super(TCPCtxProxy, self).__init__(ctx, socket_url)
 
 
@@ -233,7 +233,7 @@ def process_ctx_request(ctx, args):
             current = current(*remaining_args, **kwargs)
             break
         else:
-            raise RuntimeError('{} cannot be processed in {}'
+            raise RuntimeError('{0} cannot be processed in {1}'
                                .format(arg, args))
         index += 1
 
@@ -324,7 +324,7 @@ def http_client_req(socket_url, request, timeout):
         headers={'content-type': 'application/json'},
         timeout=timeout)
     if response.status_code != 200:
-        raise RuntimeError('Requeste failed: {}'.format(response))
+        raise RuntimeError('Requeste failed: {0}'.format(response))
     return response.json()
 
 
@@ -339,7 +339,7 @@ def client_req(socket_url, args, timeout=5):
     elif schema in ['http']:
         request_method = http_client_req
     else:
-        raise RuntimeError('Unsupported protocol: {}'.format(schema))
+        raise RuntimeError('Unsupported protocol: {0}'.format(schema))
 
     response = request_method(socket_url, request, timeout)
     payload = response['payload']
