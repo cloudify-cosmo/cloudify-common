@@ -17,7 +17,7 @@
 from setuptools import setup
 
 install_requires = [
-    'cloudify-plugins-common==3.1rc2',
+    'cloudify-plugins-common==3.1ga',
     'bottle==0.12.7'
 ]
 
@@ -28,7 +28,7 @@ except ImportError, e:
 
 setup(
     name='cloudify-script-plugin',
-    version='1.1rc2',
+    version='3.1ga',
     author='Gigaspaces',
     author_email='cloudify@gigaspaces.com',
     packages=['script_runner'],
