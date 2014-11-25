@@ -28,7 +28,7 @@ except ImportError, e:
 
 setup(
     name='cloudify-script-plugin',
-    version='3.1',
+    version='1.1',
     author='Gigaspaces',
     author_email='cloudify@gigaspaces.com',
     packages=['script_runner'],
