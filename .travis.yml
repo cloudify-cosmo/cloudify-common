@@ -1,27 +1,27 @@
 language: python
 python:
-  - '2.7'
+- '2.7'
 env:
-  - TOX_ENV=docs
-  - TOX_ENV=flake8
-  - TOX_ENV=py27
-  - TOX_ENV=py26
+- TOX_ENV=docs
+- TOX_ENV=flake8
+- TOX_ENV=py27
+- TOX_ENV=py26
 install:
-  - pip install tox
+- pip install tox
 script:
-  - tox -e $TOX_ENV
+- tox -e $TOX_ENV
 deploy:
   provider: pypi
-  server: https://testpypi.python.org/pypi
+  server: https://pypi.python.org/pypi
   on:
     branch: pypi-release
     condition: $TOX_ENV = py27
   user:
-    secure: UTxg4Go7GzYPBMXiWv7BgcAsfV1dNdJOYyhV2MJuXx9aJFFQadJ8qXWBr7koyeY55gKSy1liZznbEwmbagFghCG5RL6nABMzZylnK8KIIxpgqQ9xWah0osLiWXu3FHLGfXyQGIOSZrt06W9vcoE/TVFs4Qtvy/6tCKBJqMcfGsw=
+    secure: IvCx4J4HR5l1NUt/+hjJIYsjkXtCav4k414RV5M0yuv3iD7cOzRlqaf4K8B0IlHjy/B/q/y2RpcnzzR0nkB5x0sky2r2mra+dpOuMJPlOvfTnSh8ezWu2qCJat/x3Bvr+eyz+pA8gOpdBLbL2Ynaucv65+Ds+Dw6pRf8k91DrCw=
   password:
-    secure: SAvnCMXdjl03z4o5YPAJbaj+9d3Qm8kzNxwJWGVvY1Sgj/feqPMiV2Wg/HtP9xCKs1+PcpgRHC9zTdF+zyJeNc1+XU1ITOEf+imQzUFLoxFJqMcrgbFvwlHC9d57LHRn1Bg3+3JQtNe4gTdcKNjPtV3e4vglCTHR0rx8vVroIZI=
+    secure: HqX/ITVBgQivSYUsGn5UX5t6pdTHdFn8ezPH89YxpYwAyTdTtQtNSb3KJQVBiEPd2HjE/fXtY4zw9wV69eaSifkV5PRG92WMbtOejVV7Zmab+vzKYU/fxGRy7neZI3eUVEBRaqxMEl9gCWJFKJAXMsRzcEkqgOWS6nbNqzS+Xy8=
 after_deploy:
-  - git clone https://github.com/cloudify-cosmo/travis-utils.git
-  - python travis-utils/validate_pypi.py -v || exit 1
+- git clone https://github.com/cloudify-cosmo/travis-utils.git
+- python travis-utils/validate_pypi.py -v || exit 1
 notifications:
   flowdock: a73d66c41c6e4406e1c47e042dfd2b59
