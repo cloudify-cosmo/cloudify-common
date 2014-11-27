@@ -40,6 +40,7 @@ Contents:
    node_instances
    nodes
    searching
+   evaluate
 
 
 Indices and tables
