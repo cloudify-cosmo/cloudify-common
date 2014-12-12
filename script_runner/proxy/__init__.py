@@ -12,8 +12,3 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
-
-
-# Environment variable for the socket url
-# (used by clients to locate the socket [http, zmq(unix, tcp)])
-CTX_SOCKET_URL = 'CTX_SOCKET_URL'

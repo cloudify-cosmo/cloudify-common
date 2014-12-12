@@ -20,7 +20,10 @@ import json
 import argparse
 import sys
 
-from script_runner.proxy import CTX_SOCKET_URL
+
+# Environment variable for the socket url
+# (used by clients to locate the socket [http, zmq(unix, tcp)])
+CTX_SOCKET_URL = 'CTX_SOCKET_URL'
 
 
 class RequestError(RuntimeError):
