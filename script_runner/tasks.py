@@ -31,11 +31,11 @@ from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
 
 from script_runner import eval_env
-from script_runner.ctx_proxy import (UnixCtxProxy,
-                                     TCPCtxProxy,
-                                     HTTPCtxProxy,
-                                     StubCtxProxy,
-                                     CTX_SOCKET_URL)
+from script_runner.proxy import CTX_SOCKET_URL
+from script_runner.proxy.server import (UnixCtxProxy,
+                                        TCPCtxProxy,
+                                        HTTPCtxProxy,
+                                        StubCtxProxy)
 
 try:
     import zmq  # noqa
@@ -148,17 +148,17 @@ def start_ctx_proxy(ctx, process):
     if not ctx_proxy_type or ctx_proxy_type == 'auto':
         if HAS_ZMQ:
             if IS_WINDOWS:
-                return TCPCtxProxy(ctx, port=get_unused_port())
+                return TCPCtxProxy(ctx)
             else:
                 return UnixCtxProxy(ctx)
         else:
-            return HTTPCtxProxy(ctx, port=get_unused_port())
+            return HTTPCtxProxy(ctx)
     elif ctx_proxy_type == 'unix':
         return UnixCtxProxy(ctx)
     elif ctx_proxy_type == 'tcp':
-        return TCPCtxProxy(ctx, port=get_unused_port())
+        return TCPCtxProxy(ctx)
     elif ctx_proxy_type == 'http':
-        return HTTPCtxProxy(ctx, port=get_unused_port())
+        return HTTPCtxProxy(ctx)
     elif ctx_proxy_type == 'none':
         return StubCtxProxy()
     else:
@@ -172,14 +172,6 @@ def process_ctx_request(proxy):
     if isinstance(proxy, HTTPCtxProxy):
         return
     proxy.poll_and_process(timeout=0)
-
-
-def get_unused_port():
-    sock = socket.socket()
-    sock.bind(('127.0.0.1', 0))
-    _, port = sock.getsockname()
-    sock.close()
-    return port
 
 
 def eval_script(script_path, ctx, process=None):

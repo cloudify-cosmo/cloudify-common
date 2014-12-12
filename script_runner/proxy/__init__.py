@@ -14,30 +14,6 @@
 #  * limitations under the License.
 
 
-from setuptools import setup
-
-install_requires = [
-    'cloudify-plugins-common==3.1',
-    'bottle==0.12.7'
-]
-
-try:
-    import argparse  # NOQA
-except ImportError, e:
-    install_requires.append('argparse==1.2.2')
-
-setup(
-    name='cloudify-script-plugin',
-    version='1.1',
-    author='Gigaspaces',
-    author_email='cloudify@gigaspaces.com',
-    packages=['script_runner'],
-    description='Plugin for running scripts',
-    install_requires=install_requires,
-    license='LICENSE',
-    entry_points={
-        'console_scripts': [
-            'ctx = script_runner.proxy.client:main',
-        ]
-    }
-)
+# Environment variable for the socket url
+# (used by clients to locate the socket [http, zmq(unix, tcp)])
+CTX_SOCKET_URL = 'CTX_SOCKET_URL'
