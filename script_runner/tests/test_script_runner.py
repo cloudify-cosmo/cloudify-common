@@ -33,7 +33,7 @@ from cloudify.mocks import MockCloudifyContext
 from cloudify.exceptions import NonRecoverableError
 
 from script_runner import tasks
-from script_runner.proxy import client, server
+from script_runner.proxy import client
 from script_runner.proxy.server import (UnixCtxProxy,
                                         TCPCtxProxy,
                                         HTTPCtxProxy,

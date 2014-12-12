@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 
-import socket
 import subprocess
 import os
 import sys
