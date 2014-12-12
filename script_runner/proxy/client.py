@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #########
 # Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
 #
