@@ -1,11 +1,11 @@
 Cloudify REST Client
 ====================
 
-[![Build Status](https://travis-ci.org/cloudify-cosmo/packman.svg?branch=develop)](https://travis-ci.org/cloudify-cosmo/cloudify-rest-client)
+[![Build Status](https://travis-ci.org/cloudify-cosmo/cloudify-rest-client.svg?branch=master)](https://travis-ci.org/cloudify-cosmo/cloudify-rest-client)
 
-[![PyPI](http://img.shields.io/pypi/dm/packman.svg)](http://img.shields.io/pypi/dm/cloudify-rest-client.svg)
+[![PyPI](http://img.shields.io/pypi/dm/cloudify-rest-client.svg)](http://img.shields.io/pypi/dm/cloudify-rest-client.svg)
 
-[![PypI](http://img.shields.io/pypi/v/packman.svg)](http://img.shields.io/pypi/v/cloudify-rest-client.svg)
+[![PypI](http://img.shields.io/pypi/v/cloudify-rest-client.svg)](http://img.shields.io/pypi/v/cloudify-rest-client.svg)
 
 
 Client for interacting with Cloudify's management machine.
