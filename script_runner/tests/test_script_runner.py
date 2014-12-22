@@ -31,14 +31,14 @@ from cloudify.workflows import local
 from cloudify.workflows import ctx as workflow_ctx
 from cloudify.mocks import MockCloudifyContext
 from cloudify.exceptions import NonRecoverableError
+from cloudify.proxy import client
+from cloudify.proxy.server import (UnixCtxProxy,
+                                   TCPCtxProxy,
+                                   HTTPCtxProxy,
+                                   StubCtxProxy)
+from cloudify.proxy.client import client_req
 
 from script_runner import tasks
-from script_runner.proxy import client
-from script_runner.proxy.server import (UnixCtxProxy,
-                                        TCPCtxProxy,
-                                        HTTPCtxProxy,
-                                        StubCtxProxy)
-from script_runner.proxy.client import client_req
 
 IS_WINDOWS = os.name == 'nt'
 
