@@ -16,8 +16,6 @@
 
 from setuptools import setup
 
-install_requires =
-
 setup(
     name='cloudify-script-plugin',
     version='1.2a1',
