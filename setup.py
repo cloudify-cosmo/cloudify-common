@@ -16,15 +16,7 @@
 
 from setuptools import setup
 
-install_requires = [
-    'cloudify-plugins-common==3.2a1',
-    'bottle==0.12.7'
-]
-
-try:
-    import argparse  # NOQA
-except ImportError, e:
-    install_requires.append('argparse==1.2.2')
+install_requires =
 
 setup(
     name='cloudify-script-plugin',
@@ -33,6 +25,8 @@ setup(
     author_email='cloudify@gigaspaces.com',
     packages=['script_runner'],
     description='Plugin for running scripts',
-    install_requires=install_requires,
+    install_requires=[
+        'cloudify-plugins-common==3.2a1'
+    ],
     license='LICENSE'
 )
