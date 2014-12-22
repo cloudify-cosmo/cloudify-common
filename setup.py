@@ -31,7 +31,7 @@ setup(
     version='1.2a1',
     author='Gigaspaces',
     author_email='cloudify@gigaspaces.com',
-    packages=['script_runner'],
+    packages=['script_runner', 'script_runner.proxy'],
     description='Plugin for running scripts',
     install_requires=install_requires,
     license='LICENSE',
