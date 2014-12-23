@@ -167,5 +167,5 @@ class ExecutionsClient(object):
         action = 'force-cancel' if force else 'cancel'
         response = self.api.post(uri,
                                  data={'action': action},
-                                 expected_status_code=201)
+                                 expected_status_code=200)
         return Execution(response)
