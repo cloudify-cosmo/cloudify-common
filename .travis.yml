@@ -12,15 +12,22 @@ install:
 script:
 - tox -e $TOX_ENV
 deploy:
-  provider: pypi
+- provider: pypi
   server: https://pypi.python.org/pypi
   on:
     branch: pypi-release
-    condition: $TOX_ENV = py27
-  user:
-    secure: PYsz1O1/1pDK5VTebKA+O1Nw4uNlpitKs+id2NH526Dp5H96qfasD+eNi9QBkg9llnYO2xxV4qIfG9sHCGC5To7nUAH8lLmVdq6UPvXiCr9iAcMVmXqVL//CKOkjvsJqhFCQlCBcEDmz/nFshtE04ni6f5j3vbFIcYLPFgYUt9Q=
+  condition: $TOX_ENV = py27
+  user: cosmo-maint
   password:
-    secure: KXeI8u5g+zYXoz6KTm4yDYE1WyzqpEc5k13XPgT07VRzXutpEFHRKl/pdIpTuAxmJ/ok/92XFhRHzSpW3WFC+rd7P1H4GkCmOfU73oF3nO0ogI9LLsznuuPCNhc+ZoeEO8njW4FTr9UfJilcXZaJ4X1oGcoCx2NHOPztJLJsaZs=
+    secure: "BT9UGBFqAUGArM0LZ9YN9wWQzMwZQNKs5k4BF4Brs+K7v46wdGEm7+y52XIjmI/jwztIgGEpKMnHXHjZ7Ik9OOgHgaFyZ14w2X7lP/J/8kyvvLGt7eTMuBPkYBe/jETYXVPU8pcHAVFHeFdAGWvA9DFLzmKWl4dhIAF9Fn7BEcM="
+- provider: pypi
+  server: https://pypitest.python.org/pypi
+  on:
+    branch: pypi-test
+  condition: $TOX_ENV = py27
+  user: cosmo-maint
+  password:
+    secure: "b+5AedQBmaUt3PTgjDRE1GiRAr6wrK11H5TFit5u+/INJJojlmirEkkf78lrMuKIH32h3QTDDlpAwalMyMQo3lgx+u4/nBsbG1ywXqnvG7Sj+2ejwZjLWMFxO2wJgnkg9h/VepZh/bsoSSsqauQPVY2clLOITUydErYhn0sVvL4="
 after_deploy:
 - git clone https://github.com/cloudify-cosmo/travis-utils.git
 - python travis-utils/validate_pypi.py -v || exit 1
