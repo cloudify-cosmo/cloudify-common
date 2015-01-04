@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 
+import json
 import subprocess
 import os
 import sys
@@ -50,7 +51,7 @@ def run(script_path, process=None, **kwargs):
     ctx = operation_ctx._get_current_object()
     if script_path is None:
         raise NonRecoverableError('Script path parameter not defined')
-    process = process or {}
+    process = create_process_config(process or {}, kwargs)
     script_path = download_resource(ctx.download_resource, script_path)
     os.chmod(script_path, 0755)
     script_func = get_run_script_func(script_path, process)
@@ -63,6 +64,18 @@ def execute_workflow(script_path, **kwargs):
     script_path = download_resource(
         ctx.internal.handler.download_blueprint_resource, script_path)
     return process_execution(eval_script, script_path, ctx)
+
+
+def create_process_config(process, operation_kwargs):
+    env_vars = operation_kwargs.copy()
+    if 'ctx' in env_vars:
+        del env_vars['ctx']
+    env_vars.update(process.get('env', {}))
+    for k, v in env_vars.items():
+        if isinstance(v, dict) or isinstance(v, list) or isinstance(v, set):
+            env_vars[k] = json.dumps(v)
+    process['env'] = env_vars
+    return process
 
 
 def process_execution(script_func, script_path, ctx, process=None):

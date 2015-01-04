@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import json
 import unittest
 import tempfile
 import os
@@ -52,7 +53,8 @@ class TestScriptRunner(testtools.TestCase):
     def _run(self, script_path,
              process=None,
              workflow_name='execute_operation',
-             parameters=None):
+             parameters=None,
+             env_var='value'):
 
         process = process or {}
         process.update({
@@ -61,7 +63,8 @@ class TestScriptRunner(testtools.TestCase):
 
         inputs = {
             'script_path': script_path,
-            'process': process
+            'process': process,
+            'env_var': env_var
         }
         blueprint_path = os.path.join(os.path.dirname(__file__),
                                       'blueprint', 'blueprint.yaml')
@@ -252,6 +255,59 @@ if __name__ == '__main__':
                            workflow_name='workflow_script',
                            parameters={'key': 'value'})
         self.assertEqual(result, 'value')
+
+    def test_inputs_as_environment_variables(self):
+
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx instance runtime-properties key "${input_as_env_var}"
+            ''',
+            windows_script='''
+            ctx instance runtime-properties key $env:input_as_env_var
+            ''')
+
+        def test(value):
+            props = self._run(script_path=script_path,
+                              env_var=value)
+            self.assertEqual(
+                props['key'] if isinstance(value, basestring)
+                else json.loads(props['key']), value)
+
+        test('string-value')
+        test([1, 2, 3])
+        test({
+            'complex1': {
+                'complex2': {
+                    'key': 'value'
+                },
+                'list': [1, 2, 3]
+            }
+        })
+
+    def test_explicit_env_variables_inputs_override(self):
+
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx instance runtime-properties key "${input_as_env_var}"
+            ''',
+            windows_script='''
+            ctx instance runtime-properties key $env:input_as_env_var
+            ''')
+
+        def test(value):
+            props = self._run(script_path=script_path,
+                              env_var='test-value',
+                              process={
+                                  'env': {
+                                      'input_as_env_var': value
+                                  }
+                              })
+            self.assertEqual(
+                props['key'] if isinstance(value, basestring)
+                else json.loads(props['key']), value)
+
+        test('override')
+        test({'key': 'value'})
 
 
 @istest
