@@ -263,7 +263,7 @@ if __name__ == '__main__':
             ctx instance runtime-properties key "${input_as_env_var}"
             ''',
             windows_script='''
-            ctx instance runtime-properties key $env:input_as_env_var
+            ctx instance runtime-properties key %input_as_env_var%
             ''')
 
         def test(value):
