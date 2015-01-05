@@ -22,6 +22,7 @@ import shutil
 import requests
 import tarfile
 import urllib
+import urlparse
 
 from os.path import expanduser
 
@@ -76,7 +77,7 @@ class BlueprintsClient(object):
                     arcname=os.path.basename(blueprint_directory))
         return tar_path
 
-    def _upload(self, tar_file_obj,
+    def _upload(self, archive_location,
                 blueprint_id,
                 application_file_name=None):
         query_params = {}
@@ -84,18 +85,27 @@ class BlueprintsClient(object):
             query_params['application_file_name'] = \
                 urllib.quote(application_file_name)
 
-        def file_gen():
+        def file_gen(archive_path):
             buffer_size = 8192
-            while True:
-                read_bytes = tar_file_obj.read(buffer_size)
-                yield read_bytes
-                if len(read_bytes) < buffer_size:
-                    return
+            with open(archive_path, 'rb') as f:
+                while True:
+                    read_bytes = f.read(buffer_size)
+                    yield read_bytes
+                    if len(read_bytes) < buffer_size:
+                        return
 
         uri = '/blueprints/{0}'.format(blueprint_id)
         url = '{0}{1}'.format(self.api.url, uri)
-        response = requests.put(url, params=query_params, data=file_gen())
 
+        if urlparse.urlparse(archive_location).scheme:
+            # archive location is URL
+            query_params['blueprint_archive_url'] = archive_location
+            data = None
+        else:
+            # archive location is a system path - upload it in chunks
+            data = file_gen(archive_location)
+
+        response = requests.put(url, params=query_params, data=data)
         self.api.verify_response_status(response, 201)
         return response.json()
 
@@ -108,6 +118,30 @@ class BlueprintsClient(object):
         """
         response = self.api.get('/blueprints', _include=_include)
         return [Blueprint(item) for item in response]
+
+    def publish_archive(self, archive_location, blueprint_id,
+                        blueprint_filename=None):
+        """
+        Publishes a blueprint archive to the Cloudify manager.
+
+        :param archive_location: Path or Url to the archive file.
+        :param blueprint_id: Id of the uploaded blueprint.
+        :param blueprint_filename: The archive's main blueprint yaml filename.
+        :return: Created blueprint.
+
+        Archive file should contain a single directory in which there is a
+        blueprint file named `blueprint_filename` (if `blueprint_filename`
+        is None, this value will be passed to the REST service where a
+        default value should be used).
+        Blueprint ID parameter is available for specifying the
+        blueprint's unique Id.
+        """
+
+        blueprint = self._upload(
+            archive_location,
+            blueprint_id=blueprint_id,
+            application_file_name=blueprint_filename)
+        return Blueprint(blueprint)
 
     def upload(self, blueprint_path, blueprint_id):
         """
@@ -128,11 +162,10 @@ class BlueprintsClient(object):
             tar_path = self._tar_blueprint(blueprint_path, tempdir)
             application_file = os.path.basename(blueprint_path)
 
-            with open(tar_path, 'rb') as f:
-                blueprint = self._upload(
-                    f,
-                    blueprint_id=blueprint_id,
-                    application_file_name=application_file)
+            blueprint = self._upload(
+                tar_path,
+                blueprint_id=blueprint_id,
+                application_file_name=application_file)
             return Blueprint(blueprint)
         finally:
             shutil.rmtree(tempdir)
