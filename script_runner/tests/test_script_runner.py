@@ -275,6 +275,9 @@ if __name__ == '__main__':
 
         test('string-value')
         test([1, 2, 3])
+        test(999)
+        test(3.14)
+        test(False)
         test({
             'complex1': {
                 'complex2': {
