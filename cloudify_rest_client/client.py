@@ -17,6 +17,7 @@ import json
 import requests
 import logging
 
+from cloudify_rest_client import exceptions
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.deployments import DeploymentsClient
 from cloudify_rest_client.executions import ExecutionsClient
@@ -26,15 +27,6 @@ from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.evaluate import EvaluateClient
-from cloudify_rest_client.exceptions import CloudifyClientError
-from cloudify_rest_client.exceptions import \
-    DeploymentEnvironmentCreationInProgressError
-from cloudify_rest_client.exceptions import IllegalExecutionParametersError
-from cloudify_rest_client.exceptions import NoSuchIncludeFieldError
-from cloudify_rest_client.exceptions import MissingRequiredDeploymentInputError
-from cloudify_rest_client.exceptions import UnknownModificationStageError
-from cloudify_rest_client.exceptions import FunctionsEvaluationError
-from cloudify_rest_client.exceptions import UnknownDeploymentInputError
 
 
 class HTTPClient(object):
@@ -54,27 +46,14 @@ class HTTPClient(object):
             if url:
                 message = '{0} [{1}]'.format(message, url)
             error_msg = '{0}: {1}'.format(response.status_code, message)
-            raise CloudifyClientError(error_msg,
-                                      status_code=response.status_code)
+            raise exceptions.CloudifyClientError(
+                error_msg,
+                status_code=response.status_code)
         message = result['message']
         code = result['error_code']
         server_traceback = result['server_traceback']
-        if code == DeploymentEnvironmentCreationInProgressError.ERROR_CODE:
-            error = DeploymentEnvironmentCreationInProgressError
-        elif code == IllegalExecutionParametersError.ERROR_CODE:
-            error = IllegalExecutionParametersError
-        elif code == NoSuchIncludeFieldError.ERROR_CODE:
-            error = NoSuchIncludeFieldError
-        elif code == MissingRequiredDeploymentInputError.ERROR_CODE:
-            error = MissingRequiredDeploymentInputError
-        elif code == UnknownDeploymentInputError.ERROR_CODE:
-            error = UnknownDeploymentInputError
-        elif code == FunctionsEvaluationError.ERROR_CODE:
-            error = FunctionsEvaluationError
-        elif code == UnknownModificationStageError.ERROR_CODE:
-            error = UnknownModificationStageError
-        else:
-            error = CloudifyClientError
+        error = exceptions.ERROR_MAPPING.get(code,
+                                             exceptions.CloudifyClientError)
         raise error(message, server_traceback,
                     response.status_code, error_code=code)
 
