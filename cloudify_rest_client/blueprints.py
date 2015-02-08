@@ -94,7 +94,10 @@ class BlueprintsClient(object):
         uri = '/blueprints/{0}'.format(blueprint_id)
         url = '{0}{1}'.format(self.api.url, uri)
 
-        if urlparse.urlparse(archive_location).scheme:
+        # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
+        # drive letter and therefore the 2nd condition is present
+        if urlparse.urlparse(archive_location).scheme and \
+                not os.path.exists(archive_location):
             # archive location is URL
             query_params['blueprint_archive_url'] = archive_location
             data = None
