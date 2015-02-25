@@ -47,7 +47,7 @@ class ManagerClient(object):
         response = self.api.get('/provider/context', _include=_include)
         return response
 
-    def create_context(self, name, context):
+    def create_context(self, name, context, force=False):
         """
         Creates context in Cloudify's management machine.
         This method is usually invoked right after management machine
@@ -56,10 +56,12 @@ class ManagerClient(object):
 
         :param name: Cloud provider name.
         :param context: Context as dict.
+        :param force: true to override any existing context. if no context
+        exists then it will simply be created as expected.
         :return: Create context result.
         """
         data = {'name': name, 'context': context}
-        response = self.api.post('/provider/context',
+        response = self.api.post('/provider/context?force={0}'.format(force),
                                  data,
                                  expected_status_code=201)
         return response
