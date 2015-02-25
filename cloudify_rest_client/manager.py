@@ -58,9 +58,9 @@ class ManagerClient(object):
         :param context: Context as dict.
         :return: Create context result.
         """
-
         data = {'name': name, 'context': context}
-        response = self.api.post('/provider/context', data,
+        response = self.api.post('/provider/context',
+                                 data,
                                  expected_status_code=201)
         return response
 
