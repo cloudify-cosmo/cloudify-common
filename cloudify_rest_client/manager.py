@@ -82,5 +82,3 @@ class ManagerClient(object):
         response = self.api.post('/provider/context?update=true', data,
                                  expected_status_code=200)
         return response
-
-
