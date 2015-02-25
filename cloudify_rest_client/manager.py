@@ -47,7 +47,7 @@ class ManagerClient(object):
         response = self.api.get('/provider/context', _include=_include)
         return response
 
-    def create_context(self, name, context, update=False):
+    def create_context(self, name, context):
         """
         Creates context in Cloudify's management machine.
         This method is usually invoked right after management machine
@@ -56,14 +56,31 @@ class ManagerClient(object):
 
         :param name: Cloud provider name.
         :param context: Context as dict.
-        :param update: true to update an existing context. if there is
-        no existing context, a 404 will be returned.
         :return: Create context result.
         """
 
-        expected_status_code = 200 if update else 201
+        data = {'name': name, 'context': context}
+        response = self.api.post('/provider/context', data,
+                                 expected_status_code=201)
+        return response
+
+    def update_context(self, name, context):
+
+        """
+        Updates context in Cloudify's management machine.
+        The context is imperative for the manager to function properly,
+        only use this method if you know exactly what you are doing.
+        Note that if the provider context does not exist, this call will
+        result with an error.
+
+        :param name: Cloud provider name.
+        :param context: Context as dict.
+
+        """
 
         data = {'name': name, 'context': context}
-        response = self.api.post('/provider/context?update={0}'.format(
-            update), data, expected_status_code=expected_status_code)
+        response = self.api.post('/provider/context?update=true', data,
+                                 expected_status_code=200)
         return response
+
+
