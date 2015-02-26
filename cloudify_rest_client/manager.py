@@ -63,3 +63,23 @@ class ManagerClient(object):
                                  data,
                                  expected_status_code=201)
         return response
+
+    def update_context(self, name, context):
+
+        """
+        Updates context in Cloudify's management machine.
+        The context is imperative for the manager to function properly,
+        only use this method if you know exactly what you are doing.
+        Note that if the provider context does not exist, this call will
+        result with an error.
+
+        :param name: Cloud provider name.
+        :param context: Context as dict.
+
+        """
+
+        data = {'name': name, 'context': context}
+        response = self.api.post('/provider/context', data,
+                                 expected_status_code=200,
+                                 params={'update': 'true'})
+        return response
