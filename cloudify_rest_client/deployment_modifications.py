@@ -25,6 +25,8 @@ class DeploymentModificationNodeInstances(dict):
                                      in self.get('added_and_related', [])]
         self['removed_and_related'] = [NodeInstance(instance) for instance
                                        in self.get('removed_and_related', [])]
+        self['before_modification'] = [NodeInstance(instance) for instance
+                                       in self.get('before_modification', [])]
 
     @property
     def added_and_related(self):
@@ -35,6 +37,12 @@ class DeploymentModificationNodeInstances(dict):
     def removed_and_related(self):
         """List of removed nodes and nodes that are related to them"""
         return self['removed_and_related']
+
+    @property
+    def before_modification(self):
+        """List of node instances with their state as it existed before the
+        deployment modification started"""
+        return self['before_modification']
 
 
 class DeploymentModification(dict):
