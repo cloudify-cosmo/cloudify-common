@@ -99,6 +99,17 @@ class DeploymentModificationFinish(dict):
         return self['id']
 
 
+class DeploymentModificationRollback(dict):
+
+    def __init__(self, modification_finish):
+        self.update(modification_finish)
+
+    @property
+    def id(self):
+        """Deployment modification id"""
+        return self['id']
+
+
 class DeploymentModificationsClient(object):
 
     def __init__(self, api):
@@ -155,3 +166,14 @@ class DeploymentModificationsClient(object):
         uri = '/deployment-modifications/{0}/finish'.format(modification_id)
         response = self.api.post(uri)
         return DeploymentModificationFinish(response)
+
+    def rollback(self, modification_id):
+        """Rollback deployment modification
+
+        :param modification_id: The modification id
+        """
+
+        assert modification_id
+        uri = '/deployment-modifications/{0}/rollback'.format(modification_id)
+        response = self.api.post(uri)
+        return DeploymentModificationRollback(response)
