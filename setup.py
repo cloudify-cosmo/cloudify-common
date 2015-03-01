@@ -24,6 +24,6 @@ setup(
     license='LICENSE',
     description='Cloudify REST client',
     install_requires=[
-        'requests',
+        'requests==2.5.1',
     ]
 )
