@@ -87,6 +87,11 @@ class DeploymentModification(dict):
         """Deployment modification creation date"""
         return self['created_at']
 
+    @property
+    def context(self):
+        """Context attached to modification"""
+        return self['context']
+
 
 class DeploymentModificationFinish(dict):
 
@@ -128,7 +133,7 @@ class DeploymentModificationsClient(object):
         response = self.api.get(uri, params=params, _include=_include)
         return [DeploymentModification(m) for m in response]
 
-    def start(self, deployment_id, nodes):
+    def start(self, deployment_id, nodes, context=None):
         """Start deployment modification.
 
         :param deployment_id: The deployment id
@@ -142,6 +147,9 @@ class DeploymentModificationsClient(object):
             'deployment_id': deployment_id,
             'nodes': nodes
         }
+        if context is not None:
+            data['context'] = context
+
         uri = '/deployment-modifications'
         response = self.api.post(uri, data,
                                  expected_status_code=201)
