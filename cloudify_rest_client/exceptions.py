@@ -141,6 +141,20 @@ class UnknownModificationStageError(CloudifyClientError):
         super(UnknownModificationStageError, self).__init__(
             message, server_traceback, status_code, error_code)
 
+
+class ExistingStartedDeploymentModificationError(CloudifyClientError):
+    """
+    Raised when a deployment modification start is attempted while another
+    deployment modification is currently started
+    """
+    ERROR_CODE = 'existing_started_deployment_modification_error'
+
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
+        super(ExistingStartedDeploymentModificationError, self).__init__(
+            message, server_traceback, status_code, error_code)
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -151,4 +165,5 @@ ERROR_MAPPING = dict([
         MissingRequiredDeploymentInputError,
         UnknownDeploymentInputError,
         FunctionsEvaluationError,
-        UnknownModificationStageError]])
+        UnknownModificationStageError,
+        ExistingStartedDeploymentModificationError]])
