@@ -155,6 +155,19 @@ class ExistingStartedDeploymentModificationError(CloudifyClientError):
             message, server_traceback, status_code, error_code)
 
 
+class DeploymentModificationAlreadyEndedError(CloudifyClientError):
+    """
+    Raised when a deployment modification finish/rollback is attempted on
+    a deployment modification that has already been finished/rolledback
+    """
+    ERROR_CODE = 'deployment_modification_already_ended_error'
+
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
+        super(DeploymentModificationAlreadyEndedError, self).__init__(
+            message, server_traceback, status_code, error_code)
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -166,4 +179,5 @@ ERROR_MAPPING = dict([
         UnknownDeploymentInputError,
         FunctionsEvaluationError,
         UnknownModificationStageError,
-        ExistingStartedDeploymentModificationError]])
+        ExistingStartedDeploymentModificationError,
+        DeploymentModificationAlreadyEndedError]])
