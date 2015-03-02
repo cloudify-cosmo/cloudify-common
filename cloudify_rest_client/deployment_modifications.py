@@ -88,6 +88,11 @@ class DeploymentModification(dict):
         return self['created_at']
 
     @property
+    def ended_at(self):
+        """Deployment modification end date"""
+        return self['ended_at']
+
+    @property
     def context(self):
         """Context attached to modification"""
         return self['context']
