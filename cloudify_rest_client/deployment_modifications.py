@@ -44,11 +44,19 @@ class DeploymentModificationNodeInstances(dict):
         deployment modification started"""
         return self['before_modification']
 
+    @property
+    def before_rollback(self):
+        """If deployment modification was rolledback, this will be a list of
+        node instances with their state as it existed before the
+        deployment modification was rolledback"""
+        return self.get('before_rollback')
+
 
 class DeploymentModification(dict):
 
     STARTED = 'started'
     FINISHED = 'finished'
+    ROLLEDBACK = 'rolledback'
 
     def __init__(self, modification):
         self.update(modification)
