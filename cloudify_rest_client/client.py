@@ -27,6 +27,8 @@ from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.evaluate import EvaluateClient
+from cloudify_rest_client.deployment_modifications import (
+    DeploymentModificationsClient)
 
 
 class HTTPClient(object):
@@ -158,3 +160,5 @@ class CloudifyClient(object):
         self.events = EventsClient(self._client)
         self.search = SearchClient(self._client)
         self.evaluate = EvaluateClient(self._client)
+        self.deployment_modifications = DeploymentModificationsClient(
+            self._client)

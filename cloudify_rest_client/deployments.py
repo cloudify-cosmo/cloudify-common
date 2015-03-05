@@ -14,9 +14,6 @@
 #    * limitations under the License.
 
 
-from cloudify_rest_client.node_instances import NodeInstance
-
-
 class Deployment(dict):
     """
     Cloudify deployment.
@@ -124,96 +121,11 @@ class DeploymentOutputsClient(object):
         return DeploymentOutputs(response)
 
 
-class DeploymentModificationNodeInstances(dict):
-
-    def __init__(self, node_instances):
-        self.update(node_instances)
-        self['added_and_related'] = [NodeInstance(instance) for instance
-                                     in self.get('added_and_related', [])]
-        self['removed_and_related'] = [NodeInstance(instance) for instance
-                                       in self.get('removed_and_related', [])]
-
-    @property
-    def added_and_related(self):
-        """List of added nodes and nodes that are related to them"""
-        return self['added_and_related']
-
-    @property
-    def removed_and_related(self):
-        """List of removed nodes and nodes that are related to them"""
-        return self['removed_and_related']
-
-
-class DeploymentModification(dict):
-
-    def __init__(self, modification):
-        self.update(modification)
-        self['node_instances'] = DeploymentModificationNodeInstances(
-            self.get('node_instances', {}))
-
-    @property
-    def deployment_id(self):
-        """Deployment Id the outputs belong to."""
-        return self['deployment_id']
-
-    @property
-    def node_instances(self):
-        """Dict containing added_and_related and remove_and_related node
-        instances list"""
-        return self['node_instances']
-
-    @property
-    def modified_nodes(self):
-        """Original request modified nodes dict"""
-        return self['modified_nodes']
-
-
-class DeploymentModifyClient(object):
-
-    def __init__(self, api):
-        self.api = api
-
-    def start(self, deployment_id, nodes):
-        """Start deployment modification.
-
-        :param deployment_id: The deployment id
-        :param nodes: the nodes to modify
-        :return: DeploymentModification dict
-        :rtype: DeploymentModification
-        """
-
-        assert deployment_id
-        data = {
-            'stage': 'start',
-            'nodes': nodes
-        }
-        uri = '/deployments/{0}/modify'.format(deployment_id)
-        response = self.api.patch(uri, data)
-        return DeploymentModification(response)
-
-    def finish(self, deployment_id, modification):
-        """Finish deployment modification
-
-        :param deployment_id: The deployment id
-        :param modification: The modification response received on 'start'
-        """
-
-        assert deployment_id
-        data = {
-            'stage': 'finish',
-            'modification': modification
-        }
-        uri = '/deployments/{0}/modify'.format(deployment_id)
-        response = self.api.patch(uri, data)
-        return DeploymentModification(response)
-
-
 class DeploymentsClient(object):
 
     def __init__(self, api):
         self.api = api
         self.outputs = DeploymentOutputsClient(api)
-        self.modify = DeploymentModifyClient(api)
 
     def list(self, _include=None):
         """

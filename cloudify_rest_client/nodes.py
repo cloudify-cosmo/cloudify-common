@@ -88,6 +88,17 @@ class Node(dict):
             'number_of_instances')) if 'number_of_instances' in self else None
 
     @property
+    def planned_number_of_instances(self):
+        """
+        :return: The planned number of instances this node has.
+        :rtype: int
+        """
+
+        return int(self.get(
+            'planned_number_of_instances')) if 'planned_number_of_instances' \
+                                               in self else None
+
+    @property
     def deploy_number_of_instances(self):
         """
         :return: The number of instances this set for this node when the
