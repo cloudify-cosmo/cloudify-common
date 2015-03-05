@@ -63,7 +63,7 @@ class DeploymentModification(dict):
     def __init__(self, modification):
         self.update(modification)
         self['node_instances'] = DeploymentModificationNodeInstances(
-            self.get('node_instances', {}))
+            self.get('node_instances') or {})
 
     @property
     def id(self):
