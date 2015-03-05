@@ -27,6 +27,8 @@ class DeploymentModificationNodeInstances(dict):
                                        in self.get('removed_and_related', [])]
         self['before_modification'] = [NodeInstance(instance) for instance
                                        in self.get('before_modification', [])]
+        self['before_rollback'] = [NodeInstance(instance) for instance
+                                   in self.get('before_rollback', [])]
 
     @property
     def added_and_related(self):
@@ -102,30 +104,12 @@ class DeploymentModification(dict):
 
     @property
     def context(self):
-        """Context attached to modification"""
+        """Dict containing context that has been attached to modification.
+
+        This context has no predefined schema. Its structure can be whatever
+        has been attached to the modification when it was started.
+        """
         return self['context']
-
-
-class DeploymentModificationFinish(dict):
-
-    def __init__(self, modification_finish):
-        self.update(modification_finish)
-
-    @property
-    def id(self):
-        """Deployment modification id"""
-        return self['id']
-
-
-class DeploymentModificationRollback(dict):
-
-    def __init__(self, modification_finish):
-        self.update(modification_finish)
-
-    @property
-    def id(self):
-        """Deployment modification id"""
-        return self['id']
 
 
 class DeploymentModificationsClient(object):
@@ -186,7 +170,7 @@ class DeploymentModificationsClient(object):
         assert modification_id
         uri = '/deployment-modifications/{0}/finish'.format(modification_id)
         response = self.api.post(uri)
-        return DeploymentModificationFinish(response)
+        return DeploymentModification(response)
 
     def rollback(self, modification_id):
         """Rollback deployment modification
@@ -197,4 +181,4 @@ class DeploymentModificationsClient(object):
         assert modification_id
         uri = '/deployment-modifications/{0}/rollback'.format(modification_id)
         response = self.api.post(uri)
-        return DeploymentModificationRollback(response)
+        return DeploymentModification(response)
