@@ -42,6 +42,8 @@ class HTTPClient(object):
         if user:
             credentials = '{0}:{1}'.format(user, password)
             self.encoded_credentials = base64_encode(credentials)
+        else:
+            self.encoded_credentials = None
         self.logger = logging.getLogger('cloudify.rest_client.http')
 
     @staticmethod
@@ -107,13 +109,13 @@ class HTTPClient(object):
         body = json.dumps(data) if data is not None else None
         if self.logger.isEnabledFor(logging.DEBUG):
             print_content = body if body is not None else ''
-            self.logger.debug('Sending request: "%s %s" %s'
-                              % (requests_method.func_name.upper(),
-                                 request_url, print_content))
+            self.logger.debug('Sending request: {0} {1} {2}'.format(
+                              requests_method.func_name.upper(),
+                              request_url, print_content))
         return self._do_request(requests_method, request_url, body,
                                 params, headers, expected_status_code)
 
-    def get(self, uri, data=None, params=None, _include=None, headers=None,
+    def get(self, uri, data=None, params=None, headers=None, _include=None,
             expected_status_code=200):
         if _include:
             fields = ','.join(_include)
@@ -174,6 +176,12 @@ class CloudifyClient(object):
 
         :param host: Host of Cloudify's management machine.
         :param port: Port of REST API service on management machine.
+        :param protocol: Protocol of REST API service on management machine,
+                        defaults to http.
+        :param user: User of REST API service on management machine.
+                     requires when the manager is secured.
+        :param password: Password of REST API service on management machine.
+                     requires when the manager is secured.
         :return: Cloudify client instance.
         """
         self._client = HTTPClient(host, port, protocol, user, password)
