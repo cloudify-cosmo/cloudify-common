@@ -16,6 +16,7 @@
 import json
 import requests
 import logging
+from itsdangerous import base64_encode
 
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.blueprints import BlueprintsClient
@@ -33,11 +34,15 @@ from cloudify_rest_client.deployment_modifications import (
 
 class HTTPClient(object):
 
-    def __init__(self, host, port=80):
+    def __init__(self, host, port=80, protocol='http', user=None, password=None):
         self.port = port
         self.host = host
-        self.url = 'http://{0}:{1}'.format(host, port)
+        self.url = '{0}://{1}:{2}'.format(protocol, host, port)
+        if user:
+            credentials = '{0}:{1}'.format(user, password)
+            self.encoded_credentials = base64_encode(credentials)
         self.logger = logging.getLogger('cloudify.rest_client.http')
+
 
     @staticmethod
     def _raise_client_error(response, url=None):
@@ -63,25 +68,12 @@ class HTTPClient(object):
         if response.status_code != expected_code:
             self._raise_client_error(response)
 
-    def do_request(self,
-                   requests_method,
-                   uri,
-                   data=None,
-                   params=None,
-                   expected_status_code=200):
-        request_url = '{0}{1}'.format(self.url, uri)
-        body = json.dumps(data) if data is not None else None
-        if self.logger.isEnabledFor(logging.DEBUG):
-            print_content = body if body is not None else ''
-            self.logger.debug('Sending request: "%s %s" %s'
-                              % (requests_method.func_name.upper(),
-                                 request_url, print_content))
+    def _do_request(self, requests_method, request_url, body, params, headers,
+                    expected_status_code):
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
-                                   headers={
-                                       'Content-type': 'application/json'
-                                   })
+                                   headers=headers)
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.iteritems():
                 self.logger.debug('request header:  %s: %s'
@@ -97,8 +89,32 @@ class HTTPClient(object):
             self._raise_client_error(response, request_url)
         return response.json()
 
-    def get(self, uri, data=None, params=None,
-            _include=None, expected_status_code=200):
+    def do_request(self,
+                   requests_method,
+                   uri,
+                   data=None,
+                   params=None,
+                   headers=None,
+                   expected_status_code=200):
+        request_url = '{0}{1}'.format(self.url, uri)
+        # build headers
+        if headers is None:
+            headers = {'Content-type': 'application/json'}
+
+        if self.encoded_credentials:
+            headers['Authorization'] = self.encoded_credentials
+
+        body = json.dumps(data) if data is not None else None
+        if self.logger.isEnabledFor(logging.DEBUG):
+            print_content = body if body is not None else ''
+            self.logger.debug('Sending request: "%s %s" %s'
+                              % (requests_method.func_name.upper(),
+                                 request_url, print_content))
+        return self._do_request(requests_method, request_url, body,
+                                params, headers, expected_status_code)
+
+    def get(self, uri, data=None, params=None, _include=None, headers=None,
+            expected_status_code=200):
         if _include:
             fields = ','.join(_include)
             if not params:
@@ -108,41 +124,46 @@ class HTTPClient(object):
                                uri,
                                data=data,
                                params=params,
+                               headers=headers,
                                expected_status_code=expected_status_code)
 
-    def put(self, uri, data=None, params=None, expected_status_code=200):
+    def put(self, uri, data=None, params=None, headers=None, expected_status_code=200):
         return self.do_request(requests.put,
                                uri,
                                data=data,
                                params=params,
+                               headers=headers,
                                expected_status_code=expected_status_code)
 
-    def patch(self, uri, data=None, params=None, expected_status_code=200):
+    def patch(self, uri, data=None, params=None, headers=None, expected_status_code=200):
         return self.do_request(requests.patch,
                                uri,
                                data=data,
                                params=params,
+                               headers=headers,
                                expected_status_code=expected_status_code)
 
-    def post(self, uri, data=None, params=None, expected_status_code=200):
+    def post(self, uri, data=None, params=None, headers=None, expected_status_code=200):
         return self.do_request(requests.post,
                                uri,
                                data=data,
                                params=params,
+                               headers=headers,
                                expected_status_code=expected_status_code)
 
-    def delete(self, uri, data=None, params=None, expected_status_code=200):
+    def delete(self, uri, data=None, params=None, headers=None, expected_status_code=200):
         return self.do_request(requests.delete,
                                uri,
                                data=data,
                                params=params,
+                               headers=headers,
                                expected_status_code=expected_status_code)
 
 
 class CloudifyClient(object):
     """Cloudify's management client."""
 
-    def __init__(self, host='localhost', port=80):
+    def __init__(self, host='localhost', port=80, protocol='http', user=None, password=None):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -150,7 +171,7 @@ class CloudifyClient(object):
         :param port: Port of REST API service on management machine.
         :return: Cloudify client instance.
         """
-        self._client = HTTPClient(host, port)
+        self._client = HTTPClient(host, port, protocol, user, password)
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
