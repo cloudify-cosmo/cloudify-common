@@ -34,7 +34,8 @@ from cloudify_rest_client.deployment_modifications import (
 
 class HTTPClient(object):
 
-    def __init__(self, host, port=80, protocol='http', user=None, password=None):
+    def __init__(self, host, port=80, protocol='http', user=None,
+                 password=None):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
@@ -42,7 +43,6 @@ class HTTPClient(object):
             credentials = '{0}:{1}'.format(user, password)
             self.encoded_credentials = base64_encode(credentials)
         self.logger = logging.getLogger('cloudify.rest_client.http')
-
 
     @staticmethod
     def _raise_client_error(response, url=None):
@@ -127,7 +127,8 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code)
 
-    def put(self, uri, data=None, params=None, headers=None, expected_status_code=200):
+    def put(self, uri, data=None, params=None, headers=None,
+            expected_status_code=200):
         return self.do_request(requests.put,
                                uri,
                                data=data,
@@ -135,7 +136,8 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code)
 
-    def patch(self, uri, data=None, params=None, headers=None, expected_status_code=200):
+    def patch(self, uri, data=None, params=None, headers=None,
+              expected_status_code=200):
         return self.do_request(requests.patch,
                                uri,
                                data=data,
@@ -143,7 +145,8 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code)
 
-    def post(self, uri, data=None, params=None, headers=None, expected_status_code=200):
+    def post(self, uri, data=None, params=None, headers=None,
+             expected_status_code=200):
         return self.do_request(requests.post,
                                uri,
                                data=data,
@@ -151,7 +154,8 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code)
 
-    def delete(self, uri, data=None, params=None, headers=None, expected_status_code=200):
+    def delete(self, uri, data=None, params=None, headers=None,
+               expected_status_code=200):
         return self.do_request(requests.delete,
                                uri,
                                data=data,
@@ -163,7 +167,8 @@ class HTTPClient(object):
 class CloudifyClient(object):
     """Cloudify's management client."""
 
-    def __init__(self, host='localhost', port=80, protocol='http', user=None, password=None):
+    def __init__(self, host='localhost', port=80, protocol='http', user=None,
+                 password=None):
         """
         Creates a Cloudify client with the provided host and optional port.
 
