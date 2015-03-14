@@ -39,7 +39,7 @@ class HTTPClient(object):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
-        if user:
+        if user and password:
             credentials = '{0}:{1}'.format(user, password)
             self.encoded_credentials = base64_encode(credentials)
         else:
