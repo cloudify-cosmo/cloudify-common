@@ -16,12 +16,14 @@
 import os
 import tempfile
 import shutil
-import requests
 import tarfile
 import urllib
 import urlparse
+import contextlib
 
 from os.path import expanduser
+
+import bytes_stream_utils
 
 
 class Blueprint(dict):
@@ -55,8 +57,6 @@ class Blueprint(dict):
 
 class BlueprintsClient(object):
 
-    CONTENT_DISPOSITION_HEADER = 'content-disposition'
-
     def __init__(self, api):
         self.api = api
 
@@ -82,17 +82,7 @@ class BlueprintsClient(object):
             query_params['application_file_name'] = \
                 urllib.quote(application_file_name)
 
-        def file_gen(archive_path):
-            buffer_size = 8192
-            with open(archive_path, 'rb') as f:
-                while True:
-                    read_bytes = f.read(buffer_size)
-                    yield read_bytes
-                    if len(read_bytes) < buffer_size:
-                        return
-
         uri = '/blueprints/{0}'.format(blueprint_id)
-        url = '{0}{1}'.format(self.api.url, uri)
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
@@ -103,11 +93,11 @@ class BlueprintsClient(object):
             data = None
         else:
             # archive location is a system path - upload it in chunks
-            data = file_gen(archive_location)
+            data = bytes_stream_utils.request_data_file_stream_gen(
+                archive_location)
 
-        response = requests.put(url, params=query_params, data=data)
-        self.api.verify_response_status(response, 201)
-        return response.json()
+        return self.api.put(uri, params=query_params, data=data,
+                            expected_status_code=201)
 
     def list(self, _include=None):
         """
@@ -203,27 +193,12 @@ class BlueprintsClient(object):
          (optional)
         :return: The file path of the downloaded blueprint.
         """
-        url = '{0}{1}'.format(self.api.url,
-                              '/blueprints/{0}/archive'.format(blueprint_id))
-        response = requests.get(url, stream=True)
-        self.api.verify_response_status(response, 200)
+        uri = '/blueprints/{0}/archive'.format(blueprint_id)
 
-        if not output_file:
-            if self.CONTENT_DISPOSITION_HEADER not in response.headers:
-                raise RuntimeError(
-                    'Cannot determine attachment filename: {0} header not'
-                    ' found in response headers'.format(
-                        self.CONTENT_DISPOSITION_HEADER))
-            output_file = response.headers[
-                self.CONTENT_DISPOSITION_HEADER].split('filename=')[1]
+        with contextlib.closing(
+                self.api.get(uri, stream=True)) as streamed_response:
 
-        if os.path.exists(output_file):
-            raise OSError("Output file '%s' already exists" % output_file)
+            output_file = bytes_stream_utils.write_response_stream_to_file(
+                streamed_response, output_file)
 
-        with open(output_file, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8096):
-                if chunk:
-                    f.write(chunk)
-                    f.flush()
-
-        return output_file
+            return output_file

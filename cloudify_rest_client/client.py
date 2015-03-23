@@ -71,11 +71,12 @@ class HTTPClient(object):
             self._raise_client_error(response)
 
     def _do_request(self, requests_method, request_url, body, params, headers,
-                    expected_status_code):
+                    expected_status_code, stream):
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
-                                   headers=headers)
+                                   headers=headers,
+                                   stream=stream)
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.iteritems():
                 self.logger.debug('request header:  %s: %s'
@@ -89,7 +90,11 @@ class HTTPClient(object):
 
         if response.status_code != expected_status_code:
             self._raise_client_error(response, request_url)
-        return response.json()
+
+        if stream:
+            return StreamedResponse(response)
+        else:
+            return response.json()
 
     def do_request(self,
                    requests_method,
@@ -97,7 +102,8 @@ class HTTPClient(object):
                    data=None,
                    params=None,
                    headers=None,
-                   expected_status_code=200):
+                   expected_status_code=200,
+                   stream=False):
         request_url = '{0}{1}'.format(self.url, uri)
         # build headers
         if headers is None:
@@ -106,17 +112,23 @@ class HTTPClient(object):
         if self.encoded_credentials:
             headers['Authorization'] = self.encoded_credentials
 
-        body = json.dumps(data) if data is not None else None
+        # data is either dict, bytes data or None
+        is_dict_data = isinstance(data, dict)
+        body = json.dumps(data) if is_dict_data else data
         if self.logger.isEnabledFor(logging.DEBUG):
-            print_content = body if body is not None else ''
-            self.logger.debug('Sending request: {0} {1} {2}'.format(
-                              requests_method.func_name.upper(),
-                              request_url, print_content))
+            log_message = 'Sending request: {0} {1}'.format(
+                requests_method.func_name.upper(),
+                request_url)
+            if is_dict_data:
+                log_message += '; body: {0}'.format(body)
+            elif data is not None:
+                log_message += '; body: bytes data'
+            self.logger.debug(log_message)
         return self._do_request(requests_method, request_url, body,
-                                params, headers, expected_status_code)
+                                params, headers, expected_status_code, stream)
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
-            expected_status_code=200):
+            expected_status_code=200, stream=False):
         if _include:
             fields = ','.join(_include)
             if not params:
@@ -127,43 +139,67 @@ class HTTPClient(object):
                                data=data,
                                params=params,
                                headers=headers,
-                               expected_status_code=expected_status_code)
+                               expected_status_code=expected_status_code,
+                               stream=stream)
 
     def put(self, uri, data=None, params=None, headers=None,
-            expected_status_code=200):
+            expected_status_code=200, stream=False):
         return self.do_request(requests.put,
                                uri,
                                data=data,
                                params=params,
                                headers=headers,
-                               expected_status_code=expected_status_code)
+                               expected_status_code=expected_status_code,
+                               stream=stream)
 
     def patch(self, uri, data=None, params=None, headers=None,
-              expected_status_code=200):
+              expected_status_code=200, stream=False):
         return self.do_request(requests.patch,
                                uri,
                                data=data,
                                params=params,
                                headers=headers,
-                               expected_status_code=expected_status_code)
+                               expected_status_code=expected_status_code,
+                               stream=stream)
 
     def post(self, uri, data=None, params=None, headers=None,
-             expected_status_code=200):
+             expected_status_code=200, stream=False):
         return self.do_request(requests.post,
                                uri,
                                data=data,
                                params=params,
                                headers=headers,
-                               expected_status_code=expected_status_code)
+                               expected_status_code=expected_status_code,
+                               stream=stream)
 
     def delete(self, uri, data=None, params=None, headers=None,
-               expected_status_code=200):
+               expected_status_code=200, stream=False):
         return self.do_request(requests.delete,
                                uri,
                                data=data,
                                params=params,
                                headers=headers,
-                               expected_status_code=expected_status_code)
+                               expected_status_code=expected_status_code,
+                               stream=stream)
+
+
+class StreamedResponse(object):
+
+    def __init__(self, response):
+        self._response = response
+
+    @property
+    def headers(self):
+        return self._response.headers
+
+    def bytes_stream(self, chunk_size=8192):
+        return self._response.iter_content(chunk_size)
+
+    def lines_stream(self):
+        return self._response.iter_lines()
+
+    def close(self):
+        self._response.close()
 
 
 class CloudifyClient(object):
