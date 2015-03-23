@@ -31,11 +31,16 @@ from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
 
+DEFAULT_PORT = 80
+SECURED_PORT = 443
+SECURED_PROTOCOL = 'https'
+DEFAULT_PROTOCOL = 'http'
+
 
 class HTTPClient(object):
 
-    def __init__(self, host, port=80, protocol='http', user=None,
-                 password=None):
+    def __init__(self, host, port=DEFAULT_PORT, protocol=DEFAULT_PROTOCOL,
+                 user=None, password=None):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
@@ -71,11 +76,12 @@ class HTTPClient(object):
             self._raise_client_error(response)
 
     def _do_request(self, requests_method, request_url, body, params, headers,
-                    expected_status_code):
+                    expected_status_code, verify=False):
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
-                                   headers=headers)
+                                   headers=headers,
+                                   verify=verify)
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.iteritems():
                 self.logger.debug('request header:  %s: %s'
@@ -113,7 +119,8 @@ class HTTPClient(object):
                               requests_method.func_name.upper(),
                               request_url, print_content))
         return self._do_request(requests_method, request_url, body,
-                                params, headers, expected_status_code)
+                                params, headers, expected_status_code,
+                                verify=self.verify_cert)
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
             expected_status_code=200):
@@ -166,11 +173,19 @@ class HTTPClient(object):
                                expected_status_code=expected_status_code)
 
 
+class HTTPSClient(HTTPClient):
+
+    def __init__(self, host, port=SECURED_PORT, protocol=SECURED_PROTOCOL,
+                 user=None, password=None, verify_cert=False):
+        HTTPClient.__init__(self, host=host, port=port, protocol=protocol, user=user, password=password)
+        self.verify_cert = verify_cert
+
+
 class CloudifyClient(object):
     """Cloudify's management client."""
 
-    def __init__(self, host='localhost', port=80, protocol='http', user=None,
-                 password=None):
+    def __init__(self, host='localhost', port=None, protocol='https',
+                 user=None, password=None, secured=False, verify_cert=None):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -182,9 +197,17 @@ class CloudifyClient(object):
                      requires when the manager is secured.
         :param password: Password of REST API service on management machine.
                      requires when the manager is secured.
+        :param verify_cert: if ``True``, the SSL cert will be verified.
         :return: Cloudify client instance.
         """
-        self._client = HTTPClient(host, port, protocol, user, password)
+
+        if secured:
+            self._client = HTTPSClient(
+                host=host, port=port, protocol=SECURED_PROTOCOL,
+                user=user, password=password, verify_cert=verify_cert)
+        else:
+            self._client = HTTPClient(host, port, protocol, user, password)
+
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
