@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ def write_response_stream_to_file(streamed_response, output_file=None,
             CONTENT_DISPOSITION_HEADER].split('filename=')[1]
 
     if os.path.exists(output_file):
-        raise OSError("Output file '%s' already exists" % output_file)
+        raise OSError("Output file '{0}' already exists".format(output_file))
 
     with open(output_file, 'wb') as f:
         for chunk in streamed_response.bytes_stream(buffer_size):

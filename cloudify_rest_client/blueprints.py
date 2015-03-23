@@ -23,7 +23,7 @@ import contextlib
 
 from os.path import expanduser
 
-import bytes_stream_utils
+import cloudify_rest_client.bytes_stream_utils as bytes_stream_utils
 
 
 class Blueprint(dict):

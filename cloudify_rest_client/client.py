@@ -93,8 +93,8 @@ class HTTPClient(object):
 
         if stream:
             return StreamedResponse(response)
-        else:
-            return response.json()
+
+        return response.json()
 
     def do_request(self,
                    requests_method,
