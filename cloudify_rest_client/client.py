@@ -40,10 +40,11 @@ DEFAULT_PROTOCOL = 'http'
 class HTTPClient(object):
 
     def __init__(self, host, port=DEFAULT_PORT, protocol=DEFAULT_PROTOCOL,
-                 user=None, password=None):
+                 user=None, password=None, cert=None):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
+        self.cert = cert
         if user and password:
             credentials = '{0}:{1}'.format(user, password)
             self.encoded_credentials = base64_encode(credentials)
@@ -118,9 +119,18 @@ class HTTPClient(object):
             self.logger.debug('Sending request: {0} {1} {2}'.format(
                               requests_method.func_name.upper(),
                               request_url, print_content))
+        verify = False
+        if request_url.lower().startswith(SECURED_PROTOCOL):
+            if self.cert:
+                # verify will hold the path to the self-signed certificate
+                verify = self.cert
+            else:
+                # certificate verification is required
+                verify = True
+
         return self._do_request(requests_method, request_url, body,
                                 params, headers, expected_status_code,
-                                verify=self.verify_cert)
+                                verify=verify)
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
             expected_status_code=200):
@@ -173,19 +183,11 @@ class HTTPClient(object):
                                expected_status_code=expected_status_code)
 
 
-class HTTPSClient(HTTPClient):
-
-    def __init__(self, host, port=SECURED_PORT, protocol=SECURED_PROTOCOL,
-                 user=None, password=None, verify_cert=False):
-        HTTPClient.__init__(self, host=host, port=port, protocol=protocol, user=user, password=password)
-        self.verify_cert = verify_cert
-
-
 class CloudifyClient(object):
     """Cloudify's management client."""
 
-    def __init__(self, host='localhost', port=None, protocol='https',
-                 user=None, password=None, secured=False, verify_cert=None):
+    def __init__(self, host='localhost', port=None,
+                 user=None, password=None, cert=None):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -197,17 +199,15 @@ class CloudifyClient(object):
                      requires when the manager is secured.
         :param password: Password of REST API service on management machine.
                      requires when the manager is secured.
-        :param verify_cert: if ``True``, the SSL cert will be verified.
+        :param cert: if ``True``, the SSL cert will be verified. A CA_BUNDLE path can also be provided.
         :return: Cloudify client instance.
         """
 
-        if secured:
-            self._client = HTTPSClient(
-                host=host, port=port, protocol=SECURED_PROTOCOL,
-                user=user, password=password, verify_cert=verify_cert)
-        else:
-            self._client = HTTPClient(host, port, protocol, user, password)
-
+        if cert:
+            protocol = SECURED_PROTOCOL
+            if not port:
+                port = SECURED_PORT
+        self._client = HTTPClient(host, port, protocol, user, password, cert)
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
