@@ -124,8 +124,10 @@ class HTTPClient(object):
             elif data is not None:
                 log_message += '; body: bytes data'
             self.logger.debug(log_message)
-        return self._do_request(requests_method, request_url, body,
-                                params, headers, expected_status_code, stream)
+        return self._do_request(
+            requests_method=requests_method, request_url=request_url,
+            body=body, params=params, headers=headers,
+            expected_status_code=expected_status_code, stream=stream)
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
             expected_status_code=200, stream=False):
