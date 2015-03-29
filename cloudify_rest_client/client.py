@@ -40,11 +40,12 @@ DEFAULT_PROTOCOL = 'http'
 class HTTPClient(object):
 
     def __init__(self, host, port=DEFAULT_PORT, protocol=DEFAULT_PROTOCOL,
-                 user=None, password=None, cert=None):
+                 user=None, password=None, cert=None, verify=True):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
         self.cert = cert
+        self.verify = verify
         if user and password:
             credentials = '{0}:{1}'.format(user, password)
             self.encoded_credentials = base64_encode(credentials)
@@ -98,6 +99,13 @@ class HTTPClient(object):
             self._raise_client_error(response, request_url)
         return response.json()
 
+    def get_request_verify(self):
+        if self.cert:
+            # verify will hold the path to the self-signed certificate
+            return self.cert
+        # certificate verification is required as declared in verify
+        return self.verify
+
     def do_request(self,
                    requests_method,
                    uri,
@@ -119,18 +127,10 @@ class HTTPClient(object):
             self.logger.debug('Sending request: {0} {1} {2}'.format(
                               requests_method.func_name.upper(),
                               request_url, print_content))
-        verify = False
-        if request_url.lower().startswith(SECURED_PROTOCOL):
-            if self.cert:
-                # verify will hold the path to the self-signed certificate
-                verify = self.cert
-            else:
-                # certificate verification is required
-                verify = True
 
         return self._do_request(requests_method, request_url, body,
                                 params, headers, expected_status_code,
-                                verify=verify)
+                                verify=self.get_request_verify())
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
             expected_status_code=200):
@@ -187,7 +187,7 @@ class CloudifyClient(object):
     """Cloudify's management client."""
 
     def __init__(self, host='localhost', port=None,
-                 user=None, password=None, cert=None):
+                 user=None, password=None, cert=None, verify=True):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -207,7 +207,8 @@ class CloudifyClient(object):
             protocol = SECURED_PROTOCOL
             if not port:
                 port = SECURED_PORT
-        self._client = HTTPClient(host, port, protocol, user, password, cert)
+        self._client = HTTPClient(
+            host, port, protocol, user, password, cert, verify)
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
