@@ -40,12 +40,12 @@ DEFAULT_PROTOCOL = 'http'
 class HTTPClient(object):
 
     def __init__(self, host, port=DEFAULT_PORT, protocol=DEFAULT_PROTOCOL,
-                 user=None, password=None, cert=None, verify=True):
+                 user=None, password=None, cert=None, trust_all=False):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
         self.cert = cert
-        self.verify = verify
+        self.trust_all = trust_all
         if user and password:
             credentials = '{0}:{1}'.format(user, password)
             self.encoded_credentials = base64_encode(credentials)
@@ -103,8 +103,8 @@ class HTTPClient(object):
         if self.cert:
             # verify will hold the path to the self-signed certificate
             return self.cert
-        # certificate verification is required as declared in verify
-        return self.verify
+        # certificate verification is required iff trust_all is False
+        return not self.trust_all
 
     def do_request(self,
                    requests_method,
@@ -187,7 +187,7 @@ class CloudifyClient(object):
     """Cloudify's management client."""
 
     def __init__(self, host='localhost', port=None,
-                 user=None, password=None, cert=None, verify=True):
+                 user=None, password=None, cert=None, trust_all=False):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -203,12 +203,13 @@ class CloudifyClient(object):
         :return: Cloudify client instance.
         """
 
+        protocol = DEFAULT_PROTOCOL
         if cert:
             protocol = SECURED_PROTOCOL
             if not port:
                 port = SECURED_PORT
         self._client = HTTPClient(
-            host, port, protocol, user, password, cert, verify)
+            host, port, protocol, user, password, cert, trust_all)
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
