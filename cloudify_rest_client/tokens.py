@@ -19,7 +19,7 @@ class TokensClient(object):
     def __init__(self, api):
         self.api = api
 
-    def get(self,):
+    def get(self):
         """Get auth token
         :return: Token
         """
