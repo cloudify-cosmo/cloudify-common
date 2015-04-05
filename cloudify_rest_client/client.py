@@ -186,7 +186,7 @@ class HTTPClient(object):
 class CloudifyClient(object):
     """Cloudify's management client."""
 
-    def __init__(self, host='localhost', port=None,
+    def __init__(self, host='localhost', port=DEFAULT_PORT,
                  user=None, password=None, cert=None, trust_all=False):
         """
         Creates a Cloudify client with the provided host and optional port.
@@ -199,15 +199,17 @@ class CloudifyClient(object):
                      requires when the manager is secured.
         :param password: Password of REST API service on management machine.
                      requires when the manager is secured.
-        :param cert: if ``True``, the SSL cert will be verified. A CA_BUNDLE path can also be provided.
+        :param cert: Path to a copy of the server's self-signed certificate.
+        :param trust_all: if `False`, the server's certificate
+                          (self-signed or not) will be verified.
         :return: Cloudify client instance.
         """
 
         protocol = DEFAULT_PROTOCOL
         if cert:
+            port = SECURED_PORT
+        if port == SECURED_PORT:
             protocol = SECURED_PROTOCOL
-            if not port:
-                port = SECURED_PORT
         self._client = HTTPClient(
             host, port, protocol, user, password, cert, trust_all)
         self.blueprints = BlueprintsClient(self._client)
