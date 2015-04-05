@@ -25,6 +25,5 @@ setup(
     description='Cloudify REST client',
     install_requires=[
         'requests<=2.5.1',
-        'itsdangerous>=0.24',
     ]
 )
