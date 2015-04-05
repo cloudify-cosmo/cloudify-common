@@ -30,20 +30,24 @@ from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
+from cloudify_rest_client.tokens import TokensClient
 
 
 class HTTPClient(object):
 
     def __init__(self, host, port=80, protocol='http', user=None,
-                 password=None):
+                 password=None, token=None):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
         if user and password:
             credentials = '{0}:{1}'.format(user, password)
             self.encoded_credentials = base64_encode(credentials)
+        elif token:
+            self.token = token
         else:
             self.encoded_credentials = None
+            self.token = None
         self.logger = logging.getLogger('cloudify.rest_client.http')
 
     @staticmethod
@@ -111,6 +115,8 @@ class HTTPClient(object):
 
         if self.encoded_credentials:
             headers['Authorization'] = self.encoded_credentials
+        elif self.token:
+            headers['Authentication-Token'] = self.token
 
         # data is either dict, bytes data or None
         is_dict_data = isinstance(data, dict)
@@ -208,7 +214,7 @@ class CloudifyClient(object):
     """Cloudify's management client."""
 
     def __init__(self, host='localhost', port=80, protocol='http', user=None,
-                 password=None):
+                 password=None, token=None):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -222,7 +228,7 @@ class CloudifyClient(object):
                      requires when the manager is secured.
         :return: Cloudify client instance.
         """
-        self._client = HTTPClient(host, port, protocol, user, password)
+        self._client = HTTPClient(host, port, protocol, user, password, token)
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
@@ -234,3 +240,4 @@ class CloudifyClient(object):
         self.evaluate = EvaluateClient(self._client)
         self.deployment_modifications = DeploymentModificationsClient(
             self._client)
+        self.tokens = TokensClient(self._client)
