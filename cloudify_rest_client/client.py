@@ -16,7 +16,6 @@
 import json
 import requests
 import logging
-import copy
 
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.blueprints import BlueprintsClient
@@ -40,10 +39,10 @@ class HTTPClient(object):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
-        self.headers = headers or {}
+        self.headers = headers.copy() if headers else {}
         if not self.headers.get('Content-type'):
             self.headers['Content-type'] = 'application/json'
-        self.query_params = query_params or {}
+        self.query_params = query_params.copy() if query_params else {}
         self.logger = logging.getLogger('cloudify.rest_client.http')
 
     @staticmethod
@@ -108,12 +107,12 @@ class HTTPClient(object):
 
         # build headers
         headers = headers or {}
-        total_headers = copy.deepcopy(self.headers)
+        total_headers = self.headers.copy()
         total_headers.update(headers)
 
         # build query params
         params = params or {}
-        total_params = copy.deepcopy(self.query_params)
+        total_params = self.query_params.copy()
         total_params.update(params)
 
         # data is either dict, bytes data or None
