@@ -16,7 +16,6 @@
 import json
 import requests
 import logging
-from itsdangerous import base64_encode
 
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.blueprints import BlueprintsClient
@@ -30,6 +29,7 @@ from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
+from cloudify_rest_client.tokens import TokensClient
 
 DEFAULT_PORT = 80
 SECURED_PORT = 443
@@ -39,18 +39,15 @@ DEFAULT_PROTOCOL = 'http'
 
 class HTTPClient(object):
 
-    def __init__(self, host, port=DEFAULT_PORT, protocol=DEFAULT_PROTOCOL,
-                 user=None, password=None, cert=None, trust_all=False):
+    def __init__(self, host, port=DEFAULT_PORT, protocol=DEFAULT_PROTOCOL, headers=None,
+                 query_params=None):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
-        self.cert = cert
-        self.trust_all = trust_all
-        if user and password:
-            credentials = '{0}:{1}'.format(user, password)
-            self.encoded_credentials = base64_encode(credentials)
-        else:
-            self.encoded_credentials = None
+        self.headers = headers.copy() if headers else {}
+        if not self.headers.get('Content-type'):
+            self.headers['Content-type'] = 'application/json'
+        self.query_params = query_params.copy() if query_params else {}
         self.logger = logging.getLogger('cloudify.rest_client.http')
 
     @staticmethod
@@ -120,12 +117,16 @@ class HTTPClient(object):
                    expected_status_code=200,
                    stream=False):
         request_url = '{0}{1}'.format(self.url, uri)
-        # build headers
-        if headers is None:
-            headers = {'Content-type': 'application/json'}
 
-        if self.encoded_credentials:
-            headers['Authorization'] = self.encoded_credentials
+        # build headers
+        headers = headers or {}
+        total_headers = self.headers.copy()
+        total_headers.update(headers)
+
+        # build query params
+        params = params or {}
+        total_params = self.query_params.copy()
+        total_params.update(params)
 
         # data is either dict, bytes data or None
         is_dict_data = isinstance(data, dict)
@@ -141,7 +142,7 @@ class HTTPClient(object):
             self.logger.debug(log_message)
         return self._do_request(
             requests_method=requests_method, request_url=request_url,
-            body=body, params=params, headers=headers,
+            body=body, params=total_params, headers=total_headers,
             expected_status_code=expected_status_code, stream=stream,
             verify=self.get_request_verify())
 
@@ -223,8 +224,8 @@ class StreamedResponse(object):
 class CloudifyClient(object):
     """Cloudify's management client."""
 
-    def __init__(self, host='localhost', port=DEFAULT_PORT,
-                 user=None, password=None, cert=None, trust_all=False):
+    def __init__(self, host='localhost', port=None, protocol=DEFAULT_PROTOCOL,
+                 headers=None, query_params=None, cert=None, trust_all=False):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -232,23 +233,23 @@ class CloudifyClient(object):
         :param port: Port of REST API service on management machine.
         :param protocol: Protocol of REST API service on management machine,
                         defaults to http.
-        :param user: User of REST API service on management machine.
-                     requires when the manager is secured.
-        :param password: Password of REST API service on management machine.
-                     requires when the manager is secured.
+        :param headers: Headers to be added to request.
+        :param query_params: Query parameters to be added to the request.
         :param cert: Path to a copy of the server's self-signed certificate.
         :param trust_all: if `False`, the server's certificate
                           (self-signed or not) will be verified.
         :return: Cloudify client instance.
         """
 
-        protocol = DEFAULT_PROTOCOL
-        if cert:
-            port = SECURED_PORT
-        if port == SECURED_PORT:
-            protocol = SECURED_PROTOCOL
-        self._client = HTTPClient(
-            host, port, protocol, user, password, cert, trust_all)
+        if not port:
+            if protocol == SECURED_PROTOCOL or cert:
+                # SSL
+                port = SECURED_PORT
+            else:
+                port = DEFAULT_PORT
+
+        self._client = HTTPClient(host, port, protocol, headers,
+                                  query_params, cert, trust_all)
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
@@ -260,3 +261,4 @@ class CloudifyClient(object):
         self.evaluate = EvaluateClient(self._client)
         self.deployment_modifications = DeploymentModificationsClient(
             self._client)
+        self.tokens = TokensClient(self._client)
