@@ -14,6 +14,19 @@
 #    * limitations under the License.
 
 
+class Token(dict):
+
+    def __init__(self, token):
+        self.update(token)
+
+    @property
+    def value(self):
+        """
+        :return: The value of the token.
+        """
+        return self.get('value')
+
+
 class TokensClient(object):
 
     def __init__(self, api):
@@ -24,4 +37,4 @@ class TokensClient(object):
         :return: Token
         """
         response = self.api.get('/tokens')
-        return response.get('token')
+        return Token(response)
