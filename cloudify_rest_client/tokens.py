@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +13,14 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from setuptools import setup
 
-setup(
-    name='cloudify-rest-client',
-    version='3.2a8',
-    author='cosmo-admin',
-    author_email='cosmo-admin@gigaspaces.com',
-    packages=['cloudify_rest_client'],
-    license='LICENSE',
-    description='Cloudify REST client',
-    install_requires=[
-        'requests<=2.5.1',
-    ]
-)
+class TokensClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+    def get(self):
+        """Get auth token
+        :return: Token
+        """
+        return self.api.get('tokens')
