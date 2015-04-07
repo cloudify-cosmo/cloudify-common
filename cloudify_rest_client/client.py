@@ -39,7 +39,8 @@ DEFAULT_PROTOCOL = 'http'
 
 class HTTPClient(object):
 
-    def __init__(self, host, port=DEFAULT_PORT, protocol=DEFAULT_PROTOCOL, headers=None,
+    def __init__(self, host, port=DEFAULT_PORT,
+                 protocol=DEFAULT_PROTOCOL, headers=None,
                  query_params=None, cert=None, trust_all=False):
         self.port = port
         self.host = host
