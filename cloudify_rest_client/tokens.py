@@ -23,4 +23,5 @@ class TokensClient(object):
         """Get auth token
         :return: Token
         """
-        return self.api.get('tokens')
+        response = self.api.get('/tokens')
+        return response.get('token')
