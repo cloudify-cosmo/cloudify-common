@@ -40,7 +40,7 @@ DEFAULT_PROTOCOL = 'http'
 class HTTPClient(object):
 
     def __init__(self, host, port=DEFAULT_PORT, protocol=DEFAULT_PROTOCOL, headers=None,
-                 query_params=None):
+                 query_params=None, cert=None, trust_all=False):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
@@ -49,6 +49,8 @@ class HTTPClient(object):
             self.headers['Content-type'] = 'application/json'
         self.query_params = query_params.copy() if query_params else {}
         self.logger = logging.getLogger('cloudify.rest_client.http')
+        self.cert = cert
+        self.trust_all = trust_all
 
     @staticmethod
     def _raise_client_error(response, url=None):
@@ -75,7 +77,7 @@ class HTTPClient(object):
             self._raise_client_error(response)
 
     def _do_request(self, requests_method, request_url, body, params, headers,
-                    expected_status_code, stream, verify=False):
+                    expected_status_code, stream, verify):
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
@@ -242,7 +244,7 @@ class CloudifyClient(object):
         """
 
         if not port:
-            if protocol == SECURED_PROTOCOL or cert:
+            if protocol == SECURED_PROTOCOL:
                 # SSL
                 port = SECURED_PORT
             else:
