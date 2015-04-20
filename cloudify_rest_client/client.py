@@ -31,11 +31,17 @@ from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
 from cloudify_rest_client.tokens import TokensClient
 
+DEFAULT_PORT = 80
+SECURED_PORT = 443
+SECURED_PROTOCOL = 'https'
+DEFAULT_PROTOCOL = 'http'
+
 
 class HTTPClient(object):
 
-    def __init__(self, host, port=80, protocol='http', headers=None,
-                 query_params=None):
+    def __init__(self, host, port=DEFAULT_PORT,
+                 protocol=DEFAULT_PROTOCOL, headers=None,
+                 query_params=None, cert=None, trust_all=False):
         self.port = port
         self.host = host
         self.url = '{0}://{1}:{2}'.format(protocol, host, port)
@@ -44,6 +50,8 @@ class HTTPClient(object):
             self.headers['Content-type'] = 'application/json'
         self.query_params = query_params.copy() if query_params else {}
         self.logger = logging.getLogger('cloudify.rest_client.http')
+        self.cert = cert
+        self.trust_all = trust_all
 
     @staticmethod
     def _raise_client_error(response, url=None):
@@ -70,12 +78,13 @@ class HTTPClient(object):
             self._raise_client_error(response)
 
     def _do_request(self, requests_method, request_url, body, params, headers,
-                    expected_status_code, stream):
+                    expected_status_code, stream, verify):
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
                                    headers=headers,
-                                   stream=stream)
+                                   stream=stream,
+                                   verify=verify)
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.iteritems():
                 self.logger.debug('request header:  %s: %s'
@@ -94,6 +103,13 @@ class HTTPClient(object):
             return StreamedResponse(response)
 
         return response.json()
+
+    def get_request_verify(self):
+        if self.cert:
+            # verify will hold the path to the self-signed certificate
+            return self.cert
+        # certificate verification is required iff trust_all is False
+        return not self.trust_all
 
     def do_request(self,
                    requests_method,
@@ -130,7 +146,8 @@ class HTTPClient(object):
         return self._do_request(
             requests_method=requests_method, request_url=request_url,
             body=body, params=total_params, headers=total_headers,
-            expected_status_code=expected_status_code, stream=stream)
+            expected_status_code=expected_status_code, stream=stream,
+            verify=self.get_request_verify())
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
             expected_status_code=200, stream=False):
@@ -210,8 +227,8 @@ class StreamedResponse(object):
 class CloudifyClient(object):
     """Cloudify's management client."""
 
-    def __init__(self, host='localhost', port=80, protocol='http',
-                 headers=None, query_params=None):
+    def __init__(self, host='localhost', port=None, protocol=DEFAULT_PROTOCOL,
+                 headers=None, query_params=None, cert=None, trust_all=False):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -221,9 +238,21 @@ class CloudifyClient(object):
                         defaults to http.
         :param headers: Headers to be added to request.
         :param query_params: Query parameters to be added to the request.
+        :param cert: Path to a copy of the server's self-signed certificate.
+        :param trust_all: if `False`, the server's certificate
+                          (self-signed or not) will be verified.
         :return: Cloudify client instance.
         """
-        self._client = HTTPClient(host, port, protocol, headers, query_params)
+
+        if not port:
+            if protocol == SECURED_PROTOCOL:
+                # SSL
+                port = SECURED_PORT
+            else:
+                port = DEFAULT_PORT
+
+        self._client = HTTPClient(host, port, protocol, headers,
+                                  query_params, cert, trust_all)
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
