@@ -168,6 +168,19 @@ class DeploymentModificationAlreadyEndedError(CloudifyClientError):
             message, server_traceback, status_code, error_code)
 
 
+class UserUnauthorizedError(CloudifyClientError):
+    """
+    Raised when a call has been made to a secured resource with an
+    unauthorized user (no credentials / bad credentials)
+    """
+    ERROR_CODE = 'unauthorized_error'
+
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None):
+        super(UserUnauthorizedError, self).__init__(
+            message, server_traceback, status_code, error_code)
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -180,4 +193,5 @@ ERROR_MAPPING = dict([
         FunctionsEvaluationError,
         UnknownModificationStageError,
         ExistingStartedDeploymentModificationError,
-        DeploymentModificationAlreadyEndedError]])
+        DeploymentModificationAlreadyEndedError,
+        UserUnauthorizedError]])
