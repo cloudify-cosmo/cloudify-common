@@ -58,7 +58,8 @@ class EventsClient(object):
         body = {
             "from": from_event,
             "size": batch_size,
-            "sort": [{"@timestamp": {"order": "asc"}}],
+            "sort": [{"@timestamp": {"order": "asc",
+                                     "ignore_unmapped": True}}],
             "query": self._create_events_query(execution_id, include_logs)
         }
         response = self.api.get('/events', data=body)
