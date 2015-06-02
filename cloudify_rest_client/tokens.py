@@ -22,7 +22,7 @@ class Token(dict):
     @property
     def value(self):
         """
-        :return: The value of the token.
+        :returns: The value of the token.
         """
         return self.get('value')
 
@@ -33,8 +33,9 @@ class TokensClient(object):
         self.api = api
 
     def get(self):
-        """Get auth token
-        :return: Token
+        """Get an authentication token.
+
+        :rtype: Token
         """
         response = self.api.get('/tokens')
         return Token(response)

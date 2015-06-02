@@ -33,6 +33,7 @@ Contents:
    blueprints
    clients
    deployments
+   deployment_modifications
    events
    exceptions
    executions
@@ -41,6 +42,7 @@ Contents:
    nodes
    searching
    evaluate
+   tokens
 
 
 Indices and tables
