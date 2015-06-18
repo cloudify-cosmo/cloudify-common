@@ -18,13 +18,13 @@ from setuptools import setup
 
 setup(
     name='cloudify-script-plugin',
-    version='1.3a1',
+    version='1.3a2',
     author='Gigaspaces',
     author_email='cloudify@gigaspaces.com',
     packages=['script_runner'],
     description='Plugin for running scripts',
     install_requires=[
-        'cloudify-plugins-common>=3.3a1'
+        'cloudify-plugins-common>=3.3a2'
     ],
     license='LICENSE'
 )
