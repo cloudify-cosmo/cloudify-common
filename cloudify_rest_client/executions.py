@@ -71,6 +71,14 @@ class Execution(dict):
         return self.get('parameters')
 
     @property
+    def is_system_workflow(self):
+        """
+        :return: True if the workflow executed is a system workflow, otherwise
+         False
+        """
+        return self.get('is_system_workflow')
+
+    @property
     def created_at(self):
         """
         :return: The execution creation time.
