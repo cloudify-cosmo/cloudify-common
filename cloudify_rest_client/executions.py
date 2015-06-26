@@ -76,7 +76,7 @@ class Execution(dict):
         :return: True if the workflow executed is a system workflow, otherwise
          False
         """
-        return self.get('is_system_workflow')
+        return self.get('is_system_workflow', False)
 
     @property
     def created_at(self):
