@@ -35,16 +35,18 @@ DEFAULT_PORT = 80
 SECURED_PORT = 443
 SECURED_PROTOCOL = 'https'
 DEFAULT_PROTOCOL = 'http'
+DEFAULT_API_VERSION = 'v2'
 
 
 class HTTPClient(object):
 
     def __init__(self, host, port=DEFAULT_PORT,
-                 protocol=DEFAULT_PROTOCOL, headers=None,
-                 query_params=None, cert=None, trust_all=False):
+                 protocol=DEFAULT_PROTOCOL, api_version=DEFAULT_API_VERSION,
+                 headers=None, query_params=None, cert=None, trust_all=False):
         self.port = port
         self.host = host
-        self.url = '{0}://{1}:{2}'.format(protocol, host, port)
+        self.url = '{0}://{1}:{2}/{3}'.format(protocol, host, port,
+                                              api_version)
         self.headers = headers.copy() if headers else {}
         if not self.headers.get('Content-type'):
             self.headers['Content-type'] = 'application/json'
@@ -228,7 +230,8 @@ class CloudifyClient(object):
     """Cloudify's management client."""
 
     def __init__(self, host='localhost', port=None, protocol=DEFAULT_PROTOCOL,
-                 headers=None, query_params=None, cert=None, trust_all=False):
+                 api_version=DEFAULT_API_VERSION, headers=None,
+                 query_params=None, cert=None, trust_all=False):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -236,6 +239,7 @@ class CloudifyClient(object):
         :param port: Port of REST API service on management machine.
         :param protocol: Protocol of REST API service on management machine,
                         defaults to http.
+        :param api_version: version of REST API service on management machine.
         :param headers: Headers to be added to request.
         :param query_params: Query parameters to be added to the request.
         :param cert: Path to a copy of the server's self-signed certificate.
@@ -251,8 +255,8 @@ class CloudifyClient(object):
             else:
                 port = DEFAULT_PORT
 
-        self._client = HTTPClient(host, port, protocol, headers,
-                                  query_params, cert, trust_all)
+        self._client = HTTPClient(host, port, protocol, api_version,
+                                  headers, query_params, cert, trust_all)
         self.blueprints = BlueprintsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
