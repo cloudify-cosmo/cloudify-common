@@ -45,7 +45,8 @@ class HTTPClient(object):
                  headers=None, query_params=None, cert=None, trust_all=False):
         self.port = port
         self.host = host
-        self.url = '{0}://{1}:{2}/{3}'.format(protocol, host, port, api_version)
+        self.url = '{0}://{1}:{2}/{3}'.format(protocol, host, port,
+                                              api_version)
         self.headers = headers.copy() if headers else {}
         if not self.headers.get('Content-type'):
             self.headers['Content-type'] = 'application/json'
