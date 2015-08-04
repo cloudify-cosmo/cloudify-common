@@ -127,14 +127,18 @@ class DeploymentsClient(object):
         self.api = api
         self.outputs = DeploymentOutputsClient(api)
 
-    def list(self, _include=None):
+    def list(self, _include=None, **kwargs):
         """
         Returns a list of all deployments.
 
         :param _include: List of fields to include in response.
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.Deployment.fields
         :return: Deployments list.
         """
-        response = self.api.get('/deployments', _include=_include)
+        response = self.api.get('/deployments',
+                                _include=_include,
+                                params=kwargs)
         return [Deployment(item) for item in response]
 
     def get(self, deployment_id, _include=None):

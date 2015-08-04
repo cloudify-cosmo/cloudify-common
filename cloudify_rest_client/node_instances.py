@@ -12,8 +12,7 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-
-__author__ = 'idanmo'
+import warnings
 
 
 class NodeInstance(dict):
@@ -129,24 +128,36 @@ class NodeInstancesClient(object):
         response = self.api.patch(uri, data=data)
         return NodeInstance(response)
 
-    def list(self, deployment_id=None, node_name=None, _include=None):
+    def list(self, deployment_id=None, node_name=None, node_id=None,
+             _include=None, **kwargs):
         """
         Returns a list of node instances which belong to the deployment
         identified by the provided deployment id.
 
         :param deployment_id: Optional deployment id to list node instances
                               for.
-        :param node_name: Optional node id to only fetch node instances with
-                          this name
+        :param node_name: Optional node name to only fetch node instances with
+                          this name. The node_name positional argument will be
+                          deprecated as of the next rest-client version.
+                          Use node_id instead.
+        :param node_id: Equivalent to node_name.
         :param _include: List of fields to include in response.
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.DeploymentNodeInstance.fields
         :return: Node instances.
         :rtype: list
         """
         params = {}
+        if node_name:
+            warnings.warn("'node_name' filtering capability is deprecated, use"
+                          " 'node_id' instead", DeprecationWarning)
+            params['node_id'] = node_name
+        elif node_id:
+            params['node_id'] = node_id
         if deployment_id:
             params['deployment_id'] = deployment_id
-        if node_name:
-            params['node_name'] = node_name
+
+        params.update(kwargs)
         response = self.api.get('/node-instances',
                                 params=params,
                                 _include=_include)

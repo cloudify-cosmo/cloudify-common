@@ -12,8 +12,7 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-
-__author__ = 'idanmo'
+import warnings
 
 
 class Node(dict):
@@ -140,14 +139,17 @@ class NodesClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, deployment_id=None, node_id=None, _include=None):
+    def list(self, deployment_id=None, node_id=None, _include=None, **kwargs):
         """
         Returns a list of nodes which belong to the deployment identified
         by the provided deployment id.
 
         :param deployment_id: The deployment's id to list nodes for.
-        :param node_id: If provided, returns only the requested node.
+        :param node_id: If provided, returns only the requested node. This
+                        parameter is deprecated, use 'id' instead.
         :param _include: List of fields to include in response.
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.DeploymentNode.fields
         :return: Nodes.
         :rtype: list
         """
@@ -155,7 +157,10 @@ class NodesClient(object):
         if deployment_id:
             params['deployment_id'] = deployment_id
         if node_id:
-            params['node_id'] = node_id
+            warnings.warn("'node_id' filtering capability is deprecated, use"
+                          " 'id' instead", DeprecationWarning)
+            params['id'] = node_id
+        params.update(kwargs)
         if not params:
             params = None
         response = self.api.get('/nodes', params=params, _include=_include)

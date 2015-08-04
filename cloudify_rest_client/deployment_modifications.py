@@ -117,15 +117,18 @@ class DeploymentModificationsClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, deployment_id=None, _include=None):
+    def list(self, deployment_id=None, _include=None, **kwargs):
         """List deployment modifications
 
         :param deployment_id: The deployment id (optional)
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.DeploymentModification.fields
         """
 
         params = {}
         if deployment_id:
             params['deployment_id'] = deployment_id
+        params.update(kwargs)
         uri = '/deployment-modifications'
         response = self.api.get(uri, params=params, _include=_include)
         return [DeploymentModification(m) for m in response]
