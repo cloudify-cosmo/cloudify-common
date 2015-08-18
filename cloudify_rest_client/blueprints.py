@@ -46,6 +46,13 @@ class Blueprint(dict):
         return self.get('created_at')
 
     @property
+    def main_file_name(self):
+        """
+        :return: Blueprint main file name.
+        """
+        return self.get('main_file_name')
+
+    @property
     def plan(self):
         """
         Gets the plan the blueprint represents: nodes, relationships etc...
