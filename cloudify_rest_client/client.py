@@ -30,6 +30,7 @@ from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
 from cloudify_rest_client.tokens import TokensClient
+from cloudify_rest_client.plugins import PluginsClient
 
 DEFAULT_PORT = 80
 SECURED_PORT = 443
@@ -269,3 +270,4 @@ class CloudifyClient(object):
         self.deployment_modifications = DeploymentModificationsClient(
             self._client)
         self.tokens = TokensClient(self._client)
+        self.plugins = PluginsClient(self._client)
