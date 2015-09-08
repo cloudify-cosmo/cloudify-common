@@ -54,6 +54,15 @@ class Blueprint(dict):
         """
         return self.get('plan')
 
+    @property
+    def description(self):
+        """
+        Gets the description of the blueprint
+
+        :return: The description of the blueprint.
+        """
+        return self.get('description')
+
 
 class BlueprintsClient(object):
 
