@@ -83,3 +83,18 @@ class ManagerClient(object):
                                  expected_status_code=200,
                                  params={'update': 'true'})
         return response
+
+    def set_global_parallel_executions_limit(self, limit):
+        """
+        Sets the global parallel executions limit (relevant only in
+        transient deployment workers mode)
+
+        :param limit: the new (integer) limit for the global parallel
+         executions limit. -1 means no limit.
+        """
+
+        uri = '/provider/context'
+        params = {'global_parallel_executions_limit': limit}
+        response = self.api.patch(uri, data=params,
+                                  expected_status_code=200)
+        return response
