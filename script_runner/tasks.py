@@ -72,6 +72,7 @@ def create_process_config(process, operation_kwargs):
         del env_vars['ctx']
     env_vars.update(process.get('env', {}))
     for k, v in env_vars.items():
+        k = str(k)
         if isinstance(v, (dict, list, set, bool)):
             env_vars[k] = json.dumps(v)
         else:
