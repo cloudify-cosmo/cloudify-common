@@ -24,7 +24,7 @@ setup(
     packages=['script_runner'],
     description='Plugin for running scripts',
     install_requires=[
-        'cloudify-plugins-common>=3.3a7'
+        'cloudify-plugins-common>=3.3.0a7'
     ],
     license='LICENSE'
 )
