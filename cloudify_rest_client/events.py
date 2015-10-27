@@ -15,30 +15,14 @@
 
 __author__ = 'idanmo'
 
+import warnings
+from datetime import datetime
+
 
 class EventsClient(object):
 
     def __init__(self, api):
         self.api = api
-
-    @staticmethod
-    def _create_events_query(execution_id, include_logs):
-        query = {
-            "bool": {
-                "must": [
-                    {"match": {"context.execution_id": execution_id}},
-                ]
-            }
-        }
-        match_cloudify_event = {"match": {"type": "cloudify_event"}}
-        if include_logs:
-            match_cloudify_log = {"match": {"type": "cloudify_log"}}
-            query['bool']['should'] = [
-                match_cloudify_event, match_cloudify_log
-            ]
-        else:
-            query['bool']['must'].append(match_cloudify_event)
-        return query
 
     def get(self,
             execution_id,
@@ -55,14 +39,62 @@ class EventsClient(object):
         :return: Events list and total number of currently available
          events (tuple).
         """
-        body = {
-            "from": from_event,
-            "size": batch_size,
-            "sort": [{"@timestamp": {"order": "asc",
-                                     "ignore_unmapped": True}}],
-            "query": self._create_events_query(execution_id, include_logs)
-        }
-        response = self.api.get('/events', data=body)
-        events = map(lambda x: x['_source'], response['hits']['hits'])
-        total_events = response['hits']['total']
+        warnings.warn('method is deprecated, use "{0}" method instead'
+                      .format(self.list.__name__),
+                      DeprecationWarning)
+
+        response = self.list(execution_id=execution_id,
+                             include_logs=include_logs,
+                             _offset=from_event,
+                             _size=batch_size,
+                             _sort='@timestamp')
+        events = response['items']
+        total_events = response['metadata']['pagination']['total']
         return events, total_events
+
+    def list(self, include_logs=False, message=None,
+             from_datetime=None, to_datetime=None,
+             _include=None, **kwargs):
+        """List events
+
+        :param include_logs: Whether to also get logs.
+        :param message: an expression used for wildcard search events
+                        by their message text
+        :param from_datetime: search for events later or equal to datetime
+        :param to_datetime: search for events earlier or equal to datetime
+        :param _include: return only an exclusive list of fields
+        :return: dict with 'metadata' and 'items' fields
+        """
+
+        uri = '/events'
+        params = kwargs
+        if message:
+            params['message.text'] = str(message)
+
+        params['type'] = ['cloudify_event']
+        if include_logs:
+            params['type'].append('cloudify_log')
+
+        timestamp_range = dict()
+
+        if from_datetime:
+            # if a datetime instance, convert to iso format
+            timestamp_range['from'] = \
+                from_datetime.isoformat() if isinstance(
+                    from_datetime, datetime) else from_datetime
+
+        if to_datetime:
+            timestamp_range['to'] = \
+                to_datetime.isoformat() if isinstance(
+                    to_datetime, datetime) else to_datetime
+
+        if timestamp_range:
+            params['_range'] = params.get('_range', [])
+            params['_range'].append('@timestamp,{0},{1}'
+                                    .format(timestamp_range.get('from', ''),
+                                            timestamp_range.get('to', '')))
+
+        response = self.api.get(uri,
+                                _include=_include,
+                                params=params)
+        return response
