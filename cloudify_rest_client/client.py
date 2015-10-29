@@ -19,6 +19,7 @@ import logging
 
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.blueprints import BlueprintsClient
+from cloudify_rest_client.snapshots import SnapshotsClient
 from cloudify_rest_client.deployments import DeploymentsClient
 from cloudify_rest_client.executions import ExecutionsClient
 from cloudify_rest_client.nodes import NodesClient
@@ -259,6 +260,7 @@ class CloudifyClient(object):
         self._client = HTTPClient(host, port, protocol, api_version,
                                   headers, query_params, cert, trust_all)
         self.blueprints = BlueprintsClient(self._client)
+        self.snapshots = SnapshotsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.executions = ExecutionsClient(self._client)
         self.nodes = NodesClient(self._client)
