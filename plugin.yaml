@@ -5,4 +5,4 @@
 plugins:
     script:
         executor: host_agent
-        source: https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.3m7.zip
+        source: https://github.com/cloudify-cosmo/cloudify-script-plugin/archive/1.3rc1.zip
