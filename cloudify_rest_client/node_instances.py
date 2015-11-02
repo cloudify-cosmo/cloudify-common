@@ -14,6 +14,8 @@
 #    * limitations under the License.
 import warnings
 
+from cloudify_rest_client.responses import ListResponse
+
 
 class NodeInstance(dict):
     """
@@ -161,4 +163,6 @@ class NodeInstancesClient(object):
         response = self.api.get('/node-instances',
                                 params=params,
                                 _include=_include)
-        return [NodeInstance(item) for item in response]
+
+        return ListResponse([NodeInstance(item) for item in response['items']],
+                            response['metadata'])

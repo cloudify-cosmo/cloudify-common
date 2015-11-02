@@ -18,6 +18,7 @@ import urlparse
 import contextlib
 
 from cloudify_rest_client import bytes_stream_utils
+from cloudify_rest_client.responses import ListResponse
 
 
 class Plugin(dict):
@@ -146,7 +147,8 @@ class PluginsClient(object):
         :return: Plugins list.
         """
         response = self.api.get('/plugins', _include=_include, params=kwargs)
-        return [Plugin(item) for item in response]
+        return ListResponse([Plugin(item) for item in response['items']],
+                            response['metadata'])
 
     def delete(self, plugin_id):
         """
