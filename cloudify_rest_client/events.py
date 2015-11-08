@@ -50,8 +50,8 @@ class EventsClient(object):
                              _offset=from_event,
                              _size=batch_size,
                              _sort='@timestamp')
-        events = response['items']
-        total_events = response['metadata']['pagination']['total']
+        events = response.items
+        total_events = response.metadata.pagination.total
         return events, total_events
 
     def list(self, include_logs=False, message=None,
