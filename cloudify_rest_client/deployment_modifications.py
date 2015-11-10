@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-
+from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.node_instances import NodeInstance
 
 
@@ -130,8 +130,10 @@ class DeploymentModificationsClient(object):
             params['deployment_id'] = deployment_id
         params.update(kwargs)
         uri = '/deployment-modifications'
+
         response = self.api.get(uri, params=params, _include=_include)
-        return [DeploymentModification(m) for m in response]
+        items = [DeploymentModification(item) for item in response['items']]
+        return ListResponse(items, response['metadata'])
 
     def start(self, deployment_id, nodes, context=None):
         """Start deployment modification.

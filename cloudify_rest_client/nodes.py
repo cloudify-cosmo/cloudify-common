@@ -14,6 +14,8 @@
 #    * limitations under the License.
 import warnings
 
+from cloudify_rest_client.responses import ListResponse
+
 
 class Node(dict):
     """
@@ -164,7 +166,8 @@ class NodesClient(object):
         if not params:
             params = None
         response = self.api.get('/nodes', params=params, _include=_include)
-        return [Node(item) for item in response]
+        return ListResponse([Node(item) for item in response['items']],
+                            response['metadata'])
 
     def get(self, deployment_id, node_id, _include=None):
         """

@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from cloudify_rest_client.responses import ListResponse
+
 
 class Execution(dict):
     """Cloudify workflow execution."""
@@ -108,8 +110,10 @@ class ExecutionsClient(object):
         if deployment_id:
             params['deployment_id'] = deployment_id
         params.update(kwargs)
+
         response = self.api.get(uri, params=params, _include=_include)
-        return [Execution(item) for item in response]
+        return ListResponse([Execution(item) for item in response['items']],
+                            response['metadata'])
 
     def get(self, execution_id, _include=None):
         """Get execution by its id.

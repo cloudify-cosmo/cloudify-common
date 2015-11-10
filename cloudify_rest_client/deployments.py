@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from cloudify_rest_client.responses import ListResponse
+
 
 class Deployment(dict):
     """
@@ -139,7 +141,9 @@ class DeploymentsClient(object):
         response = self.api.get('/deployments',
                                 _include=_include,
                                 params=kwargs)
-        return [Deployment(item) for item in response]
+
+        return ListResponse([Deployment(item) for item in response['items']],
+                            response['metadata'])
 
     def get(self, deployment_id, _include=None):
         """

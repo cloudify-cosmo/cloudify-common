@@ -18,6 +18,8 @@ __author__ = 'idanmo'
 import warnings
 from datetime import datetime
 
+from cloudify_rest_client.responses import ListResponse
+
 
 class EventsClient(object):
 
@@ -97,4 +99,4 @@ class EventsClient(object):
         response = self.api.get(uri,
                                 _include=_include,
                                 params=params)
-        return response
+        return ListResponse(response['items'], response['metadata'])

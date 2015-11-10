@@ -24,6 +24,7 @@ import contextlib
 from os.path import expanduser
 
 from cloudify_rest_client import bytes_stream_utils
+from cloudify_rest_client.responses import ListResponse
 
 
 class Blueprint(dict):
@@ -127,7 +128,8 @@ class BlueprintsClient(object):
         response = self.api.get('/blueprints',
                                 _include=_include,
                                 params=kwargs)
-        return [Blueprint(item) for item in response]
+        return ListResponse([Blueprint(item) for item in response['items']],
+                            response['metadata'])
 
     def publish_archive(self, archive_location, blueprint_id,
                         blueprint_filename=None):
