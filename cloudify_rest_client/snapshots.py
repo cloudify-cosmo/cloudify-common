@@ -19,6 +19,7 @@ import contextlib
 
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client.executions import Execution
+from cloudify_rest_client.responses import ListResponse
 
 
 class Snapshot(dict):
@@ -79,15 +80,16 @@ class SnapshotsClient(object):
         response = self.api.get(uri, _include=_include)
         return Snapshot(response)
 
-    def list(self, _include=None):
+    def list(self, _include=None, **kwargs):
         """
         Returns a list of currently stored snapshots.
 
         :param _include: List of fields to include in response.
         :return: Snapshots list.
         """
-        response = self.api.get('/snapshots', _include=_include)
-        return [Snapshot(item) for item in response]
+        response = self.api.get('/snapshots', params=kwargs, _include=_include)
+        return ListResponse([Snapshot(item) for item in response['items']],
+                            response['metadata'])
 
     def create(self, snapshot_id, include_metrics, include_credentials):
         """
