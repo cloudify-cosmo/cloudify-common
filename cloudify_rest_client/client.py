@@ -14,8 +14,10 @@
 #    * limitations under the License.
 
 import json
-import requests
 import logging
+
+import requests
+from requests.packages import urllib3
 
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.blueprints import BlueprintsClient
@@ -38,6 +40,8 @@ SECURED_PORT = 443
 SECURED_PROTOCOL = 'https'
 DEFAULT_PROTOCOL = 'http'
 DEFAULT_API_VERSION = 'v2'
+
+urllib3.disable_warnings(urllib3.exceptions.InsecurePlatformWarning)
 
 
 class HTTPClient(object):
