@@ -71,13 +71,14 @@ def create_process_config(process, operation_kwargs):
     if 'ctx' in env_vars:
         del env_vars['ctx']
     env_vars.update(process.get('env', {}))
+    output_env_vars = {}
     for k, v in env_vars.items():
         k = str(k)
         if isinstance(v, (dict, list, set, bool)):
-            env_vars[k] = json.dumps(v)
+            output_env_vars[k] = json.dumps(v)
         else:
-            env_vars[k] = str(v)
-    process['env'] = env_vars
+            output_env_vars[k] = str(v)
+    process['env'] = output_env_vars
     return process
 
 
