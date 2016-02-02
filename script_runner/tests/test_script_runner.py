@@ -23,6 +23,7 @@ import requests
 import testtools
 from nose.tools import nottest, istest
 
+from cloudify.state import current_ctx
 from cloudify.decorators import workflow
 from cloudify.workflows import local
 from cloudify.workflows import ctx as workflow_ctx
@@ -413,10 +414,12 @@ class TestEvalPythonConfiguration(testtools.TestCase):
         tasks.eval_script = self.original_eval_script
         tasks.execute = self.original_execute
         os.chmod = self.original_os_chmod
+        current_ctx.clear()
 
     def mock_ctx(self, **kwargs):
         ctx = MockCloudifyContext(**kwargs)
         ctx.download_resource = lambda s_path: s_path
+        current_ctx.set(ctx)
         return ctx
 
     def test_explicit_eval_without_py_extenstion(self):
