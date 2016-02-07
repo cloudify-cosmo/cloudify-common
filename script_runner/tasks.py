@@ -32,6 +32,8 @@ from cloudify.exceptions import NonRecoverableError
 
 from script_runner import eval_env
 from cloudify.proxy.client import CTX_SOCKET_URL
+
+
 from cloudify.proxy.server import (UnixCtxProxy,
                                    TCPCtxProxy,
                                    HTTPCtxProxy,
@@ -42,6 +44,14 @@ try:
     HAS_ZMQ = True
 except ImportError:
     HAS_ZMQ = False
+
+try:
+    from cloudify.proxy.client import ScriptException
+except ImportError:
+    raise NonRecoverableError(
+        'cloudify-script-plugin requires a newer version of '
+        'cloudify-plugins-common'
+    )
 
 IS_WINDOWS = os.name == 'nt'
 
@@ -83,12 +93,47 @@ def create_process_config(process, operation_kwargs):
 
 
 def process_execution(script_func, script_path, ctx, process=None):
+
+    def abort_operation(message=None):
+        if ctx._return_value is not None:
+            ctx._return_value = \
+                RuntimeError('ctx may only abort or return once')
+            raise ctx._return_value
+        ctx._return_value = ScriptException(message)
+        return ctx._return_value
+
+    def retry_operation(message=None, retry_after=None):
+        if ctx._return_value is not None:
+            ctx._return_value = \
+                RuntimeError('ctx may only abort or return once')
+            raise ctx._return_value
+        ctx.operation.retry(message=message,
+                            retry_after=retry_after)
+        ctx._return_value = ScriptException(message, retry=True)
+        return ctx._return_value
+
+    ctx.abort_operation = abort_operation
+    ctx.retry_operation = retry_operation
+
     def returns(value):
+        if ctx._return_value is not None:
+            ctx._return_value = \
+                RuntimeError('ctx may only abort or return once')
+            raise ctx._return_value
         ctx._return_value = value
     ctx.returns = returns
+
     ctx._return_value = None
+
     script_func(script_path, ctx, process)
-    return ctx._return_value
+    script_result = ctx._return_value
+    if isinstance(script_result, ScriptException):
+        if script_result.retry:
+            return script_result
+        else:
+            raise NonRecoverableError(str(script_result))
+    else:
+        return script_result
 
 
 def get_run_script_func(script_path, process):
@@ -152,7 +197,11 @@ def execute(script_path, ctx, process):
     ctx.logger.info('Execution done (return_code={0}): {1}'
                     .format(return_code, command))
 
-    if return_code != 0:
+    # happens when more than 1 ctx result command is used
+    if isinstance(ctx._return_value, RuntimeError):
+        raise NonRecoverableError(str(ctx._return_value))
+    elif return_code != 0 and not isinstance(ctx._return_value,
+                                             ScriptException):
         raise ProcessException(command,
                                return_code,
                                stdout_consumer.buffer.getvalue(),

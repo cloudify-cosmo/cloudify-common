@@ -28,7 +28,8 @@ from cloudify.decorators import workflow
 from cloudify.workflows import local
 from cloudify.workflows import ctx as workflow_ctx
 from cloudify.mocks import MockCloudifyContext
-from cloudify.exceptions import NonRecoverableError
+from cloudify.exceptions import (NonRecoverableError,
+                                 RecoverableError)
 from cloudify.proxy.server import (UnixCtxProxy,
                                    TCPCtxProxy,
                                    HTTPCtxProxy,
@@ -55,7 +56,8 @@ class TestScriptRunner(testtools.TestCase):
              process=None,
              workflow_name='execute_operation',
              parameters=None,
-             env_var='value'):
+             env_var='value',
+             task_retries=0):
 
         process = process or {}
         process.update({
@@ -74,7 +76,8 @@ class TestScriptRunner(testtools.TestCase):
                                   inputs=inputs)
         result = self.env.execute(workflow_name,
                                   parameters=parameters,
-                                  task_retries=0)
+                                  task_retries=task_retries,
+                                  task_retry_interval=0)
         if not result:
             result = self.env.storage.get_node_instances()[0][
                 'runtime_properties']
@@ -101,6 +104,189 @@ class TestScriptRunner(testtools.TestCase):
             ''')
         result = self._run(script_path=script_path)
         self.assertEqual(result, ['1', 2, True])
+
+    def test_imported_ctx_retry_operation(self):
+        _, log_path = tempfile.mkstemp()
+        retry_message = "try again!"
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash
+            . ctx-sh
+            ctx retry_operation "{0}" 2> {1}
+            echo "this shouldn't be logged" > {1}
+            '''.format(retry_message, log_path),
+            windows_script='echo "hey"')
+        self.assertRaises(RecoverableError,
+                          self._run,
+                          **{'script_path': script_path,
+                             'task_retries': 2})
+        with open(log_path, 'r') as log_file:
+            self.assertEquals(retry_message, log_file.read().strip())
+
+    def test_imported_ctx_abort_operation(self):
+        _, log_path = tempfile.mkstemp()
+        abort_message = "i have to go now!"
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash
+            . ctx-sh
+            ctx abort_operation "{0}" 2> {1}
+            echo "this shouldn't be logged" > {1}
+            '''.format(abort_message, log_path),
+            windows_script='echo "hey"')
+        self.assertRaises(NonRecoverableError,
+                          self._run,
+                          **{'script_path': script_path,
+                             'task_retries': 2})
+        with open(log_path, 'r') as log_file:
+            self.assertEquals(abort_message, log_file.read().strip())
+
+    def test_imported_ctx_crash_abort_after_return(self):
+
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            . ctx-sh
+            ctx returns '@["1", 2, true]'
+            ctx abort_operation 'should raise a runtime error'
+            ''',
+            windows_script='''
+            ctx returns "@[""1"", 2, true]"
+            ''')
+        try:
+            self._run(script_path=script_path, task_retries=2)
+            self.fail()
+        except NonRecoverableError, e:
+            self.assertEquals(e.message, 'ctx may only abort or return once')
+        except Exception, e:
+            self.fail()
+
+    def test_crash_abort_after_return(self):
+
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx returns '@["1", 2, true]'
+            ctx abort_operation 'should raise a runtime error'
+            ''',
+            windows_script='''
+            ctx returns "@[""1"", 2, true]"
+            ''')
+        self.assertRaises(NonRecoverableError,
+                          self._run,
+                          **{'script_path': script_path,
+                             'task_retries': 2})
+
+    def test_crash_retry_after_return(self):
+
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx returns '@["1", 2, true]'
+            ctx retry_operation 'should raise a runtime error'
+            ''',
+            windows_script='''
+            ctx returns "@[""1"", 2, true]"
+            ''')
+        self.assertRaises(NonRecoverableError,
+                          self._run,
+                          **{'script_path': script_path,
+                             'task_retries': 2})
+
+    def test_abort(self):
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx abort_operation 'oops! we got an error'
+            ''',
+            # not actually tested
+            windows_script='''
+            ctx abort_operation "oops! we got an error"
+            ''')
+        self.assertRaises(NonRecoverableError,
+                          self._run,
+                          **{'script_path': script_path,
+                             'task_retries': 2})
+
+    def test_retry(self):
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx retry_operation 'oops! we got an error'
+            ''',
+            # not actually tested
+            windows_script='''
+            ctx retry_operation "oops! we got an error"
+            ''')
+        self.assertRaises(RecoverableError,
+                          self._run,
+                          **{'script_path': script_path,
+                             'task_retries': 2})
+
+    def test_crash_return_after_abort(self):
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash
+            ctx abort_operation 'oops! we got an error'
+            ctx returns 'should_ignore_this_value'
+            ''',
+            # not actually tested
+            windows_script='''
+            ctx abort_operation "oops! we got an error"
+            ''')
+        try:
+            self._run(script_path=script_path, task_retries=2)
+            self.fail()
+        except NonRecoverableError, e:
+            self.assertEquals(e.message, 'ctx may only abort or return once')
+        except Exception:
+            self.fail()
+
+    def test_crash_return_after_retry(self):
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash
+            ctx retry_operation 'oops! we got an error'
+            ctx returns 'should_ignore_this_value'
+            ''',
+            # not actually tested
+            windows_script='''
+            ctx retry_operation "oops! we got an error"
+            ''')
+        try:
+            self._run(script_path=script_path, task_retries=2)
+            self.fail()
+        except NonRecoverableError, e:
+            self.assertEquals(e.message, 'ctx may only abort or return once')
+        except Exception:
+            self.fail()
+
+    def test_retry_returns_a_nonzero_exit_code(self):
+        _, log_path = tempfile.mkstemp()
+        abort_message = 'oops! we got an error'
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx retry_operation '{0}' 2> {1}
+            echo "this line should not run" > {1}
+            '''.format(abort_message, log_path),
+            # not actually tested
+            windows_script='''
+            ctx abort_operation '{0}'
+            '''.format(abort_message))
+        self.assertRaises(RecoverableError,
+                          self._run,
+                          **{'script_path': script_path})
+        with open(log_path, 'r') as log_file:
+            self.assertEquals(abort_message, log_file.read().strip())
+
+    def test_abort_returns_a_nonzero_exit_code(self):
+        _, log_path = tempfile.mkstemp()
+        abort_message = 'oops! we got an error'
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx abort_operation '{0}' 2> {1}
+            echo "this line should not run" > {1}
+            '''.format(abort_message, log_path),
+            # not actually tested
+            windows_script='''
+            ctx abort_operation '{0}'
+            '''.format(abort_message))
+        self.assertRaises(NonRecoverableError,
+                          self._run,
+                          **{'script_path': script_path})
+        with open(log_path, 'r') as log_file:
+            self.assertEquals(abort_message, log_file.read().strip())
 
     def test_process_env(self):
         script_path = self._create_script(
