@@ -36,6 +36,7 @@ from cloudify.proxy.server import (UnixCtxProxy,
                                    StubCtxProxy)
 
 from script_runner import tasks
+from script_runner.tasks import ILLEGAL_CTX_OPERATION_ERROR
 
 IS_WINDOWS = os.name == 'nt'
 
@@ -154,7 +155,7 @@ class TestScriptRunner(testtools.TestCase):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError, e:
-            self.assertEquals(e.message, 'ctx may only abort or return once')
+            self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception, e:
             self.fail()
 
@@ -189,10 +190,12 @@ class TestScriptRunner(testtools.TestCase):
                              'task_retries': 2})
 
     def test_abort(self):
+        _, log_path = tempfile.mkstemp()
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx abort_operation 'oops! we got an error'
-            ''',
+            echo "this shouldn't be logged" > {0}
+            '''.format(log_path),
             # not actually tested
             windows_script='''
             ctx abort_operation "oops! we got an error"
@@ -230,7 +233,7 @@ class TestScriptRunner(testtools.TestCase):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError, e:
-            self.assertEquals(e.message, 'ctx may only abort or return once')
+            self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
 
@@ -248,7 +251,7 @@ class TestScriptRunner(testtools.TestCase):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError, e:
-            self.assertEquals(e.message, 'ctx may only abort or return once')
+            self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
 

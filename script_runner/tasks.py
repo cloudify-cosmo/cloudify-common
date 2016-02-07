@@ -48,10 +48,13 @@ except ImportError:
 try:
     from cloudify.proxy.client import ScriptException
 except ImportError:
-    raise NonRecoverableError(
-        'cloudify-script-plugin requires a newer version of '
-        'cloudify-plugins-common'
-    )
+    ScriptException = None
+
+
+ILLEGAL_CTX_OPERATION_ERROR = RuntimeError('ctx may only abort or return once')
+UNSUPPORTED_SCRIPT_FEATURE_ERROR = \
+    RuntimeError('ctx abort & retry commands are only supported in Cloudify '
+                 '3.4 or later')
 
 IS_WINDOWS = os.name == 'nt'
 
@@ -94,22 +97,29 @@ def create_process_config(process, operation_kwargs):
 
 def process_execution(script_func, script_path, ctx, process=None):
 
+    ctx.is_script_exception_defined = ScriptException is not None
+
     def abort_operation(message=None):
         if ctx._return_value is not None:
-            ctx._return_value = \
-                RuntimeError('ctx may only abort or return once')
+            ctx._return_value = ILLEGAL_CTX_OPERATION_ERROR
             raise ctx._return_value
-        ctx._return_value = ScriptException(message)
+        if ctx.is_script_exception_defined:
+            ctx._return_value = ScriptException(message)
+        else:
+            ctx._return_value = UNSUPPORTED_SCRIPT_FEATURE_ERROR
+            raise ctx._return_value
         return ctx._return_value
 
     def retry_operation(message=None, retry_after=None):
         if ctx._return_value is not None:
-            ctx._return_value = \
-                RuntimeError('ctx may only abort or return once')
+            ctx._return_value = ILLEGAL_CTX_OPERATION_ERROR
             raise ctx._return_value
-        ctx.operation.retry(message=message,
-                            retry_after=retry_after)
-        ctx._return_value = ScriptException(message, retry=True)
+        if ctx.is_script_exception_defined:
+            ctx._return_value = ScriptException(message, retry=True)
+            ctx.operation.retry(message=message, retry_after=retry_after)
+        else:
+            ctx._return_value = UNSUPPORTED_SCRIPT_FEATURE_ERROR
+            raise ctx._return_value
         return ctx._return_value
 
     ctx.abort_operation = abort_operation
@@ -117,8 +127,7 @@ def process_execution(script_func, script_path, ctx, process=None):
 
     def returns(value):
         if ctx._return_value is not None:
-            ctx._return_value = \
-                RuntimeError('ctx may only abort or return once')
+            ctx._return_value = ILLEGAL_CTX_OPERATION_ERROR
             raise ctx._return_value
         ctx._return_value = value
     ctx.returns = returns
@@ -127,7 +136,8 @@ def process_execution(script_func, script_path, ctx, process=None):
 
     script_func(script_path, ctx, process)
     script_result = ctx._return_value
-    if isinstance(script_result, ScriptException):
+    if (ctx.is_script_exception_defined and
+       isinstance(script_result, ScriptException)):
         if script_result.retry:
             return script_result
         else:
@@ -200,12 +210,13 @@ def execute(script_path, ctx, process):
     # happens when more than 1 ctx result command is used
     if isinstance(ctx._return_value, RuntimeError):
         raise NonRecoverableError(str(ctx._return_value))
-    elif return_code != 0 and not isinstance(ctx._return_value,
-                                             ScriptException):
-        raise ProcessException(command,
-                               return_code,
-                               stdout_consumer.buffer.getvalue(),
-                               stderr_consumer.buffer.getvalue())
+    elif return_code != 0:
+        if not (ctx.is_script_exception_defined and
+           isinstance(ctx._return_value, ScriptException)):
+                raise ProcessException(command,
+                                       return_code,
+                                       stdout_consumer.buffer.getvalue(),
+                                       stderr_consumer.buffer.getvalue())
 
 
 def start_ctx_proxy(ctx, process):
