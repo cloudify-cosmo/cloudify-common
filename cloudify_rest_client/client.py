@@ -23,6 +23,7 @@ from cloudify_rest_client import exceptions
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.snapshots import SnapshotsClient
 from cloudify_rest_client.deployments import DeploymentsClient
+from cloudify_rest_client.deployment_updates import DeploymentUpdatesClient
 from cloudify_rest_client.executions import ExecutionsClient
 from cloudify_rest_client.nodes import NodesClient
 from cloudify_rest_client.node_instances import NodeInstancesClient
@@ -279,3 +280,4 @@ class CloudifyClient(object):
         self.tokens = TokensClient(self._client)
         self.plugins = PluginsClient(self._client)
         self.maintenance_mode = MaintenanceModeClient(self._client)
+        self.deployment_updates = DeploymentUpdatesClient(self._client)
