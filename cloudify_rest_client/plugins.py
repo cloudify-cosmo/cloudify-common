@@ -150,14 +150,20 @@ class PluginsClient(object):
         return ListResponse([Plugin(item) for item in response['items']],
                             response['metadata'])
 
-    def delete(self, plugin_id):
+    def delete(self, plugin_id, force=False):
         """
         Deletes the plugin whose id matches the provided plugin id.
         :param plugin_id: The id of the plugin to be deleted.
+        :param force: Delete plugin even if there is a deployment
+                      currently using it.
         :return: Deleted plugin by its ID.
         """
         assert plugin_id
-        response = self.api.delete('/plugins/{0}'.format(plugin_id))
+        data = {
+            'force': force
+        }
+        response = self.api.delete('/plugins/{0}'.format(plugin_id),
+                                   data=data)
         return Plugin(response)
 
     def upload(self, plugin_path):

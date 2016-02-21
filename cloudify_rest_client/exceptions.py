@@ -37,14 +37,7 @@ class DeploymentEnvironmentCreationInProgressError(CloudifyClientError):
     time or after the execution of deployment environment creation workflow
     has terminated.
     """
-
     ERROR_CODE = 'deployment_environment_creation_in_progress_error'
-
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(DeploymentEnvironmentCreationInProgressError,
-              self).__init__(message, server_traceback,
-                             status_code, error_code)
 
 
 class DeploymentEnvironmentCreationPendingError(CloudifyClientError):
@@ -55,14 +48,7 @@ class DeploymentEnvironmentCreationPendingError(CloudifyClientError):
     time or after the execution of deployment environment creation workflow
     has terminated.
     """
-
     ERROR_CODE = 'deployment_environment_creation_pending_error'
-
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(DeploymentEnvironmentCreationPendingError,
-              self).__init__(message, server_traceback,
-                             status_code, error_code)
 
 
 class IllegalExecutionParametersError(CloudifyClientError):
@@ -70,13 +56,7 @@ class IllegalExecutionParametersError(CloudifyClientError):
     Raised when an attempt to execute a workflow with wrong/missing parameters
     has been made.
     """
-
     ERROR_CODE = 'illegal_execution_parameters_error'
-
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(IllegalExecutionParametersError, self).__init__(
-            message, server_traceback, status_code, error_code)
 
 
 class NoSuchIncludeFieldError(CloudifyClientError):
@@ -84,13 +64,7 @@ class NoSuchIncludeFieldError(CloudifyClientError):
     Raised when an _include query parameter contains a field which does not
     exist for the queried data model.
     """
-
     ERROR_CODE = 'no_such_include_field_error'
-
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(NoSuchIncludeFieldError, self).__init__(
-            message, server_traceback, status_code, error_code)
 
 
 class MissingRequiredDeploymentInputError(CloudifyClientError):
@@ -100,22 +74,12 @@ class MissingRequiredDeploymentInputError(CloudifyClientError):
     """
     ERROR_CODE = 'missing_required_deployment_input_error'
 
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(MissingRequiredDeploymentInputError, self).__init__(
-            message, server_traceback, status_code, error_code)
-
 
 class UnknownDeploymentInputError(CloudifyClientError):
     """
     Raised when an unexpected input was specified on deployment creation.
     """
     ERROR_CODE = 'unknown_deployment_input_error'
-
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(UnknownDeploymentInputError, self).__init__(
-            message, server_traceback, status_code, error_code)
 
 
 class FunctionsEvaluationError(CloudifyClientError):
@@ -124,22 +88,12 @@ class FunctionsEvaluationError(CloudifyClientError):
     """
     ERROR_CODE = 'functions_evaluation_error'
 
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(FunctionsEvaluationError, self).__init__(
-            message, server_traceback, status_code, error_code)
-
 
 class UnknownModificationStageError(CloudifyClientError):
     """
     Raised when an unknown modification stage was provided.
     """
     ERROR_CODE = 'unknown_modification_stage_error'
-
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(UnknownModificationStageError, self).__init__(
-            message, server_traceback, status_code, error_code)
 
 
 class ExistingStartedDeploymentModificationError(CloudifyClientError):
@@ -149,11 +103,6 @@ class ExistingStartedDeploymentModificationError(CloudifyClientError):
     """
     ERROR_CODE = 'existing_started_deployment_modification_error'
 
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(ExistingStartedDeploymentModificationError, self).__init__(
-            message, server_traceback, status_code, error_code)
-
 
 class DeploymentModificationAlreadyEndedError(CloudifyClientError):
     """
@@ -161,11 +110,6 @@ class DeploymentModificationAlreadyEndedError(CloudifyClientError):
     a deployment modification that has already been finished/rolledback
     """
     ERROR_CODE = 'deployment_modification_already_ended_error'
-
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(DeploymentModificationAlreadyEndedError, self).__init__(
-            message, server_traceback, status_code, error_code)
 
 
 class UserUnauthorizedError(CloudifyClientError):
@@ -175,10 +119,27 @@ class UserUnauthorizedError(CloudifyClientError):
     """
     ERROR_CODE = 'unauthorized_error'
 
-    def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
-        super(UserUnauthorizedError, self).__init__(
-            message, server_traceback, status_code, error_code)
+
+class PluginInUseError(CloudifyClientError):
+    """
+    Raised if a central deployment agent plugin deletion is attempted and at
+    least one deployment is currently using this plugin.
+    """
+    ERROR_CODE = 'plugin_in_use'
+
+
+class PluginInstallationError(CloudifyClientError):
+    """
+    Raised if a central deployment agent plugin installation fails.
+    """
+    ERROR_CODE = 'plugin_installation_error'
+
+
+class PluginInstallationTimeout(CloudifyClientError):
+    """
+    Raised if a central deployment agent plugin installation times out.
+    """
+    ERROR_CODE = 'plugin_installation_timeout'
 
 
 class MaintenanceModeActiveError(CloudifyClientError):
@@ -235,4 +196,7 @@ ERROR_MAPPING = dict([
         MaintenanceModeActiveError,
         MaintenanceModeActivatingError,
         NotModifiedError,
-        InvalidExecutionUpdateStatus]])
+        InvalidExecutionUpdateStatus,
+        PluginInUseError,
+        PluginInstallationError,
+        PluginInstallationTimeout]])
