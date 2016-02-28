@@ -154,9 +154,9 @@ class TestScriptRunner(testtools.TestCase):
         try:
             self._run(script_path=script_path, task_retries=2)
             self.fail()
-        except NonRecoverableError, e:
+        except NonRecoverableError as e:
             self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
-        except Exception, e:
+        except Exception as e:
             self.fail()
 
     def test_crash_abort_after_return(self):
@@ -232,7 +232,7 @@ class TestScriptRunner(testtools.TestCase):
         try:
             self._run(script_path=script_path, task_retries=2)
             self.fail()
-        except NonRecoverableError, e:
+        except NonRecoverableError as e:
             self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
@@ -250,7 +250,7 @@ class TestScriptRunner(testtools.TestCase):
         try:
             self._run(script_path=script_path, task_retries=2)
             self.fail()
-        except NonRecoverableError, e:
+        except NonRecoverableError as e:
             self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
@@ -391,7 +391,7 @@ subprocess.Popen(
         try:
             self._run(script_path=script_path)
             self.fail()
-        except tasks.ProcessException, e:
+        except tasks.ProcessException as e:
             expected_exit_code = 1 if IS_WINDOWS else 127
             if IS_WINDOWS:
                 expected_stderr = "'command_that_does_not_exist' is not " \
@@ -419,7 +419,7 @@ subprocess.Popen(
         try:
             self._run(script_path=script_path)
             self.fail()
-        except tasks.ProcessException, e:
+        except tasks.ProcessException as e:
             self.assertIn(os.path.basename(script_path), e.command)
             self.assertEqual(e.exit_code, 1)
             self.assertIn('RequestError', e.stderr)
@@ -679,7 +679,7 @@ class TestDownloadResource(testtools.TestCase):
         try:
             self.test_http_url()
             self.fail()
-        except NonRecoverableError, e:
+        except NonRecoverableError as e:
             self.assertIn('status code: 404', str(e))
 
     def test_blueprint_resource(self):
