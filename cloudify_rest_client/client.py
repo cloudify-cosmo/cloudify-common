@@ -34,6 +34,7 @@ from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
 from cloudify_rest_client.tokens import TokensClient
 from cloudify_rest_client.plugins import PluginsClient
+from cloudify_rest_client.maintenance import MaintenanceModeClient
 
 DEFAULT_PORT = 80
 SECURED_PORT = 443
@@ -277,3 +278,4 @@ class CloudifyClient(object):
             self._client)
         self.tokens = TokensClient(self._client)
         self.plugins = PluginsClient(self._client)
+        self.maintenance_mode = MaintenanceModeClient(self._client)
