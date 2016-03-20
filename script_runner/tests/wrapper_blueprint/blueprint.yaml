@@ -1,0 +1,79 @@
+tosca_definitions_version: cloudify_dsl_1_2
+
+inputs:
+  script_path: {}
+  process:     {}
+  env_var:
+    default: value
+
+node_templates:
+  test_node:
+    type: cloudify.nodes.Compute
+    properties:
+      key: value
+    interfaces:
+      test:
+        run:
+          implementation: script.script_runner.tasks.run
+          inputs:
+            script_path: { get_input: script_path }
+            process:     { get_input: process     }
+            input_as_env_var: { get_input: env_var }
+        script: script.script_runner.tasks.run
+
+#   test_related_node:
+#     type: node_type
+#     properties:
+#       key: value
+#     relationships:
+#       - type: cloudify.relationships.contained_in
+#         target: test_node
+#         target_interfaces:
+#           cloudify.interfaces.relationship_lifecycle:
+#             postconfigure: relationship.py
+
+# relationships:
+#   cloudify.relationships.contained_in:
+#     source_interfaces:
+#       cloudify.interfaces.relationship_lifecycle:
+#         preconfigure: {}
+#         postconfigure: {}
+#         establish: {}
+#         unlink: {}
+#     target_interfaces:
+#       cloudify.interfaces.relationship_lifecycle:
+#         preconfigure: {}
+#         postconfigure: {}
+#         establish: {}
+#         unlink: {}
+#     properties:
+#       connection_type:
+#         default: all_to_all
+
+workflows:
+  execute_operation: script.script_runner.tests.test_script_runner.execute_operation
+  workflow_script:
+    mapping: script.script_runner.tasks.execute_workflow
+    parameters:
+      script_path:
+        default: workflow_script.py
+      key: {}
+
+plugins:
+  script:
+    executor: central_deployment_agent
+    install: false
+
+node_types:
+  node_type:
+    properties:
+      key:
+        default: value
+
+  # must be called cloudify.nodes.Compute to test ctx.instance.host_ip
+  cloudify.nodes.Compute:
+    properties:
+      ip:
+        default: 1.1.1.1
+      key:
+        default: value
