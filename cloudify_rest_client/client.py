@@ -39,7 +39,7 @@ DEFAULT_PORT = 80
 SECURED_PORT = 443
 SECURED_PROTOCOL = 'https'
 DEFAULT_PROTOCOL = 'http'
-DEFAULT_API_VERSION = 'v2'
+DEFAULT_API_VERSION = 'v2.1'
 
 urllib3.disable_warnings(urllib3.exceptions.InsecurePlatformWarning)
 
