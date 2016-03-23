@@ -98,7 +98,7 @@ class ExecutionsClient(object):
         """Returns a list of executions.
 
         :param deployment_id: Optional deployment id to get executions for.
-        :param _include_system_workflows: Include executions of system
+        :param include_system_workflows: Include executions of system
                workflows
         :param _include: List of fields to include in response.
         :param kwargs: Optional filter fields. For a list of available fields
