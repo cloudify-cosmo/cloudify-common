@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 import json
-import unittest
 import tempfile
 import os
 from collections import namedtuple
@@ -43,6 +42,19 @@ IS_WINDOWS = os.name == 'nt'
 
 @nottest
 class TestScriptRunner(testtools.TestCase):
+
+    def _get_temp_path(self):
+        """Create a temporary file and return its absolute pathname.
+
+        Make sure we don't keep an open file handle to it, so that
+        subprocesses can write to it (on windows).
+        """
+
+        handle, path = tempfile.mkstemp()
+        # windows can't write to a file that is already open by another process
+        # (tests use pipe redirection to a log file)
+        os.close(handle)
+        return path
 
     def _create_script(self, linux_script, windows_script,
                        windows_suffix='.bat', linux_suffix=''):
@@ -107,7 +119,7 @@ class TestScriptRunner(testtools.TestCase):
         self.assertEqual(result, ['1', 2, True])
 
     def test_imported_ctx_retry_operation(self):
-        _, log_path = tempfile.mkstemp()
+        log_path = self._get_temp_path()
         retry_message = "try again!"
         script_path = self._create_script(
             linux_script='''#! /bin/bash
@@ -115,7 +127,12 @@ class TestScriptRunner(testtools.TestCase):
             ctx retry_operation "{0}" 2> {1}
             echo "this shouldn't be logged" > {1}
             '''.format(retry_message, log_path),
-            windows_script='echo "hey"')
+            windows_script='''
+            ctx retry_operation "{0}" 2>{1}
+            if %errorlevel% neq 0 exit /b %errorlevel%
+            echo "this shouldn't be logged" > {1}
+            '''.format(retry_message, log_path))
+
         self.assertRaises(RecoverableError,
                           self._run,
                           **{'script_path': script_path,
@@ -124,7 +141,7 @@ class TestScriptRunner(testtools.TestCase):
             self.assertEquals(retry_message, log_file.read().strip())
 
     def test_imported_ctx_abort_operation(self):
-        _, log_path = tempfile.mkstemp()
+        log_path = self._get_temp_path()
         abort_message = "i have to go now!"
         script_path = self._create_script(
             linux_script='''#! /bin/bash
@@ -132,7 +149,11 @@ class TestScriptRunner(testtools.TestCase):
             ctx abort_operation "{0}" 2> {1}
             echo "this shouldn't be logged" > {1}
             '''.format(abort_message, log_path),
-            windows_script='echo "hey"')
+            windows_script='''
+            ctx abort_operation "{0}" 2> {1}
+            if %errorlevel% neq 0 exit /b %errorlevel%
+            echo "this shouldn't be logged" > {1}
+            '''.format(abort_message, log_path))
         self.assertRaises(NonRecoverableError,
                           self._run,
                           **{'script_path': script_path,
@@ -150,6 +171,7 @@ class TestScriptRunner(testtools.TestCase):
             ''',
             windows_script='''
             ctx returns "@[""1"", 2, true]"
+            ctx abort_operation "should raise a runtime error"
             ''')
         try:
             self._run(script_path=script_path, task_retries=2)
@@ -168,6 +190,7 @@ class TestScriptRunner(testtools.TestCase):
             ''',
             windows_script='''
             ctx returns "@[""1"", 2, true]"
+            ctx abort_operation "should raise a runtime error"
             ''')
         self.assertRaises(NonRecoverableError,
                           self._run,
@@ -183,6 +206,7 @@ class TestScriptRunner(testtools.TestCase):
             ''',
             windows_script='''
             ctx returns "@[""1"", 2, true]"
+            ctx retry_operation "should raise a runtime error"
             ''')
         self.assertRaises(NonRecoverableError,
                           self._run,
@@ -190,16 +214,17 @@ class TestScriptRunner(testtools.TestCase):
                              'task_retries': 2})
 
     def test_abort(self):
-        _, log_path = tempfile.mkstemp()
+        log_path = self._get_temp_path()
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx abort_operation 'oops! we got an error'
             echo "this shouldn't be logged" > {0}
             '''.format(log_path),
-            # not actually tested
             windows_script='''
             ctx abort_operation "oops! we got an error"
-            ''')
+            echo "this shouldn't be logged" > {0}
+            '''.format(log_path))
+
         self.assertRaises(NonRecoverableError,
                           self._run,
                           **{'script_path': script_path,
@@ -210,7 +235,6 @@ class TestScriptRunner(testtools.TestCase):
             linux_script='''#! /bin/bash -e
             ctx retry_operation 'oops! we got an error'
             ''',
-            # not actually tested
             windows_script='''
             ctx retry_operation "oops! we got an error"
             ''')
@@ -225,9 +249,9 @@ class TestScriptRunner(testtools.TestCase):
             ctx abort_operation 'oops! we got an error'
             ctx returns 'should_ignore_this_value'
             ''',
-            # not actually tested
             windows_script='''
             ctx abort_operation "oops! we got an error"
+            ctx returns "should_ignore_this_value"
             ''')
         try:
             self._run(script_path=script_path, task_retries=2)
@@ -243,9 +267,9 @@ class TestScriptRunner(testtools.TestCase):
             ctx retry_operation 'oops! we got an error'
             ctx returns 'should_ignore_this_value'
             ''',
-            # not actually tested
             windows_script='''
             ctx retry_operation "oops! we got an error"
+            ctx returns "should_ignore_this_value"
             ''')
         try:
             self._run(script_path=script_path, task_retries=2)
@@ -256,17 +280,18 @@ class TestScriptRunner(testtools.TestCase):
             self.fail()
 
     def test_retry_returns_a_nonzero_exit_code(self):
-        _, log_path = tempfile.mkstemp()
+        log_path = self._get_temp_path()
         abort_message = 'oops! we got an error'
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx retry_operation '{0}' 2> {1}
             echo "this line should not run" > {1}
             '''.format(abort_message, log_path),
-            # not actually tested
             windows_script='''
-            ctx abort_operation '{0}'
-            '''.format(abort_message))
+            ctx retry_operation "{0}" 2> {1}
+            if %errorlevel% neq 0 exit /b %errorlevel%
+            echo "this line should not run" > {1}
+            '''.format(abort_message, log_path))
         self.assertRaises(RecoverableError,
                           self._run,
                           **{'script_path': script_path})
@@ -274,17 +299,18 @@ class TestScriptRunner(testtools.TestCase):
             self.assertEquals(abort_message, log_file.read().strip())
 
     def test_abort_returns_a_nonzero_exit_code(self):
-        _, log_path = tempfile.mkstemp()
+        log_path = self._get_temp_path()
         abort_message = 'oops! we got an error'
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx abort_operation '{0}' 2> {1}
             echo "this line should not run" > {1}
             '''.format(abort_message, log_path),
-            # not actually tested
             windows_script='''
-            ctx abort_operation '{0}'
-            '''.format(abort_message))
+            ctx abort_operation "{0}" 2> {1}
+            if %errorlevel% neq 0 exit /b %errorlevel%
+            echo "this line should not run" > {1}
+            '''.format(abort_message, log_path))
         self.assertRaises(NonRecoverableError,
                           self._run,
                           **{'script_path': script_path})
@@ -393,20 +419,11 @@ subprocess.Popen(
             self.fail()
         except tasks.ProcessException as e:
             expected_exit_code = 1 if IS_WINDOWS else 127
-            if IS_WINDOWS:
-                expected_stderr = "'command_that_does_not_exist' is not " \
-                                  "recognized as an internal or external " \
-                                  "command,\r\noperable program or batch " \
-                                  "file."
-            else:
-                expected_stderr = ': line 3: ' \
-                                  'command_that_does_not_exist: command ' \
-                                  'not found'
 
             self.assertIn(os.path.basename(script_path), e.command)
             self.assertEqual(e.exit_code, expected_exit_code)
             self.assertEqual(e.stdout.strip(), '123123')
-            self.assertIn(expected_stderr, e.stderr.strip())
+            self.assertIn('command_that_does_not_exist', e.stderr.strip())
 
     def test_script_error_from_bad_ctx_request(self):
         script_path = self._create_script(
@@ -452,8 +469,10 @@ if __name__ == '__main__':
             linux_script='''#! /bin/bash -e
             ctx instance runtime-properties key "${input_as_env_var}"
             ''',
+            # this fails on windows because apparently the 'complex object'
+            # isnt JSONed? instead it looks repr()-ed
             windows_script='''
-            ctx instance runtime-properties key %input_as_env_var%
+            ctx instance runtime-properties key "%input_as_env_var%"
             ''')
 
         def test(value):
@@ -483,8 +502,10 @@ if __name__ == '__main__':
             linux_script='''#! /bin/bash -e
             ctx instance runtime-properties key "${input_as_env_var}"
             ''',
+            # this fails on windows because apparently the 'complex object'
+            # isnt JSONed? instead it looks repr()-ed
             windows_script='''
-            ctx instance runtime-properties key $env:input_as_env_var
+            ctx instance runtime-properties key "%input_as_env_var%"
             ''')
 
         def test(value):
@@ -508,7 +529,7 @@ class TestScriptRunnerUnixCtxProxy(TestScriptRunner):
 
     def setUp(self):
         if IS_WINDOWS:
-            raise unittest.SkipTest('Test skipped on windows')
+            self.skipTest('Test skipped on windows')
         self.ctx_proxy_type = 'unix'
         super(TestScriptRunner, self).setUp()
 
@@ -539,7 +560,7 @@ class TestCtxProxyType(testtools.TestCase):
 
     def test_unix_ctx_type(self):
         if IS_WINDOWS:
-            raise unittest.SkipTest('Skipped on windows')
+            self.skipTest('Skipped on windows')
         self.assert_valid_ctx_proxy('unix', UnixCtxProxy)
 
     def test_none_ctx_type(self):
