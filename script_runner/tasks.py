@@ -88,7 +88,13 @@ def create_process_config(process, operation_kwargs):
     for k, v in env_vars.items():
         k = str(k)
         if isinstance(v, (dict, list, set, bool)):
-            output_env_vars[k] = json.dumps(v)
+            envvar_value = json.dumps(v)
+            if IS_WINDOWS:
+                # the windows shell removes all double quotes - escape them
+                # to still be able to pass JSON in env vars to the shell
+                envvar_value = envvar_value.replace('"', '\\"')
+
+            output_env_vars[k] = envvar_value
         else:
             output_env_vars[k] = str(v)
     process['env'] = output_env_vars
