@@ -181,6 +181,20 @@ class UserUnauthorizedError(CloudifyClientError):
             message, server_traceback, status_code, error_code)
 
 
+class MaintenanceModeActiveError(CloudifyClientError):
+    """
+    Raised when a call has been blocked due to maintenance mode being active.
+    """
+    ERROR_CODE = 'maintenance_mode_active'
+
+
+class MaintenanceModeActivatingError(CloudifyClientError):
+    """
+    Raised when a call has been blocked while maintenance mode is activating.
+    """
+    ERROR_CODE = 'entering_maintenance_mode'
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -194,4 +208,6 @@ ERROR_MAPPING = dict([
         UnknownModificationStageError,
         ExistingStartedDeploymentModificationError,
         DeploymentModificationAlreadyEndedError,
-        UserUnauthorizedError]])
+        UserUnauthorizedError,
+        MaintenanceModeActiveError,
+        MaintenanceModeActivatingError]])
