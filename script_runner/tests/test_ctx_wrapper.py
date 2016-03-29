@@ -106,14 +106,13 @@ class PythonWrapperTests(testtools.TestCase):
 
     @log_capture()
     def test_logger(self, capture):
-        # Note that while we're calling debug, we're not checking
-        # for its output as it's currently not printable.
         script = ('ctx.logger.debug("debug_message")\n'
                   'ctx.logger.info("info_message")\n'
                   'ctx.logger.warn("warning_message")\n'
                   'ctx.logger.error("error_message")')
-        expected_levels = ['INFO', 'WARNING', 'ERROR']
+        expected_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR']
         expected_msgs = [
+            'debug_message',
             'info_message',
             'warning_message',
             'error_message'
