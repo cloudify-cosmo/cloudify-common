@@ -523,6 +523,44 @@ if __name__ == '__main__':
         test('override')
         test({'key': 'value'})
 
+    def test_get_nonexistent_runtime_property(self):
+        """Accessing a nonexistent runtime property returns an empty dict"""
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx instance runtime-properties nonexistent
+            ''',
+            windows_script='''
+            ctx instance runtime-properties nonexistent
+            ''')
+
+        e = self.assertRaises(tasks.ProcessException,
+                              self._run, script_path=script_path)
+
+        self.assertIn(os.path.basename(script_path), e.command)
+        self.assertEqual(e.exit_code, 1)
+        self.assertIn('RequestError', e.stderr)
+        self.assertIn('nonexistent', e.stderr)
+
+    def test_get_nonexistent_runtime_property_json(self):
+        """Accessing a nonexistent runtime property with the json output
+        flag set, returns an empty json object
+        """
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx -j instance runtime-properties nonexistent
+            ''',
+            windows_script='''
+            ctx -j instance runtime-properties nonexistent
+            ''')
+
+        e = self.assertRaises(tasks.ProcessException,
+                              self._run, script_path=script_path)
+
+        self.assertIn(os.path.basename(script_path), e.command)
+        self.assertEqual(e.exit_code, 1)
+        self.assertIn('RequestError', e.stderr)
+        self.assertIn('nonexistent', e.stderr)
+
 
 @istest
 class TestScriptRunnerUnixCtxProxy(TestScriptRunner):
