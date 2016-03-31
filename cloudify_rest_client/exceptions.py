@@ -195,6 +195,13 @@ class MaintenanceModeActivatingError(CloudifyClientError):
     ERROR_CODE = 'entering_maintenance_mode'
 
 
+class InvalidExecutionUpdateStatus(CloudifyClientError):
+    """
+    Raised when execution update failed do to invalid status update
+    """
+    ERROR_CODE = 'invalid_exception_status_update'
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -210,4 +217,5 @@ ERROR_MAPPING = dict([
         DeploymentModificationAlreadyEndedError,
         UserUnauthorizedError,
         MaintenanceModeActiveError,
-        MaintenanceModeActivatingError]])
+        MaintenanceModeActivatingError,
+        InvalidExecutionUpdateStatus]])
