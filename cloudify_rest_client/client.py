@@ -63,25 +63,44 @@ class HTTPClient(object):
         self.cert = cert
         self.trust_all = trust_all
 
-    @staticmethod
-    def _raise_client_error(response, url=None):
+    def _raise_client_error(self, response, url=None):
         try:
             result = response.json()
         except Exception:
-            message = response.content
-            if url:
-                message = '{0} [{1}]'.format(message, url)
-            error_msg = '{0}: {1}'.format(response.status_code, message)
+            if response.status_code == 304:
+                error_msg = 'Nothing to modify'
+                self._prepare_and_raise_exception(
+                        message=error_msg,
+                        error_code='not_modified',
+                        status_code=response.status_code,
+                        server_traceback='')
+            else:
+                message = response.content
+                if url:
+                    message = '{0} [{1}]'.format(message, url)
+                error_msg = '{0}: {1}'.format(response.status_code, message)
             raise exceptions.CloudifyClientError(
                 error_msg,
                 status_code=response.status_code)
         message = result['message']
         code = result['error_code']
         server_traceback = result['server_traceback']
-        error = exceptions.ERROR_MAPPING.get(code,
+        self._prepare_and_raise_exception(
+                message=message,
+                error_code=code,
+                status_code=response.status_code,
+                server_traceback=server_traceback)
+
+    @staticmethod
+    def _prepare_and_raise_exception(message,
+                                     error_code,
+                                     status_code,
+                                     server_traceback=None):
+
+        error = exceptions.ERROR_MAPPING.get(error_code,
                                              exceptions.CloudifyClientError)
         raise error(message, server_traceback,
-                    response.status_code, error_code=code)
+                    status_code, error_code=error_code)
 
     def verify_response_status(self, response, expected_code=200):
         if response.status_code != expected_code:

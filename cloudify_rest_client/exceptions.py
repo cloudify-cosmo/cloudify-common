@@ -187,12 +187,28 @@ class MaintenanceModeActiveError(CloudifyClientError):
     """
     ERROR_CODE = 'maintenance_mode_active'
 
+    def __str__(self):
+        return self.message
+
 
 class MaintenanceModeActivatingError(CloudifyClientError):
     """
     Raised when a call has been blocked while maintenance mode is activating.
     """
     ERROR_CODE = 'entering_maintenance_mode'
+
+    def __str__(self):
+        return self.message
+
+
+class NotModifiedError(CloudifyClientError):
+    """
+    Raised when a 304 not modified error was returned
+    """
+    ERROR_CODE = 'not_modified'
+
+    def __str__(self):
+        return self.message
 
 
 class InvalidExecutionUpdateStatus(CloudifyClientError):
@@ -218,4 +234,5 @@ ERROR_MAPPING = dict([
         UserUnauthorizedError,
         MaintenanceModeActiveError,
         MaintenanceModeActivatingError,
+        NotModifiedError,
         InvalidExecutionUpdateStatus]])
