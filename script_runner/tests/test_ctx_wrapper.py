@@ -1,6 +1,21 @@
-import tempfile
+#########
+# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+
 import os
 import shutil
+import tempfile
 
 import testtools
 from testfixtures import log_capture
@@ -9,7 +24,7 @@ import cloudify.ctx_wrappers
 from cloudify.exceptions import NonRecoverableError
 from cloudify.exceptions import OperationRetry
 from cloudify.workflows import local
-from script_runner.tasks import ProcessException
+from script_runner.tasks import ProcessException, IS_WINDOWS
 
 BLUEPRINT_DIR = os.path.join(os.path.dirname(__file__), 'wrapper_blueprint')
 
@@ -45,8 +60,6 @@ class PythonWrapperTests(testtools.TestCase):
     def _prescript(self):
         return (
             '#!/usr/bin/env python\n'
-            'import sys\n'
-            'sys.path.append("{0}")\n'
             'from ctxwrapper import ctx\n'.format(self.tempdir)
         )
 
@@ -65,7 +78,15 @@ class PythonWrapperTests(testtools.TestCase):
 
         self.script_path = self._create_script(script)
         process = process or {}
-        process.update({'ctx_proxy_type': 'unix'})
+        env = process.setdefault('env', {})
+
+        if 'PYTHONPATH' in env:
+            env['PYTHONPATH'] += ':' + self.tempdir
+        else:
+            env['PYTHONPATH'] = self.tempdir
+
+        if IS_WINDOWS:
+            process['command_prefix'] = 'python'
 
         inputs = {
             'script_path': self.script_path,
@@ -215,15 +236,17 @@ class PythonWrapperTests(testtools.TestCase):
         self.assertEqual(result, '1.1.1.1')
 
     def _test_download_resource(self, script, expected_content):
+        result = None
         try:
             result = self._run(script)
-            self.assertTrue(result.startswith('/tmp'))
+            self.assertTrue(result.startswith(tempfile.gettempdir()))
             self.assertTrue(result.endswith('-resource'))
             with open(result) as f:
                 resulting_content = f.read()
             self.assertEqual(expected_content, resulting_content)
         finally:
-            os.remove(result)
+            if result is not None:
+                os.remove(result)
 
     def test_download_resource(self):
         script = ('path = ctx.download_resource("resource")\n'
@@ -235,7 +258,7 @@ class PythonWrapperTests(testtools.TestCase):
     def test_download_resource_with_destination(self):
         fd, temp_path = tempfile.mkstemp(suffix='-resource')
         os.close(fd)
-        script = ('path = ctx.download_resource("resource", "{0}")\n'
+        script = ('path = ctx.download_resource("resource", {0!r})\n'
                   'ctx.returns(path)'.format(temp_path))
         self._test_download_resource(
             script=script,
@@ -250,7 +273,8 @@ class PythonWrapperTests(testtools.TestCase):
 
     def test_download_resource_and_render_with_destination(self):
         fd, temp_path = tempfile.mkstemp(suffix='-resource')
-        script = ('path = ctx.download_resource_and_render("resource", "{0}")\n'  # NOQA
+        os.close(fd)
+        script = ('path = ctx.download_resource_and_render("resource", {0!r})\n'  # NOQA
                   'ctx.returns(path)'.format(temp_path))
         self._test_download_resource(
             script=script,
