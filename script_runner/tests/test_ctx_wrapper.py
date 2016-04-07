@@ -101,7 +101,7 @@ class PythonWrapperTests(testtools.TestCase):
         script = ('ctx("node properties missing_node_property")')
         ex = self.assertRaises(ProcessException, self._run, script)
         self.assertIn(
-            'Cannot override read only properties',
+            'illegal path: missing_node_property',
             str(ex))
 
     @log_capture()
