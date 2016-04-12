@@ -16,6 +16,7 @@
 import os
 import shutil
 import tempfile
+import ast
 
 import testtools
 from testfixtures import log_capture
@@ -155,6 +156,16 @@ class PythonWrapperTests(testtools.TestCase):
                   'ctx.returns(value)')
         result = self._run(script)
         self.assertEqual('value', result)
+
+    def test_get_all_node_properties(self):
+        script = ('value = ctx.node.properties.get_all()\n'
+                  'ctx.returns(value)')
+        result = self._run(script)
+        res_dict = ast.literal_eval(result)
+        self.assertIn('ip', res_dict.keys())
+        self.assertEquals(res_dict['ip'], '1.1.1.1')
+        self.assertIn('key', res_dict.keys())
+        self.assertEquals(res_dict['key'], 'value')
 
     def test_get_node_properties_get_function(self):
         script = ('value = ctx.node.properties.get("key", "b")\n'
