@@ -49,7 +49,6 @@ class TestScriptRunner(testtools.TestCase):
         Make sure we don't keep an open file handle to it, so that
         subprocesses can write to it (on windows).
         """
-
         handle, path = tempfile.mkstemp()
         # windows can't write to a file that is already open by another process
         # (tests use pipe redirection to a log file)
@@ -524,7 +523,7 @@ if __name__ == '__main__':
         test({'key': 'value'})
 
     def test_get_nonexistent_runtime_property(self):
-        """Accessing a nonexistent runtime property returns an empty dict"""
+        """Accessing a nonexistent runtime property throws an error."""
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx instance runtime-properties nonexistent
@@ -542,9 +541,7 @@ if __name__ == '__main__':
         self.assertIn('nonexistent', e.stderr)
 
     def test_get_nonexistent_runtime_property_json(self):
-        """Accessing a nonexistent runtime property with the json output
-        flag set, returns an empty json object
-        """
+        """Getting an undefined runtime property as json throws an error."""
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx -j instance runtime-properties nonexistent
