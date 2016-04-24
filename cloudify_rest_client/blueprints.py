@@ -16,15 +16,14 @@
 import os
 import tempfile
 import shutil
-import tarfile
 import urllib
 import urlparse
 import contextlib
 
-from os.path import expanduser
 
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client.responses import ListResponse
+from cloudify_rest_client import utils
 
 
 class Blueprint(dict):
@@ -76,20 +75,6 @@ class BlueprintsClient(object):
 
     def __init__(self, api):
         self.api = api
-
-    @staticmethod
-    def _tar_blueprint(blueprint_path, tempdir):
-        blueprint_path = expanduser(blueprint_path)
-        blueprint_name = os.path.basename(os.path.splitext(blueprint_path)[0])
-        blueprint_directory = os.path.dirname(blueprint_path)
-        if not blueprint_directory:
-            # blueprint path only contains a file name from the local directory
-            blueprint_directory = os.getcwd()
-        tar_path = '{0}/{1}.tar.gz'.format(tempdir, blueprint_name)
-        with tarfile.open(tar_path, "w:gz") as tar:
-            tar.add(blueprint_directory,
-                    arcname=os.path.basename(blueprint_directory))
-        return tar_path
 
     def _upload(self, archive_location,
                 blueprint_id,
@@ -171,7 +156,7 @@ class BlueprintsClient(object):
         """
         tempdir = tempfile.mkdtemp()
         try:
-            tar_path = self._tar_blueprint(blueprint_path, tempdir)
+            tar_path = utils.tar_blueprint(blueprint_path, tempdir)
             application_file = os.path.basename(blueprint_path)
 
             blueprint = self._upload(
