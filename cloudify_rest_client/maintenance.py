@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from cloudify_rest_client.exceptions import NotModifiedError
+
 
 class Maintenance(dict):
 
@@ -25,6 +27,38 @@ class Maintenance(dict):
         :return: maintenance mode's status (activated, activating, deactivated)
         """
         return self.get('status')
+
+    @property
+    def activated_at(self):
+        """
+        :return: time of activating maintenance
+                 mode (time of entering 'activate' mode).
+        """
+        return self.get('activated_at')
+
+    @property
+    def activation_requested_at(self):
+        """
+        :return: time of sending the request to start maintenance
+                 mode (time of entering 'activating' mode).
+        """
+        return self.get('activation_requested_at')
+
+    @property
+    def remaining_executions(self):
+        """
+        :return: amount of running executions remaining before
+                 maintenance mode is activated.
+        """
+        return self.get('remaining_executions', [])
+
+    @property
+    def requested_by(self):
+        """
+        :return: amount of running executions remaining before
+                 maintenance mode is activated.
+        """
+        return self.get('requested_by')
 
 
 class MaintenanceModeClient(object):
@@ -48,7 +82,12 @@ class MaintenanceModeClient(object):
         :return: Maintenance mode state.
         """
         uri = '/maintenance/activate'
-        response = self.api.post(uri)
+        try:
+            response = self.api.post(uri)
+        except NotModifiedError as e:
+            e.message = '{0}, maintenance mode ' \
+                        'already activated.'.format(e.message)
+            raise
         return Maintenance(response)
 
     def deactivate(self):
@@ -58,5 +97,10 @@ class MaintenanceModeClient(object):
         :return: Maintenance mode state.
         """
         uri = '/maintenance/deactivate'
-        response = self.api.post(uri)
+        try:
+            response = self.api.post(uri)
+        except NotModifiedError as e:
+            e.message = '{0}, maintenance mode ' \
+                        'already deactivated.'.format(e.message)
+            raise
         return Maintenance(response)
