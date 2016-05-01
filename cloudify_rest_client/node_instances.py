@@ -82,6 +82,13 @@ class NodeInstance(dict):
         """
         return self.get('version')
 
+    @property
+    def scaling_groups(self):
+        """
+        :return: Scaling group instances this node instance belongs to.
+        """
+        return self.get('scaling_groups', [])
+
 
 class NodeInstancesClient(object):
 
