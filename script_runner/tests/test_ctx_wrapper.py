@@ -131,11 +131,13 @@ class PythonWrapperTests(testtools.TestCase):
         script = ('ctx.logger.debug("debug_message")\n'
                   'ctx.logger.info("info_message")\n'
                   'ctx.logger.warn("warning_message")\n'
+                  'ctx.logger.warning("warning_message")\n'
                   'ctx.logger.error("error_message")')
-        expected_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR']
+        expected_levels = ['DEBUG', 'INFO', 'WARNING', 'WARNING', 'ERROR']
         expected_msgs = [
             'debug_message',
             'info_message',
+            'warning_message',
             'warning_message',
             'error_message'
         ]
