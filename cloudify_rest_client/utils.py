@@ -2,6 +2,8 @@ import os
 import tarfile
 from os.path import expanduser
 
+SUPPORTED_ARCHIVE_TYPES = ['zip', 'tar', 'tar.gz', 'tar.bz2']
+
 
 def tar_blueprint(blueprint_path, dest_dir):
     """
@@ -30,3 +32,9 @@ def tar_file(file_to_tar, destination_dir, tar_name=''):
     with tarfile.open(tar_path, "w:gz") as tar:
         tar.add(file_to_tar, arcname=tar_name)
     return tar_path
+
+
+def is_supported_archive_type(blueprint_path):
+
+    extensions = ['.{0}'.format(ext) for ext in SUPPORTED_ARCHIVE_TYPES]
+    return blueprint_path.endswith(tuple(extensions))
