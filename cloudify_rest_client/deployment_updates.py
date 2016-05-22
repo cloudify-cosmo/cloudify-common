@@ -171,9 +171,10 @@ class DeploymentUpdatesClient(object):
                blueprint_or_archive_path,
                application_file_name=None,
                inputs=None,
-               workflow_id=None,
                skip_install=False,
-               skip_uninstall=False):
+               skip_uninstall=False,
+               workflow_id=None):
+
         # TODO better handle testing for a supported archive. in other commands
         # it is done in the cli part (`commands.<command_name>)
         if utils.is_supported_archive_type(blueprint_or_archive_path):
@@ -192,7 +193,10 @@ class DeploymentUpdatesClient(object):
         update_id = deployment_update.id
         self._extract_steps(update_id)
 
-        deployment_update = self._commit(update_id, workflow_id=workflow_id)
+        deployment_update = self._commit(update_id,
+                                         skip_install=skip_install,
+                                         skip_uninstall=skip_uninstall,
+                                         workflow_id=workflow_id)
 
         return deployment_update
 
@@ -230,16 +234,26 @@ class DeploymentUpdatesClient(object):
                          entity_type=entity_type,
                          entity_id=entity_id)
 
-    def _commit(self, update_id, workflow_id=None):
+    def _commit(self,
+                update_id,
+                skip_install=False,
+                skip_uninstall=False,
+                workflow_id=None):
         """Start the commit processes
 
+        :param skip_install:
+        :param skip_uninstall:
+        :param workflow_id:
         :param update_id: The update id
         """
         assert update_id
 
-        params = {}
-        if workflow_id:
-            params['workflow_id'] = workflow_id
+        params = {
+            'workflow_id': workflow_id,
+            'skip_install': skip_install,
+            'skip_uninstall': skip_uninstall
+        }
+
         uri = '/deployment-updates/{0}/commit'.format(update_id)
         response = self.api.post(uri, params)
         return DeploymentUpdate(response)
