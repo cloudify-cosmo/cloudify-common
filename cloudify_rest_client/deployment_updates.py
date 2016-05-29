@@ -72,7 +72,7 @@ class DeploymentUpdatesClient(object):
         items = [DeploymentUpdate(item) for item in response['items']]
         return ListResponse(items, response['metadata'])
 
-    def stage(self, deployment_id, blueprint_path):
+    def _stage(self, deployment_id, blueprint_path, inputs=None):
         """Create a deployment update transaction for blueprint app.
 
         :param deployment_id: The deployment id
@@ -86,14 +86,15 @@ class DeploymentUpdatesClient(object):
             application_filename = os.path.basename(blueprint_path)
 
             return \
-                self.stage_archive(deployment_id,
-                                   tar_path,
-                                   application_filename)
+                self._stage_archive(deployment_id,
+                                    tar_path,
+                                    application_filename,
+                                    inputs=inputs)
         finally:
             shutil.rmtree(tempdir)
 
-    def stage_archive(self, deployment_id, archive_path,
-                      application_file_name=None, **kwargs):
+    def _stage_archive(self, deployment_id, archive_path,
+                       application_file_name=None, inputs=None, **kwargs):
         """Create a deployment update transaction for an archived app.
 
         :param archive_path: the path for the archived app.
@@ -107,6 +108,12 @@ class DeploymentUpdatesClient(object):
         query_params = {
             'deployment_id': deployment_id,
         }
+
+        # all the inputs are passed through the query
+        if inputs:
+            for k, v in inputs.iteritems():
+                query_params['_{0}'.format(k)] = v
+
         if application_file_name:
             query_params['application_file_name'] = \
                 urllib.quote(application_file_name)
@@ -137,42 +144,78 @@ class DeploymentUpdatesClient(object):
         response = self.api.get(uri, _include=_include)
         return DeploymentUpdate(response)
 
-    def step(self, update_id, operation, entity_type, entity_id):
+    def update(self,
+               deployment_id,
+               blueprint_path,
+               application_file_name=None,
+               inputs=None,
+               workflow_id=None):
+
+        # TODO better handle testing for a supported archive. in other commands
+        # it is done in the cli part (`commands.<command_name>)
+        if utils.is_supported_archive_type(blueprint_path):
+            deployment_update = \
+                self._stage_archive(deployment_id,
+                                    blueprint_path,
+                                    application_file_name,
+                                    inputs=inputs)
+        else:
+            deployment_update = \
+                self._stage(deployment_id, blueprint_path, inputs=inputs)
+
+        update_id = deployment_update.id
+        self._extract_steps(update_id)
+
+        deployment_update = self._commit(update_id, workflow_id=workflow_id)
+
+        return deployment_update
+
+    def _extract_steps(self, update_id):
+        assert update_id
+        uri = '/deployment-updates/{0}/update'.format(update_id)
+        response = self.api.post(uri)
+
+        return DeploymentUpdate(response)
+
+    def step(self, update_id, action, entity_type, entity_id):
         assert update_id
         uri = '/deployment-updates/{0}/step'.format(update_id)
         response = self.api.post(uri,
-                                 data=dict(operation=operation,
+                                 data=dict(action=action,
                                            entity_type=entity_type,
                                            entity_id=entity_id))
         return DeploymentUpdate(response)
 
     def add(self, update_id, entity_type, entity_id):
         return self.step(update_id,
-                         operation='add',
+                         action='add',
                          entity_type=entity_type,
                          entity_id=entity_id)
 
     def remove(self, update_id, entity_type, entity_id):
         return self.step(update_id,
-                         operation='remove',
+                         action='remove',
                          entity_type=entity_type,
                          entity_id=entity_id)
 
     def modify(self, update_id, entity_type, entity_id):
         return self.step(update_id,
-                         operation='modify',
+                         action='modify',
                          entity_type=entity_type,
                          entity_id=entity_id)
 
-    def commit(self, update_id):
+    def _commit(self, update_id, workflow_id=None):
         """Start the commit processes
 
         :param update_id: The update id
         """
-
         assert update_id
+
+        params = {}
+        if workflow_id:
+            params['workflow_id'] = workflow_id
         uri = '/deployment-updates/{0}/commit'.format(update_id)
-        response = self.api.post(uri)
+        response = self.api.post(uri, params)
         return DeploymentUpdate(response)
 
     def finalize_commit(self, update_id):
