@@ -13,13 +13,15 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 import os
-import tempfile
+import json
 import urllib
-import urlparse
-
 import shutil
+import urlparse
+import tempfile
+from mimetypes import MimeTypes
 
-from cloudify_rest_client import bytes_stream_utils
+from requests_toolbelt.multipart.encoder import MultipartEncoder
+
 from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 
@@ -105,14 +107,20 @@ class DeploymentUpdatesClient(object):
         """
         assert deployment_id
 
+        mime_type = MimeTypes()
         query_params = {
             'deployment_id': deployment_id,
         }
 
+        uri = '/deployment-updates'
+
+        data_files = {}
         # all the inputs are passed through the query
         if inputs:
-            for k, v in inputs.iteritems():
-                query_params['_{0}'.format(k)] = v
+            inputs_file = tempfile.TemporaryFile()
+            json.dump(inputs, inputs_file)
+            inputs_file.seek(0)
+            data_files['inputs'] = ('inputs', inputs_file, 'text/plain')
 
         if application_file_name:
             query_params['application_file_name'] = \
@@ -124,15 +132,25 @@ class DeploymentUpdatesClient(object):
                 not os.path.exists(archive_path)]):
             # archive location is URL
             query_params['blueprint_archive_url'] = archive_path
-            data = None
         else:
-            # archive location is a system path - upload it in chunks
-            data = \
-                bytes_stream_utils.request_data_file_stream_gen(archive_path)
+            data_files['update_archive'] = (
+                os.path.basename(archive_path),
+                open(archive_path, 'rb'),
+                # Guess the archie mime type
+                mime_type.guess_type(urllib.pathname2url(archive_path)))
+        if data_files:
+            data = MultipartEncoder(fields=data_files)
+            headers = {'Content-type': data.content_type}
+        else:
+            data = None
+            headers = None
+        response = self.api.post(
+                uri,
+                data=data,
+                headers=headers,
+                params=query_params,
+                expected_status_code=201)
 
-        uri = '/deployment-updates'
-        response = self.api.post(uri, data, params=query_params,
-                                 expected_status_code=201)
         return DeploymentUpdate(response)
 
     def get(self, update_id, _include=None):
