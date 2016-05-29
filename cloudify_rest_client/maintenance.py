@@ -85,8 +85,8 @@ class MaintenanceModeClient(object):
         try:
             response = self.api.post(uri)
         except NotModifiedError as e:
-            e.message = '{0}, maintenance mode ' \
-                        'already activated.'.format(e.message)
+            e.message = 'Maintenance mode ' \
+                        'is already active.'
             raise
         return Maintenance(response)
 
@@ -100,7 +100,7 @@ class MaintenanceModeClient(object):
         try:
             response = self.api.post(uri)
         except NotModifiedError as e:
-            e.message = '{0}, maintenance mode ' \
-                        'already deactivated.'.format(e.message)
+            e.message = 'Maintenance mode ' \
+                        'is already deactivated.'
             raise
         return Maintenance(response)
