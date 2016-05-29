@@ -50,6 +50,10 @@ class DeploymentUpdate(dict):
     def steps(self):
         return self['steps']
 
+    @property
+    def execution_id(self):
+        return self['execution_id']
+
 
 class DeploymentUpdatesClient(object):
 
@@ -164,22 +168,26 @@ class DeploymentUpdatesClient(object):
 
     def update(self,
                deployment_id,
-               blueprint_path,
+               blueprint_or_archive_path,
                application_file_name=None,
                inputs=None,
-               workflow_id=None):
-
+               workflow_id=None,
+               skip_install=False,
+               skip_uninstall=False):
         # TODO better handle testing for a supported archive. in other commands
         # it is done in the cli part (`commands.<command_name>)
-        if utils.is_supported_archive_type(blueprint_path):
+        if utils.is_supported_archive_type(blueprint_or_archive_path):
             deployment_update = \
-                self._stage_archive(deployment_id,
-                                    blueprint_path,
-                                    application_file_name,
-                                    inputs=inputs)
+                self._stage_archive(
+                    deployment_id=deployment_id,
+                    archive_path=blueprint_or_archive_path,
+                    application_file_name=application_file_name,
+                    inputs=inputs)
         else:
             deployment_update = \
-                self._stage(deployment_id, blueprint_path, inputs=inputs)
+                self._stage(deployment_id,
+                            blueprint_or_archive_path,
+                            inputs=inputs)
 
         update_id = deployment_update.id
         self._extract_steps(update_id)
