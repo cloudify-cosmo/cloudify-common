@@ -78,7 +78,10 @@ class DeploymentUpdatesClient(object):
         items = [DeploymentUpdate(item) for item in response['items']]
         return ListResponse(items, response['metadata'])
 
-    def _stage(self, deployment_id, blueprint_path, inputs=None):
+    def _update_from_blueprint(self,
+                               deployment_id,
+                               blueprint_path,
+                               inputs=None):
         """Create a deployment update transaction for blueprint app.
 
         :param deployment_id: The deployment id
@@ -91,16 +94,18 @@ class DeploymentUpdatesClient(object):
             tar_path = utils.tar_blueprint(blueprint_path, tempdir)
             application_filename = os.path.basename(blueprint_path)
 
-            return \
-                self._stage_archive(deployment_id,
-                                    tar_path,
-                                    application_filename,
-                                    inputs=inputs)
+            return self._update_from_archive(deployment_id,
+                                             tar_path,
+                                             application_filename,
+                                             inputs=inputs)
         finally:
             shutil.rmtree(tempdir)
 
-    def _stage_archive(self, deployment_id, archive_path,
-                       application_file_name=None, inputs=None, **kwargs):
+    @staticmethod
+    def _update_from_archive(deployment_id,
+                             archive_path,
+                             application_file_name=None,
+                             inputs=None):
         """Create a deployment update transaction for an archived app.
 
         :param archive_path: the path for the archived app.
@@ -112,22 +117,18 @@ class DeploymentUpdatesClient(object):
         assert deployment_id
 
         mime_type = MimeTypes()
-        query_params = {
-            'deployment_id': deployment_id,
-        }
 
-        uri = '/deployment-updates'
-
-        data_files = {}
+        data_form = {}
+        params = {}
         # all the inputs are passed through the query
         if inputs:
             inputs_file = tempfile.TemporaryFile()
             json.dump(inputs, inputs_file)
             inputs_file.seek(0)
-            data_files['inputs'] = ('inputs', inputs_file, 'text/plain')
+            data_form['inputs'] = ('inputs', inputs_file, 'text/plain')
 
         if application_file_name:
-            query_params['application_file_name'] = \
+            params['application_file_name'] = \
                 urllib.quote(application_file_name)
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
@@ -135,30 +136,18 @@ class DeploymentUpdatesClient(object):
         if all([urlparse.urlparse(archive_path).scheme,
                 not os.path.exists(archive_path)]):
             # archive location is URL
-            query_params['blueprint_archive_url'] = archive_path
+            params['blueprint_archive_url'] = archive_path
         else:
-            data_files['update_archive'] = (
+            data_form['update_archive'] = (
                 os.path.basename(archive_path),
                 open(archive_path, 'rb'),
                 # Guess the archie mime type
                 mime_type.guess_type(urllib.pathname2url(archive_path)))
-        if data_files:
-            data = MultipartEncoder(fields=data_files)
-            headers = {'Content-type': data.content_type}
-        else:
-            data = None
-            headers = None
-        response = self.api.post(
-                uri,
-                data=data,
-                headers=headers,
-                params=query_params,
-                expected_status_code=201)
 
-        return DeploymentUpdate(response)
+        return data_form, params
 
     def get(self, update_id, _include=None):
-        """Get  deployment update
+        """Get deployment update
 
         :param update_id: The update id
         """
@@ -178,84 +167,34 @@ class DeploymentUpdatesClient(object):
         # TODO better handle testing for a supported archive. in other commands
         # it is done in the cli part (`commands.<command_name>)
         if utils.is_supported_archive_type(blueprint_or_archive_path):
-            deployment_update = \
-                self._stage_archive(
-                    deployment_id=deployment_id,
-                    archive_path=blueprint_or_archive_path,
-                    application_file_name=application_file_name,
-                    inputs=inputs)
+            data_form, params = \
+                self._update_from_archive(deployment_id,
+                                          blueprint_or_archive_path,
+                                          application_file_name,
+                                          inputs=inputs)
         else:
-            deployment_update = \
-                self._stage(deployment_id,
-                            blueprint_or_archive_path,
-                            inputs=inputs)
+            data_form, params = \
+                self._update_from_blueprint(deployment_id,
+                                            blueprint_or_archive_path,
+                                            inputs=inputs)
 
-        update_id = deployment_update.id
-        self._extract_steps(update_id)
+        if workflow_id:
+            params['workflow_id'] = workflow_id
+        if skip_install:
+            params['skip_install'] = skip_install
+        if skip_uninstall:
+            params['skip_uninstall'] = skip_uninstall
 
-        deployment_update = self._commit(update_id,
-                                         skip_install=skip_install,
-                                         skip_uninstall=skip_uninstall,
-                                         workflow_id=workflow_id)
+        data_and_headers = {}
 
-        return deployment_update
+        if data_form:
+            data = MultipartEncoder(fields=data_form)
+            data_and_headers['data'] = data
+            data_and_headers['headers'] = {'Content-type': data.content_type}
 
-    def _extract_steps(self, update_id):
-        assert update_id
-        uri = '/deployment-updates/{0}/update'.format(update_id)
-        response = self.api.post(uri)
+        uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
+        response = self.api.post(uri, params=params, **data_and_headers)
 
-        return DeploymentUpdate(response)
-
-    def step(self, update_id, action, entity_type, entity_id):
-        assert update_id
-        uri = '/deployment-updates/{0}/step'.format(update_id)
-        response = self.api.post(uri,
-                                 data=dict(action=action,
-                                           entity_type=entity_type,
-                                           entity_id=entity_id))
-        return DeploymentUpdate(response)
-
-    def add(self, update_id, entity_type, entity_id):
-        return self.step(update_id,
-                         action='add',
-                         entity_type=entity_type,
-                         entity_id=entity_id)
-
-    def remove(self, update_id, entity_type, entity_id):
-        return self.step(update_id,
-                         action='remove',
-                         entity_type=entity_type,
-                         entity_id=entity_id)
-
-    def modify(self, update_id, entity_type, entity_id):
-        return self.step(update_id,
-                         action='modify',
-                         entity_type=entity_type,
-                         entity_id=entity_id)
-
-    def _commit(self,
-                update_id,
-                skip_install=False,
-                skip_uninstall=False,
-                workflow_id=None):
-        """Start the commit processes
-
-        :param skip_install:
-        :param skip_uninstall:
-        :param workflow_id:
-        :param update_id: The update id
-        """
-        assert update_id
-
-        params = {
-            'workflow_id': workflow_id,
-            'skip_install': skip_install,
-            'skip_uninstall': skip_uninstall
-        }
-
-        uri = '/deployment-updates/{0}/commit'.format(update_id)
-        response = self.api.post(uri, params)
         return DeploymentUpdate(response)
 
     def finalize_commit(self, update_id):
@@ -266,17 +205,6 @@ class DeploymentUpdatesClient(object):
         """
         assert update_id
 
-        uri = '/deployment-updates/{0}/finalize_commit'.format(update_id)
-        response = self.api.post(uri)
-        return DeploymentUpdate(response)
-
-    def rollback(self, update_id):
-        """Rollback deployment update
-
-        :param update_id: The update id
-        """
-
-        assert update_id
-        uri = '/deployment-updates/{0}/revert'.format(update_id)
+        uri = '/deployment-updates/{0}/update/finalize'.format(update_id)
         response = self.api.post(uri)
         return DeploymentUpdate(response)
