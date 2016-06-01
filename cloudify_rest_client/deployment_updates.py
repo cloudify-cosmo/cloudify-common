@@ -162,7 +162,8 @@ class DeploymentUpdatesClient(object):
                inputs=None,
                skip_install=False,
                skip_uninstall=False,
-               workflow_id=None):
+               workflow_id=None,
+               force=False):
 
         # TODO better handle testing for a supported archive. in other commands
         # it is done in the cli part (`commands.<command_name>)
@@ -184,6 +185,8 @@ class DeploymentUpdatesClient(object):
             params['skip_install'] = skip_install
         if skip_uninstall:
             params['skip_uninstall'] = skip_uninstall
+        if force:
+            params['force'] = force
 
         data_and_headers = {}
 
