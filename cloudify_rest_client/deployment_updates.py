@@ -60,7 +60,7 @@ class DeploymentUpdatesClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, deployment_id=None, _include=None, **kwargs):
+    def list(self, _include=None, **kwargs):
         """List deployment updates
 
         :param deployment_id: The deployment id (optional)
@@ -68,13 +68,9 @@ class DeploymentUpdatesClient(object):
                see the REST service's models.DeploymentUpdate.fields
         """
 
-        params = {}
-        if deployment_id:
-            params['deployment_id'] = deployment_id
-        params.update(kwargs)
         uri = '/deployment-updates'
 
-        response = self.api.get(uri, params=params, _include=_include)
+        response = self.api.get(uri, params=kwargs, _include=_include)
         items = [DeploymentUpdate(item) for item in response['items']]
         return ListResponse(items, response['metadata'])
 
@@ -116,7 +112,7 @@ class DeploymentUpdatesClient(object):
         """
         assert deployment_id
 
-        mime_type = MimeTypes()
+        mime_types = MimeTypes()
 
         data_form = {}
         params = {}
@@ -138,11 +134,11 @@ class DeploymentUpdatesClient(object):
             # archive location is URL
             params['blueprint_archive_url'] = archive_path
         else:
-            data_form['update_archive'] = (
+            data_form['blueprint_archive'] = (
                 os.path.basename(archive_path),
                 open(archive_path, 'rb'),
-                # Guess the archie mime type
-                mime_type.guess_type(urllib.pathname2url(archive_path)))
+                # Guess the archive mime type
+                mime_types.guess_type(urllib.pathname2url(archive_path)))
 
         return data_form, params
 
