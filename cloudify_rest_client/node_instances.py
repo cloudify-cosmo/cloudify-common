@@ -138,7 +138,7 @@ class NodeInstancesClient(object):
         return NodeInstance(response)
 
     def list(self, deployment_id=None, node_name=None, node_id=None,
-             _include=None, **kwargs):
+             _include=None, sort=None, is_descending=False, **kwargs):
         """
         Returns a list of node instances which belong to the deployment
         identified by the provided deployment id.
@@ -151,6 +151,8 @@ class NodeInstancesClient(object):
                           Use node_id instead.
         :param node_id: Equivalent to node_name.
         :param _include: List of fields to include in response.
+        :param sort: Key for sorting the list.
+        :param is_descending: True for descending order, False for ascending.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.DeploymentNodeInstance.fields
         :return: Node instances.
@@ -167,6 +169,9 @@ class NodeInstancesClient(object):
             params['deployment_id'] = deployment_id
 
         params.update(kwargs)
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
         response = self.api.get('/node-instances',
                                 params=params,
                                 _include=_include)

@@ -101,18 +101,24 @@ class BlueprintsClient(object):
         return self.api.put(uri, params=query_params, data=data,
                             expected_status_code=201)
 
-    def list(self, _include=None, **kwargs):
+    def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
         Returns a list of currently stored blueprints.
 
         :param _include: List of fields to include in response.
+        :param sort: Key for sorting the list.
+        :param is_descending: True for descending order, False for ascending.
         :param kwargs: Optional filter fields. For a list of available fields
                see the REST service's models.BlueprintState.fields
         :return: Blueprints list.
         """
+        params = kwargs
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
         response = self.api.get('/blueprints',
                                 _include=_include,
-                                params=kwargs)
+                                params=params)
         return ListResponse([Blueprint(item) for item in response['items']],
                             response['metadata'])
 
