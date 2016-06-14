@@ -54,6 +54,10 @@ class DeploymentUpdate(dict):
     def execution_id(self):
         return self['execution_id']
 
+    @property
+    def created_at(self):
+        return self['created_at']
+
 
 class DeploymentUpdatesClient(object):
 
