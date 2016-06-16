@@ -31,6 +31,7 @@ from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
 
 from script_runner import eval_env
+from script_runner import constants
 from cloudify.proxy.client import CTX_SOCKET_URL
 
 
@@ -102,7 +103,6 @@ def create_process_config(process, operation_kwargs):
 
 
 def process_execution(script_func, script_path, ctx, process=None):
-
     ctx.is_script_exception_defined = ScriptException is not None
 
     def abort_operation(message=None):
@@ -152,12 +152,26 @@ def process_execution(script_func, script_path, ctx, process=None):
         return script_result
 
 
-def get_run_script_func(script_path, process):
+def treat_script_as_python_script(script_path, process):
     eval_python = process.get('eval_python')
-    if eval_python is True or (script_path.endswith('.py') and
-                               eval_python is not False):
+    script_extension = os.path.splitext(script_path)[1].lower()
+    return eval_python is True or \
+        (script_extension == constants.PYTHON_SCRIPT_FILE_EXTENSION and
+         eval_python is not False)
+
+
+def treat_script_as_powershell_script(script_path):
+    script_extension = os.path.splitext(script_path)[1].lower()
+    return script_extension == constants.POWERSHELL_SCRIPT_FILE_EXTENSION
+
+
+def get_run_script_func(script_path, process):
+    if treat_script_as_python_script(script_path, process):
         return eval_script
     else:
+        if treat_script_as_powershell_script(script_path):
+            process.setdefault('command_prefix',
+                               constants.DEFAULT_POWERSHELL_EXECUTABLE)
         return execute
 
 

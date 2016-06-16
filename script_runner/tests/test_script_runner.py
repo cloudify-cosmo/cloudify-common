@@ -366,17 +366,13 @@ subprocess.Popen(
             ctx instance runtime-properties map.key $env:TEST_KEY
             ''',
             windows_suffix='.ps1')
-        if IS_WINDOWS:
-            command_prefix = 'powershell'
-        else:
-            command_prefix = 'python'
+        process = {'env': {'TEST_KEY': 'value'}}
+        if not IS_WINDOWS:
+            process.update({'command_prefix': 'python'})
 
         props = self._run(
             script_path=script_path,
-            process={
-                'env': {'TEST_KEY': 'value'},
-                'command_prefix': command_prefix
-            })
+            process=process)
         p_map = props['map']
         self.assertEqual(p_map['key'], 'value')
 
