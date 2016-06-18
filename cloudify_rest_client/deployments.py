@@ -62,6 +62,13 @@ class Deployment(dict):
         """
         return self.get('outputs')
 
+    @property
+    def description(self):
+        """
+        :return: The description of this deployment.
+        """
+        return self.get('description')
+
 
 class Workflow(dict):
 
