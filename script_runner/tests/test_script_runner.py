@@ -20,6 +20,7 @@ from collections import namedtuple
 
 import requests
 import testtools
+from mock import patch
 from nose.tools import nottest, istest
 
 from cloudify.state import current_ctx
@@ -366,13 +367,17 @@ subprocess.Popen(
             ctx instance runtime-properties map.key $env:TEST_KEY
             ''',
             windows_suffix='.ps1')
-        process = {'env': {'TEST_KEY': 'value'}}
-        if not IS_WINDOWS:
-            process.update({'command_prefix': 'python'})
+        if IS_WINDOWS:
+            command_prefix = 'powershell'
+        else:
+            command_prefix = 'python'
 
         props = self._run(
             script_path=script_path,
-            process=process)
+            process={
+                'env': {'TEST_KEY': 'value'},
+                'command_prefix': command_prefix
+             })
         p_map = props['map']
         self.assertEqual(p_map['key'], 'value')
 
@@ -628,6 +633,55 @@ class TestCtxProxyType(testtools.TestCase):
             self.assertEqual(type(proxy), expected_type)
         finally:
             proxy.close()
+
+
+class TestPowerShellConfiguration(testtools.TestCase):
+
+    def setUp(self):
+        super(TestPowerShellConfiguration, self).setUp()
+        self.original_execute = tasks.execute
+        self.addCleanup(self.cleanup)
+        self.process = {}
+
+        def execute(script_path, ctx, process):
+            if self.expected_call != 'execute':
+                self.fail()
+            self.process = process
+
+        tasks.execute = execute
+
+    def mock_ctx(self, **kwargs):
+        ctx = MockCloudifyContext(**kwargs)
+        ctx.download_resource = lambda s_path: s_path
+        current_ctx.set(ctx)
+        return ctx
+
+    @patch('os.chmod')
+    def test_implicit_powershell_call_with_ps1_extension(self, mock_chmod):
+        self.expected_call = 'execute'
+        tasks.run('script_path.ps1',
+                  ctx=self.mock_ctx())
+        self.assertEqual(self.process['command_prefix'], 'powershell')
+
+    @patch('os.chmod')
+    def test_command_prefix_is_overriden_for_ps1_extension(self, mock_chmod):
+        self.expected_call = 'execute'
+        tasks.run('script_path.ps1',
+                  process={'command_prefix': 'bash'},
+                  ctx=self.mock_ctx())
+        self.assertEqual(self.process['command_prefix'], 'bash')
+
+    @patch('os.chmod')
+    def test_explicit_powershell_call(self, mock_chmod):
+        self.expected_call = 'execute'
+        tasks.run('script_path.psx',
+                  process={'command_prefix': 'powershell'},
+                  ctx=self.mock_ctx())
+        self.assertEqual(self.process['command_prefix'], 'powershell')
+
+    def cleanup(self):
+        tasks.execute = self.original_execute
+        current_ctx.clear()
 
 
 class TestEvalPythonConfiguration(testtools.TestCase):
