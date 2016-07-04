@@ -94,13 +94,15 @@ class ExecutionsClient(object):
         self.api = api
 
     def list(self, deployment_id=None, include_system_workflows=False,
-             _include=None, **kwargs):
+             _include=None, sort=None, is_descending=False, **kwargs):
         """Returns a list of executions.
 
         :param deployment_id: Optional deployment id to get executions for.
         :param include_system_workflows: Include executions of system
                workflows
         :param _include: List of fields to include in response.
+        :param sort: Key for sorting the list.
+        :param is_descending: True for descending order, False for ascending.
         :param kwargs: Optional filter fields. For a list of available fields
                see the REST service's models.Execution.fields
         :return: Executions list.
@@ -110,6 +112,8 @@ class ExecutionsClient(object):
         if deployment_id:
             params['deployment_id'] = deployment_id
         params.update(kwargs)
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
 
         response = self.api.get(uri, params=params, _include=_include)
         return ListResponse([Execution(item) for item in response['items']],

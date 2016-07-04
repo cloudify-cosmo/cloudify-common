@@ -141,7 +141,8 @@ class NodesClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, deployment_id=None, node_id=None, _include=None, **kwargs):
+    def list(self, deployment_id=None, node_id=None, _include=None,
+             sort=None, is_descending=False, **kwargs):
         """
         Returns a list of nodes which belong to the deployment identified
         by the provided deployment id.
@@ -150,6 +151,8 @@ class NodesClient(object):
         :param node_id: If provided, returns only the requested node. This
                         parameter is deprecated, use 'id' instead.
         :param _include: List of fields to include in response.
+        :param sort: Key for sorting the list.
+        :param is_descending: True for descending order, False for ascending.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.DeploymentNode.fields
         :return: Nodes.
@@ -163,6 +166,9 @@ class NodesClient(object):
                           " 'id' instead", DeprecationWarning)
             params['id'] = node_id
         params.update(kwargs)
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
         if not params:
             params = None
         response = self.api.get('/nodes', params=params, _include=_include)

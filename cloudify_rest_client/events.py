@@ -52,9 +52,8 @@ class EventsClient(object):
         total_events = response.metadata.pagination.total
         return events, total_events
 
-    def list(self, include_logs=False, message=None,
-             from_datetime=None, to_datetime=None,
-             _include=None, **kwargs):
+    def list(self, include_logs=False, message=None, from_datetime=None,
+             to_datetime=None, _include=None, sort=None, **kwargs):
         """List events
 
         :param include_logs: Whether to also get logs.
@@ -63,6 +62,7 @@ class EventsClient(object):
         :param from_datetime: search for events later or equal to datetime
         :param to_datetime: search for events earlier or equal to datetime
         :param _include: return only an exclusive list of fields
+        :param sort: Key for sorting the list.
         :return: dict with 'metadata' and 'items' fields
         """
 
@@ -93,6 +93,9 @@ class EventsClient(object):
             params['_range'].append('@timestamp,{0},{1}'
                                     .format(timestamp_range.get('from', ''),
                                             timestamp_range.get('to', '')))
+
+        if sort:
+            params['_sort'] = sort
 
         response = self.api.get(uri,
                                 _include=_include,

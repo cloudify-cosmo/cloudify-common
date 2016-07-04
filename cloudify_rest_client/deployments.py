@@ -136,18 +136,24 @@ class DeploymentsClient(object):
         self.api = api
         self.outputs = DeploymentOutputsClient(api)
 
-    def list(self, _include=None, **kwargs):
+    def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
         Returns a list of all deployments.
 
         :param _include: List of fields to include in response.
+        :param sort: Key for sorting the list.
+        :param is_descending: True for descending order, False for ascending.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.Deployment.fields
         :return: Deployments list.
         """
+        params = kwargs
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
         response = self.api.get('/deployments',
                                 _include=_include,
-                                params=kwargs)
+                                params=params)
 
         return ListResponse([Deployment(item) for item in response['items']],
                             response['metadata'])

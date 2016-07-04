@@ -140,13 +140,21 @@ class PluginsClient(object):
         response = self.api.get(uri, _include=_include)
         return Plugin(response)
 
-    def list(self, _include=None, **kwargs):
+    def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
         Returns a list of available plugins.
         :param _include: List of fields to include in response.
+        :param sort: Key for sorting the list.
+        :param is_descending: True for descending order, False for ascending.
+        :param kwargs: Optional filter fields. For a list of available fields
+               see the REST service's models.Execution.fields
         :return: Plugins list.
         """
-        response = self.api.get('/plugins', _include=_include, params=kwargs)
+        params = kwargs
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
+        response = self.api.get('/plugins', _include=_include, params=params)
         return ListResponse([Plugin(item) for item in response['items']],
                             response['metadata'])
 
