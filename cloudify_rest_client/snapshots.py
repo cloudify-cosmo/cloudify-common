@@ -142,12 +142,13 @@ class SnapshotsClient(object):
         response = self.api.post(uri, data=params)
         return Execution(response)
 
-    def upload(self, snapshot_path, snapshot_id):
+    def upload(self, snapshot_path, snapshot_id, progress_callback=None):
         """
         Uploads snapshot archive to Cloudify's manager.
 
         :param snapshot_path: Path to snapshot archive.
         :param snapshot_id: Id of the uploaded snapshot.
+        :param progress_callback: Progress bar callback method
         :return: Uploaded snapshot.
 
         Snapshot archive should be the same file that had been created
@@ -166,18 +167,19 @@ class SnapshotsClient(object):
             data = None
         else:
             data = bytes_stream_utils.request_data_file_stream_gen(
-                snapshot_path)
+                snapshot_path, progress_callback=progress_callback)
 
         response = self.api.put(uri, params=query_params, data=data,
                                 expected_status_code=201)
         return Snapshot(response)
 
-    def download(self, snapshot_id, output_file):
+    def download(self, snapshot_id, output_file, progress_callback=None):
         """
         Downloads a previously created/uploaded snapshot archive from
         Cloudify's manager.
 
         :param snapshot_id: The id of the snapshot to be downloaded.
+        :param progress_callback: Callback function for printing a progress bar
         :param output_file: The file path of the downloaded snapshot file
          (optional)
         :return: The file path of the downloaded snapshot.
@@ -186,7 +188,7 @@ class SnapshotsClient(object):
 
         with contextlib.closing(self.api.get(uri, stream=True)) as response:
             output_file = bytes_stream_utils.write_response_stream_to_file(
-                response, output_file)
+                response, output_file, progress_callback=progress_callback)
 
             return output_file
 

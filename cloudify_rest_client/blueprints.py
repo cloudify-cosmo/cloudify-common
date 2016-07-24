@@ -78,7 +78,8 @@ class BlueprintsClient(object):
 
     def _upload(self, archive_location,
                 blueprint_id,
-                application_file_name=None):
+                application_file_name=None,
+                progress_callback=None):
         query_params = {}
         if application_file_name is not None:
             query_params['application_file_name'] = \
@@ -96,7 +97,7 @@ class BlueprintsClient(object):
         else:
             # archive location is a system path - upload it in chunks
             data = bytes_stream_utils.request_data_file_stream_gen(
-                archive_location)
+                archive_location, progress_callback=progress_callback)
 
         return self.api.put(uri, params=query_params, data=data,
                             expected_status_code=201)
@@ -122,14 +123,17 @@ class BlueprintsClient(object):
         return ListResponse([Blueprint(item) for item in response['items']],
                             response['metadata'])
 
-    def publish_archive(self, archive_location, blueprint_id,
-                        blueprint_filename=None):
-        """
-        Publishes a blueprint archive to the Cloudify manager.
+    def publish_archive(self,
+                        archive_location,
+                        blueprint_id,
+                        blueprint_filename=None,
+                        progress_callback=None):
+        """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
         :param blueprint_id: Id of the uploaded blueprint.
         :param blueprint_filename: The archive's main blueprint yaml filename.
+        :param progress_callback: Progress bar callback method
         :return: Created blueprint.
 
         Archive file should contain a single directory in which there is a
@@ -143,15 +147,17 @@ class BlueprintsClient(object):
         blueprint = self._upload(
             archive_location,
             blueprint_id=blueprint_id,
-            application_file_name=blueprint_filename)
+            application_file_name=blueprint_filename,
+            progress_callback=progress_callback)
         return Blueprint(blueprint)
 
-    def upload(self, blueprint_path, blueprint_id):
+    def upload(self, blueprint_path, blueprint_id, progress_callback=None):
         """
         Uploads a blueprint to Cloudify's manager.
 
         :param blueprint_path: Main blueprint yaml file path.
         :param blueprint_id: Id of the uploaded blueprint.
+        :param progress_callback: Progress bar callback method
         :return: Created blueprint.
 
         Blueprint path should point to the main yaml file of the blueprint
@@ -168,7 +174,8 @@ class BlueprintsClient(object):
             blueprint = self._upload(
                 tar_path,
                 blueprint_id=blueprint_id,
-                application_file_name=application_file)
+                application_file_name=application_file,
+                progress_callback=progress_callback)
             return Blueprint(blueprint)
         finally:
             shutil.rmtree(tempdir)
@@ -197,11 +204,12 @@ class BlueprintsClient(object):
         response = self.api.delete('/blueprints/{0}'.format(blueprint_id))
         return Blueprint(response)
 
-    def download(self, blueprint_id, output_file=None):
+    def download(self, blueprint_id, output_file=None, progress_callback=None):
         """
         Downloads a previously uploaded blueprint from Cloudify's manager.
 
         :param blueprint_id: The Id of the blueprint to be downloaded.
+        :param progress_callback: Callback function for printing a progress bar
         :param output_file: The file path of the downloaded blueprint file
          (optional)
         :return: The file path of the downloaded blueprint.
@@ -212,6 +220,8 @@ class BlueprintsClient(object):
                 self.api.get(uri, stream=True)) as streamed_response:
 
             output_file = bytes_stream_utils.write_response_stream_to_file(
-                streamed_response, output_file)
+                streamed_response,
+                output_file,
+                progress_callback=progress_callback)
 
             return output_file

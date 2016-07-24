@@ -174,12 +174,12 @@ class PluginsClient(object):
                                    data=data)
         return Plugin(response)
 
-    def upload(self, plugin_path):
-        """
-        Uploads a plugin archive to the remote Cloudify manager plugins
-        repository.
+    def upload(self, plugin_path, progress_callback=None):
+        """Uploads a plugin archive to the manager
+
         :param plugin_path: Path to plugin archive.
-        :return: Uploaded plugin.
+        :param progress_callback: Progress bar callback method
+        :return: Plugin object
         """
         assert plugin_path
 
@@ -192,26 +192,25 @@ class PluginsClient(object):
             data = None
         else:
             data = bytes_stream_utils.request_data_file_stream_gen(
-                plugin_path)
+                plugin_path, progress_callback=progress_callback)
 
         response = self.api.post(uri, params=query_params, data=data,
                                  expected_status_code=201)
         return Plugin(response)
 
-    def download(self,
-                 plugin_id,
-                 output_file):
-        """
-        Downloads a previously uploaded plugin archive from the
-        Cloudify manager.
+    def download(self, plugin_id, output_file, progress_callback=None):
+        """Downloads a previously uploaded plugin archive from the manager
+
         :param plugin_id: The plugin ID of the plugin to be downloaded.
         :param output_file: The file path of the downloaded plugin file
+        :param progress_callback: Callback function - can be used to print
+        a progress bar
         :return: The file path of the downloaded plugin.
         """
         assert plugin_id
         uri = '/plugins/{0}/archive'.format(plugin_id)
         with contextlib.closing(self.api.get(uri, stream=True)) as response:
             output_file = bytes_stream_utils.write_response_stream_to_file(
-                response, output_file)
+                response, output_file, progress_callback=progress_callback)
 
             return output_file
