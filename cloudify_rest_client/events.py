@@ -67,6 +67,45 @@ class EventsClient(object):
         """
 
         uri = '/events'
+        params = self._create_query(include_logs=include_logs,
+                                    message=message,
+                                    from_datetime=from_datetime,
+                                    to_datetime=to_datetime,
+                                    sort=sort,
+                                    **kwargs)
+
+        response = self.api.get(uri, _include=_include, params=params)
+        return ListResponse(response['items'], response['metadata'])
+
+    def delete(self, deployment_id, include_logs=False, message=None,
+               from_datetime=None, to_datetime=None, sort=None, **kwargs):
+        """Delete events connected to a Deployment ID
+
+        :param deployment_id: The ID of the deployment
+        :param include_logs: Whether to also get logs.
+        :param message: an expression used for wildcard search events
+                        by their message text
+        :param from_datetime: search for events later or equal to datetime
+        :param to_datetime: search for events earlier or equal to datetime
+        :param sort: Key for sorting the list.
+        :return: dict with 'metadata' and 'items' fields
+        """
+
+        uri = '/events'
+        params = self._create_query(include_logs=include_logs,
+                                    message=message,
+                                    from_datetime=from_datetime,
+                                    to_datetime=to_datetime,
+                                    sort=sort,
+                                    deployment_id=deployment_id,
+                                    **kwargs)
+
+        response = self.api.delete(uri, params=params)
+        return ListResponse(response['items'], response['metadata'])
+
+    @staticmethod
+    def _create_query(include_logs=False, message=None, from_datetime=None,
+                      to_datetime=None, sort=None, **kwargs):
         params = kwargs
         if message:
             params['message.text'] = str(message)
@@ -93,11 +132,7 @@ class EventsClient(object):
             params['_range'].append('@timestamp,{0},{1}'
                                     .format(timestamp_range.get('from', ''),
                                             timestamp_range.get('to', '')))
-
         if sort:
             params['_sort'] = sort
 
-        response = self.api.get(uri,
-                                _include=_include,
-                                params=params)
-        return ListResponse(response['items'], response['metadata'])
+        return params
