@@ -116,7 +116,7 @@ class NodeInstancesClient(object):
                node_instance_id,
                state=None,
                runtime_properties=None,
-               version=0):
+               version=1):
         """
         Update node instance with the provided state & runtime_properties.
 
