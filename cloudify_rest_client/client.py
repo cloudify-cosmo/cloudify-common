@@ -36,12 +36,15 @@ from cloudify_rest_client.deployment_modifications import (
 from cloudify_rest_client.tokens import TokensClient
 from cloudify_rest_client.plugins import PluginsClient
 from cloudify_rest_client.maintenance import MaintenanceModeClient
+from cloudify_rest_client.tenants import TenantsClient
+from cloudify_rest_client.user_groups import UserGroupsClient
+
 
 DEFAULT_PORT = 80
 SECURED_PORT = 443
 SECURED_PROTOCOL = 'https'
 DEFAULT_PROTOCOL = 'http'
-DEFAULT_API_VERSION = 'v2.1'
+DEFAULT_API_VERSION = 'v3'
 
 urllib3.disable_warnings(urllib3.exceptions.InsecurePlatformWarning)
 
@@ -301,3 +304,5 @@ class CloudifyClient(object):
         self.plugins = PluginsClient(self._client)
         self.maintenance_mode = MaintenanceModeClient(self._client)
         self.deployment_updates = DeploymentUpdatesClient(self._client)
+        self.tenants = TenantsClient(self._client)
+        self.user_groups = UserGroupsClient(self._client)
