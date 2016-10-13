@@ -151,6 +151,16 @@ class BlueprintsClient(object):
             progress_callback=progress_callback)
         return Blueprint(blueprint)
 
+    @staticmethod
+    def calc_size(blueprint_path):
+        tempdir = tempfile.mkdtemp()
+        try:
+            tar_path = utils.tar_blueprint(blueprint_path, tempdir)
+            size = os.path.getsize(tar_path)
+        finally:
+            shutil.rmtree(tempdir)
+        return size
+
     def upload(self, blueprint_path, blueprint_id, progress_callback=None):
         """
         Uploads a blueprint to Cloudify's manager.
