@@ -21,7 +21,7 @@ class Metadata(dict):
 
     def __init__(self, metadata):
         self.update(metadata)
-        self['pagination'] = Pagination(metadata.get('pagination'))
+        self['pagination'] = Pagination(metadata.get('pagination', {}))
 
     @property
     def pagination(self):
