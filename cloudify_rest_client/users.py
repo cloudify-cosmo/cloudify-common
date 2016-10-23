@@ -1,0 +1,92 @@
+########
+# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    * See the License for the specific language governing permissions and
+#    * limitations under the License.
+
+from cloudify_rest_client.responses import ListResponse
+
+
+class User(dict):
+
+    def __init__(self, user):
+        self.update(user)
+
+    @property
+    def username(self):
+        """
+        :return: The username of the user.
+        """
+        return self.get('username')
+
+    @property
+    def role(self):
+        """
+        :return: The role of the user.
+        """
+        return self.get('role')
+
+
+class UsersClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+    def list(self, _include=None, sort=None, is_descending=False, **kwargs):
+        """
+        Returns a list of currently stored users.
+
+        :param _include: List of fields to include in response.
+        :param sort: Key for sorting the list.
+        :param is_descending: True for descending order, False for ascending.
+        :param kwargs: Optional filter fields. For a list of available fields
+               see the REST service's models.Users.fields
+        :return: Users list.
+        """
+        params = kwargs
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
+        response = self.api.get('/users',
+                                _include=_include,
+                                params=params)
+        return ListResponse([User(item) for item in response['items']],
+                            response['metadata'])
+
+    def create(self, username, password, role):
+        data = {'username': username, 'password': password, 'role': role}
+        response = self.api.put('/users', data=data, expected_status_code=201)
+        return User(response)
+
+    def add_to_group(self, username, group_name):
+        data = {'username': username, 'group_name': group_name}
+        response = self.api.put('/users/groups', data=data)
+        return User(response)
+
+    def remove_from_group(self, username, group_name):
+        data = {'username': username, 'group_name': group_name}
+        response = self.api.delete('/users/groups', data=data)
+        return User(response)
+
+    def set_password(self, username, new_password):
+        data = {'password': new_password}
+        response = self.api.post('/users/{0}'.format(username), data=data)
+        return User(response)
+
+    def set_role(self, username, new_role):
+        data = {'role': new_role}
+        response = self.api.post('/users/{0}'.format(username), data=data)
+        return User(response)
+
+    def delete(self, username):
+        response = self.api.delete('/users/{0}'.format(username))
+        return User(response)

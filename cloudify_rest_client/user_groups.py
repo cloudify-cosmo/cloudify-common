@@ -62,13 +62,3 @@ class UserGroupsClient(object):
         )
 
         return Group(response)
-
-    def add_user(self, username, group_name):
-        data = {'username': username, 'group_name': group_name}
-        response = self.api.put('/user-groups/users', data=data)
-        return Group(response)
-
-    def remove_user(self, username, group_name):
-        data = {'username': username, 'group_name': group_name}
-        response = self.api.delete('/user-groups/users', data=data)
-        return Group(response)

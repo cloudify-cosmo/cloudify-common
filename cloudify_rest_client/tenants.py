@@ -42,8 +42,8 @@ class TenantsClient(object):
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
         :param kwargs: Optional filter fields. For a list of available fields
-               see the REST service's models.BlueprintState.fields
-        :return: Blueprints list.
+               see the REST service's models.Tenants.fields
+        :return: Tenants list.
         """
         params = kwargs
         if sort:
