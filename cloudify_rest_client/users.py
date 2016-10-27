@@ -19,6 +19,7 @@ from cloudify_rest_client.responses import ListResponse
 class User(dict):
 
     def __init__(self, user):
+        super(User, self).__init__()
         self.update(user)
 
     @property
@@ -34,6 +35,34 @@ class User(dict):
         :return: The role of the user.
         """
         return self.get('role')
+
+    @property
+    def groups(self):
+        """
+        :return: The list of groups to which the user is connected.
+        """
+        return self.get('groups')
+
+    @property
+    def tenants(self):
+        """
+        :return: The list of tenants to which the user is connected.
+        """
+        return self.get('tenants')
+
+    @property
+    def active(self):
+        """
+        :return: Whether the user is active.
+        """
+        return self.get('active')
+
+    @property
+    def last_login_at(self):
+        """
+        :return: The last time the user logged in.
+        """
+        return self.get('last_login_at')
 
 
 class UsersClient(object):
@@ -87,6 +116,6 @@ class UsersClient(object):
         response = self.api.post('/users/{0}'.format(username), data=data)
         return User(response)
 
-    def delete(self, username):
-        response = self.api.delete('/users/{0}'.format(username))
+    def get(self, username):
+        response = self.api.get('/users/{0}'.format(username))
         return User(response)

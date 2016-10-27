@@ -19,6 +19,7 @@ from cloudify_rest_client.responses import ListResponse
 class Tenant(dict):
 
     def __init__(self, tenant):
+        super(Tenant, self).__init__()
         self.update(tenant)
 
     @property
@@ -27,6 +28,20 @@ class Tenant(dict):
         :return: The name of the tenant.
         """
         return self.get('name')
+
+    @property
+    def users(self):
+        """
+        :return: The list of users connected to the tenant.
+        """
+        return self.get('users')
+
+    @property
+    def groups(self):
+        """
+        :return: The list of user groups connected the tenant.
+        """
+        return self.get('groups')
 
 
 class TenantsClient(object):
@@ -81,4 +96,8 @@ class TenantsClient(object):
     def remove_group(self, group_name, tenant_name):
         data = {'group_name': group_name, 'tenant_name': tenant_name}
         response = self.api.delete('/tenants/user-groups', data=data)
+        return Tenant(response)
+
+    def get(self, tenant_name):
+        response = self.api.get('/tenants/{0}'.format(tenant_name))
         return Tenant(response)

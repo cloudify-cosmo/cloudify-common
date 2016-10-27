@@ -19,6 +19,7 @@ from cloudify_rest_client.responses import ListResponse
 class Group(dict):
 
     def __init__(self, group):
+        super(Group, self).__init__()
         self.update(group)
 
     @property
@@ -27,6 +28,20 @@ class Group(dict):
         :return: The name of the group.
         """
         return self.get('name')
+
+    @property
+    def users(self):
+        """
+        :return: The list of users connected to the group.
+        """
+        return self.get('users')
+
+    @property
+    def tenants(self):
+        """
+        :return: The list of tenants to which the group is connected.
+        """
+        return self.get('tenants')
 
 
 class UserGroupsClient(object):
@@ -61,4 +76,8 @@ class UserGroupsClient(object):
             expected_status_code=201
         )
 
+        return Group(response)
+
+    def get(self, group_name):
+        response = self.api.get('/user-groups/{0}'.format(group_name))
         return Group(response)
