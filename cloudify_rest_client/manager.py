@@ -32,7 +32,7 @@ class ManagerClient(object):
         """
         :return: Cloudify's management machine version information.
         """
-        response = self.api.get('/version')
+        response = self.api.get('/version', versioned_url=False)
         return response
 
     def get_context(self, _include=None):

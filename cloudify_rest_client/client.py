@@ -152,8 +152,14 @@ class HTTPClient(object):
                    params=None,
                    headers=None,
                    expected_status_code=200,
-                   stream=False):
-        request_url = '{0}{1}'.format(self.url, uri)
+                   stream=False,
+                   versioned_url=True):
+        if versioned_url:
+            request_url = '{0}{1}'.format(self.url, uri)
+        else:
+            # remove version from url ending
+            url = self.url.rsplit('/', 1)[0]
+            request_url = '{0}{1}'.format(url, uri)
 
         # build headers
         headers = headers or {}
@@ -184,7 +190,7 @@ class HTTPClient(object):
             verify=self.get_request_verify())
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
-            expected_status_code=200, stream=False):
+            expected_status_code=200, stream=False, versioned_url=True):
         if _include:
             fields = ','.join(_include)
             if not params:
@@ -196,7 +202,8 @@ class HTTPClient(object):
                                params=params,
                                headers=headers,
                                expected_status_code=expected_status_code,
-                               stream=stream)
+                               stream=stream,
+                               versioned_url=versioned_url)
 
     def put(self, uri, data=None, params=None, headers=None,
             expected_status_code=200, stream=False):
