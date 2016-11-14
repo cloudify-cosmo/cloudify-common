@@ -26,6 +26,7 @@ class Plugin(dict):
     Cloudify plugin.
     """
     def __init__(self, plugin):
+        super(Plugin, self).__init__()
         self.update(plugin)
 
     @property
@@ -174,17 +175,21 @@ class PluginsClient(object):
                                    data=data)
         return Plugin(response)
 
-    def upload(self, plugin_path, progress_callback=None):
+    def upload(self,
+               plugin_path,
+               private_resource=False,
+               progress_callback=None):
         """Uploads a plugin archive to the manager
 
         :param plugin_path: Path to plugin archive.
+        :param private_resource: Whether the blueprint should be private
         :param progress_callback: Progress bar callback method
         :return: Plugin object
         """
         assert plugin_path
 
         uri = '/plugins'
-        query_params = {}
+        query_params = {'private_resource': private_resource}
 
         if urlparse.urlparse(plugin_path).scheme and \
                 not os.path.exists(plugin_path):
@@ -214,3 +219,21 @@ class PluginsClient(object):
                 response, output_file, progress_callback=progress_callback)
 
             return output_file
+
+    def add_permission(self, plugin_id, users, permission):
+        params = {
+            'resource_type': 'plugin',
+            'resource_id': plugin_id,
+            'users': users,
+            'permission': permission
+        }
+        return self.api.put('/permissions', data=params)
+
+    def remove_permission(self, plugin_id, users, permission):
+        params = {
+            'resource_type': 'plugin',
+            'resource_id': plugin_id,
+            'users': users,
+            'permission': permission
+        }
+        return self.api.delete('/permissions', data=params)

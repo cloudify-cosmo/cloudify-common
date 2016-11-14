@@ -28,6 +28,7 @@ class Snapshot(dict):
     """
 
     def __init__(self, snapshot):
+        super(Snapshot, self).__init__()
         self.update(snapshot)
 
     @property
@@ -99,7 +100,11 @@ class SnapshotsClient(object):
         return ListResponse([Snapshot(item) for item in response['items']],
                             response['metadata'])
 
-    def create(self, snapshot_id, include_metrics, include_credentials):
+    def create(self,
+               snapshot_id,
+               include_metrics,
+               include_credentials,
+               private_resource=False):
         """
         Creates a new snapshot.
 
@@ -108,8 +113,11 @@ class SnapshotsClient(object):
         """
         assert snapshot_id
         uri = '/snapshots/{0}'.format(snapshot_id)
-        params = {'include_metrics': include_metrics,
-                  'include_credentials': include_credentials}
+        params = {
+            'include_metrics': include_metrics,
+            'include_credentials': include_credentials,
+            'private_resource': private_resource
+        }
         response = self.api.put(uri, data=params, expected_status_code=201)
         return Execution(response)
 
@@ -142,12 +150,17 @@ class SnapshotsClient(object):
         response = self.api.post(uri, data=params)
         return Execution(response)
 
-    def upload(self, snapshot_path, snapshot_id, progress_callback=None):
+    def upload(self,
+               snapshot_path,
+               snapshot_id,
+               private_resource=False,
+               progress_callback=None):
         """
         Uploads snapshot archive to Cloudify's manager.
 
         :param snapshot_path: Path to snapshot archive.
         :param snapshot_id: Id of the uploaded snapshot.
+        :param private_resource: Whether the blueprint should be private
         :param progress_callback: Progress bar callback method
         :return: Uploaded snapshot.
 
@@ -159,7 +172,7 @@ class SnapshotsClient(object):
         assert snapshot_id
 
         uri = '/snapshots/{0}/archive'.format(snapshot_id)
-        query_params = {}
+        query_params = {'private_resource': private_resource}
 
         if urlparse.urlparse(snapshot_path).scheme and \
                 not os.path.exists(snapshot_path):
@@ -205,3 +218,21 @@ class SnapshotsClient(object):
         if error:
             params['error'] = error
         self.api.patch(uri, data=params)
+
+    def add_permission(self, snapshot_id, users, permission):
+        params = {
+            'resource_type': 'snapshot',
+            'resource_id': snapshot_id,
+            'users': users,
+            'permission': permission
+        }
+        return self.api.put('/permissions', data=params)
+
+    def remove_permission(self, snapshot_id, users, permission):
+        params = {
+            'resource_type': 'snapshot',
+            'resource_id': snapshot_id,
+            'users': users,
+            'permission': permission
+        }
+        return self.api.delete('/permissions', data=params)

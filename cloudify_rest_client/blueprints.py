@@ -29,6 +29,7 @@ from cloudify_rest_client import utils
 class Blueprint(dict):
 
     def __init__(self, blueprint):
+        super(Blueprint, self).__init__()
         self.update(blueprint)
 
     @property
@@ -76,11 +77,13 @@ class BlueprintsClient(object):
     def __init__(self, api):
         self.api = api
 
-    def _upload(self, archive_location,
+    def _upload(self,
+                archive_location,
                 blueprint_id,
                 application_file_name=None,
+                private_resource=False,
                 progress_callback=None):
-        query_params = {}
+        query_params = {'private_resource': private_resource}
         if application_file_name is not None:
             query_params['application_file_name'] = \
                 urllib.quote(application_file_name)
@@ -127,12 +130,14 @@ class BlueprintsClient(object):
                         archive_location,
                         blueprint_id,
                         blueprint_filename=None,
+                        private_resource=False,
                         progress_callback=None):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
         :param blueprint_id: Id of the uploaded blueprint.
         :param blueprint_filename: The archive's main blueprint yaml filename.
+        :param private_resource: Whether the blueprint should be private
         :param progress_callback: Progress bar callback method
         :return: Created blueprint.
 
@@ -148,6 +153,7 @@ class BlueprintsClient(object):
             archive_location,
             blueprint_id=blueprint_id,
             application_file_name=blueprint_filename,
+            private_resource=private_resource,
             progress_callback=progress_callback)
         return Blueprint(blueprint)
 
@@ -161,12 +167,17 @@ class BlueprintsClient(object):
             shutil.rmtree(tempdir)
         return size
 
-    def upload(self, blueprint_path, blueprint_id, progress_callback=None):
+    def upload(self,
+               blueprint_path,
+               blueprint_id,
+               private_resource=False,
+               progress_callback=None):
         """
         Uploads a blueprint to Cloudify's manager.
 
         :param blueprint_path: Main blueprint yaml file path.
         :param blueprint_id: Id of the uploaded blueprint.
+        :param private_resource: Whether the blueprint should be private
         :param progress_callback: Progress bar callback method
         :return: Created blueprint.
 
@@ -185,6 +196,7 @@ class BlueprintsClient(object):
                 tar_path,
                 blueprint_id=blueprint_id,
                 application_file_name=application_file,
+                private_resource=private_resource,
                 progress_callback=progress_callback)
             return Blueprint(blueprint)
         finally:
@@ -235,3 +247,21 @@ class BlueprintsClient(object):
                 progress_callback=progress_callback)
 
             return output_file
+
+    def add_permission(self, blueprint_id, users, permission):
+        params = {
+            'resource_type': 'blueprint',
+            'resource_id': blueprint_id,
+            'users': users,
+            'permission': permission
+        }
+        return self.api.put('/permissions', data=params)
+
+    def remove_permission(self, blueprint_id, users, permission):
+        params = {
+            'resource_type': 'blueprint',
+            'resource_id': blueprint_id,
+            'users': users,
+            'permission': permission
+        }
+        return self.api.delete('/permissions', data=params)

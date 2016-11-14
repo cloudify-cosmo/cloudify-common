@@ -22,6 +22,7 @@ class Deployment(dict):
     """
 
     def __init__(self, deployment):
+        super(Deployment, self).__init__()
         self.update(deployment)
         if 'workflows' in self and self['workflows']:
             # might be None, for example in response for delete deployment
@@ -73,6 +74,7 @@ class Deployment(dict):
 class Workflow(dict):
 
     def __init__(self, workflow):
+        super(Workflow, self).__init__()
         self.update(workflow)
 
     @property
@@ -100,6 +102,7 @@ class Workflow(dict):
 class DeploymentOutputs(dict):
 
     def __init__(self, outputs):
+        super(DeploymentOutputs, self).__init__()
         self.update(outputs)
 
     @property
@@ -171,7 +174,11 @@ class DeploymentsClient(object):
         response = self.api.get(uri, _include=_include)
         return Deployment(response)
 
-    def create(self, blueprint_id, deployment_id, inputs=None):
+    def create(self,
+               blueprint_id,
+               deployment_id,
+               inputs=None,
+               private_resource=False):
         """
         Creates a new deployment for the provided blueprint id and
         deployment id.
@@ -179,17 +186,18 @@ class DeploymentsClient(object):
         :param blueprint_id: Blueprint id to create a deployment of.
         :param deployment_id: Deployment id of the new created deployment.
         :param inputs: Inputs dict for the deployment.
+        :param private_resource: Whether the deployment should be private
         :return: The created deployment.
         """
         assert blueprint_id
         assert deployment_id
-        data = {
-            'blueprint_id': blueprint_id
-        }
+        params = {'private_resource': private_resource}
+        data = {'blueprint_id': blueprint_id}
         if inputs:
             data['inputs'] = inputs
         uri = '/deployments/{0}'.format(deployment_id)
-        response = self.api.put(uri, data, expected_status_code=201)
+        response = self.api.put(uri, data, params=params,
+                                expected_status_code=201)
         return Deployment(response)
 
     def delete(self, deployment_id, ignore_live_nodes=False):
@@ -207,3 +215,21 @@ class DeploymentsClient(object):
         response = self.api.delete('/deployments/{0}'.format(deployment_id),
                                    params=params)
         return Deployment(response)
+
+    def add_permission(self, deployment_id, users, permission):
+        params = {
+            'resource_type': 'deployment',
+            'resource_id': deployment_id,
+            'users': users,
+            'permission': permission
+        }
+        return self.api.put('/permissions', data=params)
+
+    def remove_permission(self, deployment_id, users, permission):
+        params = {
+            'resource_type': 'deployment',
+            'resource_id': deployment_id,
+            'users': users,
+            'permission': permission
+        }
+        return self.api.delete('/permissions', data=params)
