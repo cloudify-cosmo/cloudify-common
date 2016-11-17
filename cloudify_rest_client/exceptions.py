@@ -179,6 +179,18 @@ class InvalidExecutionUpdateStatus(CloudifyClientError):
     ERROR_CODE = 'invalid_exception_status_update'
 
 
+class NotClusterMaster(CloudifyClientError):
+    """
+    Raised when the request was served by a manager that is not the master
+    node of a manager cluster.
+    The client should query for the cluster status to learn the master's
+    address, and retry the request.
+    If the client stores the server address, it should update the storage
+    with the new master node address.
+    """
+    ERROR_CODE = 'not_cluster_master'
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -199,4 +211,5 @@ ERROR_MAPPING = dict([
         InvalidExecutionUpdateStatus,
         PluginInUseError,
         PluginInstallationError,
-        PluginInstallationTimeout]])
+        PluginInstallationTimeout,
+        NotClusterMaster]])

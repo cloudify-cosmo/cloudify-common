@@ -58,8 +58,9 @@ class HTTPClient(object):
                  headers=None, query_params=None, cert=None, trust_all=False):
         self.port = port
         self.host = host
-        self.url = '{0}://{1}:{2}/api/{3}'.format(protocol, host, port,
-                                                  api_version)
+        self.protocol = protocol
+        self.api_version = api_version
+
         self.headers = headers.copy() if headers else {}
         if not self.headers.get('Content-type'):
             self.headers['Content-type'] = 'application/json'
@@ -68,6 +69,11 @@ class HTTPClient(object):
         self.cert = cert
         self.trust_all = trust_all
 
+    @property
+    def url(self):
+        return '{0}://{1}:{2}/api/{3}'.format(self.protocol, self.host,
+                                              self.port, self.api_version)
+
     def _raise_client_error(self, response, url=None):
         try:
             result = response.json()
@@ -75,10 +81,10 @@ class HTTPClient(object):
             if response.status_code == 304:
                 error_msg = 'Nothing to modify'
                 self._prepare_and_raise_exception(
-                        message=error_msg,
-                        error_code='not_modified',
-                        status_code=response.status_code,
-                        server_traceback='')
+                    message=error_msg,
+                    error_code='not_modified',
+                    status_code=response.status_code,
+                    server_traceback='')
             else:
                 message = response.content
                 if url:
@@ -91,10 +97,10 @@ class HTTPClient(object):
         code = result.get('error_code')
         server_traceback = result.get('server_traceback')
         self._prepare_and_raise_exception(
-                message=message,
-                error_code=code,
-                status_code=response.status_code,
-                server_traceback=server_traceback)
+            message=message,
+            error_code=code,
+            status_code=response.status_code,
+            server_traceback=server_traceback)
 
     @staticmethod
     def _prepare_and_raise_exception(message,
@@ -267,6 +273,7 @@ class StreamedResponse(object):
 
 class CloudifyClient(object):
     """Cloudify's management client."""
+    client_class = HTTPClient
 
     def __init__(self, host='localhost', port=None, protocol=DEFAULT_PROTOCOL,
                  api_version=DEFAULT_API_VERSION, headers=None,
@@ -295,8 +302,9 @@ class CloudifyClient(object):
                 port = DEFAULT_PORT
 
         self.host = host
-        self._client = HTTPClient(host, port, protocol, api_version,
-                                  headers, query_params, cert, trust_all)
+        self._client = self.client_class(host, port, protocol, api_version,
+                                         headers, query_params, cert,
+                                         trust_all)
         self.blueprints = BlueprintsClient(self._client)
         self.snapshots = SnapshotsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
