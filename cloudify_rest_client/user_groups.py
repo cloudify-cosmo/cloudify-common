@@ -43,6 +43,13 @@ class Group(dict):
         """
         return self.get('tenants')
 
+    @property
+    def ldap_dn(self):
+        """
+        :return: If using ldap, will return the group's distinguished name.
+        """
+        return self.get('ldap_dn')
+
 
 class UserGroupsClient(object):
 
@@ -70,12 +77,11 @@ class UserGroupsClient(object):
         return ListResponse([Group(item) for item in response['items']],
                             response['metadata'])
 
-    def create(self, group_name):
-        response = self.api.post(
-            '/user-groups/{0}'.format(group_name),
-            expected_status_code=201
-        )
-
+    def create(self, group_name, ldap_group_dn=None):
+        data = {'group_name': group_name, 'ldap_group_dn': ldap_group_dn}
+        response = self.api.post('/user-groups',
+                                 data=data,
+                                 expected_status_code=201)
         return Group(response)
 
     def get(self, group_name):
