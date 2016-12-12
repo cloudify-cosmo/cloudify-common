@@ -118,13 +118,14 @@ class HTTPClient(object):
             self._raise_client_error(response)
 
     def _do_request(self, requests_method, request_url, body, params, headers,
-                    expected_status_code, stream, verify):
+                    expected_status_code, stream, verify, timeout):
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
                                    headers=headers,
                                    stream=stream,
-                                   verify=verify)
+                                   verify=verify,
+                                   timeout=timeout)
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.iteritems():
                 self.logger.debug('request header:  %s: %s'
@@ -159,7 +160,8 @@ class HTTPClient(object):
                    headers=None,
                    expected_status_code=200,
                    stream=False,
-                   versioned_url=True):
+                   versioned_url=True,
+                   timeout=None):
         if versioned_url:
             request_url = '{0}{1}'.format(self.url, uri)
         else:
@@ -193,10 +195,11 @@ class HTTPClient(object):
             requests_method=requests_method, request_url=request_url,
             body=body, params=total_params, headers=total_headers,
             expected_status_code=expected_status_code, stream=stream,
-            verify=self.get_request_verify())
+            verify=self.get_request_verify(), timeout=timeout)
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
-            expected_status_code=200, stream=False, versioned_url=True):
+            expected_status_code=200, stream=False, versioned_url=True,
+            timeout=None):
         if _include:
             fields = ','.join(_include)
             if not params:
@@ -209,47 +212,52 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
-                               versioned_url=versioned_url)
+                               versioned_url=versioned_url,
+                               timeout=timeout)
 
     def put(self, uri, data=None, params=None, headers=None,
-            expected_status_code=200, stream=False):
+            expected_status_code=200, stream=False, timeout=None):
         return self.do_request(requests.put,
                                uri,
                                data=data,
                                params=params,
                                headers=headers,
                                expected_status_code=expected_status_code,
-                               stream=stream)
+                               stream=stream,
+                               timeout=timeout)
 
     def patch(self, uri, data=None, params=None, headers=None,
-              expected_status_code=200, stream=False):
+              expected_status_code=200, stream=False, timeout=None):
         return self.do_request(requests.patch,
                                uri,
                                data=data,
                                params=params,
                                headers=headers,
                                expected_status_code=expected_status_code,
-                               stream=stream)
+                               stream=stream,
+                               timeout=timeout)
 
     def post(self, uri, data=None, params=None, headers=None,
-             expected_status_code=200, stream=False):
+             expected_status_code=200, stream=False, timeout=None):
         return self.do_request(requests.post,
                                uri,
                                data=data,
                                params=params,
                                headers=headers,
                                expected_status_code=expected_status_code,
-                               stream=stream)
+                               stream=stream,
+                               timeout=timeout)
 
     def delete(self, uri, data=None, params=None, headers=None,
-               expected_status_code=200, stream=False):
+               expected_status_code=200, stream=False, timeout=None):
         return self.do_request(requests.delete,
                                uri,
                                data=data,
                                params=params,
                                headers=headers,
                                expected_status_code=expected_status_code,
-                               stream=stream)
+                               stream=stream,
+                               timeout=timeout)
 
 
 class StreamedResponse(object):
