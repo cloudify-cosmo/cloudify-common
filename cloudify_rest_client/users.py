@@ -119,3 +119,7 @@ class UsersClient(object):
     def get(self, username):
         response = self.api.get('/users/{0}'.format(username))
         return User(response)
+
+    def delete(self, username):
+        response = self.api.delete('/users/{0}'.format(username))
+        return User(response)

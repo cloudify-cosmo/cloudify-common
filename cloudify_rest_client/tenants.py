@@ -101,3 +101,7 @@ class TenantsClient(object):
     def get(self, tenant_name):
         response = self.api.get('/tenants/{0}'.format(tenant_name))
         return Tenant(response)
+
+    def delete(self, tenant_name):
+        response = self.api.delete('/tenants/{0}'.format(tenant_name))
+        return Tenant(response)

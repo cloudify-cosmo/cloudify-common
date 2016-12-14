@@ -81,3 +81,7 @@ class UserGroupsClient(object):
     def get(self, group_name):
         response = self.api.get('/user-groups/{0}'.format(group_name))
         return Group(response)
+
+    def delete(self, group_name):
+        response = self.api.delete('/user-groups/{0}'.format(group_name))
+        return Group(response)
