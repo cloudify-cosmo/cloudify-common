@@ -96,16 +96,6 @@ class UsersClient(object):
         response = self.api.put('/users', data=data, expected_status_code=201)
         return User(response)
 
-    def add_to_group(self, username, group_name):
-        data = {'username': username, 'group_name': group_name}
-        response = self.api.put('/users/groups', data=data)
-        return User(response)
-
-    def remove_from_group(self, username, group_name):
-        data = {'username': username, 'group_name': group_name}
-        response = self.api.delete('/users/groups', data=data)
-        return User(response)
-
     def set_password(self, username, new_password):
         data = {'password': new_password}
         response = self.api.post('/users/{0}'.format(username), data=data)
