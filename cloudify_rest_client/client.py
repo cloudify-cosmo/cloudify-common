@@ -17,6 +17,7 @@ import json
 import logging
 
 import requests
+from base64 import urlsafe_b64encode
 from requests.packages import urllib3
 
 from cloudify_rest_client import exceptions
@@ -47,6 +48,10 @@ SECURED_PORT = 443
 SECURED_PROTOCOL = 'https'
 DEFAULT_PROTOCOL = 'http'
 DEFAULT_API_VERSION = 'v3'
+BASIC_AUTH_PREFIX = 'Basic'
+CLOUDIFY_TENANT_HEADER = 'Tenant'
+CLOUDIFY_AUTHENTICATION_HEADER = 'Authorization'
+CLOUDIFY_TOKEN_AUTHENTICATION_HEADER = 'Authentication-Token'
 
 urllib3.disable_warnings(urllib3.exceptions.InsecurePlatformWarning)
 
@@ -55,7 +60,8 @@ class HTTPClient(object):
 
     def __init__(self, host, port=DEFAULT_PORT,
                  protocol=DEFAULT_PROTOCOL, api_version=DEFAULT_API_VERSION,
-                 headers=None, query_params=None, cert=None, trust_all=False):
+                 headers=None, query_params=None, cert=None, trust_all=False,
+                 username=None, password=None, token=None, tenant=None):
         self.port = port
         self.host = host
         self.protocol = protocol
@@ -68,6 +74,11 @@ class HTTPClient(object):
         self.logger = logging.getLogger('cloudify.rest_client.http')
         self.cert = cert
         self.trust_all = trust_all
+        self._set_header(CLOUDIFY_AUTHENTICATION_HEADER,
+                         self._get_auth_header(username, password),
+                         log_value=False)
+        self._set_header(CLOUDIFY_TOKEN_AUTHENTICATION_HEADER, token)
+        self._set_header(CLOUDIFY_TENANT_HEADER, tenant)
 
     @property
     def url(self):
@@ -259,6 +270,20 @@ class HTTPClient(object):
                                stream=stream,
                                timeout=timeout)
 
+    def _get_auth_header(self, username, password):
+        if not username or not password:
+            return None
+        credentials = '{0}:{1}'.format(username, password)
+        encoded_credentials = urlsafe_b64encode(credentials)
+        return BASIC_AUTH_PREFIX + ' ' + encoded_credentials
+
+    def _set_header(self, key, value, log_value=True):
+        if not value:
+            return
+        self.headers[key] = value
+        value = value if log_value else '*'
+        self.logger.debug('Setting `{0}` header: {1}'.format(key, value))
+
 
 class StreamedResponse(object):
 
@@ -285,7 +310,8 @@ class CloudifyClient(object):
 
     def __init__(self, host='localhost', port=None, protocol=DEFAULT_PROTOCOL,
                  api_version=DEFAULT_API_VERSION, headers=None,
-                 query_params=None, cert=None, trust_all=False):
+                 query_params=None, cert=None, trust_all=False,
+                 username=None, password=None, token=None, tenant=None):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -299,6 +325,10 @@ class CloudifyClient(object):
         :param cert: Path to a copy of the server's self-signed certificate.
         :param trust_all: if `False`, the server's certificate
                           (self-signed or not) will be verified.
+        :param username: Cloudify User username.
+        :param password: Cloudify User password.
+        :param token: Cloudify User token.
+        :param tenant: Cloudify Tenant name.
         :return: Cloudify client instance.
         """
 
@@ -312,7 +342,8 @@ class CloudifyClient(object):
         self.host = host
         self._client = self.client_class(host, port, protocol, api_version,
                                          headers, query_params, cert,
-                                         trust_all)
+                                         trust_all, username, password,
+                                         token, tenant)
         self.blueprints = BlueprintsClient(self._client)
         self.snapshots = SnapshotsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
