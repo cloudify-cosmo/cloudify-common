@@ -17,6 +17,7 @@
 class Token(dict):
 
     def __init__(self, token):
+        super(Token, self).__init__()
         self.update(token)
 
     @property
@@ -25,6 +26,13 @@ class Token(dict):
         :returns: The value of the token.
         """
         return self.get('value')
+
+    @property
+    def role(self):
+        """
+        :returns: The role of the user associated with the token
+        """
+        return self.get('role')
 
 
 class TokensClient(object):
