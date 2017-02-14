@@ -98,8 +98,11 @@ class TenantsClient(object):
         response = self.api.delete('/tenants/user-groups', data=data)
         return Tenant(response)
 
-    def get(self, tenant_name):
-        response = self.api.get('/tenants/{0}'.format(tenant_name))
+    def get(self, tenant_name, **kwargs):
+        response = self.api.get(
+            '/tenants/{0}'.format(tenant_name),
+            params=kwargs
+        )
         return Tenant(response)
 
     def delete(self, tenant_name):

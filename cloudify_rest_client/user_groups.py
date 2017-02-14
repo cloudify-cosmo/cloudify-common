@@ -84,8 +84,11 @@ class UserGroupsClient(object):
                                  expected_status_code=201)
         return Group(response)
 
-    def get(self, group_name):
-        response = self.api.get('/user-groups/{0}'.format(group_name))
+    def get(self, group_name, **kwargs):
+        response = self.api.get(
+            '/user-groups/{0}'.format(group_name),
+            params=kwargs
+        )
         return Group(response)
 
     def delete(self, group_name):
