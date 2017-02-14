@@ -67,43 +67,50 @@ class ClusterClient(object):
                                 params=kwargs)
         return ClusterState(response)
 
-    def start(self, config):
+    def start(self, host_ip, node_name, encryption_key):
         """
         Create a HA cluster with the current manager as the master node.
 
-        :param config: the cluster config
+        :param host_ip: the externally-visible IP of the current node
+        :param node_name: the name of this node used internally in the cluster
+        :param encryption_key: encryption key used for internal communication
         :return: current state of the cluster
         :rtype: ClusterState
         """
         response = self.api.put('/cluster', data={
-            'config': config
+            'host_ip': host_ip,
+            'node_name': node_name,
+            'encryption_key': encryption_key
         })
         return ClusterState(response)
 
-    def join(self, config):
+    def join(self, host_ip, node_name, encryption_key, join_addrs):
         """
         Join the HA cluster on the current manager.
 
-        :param config: the node config
+        :param host_ip: the externally-visible IP of the current node
+        :param node_name: the name of this node used internally in the cluster
+        :param encryption_key: encryption key used for internal communication
+        :param join_addrs: IPs of the nodes in the cluster to join
         :return: current state of the cluster
         :rtype: ClusterState
         """
-        node_id = config['node_name']
-        response = self.api.put('/cluster/nodes/{0}'.format(node_id), data={
-            'config': config
+        response = self.api.put('/cluster', data={
+            'host_ip': host_ip,
+            'node_name': node_name,
+            'encryption_key': encryption_key,
+            'join_addrs': join_addrs
         })
         return ClusterState(response)
 
-    def update(self, config):
+    def update(self, **kwargs):
         """
         Update the HA cluster configuration.
 
-        :param config: new cluster configuration
+        :param kwargs: new cluster configuration
         :return: current cluster status
         """
-        response = self.api.patch('/cluster', data={
-            'config': config
-        })
+        response = self.api.patch('/cluster', data=kwargs)
         return ClusterState(response)
 
 
@@ -119,7 +126,8 @@ class ClusterNodesClient(object):
         :rtype: list
         """
         response = self.api.get('/cluster/nodes')
-        return ListResponse([ClusterNode(item) for item in response], {})
+        return ListResponse([ClusterNode(item) for item in response['items']],
+                            response.get('metadata', {}))
 
     def details(self, node_id):
         """
