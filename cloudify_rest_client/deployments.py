@@ -43,6 +43,13 @@ class Deployment(dict):
         return self.get('blueprint_id')
 
     @property
+    def created_by(self):
+        """
+        :return: The name of the deployment creator.
+        """
+        return self.get('created_by')
+
+    @property
     def workflows(self):
         """
         :return: The workflows of this deployment.

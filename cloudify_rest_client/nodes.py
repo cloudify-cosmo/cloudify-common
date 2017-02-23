@@ -40,6 +40,13 @@ class Node(dict):
         return self.get('deployment_id')
 
     @property
+    def created_by(self):
+        """
+        :return: The name of the node creator.
+        """
+        return self.get('created_by')
+
+    @property
     def properties(self):
         """
         :return: The static properties of the node.

@@ -61,6 +61,13 @@ class NodeInstance(dict):
         return self.get('deployment_id')
 
     @property
+    def created_by(self):
+        """
+        :return: The name of the node instance creator.
+        """
+        return self.get('created_by')
+
+    @property
     def runtime_properties(self):
         """
         :return: The runtime properties of the node instance.

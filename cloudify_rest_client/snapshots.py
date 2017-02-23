@@ -46,6 +46,13 @@ class Snapshot(dict):
         return self.get('created_at')
 
     @property
+    def created_by(self):
+        """
+        :return: The name of the snapshot creator.
+        """
+        return self.get('created_by')
+
+    @property
     def status(self):
         """
         :return: Status of snapshot.

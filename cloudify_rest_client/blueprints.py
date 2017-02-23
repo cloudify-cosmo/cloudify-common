@@ -47,6 +47,13 @@ class Blueprint(dict):
         return self.get('created_at')
 
     @property
+    def created_by(self):
+        """
+        :return: The name of the blueprint creator.
+        """
+        return self.get('created_by')
+
+    @property
     def main_file_name(self):
         """
         :return: Blueprint main file name.

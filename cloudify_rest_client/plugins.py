@@ -120,6 +120,13 @@ class Plugin(dict):
         """
         return self.get('uploaded_at')
 
+    @property
+    def created_by(self):
+        """
+        :return: The name of the plugin creator.
+        """
+        return self.get('created_by')
+
 
 class PluginsClient(object):
     """

@@ -87,6 +87,13 @@ class Execution(dict):
         """
         return self.get('created_at')
 
+    @property
+    def created_by(self):
+        """
+        :return: The name of the execution creator.
+        """
+        return self.get('created_by')
+
 
 class ExecutionsClient(object):
 
