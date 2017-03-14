@@ -22,9 +22,6 @@ class Node(dict):
     Cloudify node.
     """
 
-    def __init__(self, node_instance):
-        self.update(node_instance)
-
     @property
     def id(self):
         """
@@ -148,8 +145,8 @@ class NodesClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, deployment_id=None, node_id=None, _include=None,
-             sort=None, is_descending=False, **kwargs):
+    def list(self, deployment_id=None, node_id=None, _include=None, sort=None,
+             is_descending=False, evaluate_functions=False, **kwargs):
         """
         Returns a list of nodes which belong to the deployment identified
         by the provided deployment id.
@@ -162,10 +159,11 @@ class NodesClient(object):
         :param is_descending: True for descending order, False for ascending.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.DeploymentNode.fields
+        :param evaluate_functions: Evaluate intrinsic functions
         :return: Nodes.
         :rtype: list
         """
-        params = {}
+        params = {'_evaluate_functions': evaluate_functions}
         if deployment_id:
             params['deployment_id'] = deployment_id
         if node_id:
@@ -176,13 +174,12 @@ class NodesClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        if not params:
-            params = None
         response = self.api.get('/nodes', params=params, _include=_include)
         return ListResponse([Node(item) for item in response['items']],
                             response['metadata'])
 
-    def get(self, deployment_id, node_id, _include=None):
+    def get(self, deployment_id, node_id, _include=None,
+            evaluate_functions=False):
         """
         Returns the node which belongs to the deployment identified
         by the provided deployment id .
@@ -190,6 +187,7 @@ class NodesClient(object):
         :param deployment_id: The deployment's id of the node.
         :param node_id: The node id.
         :param _include: List of fields to include in response.
+        :param evaluate_functions: Evaluate intrinsic functions
         :return: Nodes.
         :rtype: Node
         """
@@ -197,7 +195,8 @@ class NodesClient(object):
         assert node_id
         result = self.list(deployment_id=deployment_id,
                            node_id=node_id,
-                           _include=_include)
+                           _include=_include,
+                           evaluate_functions=evaluate_functions)
         if not result:
             return None
         else:

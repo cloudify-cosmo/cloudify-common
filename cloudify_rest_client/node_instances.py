@@ -22,9 +22,6 @@ class NodeInstance(dict):
     Cloudify node instance.
     """
 
-    def __init__(self, node_instance):
-        self.update(node_instance)
-
     @property
     def id(self):
         """
@@ -106,17 +103,19 @@ class NodeInstancesClient(object):
     def _get_node_instance_uri(node_instance_id):
         return '/node-instances/{0}'.format(node_instance_id)
 
-    def get(self, node_instance_id, _include=None):
+    def get(self, node_instance_id, _include=None, evaluate_functions=False):
         """
         Returns the node instance for the provided node instance id.
 
         :param node_instance_id: The identifier of the node instance to get.
         :param _include: List of fields to include in response.
+        :param evaluate_functions: Evaluate intrinsic functions
         :return: The retrieved node instance.
         """
         assert node_instance_id
         uri = self._get_node_instance_uri(node_instance_id)
-        response = self.api.get(uri, _include=_include)
+        params = {'_evaluate_functions': evaluate_functions}
+        response = self.api.get(uri, params=params, _include=_include)
         return NodeInstance(response)
 
     def update(self,
