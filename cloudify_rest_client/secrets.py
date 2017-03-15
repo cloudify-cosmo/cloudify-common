@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from cloudify_rest_client.responses import ListResponse
+
 
 class Secret(dict):
 
@@ -68,4 +70,27 @@ class SecretsClient(object):
 
     def get(self, key):
         response = self.api.get('/secrets/{0}'.format(key))
+        return Secret(response)
+
+    def list(self, sort=None, is_descending=False, **kwargs):
+        """
+        Returns a list of currently stored secrets.
+
+        :param sort: Key for sorting the list.
+        :param is_descending: True for descending order, False for ascending.
+        :param kwargs: Optional filter fields. For a list of available fields
+               see the REST service's models.Secret.fields
+        :return: Secrets list.
+        """
+
+        params = kwargs
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
+        response = self.api.get('/secrets', params=params)
+        return ListResponse([Secret(item) for item in response['items']],
+                            response['metadata'])
+
+    def delete(self, key):
+        response = self.api.delete('/secrets/{0}'.format(key))
         return Secret(response)
