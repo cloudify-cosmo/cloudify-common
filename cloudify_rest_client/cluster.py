@@ -30,6 +30,14 @@ class ClusterNode(dict):
     def host_ip(self):
         return self.get('host_ip')
 
+    @property
+    def name(self):
+        return self.get('name')
+
+    @property
+    def initialized(self):
+        return self.get('initialized', False)
+
 
 class ClusterState(dict):
     @property
