@@ -38,6 +38,10 @@ class ClusterNode(dict):
     def initialized(self):
         return self.get('initialized', False)
 
+    @property
+    def credentials(self):
+        return self.get('credentials', None)
+
 
 class ClusterState(dict):
     @property
@@ -88,17 +92,23 @@ class ClusterClient(object):
         response = self.api.put('/cluster', data={
             'host_ip': host_ip,
             'node_name': node_name,
-            'encryption_key': encryption_key
+            'credentials': {
+                'encryption_key': encryption_key
+            }
         })
         return ClusterState(response)
 
-    def join(self, host_ip, node_name, encryption_key, join_addrs):
+    def join(self, host_ip, node_name, credentials, join_addrs):
         """
         Join the HA cluster on the current manager.
 
+        To generate credentials that are required for joining a cluster,
+        first send the `client.cluster.nodes.add` request to the
+        cluster leader.
+
         :param host_ip: the externally-visible IP of the current node
         :param node_name: the name of this node used internally in the cluster
-        :param encryption_key: encryption key used for internal communication
+        :param credentials: credentials used for joining the cluster
         :param join_addrs: IPs of the nodes in the cluster to join
         :return: current state of the cluster
         :rtype: ClusterState
@@ -106,7 +116,7 @@ class ClusterClient(object):
         response = self.api.put('/cluster', data={
             'host_ip': host_ip,
             'node_name': node_name,
-            'encryption_key': encryption_key,
+            'credentials': credentials,
             'join_addrs': join_addrs
         })
         return ClusterState(response)
@@ -136,6 +146,27 @@ class ClusterNodesClient(object):
         response = self.api.get('/cluster/nodes')
         return ListResponse([ClusterNode(item) for item in response['items']],
                             response.get('metadata', {}))
+
+    def add(self, host_ip, node_name):
+        """
+        Add a node to the cluster.
+
+        This allows the cluster leader to prepare the internal data store
+        for the new node, run validations, and generate credentials for it.
+
+        Use the credentials returned as part of the ClusterNode structure
+        when joining the cluster.
+
+        :param host_ip: the externally-visible IP of the current node
+        :param node_name: the name of this node used internally in the cluster
+        :return: representation of the node that will join the cluster
+        :rtype: ClusterNode
+        """
+        response = self.api.put('/cluster/nodes/{0}'.format(node_name), data={
+            'host_ip': host_ip,
+            'node_name': node_name
+        })
+        return ClusterNode(response)
 
     def details(self, node_id):
         """
