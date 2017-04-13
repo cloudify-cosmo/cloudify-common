@@ -191,6 +191,14 @@ class NotClusterMaster(CloudifyClientError):
     ERROR_CODE = 'not_cluster_master'
 
 
+class DeploymentPluginNotFound(CloudifyClientError):
+    """
+    Raised when a plugin is listed in the blueprint but is not
+    installed on the manager.
+    """
+    ERROR_CODE = 'deployment_plugin_not_found'
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -212,4 +220,5 @@ ERROR_MAPPING = dict([
         PluginInUseError,
         PluginInstallationError,
         PluginInstallationTimeout,
-        NotClusterMaster]])
+        NotClusterMaster,
+        DeploymentPluginNotFound]])
