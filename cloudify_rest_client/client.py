@@ -156,7 +156,12 @@ class HTTPClient(object):
         if stream:
             return StreamedResponse(response)
 
-        return response.json()
+        response_json = response.json()
+
+        if response.history:
+            response_json['history'] = response.history
+
+        return response_json
 
     def get_request_verify(self):
         if self.cert:
