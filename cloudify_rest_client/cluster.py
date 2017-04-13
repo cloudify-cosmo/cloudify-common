@@ -49,10 +49,6 @@ class ClusterState(dict):
         return self.get('initialized', False)
 
     @property
-    def encryption_key(self):
-        return self.get('encryption_key')
-
-    @property
     def logs(self):
         return self.get('logs', [])
 
@@ -79,22 +75,18 @@ class ClusterClient(object):
                                 params=kwargs)
         return ClusterState(response)
 
-    def start(self, host_ip, node_name, encryption_key):
+    def start(self, host_ip, node_name):
         """
         Create a HA cluster with the current manager as the master node.
 
         :param host_ip: the externally-visible IP of the current node
         :param node_name: the name of this node used internally in the cluster
-        :param encryption_key: encryption key used for internal communication
         :return: current state of the cluster
         :rtype: ClusterState
         """
         response = self.api.put('/cluster', data={
             'host_ip': host_ip,
-            'node_name': node_name,
-            'credentials': {
-                'encryption_key': encryption_key
-            }
+            'node_name': node_name
         })
         return ClusterState(response)
 
