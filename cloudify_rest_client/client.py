@@ -164,11 +164,14 @@ class HTTPClient(object):
         return response_json
 
     def get_request_verify(self):
+        # disable certificate verification if user asked us to.
+        if self.trust_all:
+            return False
+        # verify will hold the path to the self-signed certificate
         if self.cert:
-            # verify will hold the path to the self-signed certificate
             return self.cert
-        # certificate verification is required iff trust_all is False
-        return not self.trust_all
+        # verify the certificate
+        return True
 
     def do_request(self,
                    requests_method,
