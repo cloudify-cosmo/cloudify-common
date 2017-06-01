@@ -18,6 +18,7 @@ import json
 import subprocess
 import os
 import sys
+import shutil
 import time
 import threading
 from StringIO import StringIO
@@ -51,6 +52,11 @@ try:
 except ImportError:
     ScriptException = None
 
+try:
+    from cloudify.utils import get_exec_tempdir
+except ImportError:
+    get_exec_tempdir = None
+
 
 ILLEGAL_CTX_OPERATION_ERROR = RuntimeError('ctx may only abort or return once')
 UNSUPPORTED_SCRIPT_FEATURE_ERROR = \
@@ -67,9 +73,17 @@ def run(script_path, process=None, **kwargs):
         raise NonRecoverableError('Script path parameter not defined')
     process = create_process_config(process or {}, kwargs)
     script_path = download_resource(ctx.download_resource, script_path)
+    if get_exec_tempdir and get_exec_tempdir() != os.path.dirname(
+            script_path):
+        new_script_path = os.path.join(get_exec_tempdir(),
+                                       os.path.basename(script_path))
+        shutil.move(script_path, new_script_path)
+        script_path = new_script_path
     os.chmod(script_path, 0755)
     script_func = get_run_script_func(script_path, process)
-    return process_execution(script_func, script_path, ctx, process)
+    script_result = process_execution(script_func, script_path, ctx, process)
+    os.remove(script_path)
+    return script_result
 
 
 @workflow
@@ -77,7 +91,9 @@ def execute_workflow(script_path, **kwargs):
     ctx = workflows_ctx._get_current_object()
     script_path = download_resource(
         ctx.internal.handler.download_deployment_resource, script_path)
-    return process_execution(eval_script, script_path, ctx)
+    script_result = process_execution(eval_script, script_path, ctx)
+    os.remove(script_path)
+    return script_result
 
 
 def create_process_config(process, operation_kwargs):
@@ -287,7 +303,9 @@ def download_resource(download_resource_func, script_path):
                                               response.status_code))
         content = response.text
         suffix = script_path.split('/')[-1]
-        script_path = tempfile.mktemp(suffix='-{0}'.format(suffix))
+        exec_tempdir = get_exec_tempdir() if get_exec_tempdir else None
+        script_path = tempfile.mktemp(suffix='-{0}'.format(suffix),
+                                      dir=exec_tempdir)
         with open(script_path, 'w') as f:
             f.write(content)
         return script_path

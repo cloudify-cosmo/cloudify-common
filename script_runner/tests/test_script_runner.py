@@ -15,6 +15,7 @@
 
 import json
 import tempfile
+import shutil
 import os
 from collections import namedtuple
 
@@ -559,6 +560,35 @@ if __name__ == '__main__':
         self.assertIn('RequestError', e.stderr)
         self.assertIn('nonexistent', e.stderr)
 
+    def test_tempdir_no_override(self):
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx returns "`dirname $0`"
+            ''',
+            windows_script='''
+            ctx returns %~dp0
+            ''')
+
+        result = self._run(script_path=script_path)
+        self.assertEquals('/tmp', result)
+
+    def test_tempdir_override(self):
+        script_path = self._create_script(
+            linux_script='''#! /bin/bash -e
+            ctx returns "`dirname $0`"
+            ''',
+            windows_script='''
+            ctx returns %~dp0
+            ''')
+
+        tmpdir_override = tempfile.mkdtemp('override')
+        with patch.dict(os.environ, {
+                'CFY_EXEC_TEMP': tmpdir_override}):
+            result = self._run(script_path=script_path)
+            self.assertEquals(tmpdir_override, result)
+
+        # Only delete if test succeeded (to help troubleshooting).
+        shutil.rmtree(tmpdir_override)
 
 @istest
 class TestScriptRunnerUnixCtxProxy(TestScriptRunner):
