@@ -17,11 +17,12 @@
 class CloudifyClientError(Exception):
 
     def __init__(self, message, server_traceback=None,
-                 status_code=-1, error_code=None):
+                 status_code=-1, error_code=None, response=None):
         super(CloudifyClientError, self).__init__(message)
         self.status_code = status_code
         self.error_code = error_code
         self.server_traceback = server_traceback
+        self.response = response
 
     def __str__(self):
         if self.status_code != -1:

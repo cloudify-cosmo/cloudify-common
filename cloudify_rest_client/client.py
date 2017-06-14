@@ -113,18 +113,20 @@ class HTTPClient(object):
             message=message,
             error_code=code,
             status_code=response.status_code,
-            server_traceback=server_traceback)
+            server_traceback=server_traceback,
+            response=response)
 
     @staticmethod
     def _prepare_and_raise_exception(message,
                                      error_code,
                                      status_code,
-                                     server_traceback=None):
+                                     server_traceback=None,
+                                     response=None):
 
         error = exceptions.ERROR_MAPPING.get(error_code,
                                              exceptions.CloudifyClientError)
         raise error(message, server_traceback,
-                    status_code, error_code=error_code)
+                    status_code, error_code=error_code, response=response)
 
     def verify_response_status(self, response, expected_code=200):
         if response.status_code != expected_code:
