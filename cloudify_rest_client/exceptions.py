@@ -83,6 +83,21 @@ class UnknownDeploymentInputError(CloudifyClientError):
     ERROR_CODE = 'unknown_deployment_input_error'
 
 
+class UnknownDeploymentSecretError(CloudifyClientError):
+    """
+    Raised when a required secret was not found on deployment creation.
+    """
+    ERROR_CODE = 'unknown_deployment_secret_error'
+
+
+class UnsupportedDeploymentGetSecretError(CloudifyClientError):
+    """
+    Raised when an unsupported get_secret intrinsic function appears in
+    the blueprint on deployment creation.
+    """
+    ERROR_CODE = 'unsupported_deployment_get_secret_error'
+
+
 class FunctionsEvaluationError(CloudifyClientError):
     """
     Raised when function evaluation failed.
@@ -209,6 +224,8 @@ ERROR_MAPPING = dict([
         NoSuchIncludeFieldError,
         MissingRequiredDeploymentInputError,
         UnknownDeploymentInputError,
+        UnknownDeploymentSecretError,
+        UnsupportedDeploymentGetSecretError,
         FunctionsEvaluationError,
         UnknownModificationStageError,
         ExistingStartedDeploymentModificationError,
