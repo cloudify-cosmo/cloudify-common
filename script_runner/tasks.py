@@ -14,15 +14,15 @@
 #    * limitations under the License.
 
 
-import json
-import subprocess
 import os
 import sys
-import shutil
 import time
-import threading
-from StringIO import StringIO
+import json
 import tempfile
+import threading
+import subprocess
+
+from StringIO import StringIO
 
 import requests
 
@@ -30,16 +30,14 @@ from cloudify import ctx as operation_ctx
 from cloudify.workflows import ctx as workflows_ctx
 from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
-
-from script_runner import eval_env
-from script_runner import constants
 from cloudify.proxy.client import CTX_SOCKET_URL
-
-
 from cloudify.proxy.server import (UnixCtxProxy,
                                    TCPCtxProxy,
                                    HTTPCtxProxy,
                                    StubCtxProxy)
+
+from script_runner import eval_env
+from script_runner import constants
 
 try:
     import zmq  # noqa
@@ -73,12 +71,6 @@ def run(script_path, process=None, **kwargs):
         raise NonRecoverableError('Script path parameter not defined')
     process = create_process_config(process or {}, kwargs)
     script_path = download_resource(ctx.download_resource, script_path)
-    if get_exec_tempdir and get_exec_tempdir() != os.path.dirname(
-            script_path):
-        new_script_path = os.path.join(get_exec_tempdir(),
-                                       os.path.basename(script_path))
-        shutil.move(script_path, new_script_path)
-        script_path = new_script_path
     os.chmod(script_path, 0755)
     script_func = get_run_script_func(script_path, process)
     script_result = process_execution(script_func, script_path, ctx, process)
@@ -291,9 +283,18 @@ def eval_script(script_path, ctx, process=None):
     execfile(script_path, eval_globals)
 
 
+def _get_target_path(source):
+    suffix = source.split('/')[-1]
+    exec_tempdir = get_exec_tempdir() if get_exec_tempdir else None
+    if exec_tempdir == tempfile.gettempdir():
+        return tempfile.mktemp(suffix='-{0}'.format(suffix))
+    return tempfile.mktemp(suffix='-{0}'.format(suffix), dir=exec_tempdir)
+
+
 def download_resource(download_resource_func, script_path):
     split = script_path.split('://')
     schema = split[0]
+    target_path = _get_target_path(script_path)
     if schema in ['http', 'https']:
         response = requests.get(script_path)
         if response.status_code == 404:
@@ -302,15 +303,11 @@ def download_resource(download_resource_func, script_path):
                                       .format(script_path,
                                               response.status_code))
         content = response.text
-        suffix = script_path.split('/')[-1]
-        exec_tempdir = get_exec_tempdir() if get_exec_tempdir else None
-        script_path = tempfile.mktemp(suffix='-{0}'.format(suffix),
-                                      dir=exec_tempdir)
-        with open(script_path, 'w') as f:
+        with open(target_path, 'w') as f:
             f.write(content)
-        return script_path
+        return target_path
     else:
-        return download_resource_func(script_path)
+        return download_resource_func(script_path, target_path)
 
 
 class OutputConsumer(object):
