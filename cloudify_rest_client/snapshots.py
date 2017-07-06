@@ -143,7 +143,6 @@ class SnapshotsClient(object):
                 snapshot_id,
                 recreate_deployments_envs=True,
                 force=False,
-                tenant_name=None,
                 restore_certificates=False,
                 no_reboot=False):
         """
@@ -154,8 +153,6 @@ class SnapshotsClient(object):
         deployment environments.
         :param force: Skip clearing the manager and checking whether it is
         actually clean.
-        :param tenant_name: Name of the tenant to which old (pre 4.0)
-        snapshots should be restored.
         :param restore_certificates: Whether to try and restore the
         certificates from the snapshot.
         :param no_reboot: Do not reboot after certificates restore.
@@ -165,7 +162,6 @@ class SnapshotsClient(object):
         params = {
             'recreate_deployments_envs': recreate_deployments_envs,
             'force': force,
-            'tenant_name': tenant_name,
             'restore_certificates': restore_certificates,
             'no_reboot': no_reboot
         }
