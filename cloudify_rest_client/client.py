@@ -59,6 +59,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecurePlatformWarning)
 
 
 class HTTPClient(object):
+    default_timeout_sec = None
 
     def __init__(self, host, port=DEFAULT_PORT,
                  protocol=DEFAULT_PROTOCOL, api_version=DEFAULT_API_VERSION,
@@ -140,7 +141,7 @@ class HTTPClient(object):
                                    headers=headers,
                                    stream=stream,
                                    verify=verify,
-                                   timeout=timeout)
+                                   timeout=timeout or self.default_timeout_sec)
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.iteritems():
                 self.logger.debug('request header:  %s: %s'
