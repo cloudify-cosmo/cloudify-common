@@ -15,12 +15,14 @@
 
 
 import os
+import re
 import sys
 import time
 import json
 import tempfile
 import threading
 import subprocess
+from contextlib import contextmanager
 
 from StringIO import StringIO
 
@@ -61,12 +63,13 @@ IS_WINDOWS = os.name == 'nt'
 
 
 @operation
-def run(script_path, process=None, **kwargs):
+def run(script_path, process=None, ssl_cert_content=None, **kwargs):
     ctx = operation_ctx._get_current_object()
     if script_path is None:
         raise NonRecoverableError('Script path parameter not defined')
     process = create_process_config(process or {}, kwargs)
-    script_path = download_resource(ctx.download_resource, script_path)
+    script_path = download_resource(ctx.download_resource, script_path,
+                                    ssl_cert_content)
     os.chmod(script_path, 0755)
     script_func = get_run_script_func(script_path, process)
     script_result = process_execution(script_func, script_path, ctx, process)
@@ -75,10 +78,11 @@ def run(script_path, process=None, **kwargs):
 
 
 @workflow
-def execute_workflow(script_path, **kwargs):
+def execute_workflow(script_path, ssl_cert_content=None, **kwargs):
     ctx = workflows_ctx._get_current_object()
     script_path = download_resource(
-        ctx.internal.handler.download_deployment_resource, script_path)
+        ctx.internal.handler.download_deployment_resource, script_path,
+        ssl_cert_content)
     script_result = process_execution(eval_script, script_path, ctx)
     os.remove(script_path)
     return script_result
@@ -280,17 +284,22 @@ def eval_script(script_path, ctx, process=None):
 
 
 def _get_target_path(source):
-    suffix = source.split('/')[-1]
+    # to extract a human-readable suffix from the source path, split by
+    # both backslash (to handle windows filesystem) and forward slash
+    # (to handle URLs and unix filesystem)
+    suffix = re.split(r'\\|/', source)[-1]
     return tempfile.mktemp(suffix='-{0}'.format(suffix),
                            dir=create_temp_folder())
 
 
-def download_resource(download_resource_func, script_path):
+def download_resource(download_resource_func, script_path,
+                      ssl_cert_content=None):
     split = script_path.split('://')
     schema = split[0]
     target_path = _get_target_path(script_path)
     if schema in ['http', 'https']:
-        response = requests.get(script_path)
+        with _prepare_ssl_cert(ssl_cert_content) as cert_file:
+            response = requests.get(script_path, verify=cert_file)
         if response.status_code == 404:
             raise NonRecoverableError('Failed downloading script: {0} ('
                                       'status code: {1})'
@@ -302,6 +311,20 @@ def download_resource(download_resource_func, script_path):
         return target_path
     else:
         return download_resource_func(script_path, target_path)
+
+
+@contextmanager
+def _prepare_ssl_cert(ssl_cert_content):
+    cert_file = None
+    if ssl_cert_content:
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write(ssl_cert_content)
+            cert_file = f.name
+    try:
+        yield cert_file
+    finally:
+        if cert_file:
+            os.unlink(cert_file)
 
 
 class OutputConsumer(object):

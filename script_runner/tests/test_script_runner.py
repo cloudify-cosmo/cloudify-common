@@ -569,9 +569,10 @@ if __name__ == '__main__':
             ctx returns %~dp0
             ''')
 
-        result = self._run(script_path=script_path)
-        self.assertTrue(result.startswith('/tmp/'))
-        self.assertTrue(len('/tmp/') + 5 == len(result))
+        result = self._normpath(self._run(script_path=script_path))
+        tempdir = self._normpath(tempfile.gettempdir())
+        self.assertTrue(result.startswith(tempdir))
+        self.assertTrue(5 == len(os.path.basename(result)))
 
     def test_tempdir_override(self):
         script_path = self._create_script(
@@ -582,14 +583,23 @@ if __name__ == '__main__':
             ctx returns %~dp0
             ''')
 
-        tmpdir_override = tempfile.mkdtemp('override')
+        tmpdir_override = self._normpath(tempfile.mkdtemp('override'))
         with patch.dict(os.environ, {
                 'CFY_EXEC_TEMP': tmpdir_override}):
-            result = self._run(script_path=script_path)
+            result = self._normpath(self._run(script_path=script_path))
             self.assertTrue(result.startswith(tmpdir_override))
 
         # Only delete if test succeeded (to help troubleshooting).
         shutil.rmtree(tmpdir_override)
+
+    def _normpath(self, path):
+        """Normalize path to behave the same way under windows and unix
+
+        The result returned by the script can be slightly different
+        than returned by tempfile.gettempdir(), but equivalent
+        (eg. trailing slashes, or case on windows).
+        """
+        return os.path.normpath(os.path.normcase(path))
 
 
 @istest
@@ -796,7 +806,7 @@ class TestDownloadResource(testtools.TestCase):
         super(TestDownloadResource, self).setUp()
         self.status_code = 200
 
-    def _mock_requests_get(self, url):
+    def _mock_requests_get(self, url, **kwargs):
         response = namedtuple('Response', 'text status_code')
         return response(url, self.status_code)
 
