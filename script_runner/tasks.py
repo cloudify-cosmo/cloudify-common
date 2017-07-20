@@ -27,6 +27,7 @@ from StringIO import StringIO
 import requests
 
 from cloudify import ctx as operation_ctx
+from cloudify.utils import create_temp_folder
 from cloudify.workflows import ctx as workflows_ctx
 from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
@@ -49,11 +50,6 @@ try:
     from cloudify.proxy.client import ScriptException
 except ImportError:
     ScriptException = None
-
-try:
-    from cloudify.utils import get_exec_tempdir
-except ImportError:
-    get_exec_tempdir = None
 
 
 ILLEGAL_CTX_OPERATION_ERROR = RuntimeError('ctx may only abort or return once')
@@ -285,10 +281,8 @@ def eval_script(script_path, ctx, process=None):
 
 def _get_target_path(source):
     suffix = source.split('/')[-1]
-    exec_tempdir = get_exec_tempdir() if get_exec_tempdir else None
-    if exec_tempdir == tempfile.gettempdir():
-        return tempfile.mktemp(suffix='-{0}'.format(suffix))
-    return tempfile.mktemp(suffix='-{0}'.format(suffix), dir=exec_tempdir)
+    return tempfile.mktemp(suffix='-{0}'.format(suffix),
+                           dir=create_temp_folder())
 
 
 def download_resource(download_resource_func, script_path):

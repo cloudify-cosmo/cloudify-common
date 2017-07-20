@@ -570,7 +570,8 @@ if __name__ == '__main__':
             ''')
 
         result = self._run(script_path=script_path)
-        self.assertEquals('/tmp', result)
+        self.assertTrue(result.startswith('/tmp/'))
+        self.assertTrue(len('/tmp/') + 5 == len(result))
 
     def test_tempdir_override(self):
         script_path = self._create_script(
@@ -585,7 +586,7 @@ if __name__ == '__main__':
         with patch.dict(os.environ, {
                 'CFY_EXEC_TEMP': tmpdir_override}):
             result = self._run(script_path=script_path)
-            self.assertEquals(tmpdir_override, result)
+            self.assertTrue(result.startswith(tmpdir_override))
 
         # Only delete if test succeeded (to help troubleshooting).
         shutil.rmtree(tmpdir_override)
