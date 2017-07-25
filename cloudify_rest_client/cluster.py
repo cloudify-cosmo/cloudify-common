@@ -75,22 +75,24 @@ class ClusterClient(object):
                                 params=kwargs)
         return ClusterState(response)
 
-    def start(self, host_ip, node_name):
+    def start(self, host_ip, node_name, options=None):
         """
         Create a HA cluster with the current manager as the master node.
 
         :param host_ip: the externally-visible IP of the current node
         :param node_name: the name of this node used internally in the cluster
+        :param options: additional configuration inputs
         :return: current state of the cluster
         :rtype: ClusterState
         """
         response = self.api.put('/cluster', data={
             'host_ip': host_ip,
-            'node_name': node_name
+            'node_name': node_name,
+            'options': options
         })
         return ClusterState(response)
 
-    def join(self, host_ip, node_name, credentials, join_addrs):
+    def join(self, host_ip, node_name, credentials, join_addrs, options=None):
         """
         Join the HA cluster on the current manager.
 
@@ -102,6 +104,7 @@ class ClusterClient(object):
         :param node_name: the name of this node used internally in the cluster
         :param credentials: credentials used for joining the cluster
         :param join_addrs: IPs of the nodes in the cluster to join
+        :param options: additional configuration inputs
         :return: current state of the cluster
         :rtype: ClusterState
         """
@@ -109,7 +112,8 @@ class ClusterClient(object):
             'host_ip': host_ip,
             'node_name': node_name,
             'credentials': credentials,
-            'join_addrs': join_addrs
+            'join_addrs': join_addrs,
+            'options': options
         })
         return ClusterState(response)
 
@@ -168,6 +172,18 @@ class ClusterNodesClient(object):
         :return: details of the node
         """
         response = self.api.get('/cluster/nodes/{0}'.format(node_id))
+        return ClusterNode(response)
+
+    def update(self, node_id, options):
+        """
+        Update a cluster nodes's settings
+
+        :param node_id: ID of the node to be updated
+        :param options: a dict of new node options
+        :return: details of the node
+        """
+        response = self.api.patch('/cluster/nodes/{0}'.format(node_id),
+                                  data=options)
         return ClusterNode(response)
 
     def delete(self, node_id):
