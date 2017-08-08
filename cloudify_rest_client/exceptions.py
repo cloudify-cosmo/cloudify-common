@@ -207,6 +207,17 @@ class NotClusterMaster(CloudifyClientError):
     ERROR_CODE = 'not_cluster_master'
 
 
+class RemovedFromCluster(CloudifyClientError):
+    """
+    Raised when attempting to contact a manager that was removed from a
+    cluster.
+    The client should retry the request with another manager in the cluster.
+    If the client stores the server address, it should remove this node's
+    address from storage.
+    """
+    ERROR_CODE = 'removed_from_cluster'
+
+
 class DeploymentPluginNotFound(CloudifyClientError):
     """
     Raised when a plugin is listed in the blueprint but is not
