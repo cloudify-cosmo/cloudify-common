@@ -250,4 +250,5 @@ ERROR_MAPPING = dict([
         PluginInstallationError,
         PluginInstallationTimeout,
         NotClusterMaster,
+        RemovedFromCluster,
         DeploymentPluginNotFound]])
