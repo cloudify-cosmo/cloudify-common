@@ -39,7 +39,15 @@ class ManagerClient(object):
         """
         Get manager's ssl state (enabled/disabled)
         """
-        response = self.api.get('/ssl')
+        try:
+            response = self.api.get('/ssl')
+        except TypeError as e:
+            if "'unicode' object does not support item assignment" \
+                    in e.message:
+                raise Exception('Manager is working with SSL, '
+                                'but your local client is not')
+            else:
+                raise
         return response
 
     def set_ssl(self, state):

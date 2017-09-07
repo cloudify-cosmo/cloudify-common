@@ -215,11 +215,25 @@ class HTTPClient(object):
             elif data is not None:
                 log_message += '; body: bytes data'
             self.logger.debug(log_message)
-        return self._do_request(
-            requests_method=requests_method, request_url=request_url,
-            body=body, params=total_params, headers=total_headers,
-            expected_status_code=expected_status_code, stream=stream,
-            verify=self.get_request_verify(), timeout=timeout)
+        try:
+            return self._do_request(
+                requests_method=requests_method, request_url=request_url,
+                body=body, params=total_params, headers=total_headers,
+                expected_status_code=expected_status_code, stream=stream,
+                verify=self.get_request_verify(), timeout=timeout)
+        except requests.exceptions.SSLError:
+            raise requests.exceptions.SSLError(
+                'Invalid certificate error: The local copy of the rest public '
+                'certificate does not match the certificate on the manager. '
+                'This could either mean you are using the wrong certificate '
+                'file, or that you are not communicating with the correct '
+                'Cloudify Manager.'
+            )
+        except requests.exceptions.ConnectionError as e:
+            raise requests.exceptions.ConnectionError(
+                '{0}\nThis can happen when the manager is not working with '
+                'SSL, but the client does'.format(e)
+            )
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
             expected_status_code=200, stream=False, versioned_url=True,
