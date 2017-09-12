@@ -113,6 +113,10 @@ class UsersClient(object):
         )
         return User(response)
 
+    def get_self(self, **kwargs):
+        response = self.api.get('/user', params=kwargs)
+        return User(response)
+
     def delete(self, username):
         response = self.api.delete('/users/{0}'.format(username))
         return User(response)
