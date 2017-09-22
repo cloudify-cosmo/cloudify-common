@@ -194,7 +194,7 @@ class NodesClient(object):
         assert deployment_id
         assert node_id
         result = self.list(deployment_id=deployment_id,
-                           node_id=node_id,
+                           id=node_id,
                            _include=_include,
                            evaluate_functions=evaluate_functions)
         if not result:
