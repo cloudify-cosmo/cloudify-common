@@ -300,7 +300,9 @@ def download_resource(download_resource_func, script_path,
     if schema in ['http', 'https']:
         with _prepare_ssl_cert(ssl_cert_content) as cert_file:
             response = requests.get(script_path, verify=cert_file)
-        if response.status_code == 404:
+        # We only accept HTTP 200. Any other code (including other 2xx codes)
+        # would imply that something unexpected happened.
+        if response.status_code != requests.codes.ok:
             raise NonRecoverableError('Failed downloading script: {0} ('
                                       'status code: {1})'
                                       .format(script_path,
