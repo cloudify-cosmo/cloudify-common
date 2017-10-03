@@ -42,6 +42,10 @@ class ClusterNode(dict):
     def credentials(self):
         return self.get('credentials', None)
 
+    @property
+    def required(self):
+        return self.get('required', None)
+
 
 class ClusterState(dict):
     @property
@@ -92,7 +96,8 @@ class ClusterClient(object):
         })
         return ClusterState(response)
 
-    def join(self, host_ip, node_name, credentials, join_addrs, options=None):
+    def join(self, host_ip, node_name, credentials, join_addrs,
+             required=None, options=None):
         """
         Join the HA cluster on the current manager.
 
@@ -113,7 +118,8 @@ class ClusterClient(object):
             'node_name': node_name,
             'credentials': credentials,
             'join_addrs': join_addrs,
-            'options': options
+            'options': options,
+            'required': required
         })
         return ClusterState(response)
 
