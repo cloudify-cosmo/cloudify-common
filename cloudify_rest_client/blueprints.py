@@ -255,20 +255,12 @@ class BlueprintsClient(object):
 
             return output_file
 
-    def add_permission(self, blueprint_id, users, permission):
-        params = {
-            'resource_type': 'blueprint',
-            'resource_id': blueprint_id,
-            'users': users,
-            'permission': permission
-        }
-        return self.api.put('/permissions', data=params)
+    def set_global(self, blueprint_id):
+        """
+        Updates the blueprint's availability to global
 
-    def remove_permission(self, blueprint_id, users, permission):
-        params = {
-            'resource_type': 'blueprint',
-            'resource_id': blueprint_id,
-            'users': users,
-            'permission': permission
-        }
-        return self.api.delete('/permissions', data=params)
+        :param blueprint_id: Blueprint's id to update.
+        :return: The blueprint.
+        """
+        return self.api.patch('/blueprints/{0}/set-global'
+                              .format(blueprint_id))

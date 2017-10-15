@@ -232,20 +232,11 @@ class PluginsClient(object):
 
             return output_file
 
-    def add_permission(self, plugin_id, users, permission):
-        params = {
-            'resource_type': 'plugin',
-            'resource_id': plugin_id,
-            'users': users,
-            'permission': permission
-        }
-        return self.api.put('/permissions', data=params)
+    def set_global(self, plugin_id):
+        """
+        Updates the plugin's availability to global
 
-    def remove_permission(self, plugin_id, users, permission):
-        params = {
-            'resource_type': 'plugin',
-            'resource_id': plugin_id,
-            'users': users,
-            'permission': permission
-        }
-        return self.api.delete('/permissions', data=params)
+        :param plugin_id: Plugin's id to update.
+        :return: The plugin.
+        """
+        return self.api.patch('/plugins/{0}/set-global'.format(plugin_id))

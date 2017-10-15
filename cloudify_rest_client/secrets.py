@@ -94,3 +94,12 @@ class SecretsClient(object):
     def delete(self, key):
         response = self.api.delete('/secrets/{0}'.format(key))
         return Secret(response)
+
+    def set_global(self, key):
+        """
+        Updates the secret's availability to global
+
+        :param key: Secret's key to update.
+        :return: The secret.
+        """
+        return self.api.patch('/secrets/{0}/set-global'.format(key))
