@@ -15,6 +15,8 @@
 
 from cloudify_rest_client.responses import ListResponse
 
+DEFAULT_TENANT_ROLE = 'user'
+
 
 class Tenant(dict):
 
@@ -78,8 +80,12 @@ class TenantsClient(object):
 
         return Tenant(response)
 
-    def add_user(self, username, tenant_name):
-        data = {'username': username, 'tenant_name': tenant_name}
+    def add_user(self, username, tenant_name, role=DEFAULT_TENANT_ROLE):
+        data = {
+            'username': username,
+            'tenant_name': tenant_name,
+            'role': role,
+        }
         response = self.api.put('/tenants/users', data=data)
         return Tenant(response)
 
