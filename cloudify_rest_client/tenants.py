@@ -80,7 +80,20 @@ class TenantsClient(object):
 
         return Tenant(response)
 
-    def add_user(self, username, tenant_name, role=DEFAULT_TENANT_ROLE):
+    def add_user(self, username, tenant_name, role=None):
+        """Add user to a tenant.
+
+        Optionally, set the role of the user in the context of the tenant in
+        which it has been added.
+
+        :param username: Name of the user to add to the tenant
+        :param tenant_name: Name of the tenant to which the user is added
+        :param role: Name of the role assigned to the user in the tenant
+
+        """
+        if role is None:
+            role = DEFAULT_TENANT_ROLE
+
         data = {
             'username': username,
             'tenant_name': tenant_name,
