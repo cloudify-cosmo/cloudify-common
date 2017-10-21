@@ -147,6 +147,25 @@ class TenantsClient(object):
         response = self.api.put('/tenants/user-groups', data=data)
         return Tenant(response)
 
+    def update_group(self, group_name, tenant_name, role):
+        """Update group in a tenant.
+
+        :param group_name: Name of the user to add to the tenant
+        :type group_name: str
+        :param tenant_name: Name of the tenant to which the user is added
+        :type tenant_name: str
+        :param role: Name of the role assigned to the user in the tenant
+        :type role: str
+
+        """
+        data = {
+            'group_name': group_name,
+            'tenant_name': tenant_name,
+            'role': role,
+        }
+        response = self.api.patch('/tenants/user-groups', data=data)
+        return Tenant(response)
+
     def remove_group(self, group_name, tenant_name):
         data = {'group_name': group_name, 'tenant_name': tenant_name}
         response = self.api.delete('/tenants/user-groups', data=data)
