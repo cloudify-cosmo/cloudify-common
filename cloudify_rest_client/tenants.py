@@ -102,6 +102,25 @@ class TenantsClient(object):
         response = self.api.put('/tenants/users', data=data)
         return Tenant(response)
 
+    def update_user(self, username, tenant_name, role):
+        """Update user in a tenant.
+
+        :param username: Name of the user to add to the tenant
+        :type username: str
+        :param tenant_name: Name of the tenant to which the user is added
+        :type tenant_name: str
+        :param role: Name of the role assigned to the user in the tenant
+        :type role: str
+
+        """
+        data = {
+            'username': username,
+            'tenant_name': tenant_name,
+            'role': role,
+        }
+        response = self.api.patch('/tenants/users', data=data)
+        return Tenant(response)
+
     def remove_user(self, username, tenant_name):
         data = {'username': username, 'tenant_name': tenant_name}
         response = self.api.delete('/tenants/users', data=data)
