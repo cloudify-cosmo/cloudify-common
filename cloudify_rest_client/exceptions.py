@@ -136,6 +136,14 @@ class UserUnauthorizedError(CloudifyClientError):
     ERROR_CODE = 'unauthorized_error'
 
 
+class ForbiddenError(CloudifyClientError):
+    """
+    Raised when a call has been made by a user that is not permitted to
+    perform it
+    """
+    ERROR_CODE = 'forbidden_error'
+
+
 class PluginInUseError(CloudifyClientError):
     """
     Raised if a central deployment agent plugin deletion is attempted and at
@@ -242,6 +250,7 @@ ERROR_MAPPING = dict([
         ExistingStartedDeploymentModificationError,
         DeploymentModificationAlreadyEndedError,
         UserUnauthorizedError,
+        ForbiddenError,
         MaintenanceModeActiveError,
         MaintenanceModeActivatingError,
         NotModifiedError,
