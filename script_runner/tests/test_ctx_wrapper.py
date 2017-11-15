@@ -44,7 +44,7 @@ class PythonWrapperTests(testtools.TestCase):
     def tearDownClass(cls):
         try:
             shutil.rmtree(cls.tempdir)
-        except:
+        except Exception:
             pass
 
     def setUp(self):
@@ -55,7 +55,7 @@ class PythonWrapperTests(testtools.TestCase):
     def cleanup(self):
         try:
             os.remove(self.script_path)
-        except:
+        except Exception:
             pass
 
     def _prescript(self):
@@ -142,8 +142,8 @@ class PythonWrapperTests(testtools.TestCase):
             'error_message'
         ]
         self._run(script)
-        # first message is unrelated to the test
-        capture.records.pop(0)
+        # first two messages are unrelated to the test
+        del capture.records[:2]
         for m in range(1, len(expected_levels)):
             self.assertEqual(
                 '{0}: {1}'.format(

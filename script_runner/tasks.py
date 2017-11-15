@@ -61,6 +61,9 @@ UNSUPPORTED_SCRIPT_FEATURE_ERROR = \
 
 IS_WINDOWS = os.name == 'nt'
 
+POLL_LOOP_INTERVAL = 0.1
+POLL_LOOP_LOG_ITERATIONS = 200
+
 
 @operation
 def run(script_path, process=None, ssl_cert_content=None, **kwargs):
@@ -216,17 +219,27 @@ def execute(script_path, ctx, process):
                                bufsize=1,
                                close_fds=on_posix)
 
-    return_code = None
+    pid = process.pid
+    ctx.logger.info('Process created, PID: {0}'.format(pid))
 
     stdout_consumer = OutputConsumer(process.stdout)
     stderr_consumer = OutputConsumer(process.stderr)
+
+    log_counter = 0
 
     while True:
         process_ctx_request(proxy)
         return_code = process.poll()
         if return_code is not None:
             break
-        time.sleep(0.1)
+        time.sleep(POLL_LOOP_INTERVAL)
+
+        log_counter += 1
+        if log_counter == POLL_LOOP_LOG_ITERATIONS:
+            log_counter = 0
+            ctx.logger.info('Waiting for process {0} to end...'.format(pid))
+
+    ctx.logger.info('Process {0} ended'.format(pid))
 
     proxy.close()
     stdout_consumer.join()
