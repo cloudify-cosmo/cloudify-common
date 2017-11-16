@@ -25,8 +25,6 @@ import threading
 import subprocess
 from contextlib import contextmanager
 
-from StringIO import StringIO
-
 import requests
 
 from cloudify import ctx as operation_ctx
@@ -396,4 +394,4 @@ class ProcessException(Exception):
 
     def _get_consumer_file(self, name):
         with open(self.consumers[name].out_file, 'r') as f:
-            return StringIO(f.read()).getvalue()
+            return f.read()
