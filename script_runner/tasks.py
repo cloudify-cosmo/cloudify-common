@@ -15,6 +15,7 @@
 
 
 import os
+import errno
 import re
 import sys
 import time
@@ -39,6 +40,8 @@ from cloudify.proxy.server import (UnixCtxProxy,
                                    HTTPCtxProxy,
                                    StubCtxProxy)
 
+from cloudify.constants import CELERY_WORK_DIR_KEY
+
 from script_runner import eval_env
 from script_runner import constants
 
@@ -60,6 +63,9 @@ UNSUPPORTED_SCRIPT_FEATURE_ERROR = \
                  '3.4 or later')
 
 IS_WINDOWS = os.name == 'nt'
+
+DEFAULT_TASK_LOG_DIR = os.path.join(
+    tempfile.gettempdir(), 'cloudify', 'logs')
 
 
 @operation
@@ -216,10 +222,13 @@ def execute(script_path, ctx, process):
                                bufsize=1,
                                close_fds=on_posix)
 
-    return_code = None
+    consumers = {
+        'stdout': OutputConsumer(ctx, process.stdout, 'stdout'),
+        'stderr': OutputConsumer(ctx, process.stderr, 'stderr')
+    }
 
-    stdout_consumer = OutputConsumer(process.stdout)
-    stderr_consumer = OutputConsumer(process.stderr)
+    ctx.logger.info(', '.join(['{0} -> {1}'.format(key, value.out_file)
+                               for key, value in consumers.iteritems()]))
 
     while True:
         process_ctx_request(proxy)
@@ -229,8 +238,9 @@ def execute(script_path, ctx, process):
         time.sleep(0.1)
 
     proxy.close()
-    stdout_consumer.join()
-    stderr_consumer.join()
+
+    for consumer in consumers.values():
+        consumer.join()
 
     ctx.logger.info('Execution done (return_code={0}): {1}'
                     .format(return_code, command))
@@ -243,8 +253,7 @@ def execute(script_path, ctx, process):
            isinstance(ctx._return_value, ScriptException)):
                 raise ProcessException(command,
                                        return_code,
-                                       stdout_consumer.buffer.getvalue(),
-                                       stderr_consumer.buffer.getvalue())
+                                       consumers)
 
 
 def start_ctx_proxy(ctx, process):
@@ -331,27 +340,60 @@ def _prepare_ssl_cert(ssl_cert_content):
 
 class OutputConsumer(object):
 
-    def __init__(self, out):
+    def __init__(self, ctx, out, name):
         self.out = out
-        self.buffer = StringIO()
+        self.name = name
+        self.ctx = ctx
+
+        logs_dir = self._get_log_dir()
+        try:
+            os.makedirs(logs_dir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        self.out_file = os.path.join(logs_dir, "{0}.{1}.{2}".format(
+            self.ctx.task_id, self.ctx.operation.retry_number, self.name))
+
         self.consumer = threading.Thread(target=self.consume_output)
         self.consumer.daemon = True
         self.consumer.start()
 
     def consume_output(self):
-        for line in iter(self.out.readline, b''):
-            self.buffer.write(line)
+        with open(self.out_file, 'w') as output:
+            for line in iter(self.out.readline, b''):
+                output.write(line)
+
         self.out.close()
 
     def join(self):
         self.consumer.join()
 
+    @staticmethod
+    def _get_log_dir():
+        return os.environ.get(CELERY_WORK_DIR_KEY, DEFAULT_TASK_LOG_DIR)
+
 
 class ProcessException(Exception):
-
-    def __init__(self, command, exit_code, stdout, stderr):
-        super(ProcessException, self).__init__(stderr)
+    def __init__(self, command, exit_code, consumers):
         self.command = command
         self.exit_code = exit_code
-        self.stdout = stdout
-        self.stderr = stderr
+        self.consumers = consumers
+
+        message = 'command: {0}, exit_code: {1}, {2}'.format(
+            command, exit_code, ', '.join(['{0}: {1}'.format(
+                x, y.out_file) for x, y in consumers.iteritems()]))
+
+        super(ProcessException, self).__init__(message)
+
+    @property
+    def stdout(self):
+        return self._get_consumer_file('stdout')
+
+    @property
+    def stderr(self):
+        return self._get_consumer_file('stderr')
+
+    def _get_consumer_file(self, name):
+        with open(self.consumers[name].out_file, 'r') as f:
+            return StringIO(f.read()).getvalue()

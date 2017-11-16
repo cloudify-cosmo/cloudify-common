@@ -117,14 +117,14 @@ class PythonWrapperTests(testtools.TestCase):
         ex = self.assertRaises(ProcessException, self._run, script)
         self.assertIn(
             'RuntimeError: bad_call cannot be processed in',
-            str(ex))
+            ex.stderr)
 
     def test_direct_ctx_call_missing_property(self):
         script = ('ctx("node properties missing_node_property")')
         ex = self.assertRaises(ProcessException, self._run, script)
         self.assertIn(
             'illegal path: missing_node_property',
-            str(ex))
+            ex.stderr)
 
     @log_capture()
     def test_logger(self, capture):
@@ -142,8 +142,8 @@ class PythonWrapperTests(testtools.TestCase):
             'error_message'
         ]
         self._run(script)
-        # first message is unrelated to the test
-        capture.records.pop(0)
+        # first two messages are unrelated to the test
+        del capture.records[:2]
         for m in range(1, len(expected_levels)):
             self.assertEqual(
                 '{0}: {1}'.format(
@@ -299,7 +299,7 @@ class PythonWrapperTests(testtools.TestCase):
         ex = self.assertRaises(ProcessException, self._run, script)
         self.assertIn(
             'IOError: [Errno 2] No such file or directory:',
-            str(ex))
+            ex.stderr)
 
     def test_abort_operation(self):
         script = ('ctx.abort_operation("abort_message")')
