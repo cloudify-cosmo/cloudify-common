@@ -227,8 +227,8 @@ def execute(script_path, ctx, process):
         'stderr': OutputConsumer(ctx, process.stderr, 'stderr')
     }
 
-    ctx.logger.info(', '.join(['{0} -> {1}'.format(key, value.out_file)
-                               for key, value in consumers.iteritems()]))
+    ctx.logger.info(', '.join('{0} -> {1}'.format(key, value.out_file)
+                              for key, value in consumers.items()))
 
     while True:
         process_ctx_request(proxy)
@@ -360,7 +360,7 @@ class OutputConsumer(object):
         self.consumer.start()
 
     def consume_output(self):
-        with open(self.out_file, 'w') as output:
+        with open(self.out_file, 'wb') as output:
             for line in iter(self.out.readline, b''):
                 output.write(line)
 
@@ -381,8 +381,8 @@ class ProcessException(Exception):
         self.consumers = consumers
 
         message = 'command: {0}, exit_code: {1}, {2}'.format(
-            command, exit_code, ', '.join(['{0}: {1}'.format(
-                x, y.out_file) for x, y in consumers.iteritems()]))
+            command, exit_code, ', '.join('{0}: {1}'.format(
+                x, y.out_file) for x, y in consumers.items()))
 
         super(ProcessException, self).__init__(message)
 
