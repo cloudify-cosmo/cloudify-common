@@ -393,5 +393,5 @@ class ProcessException(Exception):
         return self._get_consumer_file('stderr')
 
     def _get_consumer_file(self, name):
-        with open(self.consumers[name].out_file, 'r') as f:
+        with open(self.consumers[name].out_file, 'rb') as f:
             return f.read()
