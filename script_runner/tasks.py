@@ -349,8 +349,10 @@ class OutputConsumer(object):
             if e.errno != errno.EEXIST:
                 raise
 
-        self.out_file = os.path.join(logs_dir, "{0}.{1}.{2}".format(
-            self.ctx.task_id, self.ctx.operation.retry_number, self.name))
+        # I, and many others, believe this is unique enough:
+        # https://stackoverflow.com/a/2977648/443716
+        self.out_file = os.path.join(logs_dir, "{0}.{1}".format(
+            self.ctx.task_id, self.name))
 
         self.consumer = threading.Thread(target=self.consume_output)
         self.consumer.daemon = True
