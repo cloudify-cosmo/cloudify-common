@@ -62,8 +62,7 @@ UNSUPPORTED_SCRIPT_FEATURE_ERROR = \
 
 IS_WINDOWS = os.name == 'nt'
 
-DEFAULT_TASK_LOG_DIR = os.path.join(
-    tempfile.gettempdir(), 'cloudify', 'logs')
+DEFAULT_TASK_LOG_DIR = os.path.join(tempfile.gettempdir(), 'cloudify')
 
 
 @operation
@@ -369,7 +368,8 @@ class OutputConsumer(object):
 
     @staticmethod
     def _get_log_dir():
-        return os.environ.get(CELERY_WORK_DIR_KEY, DEFAULT_TASK_LOG_DIR)
+        logs_root = os.environ.get(CELERY_WORK_DIR_KEY, DEFAULT_TASK_LOG_DIR)
+        return os.path.join(logs_root, 'logs', 'tasks')
 
 
 class ProcessException(Exception):
