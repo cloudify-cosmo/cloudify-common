@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 from cloudify_rest_client.responses import ListResponse
+from cloudify_rest_client.constants import AvailabilityState
 
 
 class Secret(dict):
@@ -102,4 +103,23 @@ class SecretsClient(object):
         :param key: Secret's key to update.
         :return: The secret.
         """
-        return self.api.patch('/secrets/{0}/set-global'.format(key))
+        data = {'availability': AvailabilityState.GLOBAL}
+        return self.api.patch(
+            '/secrets/{0}/set-availability'.format(key),
+            data=data
+        )
+
+    def set_availability(self, key, availability):
+        """
+        Updates the secret's availability
+
+        :param key: Secret's key to update.
+        :param availability: The availability to update, should be 'tenant'
+                             or 'global'.
+        :return: The secret.
+        """
+        data = {'availability': availability}
+        return self.api.patch(
+            '/secrets/{0}/set-availability'.format(key),
+            data=data
+        )

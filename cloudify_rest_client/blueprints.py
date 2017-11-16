@@ -20,10 +20,10 @@ import urllib
 import urlparse
 import contextlib
 
-
+from cloudify_rest_client import utils
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client.responses import ListResponse
-from cloudify_rest_client import utils
+from cloudify_rest_client.constants import AvailabilityState
 
 
 class Blueprint(dict):
@@ -262,5 +262,23 @@ class BlueprintsClient(object):
         :param blueprint_id: Blueprint's id to update.
         :return: The blueprint.
         """
-        return self.api.patch('/blueprints/{0}/set-global'
-                              .format(blueprint_id))
+        data = {'availability': AvailabilityState.GLOBAL}
+        return self.api.patch(
+            '/blueprints/{0}/set-availability'.format(blueprint_id),
+            data=data
+        )
+
+    def set_availability(self, blueprint_id, availability):
+        """
+        Updates the blueprint's availability
+
+        :param blueprint_id: Blueprint's id to update.
+        :param availability: The availability to update, should be 'tenant'
+                             or 'global'.
+        :return: The blueprint.
+        """
+        data = {'availability': availability}
+        return self.api.patch(
+            '/blueprints/{0}/set-availability'.format(blueprint_id),
+            data=data
+        )

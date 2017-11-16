@@ -230,20 +230,16 @@ class DeploymentsClient(object):
                                    params=params)
         return Deployment(response)
 
-    def add_permission(self, deployment_id, users, permission):
-        params = {
-            'resource_type': 'deployment',
-            'resource_id': deployment_id,
-            'users': users,
-            'permission': permission
-        }
-        return self.api.put('/permissions', data=params)
+    def set_availability(self, deployment_id, availability):
+        """
+        Updates the deployment's availability
 
-    def remove_permission(self, deployment_id, users, permission):
-        params = {
-            'resource_type': 'deployment',
-            'resource_id': deployment_id,
-            'users': users,
-            'permission': permission
-        }
-        return self.api.delete('/permissions', data=params)
+        :param deployment_id: Deployment's id to update.
+        :param availability: The availability to update, should be 'tenant'.
+        :return: The deployment.
+        """
+        data = {'availability': availability}
+        return self.api.patch(
+            '/deployments/{0}/set-availability'.format(deployment_id),
+            data=data
+        )

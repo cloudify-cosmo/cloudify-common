@@ -236,21 +236,3 @@ class SnapshotsClient(object):
         if error:
             params['error'] = error
         self.api.patch(uri, data=params)
-
-    def add_permission(self, snapshot_id, users, permission):
-        params = {
-            'resource_type': 'snapshot',
-            'resource_id': snapshot_id,
-            'users': users,
-            'permission': permission
-        }
-        return self.api.put('/permissions', data=params)
-
-    def remove_permission(self, snapshot_id, users, permission):
-        params = {
-            'resource_type': 'snapshot',
-            'resource_id': snapshot_id,
-            'users': users,
-            'permission': permission
-        }
-        return self.api.delete('/permissions', data=params)

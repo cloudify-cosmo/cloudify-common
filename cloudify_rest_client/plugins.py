@@ -19,6 +19,7 @@ import contextlib
 
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client.responses import ListResponse
+from cloudify_rest_client.constants import AvailabilityState
 
 
 class Plugin(dict):
@@ -239,4 +240,23 @@ class PluginsClient(object):
         :param plugin_id: Plugin's id to update.
         :return: The plugin.
         """
-        return self.api.patch('/plugins/{0}/set-global'.format(plugin_id))
+        data = {'availability': AvailabilityState.GLOBAL}
+        return self.api.patch(
+            '/plugins/{0}/set-availability'.format(plugin_id),
+            data=data
+        )
+
+    def set_availability(self, plugin_id, availability):
+        """
+        Updates the plugin's availability
+
+        :param plugin_id: Plugin's id to update.
+        :param availability: The availability to update, should be 'tenant'
+                             or 'global'.
+        :return: The plugin.
+        """
+        data = {'availability': availability}
+        return self.api.patch(
+            '/plugins/{0}/set-availability'.format(plugin_id),
+            data=data
+        )
