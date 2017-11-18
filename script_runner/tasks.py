@@ -21,7 +21,6 @@ import sys
 import time
 import json
 import tempfile
-import threading
 import subprocess
 from contextlib import contextmanager
 
@@ -208,24 +207,61 @@ def execute(script_path, ctx, process):
     if args:
         command = ' '.join([command] + args)
 
-    ctx.logger.info('Executing: {0}'.format(command))
+    # Figure out logging.
 
-    process = subprocess.Popen(command,
-                               shell=True,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE,
-                               env=env,
-                               cwd=cwd,
-                               bufsize=1,
-                               close_fds=on_posix)
+    stderr_to_stdout = process.get('stderr_to_stdout', False)
 
-    consumers = {
-        'stdout': OutputConsumer(ctx, process.stdout, 'stdout'),
-        'stderr': OutputConsumer(ctx, process.stderr, 'stderr')
-    }
+    logs_root = os.environ.get(CELERY_WORK_DIR_KEY, DEFAULT_TASK_LOG_DIR)
+    logs_dir = os.path.join(logs_root, 'logs', 'tasks')
+    try:
+        os.makedirs(logs_dir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
-    ctx.logger.info(', '.join('{0} -> {1}'.format(key, value.out_file)
-                              for key, value in consumers.items()))
+    # ctx.task_id is a uuid
+    stdout_path = os.path.join(logs_dir, "{0}.{1}".format(
+        ctx.task_id, 'out'))
+
+    if stderr_to_stdout:
+        stderr_path = None
+    else:
+        stderr_path = os.path.join(logs_dir, "{0}.{1}".format(
+            ctx.task_id, 'err'))
+
+    ctx.logger.info('Executing: {0}, stdout: {1}, stderr: {2}'.format(
+        command, stdout_path, '<redirected to stdout>' if stderr_to_stdout
+        else stderr_path))
+
+    # We need to support both Python 2.6 and 2.7.
+    # Using nested() is the only way to use multiple context managers
+    # in 2.6. In 2.7, nested() is deprecated in favour of a dedicated
+    # syntax. We could use nested() here with the intention of supporting
+    # 2.6 & 2.7, however that may result in errors if Python is
+    # configured to raise errors when using deprecated code.
+    # So, we will not use nested() here, nor will we use the
+    # 2.7 nested syntax. Once we drop support for 2.6, we can
+    # change this code.
+
+    with open(stdout_path, 'wb') as stdout_file:
+        popen_kwargs = {
+            'args': command,
+            'shell': True,
+            'stdout': stdout_file,
+            'env': env,
+            'cwd': cwd,
+            'bufsize': 1,
+            'close_fds': on_posix
+        }
+
+        if stderr_to_stdout:
+            process = subprocess.Popen(stderr=subprocess.STDOUT,
+                                       **popen_kwargs)
+        else:
+            with open(stderr_path, 'wb') as stderr_file:
+                process = subprocess.Popen(
+                    stderr=stderr_file,
+                    **popen_kwargs)
 
     while True:
         process_ctx_request(proxy)
@@ -235,9 +271,6 @@ def execute(script_path, ctx, process):
         time.sleep(0.1)
 
     proxy.close()
-
-    for consumer in consumers.values():
-        consumer.join()
 
     ctx.logger.info('Execution done (return_code={0}): {1}'
                     .format(return_code, command))
@@ -250,7 +283,8 @@ def execute(script_path, ctx, process):
            isinstance(ctx._return_value, ScriptException)):
                 raise ProcessException(command,
                                        return_code,
-                                       consumers)
+                                       stdout_path,
+                                       stderr_path)
 
 
 def start_ctx_proxy(ctx, process):
@@ -335,65 +369,27 @@ def _prepare_ssl_cert(ssl_cert_content):
             os.unlink(cert_file)
 
 
-class OutputConsumer(object):
-
-    def __init__(self, ctx, out, name):
-        self.out = out
-        self.name = name
-        self.ctx = ctx
-
-        logs_dir = self._get_log_dir()
-        try:
-            os.makedirs(logs_dir)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-
-        # I, and many others, believe this is unique enough:
-        # https://stackoverflow.com/a/2977648/443716
-        self.out_file = os.path.join(logs_dir, "{0}.{1}".format(
-            self.ctx.task_id, self.name))
-
-        self.consumer = threading.Thread(target=self.consume_output)
-        self.consumer.daemon = True
-        self.consumer.start()
-
-    def consume_output(self):
-        with open(self.out_file, 'wb') as output:
-            for line in iter(self.out.readline, b''):
-                output.write(line)
-
-        self.out.close()
-
-    def join(self):
-        self.consumer.join()
-
-    @staticmethod
-    def _get_log_dir():
-        logs_root = os.environ.get(CELERY_WORK_DIR_KEY, DEFAULT_TASK_LOG_DIR)
-        return os.path.join(logs_root, 'logs', 'tasks')
-
-
 class ProcessException(Exception):
-    def __init__(self, command, exit_code, consumers):
+    def __init__(self, command, exit_code, stdout_path, stderr_path):
         self.command = command
         self.exit_code = exit_code
-        self.consumers = consumers
+        self.stdout_path = stdout_path
+        self.stderr_path = stderr_path
 
-        message = 'command: {0}, exit_code: {1}, {2}'.format(
-            command, exit_code, ', '.join('{0}: {1}'.format(
-                x, y.out_file) for x, y in consumers.items()))
+        message = 'command: {0}, exit_code: {1}, stdout: {2}, stderr: ' \
+                  '{3}'.format(command, exit_code, stdout_path, stderr_path)
 
         super(ProcessException, self).__init__(message)
 
     @property
     def stdout(self):
-        return self._get_consumer_file('stdout')
+        return self._get_consumer_file(self.stdout_path)
 
     @property
     def stderr(self):
-        return self._get_consumer_file('stderr')
+        return self._get_consumer_file(self.stderr_path)
 
-    def _get_consumer_file(self, name):
-        with open(self.consumers[name].out_file, 'rb') as f:
+    @staticmethod
+    def _get_consumer_file(path):
+        with open(path, 'rb') as f:
             return f.read()

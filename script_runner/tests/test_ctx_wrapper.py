@@ -142,8 +142,8 @@ class PythonWrapperTests(testtools.TestCase):
             'error_message'
         ]
         self._run(script)
-        # first two messages are unrelated to the test
-        del capture.records[:2]
+        # first message is unrelated to the test
+        del capture.records[:1]
         for m in range(1, len(expected_levels)):
             self.assertEqual(
                 '{0}: {1}'.format(
