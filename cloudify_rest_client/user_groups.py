@@ -37,6 +37,13 @@ class Group(dict):
         return self.get('users')
 
     @property
+    def role(self):
+        """
+        :return: The role of the group.
+        """
+        return self.get('role')
+
+    @property
     def tenants(self):
         """
         :return: The list of tenants to which the group is connected.
@@ -77,8 +84,12 @@ class UserGroupsClient(object):
         return ListResponse([Group(item) for item in response['items']],
                             response['metadata'])
 
-    def create(self, group_name, ldap_group_dn=None):
-        data = {'group_name': group_name, 'ldap_group_dn': ldap_group_dn}
+    def create(self, group_name, ldap_group_dn=None, role=None):
+        data = {
+            'group_name': group_name,
+            'ldap_group_dn': ldap_group_dn,
+            'role': role
+        }
         response = self.api.post('/user-groups',
                                  data=data,
                                  expected_status_code=201)
@@ -93,6 +104,12 @@ class UserGroupsClient(object):
 
     def delete(self, group_name):
         response = self.api.delete('/user-groups/{0}'.format(group_name))
+        return Group(response)
+
+    def set_role(self, group_name, new_role):
+        data = {'role': new_role}
+        response = self.api.post('/user-groups/{0}'.format(group_name),
+                                 data=data)
         return Group(response)
 
     def add_user(self, username, group_name):
