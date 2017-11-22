@@ -19,7 +19,7 @@ This client's API tries to be as consistent as possible when accessing different
 
    from cloudify_rest_client import CloudifyClient
 
-   client = CloudifyClient('http://MANAGER_HOST')
+   client = CloudifyClient('MANAGER_HOSTNAME_OR_IP')
    blueprints = client.blueprints.list()
 
    for blueprint in blueprints:
