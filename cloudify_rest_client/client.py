@@ -221,14 +221,11 @@ class HTTPClient(object):
                 body=body, params=total_params, headers=total_headers,
                 expected_status_code=expected_status_code, stream=stream,
                 verify=self.get_request_verify(), timeout=timeout)
-        except requests.exceptions.SSLError:
+        except requests.exceptions.SSLError as e:
             raise requests.exceptions.SSLError(
-                'Invalid certificate error: The local copy of the rest public '
-                'certificate does not match the certificate on the manager. '
-                'This could either mean you are using the wrong certificate '
-                'file, or that you are not communicating with the correct '
-                'Cloudify Manager.'
-            )
+                'An SSL-related error has occurred. This can happen if the '
+                'specified REST certificate does not match the certificate on '
+                'the manager. Underlying reason: {0}'.format(e))
         except requests.exceptions.ConnectionError as e:
             raise requests.exceptions.ConnectionError(
                 '{0}\nThis can happen when the manager is not working with '
