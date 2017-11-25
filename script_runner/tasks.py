@@ -61,6 +61,9 @@ UNSUPPORTED_SCRIPT_FEATURE_ERROR = \
 
 IS_WINDOWS = os.name == 'nt'
 
+POLL_LOOP_INTERVAL = 0.1
+POLL_LOOP_LOG_ITERATIONS = 200
+
 DEFAULT_TASK_LOG_DIR = os.path.join(tempfile.gettempdir(), 'cloudify')
 
 
@@ -263,12 +266,23 @@ def execute(script_path, ctx, process):
                     stderr=stderr_file,
                     **popen_kwargs)
 
+    pid = process.pid
+    ctx.logger.info('Process created, PID: {0}'.format(pid))
+
+    log_counter = 0
     while True:
         process_ctx_request(proxy)
         return_code = process.poll()
         if return_code is not None:
             break
-        time.sleep(0.1)
+        time.sleep(POLL_LOOP_INTERVAL)
+
+        log_counter += 1
+        if log_counter == POLL_LOOP_LOG_ITERATIONS:
+            log_counter = 0
+            ctx.logger.info('Waiting for process {0} to end...'.format(pid))
+
+    ctx.logger.info('Process {0} ended'.format(pid))
 
     proxy.close()
 
