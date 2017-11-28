@@ -84,7 +84,7 @@ class UserGroupsClient(object):
         return ListResponse([Group(item) for item in response['items']],
                             response['metadata'])
 
-    def create(self, group_name, ldap_group_dn=None, role=None):
+    def create(self, group_name, role, ldap_group_dn=None):
         data = {
             'group_name': group_name,
             'ldap_group_dn': ldap_group_dn,
