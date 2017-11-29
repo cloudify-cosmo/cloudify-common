@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 from cloudify_rest_client.responses import ListResponse
+from cloudify_rest_client.constants import AvailabilityState
 
 
 class Deployment(dict):
@@ -185,7 +186,7 @@ class DeploymentsClient(object):
                blueprint_id,
                deployment_id,
                inputs=None,
-               private_resource=False,
+               availability=AvailabilityState.TENANT,
                skip_plugins_validation=False):
         """
         Creates a new deployment for the provided blueprint id and
@@ -194,7 +195,8 @@ class DeploymentsClient(object):
         :param blueprint_id: Blueprint id to create a deployment of.
         :param deployment_id: Deployment id of the new created deployment.
         :param inputs: Inputs dict for the deployment.
-        :param private_resource: Whether the deployment should be private
+        :param availability: The availability of the deployment,
+                             can be 'private' or 'tenant'.
         :param skip_plugins_validation: Determines whether to validate if the
                                 required deployment plugins exist on the
                                 manager. If validation is skipped,
@@ -204,14 +206,12 @@ class DeploymentsClient(object):
         """
         assert blueprint_id
         assert deployment_id
-        params = {'private_resource': private_resource}
-        data = {'blueprint_id': blueprint_id}
+        data = {'blueprint_id': blueprint_id, 'availability': availability}
         if inputs:
             data['inputs'] = inputs
         data['skip_plugins_validation'] = skip_plugins_validation
         uri = '/deployments/{0}'.format(deployment_id)
-        response = self.api.put(uri, data, params=params,
-                                expected_status_code=201)
+        response = self.api.put(uri, data, expected_status_code=201)
         return Deployment(response)
 
     def delete(self, deployment_id, ignore_live_nodes=False):

@@ -110,8 +110,7 @@ class SnapshotsClient(object):
     def create(self,
                snapshot_id,
                include_metrics,
-               include_credentials,
-               private_resource=False):
+               include_credentials):
         """
         Creates a new snapshot.
 
@@ -122,8 +121,7 @@ class SnapshotsClient(object):
         uri = '/snapshots/{0}'.format(snapshot_id)
         params = {
             'include_metrics': include_metrics,
-            'include_credentials': include_credentials,
-            'private_resource': private_resource
+            'include_credentials': include_credentials
         }
         response = self.api.put(uri, data=params, expected_status_code=201)
         return Execution(response)
@@ -171,14 +169,12 @@ class SnapshotsClient(object):
     def upload(self,
                snapshot_path,
                snapshot_id,
-               private_resource=False,
                progress_callback=None):
         """
         Uploads snapshot archive to Cloudify's manager.
 
         :param snapshot_path: Path to snapshot archive.
         :param snapshot_id: Id of the uploaded snapshot.
-        :param private_resource: Whether the blueprint should be private
         :param progress_callback: Progress bar callback method
         :return: Uploaded snapshot.
 
@@ -190,7 +186,7 @@ class SnapshotsClient(object):
         assert snapshot_id
 
         uri = '/snapshots/{0}/archive'.format(snapshot_id)
-        query_params = {'private_resource': private_resource}
+        query_params = {}
 
         if urlparse.urlparse(snapshot_path).scheme and \
                 not os.path.exists(snapshot_path):

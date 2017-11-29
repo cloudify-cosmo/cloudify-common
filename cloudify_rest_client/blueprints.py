@@ -88,9 +88,9 @@ class BlueprintsClient(object):
                 archive_location,
                 blueprint_id,
                 application_file_name=None,
-                private_resource=False,
+                availability=AvailabilityState.TENANT,
                 progress_callback=None):
-        query_params = {'private_resource': private_resource}
+        query_params = {'availability': availability}
         if application_file_name is not None:
             query_params['application_file_name'] = \
                 urllib.quote(application_file_name)
@@ -137,14 +137,15 @@ class BlueprintsClient(object):
                         archive_location,
                         blueprint_id,
                         blueprint_filename=None,
-                        private_resource=False,
+                        availability=AvailabilityState.TENANT,
                         progress_callback=None):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
         :param blueprint_id: Id of the uploaded blueprint.
         :param blueprint_filename: The archive's main blueprint yaml filename.
-        :param private_resource: Whether the blueprint should be private
+        :param availability: The availability of the blueprint,
+                             can be 'private' or 'tenant' or 'global'.
         :param progress_callback: Progress bar callback method
         :return: Created blueprint.
 
@@ -160,7 +161,7 @@ class BlueprintsClient(object):
             archive_location,
             blueprint_id=blueprint_id,
             application_file_name=blueprint_filename,
-            private_resource=private_resource,
+            availability=availability,
             progress_callback=progress_callback)
         return Blueprint(blueprint)
 
@@ -177,14 +178,15 @@ class BlueprintsClient(object):
     def upload(self,
                blueprint_path,
                blueprint_id,
-               private_resource=False,
+               availability=AvailabilityState.TENANT,
                progress_callback=None):
         """
         Uploads a blueprint to Cloudify's manager.
 
         :param blueprint_path: Main blueprint yaml file path.
         :param blueprint_id: Id of the uploaded blueprint.
-        :param private_resource: Whether the blueprint should be private
+        :param availability: The availability of the blueprint,
+                             can be 'private', 'tenant' or 'global'.
         :param progress_callback: Progress bar callback method
         :return: Created blueprint.
 
@@ -203,7 +205,7 @@ class BlueprintsClient(object):
                 tar_path,
                 blueprint_id=blueprint_id,
                 application_file_name=application_file,
-                private_resource=private_resource,
+                availability=availability,
                 progress_callback=progress_callback)
             return Blueprint(blueprint)
         finally:

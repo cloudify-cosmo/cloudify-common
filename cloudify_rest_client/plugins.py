@@ -185,19 +185,19 @@ class PluginsClient(object):
 
     def upload(self,
                plugin_path,
-               private_resource=False,
+               availability=AvailabilityState.TENANT,
                progress_callback=None):
         """Uploads a plugin archive to the manager
 
         :param plugin_path: Path to plugin archive.
-        :param private_resource: Whether the blueprint should be private
+        :param availability: The availability of the plugin,
+                             can be 'private', 'tenant' or 'global'
         :param progress_callback: Progress bar callback method
         :return: Plugin object
         """
         assert plugin_path
-
         uri = '/plugins'
-        query_params = {'private_resource': private_resource}
+        query_params = {'availability': availability}
         timeout = self.api.default_timeout_sec
         if urlparse.urlparse(plugin_path).scheme and \
                 not os.path.exists(plugin_path):
