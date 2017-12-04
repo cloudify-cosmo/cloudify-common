@@ -34,9 +34,25 @@ class Tenant(dict):
     @property
     def users(self):
         """
-        :return: The list of users connected to the tenant.
+        :return: The users connected to the tenant and their roles in it.
         """
         return self.get('users')
+
+    @property
+    def direct_users(self):
+        """
+        :return: The users connected directly to the tenant (not via groups)
+        and their roles in it.
+        """
+        return self.get('user_roles', {}).get('direct')
+
+    @property
+    def group_users(self):
+        """
+        :return: The users connected to the tenant via groups and their roles
+        in it.
+        """
+        return self.get('user_roles', {}).get('groups')
 
     @property
     def groups(self):
