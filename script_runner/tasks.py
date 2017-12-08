@@ -15,16 +15,14 @@
 
 
 import os
+import errno
 import re
 import sys
 import time
 import json
 import tempfile
-import threading
 import subprocess
 from contextlib import contextmanager
-
-from StringIO import StringIO
 
 import requests
 
@@ -38,6 +36,8 @@ from cloudify.proxy.server import (UnixCtxProxy,
                                    TCPCtxProxy,
                                    HTTPCtxProxy,
                                    StubCtxProxy)
+
+from cloudify.constants import CELERY_WORK_DIR_KEY
 
 from script_runner import eval_env
 from script_runner import constants
@@ -63,6 +63,8 @@ IS_WINDOWS = os.name == 'nt'
 
 POLL_LOOP_INTERVAL = 0.1
 POLL_LOOP_LOG_ITERATIONS = 200
+
+DEFAULT_TASK_LOG_DIR = os.path.join(tempfile.gettempdir(), 'cloudify')
 
 
 @operation
@@ -208,25 +210,66 @@ def execute(script_path, ctx, process):
     if args:
         command = ' '.join([command] + args)
 
-    ctx.logger.info('Executing: {0}'.format(command))
+    # Figure out logging.
 
-    process = subprocess.Popen(command,
-                               shell=True,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE,
-                               env=env,
-                               cwd=cwd,
-                               bufsize=1,
-                               close_fds=on_posix)
+    stderr_to_stdout = process.get('stderr_to_stdout', False)
+
+    logs_root = os.environ.get(CELERY_WORK_DIR_KEY, DEFAULT_TASK_LOG_DIR)
+    logs_dir = os.path.join(logs_root, 'logs', 'tasks')
+    try:
+        os.makedirs(logs_dir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+    # ctx.task_id is a uuid
+    stdout_path = os.path.join(logs_dir, "{0}.{1}".format(
+        ctx.task_id, 'out'))
+
+    if stderr_to_stdout:
+        stderr_path = None
+    else:
+        stderr_path = os.path.join(logs_dir, "{0}.{1}".format(
+            ctx.task_id, 'err'))
+
+    ctx.logger.info('Executing: {0}, stdout: {1}, stderr: {2}'.format(
+        command, stdout_path, '<redirected to stdout>' if stderr_to_stdout
+        else stderr_path))
+
+    # We need to support both Python 2.6 and 2.7.
+    # Using nested() is the only way to use multiple context managers
+    # in 2.6. In 2.7, nested() is deprecated in favour of a dedicated
+    # syntax. We could use nested() here with the intention of supporting
+    # 2.6 & 2.7, however that may result in errors if Python is
+    # configured to raise errors when using deprecated code.
+    # So, we will not use nested() here, nor will we use the
+    # 2.7 nested syntax. Once we drop support for 2.6, we can
+    # change this code.
+
+    with open(stdout_path, 'wb') as stdout_file:
+        popen_kwargs = {
+            'args': command,
+            'shell': True,
+            'stdout': stdout_file,
+            'env': env,
+            'cwd': cwd,
+            'bufsize': 1,
+            'close_fds': on_posix
+        }
+
+        if stderr_to_stdout:
+            process = subprocess.Popen(stderr=subprocess.STDOUT,
+                                       **popen_kwargs)
+        else:
+            with open(stderr_path, 'wb') as stderr_file:
+                process = subprocess.Popen(
+                    stderr=stderr_file,
+                    **popen_kwargs)
 
     pid = process.pid
     ctx.logger.info('Process created, PID: {0}'.format(pid))
 
-    stdout_consumer = OutputConsumer(process.stdout)
-    stderr_consumer = OutputConsumer(process.stderr)
-
     log_counter = 0
-
     while True:
         process_ctx_request(proxy)
         return_code = process.poll()
@@ -242,8 +285,6 @@ def execute(script_path, ctx, process):
     ctx.logger.info('Process {0} ended'.format(pid))
 
     proxy.close()
-    stdout_consumer.join()
-    stderr_consumer.join()
 
     ctx.logger.info('Execution done (return_code={0}): {1}'
                     .format(return_code, command))
@@ -256,8 +297,8 @@ def execute(script_path, ctx, process):
            isinstance(ctx._return_value, ScriptException)):
                 raise ProcessException(command,
                                        return_code,
-                                       stdout_consumer.buffer.getvalue(),
-                                       stderr_consumer.buffer.getvalue())
+                                       stdout_path,
+                                       stderr_path)
 
 
 def start_ctx_proxy(ctx, process):
@@ -342,29 +383,27 @@ def _prepare_ssl_cert(ssl_cert_content):
             os.unlink(cert_file)
 
 
-class OutputConsumer(object):
-
-    def __init__(self, out):
-        self.out = out
-        self.buffer = StringIO()
-        self.consumer = threading.Thread(target=self.consume_output)
-        self.consumer.daemon = True
-        self.consumer.start()
-
-    def consume_output(self):
-        for line in iter(self.out.readline, b''):
-            self.buffer.write(line)
-        self.out.close()
-
-    def join(self):
-        self.consumer.join()
-
-
 class ProcessException(Exception):
-
-    def __init__(self, command, exit_code, stdout, stderr):
-        super(ProcessException, self).__init__(stderr)
+    def __init__(self, command, exit_code, stdout_path, stderr_path):
         self.command = command
         self.exit_code = exit_code
-        self.stdout = stdout
-        self.stderr = stderr
+        self.stdout_path = stdout_path
+        self.stderr_path = stderr_path
+
+        message = 'command: {0}, exit_code: {1}, stdout: {2}, stderr: ' \
+                  '{3}'.format(command, exit_code, stdout_path, stderr_path)
+
+        super(ProcessException, self).__init__(message)
+
+    @property
+    def stdout(self):
+        return self._get_consumer_file(self.stdout_path)
+
+    @property
+    def stderr(self):
+        return self._get_consumer_file(self.stderr_path)
+
+    @staticmethod
+    def _get_consumer_file(path):
+        with open(path, 'rb') as f:
+            return f.read()
