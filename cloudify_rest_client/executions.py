@@ -99,9 +99,26 @@ class ExecutionsClient(object):
 
     def __init__(self, api):
         self.api = api
+        self._uri_prefix = 'executions'
+        self._wrapper_cls = Execution
 
-    def list(self, deployment_id=None, include_system_workflows=False,
-             _include=None, sort=None, is_descending=False, **kwargs):
+    def _create_filters(
+            self,
+            deployment_id=None,
+            include_system_workflows=False,
+            sort=None,
+            is_descending=False,
+            **kwargs
+    ):
+        params = {'_include_system_workflows': include_system_workflows}
+        if deployment_id:
+            params['deployment_id'] = deployment_id
+        params.update(kwargs)
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+        return params
+
+    def list(self, _include=None, **kwargs):
         """Returns a list of executions.
 
         :param deployment_id: Optional deployment id to get executions for.
@@ -114,17 +131,16 @@ class ExecutionsClient(object):
                see the REST service's models.Execution.fields
         :return: Executions list.
         """
-        uri = '/executions'
-        params = {'_include_system_workflows': include_system_workflows}
-        if deployment_id:
-            params['deployment_id'] = deployment_id
-        params.update(kwargs)
-        if sort:
-            params['_sort'] = '-' + sort if is_descending else sort
+        params = self._create_filters(**kwargs)
 
-        response = self.api.get(uri, params=params, _include=_include)
-        return ListResponse([Execution(item) for item in response['items']],
-                            response['metadata'])
+        response = self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            params=params,
+            _include=_include)
+        return ListResponse(
+            [self._wrapper_cls(item) for item in response['items']],
+            response['metadata']
+        )
 
     def get(self, execution_id, _include=None):
         """Get execution by its id.
@@ -134,9 +150,9 @@ class ExecutionsClient(object):
         :return: Execution.
         """
         assert execution_id
-        uri = '/executions/{0}'.format(execution_id)
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
         response = self.api.get(uri, _include=_include)
-        return Execution(response)
+        return self._wrapper_cls(response)
 
     def update(self, execution_id, status, error=None):
         """Update execution with the provided status and optional error.
@@ -192,9 +208,9 @@ class ExecutionsClient(object):
         :param force: Boolean describing whether to send a 'cancel' or a 'force-cancel' action  # NOQA
         :return: Cancelled execution.
         """
-        uri = '/executions/{0}'.format(execution_id)
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
         action = 'force-cancel' if force else 'cancel'
         response = self.api.post(uri,
                                  data={'action': action},
                                  expected_status_code=200)
-        return Execution(response)
+        return self._wrapper_cls(response)

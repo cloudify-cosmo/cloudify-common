@@ -1,0 +1,1 @@
+https://github.com/cloudify-cosmo/incubator-ariatosca/archive/master.zip

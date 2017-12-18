@@ -135,6 +135,8 @@ class PluginsClient(object):
     """
     def __init__(self, api):
         self.api = api
+        self._uri_prefix = 'plugins'
+        self._wrapper_cls = Plugin
 
     def get(self, plugin_id, _include=None):
         """
@@ -145,9 +147,9 @@ class PluginsClient(object):
         :return: The plugin details.
         """
         assert plugin_id
-        uri = '/plugins/{0}'.format(plugin_id)
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=plugin_id)
         response = self.api.get(uri, _include=_include)
-        return Plugin(response)
+        return self._wrapper_cls(response)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
@@ -163,9 +165,13 @@ class PluginsClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/plugins', _include=_include, params=params)
-        return ListResponse([Plugin(item) for item in response['items']],
-                            response['metadata'])
+        response = self.api.get('/{self._uri_prefix}'.format(self=self),
+                                _include=_include,
+                                params=params)
+        return ListResponse(
+            [self._wrapper_cls(item) for item in response['items']],
+            response['metadata']
+        )
 
     def delete(self, plugin_id, force=False):
         """
@@ -196,7 +202,6 @@ class PluginsClient(object):
         :return: Plugin object
         """
         assert plugin_path
-        uri = '/plugins'
         query_params = {'availability': availability}
         timeout = self.api.default_timeout_sec
         if urlparse.urlparse(plugin_path).scheme and \
@@ -212,9 +217,14 @@ class PluginsClient(object):
             data = bytes_stream_utils.request_data_file_stream_gen(
                 plugin_path, progress_callback=progress_callback)
 
-        response = self.api.post(uri, params=query_params, data=data,
-                                 expected_status_code=201, timeout=timeout)
-        return Plugin(response)
+        response = self.api.post(
+            '/{self._uri_prefix}'.format(self=self),
+            params=query_params,
+            data=data,
+            expected_status_code=201,
+            timeout=timeout
+        )
+        return self._wrapper_cls(response)
 
     def download(self, plugin_id, output_file, progress_callback=None):
         """Downloads a previously uploaded plugin archive from the manager

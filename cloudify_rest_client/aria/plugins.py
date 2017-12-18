@@ -12,13 +12,21 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
+from functools import partial
 
-from . import (                                                     # noqa
-    executions,
-    logs,
-    node_templates,
-    nodes,
-    plugins,
-    service_templates,
-    services,
-)
+from ..plugins import PluginsClient
+from . import wrapper, exceptions
+
+
+class PluginClient(PluginsClient):
+
+    def __init__(self, api, *args, **kwargs):
+        super(PluginClient, self).__init__(*args, **kwargs)
+        self.api = api
+        self._wrapper_cls = partial(wrapper.wrap, cls_name='Plugin')
+        self._uri_prefix = 'aria-plugins'
+
+    def delete(self, *args, **kwargs):
+        raise exceptions.OperationNotSupported(
+            'Delete operation for plugins is currently unsupported'
+        )

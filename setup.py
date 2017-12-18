@@ -23,11 +23,9 @@ setup(
     packages=['cloudify_rest_client'],
     license='LICENSE',
     description='Cloudify REST client',
-    extras_require={
-        'aria': 'apache-ariatosca',
-    },
     install_requires=[
         'requests>=2.7.0,<3.0.0',
         'requests_toolbelt',
+        'apache-ariatosca'
     ]
 )

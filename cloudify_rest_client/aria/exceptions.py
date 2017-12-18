@@ -13,12 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from . import (                                                     # noqa
-    executions,
-    logs,
-    node_templates,
-    nodes,
-    plugins,
-    service_templates,
-    services,
-)
+
+class OperationNotSupported(Exception):
+    pass

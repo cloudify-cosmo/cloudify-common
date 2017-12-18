@@ -83,6 +83,8 @@ class BlueprintsClient(object):
 
     def __init__(self, api):
         self.api = api
+        self._uri_prefix = 'blueprints'
+        self._wrapper_cls = Blueprint
 
     def _upload(self,
                 archive_location,
@@ -95,7 +97,7 @@ class BlueprintsClient(object):
             query_params['application_file_name'] = \
                 urllib.quote(application_file_name)
 
-        uri = '/blueprints/{0}'.format(blueprint_id)
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
@@ -127,11 +129,13 @@ class BlueprintsClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/blueprints',
+        response = self.api.get('/{self._uri_prefix}'.format(self=self),
                                 _include=_include,
                                 params=params)
-        return ListResponse([Blueprint(item) for item in response['items']],
-                            response['metadata'])
+        return ListResponse(
+            [self._wrapper_cls(item) for item in response['items']],
+            response['metadata']
+        )
 
     def publish_archive(self,
                         archive_location,
@@ -157,13 +161,13 @@ class BlueprintsClient(object):
         blueprint's unique Id.
         """
 
-        blueprint = self._upload(
+        response = self._upload(
             archive_location,
             blueprint_id=blueprint_id,
             application_file_name=blueprint_filename,
             availability=availability,
             progress_callback=progress_callback)
-        return Blueprint(blueprint)
+        return self._wrapper_cls(response)
 
     @staticmethod
     def calc_size(blueprint_path):
@@ -176,38 +180,38 @@ class BlueprintsClient(object):
         return size
 
     def upload(self,
-               blueprint_path,
-               blueprint_id,
+               path,
+               entity_id,
                availability=AvailabilityState.TENANT,
                progress_callback=None):
         """
         Uploads a blueprint to Cloudify's manager.
 
-        :param blueprint_path: Main blueprint yaml file path.
-        :param blueprint_id: Id of the uploaded blueprint.
+        :param path: Main blueprint yaml file path.
+        :param entity_id: Id of the uploaded blueprint.
         :param availability: The availability of the blueprint,
                              can be 'private', 'tenant' or 'global'.
         :param progress_callback: Progress bar callback method
-        :return: Created blueprint.
+        :return: Created response.
 
-        Blueprint path should point to the main yaml file of the blueprint
+        Blueprint path should point to the main yaml file of the response
         to be uploaded. Its containing folder will be packed to an archive
         and get uploaded to the manager.
         Blueprint ID parameter is available for specifying the
-        blueprint's unique Id.
+        response's unique Id.
         """
         tempdir = tempfile.mkdtemp()
         try:
-            tar_path = utils.tar_blueprint(blueprint_path, tempdir)
-            application_file = os.path.basename(blueprint_path)
+            tar_path = utils.tar_blueprint(path, tempdir)
+            application_file = os.path.basename(path)
 
             blueprint = self._upload(
                 tar_path,
-                blueprint_id=blueprint_id,
+                blueprint_id=entity_id,
                 application_file_name=application_file,
                 availability=availability,
                 progress_callback=progress_callback)
-            return Blueprint(blueprint)
+            return self._wrapper_cls(blueprint)
         finally:
             shutil.rmtree(tempdir)
 
@@ -220,9 +224,9 @@ class BlueprintsClient(object):
         :return: The blueprint.
         """
         assert blueprint_id
-        uri = '/blueprints/{0}'.format(blueprint_id)
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
         response = self.api.get(uri, _include=_include)
-        return Blueprint(response)
+        return self._wrapper_cls(response)
 
     def delete(self, blueprint_id):
         """
@@ -232,8 +236,9 @@ class BlueprintsClient(object):
         :return: Deleted blueprint.
         """
         assert blueprint_id
-        response = self.api.delete('/blueprints/{0}'.format(blueprint_id))
-        return Blueprint(response)
+        response = self.api.delete('/{self._uri_prefix}/{id}'.format(
+            self=self, id=blueprint_id))
+        return self._wrapper_cls(response)
 
     def download(self, blueprint_id, output_file=None, progress_callback=None):
         """
@@ -245,7 +250,8 @@ class BlueprintsClient(object):
          (optional)
         :return: The file path of the downloaded blueprint.
         """
-        uri = '/blueprints/{0}/archive'.format(blueprint_id)
+        uri = '/{self._uri_prefix}/{id}/archive'.format(self=self,
+                                                        id=blueprint_id)
 
         with contextlib.closing(
                 self.api.get(uri, stream=True)) as streamed_response:
@@ -266,7 +272,8 @@ class BlueprintsClient(object):
         """
         data = {'availability': AvailabilityState.GLOBAL}
         return self.api.patch(
-            '/blueprints/{0}/set-availability'.format(blueprint_id),
+            '/{self._uri_prefix}/{id}/set-availability'.format(
+                self=self, id=blueprint_id),
             data=data
         )
 
@@ -281,6 +288,7 @@ class BlueprintsClient(object):
         """
         data = {'availability': availability}
         return self.api.patch(
-            '/blueprints/{0}/set-availability'.format(blueprint_id),
+            '/{self._uri_prefix}/{id}/set-availability'.format(
+                self=self, id=blueprint_id),
             data=data
         )

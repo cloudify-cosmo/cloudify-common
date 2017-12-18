@@ -144,9 +144,32 @@ class NodesClient(object):
 
     def __init__(self, api):
         self.api = api
+        self._wrapper_cls = Node
+        self._uri_prefix = '/nodes'
 
-    def list(self, deployment_id=None, node_id=None, _include=None, sort=None,
-             is_descending=False, evaluate_functions=False, **kwargs):
+    def _create_filters(
+            self,
+            deployment_id=None,
+            node_id=None,
+            sort=None,
+            is_descending=False,
+            evaluate_functions=False,
+            **kwargs
+    ):
+        params = {'_evaluate_functions': evaluate_functions}
+        if deployment_id:
+            params['deployment_id'] = deployment_id
+        if node_id:
+            warnings.warn("'node_id' filtering capability is deprecated, use"
+                          " 'id' instead", DeprecationWarning)
+            params['id'] = node_id
+        params.update(kwargs)
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
+        return params
+
+    def list(self, _include=None, **kwargs):
         """
         Returns a list of nodes which belong to the deployment identified
         by the provided deployment id.
@@ -163,20 +186,17 @@ class NodesClient(object):
         :return: Nodes.
         :rtype: list
         """
-        params = {'_evaluate_functions': evaluate_functions}
-        if deployment_id:
-            params['deployment_id'] = deployment_id
-        if node_id:
-            warnings.warn("'node_id' filtering capability is deprecated, use"
-                          " 'id' instead", DeprecationWarning)
-            params['id'] = node_id
-        params.update(kwargs)
-        if sort:
-            params['_sort'] = '-' + sort if is_descending else sort
+        params = self._create_filters(**kwargs)
 
-        response = self.api.get('/nodes', params=params, _include=_include)
-        return ListResponse([Node(item) for item in response['items']],
-                            response['metadata'])
+        response = self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            params=params,
+            _include=_include
+        )
+        return ListResponse(
+            [self._wrapper_cls(item) for item in response['items']],
+            response['metadata']
+        )
 
     def get(self, deployment_id, node_id, _include=None,
             evaluate_functions=False):

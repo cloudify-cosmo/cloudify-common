@@ -98,10 +98,8 @@ class NodeInstancesClient(object):
 
     def __init__(self, api):
         self.api = api
-
-    @staticmethod
-    def _get_node_instance_uri(node_instance_id):
-        return '/node-instances/{0}'.format(node_instance_id)
+        self._wrapper_cls = NodeInstance
+        self._uri_prefix = 'node-instances'
 
     def get(self, node_instance_id, _include=None, evaluate_functions=False):
         """
@@ -113,10 +111,10 @@ class NodeInstancesClient(object):
         :return: The retrieved node instance.
         """
         assert node_instance_id
-        uri = self._get_node_instance_uri(node_instance_id)
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=node_instance_id)
         params = {'_evaluate_functions': evaluate_functions}
         response = self.api.get(uri, params=params, _include=_include)
-        return NodeInstance(response)
+        return self._wrapper_cls(response)
 
     def update(self,
                node_instance_id,
@@ -134,7 +132,7 @@ class NodeInstancesClient(object):
         :return: The updated node instance.
         """
         assert node_instance_id
-        uri = self._get_node_instance_uri(node_instance_id)
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=node_instance_id)
         data = {'version': version}
         if runtime_properties is not None:
             data['runtime_properties'] = runtime_properties
@@ -143,8 +141,33 @@ class NodeInstancesClient(object):
         response = self.api.patch(uri, data=data)
         return NodeInstance(response)
 
-    def list(self, deployment_id=None, node_name=None, node_id=None,
-             _include=None, sort=None, is_descending=False, **kwargs):
+    def _create_filters(
+            self,
+            sort=None,
+            is_descending=False,
+            deployment_id=None,
+            node_id=None,
+            node_name=None,
+            **kwargs
+    ):
+        params = {}
+        if node_name:
+            warnings.warn("'node_name' filtering capability is deprecated, use"
+                          " 'node_id' instead", DeprecationWarning)
+            params['node_id'] = node_name
+        elif node_id:
+            params['node_id'] = node_id
+        if deployment_id:
+            params['deployment_id'] = deployment_id
+
+        params.update(kwargs)
+
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
+        return params
+
+    def list(self, _include=None, **kwargs):
         """
         Returns a list of node instances which belong to the deployment
         identified by the provided deployment id.
@@ -164,23 +187,13 @@ class NodeInstancesClient(object):
         :return: Node instances.
         :rtype: list
         """
-        params = {}
-        if node_name:
-            warnings.warn("'node_name' filtering capability is deprecated, use"
-                          " 'node_id' instead", DeprecationWarning)
-            params['node_id'] = node_name
-        elif node_id:
-            params['node_id'] = node_id
-        if deployment_id:
-            params['deployment_id'] = deployment_id
 
-        params.update(kwargs)
-        if sort:
-            params['_sort'] = '-' + sort if is_descending else sort
-
-        response = self.api.get('/node-instances',
+        params = self._create_filters(**kwargs)
+        response = self.api.get('/{self._uri_prefix}'.format(self=self),
                                 params=params,
                                 _include=_include)
 
-        return ListResponse([NodeInstance(item) for item in response['items']],
-                            response['metadata'])
+        return ListResponse(
+            [self._wrapper_cls(item) for item in response['items']],
+            response['metadata']
+        )
