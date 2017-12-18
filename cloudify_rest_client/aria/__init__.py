@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2017 GigaSpaces Technologies Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,22 +12,3 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-
-from setuptools import setup
-
-setup(
-    name='cloudify-rest-client',
-    version='4.3.dev1',
-    author='cosmo-admin',
-    author_email='cosmo-admin@gigaspaces.com',
-    packages=['cloudify_rest_client'],
-    license='LICENSE',
-    description='Cloudify REST client',
-    extras_require={
-        'aria': 'apache-ariatosca',
-    },
-    install_requires=[
-        'requests>=2.7.0,<3.0.0',
-        'requests_toolbelt',
-    ]
-)
