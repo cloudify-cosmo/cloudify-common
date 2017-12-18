@@ -26,6 +26,5 @@ setup(
     install_requires=[
         'requests>=2.7.0,<3.0.0',
         'requests_toolbelt',
-        'apache-ariatosca'
     ]
 )
