@@ -13,14 +13,14 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='cloudify-rest-client',
     version='4.3.dev1',
     author='cosmo-admin',
     author_email='cosmo-admin@gigaspaces.com',
-    packages=['cloudify_rest_client'],
+    packages=find_packages(include=['cloudify_rest_client*']),
     license='LICENSE',
     description='Cloudify REST client',
     install_requires=[
