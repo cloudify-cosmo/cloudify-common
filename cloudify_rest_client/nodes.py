@@ -145,7 +145,7 @@ class NodesClient(object):
     def __init__(self, api):
         self.api = api
         self._wrapper_cls = Node
-        self._uri_prefix = '/nodes'
+        self._uri_prefix = 'nodes'
 
     def _create_filters(
             self,
