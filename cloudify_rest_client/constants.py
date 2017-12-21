@@ -14,6 +14,8 @@
 # limitations under the License.
 ############
 
+import copy
+
 
 class AvailabilityState(object):
     PRIVATE = 'private'
@@ -21,3 +23,12 @@ class AvailabilityState(object):
     GLOBAL = 'global'
 
     STATES = [PRIVATE, TENANT, GLOBAL]
+
+
+states_except_private = copy.deepcopy(AvailabilityState.STATES)
+states_except_private.remove(AvailabilityState.PRIVATE)
+AVAILABILITY_EXCEPT_PRIVATE = states_except_private
+
+states_except_global = copy.deepcopy(AvailabilityState.STATES)
+states_except_global.remove(AvailabilityState.GLOBAL)
+AVAILABILITY_EXCEPT_GLOBAL = states_except_global
