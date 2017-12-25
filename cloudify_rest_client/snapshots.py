@@ -110,7 +110,9 @@ class SnapshotsClient(object):
     def create(self,
                snapshot_id,
                include_metrics,
-               include_credentials):
+               include_credentials,
+               include_logs,
+               include_events):
         """
         Creates a new snapshot.
 
@@ -121,7 +123,9 @@ class SnapshotsClient(object):
         uri = '/snapshots/{0}'.format(snapshot_id)
         params = {
             'include_metrics': include_metrics,
-            'include_credentials': include_credentials
+            'include_credentials': include_credentials,
+            'include_logs': include_logs,
+            'include_events': include_events
         }
         response = self.api.put(uri, data=params, expected_status_code=201)
         return Execution(response)
