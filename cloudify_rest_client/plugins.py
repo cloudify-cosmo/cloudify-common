@@ -19,7 +19,7 @@ import contextlib
 
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client.responses import ListResponse
-from cloudify_rest_client.constants import AvailabilityState
+from cloudify_rest_client.constants import VisibilityState
 
 
 class Plugin(dict):
@@ -191,18 +191,18 @@ class PluginsClient(object):
 
     def upload(self,
                plugin_path,
-               availability=AvailabilityState.TENANT,
+               visibility=VisibilityState.TENANT,
                progress_callback=None):
         """Uploads a plugin archive to the manager
 
         :param plugin_path: Path to plugin archive.
-        :param availability: The availability of the plugin,
-                             can be 'private', 'tenant' or 'global'
+        :param visibility: The visibility of the plugin, can be 'private',
+                           'tenant' or 'global'
         :param progress_callback: Progress bar callback method
         :return: Plugin object
         """
         assert plugin_path
-        query_params = {'availability': availability}
+        query_params = {'visibility': visibility}
         timeout = self.api.default_timeout_sec
         if urlparse.urlparse(plugin_path).scheme and \
                 not os.path.exists(plugin_path):
@@ -245,28 +245,28 @@ class PluginsClient(object):
 
     def set_global(self, plugin_id):
         """
-        Updates the plugin's availability to global
+        Updates the plugin's visibility to global
 
         :param plugin_id: Plugin's id to update.
         :return: The plugin.
         """
-        data = {'availability': AvailabilityState.GLOBAL}
+        data = {'visibility': VisibilityState.GLOBAL}
         return self.api.patch(
-            '/plugins/{0}/set-availability'.format(plugin_id),
+            '/plugins/{0}/set-visibility'.format(plugin_id),
             data=data
         )
 
-    def set_availability(self, plugin_id, availability):
+    def set_visibility(self, plugin_id, visibility):
         """
-        Updates the plugin's availability
+        Updates the plugin's visibility
 
         :param plugin_id: Plugin's id to update.
-        :param availability: The availability to update, should be 'tenant'
-                             or 'global'.
+        :param visibility: The visibility to update, should be 'tenant'
+                           or 'global'.
         :return: The plugin.
         """
-        data = {'availability': availability}
+        data = {'visibility': visibility}
         return self.api.patch(
-            '/plugins/{0}/set-availability'.format(plugin_id),
+            '/plugins/{0}/set-visibility'.format(plugin_id),
             data=data
         )

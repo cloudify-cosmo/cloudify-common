@@ -17,7 +17,7 @@
 import copy
 
 
-class AvailabilityState(object):
+class VisibilityState(object):
     PRIVATE = 'private'
     TENANT = 'tenant'
     GLOBAL = 'global'
@@ -25,10 +25,10 @@ class AvailabilityState(object):
     STATES = [PRIVATE, TENANT, GLOBAL]
 
 
-states_except_private = copy.deepcopy(AvailabilityState.STATES)
-states_except_private.remove(AvailabilityState.PRIVATE)
-AVAILABILITY_EXCEPT_PRIVATE = states_except_private
+states_except_private = copy.deepcopy(VisibilityState.STATES)
+states_except_private.remove(VisibilityState.PRIVATE)
+VISIBILITY_EXCEPT_PRIVATE = states_except_private
 
-states_except_global = copy.deepcopy(AvailabilityState.STATES)
-states_except_global.remove(AvailabilityState.GLOBAL)
-AVAILABILITY_EXCEPT_GLOBAL = states_except_global
+states_except_global = copy.deepcopy(VisibilityState.STATES)
+states_except_global.remove(VisibilityState.GLOBAL)
+VISIBILITY_EXCEPT_GLOBAL = states_except_global

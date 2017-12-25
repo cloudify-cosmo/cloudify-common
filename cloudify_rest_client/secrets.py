@@ -14,7 +14,7 @@
 #    * limitations under the License.
 
 from cloudify_rest_client.responses import ListResponse
-from cloudify_rest_client.constants import AvailabilityState
+from cloudify_rest_client.constants import VisibilityState
 
 
 class Secret(dict):
@@ -61,7 +61,7 @@ class SecretsClient(object):
                key,
                value,
                update_if_exists=False,
-               availability=AvailabilityState.TENANT):
+               visibility=VisibilityState.TENANT):
         """Create secret.
 
         :param key: Secret key
@@ -71,9 +71,9 @@ class SecretsClient(object):
         :param update_if_exists:
             Update secret value if secret key already exists
         :type update_if_exists: bool
-        :param availability: The availability of the secret,
-                             can be 'private', 'tenant' or 'global'
-        :type availability: unicode
+        :param visibility: The visibility of the secret, can be 'private',
+                           'tenant' or 'global'
+        :type visibility: unicode
         :returns: New secret metadata
         :rtype: Dict[str]
 
@@ -81,7 +81,7 @@ class SecretsClient(object):
         data = {
             'value': value,
             'update_if_exists': update_if_exists,
-            'availability': availability
+            'visibility': visibility
         }
         response = self.api.put('/secrets/{0}'.format(key), data=data)
         return Secret(response)
@@ -120,28 +120,28 @@ class SecretsClient(object):
 
     def set_global(self, key):
         """
-        Updates the secret's availability to global
+        Updates the secret's visibility to global
 
         :param key: Secret's key to update.
         :return: The secret.
         """
-        data = {'availability': AvailabilityState.GLOBAL}
+        data = {'visibility': VisibilityState.GLOBAL}
         return self.api.patch(
-            '/secrets/{0}/set-availability'.format(key),
+            '/secrets/{0}/set-visibility'.format(key),
             data=data
         )
 
-    def set_availability(self, key, availability):
+    def set_visibility(self, key, visibility):
         """
-        Updates the secret's availability
+        Updates the secret's visibility
 
         :param key: Secret's key to update.
-        :param availability: The availability to update, should be 'tenant'
-                             or 'global'.
+        :param visibility: The visibility to update, should be 'tenant'
+                           or 'global'.
         :return: The secret.
         """
-        data = {'availability': availability}
+        data = {'visibility': visibility}
         return self.api.patch(
-            '/secrets/{0}/set-availability'.format(key),
+            '/secrets/{0}/set-visibility'.format(key),
             data=data
         )

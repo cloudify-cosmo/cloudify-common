@@ -23,7 +23,7 @@ import contextlib
 from cloudify_rest_client import utils
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client.responses import ListResponse
-from cloudify_rest_client.constants import AvailabilityState
+from cloudify_rest_client.constants import VisibilityState
 
 
 class Blueprint(dict):
@@ -90,9 +90,9 @@ class BlueprintsClient(object):
                 archive_location,
                 blueprint_id,
                 application_file_name=None,
-                availability=AvailabilityState.TENANT,
+                visibility=VisibilityState.TENANT,
                 progress_callback=None):
-        query_params = {'availability': availability}
+        query_params = {'visibility': visibility}
         if application_file_name is not None:
             query_params['application_file_name'] = \
                 urllib.quote(application_file_name)
@@ -141,15 +141,15 @@ class BlueprintsClient(object):
                         archive_location,
                         blueprint_id,
                         blueprint_filename=None,
-                        availability=AvailabilityState.TENANT,
+                        visibility=VisibilityState.TENANT,
                         progress_callback=None):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
         :param blueprint_id: Id of the uploaded blueprint.
         :param blueprint_filename: The archive's main blueprint yaml filename.
-        :param availability: The availability of the blueprint,
-                             can be 'private' or 'tenant' or 'global'.
+        :param visibility: The visibility of the blueprint, can be 'private',
+                           'tenant' or 'global'.
         :param progress_callback: Progress bar callback method
         :return: Created blueprint.
 
@@ -165,7 +165,7 @@ class BlueprintsClient(object):
             archive_location,
             blueprint_id=blueprint_id,
             application_file_name=blueprint_filename,
-            availability=availability,
+            visibility=visibility,
             progress_callback=progress_callback)
         return self._wrapper_cls(response)
 
@@ -182,15 +182,15 @@ class BlueprintsClient(object):
     def upload(self,
                path,
                entity_id,
-               availability=AvailabilityState.TENANT,
+               visibility=VisibilityState.TENANT,
                progress_callback=None):
         """
         Uploads a blueprint to Cloudify's manager.
 
         :param path: Main blueprint yaml file path.
         :param entity_id: Id of the uploaded blueprint.
-        :param availability: The availability of the blueprint,
-                             can be 'private', 'tenant' or 'global'.
+        :param visibility: The visibility of the blueprint, can be 'private',
+                           'tenant' or 'global'.
         :param progress_callback: Progress bar callback method
         :return: Created response.
 
@@ -209,7 +209,7 @@ class BlueprintsClient(object):
                 tar_path,
                 blueprint_id=entity_id,
                 application_file_name=application_file,
-                availability=availability,
+                visibility=visibility,
                 progress_callback=progress_callback)
             return self._wrapper_cls(blueprint)
         finally:
@@ -265,30 +265,30 @@ class BlueprintsClient(object):
 
     def set_global(self, blueprint_id):
         """
-        Updates the blueprint's availability to global
+        Updates the blueprint's visibility to global
 
         :param blueprint_id: Blueprint's id to update.
         :return: The blueprint.
         """
-        data = {'availability': AvailabilityState.GLOBAL}
+        data = {'visibility': VisibilityState.GLOBAL}
         return self.api.patch(
-            '/{self._uri_prefix}/{id}/set-availability'.format(
+            '/{self._uri_prefix}/{id}/set-visibility'.format(
                 self=self, id=blueprint_id),
             data=data
         )
 
-    def set_availability(self, blueprint_id, availability):
+    def set_visibility(self, blueprint_id, visibility):
         """
-        Updates the blueprint's availability
+        Updates the blueprint's visibility
 
         :param blueprint_id: Blueprint's id to update.
-        :param availability: The availability to update, should be 'tenant'
-                             or 'global'.
+        :param visibility: The visibility to update, should be 'tenant'
+                           or 'global'.
         :return: The blueprint.
         """
-        data = {'availability': availability}
+        data = {'visibility': visibility}
         return self.api.patch(
-            '/{self._uri_prefix}/{id}/set-availability'.format(
+            '/{self._uri_prefix}/{id}/set-visibility'.format(
                 self=self, id=blueprint_id),
             data=data
         )

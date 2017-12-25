@@ -14,7 +14,7 @@
 #    * limitations under the License.
 
 from cloudify_rest_client.responses import ListResponse
-from cloudify_rest_client.constants import AvailabilityState
+from cloudify_rest_client.constants import VisibilityState
 
 
 class Deployment(dict):
@@ -186,7 +186,7 @@ class DeploymentsClient(object):
                blueprint_id,
                deployment_id,
                inputs=None,
-               availability=AvailabilityState.TENANT,
+               visibility=VisibilityState.TENANT,
                skip_plugins_validation=False):
         """
         Creates a new deployment for the provided blueprint id and
@@ -195,8 +195,8 @@ class DeploymentsClient(object):
         :param blueprint_id: Blueprint id to create a deployment of.
         :param deployment_id: Deployment id of the new created deployment.
         :param inputs: Inputs dict for the deployment.
-        :param availability: The availability of the deployment,
-                             can be 'private' or 'tenant'.
+        :param visibility: The visibility of the deployment, can be 'private'
+                           or 'tenant'.
         :param skip_plugins_validation: Determines whether to validate if the
                                 required deployment plugins exist on the
                                 manager. If validation is skipped,
@@ -206,7 +206,7 @@ class DeploymentsClient(object):
         """
         assert blueprint_id
         assert deployment_id
-        data = {'blueprint_id': blueprint_id, 'availability': availability}
+        data = {'blueprint_id': blueprint_id, 'visibility': visibility}
         if inputs:
             data['inputs'] = inputs
         data['skip_plugins_validation'] = skip_plugins_validation
@@ -230,16 +230,16 @@ class DeploymentsClient(object):
                                    params=params)
         return Deployment(response)
 
-    def set_availability(self, deployment_id, availability):
+    def set_visibility(self, deployment_id, visibility):
         """
-        Updates the deployment's availability
+        Updates the deployment's visibility
 
         :param deployment_id: Deployment's id to update.
-        :param availability: The availability to update, should be 'tenant'.
+        :param visibility: The visibility to update, should be 'tenant'.
         :return: The deployment.
         """
-        data = {'availability': availability}
+        data = {'visibility': visibility}
         return self.api.patch(
-            '/deployments/{0}/set-availability'.format(deployment_id),
+            '/deployments/{0}/set-visibility'.format(deployment_id),
             data=data
         )
