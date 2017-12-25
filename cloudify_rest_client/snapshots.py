@@ -111,8 +111,8 @@ class SnapshotsClient(object):
                snapshot_id,
                include_metrics,
                include_credentials,
-               include_logs,
-               include_events):
+               include_logs=True,
+               include_events=True):
         """
         Creates a new snapshot.
 
