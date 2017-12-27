@@ -128,6 +128,21 @@ class Plugin(dict):
         """
         return self.get('created_by')
 
+    @property
+    def file_server_path(self):
+        """
+        :return: The path to the plugin.yaml file on the file server.
+        """
+        return self.get('file_server_path')
+
+    @property
+    def yaml_url_path(self):
+        """
+        :return: The virtual path from which the plugin.yaml file can be
+        referenced in blueprints.
+        """
+        return self.get('yaml_url_path')
+
 
 class PluginsClient(object):
     """
@@ -138,7 +153,7 @@ class PluginsClient(object):
         self._uri_prefix = 'plugins'
         self._wrapper_cls = Plugin
 
-    def get(self, plugin_id, _include=None):
+    def get(self, plugin_id, _include=None, **kwargs):
         """
         Gets a plugin by its id.
 
@@ -148,7 +163,7 @@ class PluginsClient(object):
         """
         assert plugin_id
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=plugin_id)
-        response = self.api.get(uri, _include=_include)
+        response = self.api.get(uri, _include=_include, params=kwargs)
         return self._wrapper_cls(response)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
