@@ -81,3 +81,7 @@ class LdapClient(object):
         uri = '/ldap'
         response = self.api.post(uri, params)
         return LdapResponse(response)
+
+    def get_status(self):
+        uri = '/ldap'
+        return self.api.get(uri)
