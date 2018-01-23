@@ -166,6 +166,12 @@ class PluginsClient(object):
         response = self.api.get(uri, _include=_include, params=kwargs)
         return self._wrapper_cls(response)
 
+    def _wrap_list(self, response):
+        return ListResponse(
+            [self._wrapper_cls(item) for item in response['items']],
+            response['metadata']
+        )
+
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
         Returns a list of available plugins.
@@ -183,10 +189,7 @@ class PluginsClient(object):
         response = self.api.get('/{self._uri_prefix}'.format(self=self),
                                 _include=_include,
                                 params=params)
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
-        )
+        return self._wrap_list(response)
 
     def delete(self, plugin_id, force=False):
         """
@@ -236,10 +239,13 @@ class PluginsClient(object):
             '/{self._uri_prefix}'.format(self=self),
             params=query_params,
             data=data,
-            expected_status_code=201,
             timeout=timeout
         )
-        return self._wrapper_cls(response)
+        if 'metadata' in response and 'items' in response:
+            # This is a list of plugins - for caravan
+            return self._wrap_list(response)
+        else:
+            return self._wrapper_cls(response)
 
     def download(self, plugin_id, output_file, progress_callback=None):
         """Downloads a previously uploaded plugin archive from the manager
