@@ -239,7 +239,8 @@ class PluginsClient(object):
             '/{self._uri_prefix}'.format(self=self),
             params=query_params,
             data=data,
-            timeout=timeout
+            timeout=timeout,
+            expected_status_code=201
         )
         if 'metadata' in response and 'items' in response:
             # This is a list of plugins - for caravan
