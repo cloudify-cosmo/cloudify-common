@@ -70,7 +70,7 @@ class Execution(dict):
         """
         :return: The execution's parameters
         """
-        return self.get('parameters')
+        return self.get('parameters') or {}
 
     @property
     def is_system_workflow(self):
