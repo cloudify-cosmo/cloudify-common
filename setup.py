@@ -17,7 +17,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cloudify-rest-client',
-    version='4.3',
+    version='4.4.dev1',
     author='cosmo-admin',
     author_email='cosmo-admin@gigaspaces.com',
     packages=find_packages(include=['cloudify_rest_client*']),
