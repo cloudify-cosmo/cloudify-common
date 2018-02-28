@@ -44,7 +44,6 @@ from cloudify_rest_client.cluster import ClusterClient
 from cloudify_rest_client.ldap import LdapClient
 from cloudify_rest_client.secrets import SecretsClient
 
-from . import aria
 
 DEFAULT_PORT = 80
 SECURED_PORT = 443
@@ -391,14 +390,3 @@ class CloudifyClient(object):
         self.cluster = ClusterClient(self._client)
         self.ldap = LdapClient(self._client)
         self.secrets = SecretsClient(self._client)
-
-        # ARIA clients
-        self.aria_service_templates = \
-            aria.service_templates.ServiceTemplateClient(self._client)
-        self.aria_services = aria.services.ServiceClient(self._client)
-        self.aria_node_templates = \
-            aria.node_templates.NodeTemplatesClient(self._client)
-        self.aria_nodes = aria.nodes.NodesClient(self._client)
-        self.aria_executions = aria.executions.ExecutionsClient(self._client)
-        self.aria_logs = aria.logs.LogsClient(self._client)
-        self.aria_plugins = aria.plugins.PluginsClient(self._client)
