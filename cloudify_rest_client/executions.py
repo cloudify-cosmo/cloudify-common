@@ -52,6 +52,14 @@ class Execution(dict):
         return self.get('status')
 
     @property
+    def status_display(self):
+        """
+        :return: The human-readable form of the execution's status.
+        """
+        # default to status for compatibility with pre-4.4 managers
+        return self.get('status_display', self.status)
+
+    @property
     def error(self):
         """
         :return: The execution error in a case of failure, otherwise None.
