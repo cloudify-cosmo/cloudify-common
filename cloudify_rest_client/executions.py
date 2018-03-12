@@ -29,6 +29,8 @@ class Execution(dict):
 
     def __init__(self, execution):
         self.update(execution)
+        # default to status for compatibility with pre-4.4 managers
+        self.setdefault('status_default', self.status)
 
     @property
     def id(self):
@@ -56,8 +58,7 @@ class Execution(dict):
         """
         :return: The human-readable form of the execution's status.
         """
-        # default to status for compatibility with pre-4.4 managers
-        return self.get('status_display', self.status)
+        return self.get('status_display')
 
     @property
     def error(self):
