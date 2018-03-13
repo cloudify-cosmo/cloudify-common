@@ -192,12 +192,7 @@ def execute(script_path, ctx, process):
     on_posix = 'posix' in sys.builtin_module_names
 
     proxy = start_ctx_proxy(ctx, process)
-
-    env = os.environ.copy()
-    process_env = process.get('env', {})
-    env.update(process_env)
-    env[CTX_SOCKET_URL] = proxy.socket_url
-
+    env = _get_process_environment(process, proxy)
     cwd = process.get('cwd')
 
     command_prefix = process.get('command_prefix')
@@ -344,6 +339,30 @@ def _get_target_path(source):
     suffix = re.split(r'\\|/', source)[-1]
     return tempfile.mktemp(suffix='-{0}'.format(suffix),
                            dir=create_temp_folder())
+
+
+def _get_process_environment(process, proxy):
+    """Get env to be used by the script process.
+
+    This env must at the very least contain the proxy url, and a PATH
+    allowing bash scripts to use `ctx`, which is expected to live next to
+    the current executable.
+    """
+    env = os.environ.copy()
+    process_env = process.get('env', {})
+    env.update(process_env)
+
+    env[CTX_SOCKET_URL] = proxy.socket_url
+
+    env_path = env.get('PATH')
+    bin_dir = os.path.dirname(sys.executable)
+    if env_path:
+        if bin_dir not in env_path.split(os.pathsep):
+            env['PATH'] = os.pathsep.join([env_path, bin_dir])
+    else:
+        env['PATH'] = bin_dir
+
+    return env
 
 
 def download_resource(download_resource_func, script_path,
