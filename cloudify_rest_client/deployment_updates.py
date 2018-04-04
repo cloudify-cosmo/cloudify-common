@@ -12,12 +12,14 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
+
 import os
 import json
 import urllib
 import shutil
 import urlparse
 import tempfile
+
 from mimetypes import MimeTypes
 
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -198,6 +200,27 @@ class DeploymentUpdatesClient(object):
         uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
         response = self.api.post(uri, params=params, **data_and_headers)
 
+        return DeploymentUpdate(response)
+
+    def update_with_existing_blueprint(self,
+                                       deployment_id,
+                                       blueprint_id,
+                                       inputs=None,
+                                       skip_install=False,
+                                       skip_uninstall=False,
+                                       workflow_id=None,
+                                       force=False):
+        data = {
+            'workflow_id': workflow_id,
+            'skip_install': skip_install,
+            'skip_uninstall': skip_uninstall,
+            'force': force,
+            'blueprint_id': blueprint_id
+        }
+        if inputs:
+            data['inputs'] = inputs
+        uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
+        response = self.api.put(uri, data=data)
         return DeploymentUpdate(response)
 
     def finalize_commit(self, update_id):
