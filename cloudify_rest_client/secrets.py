@@ -37,6 +37,10 @@ class Secret(dict):
         """
         return self.get('value')
 
+    @value.setter
+    def value(self, value):
+        self.update({'value': value})
+
     @property
     def created_at(self):
         """
@@ -51,6 +55,13 @@ class Secret(dict):
         """
         return self.get('updated_at')
 
+    @property
+    def is_hidden_value(self):
+        """
+        :return: If the secret's value is hidden or not.
+        """
+        return self.get('is_hidden_value')
+
 
 class SecretsClient(object):
 
@@ -61,6 +72,7 @@ class SecretsClient(object):
                key,
                value,
                update_if_exists=False,
+               is_hidden_value=False,
                visibility=VisibilityState.TENANT):
         """Create secret.
 
@@ -71,6 +83,10 @@ class SecretsClient(object):
         :param update_if_exists:
             Update secret value if secret key already exists
         :type update_if_exists: bool
+        :param is_hidden_value:
+            Hidden-value secret means the secret's value will not be visible
+            to all users, only to admins and to the creator of the secret
+        :type is_hidden_value: bool
         :param visibility: The visibility of the secret, can be 'private',
                            'tenant' or 'global'
         :type visibility: unicode
@@ -81,6 +97,7 @@ class SecretsClient(object):
         data = {
             'value': value,
             'update_if_exists': update_if_exists,
+            'is_hidden_value': is_hidden_value,
             'visibility': visibility
         }
         response = self.api.put('/secrets/{0}'.format(key), data=data)
