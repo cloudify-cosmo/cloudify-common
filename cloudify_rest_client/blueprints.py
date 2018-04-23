@@ -203,6 +203,11 @@ class BlueprintsClient(object):
         tempdir = tempfile.mkdtemp()
         try:
             tar_path = utils.tar_blueprint(path, tempdir)
+            if os.path.getsize(tar_path) > 10000000:
+                raise Exception('Blueprint folder exceeds 10 MB, '
+                                'move some resources from the blueprint '
+                                'folder to an external location or upload'
+                                ' the blueprint folder as a zip file.')
             application_file = os.path.basename(path)
 
             blueprint = self._upload(
