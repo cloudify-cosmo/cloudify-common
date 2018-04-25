@@ -183,7 +183,8 @@ class BlueprintsClient(object):
                path,
                entity_id,
                visibility=VisibilityState.TENANT,
-               progress_callback=None):
+               progress_callback=None,
+               skip_size_limit=True):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -192,6 +193,8 @@ class BlueprintsClient(object):
         :param visibility: The visibility of the blueprint, can be 'private',
                            'tenant' or 'global'.
         :param progress_callback: Progress bar callback method
+        :param skip_size_limit: Indicator whether to check size limit on
+                           blueprint folder
         :return: Created response.
 
         Blueprint path should point to the main yaml file of the response
@@ -203,7 +206,7 @@ class BlueprintsClient(object):
         tempdir = tempfile.mkdtemp()
         try:
             tar_path = utils.tar_blueprint(path, tempdir)
-            if os.path.getsize(tar_path) > 30000000:
+            if not skip_size_limit and os.path.getsize(tar_path) > 30000000:
                 raise Exception('Blueprint folder exceeds 30 MB, '
                                 'move some resources from the blueprint '
                                 'folder to an external location or upload'
