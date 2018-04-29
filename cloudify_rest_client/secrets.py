@@ -56,6 +56,13 @@ class Secret(dict):
         return self.get('updated_at')
 
     @property
+    def visibility(self):
+        """
+        :return: Secret visibility.
+        """
+        return self.get('visibility')
+
+    @property
     def is_hidden_value(self):
         """
         :return: If the secret's value is hidden or not.
@@ -109,8 +116,15 @@ class SecretsClient(object):
         response = self.api.put('/secrets/{0}'.format(key), data=data)
         return Secret(response)
 
-    def update(self, key, value):
-        data = {'value': value}
+    def update(self, key, value=None, visibility=None, is_hidden_value=None):
+        data = {
+            'value': value,
+            'visibility': visibility,
+            'is_hidden_value': is_hidden_value
+        }
+
+        # Remove the keys with value None
+        data = dict((k, v) for k, v in data.iteritems() if v is not None)
         response = self.api.patch('/secrets/{0}'.format(key), data=data)
         return Secret(response)
 
