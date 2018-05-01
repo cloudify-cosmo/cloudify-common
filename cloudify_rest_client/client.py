@@ -15,7 +15,6 @@
 
 import json
 import logging
-import subprocess
 
 import requests
 from base64 import urlsafe_b64encode
@@ -97,10 +96,8 @@ class HTTPClient(object):
                                               self.port, self.api_version)
 
     @staticmethod
-    def has_kerberos_ticket():
-        if not HTTPKerberosAuth:
-            return False
-        return subprocess.call(['klist', '-s']) == 0
+    def has_kerberos():
+        return bool(HTTPKerberosAuth)
 
     def _raise_client_error(self, response, url=None):
         try:
@@ -149,7 +146,7 @@ class HTTPClient(object):
 
     def _do_request(self, requests_method, request_url, body, params, headers,
                     expected_status_code, stream, verify, timeout):
-        auth = HTTPKerberosAuth() if self.has_kerberos_ticket() else None
+        auth = HTTPKerberosAuth() if self.has_kerberos() else None
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
