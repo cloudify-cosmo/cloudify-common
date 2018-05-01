@@ -15,6 +15,7 @@
 
 import json
 import logging
+import subprocess
 
 import requests
 from base64 import urlsafe_b64encode
@@ -44,6 +45,13 @@ from cloudify_rest_client.cluster import ClusterClient
 from cloudify_rest_client.ldap import LdapClient
 from cloudify_rest_client.secrets import SecretsClient
 
+try:
+    from requests_kerberos import HTTPKerberosAuth
+except Exception:
+    # requests_kerberos library require pykerberos.
+    # pykerberos require krb5-devel, which isn't python lib.
+    # Kerberos users will need to manually install it.
+    HTTPKerberosAuth = None
 
 DEFAULT_PORT = 80
 SECURED_PORT = 443
@@ -87,6 +95,12 @@ class HTTPClient(object):
     def url(self):
         return '{0}://{1}:{2}/api/{3}'.format(self.protocol, self.host,
                                               self.port, self.api_version)
+
+    @staticmethod
+    def has_kerberos_ticket():
+        if not HTTPKerberosAuth:
+            return False
+        return subprocess.call(['klist', '-s']) == 0
 
     def _raise_client_error(self, response, url=None):
         try:
@@ -135,13 +149,15 @@ class HTTPClient(object):
 
     def _do_request(self, requests_method, request_url, body, params, headers,
                     expected_status_code, stream, verify, timeout):
+        auth = HTTPKerberosAuth() if self.has_kerberos_ticket() else None
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
                                    headers=headers,
                                    stream=stream,
                                    verify=verify,
-                                   timeout=timeout or self.default_timeout_sec)
+                                   timeout=timeout or self.default_timeout_sec,
+                                   auth=auth)
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.iteritems():
                 self.logger.debug('request header:  %s: %s'
