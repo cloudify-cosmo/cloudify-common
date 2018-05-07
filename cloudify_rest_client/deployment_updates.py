@@ -233,9 +233,10 @@ class DeploymentUpdatesClient(object):
             'skip_install': skip_install,
             'skip_uninstall': skip_uninstall,
             'force': force,
-            'blueprint_id': blueprint_id,
-            'inputs': inputs
+            'blueprint_id': blueprint_id
         }
+        if inputs:
+            data['inputs'] = inputs
         uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
         response = self.api.put(uri, data=data)
         return DeploymentUpdate(response)
