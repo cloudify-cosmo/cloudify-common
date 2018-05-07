@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import os
 import json
 import logging
 
@@ -95,9 +96,14 @@ class HTTPClient(object):
         return '{0}://{1}:{2}/api/{3}'.format(self.protocol, self.host,
                                               self.port, self.api_version)
 
+    def has_kerberos(self):
+        return bool(HTTPKerberosAuth) and self._kerberos_env()
+
     @staticmethod
-    def has_kerberos():
-        return bool(HTTPKerberosAuth)
+    def _kerberos_env():
+        if os.path.exists('/etc/krb5.conf'):
+            return True
+        return False
 
     def _raise_client_error(self, response, url=None):
         try:
