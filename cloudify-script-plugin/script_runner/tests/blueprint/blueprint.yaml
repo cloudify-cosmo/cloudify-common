@@ -1,0 +1,36 @@
+tosca_definitions_version: cloudify_dsl_1_0
+
+inputs:
+  script_path: {}
+  process:     {}
+  env_var:
+    default: value
+
+node_templates:
+  test:
+    type: type
+    interfaces:
+      test:
+        run:
+          implementation: script.script_runner.tasks.run
+          inputs:
+            script_path: { get_input: script_path }
+            process:     { get_input: process     }
+            input_as_env_var: { get_input: env_var }
+        script: script.script_runner.tasks.run
+
+workflows:
+  execute_operation: script.script_runner.tests.test_script_runner.execute_operation
+  workflow_script:
+    mapping: script.script_runner.tasks.execute_workflow
+    parameters:
+      script_path:
+        default: workflow_script.py
+      key: {}
+
+plugins:
+  script:
+    executor: central_deployment_agent
+    install: false
+
+node_types: { type: {} }

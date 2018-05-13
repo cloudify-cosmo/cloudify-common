@@ -1,0 +1,28 @@
+
+environment:
+    TOX_ENV: pywin
+    matrix:
+        - PYTHON: "C:\\Python27"
+          PYTHON_VERSION: "2.7.x" # currently 2.7.9
+          PYTHON_ARCH: "32"
+
+version: 1.0.{build}
+build: off
+
+install:
+    - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+    # Upgrade to the latest version of pip to avoid it displaying warnings
+    # about it being out of date.
+    - "pip install --disable-pip-version-check --user --upgrade pip"  
+
+
+before_test:
+    - pip install virtualenv --upgrade
+    - virtualenv --version
+    - virtualenv env
+    - 'env\Scripts\activate.bat'
+    - echo Installing tox
+    - pip install tox
+
+test_script:
+    - tox -e %TOX_ENV%
