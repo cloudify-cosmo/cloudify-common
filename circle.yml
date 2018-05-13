@@ -1,0 +1,34 @@
+checkout:
+  post:
+    - >
+      if [ -n "$CI_PULL_REQUEST" ]; then
+        PR_ID=${CI_PULL_REQUEST##*/}
+        git fetch origin +refs/pull/$PR_ID/merge:
+        git checkout -qf FETCH_HEAD
+      fi
+dependencies:
+  pre:
+    - pyenv local 2.7.9 2.6.8
+  override:
+    - pip install tox==1.6.1
+test:
+  override:
+    - case $CIRCLE_NODE_INDEX in 0) tox -e py27_dsl_parser ;; 1) tox -e py26_dsl_parser ;; esac:
+        parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e flake8_dsl_parser ;; esac:
+        parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e py27_plugins_common ;; 1) tox -e py26_plugins_common ;; esac:
+        parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e flake8_plugins_common ;; esac:
+        parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e flake8_rest_client ;; esac:
+        parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e py27_script_plugin ;; 1) tox -e py26_script_plugin ;; esac:
+        parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e flake8_script_plugin ;; esac:
+        parallel: true
+deployment:
+  release:
+    tag: /.*/
+    commands:
+      - (true)
