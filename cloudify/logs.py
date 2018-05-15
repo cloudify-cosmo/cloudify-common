@@ -13,9 +13,10 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-
+import os
 import sys
-import logging
+import logging.config
+import logging.handlers
 import json
 import datetime
 from functools import wraps
@@ -328,7 +329,7 @@ def with_amqp_client(func):
     def wrapper(*args, **kwargs):
         """Calls the wrapped func with an AMQP client instance."""
         # call the wrapped func with the amqp client
-        with amqp_client_utils.get_event_amqp_client() as client:
+        with amqp_client_utils.global_management_events_publisher as client:
             return func(client, *args, **kwargs)
 
     return wrapper
@@ -348,25 +349,41 @@ def _publish_message(client, message, message_type, logger):
                     json.dumps(message)))
 
 
-class ZMQLoggingHandler(logging.Handler):
+def setup_agent_logger(log_name, log_level=None, log_dir=None):
+    if log_level is None:
+        log_level = os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG'
+    if log_dir is None:
+        log_dir = os.environ.get('AGENT_LOG_DIR')
 
-    def __init__(self, context, socket, fallback_logger):
-        logging.Handler.__init__(self)
-        self._context = context
-        self._socket = socket
-        self._fallback_logger = fallback_logger
+    console_formatter = logging.Formatter(
+        '%(name)s:%(levelname)s: %(message)s')
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(console_formatter)
 
-    def emit(self, record):
-        message = self.format(record)
-        message = message.decode('utf-8', 'ignore').encode('utf-8')
-        try:
-            # Not using send_json to avoid possible deadlocks (see CFY-4866)
-            self._socket.send(json.dumps({
-                'context': self._context,
-                'message': message
-            }))
-        except Exception as e:
-            self._fallback_logger.warn(
-                'Error sending message to logging server. ({0}: {1})'
-                '[context={2}, message={3}]'
-                .format(type(e).__name__, e, self._context, message))
+    root_logger = logging.getLogger()
+    root_logger.setLevel('INFO')
+    root_logger.addHandler(console_handler)
+    worker_logger = logging.getLogger('worker')
+    dispatch_logger = logging.getLogger('dispatch')
+
+    for logger in [worker_logger, dispatch_logger]:
+        logger.setLevel(log_level)
+        logger.addHandler(console_handler)
+    if log_dir:
+        log_file = os.path.join(log_dir, '{0}.log'.format(log_name))
+        # also create the parent directory to allow for nested log dirs
+        # eg. worker.log, and logs/deployment.log
+        log_dir = os.path.dirname(log_file)
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+        file_formatter = logging.Formatter(
+            ' %(asctime)-15s - %(name)s - %(levelname)s - %(message)s')
+
+        file_handler = logging.handlers.RotatingFileHandler(
+            filename=log_file, maxBytes=50000000, backupCount=7)
+        file_handler.setLevel(log_level)
+        file_handler.setFormatter(file_formatter)
+
+        for logger in [worker_logger, dispatch_logger, root_logger]:
+            logger.addHandler(file_handler)

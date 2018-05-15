@@ -45,6 +45,10 @@ from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.workflows import workflow_context
 from cloudify.workflows import api
 from cloudify.constants import LOGGING_CONFIG_FILE
+from cloudify.error_handling import (
+    serialize_known_exception,
+    deserialize_known_exception
+)
 
 CLOUDIFY_DISPATCH = 'CLOUDIFY_DISPATCH'
 
@@ -67,14 +71,8 @@ if os.environ.get(CLOUDIFY_DISPATCH):
 
 try:
     from cloudify_agent import VIRTUALENV
-    from cloudify_agent.app import app as _app
-    task = _app.task(Strategy='cloudify.celery.gate_keeper:GateKeeperStrategy')
 except ImportError:
     VIRTUALENV = sys.prefix
-    _app = None
-
-    def task(fn):
-        return fn
 
 
 SYSTEM_DEPLOYMENT = '__system__'
@@ -124,7 +122,8 @@ class TaskHandler(object):
                     'kwargs': self.kwargs
                 }, f)
             env = self._build_subprocess_env()
-            command_args = [sys.executable, __file__, dispatch_dir]
+            command_args = [sys.executable, '-m', 'cloudify.dispatch',
+                            dispatch_dir]
             try:
                 subprocess.check_call(command_args,
                                       env=env,
@@ -147,32 +146,14 @@ class TaskHandler(object):
             if dispatch_output['type'] == 'result':
                 return dispatch_output['payload']
             elif dispatch_output['type'] == 'error':
-                error = dispatch_output['payload']
-
-                tb = error['traceback']
-                exception_type = error['exception_type']
-                message = error['message']
-
-                known_exception_type_kwargs = error[
-                    'known_exception_type_kwargs']
-                causes = known_exception_type_kwargs.pop('causes', [])
-                causes.append({
-                    'message': message,
-                    'type': exception_type,
-                    'traceback': tb
+                e = dispatch_output['payload']
+                error = deserialize_known_exception(e)
+                error.causes.append({
+                    'message': e['message'],
+                    'type': e['exception_type'],
+                    'traceback': e['traceback']
                 })
-                known_exception_type_kwargs['causes'] = causes
-
-                known_exception_type = getattr(exceptions,
-                                               error['known_exception_type'])
-                known_exception_type_args = error['known_exception_type_args']
-
-                if error['append_message']:
-                    known_exception_type_args.append(message)
-                else:
-                    known_exception_type_args.insert(0, message)
-                raise known_exception_type(*known_exception_type_args,
-                                           **known_exception_type_kwargs)
+                raise error
             else:
                 raise exceptions.NonRecoverableError(
                     'Unexpected output type: {0}'
@@ -259,33 +240,17 @@ class TaskHandler(object):
             sys_prefix_fallback=False)
 
     def setup_logging(self):
-        socket_url = self.cloudify_context.get('socket_url')
-        if socket_url:
-            import zmq
-            self._zmq_context = zmq.Context(io_threads=1)
-            self._zmq_socket = self._zmq_context.socket(zmq.PUSH)
-            self._zmq_socket.connect(socket_url)
-            try:
-                handler_context = self.ctx.deployment.id
-            except AttributeError:
-                handler_context = SYSTEM_DEPLOYMENT
-            else:
-                # an operation may originate from a system wide workflow.
-                # in that case, the deployment id will be None
-                handler_context = handler_context or SYSTEM_DEPLOYMENT
-            fallback_logger = self._create_fallback_logger(handler_context)
-            handler = logs.ZMQLoggingHandler(context=handler_context,
-                                             socket=self._zmq_socket,
-                                             fallback_logger=fallback_logger)
+        try:
+            handler_context = self.ctx.deployment.id
+        except AttributeError:
+            handler_context = SYSTEM_DEPLOYMENT
         else:
-            # Used by tests calling dispatch directly with target_name set.
-            handler = logging.StreamHandler()
-        handler.setFormatter(DISPATCH_LOGGER_FORMATTER)
-        handler.setLevel(logging.DEBUG)
-        logger = logging.getLogger()
-        logger.handlers = []
-        logger.addHandler(handler)
-        logger.setLevel(logging.DEBUG)
+            # an operation may originate from a system wide workflow.
+            # in that case, the deployment id will be None
+            handler_context = handler_context or SYSTEM_DEPLOYMENT
+
+        # We put deployment specific logs in logs/DEP_ID.log
+        logs.setup_agent_logger(log_name='logs/{0}'.format(handler_context))
         self._update_logging_level()
 
     @staticmethod
@@ -305,10 +270,10 @@ class TaskHandler(object):
 
     def _create_fallback_logger(self, handler_context):
         log_dir = None
-        if os.environ.get('CELERY_LOG_DIR'):
-            log_dir = os.path.join(os.environ['CELERY_LOG_DIR'], 'logs')
-        elif os.environ.get('CELERY_WORK_DIR'):
-            log_dir = os.environ['CELERY_WORK_DIR']
+        if os.environ.get('AGENT_LOG_DIR'):
+            log_dir = os.path.join(os.environ['AGENT_LOG_DIR'], 'logs')
+        elif os.environ.get('AGENT_WORK_DIR'):
+            log_dir = os.environ['AGENT_WORK_DIR']
         if log_dir:
             log_path = os.path.join(log_dir, '{0}.log.fallback'
                                     .format(handler_context))
@@ -379,9 +344,9 @@ class OperationHandler(TaskHandler):
         kwargs = self.kwargs
         if ctx.task_target:
             # # this operation requires an AMQP client
-            amqp_client_utils.init_amqp_client()
+            amqp_client_utils.init_events_publisher()
         else:
-            # task is local (not through celery) so we need clone kwarg
+            # task is local (not through AMQP) so we need clone kwarg
             # and an amqp client is not required
             kwargs = copy.deepcopy(kwargs)
 
@@ -435,7 +400,7 @@ class WorkflowHandler(TaskHandler):
         tenant = self.ctx._context['tenant'].get('original_name',
                                                  self.ctx.tenant_name)
         rest = get_rest_client(tenant=tenant)
-        amqp_client_utils.init_amqp_client()
+        amqp_client_utils.init_events_publisher()
         try:
             try:
                 self._workflow_started()
@@ -515,7 +480,6 @@ class WorkflowHandler(TaskHandler):
         # forwarding the result or error back to the parent thread
         with state.current_workflow_ctx.push(self.ctx, self.kwargs):
             try:
-                self.ctx.internal.start_event_monitors()
                 workflow_result = self._execute_workflow_function()
                 queue.put({'result': workflow_result})
             except api.ExecutionCancelled:
@@ -529,8 +493,6 @@ class WorkflowHandler(TaskHandler):
                     'traceback': tb.getvalue()
                 }
                 queue.put({'error': err})
-            finally:
-                self.ctx.internal.stop_event_monitors()
 
     def _handle_local_workflow(self):
         try:
@@ -611,7 +573,6 @@ TASK_HANDLERS = {
 }
 
 
-@task
 def dispatch(__cloudify_context, *args, **kwargs):
     dispatch_type = __cloudify_context['type']
     dispatch_handler_cls = TASK_HANDLERS.get(dispatch_type)
@@ -643,57 +604,14 @@ def main():
         payload = handler.handle()
         payload_type = 'result'
     except BaseException as e:
-
-        tb = StringIO.StringIO()
-        traceback.print_exc(file=tb)
-        trace_out = tb.getvalue()
-
-        # Needed because HttpException constructor sucks
-        append_message = False
-        # Convert exception to a know exception type that can be deserialized
-        # by the calling process
-        known_exception_type_args = []
-        if isinstance(e, exceptions.ProcessExecutionError):
-            known_exception_type = exceptions.ProcessExecutionError
-            known_exception_type_args = [e.error_type, e.traceback]
-            trace_out = e.traceback
-        elif isinstance(e, exceptions.HttpException):
-            known_exception_type = exceptions.HttpException
-            known_exception_type_args = [e.url, e.code]
-            append_message = True
-        elif isinstance(e, exceptions.NonRecoverableError):
-            known_exception_type = exceptions.NonRecoverableError
-        elif isinstance(e, exceptions.OperationRetry):
-            known_exception_type = exceptions.OperationRetry
-            known_exception_type_args = [e.retry_after]
-        elif isinstance(e, exceptions.RecoverableError):
-            known_exception_type = exceptions.RecoverableError
-            known_exception_type_args = [e.retry_after]
-        else:
-            # convert pure user exceptions to a RecoverableError
-            known_exception_type = exceptions.RecoverableError
-
-        try:
-            causes = e.causes
-        except AttributeError:
-            causes = []
-
         payload_type = 'error'
-        payload = {
-            'traceback': trace_out,
-            'exception_type': type(e).__name__,
-            'message': utils.format_exception(e),
-            'known_exception_type': known_exception_type.__name__,
-            'known_exception_type_args': known_exception_type_args,
-            'known_exception_type_kwargs': {'causes': causes or []},
-            'append_message': append_message,
-        }
+        payload = serialize_known_exception(e)
 
         logger = logging.getLogger(__name__)
         logger.error('Task {0}[{1}] raised:\n{2}'.format(
             handler.cloudify_context['task_name'],
             handler.cloudify_context.get('task_id', '<no-id>'),
-            trace_out))
+            payload['traceback']))
 
     finally:
         if handler:

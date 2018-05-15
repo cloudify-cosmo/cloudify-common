@@ -15,9 +15,9 @@
 
 import sys
 import os
-import tempfile
 import shutil
 import logging
+import tempfile
 
 from mock import patch, MagicMock, Mock
 import testtools
@@ -26,11 +26,14 @@ from cloudify import amqp_client
 from cloudify import dispatch
 from cloudify import exceptions
 from cloudify import utils
-from cloudify.celery import logging_server
 from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
 
 
 class TestDispatchTaskHandler(testtools.TestCase):
+    def setUp(self):
+        super(TestDispatchTaskHandler, self).setUp()
+        self.temp_log_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.temp_log_dir)
 
     def test_handle_or_dispatch_to_subprocess(self):
         expected_result = 'the result'
@@ -66,36 +69,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
                 existing_env_var_key: existing_env_var_value}):
             result = op_handler.dispatch_to_subprocess()
         self.assertEqual(env_vars_values, result)
-
-    def test_dispatch_to_subprocess_logging(self):
-        self._test_dispatch_to_subprocess_logging(
-            func=func4,
-            logpath_func=lambda workdir, deployment_id: os.path.join(
-                workdir, '{0}.log'.format(deployment_id)))
-
-    def test_dispatch_to_subprocess_logging_errors(self):
-        output = self._test_dispatch_to_subprocess_logging(
-            func=func8,
-            expect_error=True,
-            logpath_func=lambda workdir, deployment_id: os.path.join(
-                workdir, '{0}.log'.format(deployment_id)))
-        self.assertIn('Task test_dispatch.func8[test] raised:', output)
-        self.assertIn('Traceback (most recent call last):', output)
-        self.assertIn('RuntimeError: MESSAGE_CONTENT', output)
-
-    def test_dispatch_to_subprocess_fallback_logging_agent(self):
-        self._test_dispatch_to_subprocess_logging(
-            func=func5,
-            logpath_func=lambda workdir, deployment_id: os.path.join(
-                workdir, '{0}.log.fallback'.format(deployment_id)),
-            env_func=lambda workdir: {'CELERY_WORK_DIR': workdir})
-
-    def test_dispatch_to_subprocess_fallback_logging_manager(self):
-        self._test_dispatch_to_subprocess_logging(
-            func=func5,
-            logpath_func=lambda workdir, deployment_id: os.path.join(
-                workdir, 'logs', '{0}.log.fallback'.format(deployment_id)),
-            env_func=lambda workdir: {'CELERY_LOG_DIR': workdir})
 
     def test_dispatch_to_subprocess_exception(self):
         exception_types = [
@@ -258,9 +231,7 @@ class TestDispatchTaskHandler(testtools.TestCase):
         })
         workflow_handler._ctx._context = {'tenant': {
             'name': 'yes',
-            'original_name': 'masquerade',
-            }
-        }
+            'original_name': 'masquerade'}}
         workflow_handler._ctx.tenant_name = 'yes'
 
         try:
@@ -277,11 +248,11 @@ class TestDispatchTaskHandler(testtools.TestCase):
     def test_workflow_update_execution_status_set_to_false(
             self, mock_update_execution_status, *args, **kwargs):
         workflow_handler = dispatch.WorkflowHandler(
-                cloudify_context={
-                    'task_name': 'test',
-                    'update_execution_status': False
-                },
-                args=(), kwargs={})
+            cloudify_context={
+                'task_name': 'test',
+                'update_execution_status': False
+            },
+            args=(), kwargs={})
         _normal_func = workflow_handler._func
         _normal_ctx = workflow_handler._ctx
         workflow_handler._func = func2
@@ -307,47 +278,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
             workflow_handler._func = _normal_func
             workflow_handler._ctx = _normal_ctx
 
-    def _test_dispatch_to_subprocess_logging(
-            self, func, logpath_func, env_func=None,
-            expect_error=False):
-        message = 'MESSAGE_CONTENT'
-        workdir = tempfile.mkdtemp(prefix='cloudify-dispatch-')
-        os.mkdir(os.path.join(workdir, 'logs'))
-        self.addCleanup(lambda: shutil.rmtree(workdir, ignore_errors=True))
-        worker = Mock()
-        logserver = logging_server.ZMQLoggingServerBootstep(
-            worker=worker,
-            with_logging_server=True,
-            logging_server_logdir=workdir)
-
-        def stop_server():
-            logserver.stop(worker)
-            logserver.thread.join()
-        self.addCleanup(stop_server)
-        logserver.start(worker)
-        for deployment_id in [None, 'deployment']:
-            env = env_func(workdir) if env_func else {}
-            op_handler = self._operation(
-                func,
-                task_target='stub',
-                socket_url=logserver.socket_url,
-                args=[message],
-                deployment_id=deployment_id,
-                execution_env=env)
-            try:
-                op_handler.dispatch_to_subprocess()
-            except (exceptions.NonRecoverableError,
-                    exceptions.RecoverableError):
-                if not expect_error:
-                    raise
-            if not deployment_id:
-                deployment_id = dispatch.SYSTEM_DEPLOYMENT
-            logpath = logpath_func(workdir, deployment_id)
-            with open(logpath) as f:
-                content = f.read()
-                self.assertIn(message, content)
-            return content
-
     def _operation(
             self,
             func,
@@ -363,6 +293,7 @@ class TestDispatchTaskHandler(testtools.TestCase):
             module = module.split('.')[-1]
         execution_env = execution_env or {}
         execution_env['PYTHONPATH'] = os.path.dirname(__file__)
+        execution_env.setdefault('AGENT_LOG_DIR', self.temp_log_dir)
         return dispatch.OperationHandler(cloudify_context={
             'no_ctx_kwarg': True,
             'task_id': 'test',
