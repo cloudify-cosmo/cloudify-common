@@ -38,16 +38,50 @@ logger = logging.getLogger(__name__)
 HEARTBEAT_INTERVAL = 30
 
 
+class AMQPParams(dict):
+    def __init__(self,
+                 amqp_host=None,
+                 amqp_user=None,
+                 amqp_pass=None,
+                 amqp_port=None,
+                 amqp_vhost=None,
+                 ssl_enabled=None,
+                 ssl_cert_path=None):
+        super(AMQPParams, self).__init__()
+        username = amqp_user or broker_config.broker_username
+        password = amqp_pass or broker_config.broker_password
+        credentials = pika.credentials.PlainCredentials(
+            username=username,
+            password=password,
+        )
+
+        broker_ssl_options = {}
+        if ssl_enabled:
+            broker_ssl_options = {
+                'ca_certs': ssl_cert_path,
+                'cert_reqs': ssl.CERT_REQUIRED,
+            }
+        self['host'] = amqp_host or broker_config.broker_hostname
+        self['port'] = amqp_port or broker_config.broker_port
+        self['virtual_host'] = amqp_vhost or broker_config.broker_vhost
+        self['credentials'] = credentials
+        self['ssl'] = ssl_enabled or broker_config.broker_ssl_enabled
+        self['ssl_options'] = broker_ssl_options or \
+                              broker_config.broker_ssl_options
+        self['heartbeat'] = HEARTBEAT_INTERVAL
+
+
 class AMQPConnection(object):
     MAX_BACKOFF = 30
 
-    def __init__(self, handlers, name=None):
+    def __init__(self, handlers, name=None, amqp_params=None):
         self._handlers = handlers
         self._publish_queue = Queue.Queue()
         self.name = name
         self._connection_params = self._get_connection_params()
         self._reconnect_backoff = 1
         self._closed = False
+        self._amqp_params = amqp_params or AMQPParams()
         self.connection = None
         self._consumer_thread = None
         self.connected = threading.Event()
@@ -69,7 +103,7 @@ class AMQPConnection(object):
 
     def _get_connection_params(self):
         while True:
-            params = self._get_common_connection_params()
+            params = self._amqp_params.copy()
             if self.name and DaemonFactory is not None:
                 daemon = DaemonFactory().load(self.name)
                 if daemon.cluster:
@@ -354,39 +388,30 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
             self._callbacks[properties.correlation_id](response)
 
 
-class CloudifyConnectionAMQPConnection(AMQPConnection):
-    """An AMQPConnection that takes amqp connection params overrides"""
-    def __init__(self, amqp_settings, *args, **kwargs):
-        self._amqp_settings = amqp_settings
-        super(CloudifyConnectionAMQPConnection, self).__init__(*args, **kwargs)
-
-    def _get_common_connection_params(self):
-        params = super(CloudifyConnectionAMQPConnection, self)\
-            ._get_common_connection_params()
-        for setting_name, setting in self._amqp_settings.items():
-            if setting:
-                params[setting_name] = setting
-        return params
-
-
-def get_client(username=None, password=None, vhost=None):
+def get_client(amqp_host=None,
+               amqp_user=None,
+               amqp_pass=None,
+               amqp_port=None,
+               amqp_vhost=None,
+               ssl_enabled=None,
+               ssl_cert_path=None):
     """
     Create a client without any handlers in it. Use the `add_handler` method
     to add handlers to this client
     :return: CloudifyConnectionAMQPConnection
     """
-    username = username or broker_config.broker_username
-    password = password or broker_config.broker_password
-    vhost = vhost or broker_config.broker_vhost
 
-    credentials = pika.credentials.PlainCredentials(
-        username=username,
-        password=password
+    amqp_params = AMQPParams(
+        amqp_host,
+        amqp_user,
+        amqp_pass,
+        amqp_port,
+        amqp_vhost,
+        ssl_enabled,
+        ssl_cert_path
     )
-    return CloudifyConnectionAMQPConnection({
-        'credentials': credentials,
-        'virtual_host': vhost
-    }, [])
+
+    return AMQPConnection(handlers=[], amqp_params=amqp_params)
 
 
 class CloudifyEventsPublisher(object):
@@ -399,13 +424,15 @@ class CloudifyEventsPublisher(object):
         'durable': True,
     }
 
-    def __init__(self, amqp_settings):
+    def __init__(self, amqp_params):
         self.events_handler = SendHandler(self.EVENTS_EXCHANGE_NAME,
                                           exchange_type='fanout')
         self.logs_handler = SendHandler(self.LOGS_EXCHANGE_NAME,
                                         exchange_type='fanout')
-        self._connection = CloudifyConnectionAMQPConnection(amqp_settings, [
-            self.events_handler, self.logs_handler])
+        self._connection = AMQPConnection(
+            handlers=[self.events_handler, self.logs_handler],
+            amqp_params=amqp_params
+        )
         self._is_closed = False
 
     def connect(self):
@@ -438,32 +465,24 @@ class CloudifyEventsPublisher(object):
 def create_events_publisher(amqp_host=None,
                             amqp_user=None,
                             amqp_pass=None,
+                            amqp_port=None,
                             amqp_vhost=None,
                             ssl_enabled=None,
                             ssl_cert_path=None):
     thread = threading.current_thread()
 
-    # there's 3 possible sources of the amqp settings: passed in arguments,
-    # current cluster active manager (if any), and broker_config; use the first
-    # that is defined, in that order
-    amqp_settings = {
-        'host': amqp_host,
-        'virtual_host': amqp_vhost,
-        'ssl': ssl_enabled,
-    }
-    if amqp_user and amqp_pass:
-        amqp_settings['credentials'] = pika.credentials.PlainCredentials(
-            username=amqp_user,
-            password=amqp_pass
-        )
-    if ssl_cert_path:
-        amqp_settings['ssl_options'] = {
-            'ca_certs': ssl_cert_path,
-            'cert_reqs': ssl.CERT_REQUIRED,
-        }
+    amqp_params = AMQPParams(
+        amqp_host,
+        amqp_user,
+        amqp_pass,
+        amqp_port,
+        amqp_vhost,
+        ssl_enabled,
+        ssl_cert_path
+    )
 
     try:
-        client = CloudifyEventsPublisher(amqp_settings)
+        client = CloudifyEventsPublisher(amqp_params)
         client.connect()
         logger.debug('AMQP client created for thread {0}'.format(thread))
     except Exception as e:
