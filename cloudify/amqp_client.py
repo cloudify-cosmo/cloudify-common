@@ -61,14 +61,20 @@ class AMQPParams(dict):
                 'ca_certs': ssl_cert_path,
                 'cert_reqs': ssl.CERT_REQUIRED,
             }
-        self['host'] = amqp_host or broker_config.broker_hostname
-        self['port'] = amqp_port or broker_config.broker_port
-        self['virtual_host'] = amqp_vhost or broker_config.broker_vhost
-        self['credentials'] = credentials
-        self['ssl'] = ssl_enabled or broker_config.broker_ssl_enabled
-        self['ssl_options'] = broker_ssl_options or \
-                              broker_config.broker_ssl_options
-        self['heartbeat'] = HEARTBEAT_INTERVAL
+
+        self._amqp_params = {
+            'host': amqp_host or broker_config.broker_hostname,
+            'port': amqp_port or broker_config.broker_port,
+            'virtual_host': amqp_vhost or broker_config.broker_vhost,
+            'credentials': credentials,
+            'ssl': ssl_enabled or broker_config.broker_ssl_enabled,
+            'ssl_options': broker_ssl_options or
+                           broker_config.broker_ssl_options,
+            'heartbeat': HEARTBEAT_INTERVAL,
+        }
+
+    def as_pika_params(self):
+        return pika.ConnectionParameters(**self._amqp_params)
 
 
 class AMQPConnection(object):
@@ -86,32 +92,17 @@ class AMQPConnection(object):
         self._consumer_thread = None
         self.connected = threading.Event()
 
-    def _get_common_connection_params(self):
-        credentials = pika.credentials.PlainCredentials(
-            username=broker_config.broker_username,
-            password=broker_config.broker_password,
-        )
-        return {
-            'host': broker_config.broker_hostname,
-            'port': broker_config.broker_port,
-            'virtual_host': broker_config.broker_vhost,
-            'credentials': credentials,
-            'ssl': broker_config.broker_ssl_enabled,
-            'ssl_options': broker_config.broker_ssl_options,
-            'heartbeat': HEARTBEAT_INTERVAL
-        }
-
     def _get_connection_params(self):
         while True:
-            params = self._amqp_params.copy()
+            params = self._amqp_params.as_pika_params()
             if self.name and DaemonFactory is not None:
                 daemon = DaemonFactory().load(self.name)
                 if daemon.cluster:
                     for node_ip in daemon.cluster:
-                        params['host'] = node_ip
-                        yield pika.ConnectionParameters(**params)
+                        params.host = node_ip
+                        yield params
                     continue
-            yield pika.ConnectionParameters(**params)
+            yield params
 
     def _get_reconnect_backoff(self):
         backoff = self._reconnect_backoff
