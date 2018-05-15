@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 HEARTBEAT_INTERVAL = 30
 
 
-class AMQPParams(dict):
+class AMQPParams(object):
     def __init__(self,
                  amqp_host=None,
                  amqp_user=None,
