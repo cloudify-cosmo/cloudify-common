@@ -1190,9 +1190,9 @@ class _TaskDispatcher(object):
         handler = amqp_client.CallbackRequestResponseHandler(
             exchange=task['target'])
         client = amqp_client.get_client(
-            username=tenant['rabbitmq_username'],
-            password=tenant['rabbitmq_password'],
-            vhost=self._get_vhost(task)
+            amqp_user=tenant['rabbitmq_username'],
+            amqp_pass=tenant['rabbitmq_password'],
+            amqp_vhost=self._get_vhost(task)
         )
         client.add_handler(handler)
         client.consume_in_thread()
