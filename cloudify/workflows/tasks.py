@@ -21,7 +21,6 @@ import Queue
 from cloudify import utils
 from cloudify import exceptions
 from cloudify.workflows import api
-from cloudify.celery.app import get_celery_app
 from cloudify.manager import get_node_instance
 from cloudify.constants import MGMTWORKER_QUEUE
 
@@ -156,6 +155,8 @@ class WorkflowTask(object):
                          TASK_RESCHEDULED, TASK_SUCCEEDED, TASK_FAILED]:
             raise RuntimeError('Illegal state set on task: {0} '
                                '[task={1}]'.format(state, str(self)))
+        if self._state in TERMINATED_STATES:
+            return
         self._state = state
         if state in TERMINATED_STATES:
             self.is_terminated = True
@@ -292,9 +293,9 @@ class WorkflowTask(object):
 
 
 class RemoteWorkflowTask(WorkflowTask):
-    """A WorkflowTask wrapping a celery based task"""
+    """A WorkflowTask wrapping an AMQP based task"""
 
-    # cache for registered tasks queries to celery workers
+    # cache for registered tasks queries to agent workers
     cache = {}
 
     def __init__(self,
@@ -353,22 +354,20 @@ class RemoteWorkflowTask(WorkflowTask):
 
     def apply_async(self):
         """
-        Call the underlying celery tasks apply_async. Verify the worker
+        Call the underlying tasks' apply_async. Verify the worker
         is alive and send an event before doing so.
 
-        :return: a RemoteWorkflowTaskResult instance wrapping the
-                 celery async result
+        :return: a RemoteWorkflowTaskResult instance wrapping the async result
         """
         try:
             self._set_queue_kwargs()
-            self._verify_worker_alive()
             task = self.workflow_context.internal.handler.get_task(
                 self, queue=self._task_queue, target=self._task_target)
             self.workflow_context.internal.send_task_event(TASK_SENDING, self)
             async_result = self.workflow_context.internal.handler.send_task(
                 self, task)
-            self.async_result = RemoteWorkflowTaskResult(self, async_result)
             self.set_state(TASK_SENT)
+            self.async_result = RemoteWorkflowTaskResult(self, async_result)
         except (exceptions.NonRecoverableError,
                 exceptions.RecoverableError) as e:
             self.set_state(TASK_FAILED)
@@ -417,23 +416,6 @@ class RemoteWorkflowTask(WorkflowTask):
     def kwargs(self):
         """kwargs to pass when invoking the task"""
         return self._kwargs
-
-    def _verify_worker_alive(self):
-        verify_worker_alive(self.name,
-                            self.target,
-                            self._get_registered)
-
-    def _get_registered(self):
-        tenant = self.workflow_context.tenant
-        with get_celery_app(tenant=tenant, target=self.target) as app:
-
-            worker_name = 'celery@{0}'.format(self.target)
-            inspect = app.control.inspect(destination=[worker_name],
-                                          timeout=INSPECT_TIMEOUT)
-            registered = inspect.registered()
-        if registered is None or worker_name not in registered:
-            return None
-        return set(registered[worker_name])
 
     def _set_queue_kwargs(self):
         if self._task_queue is None:
@@ -700,8 +682,6 @@ class RemoteWorkflowErrorTaskResult(WorkflowTaskResult):
 
 
 class RemoteWorkflowTaskResult(WorkflowTaskResult):
-    """A wrapper for celery's AsyncResult"""
-
     def __init__(self, task, async_result):
         super(RemoteWorkflowTaskResult, self).__init__(task)
         self.async_result = async_result
@@ -710,7 +690,7 @@ class RemoteWorkflowTaskResult(WorkflowTaskResult):
         return self.async_result.get()
 
     def _refresh_state(self):
-        self.async_result = self.task.async_result.async_result
+        pass
 
     @property
     def result(self):
@@ -792,24 +772,3 @@ class HandlerResult(object):
     @classmethod
     def ignore(cls):
         return HandlerResult(cls.HANDLER_IGNORE)
-
-
-def verify_worker_alive(name, target, get_registered):
-
-    cache = RemoteWorkflowTask.cache
-    registered = cache.get(target)
-    if not registered:
-        registered = get_registered()
-        cache[target] = registered
-
-    if registered is None:
-        raise exceptions.RecoverableError(
-            'Timed out querying worker celery@{0} for its registered '
-            'tasks. [timeout={1} seconds]'.format(target, INSPECT_TIMEOUT))
-
-    if DISPATCH_TASK not in registered:
-        raise exceptions.NonRecoverableError(
-            'Missing {0} task in worker {1} \n'
-            'Registered tasks are: {2}. (This probably means the agent '
-            'configuration is invalid) [{3}]'.format(
-                DISPATCH_TASK, target, registered, name))

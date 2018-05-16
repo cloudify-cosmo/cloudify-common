@@ -23,7 +23,7 @@ import ssl
 
 from cloudify.constants import BROKER_PORT_SSL, BROKER_PORT_NO_SSL
 
-workdir_path = os.getenv('CELERY_WORK_DIR')
+workdir_path = os.getenv('AGENT_WORK_DIR')
 if workdir_path is None:
     # We are not in an appropriately configured celery environment
     config = {}
@@ -31,8 +31,7 @@ else:
     conf_file_path = os.path.join(workdir_path, 'broker_config.json')
     if os.path.isfile(conf_file_path):
         with open(conf_file_path) as conf_handle:
-            conf_file = conf_handle.read()
-            config = json.loads(conf_file)
+            config = json.load(conf_handle)
     else:
         config = {}
 
@@ -53,9 +52,9 @@ if os.name == 'nt':
 else:
     broker_heartbeat = config.get('broker_heartbeat', DEFAULT_HEARTBEAT)
 
-
+broker_ssl_options = {}
 if broker_ssl_enabled:
-    BROKER_USE_SSL = {
+    broker_ssl_options = {
         'ca_certs': broker_cert_path,
         'cert_reqs': ssl.CERT_REQUIRED,
     }
@@ -86,16 +85,3 @@ else:
         vhost=broker_vhost,
         options=options
     )
-
-# celery will not use the failover strategy if there is only one broker url;
-# we need it to try and failover even with one initial manager, because
-# another node might've been added dynamically, while the worker was already
-# running; we add an empty broker url so that celery always sees at least two -
-# the failover strategy we're using (defined in cloudify_agent.app) filters out
-# the empty one
-BROKER_URL += ';'
-
-CELERY_RESULT_BACKEND = BROKER_URL
-CELERY_TASK_RESULT_EXPIRES = 600
-CELERYD_PREFETCH_MULTIPLIER = 1
-CELERY_ACKS_LATE = False

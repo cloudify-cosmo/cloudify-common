@@ -37,7 +37,7 @@ from cloudify.proxy.server import (UnixCtxProxy,
                                    HTTPCtxProxy,
                                    StubCtxProxy)
 
-from cloudify.constants import CELERY_WORK_DIR_KEY
+from cloudify.constants import AGENT_WORK_DIR_KEY
 
 from script_runner import eval_env
 from script_runner import constants
@@ -209,7 +209,7 @@ def execute(script_path, ctx, process):
 
     stderr_to_stdout = process.get('stderr_to_stdout', False)
 
-    logs_root = os.environ.get(CELERY_WORK_DIR_KEY, DEFAULT_TASK_LOG_DIR)
+    logs_root = os.environ.get(AGENT_WORK_DIR_KEY, DEFAULT_TASK_LOG_DIR)
     logs_dir = os.path.join(logs_root, 'logs', 'tasks')
     try:
         os.makedirs(logs_dir)
