@@ -290,7 +290,9 @@ class SendHandler(object):
         log_func(msg)
 
     def publish(self, message, **kwargs):
-        self._log_message(message)
+        if 'message' in message:
+            # message is textual, let's log it
+            self._log_message(message)
         self._output_queue.put({
             'exchange': self.exchange,
             'body': json.dumps(message),
