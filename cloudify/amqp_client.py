@@ -402,6 +402,7 @@ def get_client(amqp_host=None,
         ssl_cert_path
     )
 
+
     return AMQPConnection(handlers=[], amqp_params=amqp_params)
 
 
