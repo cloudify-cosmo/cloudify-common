@@ -80,8 +80,7 @@ class SecretsClient(object):
                value,
                update_if_exists=False,
                is_hidden_value=False,
-               visibility=VisibilityState.TENANT,
-               encryption_key=None):
+               visibility=VisibilityState.TENANT):
         """Create secret.
 
         :param key: Secret key
@@ -98,10 +97,6 @@ class SecretsClient(object):
         :param visibility: The visibility of the secret, can be 'private',
                            'tenant' or 'global'
         :type visibility: unicode
-        :param encryption_key: Used internally only in snapshot restore
-            process, when we create the agent's ssh keys as secrets and want
-            to use the encryption key from the snapshot
-        :type encryption_key: unicode
         :returns: New secret metadata
         :rtype: Dict[str]
 
@@ -110,8 +105,7 @@ class SecretsClient(object):
             'value': value,
             'update_if_exists': update_if_exists,
             'is_hidden_value': is_hidden_value,
-            'visibility': visibility,
-            'encryption_key': encryption_key
+            'visibility': visibility
         }
         response = self.api.put('/secrets/{0}'.format(key), data=data)
         return Secret(response)
