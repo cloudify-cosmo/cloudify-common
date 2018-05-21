@@ -46,7 +46,8 @@ class AMQPParams(object):
                  amqp_port=None,
                  amqp_vhost=None,
                  ssl_enabled=None,
-                 ssl_cert_path=None):
+                 ssl_cert_path=None,
+                 socket_timeout=3):
         super(AMQPParams, self).__init__()
         username = amqp_user or broker_config.broker_username
         password = amqp_pass or broker_config.broker_password
@@ -71,16 +72,22 @@ class AMQPParams(object):
             'ssl_options': broker_ssl_options or
                            broker_config.broker_ssl_options,
             'heartbeat': HEARTBEAT_INTERVAL,
+            'socket_timeout': socket_timeout
         }
 
     def as_pika_params(self):
         return pika.ConnectionParameters(**self._amqp_params)
 
 
+class ConnectionTimeoutError(Exception):
+    """Timeout trying to connect"""
+
+
 class AMQPConnection(object):
     MAX_BACKOFF = 30
 
-    def __init__(self, handlers, name=None, amqp_params=None):
+    def __init__(self, handlers, name=None, amqp_params=None,
+                 connect_timeout=10):
         self._handlers = handlers
         self._publish_queue = Queue.Queue()
         self.name = name
@@ -90,7 +97,9 @@ class AMQPConnection(object):
         self._amqp_params = amqp_params or AMQPParams()
         self.connection = None
         self._consumer_thread = None
-        self.connected = threading.Event()
+        self.connect_wait = threading.Event()
+        self._connect_timeout = connect_timeout
+        self._error = None
 
     def _get_connection_params(self):
         while True:
@@ -113,11 +122,20 @@ class AMQPConnection(object):
         self._reconnect_backoff = 1
 
     def connect(self):
+        self._error = None
+        deadline = None
+        if self._connect_timeout is not None:
+            deadline = time.time() + self._connect_timeout
+
         for params in self._connection_params:
             try:
                 self.connection = pika.BlockingConnection(params)
             except pika.exceptions.AMQPConnectionError:
                 time.sleep(self._get_reconnect_backoff())
+                if deadline and time.time() > deadline:
+                    self.connect_wait.set()
+                    self._error = ConnectionTimeoutError()
+                    raise self._error
             else:
                 self._reset_reconnect_backoff()
                 self._closed = False
@@ -129,7 +147,7 @@ class AMQPConnection(object):
             logger.info('Registered handler for {0} [{1}]'
                         .format(handler.__class__.__name__,
                                 handler.routing_key))
-        self.connected.set()
+        self.connect_wait.set()
         return out_channel
 
     def consume(self):
@@ -144,7 +162,7 @@ class AMQPConnection(object):
                 logger.error('Channel closed: {0}'.format(e))
                 break
             except pika.exceptions.ConnectionClosed:
-                self.connected.clear()
+                self.connect_wait.clear()
                 out_channel = self.connect()
                 continue
         self._process_publish(out_channel)
@@ -157,7 +175,9 @@ class AMQPConnection(object):
         self._consumer_thread = threading.Thread(target=self.consume)
         self._consumer_thread.daemon = True
         self._consumer_thread.start()
-        self.connected.wait()
+        self.connect_wait.wait()
+        if self._error is not None:
+            raise self._error
         return self._consumer_thread
 
     def __enter__(self):
@@ -387,7 +407,8 @@ def get_client(amqp_host=None,
                amqp_port=None,
                amqp_vhost=None,
                ssl_enabled=None,
-               ssl_cert_path=None):
+               ssl_cert_path=None,
+               connect_timeout=10):
     """
     Create a client without any handlers in it. Use the `add_handler` method
     to add handlers to this client
@@ -404,7 +425,8 @@ def get_client(amqp_host=None,
         ssl_cert_path
     )
 
-    return AMQPConnection(handlers=[], amqp_params=amqp_params)
+    return AMQPConnection(handlers=[], amqp_params=amqp_params,
+                          connect_timeout=connect_timeout)
 
 
 class CloudifyEventsPublisher(object):
