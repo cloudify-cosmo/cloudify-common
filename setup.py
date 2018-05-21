@@ -57,7 +57,7 @@ setup(
     entry_points={
             'console_scripts': [
                 'ctx = cloudify.proxy.client:main',
-            ]  
+            ]
     },
     package_data={'cloudify.ctx_wrappers': ['ctx.py']},
     scripts=[

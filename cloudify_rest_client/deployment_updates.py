@@ -183,7 +183,9 @@ class DeploymentUpdatesClient(object):
                skip_install=False,
                skip_uninstall=False,
                workflow_id=None,
-               force=False):
+               force=False,
+               ignore_failure=False,
+               install_first=False):
 
         # TODO better handle testing for a supported archive. in other commands
         # it is done in the cli part (`commands.<command_name>)
@@ -207,6 +209,10 @@ class DeploymentUpdatesClient(object):
             params['skip_uninstall'] = skip_uninstall
         if force:
             params['force'] = force
+        if ignore_failure:
+            params['ignore_failure'] = ignore_failure
+        if install_first:
+            params['install_first'] = install_first
 
         data_and_headers = {}
 
@@ -227,12 +233,16 @@ class DeploymentUpdatesClient(object):
                                        skip_install=False,
                                        skip_uninstall=False,
                                        workflow_id=None,
-                                       force=False):
+                                       force=False,
+                                       ignore_failure=False,
+                                       install_first=False):
         data = {
             'workflow_id': workflow_id,
             'skip_install': skip_install,
             'skip_uninstall': skip_uninstall,
             'force': force,
+            'ignore_failure': ignore_failure,
+            'install_first': install_first,
             'blueprint_id': blueprint_id
         }
         if inputs:
