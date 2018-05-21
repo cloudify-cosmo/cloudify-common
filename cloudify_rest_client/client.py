@@ -16,6 +16,7 @@
 import os
 import json
 import logging
+from distutils.spawn import find_executable
 
 import requests
 from base64 import urlsafe_b64encode
@@ -101,7 +102,7 @@ class HTTPClient(object):
 
     @staticmethod
     def _kerberos_env():
-        if os.path.exists('/etc/krb5.conf'):
+        if os.path.exists('/etc/krb5.conf') and find_executable('klist'):
             return True
         return False
 
