@@ -69,8 +69,8 @@ class AMQPParams(object):
             'virtual_host': amqp_vhost or broker_config.broker_vhost,
             'credentials': credentials,
             'ssl': ssl_enabled or broker_config.broker_ssl_enabled,
-            'ssl_options': broker_ssl_options or
-                           broker_config.broker_ssl_options,
+            'ssl_options': (broker_ssl_options or
+                            broker_config.broker_ssl_options),
             'heartbeat': HEARTBEAT_INTERVAL,
             'socket_timeout': socket_timeout
         }
