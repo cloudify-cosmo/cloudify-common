@@ -51,25 +51,23 @@ def auto_heal_reinstall_node_subgraph(
     Additionally it unlinks and establishes appropriate relationships
 
     :param ctx: cloudify context
-    :param node_id: failing node's id
+    :param node_instance_id: node_instances to reinstall
     :param diagnose_value: diagnosed reason of failure
     :param ignore_failure: ignore operations failures in uninstall workflow
     """
 
-    ctx.logger.info("Starting 'heal' workflow on {0}, Diagnosis: {1}"
-                    .format(node_instance_id, diagnose_value))
+    ctx.logger.info("Starting 'heal' workflow on {0}, Diagnosis: {1}".format(
+        node_instance_id, diagnose_value))
     failing_node = ctx.get_node_instance(node_instance_id)
     failing_node_host = ctx.get_node_instance(
-        failing_node._node_instance.host_id
-    )
+        failing_node._node_instance.host_id)
     subgraph_node_instances = failing_node_host.get_contained_subgraph()
     intact_nodes = set(ctx.node_instances) - subgraph_node_instances
     graph = ctx.graph_mode()
-    lifecycle.reinstall_node_instances(
-        graph=graph,
-        node_instances=subgraph_node_instances,
-        related_nodes=intact_nodes,
-        ignore_failure=ignore_failure)
+    lifecycle.reinstall_node_instances(graph=graph,
+                                       node_instances=subgraph_node_instances,
+                                       related_nodes=intact_nodes,
+                                       ignore_failure=ignore_failure)
 
 
 @workflow
@@ -399,7 +397,8 @@ def update(ctx,
            reduce_target_instance_ids,
            skip_install,
            skip_uninstall,
-           ignore_failure=False):
+           ignore_failure=False,
+           install_first=False):
     instances_by_change = {
         'added_instances': (added_instance_ids, []),
         'added_target_instances_ids': (added_target_instances_ids, []),
@@ -410,20 +409,18 @@ def update(ctx,
         'reduced_and_target_instances':
             (reduced_instance_ids + reduce_target_instance_ids, []),
     }
-
     for instance in ctx.node_instances:
-
-        instance_holders = \
-            [instance_holder
-             for _, (changed_ids, instance_holder)
-             in instances_by_change.iteritems()
-             if instance.id in changed_ids]
-
+        instance_holders = [instance_holder
+                            for _, (changed_ids, instance_holder)
+                            in instances_by_change.iteritems()
+                            if instance.id in changed_ids]
         for instance_holder in instance_holders:
             instance_holder.append(instance)
+    graph = ctx.graph_mode()
 
-    if not skip_install:
-        graph = ctx.graph_mode()
+    def _install():
+        if skip_install:
+            return
         # Adding nodes or node instances should be based on modified instances
         lifecycle.install_node_instances(
             graph=graph,
@@ -435,17 +432,18 @@ def update(ctx,
         lifecycle.execute_establish_relationships(
             graph=ctx.graph_mode(),
             node_instances=set(
-                    instances_by_change['extended_and_target_instances'][1]),
+                instances_by_change['extended_and_target_instances'][1]),
             modified_relationship_ids=modified_entity_ids['relationship']
         )
 
-    if not skip_uninstall:
-        graph = ctx.graph_mode()
+    def _uninstall():
+        if skip_uninstall:
+            return
 
         lifecycle.execute_unlink_relationships(
             graph=graph,
             node_instances=set(
-                    instances_by_change['reduced_and_target_instances'][1]),
+                instances_by_change['reduced_and_target_instances'][1]),
             modified_relationship_ids=modified_entity_ids['relationship']
         )
 
@@ -454,8 +452,15 @@ def update(ctx,
             node_instances=set(instances_by_change['removed_instances'][1]),
             ignore_failure=ignore_failure,
             related_nodes=set(
-                    instances_by_change['remove_target_instance_ids'][1])
+                instances_by_change['remove_target_instance_ids'][1])
         )
+
+    if install_first:
+        _install()
+        _uninstall()
+    else:
+        _uninstall()
+        _install()
 
     # Finalize the commit (i.e. remove relationships or nodes)
     client = get_rest_client()
