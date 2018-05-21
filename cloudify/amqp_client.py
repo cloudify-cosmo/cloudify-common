@@ -133,8 +133,8 @@ class AMQPConnection(object):
             except pika.exceptions.AMQPConnectionError:
                 time.sleep(self._get_reconnect_backoff())
                 if deadline and time.time() > deadline:
-                    self.connect_wait.set()
                     self._error = ConnectionTimeoutError()
+                    self.connect_wait.set()
                     raise self._error
             else:
                 self._reset_reconnect_backoff()
