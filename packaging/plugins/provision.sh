@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -xe
 
 SUDO=""
 
@@ -27,13 +27,14 @@ function install_dependencies(){
         pip install virtualenv
         return
     fi
-    sudo pip install virtualenv
+    sudo pip install -U virtualenv
 }
 
 function install_wagon(){
     echo "## installing wagon"
     virtualenv env
     source env/bin/activate
+    curl https://bootstrap.pypa.io/get-pip.py | python
     if  which yum; then
         echo 'redaht/centos machine'
     elif which apt-get; then
@@ -41,7 +42,7 @@ function install_wagon(){
     else
         echo 'probably windows machine'
     fi
-    pip install --upgrade pip==9.0.1
+    pip install --upgrade pip==9.0.1 setuptools
     pip install wagon==0.3.2
 }
 
@@ -60,9 +61,9 @@ function wagon_create_package(){
     echo "manylinux1_compatible = False" > "env/bin/_manylinux.py"
     mkdir create_wagon ; cd create_wagon
     if [ ! -z "$CONSTRAINTS_FILE" ] && [ -f "/vagrant/$CONSTRAINTS_FILE" ];then
-        wagon create -s ../$PLUGIN_NAME/ --validate -v -f -a '--no-cache-dir -c /vagrant/'$CONSTRAINTS_FILE''
+        wagon create -s ../$PLUGIN_NAME/ -r -v -f -a '--no-cache-dir -c /vagrant/'$CONSTRAINTS_FILE''
     else
-        wagon create -s ../$PLUGIN_NAME/ --validate -v -f
+        wagon create -s ../$PLUGIN_NAME/ -r -v -f
     fi
 }
 
@@ -71,7 +72,8 @@ function wagon_create_package(){
 # VERSION/PRERELEASE/BUILD must be exported as they is being read as an env var by the cloudify-agent-packager
 export CORE_TAG_NAME="4.4.dev1"
 export CORE_BRANCH="master"
-curl https://raw.githubusercontent.com/cloudify-cosmo/cloudify-packager/$CORE_BRANCH/common/provision.sh -o ./common-provision.sh &&
+#curl https://raw.githubusercontent.com/cloudify-cosmo/cloudify-common/$CORE_BRANCH/packaging/common/provision.sh -o ./common-provision.sh &&
+curl https://raw.githubusercontent.com/cloudify-cosmo/cloudify-common/packaging/packaging/common/provision.sh -o ./common-provision.sh &&
 source common-provision.sh
 
 
