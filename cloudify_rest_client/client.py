@@ -13,15 +13,14 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import os
 import json
 import logging
-from distutils.spawn import find_executable
 
 import requests
 from base64 import urlsafe_b64encode
 from requests.packages import urllib3
 
+from .utils import is_kerberos_env
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.snapshots import SnapshotsClient
@@ -98,13 +97,7 @@ class HTTPClient(object):
                                               self.port, self.api_version)
 
     def has_kerberos(self):
-        return bool(HTTPKerberosAuth) and self._kerberos_env()
-
-    @staticmethod
-    def _kerberos_env():
-        if os.path.exists('/etc/krb5.conf') and find_executable('klist'):
-            return True
-        return False
+        return bool(HTTPKerberosAuth) and is_kerberos_env()
 
     def _raise_client_error(self, response, url=None):
         try:
