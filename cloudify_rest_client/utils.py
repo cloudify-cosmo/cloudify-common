@@ -1,6 +1,7 @@
 import os
 import tarfile
 from os.path import expanduser
+from distutils.spawn import find_executable
 
 SUPPORTED_ARCHIVE_TYPES = ['zip', 'tar', 'tar.gz', 'tar.bz2']
 
@@ -38,3 +39,9 @@ def is_supported_archive_type(blueprint_path):
 
     extensions = ['.{0}'.format(ext) for ext in SUPPORTED_ARCHIVE_TYPES]
     return blueprint_path.endswith(tuple(extensions))
+
+
+def is_kerberos_env():
+    if os.path.exists('/etc/krb5.conf') and find_executable('klist'):
+        return True
+    return False
