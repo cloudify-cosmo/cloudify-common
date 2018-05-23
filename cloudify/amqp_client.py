@@ -482,7 +482,8 @@ class CloudifyEventsPublisher(object):
                                         exchange_type='fanout')
         self._connection = AMQPConnection(
             handlers=[self.events_handler, self.logs_handler],
-            amqp_params=amqp_params
+            amqp_params=amqp_params,
+            name=os.environ.get('AGENT_NAME')
         )
         self._is_closed = False
 
