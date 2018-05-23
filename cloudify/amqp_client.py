@@ -24,14 +24,8 @@ import threading
 import pika
 import pika.exceptions
 
-from cloudify import broker_config
 from cloudify import exceptions
-
-try:
-    from cloudify_agent.api.factory import DaemonFactory
-except ImportError:
-    DaemonFactory = None
-
+from cloudify import broker_config
 
 logger = logging.getLogger(__name__)
 
@@ -101,12 +95,26 @@ class AMQPConnection(object):
         self.connect_wait = threading.Event()
         self._connect_timeout = connect_timeout
         self._error = None
+        self._daemon_factory = self._get_daemon_factory()
+
+    @staticmethod
+    def _get_daemon_factory():
+        """
+        We need the factory to dynamically load daemon config, to support
+        agent transfers and HA failovers
+        """
+        # Dealing with circular dependency
+        try:
+            from cloudify_agent.api.factory import DaemonFactory
+        except ImportError:
+            DaemonFactory = None
+        return DaemonFactory
 
     def _get_connection_params(self):
         while True:
             params = self._amqp_params.as_pika_params()
-            if self.name and DaemonFactory is not None:
-                daemon = DaemonFactory().load(self.name)
+            if self.name and self._daemon_factory:
+                daemon = self._daemon_factory().load(self.name)
                 if daemon.cluster:
                     for node_ip in daemon.cluster:
                         params.host = node_ip
