@@ -213,7 +213,7 @@ class AMQPConnection(object):
     def add_handler(self, handler):
         self._handlers.append(handler)
         if self.connection:
-            handler.register(self.connection, self.publish_queue)
+            handler.register(self.connection, self._publish_queue)
 
 
 class TaskConsumer(object):
