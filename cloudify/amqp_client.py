@@ -81,6 +81,20 @@ class ConnectionTimeoutError(Exception):
     """Timeout trying to connect"""
 
 
+def _get_daemon_factory():
+    """
+    We need the factory to dynamically load daemon config, to support
+    agent transfers and HA failovers
+    """
+    # Dealing with circular dependency
+    try:
+        from cloudify_agent.api.factory import DaemonFactory
+    except ImportError:
+        # Might not exist in e.g. the REST service
+        DaemonFactory = None
+    return DaemonFactory
+
+
 class AMQPConnection(object):
     MAX_BACKOFF = 30
 
@@ -98,20 +112,7 @@ class AMQPConnection(object):
         self.connect_wait = threading.Event()
         self._connect_timeout = connect_timeout
         self._error = None
-        self._daemon_factory = self._get_daemon_factory()
-
-    @staticmethod
-    def _get_daemon_factory():
-        """
-        We need the factory to dynamically load daemon config, to support
-        agent transfers and HA failovers
-        """
-        # Dealing with circular dependency
-        try:
-            from cloudify_agent.api.factory import DaemonFactory
-        except ImportError:
-            DaemonFactory = None
-        return DaemonFactory
+        self._daemon_factory = _get_daemon_factory()
 
     @staticmethod
     def _update_env_vars(new_host):
