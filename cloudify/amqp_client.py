@@ -120,6 +120,9 @@ class AMQPConnection(object):
                         params.host = node_ip
                         yield params
                     continue
+                else:
+                    params.host = daemon.broker_ip
+            logger.debug('Current connection params: {0}'.format(params))
             yield params
 
     def _get_reconnect_backoff(self):
