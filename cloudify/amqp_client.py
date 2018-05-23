@@ -134,7 +134,9 @@ class AMQPConnection(object):
                 daemon = self._daemon_factory().load(self.name)
                 if daemon.cluster:
                     for node_ip in daemon.cluster:
-                        params.host = node_ip
+                        if params.host != node_ip:
+                            params.host = node_ip
+                            self._update_env_vars(node_ip)
                         yield params
                     continue
                 else:
