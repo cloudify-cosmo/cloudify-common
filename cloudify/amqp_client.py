@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import os
 import ssl
 import json
 import time
@@ -20,10 +21,12 @@ import uuid
 import Queue
 import logging
 import threading
+from urlparse import urlsplit, urlunsplit
 
 import pika
 import pika.exceptions
 
+from cloudify import constants
 from cloudify import exceptions
 from cloudify import broker_config
 
@@ -110,6 +113,19 @@ class AMQPConnection(object):
             DaemonFactory = None
         return DaemonFactory
 
+    @staticmethod
+    def _update_env_vars(new_host):
+        """
+        In cases where the broker IP has changed, we want to update the
+        environment variables
+        """
+        split_url = urlsplit(os.environ[constants.MANAGER_FILE_SERVER_URL_KEY])
+        new_url = split_url._replace(
+            netloc='{0}:{1}'.format(new_host, split_url.port)
+        )
+        os.environ[constants.MANAGER_FILE_SERVER_URL_KEY] = urlunsplit(new_url)
+        os.environ[constants.REST_HOST_KEY] = new_host
+
     def _get_connection_params(self):
         while True:
             params = self._amqp_params.as_pika_params()
@@ -121,7 +137,9 @@ class AMQPConnection(object):
                         yield params
                     continue
                 else:
-                    params.host = daemon.broker_ip
+                    if params.host != daemon.broker_ip:
+                        params.host = daemon.broker_ip
+                        self._update_env_vars(daemon.broker_ip)
             logger.debug('Current connection params: {0}'.format(params))
             yield params
 
