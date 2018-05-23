@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import os
 import ssl
 import json
 import time
@@ -20,18 +21,14 @@ import uuid
 import Queue
 import logging
 import threading
+from urlparse import urlsplit, urlunsplit
 
 import pika
 import pika.exceptions
 
-from cloudify import broker_config
+from cloudify import constants
 from cloudify import exceptions
-
-try:
-    from cloudify_agent.api.factory import DaemonFactory
-except ImportError:
-    DaemonFactory = None
-
+from cloudify import broker_config
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +81,20 @@ class ConnectionTimeoutError(Exception):
     """Timeout trying to connect"""
 
 
+def _get_daemon_factory():
+    """
+    We need the factory to dynamically load daemon config, to support
+    agent transfers and HA failovers
+    """
+    # Dealing with circular dependency
+    try:
+        from cloudify_agent.api.factory import DaemonFactory
+    except ImportError:
+        # Might not exist in e.g. the REST service
+        DaemonFactory = None
+    return DaemonFactory
+
+
 class AMQPConnection(object):
     MAX_BACKOFF = 30
 
@@ -101,17 +112,38 @@ class AMQPConnection(object):
         self.connect_wait = threading.Event()
         self._connect_timeout = connect_timeout
         self._error = None
+        self._daemon_factory = _get_daemon_factory()
+
+    @staticmethod
+    def _update_env_vars(new_host):
+        """
+        In cases where the broker IP has changed, we want to update the
+        environment variables
+        """
+        split_url = urlsplit(os.environ[constants.MANAGER_FILE_SERVER_URL_KEY])
+        new_url = split_url._replace(
+            netloc='{0}:{1}'.format(new_host, split_url.port)
+        )
+        os.environ[constants.MANAGER_FILE_SERVER_URL_KEY] = urlunsplit(new_url)
+        os.environ[constants.REST_HOST_KEY] = new_host
 
     def _get_connection_params(self):
         while True:
             params = self._amqp_params.as_pika_params()
-            if self.name and DaemonFactory is not None:
-                daemon = DaemonFactory().load(self.name)
+            if self.name and self._daemon_factory:
+                daemon = self._daemon_factory().load(self.name)
                 if daemon.cluster:
                     for node_ip in daemon.cluster:
-                        params.host = node_ip
+                        if params.host != node_ip:
+                            params.host = node_ip
+                            self._update_env_vars(node_ip)
                         yield params
                     continue
+                else:
+                    if params.host != daemon.broker_ip:
+                        params.host = daemon.broker_ip
+                        self._update_env_vars(daemon.broker_ip)
+            logger.debug('Current connection params: {0}'.format(params))
             yield params
 
     def _get_reconnect_backoff(self):
