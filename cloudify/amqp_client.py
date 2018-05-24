@@ -214,7 +214,12 @@ class AMQPConnection(object):
         self._consumer_thread = threading.Thread(target=self.consume)
         self._consumer_thread.daemon = True
         self._consumer_thread.start()
-        self.connect_wait.wait()
+
+        # poll instead of waiting indefinitely so that signals can be handled
+        while True:
+            if self.connect_wait.wait(0.5):
+                break
+
         if self._error is not None:
             raise self._error
         return self._consumer_thread
