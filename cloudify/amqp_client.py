@@ -444,6 +444,7 @@ def get_client(amqp_host=None,
                amqp_vhost=None,
                ssl_enabled=None,
                ssl_cert_path=None,
+               name=None,
                connect_timeout=10):
     """
     Create a client without any handlers in it. Use the `add_handler` method
@@ -461,7 +462,7 @@ def get_client(amqp_host=None,
         ssl_cert_path
     )
 
-    return AMQPConnection(handlers=[], amqp_params=amqp_params,
+    return AMQPConnection(handlers=[], amqp_params=amqp_params, name=name,
                           connect_timeout=connect_timeout)
 
 
