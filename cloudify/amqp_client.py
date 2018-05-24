@@ -119,7 +119,13 @@ class AMQPConnection(object):
         """
         In cases where the broker IP has changed, we want to update the
         environment variables
+
+        This is only relevant when were running as the agent worker,
+        and should have no effect when AMQPConnection is used in other
+        places (eg. cfy-agent).
         """
+        if constants.MANAGER_FILE_SERVER_URL_KEY not in os.environ:
+            return
         split_url = urlsplit(os.environ[constants.MANAGER_FILE_SERVER_URL_KEY])
         new_url = split_url._replace(
             netloc='{0}:{1}'.format(new_host, split_url.port)
