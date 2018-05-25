@@ -187,7 +187,7 @@ class AMQPConnection(object):
 
     def _get_pika_connection(self, params, deadline=None):
         try:
-            return pika.BlockingConnection(params)
+            connection = pika.BlockingConnection(params)
         except pika.exceptions.AMQPConnectionError as e:
             time.sleep(self._get_reconnect_backoff())
             if deadline and time.time() > deadline:
@@ -195,6 +195,7 @@ class AMQPConnection(object):
         else:
             self._reset_reconnect_backoff()
             self._closed = False
+            return connection
 
     def consume(self):
         out_channel = self.connect()
