@@ -170,6 +170,7 @@ class AMQPConnection(object):
             while True:
                 params = next(self._connection_params)
                 self.connection = self._get_pika_connection(params, deadline)
+        # unfortunately DaemonNotFoundError is a BaseException subclass :(
         except BaseException as e:
             self._error = e
             self.connect_wait.set()
