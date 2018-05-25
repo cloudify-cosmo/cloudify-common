@@ -107,7 +107,7 @@ class AMQPConnection(object):
         self._reconnect_backoff = 1
         self._closed = False
         self._amqp_params = amqp_params or AMQPParams()
-        self.connection = None
+        self._pika_connection = None
         self._consumer_thread = None
         self.connect_wait = threading.Event()
         self._connect_timeout = connect_timeout
@@ -163,37 +163,47 @@ class AMQPConnection(object):
     def connect(self):
         self._error = None
         deadline = None
+        self._pika_connection = None
         if self._connect_timeout is not None:
             deadline = time.time() + self._connect_timeout
 
-        for params in self._connection_params:
-            try:
-                self.connection = pika.BlockingConnection(params)
-            except pika.exceptions.AMQPConnectionError:
-                time.sleep(self._get_reconnect_backoff())
-                if deadline and time.time() > deadline:
-                    self._error = ConnectionTimeoutError()
-                    self.connect_wait.set()
-                    raise self._error
-            else:
-                self._reset_reconnect_backoff()
-                self._closed = False
-                break
+        try:
+            while self._pika_connection is None:
+                params = next(self._connection_params)
+                self._pika_connection = self._get_pika_connection(
+                    params, deadline)
+        # unfortunately DaemonNotFoundError is a BaseException subclass :(
+        except BaseException as e:
+            self._error = e
+            self.connect_wait.set()
+            raise e
 
-        out_channel = self.connection.channel()
+        out_channel = self._pika_connection.channel()
         for handler in self._handlers:
-            handler.register(self.connection, self._publish_queue)
+            handler.register(self._pika_connection, self._publish_queue)
             logger.info('Registered handler for {0} [{1}]'
                         .format(handler.__class__.__name__,
                                 handler.routing_key))
         self.connect_wait.set()
         return out_channel
 
+    def _get_pika_connection(self, params, deadline=None):
+        try:
+            connection = pika.BlockingConnection(params)
+        except pika.exceptions.AMQPConnectionError as e:
+            time.sleep(self._get_reconnect_backoff())
+            if deadline and time.time() > deadline:
+                raise e
+        else:
+            self._reset_reconnect_backoff()
+            self._closed = False
+            return connection
+
     def consume(self):
         out_channel = self.connect()
         while not self._closed:
             try:
-                self.connection.process_data_events(0.2)
+                self._pika_connection.process_data_events(0.2)
                 self._process_publish(out_channel)
             except pika.exceptions.ChannelClosed as e:
                 # happens when we attempt to use an exchange/queue that is not
@@ -205,7 +215,7 @@ class AMQPConnection(object):
                 out_channel = self.connect()
                 continue
         self._process_publish(out_channel)
-        self.connection.close()
+        self._pika_connection.close()
 
     def consume_in_thread(self):
         """Spawn a thread to run consume"""
@@ -255,8 +265,8 @@ class AMQPConnection(object):
 
     def add_handler(self, handler):
         self._handlers.append(handler)
-        if self.connection:
-            handler.register(self.connection, self._publish_queue)
+        if self._pika_connection:
+            handler.register(self._pika_connection, self._publish_queue)
 
 
 class TaskConsumer(object):
