@@ -167,17 +167,9 @@ class AMQPConnection(object):
             deadline = time.time() + self._connect_timeout
 
         try:
-            for params in self._connection_params:
-                try:
-                    self.connection = pika.BlockingConnection(params)
-                except pika.exceptions.AMQPConnectionError as e:
-                    time.sleep(self._get_reconnect_backoff())
-                    if deadline and time.time() > deadline:
-                        raise e
-                else:
-                    self._reset_reconnect_backoff()
-                    self._closed = False
-                    break
+            while True:
+                params = next(self._connection_params)
+                self.connection = self._get_pika_connection(params, deadline)
         except BaseException as e:
             self._error = e
             self.connect_wait.set()
@@ -191,6 +183,17 @@ class AMQPConnection(object):
                                 handler.routing_key))
         self.connect_wait.set()
         return out_channel
+
+    def _get_pika_connection(self, params, deadline=None):
+        try:
+            return pika.BlockingConnection(params)
+        except pika.exceptions.AMQPConnectionError as e:
+            time.sleep(self._get_reconnect_backoff())
+            if deadline and time.time() > deadline:
+                raise e
+        else:
+            self._reset_reconnect_backoff()
+            self._closed = False
 
     def consume(self):
         out_channel = self.connect()
