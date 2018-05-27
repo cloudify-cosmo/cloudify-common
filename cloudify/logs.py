@@ -365,7 +365,7 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None):
     console_handler.setFormatter(console_formatter)
 
     root_logger = logging.getLogger()
-    root_logger.setLevel('INFO')
+    root_logger.setLevel(logging.INFO)
     root_logger.addHandler(console_handler)
     worker_logger = logging.getLogger('worker')
     dispatch_logger = logging.getLogger('dispatch')
