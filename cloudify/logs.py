@@ -352,6 +352,9 @@ def _publish_message(client, message, message_type, logger):
 def setup_agent_logger(log_name, log_level=None, log_dir=None):
     if log_level is None:
         log_level = os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG'
+        # for python 2.6 compat, we translate the string to the actual number
+        # that is required (like logging.DEBUG etc)
+        log_level = logging.getLevelName(log_level)
     if log_dir is None:
         log_dir = os.environ.get('AGENT_LOG_DIR')
 
