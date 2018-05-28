@@ -1262,7 +1262,9 @@ class _TaskDispatcher(object):
         if self._tasks[client]:
             return
         self._tasks.pop(client)
-        client.close()
+        # we are running in a callback - on the consumer thread. No reason to
+        # try and wait (join) for the thread we're running on to be closed
+        client.close(wait=False)
 
 
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
