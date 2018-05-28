@@ -357,7 +357,7 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None):
     if log_dir is None:
         log_dir = os.environ.get('AGENT_LOG_DIR')
 
-    # the cloudify_task logger is for ctx.logger and will be handled by one
+    # the 'ctx' logger is for ctx.logger and will be handled by one
     # of the PluginHandlers
     context_logger = logging.getLogger('ctx')
     context_logger.propagate = False
