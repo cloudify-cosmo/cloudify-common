@@ -154,13 +154,12 @@ def init_cloudify_logger(handler, logger_name,
 
     # TODO: somehow inject logging level (no one currently passes
     # logging_level)
-    logger = logging.getLogger(logger_name)
+    logger = logging.getLogger('ctx.{0}'.format(logger_name))
     logger.setLevel(logging_level)
     for h in logger.handlers:
         logger.removeHandler(h)
     handler.setFormatter(logging.Formatter("%(message)s"))
     handler.setLevel(logging_level)
-    logger.propagate = False
     logger.addHandler(handler)
     return logger
 
@@ -357,6 +356,11 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None):
         log_level = logging.getLevelName(log_level)
     if log_dir is None:
         log_dir = os.environ.get('AGENT_LOG_DIR')
+
+    # the 'ctx' logger is for ctx.logger and will be handled by one
+    # of the PluginHandlers
+    context_logger = logging.getLogger('ctx')
+    context_logger.propagate = False
 
     console_formatter = logging.Formatter(
         '%(name)s:%(levelname)s: %(message)s')
