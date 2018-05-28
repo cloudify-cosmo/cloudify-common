@@ -397,7 +397,6 @@ class WorkflowHandler(TaskHandler):
             return workflow_context.CloudifySystemWideWorkflowContext
         return workflow_context.CloudifyWorkflowContext
 
-    @property
     def handle(self):
         self.kwargs['ctx'] = self.ctx
         self._validate_workflow_func()
