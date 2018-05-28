@@ -26,6 +26,7 @@ from urlparse import urlsplit, urlunsplit
 import pika
 import pika.exceptions
 
+from cloudify import utils
 from cloudify import constants
 from cloudify import exceptions
 from cloudify import broker_config
@@ -224,11 +225,7 @@ class AMQPConnection(object):
         self._consumer_thread = threading.Thread(target=self.consume)
         self._consumer_thread.daemon = True
         self._consumer_thread.start()
-
-        # poll instead of waiting indefinitely so that signals can be handled
-        while True:
-            if self.connect_wait.wait(0.5):
-                break
+        utils.wait_for_event(self.connect_wait)
 
         if self._error is not None:
             raise self._error

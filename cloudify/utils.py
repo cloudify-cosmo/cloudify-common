@@ -385,6 +385,26 @@ def _shlex_split(command):
     return list(lex)
 
 
+if sys.version_info > (2, 6):
+    # requires 2.7+
+    def wait_for_event(evt, poll_interval=0.5):
+        """Wait for a threading.Event by polling, which allows handling signals.
+        (ie. doesnt block ^C)
+        """
+        while True:
+            if evt.wait(0.5):
+                return
+else:
+    def wait_for_event(evt, poll_interval=None):
+        """Wait for a threading.Event. Stub for compatibility."""
+        # in python 2.6, Event.wait always returns None, so we can either:
+        #  - .wait() without a timeout and block ^C which is inconvenient
+        #  - .wait() with timeout and then check .is_set(),
+        #     which is not threadsafe
+        # We choose the inconvenient but safe method.
+        evt.wait()
+
+
 class Internal(object):
 
     @staticmethod
