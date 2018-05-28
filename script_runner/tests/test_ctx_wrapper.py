@@ -126,7 +126,7 @@ class PythonWrapperTests(testtools.TestCase):
             'illegal path: missing_node_property',
             str(ex.stderr))
 
-    @log_capture('cloudify_task')
+    @log_capture('cloudify_context')
     def test_logger(self, capture):
         script = ('ctx.logger.debug("debug_message")\n'
                   'ctx.logger.info("info_message")\n'
