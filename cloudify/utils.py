@@ -392,7 +392,7 @@ if sys.version_info > (2, 6):
         (ie. doesnt block ^C)
         """
         while True:
-            if evt.wait(0.5):
+            if evt.wait(poll_interval):
                 return
 else:
     def wait_for_event(evt, poll_interval=None):
