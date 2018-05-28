@@ -690,7 +690,7 @@ class RemoteWorkflowTaskResult(WorkflowTaskResult):
         return self.async_result.get()
 
     def _refresh_state(self):
-        pass
+        self.async_result = self.task.async_result.async_result
 
     @property
     def result(self):
