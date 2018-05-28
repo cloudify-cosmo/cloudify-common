@@ -317,6 +317,27 @@ class TaskHandler(object):
                 self._func = None
         return self._func
 
+    def get_func(self):
+        task_name = self.cloudify_context['task_name']
+        split = task_name.split('.')
+        module_name = '.'.join(split[:-1])
+        function_name = split[-1]
+        try:
+            module = importlib.import_module(module_name)
+        except ImportError as e:
+            raise exceptions.NonRecoverableError(
+                'No module named {0} ({1})'.format(module_name, e))
+        try:
+            func = getattr(module, function_name)
+        except AttributeError:
+            raise exceptions.NonRecoverableError(
+                "{0} has no function named '{1}' ".format(module_name,
+                                                          function_name))
+        if not callable(func):
+            raise exceptions.NonRecoverableError(
+                "{0}.{1} is not callable".format(module_name, function_name))
+        return func
+
     def close(self):
         if self._zmq_socket:
             self._zmq_socket.close()
@@ -379,41 +400,20 @@ class WorkflowHandler(TaskHandler):
     @property
     def handle(self):
         self.kwargs['ctx'] = self.ctx
-        self._validate_func()
+        self._validate_workflow_func()
 
         with state.current_workflow_ctx.push(self.ctx, self.kwargs):
             if self.ctx.local or self.ctx.dry_run:
                 return self._handle_local_workflow()
             return self._handle_remote_workflow()
 
-    def _validate_func(self):
+    def _validate_workflow_func(self):
         if not self.func:
             try:
                 self.get_func()
             except Exception as e:
                 self._workflow_failed(e, e.traceback)
                 raise
-
-    def get_func(self):
-        task_name = self.cloudify_context['task_name']
-        split = task_name.split('.')
-        module_name = '.'.join(split[:-1])
-        function_name = split[-1]
-        try:
-            module = importlib.import_module(module_name)
-        except ImportError as e:
-            raise exceptions.NonRecoverableError(
-                'No module named {0} ({1})'.format(module_name, e))
-        try:
-            func = getattr(module, function_name)
-        except AttributeError:
-            raise exceptions.NonRecoverableError(
-                "{0} has no function named '{1}' ".format(module_name,
-                                                          function_name))
-        if not callable(func):
-            raise exceptions.NonRecoverableError(
-                "{0}.{1} is not callable".format(module_name, function_name))
-        return func
 
     @property
     def update_execution_status(self):
