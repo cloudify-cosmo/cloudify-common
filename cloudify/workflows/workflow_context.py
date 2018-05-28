@@ -1262,7 +1262,7 @@ class _TaskDispatcher(object):
         if self._tasks[client]:
             return
         self._tasks.pop(client)
-        client.close()
+        client.close(wait=False)
 
 
 class RemoteContextHandler(CloudifyWorkflowContextHandler):

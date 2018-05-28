@@ -257,9 +257,9 @@ class AMQPConnection(object):
                 self._publish_queue.put(msg)
                 raise
 
-    def close(self):
+    def close(self, wait=True):
         self._closed = True
-        if self._consumer_thread:
+        if self._consumer_thread and wait:
             self._consumer_thread.join()
             self._consumer_thread = None
 
