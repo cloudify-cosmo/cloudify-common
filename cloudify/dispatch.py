@@ -411,7 +411,7 @@ class WorkflowHandler(TaskHandler):
             try:
                 self.get_func()
             except Exception as e:
-                self._workflow_failed(e, e.traceback)
+                self._workflow_failed(e, traceback.format_exc())
                 raise
 
     @property
@@ -489,9 +489,7 @@ class WorkflowHandler(TaskHandler):
             self._workflow_failed(e, e.traceback)
             raise
         except BaseException as e:
-            error = StringIO.StringIO()
-            traceback.print_exc(file=error)
-            self._workflow_failed(e, error.getvalue())
+            self._workflow_failed(e, traceback.format_exc())
             raise
         finally:
             amqp_client_utils.close_amqp_client()
