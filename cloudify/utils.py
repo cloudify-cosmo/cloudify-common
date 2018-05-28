@@ -385,7 +385,7 @@ def _shlex_split(command):
     return list(lex)
 
 
-if sys.version_info > (2, 6):
+if sys.version_info >= (2, 7):
     # requires 2.7+
     def wait_for_event(evt, poll_interval=0.5):
         """Wait for a threading.Event by polling, which allows handling signals.
