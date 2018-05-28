@@ -83,13 +83,14 @@ DISPATCH_LOGGER_FORMATTER = logging.Formatter(
 
 
 class TaskHandler(object):
+    NOTSET = object()
 
     def __init__(self, cloudify_context, args, kwargs):
         self.cloudify_context = cloudify_context
         self.args = args
         self.kwargs = kwargs
         self._ctx = None
-        self._func = None
+        self._func = self.NOTSET
         self._zmq_context = None
         self._zmq_socket = None
         self._fallback_handler = None
@@ -309,23 +310,33 @@ class TaskHandler(object):
 
     @property
     def func(self):
-        if not self._func:
-            task_name = self.cloudify_context['task_name']
-            split = task_name.split('.')
-            module_name = '.'.join(split[:-1])
-            function_name = split[-1]
+        if self._func is self.NOTSET:
             try:
-                module = importlib.import_module(module_name)
-            except ImportError as e:
-                raise exceptions.NonRecoverableError(
-                    'No module named {0} ({1})'.format(module_name, e))
-            try:
-                self._func = getattr(module, function_name)
-            except AttributeError:
-                raise exceptions.NonRecoverableError(
-                    "{0} has no function named '{1}' ".format(module_name,
-                                                              function_name))
+                self._func = self.get_func()
+            except Exception:
+                self._func = None
         return self._func
+
+    def get_func(self):
+        task_name = self.cloudify_context['task_name']
+        split = task_name.split('.')
+        module_name = '.'.join(split[:-1])
+        function_name = split[-1]
+        try:
+            module = importlib.import_module(module_name)
+        except ImportError as e:
+            raise exceptions.NonRecoverableError(
+                'No module named {0} ({1})'.format(module_name, e))
+        try:
+            func = getattr(module, function_name)
+        except AttributeError:
+            raise exceptions.NonRecoverableError(
+                "{0} has no function named '{1}' ".format(module_name,
+                                                          function_name))
+        if not callable(func):
+            raise exceptions.NonRecoverableError(
+                "{0}.{1} is not callable".format(module_name, function_name))
+        return func
 
     def close(self):
         if self._zmq_socket:
@@ -387,16 +398,21 @@ class WorkflowHandler(TaskHandler):
         return workflow_context.CloudifyWorkflowContext
 
     def handle(self):
-        if not self.func:
-            raise exceptions.NonRecoverableError(
-                'func not found: {0}'.format(self.cloudify_context))
-
         self.kwargs['ctx'] = self.ctx
+        self._validate_workflow_func()
 
         with state.current_workflow_ctx.push(self.ctx, self.kwargs):
             if self.ctx.local or self.ctx.dry_run:
                 return self._handle_local_workflow()
             return self._handle_remote_workflow()
+
+    def _validate_workflow_func(self):
+        if not self.func:
+            try:
+                self.get_func()
+            except Exception as e:
+                self._workflow_failed(e, traceback.format_exc())
+                raise
 
     @property
     def update_execution_status(self):
@@ -473,9 +489,7 @@ class WorkflowHandler(TaskHandler):
             self._workflow_failed(e, e.traceback)
             raise
         except BaseException as e:
-            error = StringIO.StringIO()
-            traceback.print_exc(file=error)
-            self._workflow_failed(e, error.getvalue())
+            self._workflow_failed(e, traceback.format_exc())
             raise
         finally:
             amqp_client_utils.close_amqp_client()
