@@ -241,18 +241,30 @@ class AMQPConnection(object):
     def _process_publish(self, channel):
         while True:
             try:
-                msg = self._publish_queue.get_nowait()
+                envelope = self._publish_queue.get_nowait()
             except Queue.Empty:
                 return
+
+            # we use a separate queue to send any possible exceptions back
+            # to the calling thread - see the publish method
+            message = envelope['message']
+            err_queue = envelope.get('err_queue')
+
             try:
-                channel.basic_publish(**msg)
+                channel.basic_publish(**message)
             except pika.exceptions.ConnectionClosed:
                 if self._closed:
                     return
                 # if we couldn't send the message because the connection
                 # was down, requeue it to be sent again later
-                self._publish_queue.put(msg)
+                self._publish_queue.put(envelope)
                 raise
+            except Exception as e:
+                if err_queue:
+                    err_queue.put(e)
+            else:
+                if err_queue:
+                    err_queue.put(None)
 
     def close(self, wait=True):
         self._closed = True
@@ -264,6 +276,31 @@ class AMQPConnection(object):
         self._handlers.append(handler)
         if self._pika_connection:
             handler.register(self._pika_connection, self._publish_queue)
+
+    def publish(self, message, wait=True):
+        """Schedule a message to be sent.
+
+        :param message: Kwargs for the pika basic_publish call. Should at
+                        least contain the "body" and "exchange" keys, and
+                        it might contain other keys such as "routing_key"
+                        or "properties"
+        :param wait: Whether to wait for the message to actually be sent.
+                     If true, an exception will be raised if the message
+                     cannot be sent.
+        """
+        # the message will likely be sent from another thread (the .consume
+        # thread). If an error happens there, we must have a way to get it
+        # back out, so we pass a Queue together with the message, that will
+        # contain either an exception instance, or None
+        err_queue = Queue.Queue() if wait else None
+        envelope = {
+            'message': 'message',
+            'err_queue': err_queue
+        }
+        self._output_queue.put(envelope)
+        err = err_queue.get()
+        if isinstance(err, Exception):
+            raise err
 
 
 class TaskConsumer(object):
