@@ -266,34 +266,17 @@ class AMQPConnection(object):
             handler.register(self._pika_connection, self._publish_queue)
 
 
-class TaskConsumer(object):
-    routing_key = ''
+def agent_queue_name(queue, routing_key):
+    return '{0}_{1}'.format(queue, routing_key)
 
-    def __init__(self, queue, threadpool_size=5):
-        self.threadpool_size = threadpool_size
-        self.exchange = queue
-        self.queue = '{0}_{1}'.format(queue, self.routing_key)
-        self._sem = threading.Semaphore(threadpool_size)
-        self._output_queue = None
-        self.in_channel = None
 
-    def register(self, connection, output_queue):
-        self._output_queue = output_queue
-        self.in_channel = connection.channel()
-        self._register_queue(self.in_channel)
+class ProcessMixin(object):
+    """Implement processing incoming messages using a threadpool"""
 
-    def _register_queue(self, channel):
-        channel.basic_qos(prefetch_count=self.threadpool_size)
-        channel.confirm_delivery()
-        channel.exchange_declare(
-            exchange=self.exchange, auto_delete=False, durable=True)
-        channel.queue_declare(queue=self.queue,
-                              durable=True,
-                              auto_delete=False)
-        channel.queue_bind(queue=self.queue,
-                           exchange=self.exchange,
-                           routing_key=self.routing_key)
-        channel.basic_consume(self.process, self.queue)
+    def __init__(self, *args, **kwargs):
+        super(ProcessMixin, self).__init__(*args, **kwargs)
+        self.threadpool_size = kwargs.get('threadpool_size', 5)
+        self._sem = threading.Semaphore(self.threadpool_size)
 
     def process(self, channel, method, properties, body):
         try:
@@ -335,6 +318,38 @@ class TaskConsumer(object):
         raise NotImplementedError()
 
 
+class TaskConsumer(ProcessMixin):
+    routing_key = ''
+
+    def __init__(self, queue, *args, **kwargs):
+        super(TaskConsumer, self).__init__(*args, **kwargs)
+        self.exchange = queue
+        self.queue = agent_queue_name(queue, self.routing_key)
+        self._output_queue = None
+        self.in_channel = None
+
+    def register(self, connection, output_queue):
+        self._output_queue = output_queue
+        self.in_channel = connection.channel()
+        self._register_queue(self.in_channel)
+
+    def _register_queue(self, channel):
+        # self.queue is the queue we are consuming from, self.exchange
+        # is the exchange we will be publishing to. Note: this doesn't
+        # declare the queue that the published messages may end up on.
+        channel.basic_qos(prefetch_count=self.threadpool_size)
+        channel.confirm_delivery()
+        channel.exchange_declare(
+            exchange=self.exchange, auto_delete=False, durable=True)
+        channel.queue_declare(queue=self.queue,
+                              durable=True,
+                              auto_delete=False)
+        channel.queue_bind(queue=self.queue,
+                           exchange=self.exchange,
+                           routing_key=self.routing_key)
+        channel.basic_consume(self.process, self.queue)
+
+
 class SendHandler(object):
     exchange_settings = {
         'auto_delete': False,
@@ -374,16 +389,24 @@ class SendHandler(object):
         })
 
 
-class _RequestResponseHandlerBase(TaskConsumer):
-    def __init__(self, exchange):
-        super(_RequestResponseHandlerBase, self).__init__(exchange)
-        self.queue = None
-
-    def _register_queue(self, channel):
+class _RequestResponseHandlerBase(object):
+    def __init__(self, exchange, routing_key='', *args, **kwargs):
+        super(_RequestResponseHandlerBase, self).__init__(*args, **kwargs)
+        self.exchange = exchange
+        self.routing_key = routing_key
         self.queue = uuid.uuid4().hex
-        self.in_channel.queue_declare(queue=self.queue, exclusive=True,
-                                      durable=True)
-        channel.basic_consume(self.process, self.queue)
+        self.send_queue = agent_queue_name(exchange, routing_key)
+
+    def register(self, connection, output_queue):
+        self._output_queue = output_queue
+        self.in_channel = connection.channel()
+        self.in_channel.confirm_delivery()
+        self.in_channel.exchange_declare(
+            exchange=self.exchange, auto_delete=False, durable=True)
+        for queue in [self.queue, self.send_queue]:
+            self.in_channel.queue_declare(
+                queue=queue, exclusive=True, durable=True)
+        self.in_channel.basic_consume(self.process, self.queue)
 
     def publish(self, message, correlation_id=None, routing_key=''):
         if correlation_id is None:
