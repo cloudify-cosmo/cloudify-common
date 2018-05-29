@@ -288,6 +288,14 @@ class AMQPConnection(object):
                      If true, an exception will be raised if the message
                      cannot be sent.
         """
+        if wait and self._consumer_thread \
+                and self._consumer_thread is threading.current_thread():
+            # when sending from the connection thread, we can't wait because
+            # then we wouldn't allow the actual send loop (._process_publish)
+            # to run, because we'd block on the err_queue here
+            raise RuntimeError(
+                'Cannot wait when sending from the connection thread')
+
         # the message will likely be sent from another thread (the .consume
         # thread). If an error happens there, we must have a way to get it
         # back out, so we pass a Queue together with the message, that will
