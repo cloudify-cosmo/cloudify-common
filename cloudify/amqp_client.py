@@ -181,7 +181,7 @@ class AMQPConnection(object):
 
         out_channel = self._pika_connection.channel()
         for handler in self._handlers:
-            handler.register(self._pika_connection, self._publish_queue)
+            handler.register(self)
             logger.info('Registered handler for {0} [{1}]'
                         .format(handler.__class__.__name__,
                                 handler.routing_key))
@@ -275,7 +275,13 @@ class AMQPConnection(object):
     def add_handler(self, handler):
         self._handlers.append(handler)
         if self._pika_connection:
-            handler.register(self._pika_connection, self._publish_queue)
+            handler.register(self)
+
+    def channel(self):
+        if self._closed or not self._pika_connection:
+            raise RuntimeError(
+                'Attempted to open a channel on a closed connection')
+        return self._pika_connection.channel()
 
     def publish(self, message, wait=True):
         """Schedule a message to be sent.
@@ -319,11 +325,11 @@ class TaskConsumer(object):
         self.exchange = queue
         self.queue = '{0}_{1}'.format(queue, self.routing_key)
         self._sem = threading.Semaphore(threadpool_size)
-        self._output_queue = None
+        self._connection = None
         self.in_channel = None
 
-    def register(self, connection, output_queue):
-        self._output_queue = output_queue
+    def register(self, connection):
+        self._connection = connection
         self.in_channel = connection.channel()
         self._register_queue(self.in_channel)
 
@@ -367,7 +373,7 @@ class TaskConsumer(object):
             )
 
         if properties.reply_to:
-            self._output_queue.put({
+            self._connection.publish({
                 'exchange': '',
                 'routing_key': properties.reply_to,
                 'properties': pika.BasicProperties(
@@ -391,9 +397,10 @@ class SendHandler(object):
         self.exchange_type = exchange_type
         self.routing_key = routing_key
         self.logger = logging.getLogger('dispatch.{0}'.format(self.exchange))
+        self._connection = None
 
-    def register(self, connection, output_queue):
-        self._output_queue = output_queue
+    def register(self, connection):
+        self._connection = connection
 
         out_channel = connection.channel()
         out_channel.exchange_declare(exchange=self.exchange,
@@ -412,7 +419,7 @@ class SendHandler(object):
         if 'message' in message:
             # message is textual, let's log it
             self._log_message(message)
-        self._output_queue.put({
+        self._connection.publish({
             'exchange': self.exchange,
             'body': json.dumps(message),
             'routing_key': self.routing_key
@@ -434,7 +441,7 @@ class _RequestResponseHandlerBase(TaskConsumer):
         if correlation_id is None:
             correlation_id = uuid.uuid4().hex
 
-        self._output_queue.put({
+        self._connection.publish({
             'exchange': self.exchange,
             'body': json.dumps(message),
             'properties': pika.BasicProperties(
