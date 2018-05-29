@@ -305,7 +305,7 @@ class AMQPConnection(object):
             'message': 'message',
             'err_queue': err_queue
         }
-        self._output_queue.put(envelope)
+        self._publish_queue.put(envelope)
         err = err_queue.get()
         if isinstance(err, Exception):
             raise err
