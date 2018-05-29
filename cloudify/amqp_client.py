@@ -273,10 +273,10 @@ def agent_queue_name(queue, routing_key):
 class ProcessMixin(object):
     """Implement processing incoming messages using a threadpool"""
 
-    def __init__(self, *args, **kwargs):
-        super(ProcessMixin, self).__init__(*args, **kwargs)
-        self.threadpool_size = kwargs.get('threadpool_size', 5)
+    def __init__(self, threadpool_size=5, *args, **kwargs):
+        self.threadpool_size = threadpool_size
         self._sem = threading.Semaphore(self.threadpool_size)
+        super(ProcessMixin, self).__init__(*args, **kwargs)
 
     def process(self, channel, method, properties, body):
         try:
