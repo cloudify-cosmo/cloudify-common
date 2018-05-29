@@ -262,6 +262,7 @@ class AMQPConnection(object):
             except Exception as e:
                 if err_queue:
                     err_queue.put(e)
+                raise
             else:
                 if err_queue:
                     err_queue.put(None)
