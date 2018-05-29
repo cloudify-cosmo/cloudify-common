@@ -353,10 +353,13 @@ class OperationHandler(TaskHandler):
     def ctx_cls(self):
         return context.CloudifyContext
 
-    def handle(self):
+    def _validate_operation_func(self):
         if not self.func:
-            raise exceptions.NonRecoverableError('func not found: {0}'.
-                                                 format(self.cloudify_context))
+            self.get_func()
+
+    def handle(self):
+        self._validate_operation_func()
+
         ctx = self.ctx
         kwargs = self.kwargs
         if ctx.task_target:
