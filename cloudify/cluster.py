@@ -18,14 +18,26 @@ import json
 import pika
 import types
 import requests
+import warnings
 import itertools
 
 from cloudify import constants
 
 from cloudify_rest_client import CloudifyClient
 from cloudify_rest_client.client import HTTPClient
-from cloudify_rest_client.exceptions import (CloudifyClientError,
-                                             NotClusterMaster)
+from cloudify_rest_client.exceptions import CloudifyClientError
+
+
+try:
+    from cloudify_rest_client.exceptions import NotClusterMaster
+except ImportError:
+    warnings.warn('cloudify-rest-client does not support clustering - '
+                  'failover will be unavailable')
+
+    class NotClusterMaster(Exception):
+        """An exception stub for when a rest client with cluster support
+        is unavailable.
+        """
 
 
 def _get_cluster_settings_file(filename=None):
