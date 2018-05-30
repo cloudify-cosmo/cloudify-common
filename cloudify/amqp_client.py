@@ -250,7 +250,6 @@ class AMQPConnection(object):
             # to the calling thread - see the publish method
             message = envelope['message']
             err_queue = envelope.get('err_queue')
-            message.setdefault('mandatory', True)
 
             try:
                 channel.publish(**message)
