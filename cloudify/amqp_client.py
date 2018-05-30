@@ -403,9 +403,9 @@ class _RequestResponseHandlerBase(object):
         self.in_channel.confirm_delivery()
         self.in_channel.exchange_declare(
             exchange=self.exchange, auto_delete=False, durable=True)
-        for queue in [self.queue, self.send_queue]:
-            self.in_channel.queue_declare(
-                queue=queue, exclusive=True, durable=True)
+        self.in_channel.queue_declare(
+            queue=self.queue, exclusive=True, durable=True)
+        self.in_channel.queue_declare(queue=self.send_queue, durable=True)
         self.in_channel.basic_consume(self.process, self.queue)
 
     def publish(self, message, correlation_id=None, routing_key=''):
