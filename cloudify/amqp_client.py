@@ -309,7 +309,7 @@ class AMQPConnection(object):
         # contain either an exception instance, or None
         err_queue = Queue.Queue() if wait else None
         envelope = {
-            'message': 'message',
+            'message': message,
             'err_queue': err_queue
         }
         self._publish_queue.put(envelope)
