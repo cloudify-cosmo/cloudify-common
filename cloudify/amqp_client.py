@@ -180,8 +180,9 @@ class AMQPConnection(object):
             raise e
 
         out_channel = self._pika_connection.channel()
+        out_channel.confirm_delivery()
         for handler in self._handlers:
-            handler.register(self._pika_connection, self._publish_queue)
+            handler.register(self)
             logger.info('Registered handler for {0} [{1}]'
                         .format(handler.__class__.__name__,
                                 handler.routing_key))
@@ -241,18 +242,32 @@ class AMQPConnection(object):
     def _process_publish(self, channel):
         while True:
             try:
-                msg = self._publish_queue.get_nowait()
+                envelope = self._publish_queue.get_nowait()
             except Queue.Empty:
                 return
+
+            # we use a separate queue to send any possible exceptions back
+            # to the calling thread - see the publish method
+            message = envelope['message']
+            err_queue = envelope.get('err_queue')
+            message.setdefault('mandatory', True)
+
             try:
-                channel.basic_publish(**msg)
+                channel.publish(**message)
             except pika.exceptions.ConnectionClosed:
                 if self._closed:
                     return
                 # if we couldn't send the message because the connection
                 # was down, requeue it to be sent again later
-                self._publish_queue.put(msg)
+                self._publish_queue.put(envelope)
                 raise
+            except Exception as e:
+                if err_queue:
+                    err_queue.put(e)
+                raise
+            else:
+                if err_queue:
+                    err_queue.put(None)
 
     def close(self, wait=True):
         self._closed = True
@@ -263,7 +278,47 @@ class AMQPConnection(object):
     def add_handler(self, handler):
         self._handlers.append(handler)
         if self._pika_connection:
-            handler.register(self._pika_connection, self._publish_queue)
+            handler.register(self)
+
+    def channel(self):
+        if self._closed or not self._pika_connection:
+            raise RuntimeError(
+                'Attempted to open a channel on a closed connection')
+        return self._pika_connection.channel()
+
+    def publish(self, message, wait=True, timeout=None):
+        """Schedule a message to be sent.
+
+        :param message: Kwargs for the pika basic_publish call. Should at
+                        least contain the "body" and "exchange" keys, and
+                        it might contain other keys such as "routing_key"
+                        or "properties"
+        :param wait: Whether to wait for the message to actually be sent.
+                     If true, an exception will be raised if the message
+                     cannot be sent.
+        """
+        if wait and self._consumer_thread \
+                and self._consumer_thread is threading.current_thread():
+            # when sending from the connection thread, we can't wait because
+            # then we wouldn't allow the actual send loop (._process_publish)
+            # to run, because we'd block on the err_queue here
+            raise RuntimeError(
+                'Cannot wait when sending from the connection thread')
+
+        # the message is going to be sent from another thread (the .consume
+        # thread). If an error happens there, we must have a way to get it
+        # back out, so we pass a Queue together with the message, that will
+        # contain either an exception instance, or None
+        err_queue = Queue.Queue() if wait else None
+        envelope = {
+            'message': message,
+            'err_queue': err_queue
+        }
+        self._publish_queue.put(envelope)
+        if err_queue:
+            err = err_queue.get(timeout=timeout)
+            if isinstance(err, Exception):
+                raise err
 
 
 class TaskConsumer(object):
@@ -274,11 +329,11 @@ class TaskConsumer(object):
         self.exchange = queue
         self.queue = '{0}_{1}'.format(queue, self.routing_key)
         self._sem = threading.Semaphore(threadpool_size)
-        self._output_queue = None
+        self._connection = None
         self.in_channel = None
 
-    def register(self, connection, output_queue):
-        self._output_queue = output_queue
+    def register(self, connection):
+        self._connection = connection
         self.in_channel = connection.channel()
         self._register_queue(self.in_channel)
 
@@ -322,7 +377,7 @@ class TaskConsumer(object):
             )
 
         if properties.reply_to:
-            self._output_queue.put({
+            self._connection.publish({
                 'exchange': '',
                 'routing_key': properties.reply_to,
                 'properties': pika.BasicProperties(
@@ -346,9 +401,10 @@ class SendHandler(object):
         self.exchange_type = exchange_type
         self.routing_key = routing_key
         self.logger = logging.getLogger('dispatch.{0}'.format(self.exchange))
+        self._connection = None
 
-    def register(self, connection, output_queue):
-        self._output_queue = output_queue
+    def register(self, connection):
+        self._connection = connection
 
         out_channel = connection.channel()
         out_channel.exchange_declare(exchange=self.exchange,
@@ -367,7 +423,7 @@ class SendHandler(object):
         if 'message' in message:
             # message is textual, let's log it
             self._log_message(message)
-        self._output_queue.put({
+        self._connection.publish({
             'exchange': self.exchange,
             'body': json.dumps(message),
             'routing_key': self.routing_key
@@ -389,7 +445,7 @@ class _RequestResponseHandlerBase(TaskConsumer):
         if correlation_id is None:
             correlation_id = uuid.uuid4().hex
 
-        self._output_queue.put({
+        self._connection.publish({
             'exchange': self.exchange,
             'body': json.dumps(message),
             'properties': pika.BasicProperties(
