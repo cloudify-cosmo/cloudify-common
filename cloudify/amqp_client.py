@@ -180,6 +180,7 @@ class AMQPConnection(object):
             raise e
 
         out_channel = self._pika_connection.channel()
+        out_channel.confirm_delivery()
         for handler in self._handlers:
             handler.register(self)
             logger.info('Registered handler for {0} [{1}]'
@@ -251,7 +252,7 @@ class AMQPConnection(object):
             err_queue = envelope.get('err_queue')
 
             try:
-                channel.basic_publish(**message)
+                channel.publish(**message)
             except pika.exceptions.ConnectionClosed:
                 if self._closed:
                     return
