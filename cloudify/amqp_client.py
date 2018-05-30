@@ -284,7 +284,7 @@ class AMQPConnection(object):
                 'Attempted to open a channel on a closed connection')
         return self._pika_connection.channel()
 
-    def publish(self, message, wait=True):
+    def publish(self, message, wait=True, timeout=None):
         """Schedule a message to be sent.
 
         :param message: Kwargs for the pika basic_publish call. Should at
@@ -313,9 +313,10 @@ class AMQPConnection(object):
             'err_queue': err_queue
         }
         self._publish_queue.put(envelope)
-        err = err_queue.get()
-        if isinstance(err, Exception):
-            raise err
+        if err_queue:
+            err = err_queue.get(timeout=timeout)
+            if isinstance(err, Exception):
+                raise err
 
 
 class TaskConsumer(object):
