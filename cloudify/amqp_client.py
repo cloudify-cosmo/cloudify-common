@@ -440,10 +440,7 @@ class _RequestResponseHandlerBase(TaskConsumer):
                                       durable=True)
         channel.basic_consume(self.process, self.queue)
 
-    def publish(self, message, correlation_id=None, routing_key=''):
-        if correlation_id is None:
-            correlation_id = uuid.uuid4().hex
-
+    def publish(self, message, correlation_id, routing_key=''):
         self._connection.publish({
             'exchange': self.exchange,
             'body': json.dumps(message),
@@ -452,7 +449,6 @@ class _RequestResponseHandlerBase(TaskConsumer):
                 correlation_id=correlation_id),
             'routing_key': routing_key
         })
-        return correlation_id
 
     def process(self, channel, method, properties, body):
         raise NotImplementedError()
@@ -463,11 +459,12 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
         super(BlockingRequestResponseHandler, self).__init__(*args, **kwargs)
         self._response_queues = {}
 
-    def publish(self, *args, **kwargs):
+    def publish(self, message, *args, **kwargs):
         timeout = kwargs.pop('timeout', None)
-        correlation_id = super(BlockingRequestResponseHandler, self)\
-            .publish(*args, **kwargs)
+        correlation_id = uuid.uuid4().hex
         self._response_queues[correlation_id] = Queue.Queue()
+        super(BlockingRequestResponseHandler, self).publish(
+            message, correlation_id, *args, **kwargs)
         try:
             resp = self._response_queues[correlation_id].get(timeout=timeout)
             return resp
@@ -493,11 +490,12 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
         super(CallbackRequestResponseHandler, self).__init__(*args, **kwargs)
         self._callbacks = {}
 
-    def publish(self, *args, **kwargs):
+    def publish(self, message, *args, **kwargs):
         callback = kwargs.pop('callback')
-        correlation_id = super(CallbackRequestResponseHandler, self)\
-            .publish(*args, **kwargs)
+        correlation_id = uuid.uuid4().hex
         self._callbacks[correlation_id] = callback
+        super(CallbackRequestResponseHandler, self).publish(
+            message, correlation_id, *args, **kwargs)
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
