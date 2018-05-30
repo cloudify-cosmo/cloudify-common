@@ -303,7 +303,7 @@ class AMQPConnection(object):
             raise RuntimeError(
                 'Cannot wait when sending from the connection thread')
 
-        # the message will likely be sent from another thread (the .consume
+        # the message is going to be sent from another thread (the .consume
         # thread). If an error happens there, we must have a way to get it
         # back out, so we pass a Queue together with the message, that will
         # contain either an exception instance, or None
