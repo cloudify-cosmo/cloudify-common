@@ -440,13 +440,18 @@ class _RequestResponseHandlerBase(TaskConsumer):
                                       durable=True)
         channel.basic_consume(self.process, self.queue)
 
-    def publish(self, message, correlation_id, routing_key=''):
+    def publish(self, message, correlation_id, routing_key='',
+                expiration=None):
+        if expiration is not None:
+            # rabbitmq wants it to be a string
+            expiration = '{0}'.format(expiration)
         self._connection.publish({
             'exchange': self.exchange,
             'body': json.dumps(message),
             'properties': pika.BasicProperties(
                 reply_to=self.queue,
-                correlation_id=correlation_id),
+                correlation_id=correlation_id,
+                expiration=expiration),
             'routing_key': routing_key
         })
 
