@@ -466,7 +466,9 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
 
     def publish(self, message, *args, **kwargs):
         timeout = kwargs.pop('timeout', None)
-        correlation_id = uuid.uuid4().hex
+        correlation_id = kwargs.pop('correlation_id', None)
+        if correlation_id is None:
+            correlation_id = uuid.uuid4().hex
         self._response_queues[correlation_id] = Queue.Queue()
         super(BlockingRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
@@ -497,7 +499,9 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
 
     def publish(self, message, *args, **kwargs):
         callback = kwargs.pop('callback')
-        correlation_id = uuid.uuid4().hex
+        correlation_id = kwargs.pop('correlation_id', None)
+        if correlation_id is None:
+            correlation_id = uuid.uuid4().hex
         self._callbacks[correlation_id] = callback
         super(CallbackRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
