@@ -250,7 +250,6 @@ class AMQPConnection(object):
             # to the calling thread - see the publish method
             message = envelope['message']
             err_queue = envelope.get('err_queue')
-            message.setdefault('mandatory', True)
 
             try:
                 channel.publish(**message)
@@ -441,19 +440,20 @@ class _RequestResponseHandlerBase(TaskConsumer):
                                       durable=True)
         channel.basic_consume(self.process, self.queue)
 
-    def publish(self, message, correlation_id=None, routing_key=''):
-        if correlation_id is None:
-            correlation_id = uuid.uuid4().hex
-
+    def publish(self, message, correlation_id, routing_key='',
+                expiration=None):
+        if expiration is not None:
+            # rabbitmq wants it to be a string
+            expiration = '{0}'.format(expiration)
         self._connection.publish({
             'exchange': self.exchange,
             'body': json.dumps(message),
             'properties': pika.BasicProperties(
                 reply_to=self.queue,
-                correlation_id=correlation_id),
+                correlation_id=correlation_id,
+                expiration=expiration),
             'routing_key': routing_key
         })
-        return correlation_id
 
     def process(self, channel, method, properties, body):
         raise NotImplementedError()
@@ -464,11 +464,12 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
         super(BlockingRequestResponseHandler, self).__init__(*args, **kwargs)
         self._response_queues = {}
 
-    def publish(self, *args, **kwargs):
+    def publish(self, message, *args, **kwargs):
         timeout = kwargs.pop('timeout', None)
-        correlation_id = super(BlockingRequestResponseHandler, self)\
-            .publish(*args, **kwargs)
+        correlation_id = uuid.uuid4().hex
         self._response_queues[correlation_id] = Queue.Queue()
+        super(BlockingRequestResponseHandler, self).publish(
+            message, correlation_id, *args, **kwargs)
         try:
             resp = self._response_queues[correlation_id].get(timeout=timeout)
             return resp
@@ -494,11 +495,12 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
         super(CallbackRequestResponseHandler, self).__init__(*args, **kwargs)
         self._callbacks = {}
 
-    def publish(self, *args, **kwargs):
+    def publish(self, message, *args, **kwargs):
         callback = kwargs.pop('callback')
-        correlation_id = super(CallbackRequestResponseHandler, self)\
-            .publish(*args, **kwargs)
+        correlation_id = uuid.uuid4().hex
         self._callbacks[correlation_id] = callback
+        super(CallbackRequestResponseHandler, self).publish(
+            message, correlation_id, *args, **kwargs)
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
