@@ -86,6 +86,13 @@ class User(dict):
         """
         return self.get('last_login_at')
 
+    @property
+    def is_locked(self):
+        """
+        :return: Whether a user is locked or not.
+        """
+        return self.get('is_locked')
+
 
 class UsersClient(object):
 
@@ -154,5 +161,12 @@ class UsersClient(object):
         response = self.api.post(
             '/users/active/{0}'.format(username),
             data={'action': 'deactivate'}
+        )
+        return User(response)
+
+    def unlock(self, username, **kwargs):
+        response = self.api.post(
+            '/users/unlock/{0}'.format(username),
+            params=kwargs
         )
         return User(response)
