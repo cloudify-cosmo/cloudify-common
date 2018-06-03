@@ -235,7 +235,8 @@ class DeploymentUpdatesClient(object):
                                        workflow_id=None,
                                        force=False,
                                        ignore_failure=False,
-                                       install_first=False):
+                                       install_first=False,
+                                       reinstall_list=None):
         data = {
             'workflow_id': workflow_id,
             'skip_install': skip_install,
@@ -247,6 +248,8 @@ class DeploymentUpdatesClient(object):
         }
         if inputs:
             data['inputs'] = inputs
+        if reinstall_list:
+            data['reinstall_list'] = reinstall_list
         uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
         response = self.api.put(uri, data=data)
         return DeploymentUpdate(response)
