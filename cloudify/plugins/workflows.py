@@ -61,7 +61,10 @@ def auto_heal_reinstall_node_subgraph(
     failing_node = ctx.get_node_instance(node_instance_id)
     failing_node_host = ctx.get_node_instance(
         failing_node._node_instance.host_id)
-    subgraph_node_instances = failing_node_host.get_contained_subgraph()
+    if failing_node_host is None:
+        subgraph_node_instances = failing_node.get_contained_subgraph()
+    else:
+        subgraph_node_instances = failing_node_host.get_contained_subgraph()
     intact_nodes = set(ctx.node_instances) - subgraph_node_instances
     graph = ctx.graph_mode()
     lifecycle.reinstall_node_instances(graph=graph,
@@ -398,7 +401,9 @@ def update(ctx,
            skip_install,
            skip_uninstall,
            ignore_failure=False,
-           install_first=False):
+           install_first=False,
+           node_instances_to_reinstall=None):
+    node_instances_to_reinstall = node_instances_to_reinstall or []
     instances_by_change = {
         'added_instances': (added_instance_ids, []),
         'added_target_instances_ids': (added_target_instances_ids, []),
@@ -439,7 +444,6 @@ def update(ctx,
     def _uninstall():
         if skip_uninstall:
             return
-
         lifecycle.execute_unlink_relationships(
             graph=graph,
             node_instances=set(
@@ -455,12 +459,24 @@ def update(ctx,
                 instances_by_change['remove_target_instance_ids'][1])
         )
 
+    def _reinstall():
+        subgraph = set([])
+        for node_instance_id in node_instances_to_reinstall:
+            node_instance = ctx.get_node_instance(node_instance_id)
+            subgraph = subgraph | node_instance.get_contained_subgraph()
+        intact_nodes = set(ctx.node_instances) - subgraph
+        lifecycle.reinstall_node_instances(graph=graph,
+                                           node_instances=subgraph,
+                                           related_nodes=intact_nodes,
+                                           ignore_failure=ignore_failure)
+
     if install_first:
         _install()
         _uninstall()
     else:
         _uninstall()
         _install()
+    _reinstall()
 
     # Finalize the commit (i.e. remove relationships or nodes)
     client = get_rest_client()
