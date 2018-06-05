@@ -59,6 +59,9 @@ def auto_heal_reinstall_node_subgraph(
     ctx.logger.info("Starting 'heal' workflow on {0}, Diagnosis: {1}".format(
         node_instance_id, diagnose_value))
     failing_node = ctx.get_node_instance(node_instance_id)
+    if failing_node is None:
+        raise ValueError('No node instance with id `{0}` was found'.format(
+            node_instance_id))
     failing_node_host = ctx.get_node_instance(
         failing_node._node_instance.host_id)
     if failing_node_host is None:
@@ -463,6 +466,12 @@ def update(ctx,
         subgraph = set([])
         for node_instance_id in node_instances_to_reinstall:
             node_instance = ctx.get_node_instance(node_instance_id)
+            if node_instance is None:
+                ctx.logger.error(
+                    'No node instance with id `{0}` was found. Reinstalling '
+                    'this nide instance will be skipped'.format(
+                        node_instance_id))
+                continue
             subgraph = subgraph | node_instance.get_contained_subgraph()
         intact_nodes = set(ctx.node_instances) - subgraph
         lifecycle.reinstall_node_instances(graph=graph,
