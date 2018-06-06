@@ -471,9 +471,6 @@ class WorkflowHandler(TaskHandler):
                 execution = rest.executions.get(self.ctx.execution_id,
                                                 _include=['status'])
                 if execution.status == Execution.FORCE_CANCELLING:
-                    result = api.EXECUTION_CANCELLED_RESULT
-                    break
-                elif execution.status == Execution.CANCELLING:
                     # send a 'cancel' message to the child thread. It is up to
                     # the workflow implementation to check for this message
                     # and act accordingly (by stopping and raising an
@@ -481,6 +478,11 @@ class WorkflowHandler(TaskHandler):
                     # deprecated api.EXECUTION_CANCELLED_RESULT as result).
                     # parent thread then goes back to polling for messages from
                     # child thread or possibly 'force-cancelling' requests
+                    api.cancel_request = True
+                    # force-cancel additionally stops this loop immediately
+                    result = api.EXECUTION_CANCELLED_RESULT
+                    break
+                elif execution.status == Execution.CANCELLING:
                     api.cancel_request = True
 
             if result == api.EXECUTION_CANCELLED_RESULT:
