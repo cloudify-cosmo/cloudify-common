@@ -185,7 +185,8 @@ class DeploymentUpdatesClient(object):
                workflow_id=None,
                force=False,
                ignore_failure=False,
-               install_first=False):
+               install_first=False,
+               skip_reinstall=True):
 
         # TODO better handle testing for a supported archive. in other commands
         # it is done in the cli part (`commands.<command_name>)
@@ -207,6 +208,8 @@ class DeploymentUpdatesClient(object):
             params['skip_install'] = skip_install
         if skip_uninstall:
             params['skip_uninstall'] = skip_uninstall
+        if skip_reinstall:
+            params['skip_reinstall'] = skip_reinstall
         if force:
             params['force'] = force
         if ignore_failure:
@@ -232,6 +235,7 @@ class DeploymentUpdatesClient(object):
                                        inputs=None,
                                        skip_install=False,
                                        skip_uninstall=False,
+                                       skip_reinstall=False,
                                        workflow_id=None,
                                        force=False,
                                        ignore_failure=False,
@@ -241,6 +245,7 @@ class DeploymentUpdatesClient(object):
             'workflow_id': workflow_id,
             'skip_install': skip_install,
             'skip_uninstall': skip_uninstall,
+            'skip_reinstall': skip_reinstall,
             'force': force,
             'ignore_failure': ignore_failure,
             'install_first': install_first,
