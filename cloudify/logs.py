@@ -348,22 +348,13 @@ def _publish_message(client, message, message_type, logger):
                     json.dumps(message)))
 
 
-def setup_agent_logger(log_name, log_level=None, log_dir=None):
-    if log_level is None:
-        log_level = os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG'
-        # for python 2.6 compat, we translate the string to the actual number
-        # that is required (like logging.DEBUG etc)
-        log_level = logging.getLevelName(log_level)
-    if log_dir is None:
-        log_dir = os.environ.get('AGENT_LOG_DIR')
-
-    # the 'ctx' logger is for ctx.logger and will be handled by one
-    # of the PluginHandlers
-    context_logger = logging.getLogger('ctx')
-    context_logger.propagate = False
+def setup_logger_base(log_level, log_dir=None):
+    # for python 2.6 compat, we translate the string to the actual number
+    # that is required (like logging.DEBUG etc)
+    log_level = logging.getLevelName(log_level)
 
     console_formatter = logging.Formatter(
-        '%(name)s:%(levelname)s: %(message)s')
+        '%(asctime)s:%(levelname)s: %(message)s')
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
     console_handler.setFormatter(console_formatter)
@@ -371,19 +362,38 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None):
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     root_logger.addHandler(console_handler)
+
+    # the 'ctx' logger is for ctx.logger and will be handled by one
+    # of the PluginHandlers
+    context_logger = logging.getLogger('ctx')
+    context_logger.propagate = False
+
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+
+
+def setup_subprocess_logger():
+    setup_logger_base(os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG',
+                      os.environ.get('AGENT_LOG_DIR'))
+
+
+def setup_agent_logger(log_name, log_level=None, log_dir=None):
+    if log_level is None:
+        log_level = os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG'
+
+    if log_dir is None:
+        log_dir = os.environ.get('AGENT_LOG_DIR')
+
+    setup_logger_base(log_level, log_dir)
+
     worker_logger = logging.getLogger('worker')
     dispatch_logger = logging.getLogger('dispatch')
 
     for logger in [worker_logger, dispatch_logger]:
         logger.setLevel(log_level)
-    root_logger.addHandler(console_handler)
+
     if log_dir:
         log_file = os.path.join(log_dir, '{0}.log'.format(log_name))
-        # also create the parent directory to allow for nested log dirs
-        # eg. worker.log, and logs/deployment.log
-        log_dir = os.path.dirname(log_file)
-        if not os.path.exists(log_dir):
-            os.mkdir(log_dir)
         file_formatter = logging.Formatter(
             ' %(asctime)-15s - %(name)s - %(levelname)s - %(message)s')
 
@@ -392,4 +402,5 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None):
         file_handler.setLevel(log_level)
         file_handler.setFormatter(file_formatter)
 
+        root_logger = logging.getLogger()
         root_logger.addHandler(file_handler)

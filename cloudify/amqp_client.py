@@ -370,7 +370,7 @@ class TaskConsumer(object):
             result = self.handle_task(full_task)
         except Exception as e:
             result = {'ok': False, 'error': repr(e)}
-            logger.error(
+            logger.exception(
                 'ERROR - failed message processing: '
                 '{0!r}\nbody: {1}'.format(e, full_task)
             )
