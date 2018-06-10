@@ -201,8 +201,7 @@ class TaskHandler(object):
             self.run_subprocess(command_args,
                                 env=env,
                                 bufsize=1,
-                                close_fds=os.name != 'nt',
-                                cwd=dispatch_dir)
+                                close_fds=os.name != 'nt')
             with open(os.path.join(dispatch_dir, 'output.json')) as f:
                 dispatch_output = json.load(f)
             if dispatch_output['type'] == 'result':
