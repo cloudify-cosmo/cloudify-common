@@ -101,6 +101,8 @@ class LockedFile(object):
         """
         with cls.SETUP_LOGGER_LOCK:
             if fn not in cls.LOGFILES:
+                if not os.path.exists(os.path.dirname(fn)):
+                    os.mkdir(os.path.dirname(fn))
                 cls.LOGFILES[fn] = cls(fn)
             rv = cls.LOGFILES[fn]
             rv.users += 1
