@@ -82,6 +82,55 @@ DISPATCH_LOGGER_FORMATTER = logging.Formatter(
     '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
 
 
+class LockedFile(object):
+    """Like a writable file object, but writes are under a lock.
+
+    Used for logging, so that multiple threads can write to the same logfile
+    safely (deployment.log).
+
+    We keep track of the number of users, so that we can close the file
+    only when the last one stops writing.
+    """
+    SETUP_LOGGER_LOCK = threading.Lock()
+    LOGFILES = {}
+
+    @classmethod
+    def open(cls, fn):
+        """Create a new LockedFile, or get a cached one if one for this
+        filename already exists.
+        """
+        with cls.SETUP_LOGGER_LOCK:
+            if fn not in cls.LOGFILES:
+                cls.LOGFILES[fn] = cls(fn)
+            rv = cls.LOGFILES[fn]
+            rv.users += 1
+        return rv
+
+    def __init__(self, filename):
+        self._filename = filename
+        self._f = open(filename, 'a')
+        self.users = 0
+        self._lock = threading.Lock()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
+
+    def write(self, data):
+        with self._lock:
+            self._f.write(data)
+            self._f.flush()
+
+    def close(self):
+        with self.SETUP_LOGGER_LOCK:
+            self.users -= 1
+            if self.users == 0:
+                self._f.close()
+                self.LOGFILES.pop(self._filename)
+
+
 class TaskHandler(object):
     NOTSET = object()
 
@@ -91,9 +140,7 @@ class TaskHandler(object):
         self.kwargs = kwargs
         self._ctx = None
         self._func = self.NOTSET
-        self._zmq_context = None
-        self._zmq_socket = None
-        self._fallback_handler = None
+        self._logfiles = {}
 
     def handle_or_dispatch_to_subprocess_if_remote(self):
         if self.cloudify_context.get('task_target'):
@@ -104,6 +151,36 @@ class TaskHandler(object):
     def handle(self):
         raise NotImplementedError('Implemented by subclasses')
 
+    def run_subprocess(self, *subprocess_args, **subprocess_kwargs):
+        subprocess_kwargs.setdefault('stderr', subprocess.STDOUT)
+        subprocess_kwargs.setdefault('stdout', subprocess.PIPE)
+        p = subprocess.Popen(*subprocess_args, **subprocess_kwargs)
+        with self.logfile() as f:
+            while True:
+                line = p.stdout.readline()
+                if line:
+                    f.write(line)
+                if p.poll() is not None:
+                    break
+        if p.returncode != 0:
+            raise exceptions.NonRecoverableError(
+                'Unhandled exception occurred in operation dispatch')
+
+    def logfile(self):
+        try:
+            handler_context = self.ctx.deployment.id
+        except AttributeError:
+            handler_context = SYSTEM_DEPLOYMENT
+        else:
+            # an operation may originate from a system wide workflow.
+            # in that case, the deployment id will be None
+            handler_context = handler_context or SYSTEM_DEPLOYMENT
+
+        log_name = os.path.join(os.environ.get('AGENT_LOG_DIR', ''), 'logs',
+                                '{0}.log'.format(handler_context))
+
+        return LockedFile.open(log_name)
+
     def dispatch_to_subprocess(self):
         # inputs.json, output.json and output are written to a temporary
         # directory that only lives during the lifetime of the subprocess
@@ -111,11 +188,6 @@ class TaskHandler(object):
         dispatch_dir = tempfile.mkdtemp(prefix='task-{0}.{1}-'.format(
             split[0], split[-1]))
 
-        # stdout/stderr are redirected to output. output is only displayed
-        # in case something really bad happened. in the general case, output
-        # that users want to see in log files, should go through the different
-        # loggers
-        output = open(os.path.join(dispatch_dir, 'output'), 'w')
         try:
             with open(os.path.join(dispatch_dir, 'input.json'), 'w') as f:
                 json.dump({
@@ -124,25 +196,12 @@ class TaskHandler(object):
                     'kwargs': self.kwargs
                 }, f)
             env = self._build_subprocess_env()
-            command_args = [sys.executable, '-m', 'cloudify.dispatch',
+            command_args = [sys.executable, '-u', '-m', 'cloudify.dispatch',
                             dispatch_dir]
-            try:
-                subprocess.check_call(command_args,
-                                      env=env,
-                                      bufsize=1,
-                                      close_fds=os.name != 'nt',
-                                      stdout=output,
-                                      stderr=output)
-            except subprocess.CalledProcessError:
-                # this means something really bad happened because we generally
-                # catch all exceptions in the subprocess and exit cleanly
-                # regardless.
-                output.close()
-                with open(os.path.join(dispatch_dir, 'output')) as f:
-                    read_output = f.read()
-                raise exceptions.NonRecoverableError(
-                    'Unhandled exception occurred in operation dispatch: '
-                    '{0}'.format(read_output))
+            self.run_subprocess(command_args,
+                                env=env,
+                                bufsize=1,
+                                close_fds=os.name != 'nt')
             with open(os.path.join(dispatch_dir, 'output.json')) as f:
                 dispatch_output = json.load(f)
             if dispatch_output['type'] == 'result':
@@ -161,7 +220,6 @@ class TaskHandler(object):
                     'Unexpected output type: {0}'
                     .format(dispatch_output['type']))
         finally:
-            output.close()
             shutil.rmtree(dispatch_dir, ignore_errors=True)
 
     def _build_subprocess_env(self):
@@ -247,17 +305,7 @@ class TaskHandler(object):
             sys_prefix_fallback=False)
 
     def setup_logging(self):
-        try:
-            handler_context = self.ctx.deployment.id
-        except AttributeError:
-            handler_context = SYSTEM_DEPLOYMENT
-        else:
-            # an operation may originate from a system wide workflow.
-            # in that case, the deployment id will be None
-            handler_context = handler_context or SYSTEM_DEPLOYMENT
-
-        # We put deployment specific logs in logs/DEP_ID.log
-        logs.setup_agent_logger(log_name='logs/{0}'.format(handler_context))
+        logs.setup_subprocess_logger()
         self._update_logging_level()
 
     @staticmethod
@@ -274,29 +322,6 @@ class TaskHandler(object):
             if not isinstance(level_id, int):
                 continue
             logging.getLogger(logger_name).setLevel(level_id)
-
-    def _create_fallback_logger(self, handler_context):
-        log_dir = None
-        if os.environ.get('AGENT_LOG_DIR'):
-            log_dir = os.path.join(os.environ['AGENT_LOG_DIR'], 'logs')
-        elif os.environ.get('AGENT_WORK_DIR'):
-            log_dir = os.environ['AGENT_WORK_DIR']
-        if log_dir:
-            log_path = os.path.join(log_dir, '{0}.log.fallback'
-                                    .format(handler_context))
-            fallback_handler = logging.FileHandler(log_path, delay=True)
-            self._fallback_handler = fallback_handler
-        else:
-            # explicitly not setting fallback_handler on self. We don't
-            # want to close stderr when the task finishes.
-            fallback_handler = logging.StreamHandler()
-        fallback_logger = logging.getLogger('dispatch_fallback_logger')
-        fallback_handler.setLevel(logging.DEBUG)
-        fallback_logger.setLevel(logging.DEBUG)
-        fallback_logger.propagate = False
-        fallback_logger.handlers = []
-        fallback_logger.addHandler(fallback_handler)
-        return fallback_logger
 
     @property
     def ctx_cls(self):
@@ -337,14 +362,6 @@ class TaskHandler(object):
             raise exceptions.NonRecoverableError(
                 "{0}.{1} is not callable".format(module_name, function_name))
         return func
-
-    def close(self):
-        if self._zmq_socket:
-            self._zmq_socket.close()
-        if self._zmq_context:
-            self._zmq_context.term()
-        if self._fallback_handler:
-            self._fallback_handler.close()
 
 
 class OperationHandler(TaskHandler):
@@ -638,9 +655,6 @@ def main():
             handler.cloudify_context.get('task_id', '<no-id>'),
             payload['traceback']))
 
-    finally:
-        if handler:
-            handler.close()
     with open(os.path.join(dispatch_dir, 'output.json'), 'w') as f:
         json.dump({
             'type': payload_type,

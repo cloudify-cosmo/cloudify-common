@@ -33,6 +33,7 @@ class TestDispatchTaskHandler(testtools.TestCase):
     def setUp(self):
         super(TestDispatchTaskHandler, self).setUp()
         self.temp_log_dir = tempfile.mkdtemp()
+        os.mkdir(os.path.join(self.temp_log_dir, 'logs'))
         self.addCleanup(shutil.rmtree, self.temp_log_dir)
 
     def test_handle_or_dispatch_to_subprocess(self):
@@ -291,9 +292,9 @@ class TestDispatchTaskHandler(testtools.TestCase):
         module = __name__
         if not local:
             module = module.split('.')[-1]
+        os.environ['AGENT_LOG_DIR'] = self.temp_log_dir
         execution_env = execution_env or {}
         execution_env['PYTHONPATH'] = os.path.dirname(__file__)
-        execution_env.setdefault('AGENT_LOG_DIR', self.temp_log_dir)
         return dispatch.OperationHandler(cloudify_context={
             'no_ctx_kwarg': True,
             'task_id': 'test',
