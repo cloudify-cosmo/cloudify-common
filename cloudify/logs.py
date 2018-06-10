@@ -390,6 +390,9 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None):
         log_dir = os.environ.get('AGENT_LOG_DIR')
 
     setup_logger_base(log_level, log_dir)
+    # also create the directory for deployment logs
+    if not os.path.exists(os.path.join(log_dir, 'logs')):
+        os.mkdir(os.path.join(log_dir, 'logs'))
 
     worker_logger = logging.getLogger('worker')
     dispatch_logger = logging.getLogger('dispatch')
