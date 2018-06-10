@@ -108,7 +108,7 @@ class LockedFile(object):
 
     def __init__(self, filename):
         self._filename = filename
-        self._f = open(filename, 'a')
+        self._f = None
         self.users = 0
         self._lock = threading.Lock()
 
@@ -120,6 +120,8 @@ class LockedFile(object):
 
     def write(self, data):
         with self._lock:
+            if self._f is None:
+                self._f = open(self._filename, 'a')
             self._f.write(data)
             self._f.flush()
 
@@ -127,7 +129,8 @@ class LockedFile(object):
         with self.SETUP_LOGGER_LOCK:
             self.users -= 1
             if self.users == 0:
-                self._f.close()
+                if self._f:
+                    self._f.close()
                 self.LOGFILES.pop(self._filename)
 
 
