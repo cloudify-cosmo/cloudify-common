@@ -360,7 +360,7 @@ def setup_logger_base(log_level, log_dir=None):
     console_handler.setFormatter(console_formatter)
 
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(log_level)
     root_logger.addHandler(console_handler)
 
     # the 'ctx' logger is for ctx.logger and will be handled by one
@@ -370,6 +370,10 @@ def setup_logger_base(log_level, log_dir=None):
 
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
+
+    # silence pika so that even if the agent is logging on DEBUG, we're not
+    # getting all the irrelevant AMQP information
+    logging.getLogger('pika').setLevel(logging.WARNING)
 
 
 def setup_subprocess_logger():
