@@ -83,11 +83,22 @@ DISPATCH_LOGGER_FORMATTER = logging.Formatter(
 
 
 class LockedFile(object):
+    """Like a writable file object, but writes are under a lock.
+
+    Used for logging, so that multiple threads can write to the same logfile
+    safely (deployment.log).
+
+    We keep track of the number of users, so that we can close the file
+    only when the last one stops writing.
+    """
     SETUP_LOGGER_LOCK = threading.Lock()
     LOGFILES = {}
 
     @classmethod
     def open(cls, fn):
+        """Create a new LockedFile, or get a cached one if one for this
+        filename already exists.
+        """
         with cls.SETUP_LOGGER_LOCK:
             if fn not in cls.LOGFILES:
                 cls.LOGFILES[fn] = cls(fn)
@@ -105,21 +116,23 @@ class LockedFile(object):
         return self
 
     def __exit__(self, *exc_info):
-        with self.SETUP_LOGGER_LOCK:
-            self.users -= 1
-            if self.users == 0:
-                self._f.close()
-                self.LOGFILES.pop(self._filename)
+        self.close()
 
     def write(self, data):
         with self._lock:
             self._f.write(data)
             self._f.flush()
 
+    def close(self):
+        with self.SETUP_LOGGER_LOCK:
+            self.users -= 1
+            if self.users == 0:
+                self._f.close()
+                self.LOGFILES.pop(self._filename)
+
 
 class TaskHandler(object):
     NOTSET = object()
-    SETUP_LOGGER_LOCK = threading.Lock()
 
     def __init__(self, cloudify_context, args, kwargs):
         self.cloudify_context = cloudify_context
