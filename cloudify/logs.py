@@ -371,9 +371,10 @@ def setup_logger_base(log_level, log_dir=None):
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
 
-    # silence pika so that even if the agent is logging on DEBUG, we're not
-    # getting all the irrelevant AMQP information
+    # silence pika and http loggers so that even if the agent is logging on
+    # DEBUG, we're not getting all the uninteresting AMQP/HTTP information
     logging.getLogger('pika').setLevel(logging.WARNING)
+    logging.getLogger('cloudify.rest_client.http').setLevel(logging.INFO)
 
 
 def setup_subprocess_logger():
