@@ -292,9 +292,9 @@ class TestDispatchTaskHandler(testtools.TestCase):
         module = __name__
         if not local:
             module = module.split('.')[-1]
+        os.environ['AGENT_LOG_DIR'] = self.temp_log_dir
         execution_env = execution_env or {}
         execution_env['PYTHONPATH'] = os.path.dirname(__file__)
-        execution_env.setdefault('AGENT_LOG_DIR', self.temp_log_dir)
         return dispatch.OperationHandler(cloudify_context={
             'no_ctx_kwarg': True,
             'task_id': 'test',
