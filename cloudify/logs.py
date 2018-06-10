@@ -368,7 +368,7 @@ def setup_logger_base(log_level, log_dir=None):
     context_logger = logging.getLogger('ctx')
     context_logger.propagate = False
 
-    if not os.path.exists(log_dir):
+    if log_dir and not os.path.exists(log_dir):
         os.mkdir(log_dir)
 
     # silence pika and http loggers so that even if the agent is logging on
