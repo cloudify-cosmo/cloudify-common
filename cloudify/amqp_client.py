@@ -85,7 +85,7 @@ class ConnectionTimeoutError(Exception):
 def _get_daemon_factory():
     """
     We need the factory to dynamically load daemon config, to support
-    agent transfers and HA failovers
+    HA failovers
     """
     # Dealing with circular dependency
     try:
