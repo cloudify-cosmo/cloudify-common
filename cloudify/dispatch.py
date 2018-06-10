@@ -127,9 +127,6 @@ class TaskHandler(object):
         self.kwargs = kwargs
         self._ctx = None
         self._func = self.NOTSET
-        self._zmq_context = None
-        self._zmq_socket = None
-        self._fallback_handler = None
         self._logfiles = {}
 
     def handle_or_dispatch_to_subprocess_if_remote(self):
@@ -314,29 +311,6 @@ class TaskHandler(object):
                 continue
             logging.getLogger(logger_name).setLevel(level_id)
 
-    def _create_fallback_logger(self, handler_context):
-        log_dir = None
-        if os.environ.get('AGENT_LOG_DIR'):
-            log_dir = os.path.join(os.environ['AGENT_LOG_DIR'], 'logs')
-        elif os.environ.get('AGENT_WORK_DIR'):
-            log_dir = os.environ['AGENT_WORK_DIR']
-        if log_dir:
-            log_path = os.path.join(log_dir, '{0}.log.fallback'
-                                    .format(handler_context))
-            fallback_handler = logging.FileHandler(log_path, delay=True)
-            self._fallback_handler = fallback_handler
-        else:
-            # explicitly not setting fallback_handler on self. We don't
-            # want to close stderr when the task finishes.
-            fallback_handler = logging.StreamHandler()
-        fallback_logger = logging.getLogger('dispatch_fallback_logger')
-        fallback_handler.setLevel(logging.DEBUG)
-        fallback_logger.setLevel(logging.DEBUG)
-        fallback_logger.propagate = False
-        fallback_logger.handlers = []
-        fallback_logger.addHandler(fallback_handler)
-        return fallback_logger
-
     @property
     def ctx_cls(self):
         raise NotImplementedError('implemented by subclasses')
@@ -376,14 +350,6 @@ class TaskHandler(object):
             raise exceptions.NonRecoverableError(
                 "{0}.{1} is not callable".format(module_name, function_name))
         return func
-
-    def close(self):
-        if self._zmq_socket:
-            self._zmq_socket.close()
-        if self._zmq_context:
-            self._zmq_context.term()
-        if self._fallback_handler:
-            self._fallback_handler.close()
 
 
 class OperationHandler(TaskHandler):
@@ -677,9 +643,6 @@ def main():
             handler.cloudify_context.get('task_id', '<no-id>'),
             payload['traceback']))
 
-    finally:
-        if handler:
-            handler.close()
     with open(os.path.join(dispatch_dir, 'output.json'), 'w') as f:
         json.dump({
             'type': payload_type,
