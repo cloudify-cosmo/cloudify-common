@@ -257,7 +257,8 @@ def _get_all_host_instances(ctx):
 @workflow
 def install_new_agents(ctx, install_agent_timeout, node_ids,
                        node_instance_ids, validate=True, install=True,
-                       manager_ip=None, manager_certificate=None, **_):
+                       manager_ip=None, manager_certificate=None,
+                       stop_old_agent=False, **_):
 
     hosts = _create_hosts_list(ctx, node_ids, node_instance_ids)
     _assert_hosts_started(hosts)
@@ -282,7 +283,8 @@ def install_new_agents(ctx, install_agent_timeout, node_ids,
                     kwargs={
                         'install_agent_timeout': install_agent_timeout,
                         'manager_ip': manager_ip,
-                        'manager_certificate': manager_certificate
+                        'manager_certificate': manager_certificate,
+                        'stop_old_agent': stop_old_agent
                     },
                     allow_kwargs_override=True),
                 host.send_event('New agent installed.'),
