@@ -72,11 +72,13 @@ class HTTPClient(object):
     def __init__(self, host, port=DEFAULT_PORT,
                  protocol=DEFAULT_PROTOCOL, api_version=DEFAULT_API_VERSION,
                  headers=None, query_params=None, cert=None, trust_all=False,
-                 username=None, password=None, token=None, tenant=None):
+                 username=None, password=None, token=None, tenant=None,
+                 kerberos_env=None):
         self.port = port
         self.host = host
         self.protocol = protocol
         self.api_version = api_version
+        self.kerberos_env = kerberos_env
 
         self.headers = headers.copy() if headers else {}
         if not self.headers.get('Content-type'):
@@ -97,6 +99,8 @@ class HTTPClient(object):
                                               self.port, self.api_version)
 
     def has_kerberos(self):
+        if self.kerberos_env:
+            return self.kerberos_env
         return bool(HTTPKerberosAuth) and is_kerberos_env()
 
     def _raise_client_error(self, response, url=None):
@@ -348,7 +352,8 @@ class CloudifyClient(object):
     def __init__(self, host='localhost', port=None, protocol=DEFAULT_PROTOCOL,
                  api_version=DEFAULT_API_VERSION, headers=None,
                  query_params=None, cert=None, trust_all=False,
-                 username=None, password=None, token=None, tenant=None):
+                 username=None, password=None, token=None, tenant=None,
+                 kerberos_env=None):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -380,7 +385,7 @@ class CloudifyClient(object):
         self._client = self.client_class(host, port, protocol, api_version,
                                          headers, query_params, cert,
                                          trust_all, username, password,
-                                         token, tenant)
+                                         token, tenant, kerberos_env)
         self.blueprints = BlueprintsClient(self._client)
         self.snapshots = SnapshotsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
