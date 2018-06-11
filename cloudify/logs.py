@@ -370,9 +370,6 @@ def setup_logger_base(log_level, log_dir=None):
 
     if log_dir and not os.path.exists(log_dir):
         os.mkdir(log_dir)
-    # also create the directory for deployment logs
-    if log_dir and not os.path.exists(os.path.join(log_dir, 'logs')):
-        os.mkdir(os.path.join(log_dir, 'logs'))
 
     # silence pika and http loggers so that even if the agent is logging on
     # DEBUG, we're not getting all the uninteresting AMQP/HTTP information

@@ -33,7 +33,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
     def setUp(self):
         super(TestDispatchTaskHandler, self).setUp()
         self.temp_log_dir = tempfile.mkdtemp()
-        os.mkdir(os.path.join(self.temp_log_dir, 'logs'))
         self.addCleanup(shutil.rmtree, self.temp_log_dir)
 
     def test_handle_or_dispatch_to_subprocess(self):
