@@ -97,6 +97,13 @@ class Execution(dict):
         return self.get('created_at')
 
     @property
+    def ended_at(self):
+        """
+        :return: The execution end time.
+        """
+        return self.get('ended_at')
+
+    @property
     def created_by(self):
         """
         :return: The name of the execution creator.
