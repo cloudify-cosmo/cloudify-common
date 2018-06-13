@@ -99,7 +99,7 @@ class HTTPClient(object):
                                               self.port, self.api_version)
 
     def has_kerberos(self):
-        if self.kerberos_env:
+        if self.kerberos_env is not None:
             return self.kerberos_env
         return bool(HTTPKerberosAuth) and is_kerberos_env()
 
