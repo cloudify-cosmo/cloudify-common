@@ -48,7 +48,7 @@ def stop_workflow(ctx, **kwargs):
 class TestExecuteNotExistOperationWorkflow(testtools.TestCase):
 
     execute_blueprint_path = path.join('resources', 'blueprints',
-                                       'not_exist_op_workflow.yaml')
+                                       'not_exist_op_workflow-blueprint.yaml')
 
     @workflow_test(execute_blueprint_path)
     def test_execute_not_exist_operation(self, cfy_local):
