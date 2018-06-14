@@ -42,7 +42,7 @@ global_counter = GlobalCounter()
 
 class TestExecuteOperationWorkflow(testtools.TestCase):
     execute_blueprint_path = path.join('resources', 'blueprints',
-                                       'execute_operation.yaml')
+                                       'execute_operation-blueprint.yaml')
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation(self, cfy_local):
