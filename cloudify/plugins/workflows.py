@@ -465,14 +465,8 @@ def update(ctx,
     def _reinstall():
         subgraph = set([])
         for node_instance_id in node_instances_to_reinstall:
-            node_instance = ctx.get_node_instance(node_instance_id)
-            if node_instance is None:
-                ctx.logger.error(
-                    'No node instance with id `{0}` was found. Reinstalling '
-                    'this nide instance will be skipped'.format(
-                        node_instance_id))
-                continue
-            subgraph = subgraph | node_instance.get_contained_subgraph()
+            subgraph = subgraph | ctx.get_node_instance(
+                node_instance_id).get_contained_subgraph()
         intact_nodes = set(ctx.node_instances) - subgraph
         lifecycle.reinstall_node_instances(graph=graph,
                                            node_instances=subgraph,
