@@ -499,7 +499,10 @@ class WorkflowHandler(TaskHandler):
                 # check for 'cancel' requests
                 execution = rest.executions.get(self.ctx.execution_id,
                                                 _include=['status'])
-                if execution.status == Execution.FORCE_CANCELLING:
+                if execution.status in [
+                        Execution.CANCELLING,
+                        Execution.FORCE_CANCELLING,
+                        Execution.KILL_CANCELLING]:
                     # send a 'cancel' message to the child thread. It is up to
                     # the workflow implementation to check for this message
                     # and act accordingly (by stopping and raising an
@@ -508,11 +511,19 @@ class WorkflowHandler(TaskHandler):
                     # parent thread then goes back to polling for messages from
                     # child thread or possibly 'force-cancelling' requests
                     api.cancel_request = True
+
+                if execution.status == Execution.KILL_CANCELLING:
+                    # if a custom workflow function must attempt some cleanup,
+                    # it might attempt to catch SIGTERM, and confirm using this
+                    # flag that it is being kill-cancelled
+                    api.kill_request = True
+
+                if execution.status in [
+                        Execution.FORCE_CANCELLING,
+                        Execution.KILL_CANCELLING]:
                     # force-cancel additionally stops this loop immediately
                     result = api.EXECUTION_CANCELLED_RESULT
                     break
-                elif execution.status == Execution.CANCELLING:
-                    api.cancel_request = True
 
             if result == api.EXECUTION_CANCELLED_RESULT:
                 self._workflow_cancelled()
