@@ -25,6 +25,7 @@ class Execution(dict):
     STARTED = 'started'
     CANCELLING = 'cancelling'
     FORCE_CANCELLING = 'force_cancelling'
+    KILL_CANCELLING = 'kill_cancelling'
     END_STATES = [TERMINATED, FAILED, CANCELLED]
 
     def __init__(self, execution):
@@ -220,7 +221,7 @@ class ExecutionsClient(object):
                                  expected_status_code=201)
         return Execution(response)
 
-    def cancel(self, execution_id, force=False):
+    def cancel(self, execution_id, force=False, kill=False):
         """Cancels the execution which matches the provided execution id.
 
         :param execution_id: Id of the execution to cancel.
@@ -228,7 +229,7 @@ class ExecutionsClient(object):
         :return: Cancelled execution.
         """
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
-        action = 'force-cancel' if force else 'cancel'
+        action = 'kill' if kill else 'force-cancel' if force else 'cancel'
         response = self.api.post(uri,
                                  data={'action': action},
                                  expected_status_code=200)
