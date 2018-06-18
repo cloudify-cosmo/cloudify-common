@@ -28,7 +28,9 @@ test:
         parallel: true
     - case $CIRCLE_NODE_INDEX in 0) tox -e flake8_script_plugin ;; esac:
         parallel: true
-    - case $CIRCLE_NODE_INDEX in 0) tox -e docs ;; esac:
+    - case $CIRCLE_NODE_INDEX in 0) tox -e docs_plugins_common ;; esac:
+        parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e docs_rest_client ;; esac:
         parallel: true
    
 deployment:
