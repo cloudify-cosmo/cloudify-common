@@ -14,8 +14,6 @@
 #    * limitations under the License.
 
 
-import os
-import json
 import time
 
 import networkx as nx
@@ -122,8 +120,6 @@ class TaskDependencyGraph(object):
             if self._is_execution_cancelled():
                 raise api.ExecutionCancelled()
 
-            self._check_dump_request()
-
             # handle all terminated tasks
             # it is important this happens before handling
             # executable tasks so we get to make tasks executable
@@ -217,17 +213,6 @@ class TaskDependencyGraph(object):
             added_edges = [(dependent, new_task.id)
                            for dependent in dependents]
             self.graph.add_edges_from(added_edges)
-
-    def _check_dump_request(self):
-        task_dump = os.environ.get('WORKFLOW_TASK_DUMP')
-        if not (task_dump and os.path.exists(task_dump)):
-            return
-        os.remove(task_dump)
-        task_dump_path = '{0}.{1}'.format(task_dump, time.time())
-        with open(task_dump_path, 'w') as f:
-            f.write(json.dumps({
-                'tasks': [task.dump() for task in self.tasks_iter()],
-                'edges': [[s, t] for s, t in self.graph.edges_iter()]}))
 
 
 class forkjoin(object):
