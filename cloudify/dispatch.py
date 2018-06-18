@@ -139,13 +139,14 @@ class LockedFile(object):
 class TaskHandler(object):
     NOTSET = object()
 
-    def __init__(self, cloudify_context, args, kwargs):
+    def __init__(self, cloudify_context, args, kwargs, process_registry=None):
         self.cloudify_context = cloudify_context
         self.args = args
         self.kwargs = kwargs
         self._ctx = None
         self._func = self.NOTSET
         self._logfiles = {}
+        self._process_registry = process_registry
 
     def handle_or_dispatch_to_subprocess_if_remote(self):
         if self.cloudify_context.get('task_target'):
@@ -160,6 +161,8 @@ class TaskHandler(object):
         subprocess_kwargs.setdefault('stderr', subprocess.STDOUT)
         subprocess_kwargs.setdefault('stdout', subprocess.PIPE)
         p = subprocess.Popen(*subprocess_args, **subprocess_kwargs)
+        if self._process_registry:
+            self._process_registry.register(self, p)
         with self.logfile() as f:
             while True:
                 line = p.stdout.readline()
@@ -167,7 +170,11 @@ class TaskHandler(object):
                     f.write(line)
                 if p.poll() is not None:
                     break
-        if p.returncode != 0:
+        if self._process_registry:
+            self._process_registry.unregister(self, p)
+        if p.returncode in (-15, -9):  # SIGTERM, SIGKILL
+            raise exceptions.NonRecoverableError('Process terminated')
+        elif p.returncode != 0:
             raise exceptions.NonRecoverableError(
                 'Unhandled exception occurred in operation dispatch')
 
