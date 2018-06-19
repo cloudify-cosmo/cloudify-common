@@ -8,10 +8,11 @@ checkout:
       fi
       
 dependencies:
+  pre:
+    - pyenv local 2.7.9 2.6.8
   override:
     - pip install tox==1.6.1
-    - pyenv local 2.7.9 2.6.8
-    
+
 test:
   override:
     - case $CIRCLE_NODE_INDEX in 0) tox -e py27_dsl_parser ;; 1) tox -e py26_dsl_parser ;; esac:
