@@ -31,6 +31,10 @@ class ClusterNode(dict):
         return self.get('host_ip')
 
     @property
+    def public_ip(self):
+        return self.get('public_ip')
+
+    @property
     def name(self):
         return self.get('name')
 
