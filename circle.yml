@@ -6,11 +6,13 @@ checkout:
         git fetch origin +refs/pull/$PR_ID/merge:
         git checkout -qf FETCH_HEAD
       fi
+      
 dependencies:
   pre:
     - pyenv local 2.7.9 2.6.8
   override:
-    - pip install tox==1.6.1
+    - pip install tox==3.0.0
+
 test:
   override:
     - case $CIRCLE_NODE_INDEX in 0) tox -e py27_dsl_parser ;; 1) tox -e py26_dsl_parser ;; esac:
@@ -27,7 +29,17 @@ test:
         parallel: true
     - case $CIRCLE_NODE_INDEX in 0) tox -e flake8_script_plugin ;; esac:
         parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e docs_plugins_common ;; esac:
+        parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e docs_rest_client ;; esac:
+        parallel: true
+   
 deployment:
+  prod:
+    branch: docs-sphinx
+    commands:
+      - aws s3 sync docs/cloudify_rest_client/_build s3://docs.cloudify.co/cloudify-rest-client/ --delete
+      - aws s3 sync docs/cloudify_plugins_common/_build s3://docs.cloudify.co/cloudify-plugins-common/ --delete
   release:
     tag: /.*/
     commands:
