@@ -23,10 +23,10 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # General information about the project.
-project = 'cloudify-rest-client'
+project = 'cloudify-common'
 package = 'cloudify_rest_client'
-author = 'Gigaspaces'
-copyright = '2014, Gigaspaces'
+author = 'Cloudify'
+copyright = '2014, Cloudify'
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -154,8 +154,8 @@ pygments_style = 'sphinx'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
-
+html_static_path = []
+#html_static_path = ['_static']
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
