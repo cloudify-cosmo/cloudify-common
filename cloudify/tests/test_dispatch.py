@@ -45,6 +45,14 @@ class TestDispatchTaskHandler(testtools.TestCase):
             result = handler.handle_or_dispatch_to_subprocess_if_remote()
             self.assertEqual(expected_result, result)
 
+    def test_register_subprocess(self):
+        process_registry = Mock()
+        op_handler = self._operation(func2, task_target='stub',
+                                     process_registry=process_registry)
+        op_handler.dispatch_to_subprocess()
+        register_calls = process_registry.register.mock_calls
+        self.assertEqual(len(register_calls), 1)
+
     def test_dispatch_to_subprocess_args_and_kwargs(self):
         args = [1, 2]
         kwargs = {'one': 1, 'two': 2}
@@ -287,7 +295,8 @@ class TestDispatchTaskHandler(testtools.TestCase):
             execution_env=None,
             socket_url=None,
             deployment_id=None,
-            local=False):
+            local=False,
+            process_registry=None):
         module = __name__
         if not local:
             module = module.split('.')[-1]
@@ -304,7 +313,8 @@ class TestDispatchTaskHandler(testtools.TestCase):
             'socket_url': socket_url,
             'deployment_id': deployment_id,
             'tenant': {'name': 'default_tenant'}
-        }, args=args or [], kwargs=kwargs or {})
+        }, args=args or [], kwargs=kwargs or {},
+            process_registry=process_registry)
 
 
 if os.environ.get('CLOUDIFY_DISPATCH'):

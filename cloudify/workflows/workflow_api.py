@@ -17,6 +17,7 @@
 EXECUTION_CANCELLED_RESULT = 'execution_cancelled'
 
 cancel_request = False
+kill_request = False
 
 
 def has_cancel_request():
@@ -36,7 +37,24 @@ def has_cancel_request():
 
     :return: whether there was a request to cancel the workflow execution
     """
-    return cancel_request
+    return cancel_request or kill_request
+
+
+def has_kill_request():
+    """Checks for requests to kill-cancel the workflow execution.
+
+    Kill-cancelling will stop the workflow process using SIGTERM, and
+    SIGKILL after 5 seconds, so if the workflow function must attempt
+    cleanup before it is kill-cancelled, it must install a signal to
+    catch SIGTERM, then it can confirm using this flag whether it is
+    being cancelled. Then it must do the necessary cleanup within the
+    5 seconds before the process is killed.
+
+    Note that when this is set, cancel_request will always also be set,
+    so if no special cleanup is necessary, there is no need to check
+    this flag.
+    """
+    return kill_request
 
 
 class ExecutionCancelled(Exception):
