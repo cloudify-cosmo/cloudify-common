@@ -194,11 +194,11 @@ class ExecutionsClient(object):
         :param workflow_id: The workflow to be executed id.
         :param parameters: Parameters for the workflow execution.
         :param allow_custom_parameters: Determines whether to allow\
-         parameters which weren't defined in the workflow parameters schema/\
+         parameters which weren't defined in the workflow parameters schema\
          in the blueprint.
-        :param force: Determines whether to force the execution of the workflow\
-         in a case where there's an already running execution for this\
-         deployment.
+        :param force: Determines whether to force the execution of the\
+         workflow in a case where there's an already running execution for\
+         this deployment.
         :param dry_run: If set to true, no actual actions will be performed.\
         This is a dry run of the execution
         :raises: IllegalExecutionParametersError

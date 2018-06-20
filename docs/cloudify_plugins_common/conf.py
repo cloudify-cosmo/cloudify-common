@@ -25,8 +25,8 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
 # General information about the project.
 project = 'cloudify-common'
 package = 'cloudify'
-author = 'Gigaspaces'
-copyright = '2014, Gigaspaces'
+author = 'Cloudify'
+copyright = '2014, Cloudify'
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
