@@ -27,7 +27,17 @@ test:
         parallel: true
     - case $CIRCLE_NODE_INDEX in 0) tox -e flake8_script_plugin ;; esac:
         parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e docs_rest_client ;; esac:
+        parallel: true
+    - case $CIRCLE_NODE_INDEX in 0) tox -e docs_plugins_common ;; esac:
+        parallel: true
+
 deployment:
+  prod:
+    branch: master
+    commands:
+       - aws s3 sync docs/cloudify_rest_client/_build s3://docs.cloudify.co/cloudify-rest-client/ --delete --acl public-read
+       - aws s3 sync docs/cloudify_plugins_common/_build s3://docs.cloudify.co/cloudify-plugins-common/ --delete --acl public-read
   release:
     tag: /.*/
     commands:
