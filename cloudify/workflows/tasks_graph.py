@@ -99,21 +99,21 @@ class TaskDependencyGraph(object):
     def execute(self):
         """
         Start executing the graph based on tasks and dependencies between
-        them./
-        Calling this method will block until one of the following occurs:/
-            1. all tasks terminated/
-            2. a task failed/
-            3. an unhandled exception is raised/
-            4. the execution is cancelled/
+        them.\
+        Calling this method will block until one of the following occurs:\
+            1. all tasks terminated\
+            2. a task failed\
+            3. an unhandled exception is raised\
+            4. the execution is cancelled\
 
-        Note: This method will raise an api.ExecutionCancelled error if the/
-        execution has been cancelled. When catching errors raised from this/
-        method, make sure to re-raise the error if it's/
-        api.ExecutionsCancelled in order to allow the execution to be set in/
-        cancelled mode properly./
+        Note: This method will raise an api.ExecutionCancelled error if the\
+        execution has been cancelled. When catching errors raised from this\
+        method, make sure to re-raise the error if it's\
+        api.ExecutionsCancelled in order to allow the execution to be set in\
+        cancelled mode properly.\
 
-        Also note that for the time being, if such a cancelling event/
-        occurs, the method might return even while there's some operations/
+        Also note that for the time being, if such a cancelling event\
+        occurs, the method might return even while there's some operations\
         still being executed.
         """
 
