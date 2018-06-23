@@ -59,9 +59,10 @@ class MockNodeInstanceContext(object):
 
 class MockNodeContext(object):
 
-    def __init__(self, id=None, properties=None):
+    def __init__(self, id=None, properties=None, type=None):
         self._id = id
         self._properties = properties
+        self._type = type
 
     @property
     def id(self):
@@ -74,6 +75,10 @@ class MockNodeContext(object):
     @property
     def properties(self):
         return self._properties
+
+    @property
+    def type(self):
+        return self._type
 
 
 class MockContext(dict):
