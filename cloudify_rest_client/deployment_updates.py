@@ -70,6 +70,10 @@ class DeploymentUpdate(dict):
         return self['execution_id']
 
     @property
+    def second_execution_id(self):
+        return self['second_execution_id']
+
+    @property
     def created_at(self):
         return self['created_at']
 
@@ -185,7 +189,7 @@ class DeploymentUpdatesClient(object):
                workflow_id=None,
                force=False,
                ignore_failure=False,
-               install_first=False,
+               install_first=True,
                skip_reinstall=True):
 
         # TODO better handle testing for a supported archive. in other commands
@@ -269,4 +273,22 @@ class DeploymentUpdatesClient(object):
 
         uri = '/deployment-updates/{0}/update/finalize'.format(update_id)
         response = self.api.post(uri)
+        return DeploymentUpdate(response)
+
+    def middle_phase(self,
+                     update_id,
+                     skip_install,
+                     skip_uninstall,
+                     reinstall_list,
+                     workflow_id=None):
+        """Performing the update changes on the manager"""
+        data = {
+            'skip_install': skip_install,
+            'skip_uninstall': skip_uninstall,
+            'reinstall_list': reinstall_list
+        }
+        if workflow_id:
+            data['workflow_id'] = workflow_id
+        uri = '/deployment-updates/{0}/update/middle'.format(update_id)
+        response = self.api.post(uri, data=data)
         return DeploymentUpdate(response)

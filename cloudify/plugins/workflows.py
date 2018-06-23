@@ -465,8 +465,10 @@ def update(ctx,
     def _reinstall():
         subgraph = set([])
         for node_instance_id in node_instances_to_reinstall:
-            subgraph = subgraph | ctx.get_node_instance(
+            subgraph |= ctx.get_node_instance(
                 node_instance_id).get_contained_subgraph()
+        subgraph -= set(instances_by_change['removed_instances'][1])
+        subgraph -= set(instances_by_change['added_instances'][1])
         intact_nodes = set(ctx.node_instances) - subgraph
         lifecycle.reinstall_node_instances(graph=graph,
                                            node_instances=subgraph,
@@ -476,14 +478,88 @@ def update(ctx,
     if install_first:
         _install()
         _uninstall()
+        _reinstall()
+
+        # Finalize the commit (i.e. remove relationships or nodes)
+        client = get_rest_client()
+        client.deployment_updates.finalize_commit(update_id)
+    else:
+        _new_update(ctx,
+                    update_id,
+                    instances_by_change,
+                    modified_entity_ids,
+                    skip_install,
+                    skip_uninstall,
+                    ignore_failure,
+                    node_instances_to_reinstall)
+
+
+def _new_update(ctx,
+                update_id,
+                instances_by_change,
+                modified_entity_ids,
+                skip_install,
+                skip_uninstall,
+                ignore_failure,
+                node_instances_to_reinstall):
+    graph = ctx.graph_mode()
+    reinstall_nodes = set([])
+    for node_instance_id in node_instances_to_reinstall:
+        reinstall_nodes |= ctx.get_node_instance(
+            node_instance_id).get_contained_subgraph()
+    reinstall_nodes -= set(instances_by_change['added_instances'][1])
+    reinstall_nodes -= set(instances_by_change['removed_instances'][1])
+
+    def _install():
+        if skip_install:
+            node_instances = set([])
+        else:
+            node_instances = set(instances_by_change['added_instances'][1])
+        node_instances |= reinstall_nodes
+        related = set(ctx.node_instances) - node_instances
+        if node_instances:
+            lifecycle.install_node_instances(graph=graph,
+                                             node_instances=node_instances,
+                                             related_nodes=related)
+        if not skip_install:
+            # This one as well.
+            lifecycle.execute_establish_relationships(
+                graph=graph,
+                node_instances=set(
+                    instances_by_change['extended_and_target_instances'][1]),
+                modified_relationship_ids=modified_entity_ids['relationship']
+            )
+
+    def _uninstall():
+        if skip_uninstall:
+            node_instances = set([])
+        else:
+            lifecycle.execute_unlink_relationships(
+                graph=graph,
+                node_instances=set(
+                    instances_by_change['reduced_and_target_instances'][1]),
+                modified_relationship_ids=modified_entity_ids['relationship']
+            )
+            node_instances = set(instances_by_change['removed_instances'][1])
+        node_instances |= reinstall_nodes
+        related = set(ctx.node_instances) - node_instances
+        if node_instances:
+            lifecycle.uninstall_node_instances(graph=graph,
+                                               node_instances=node_instances,
+                                               ignore_failure=ignore_failure,
+                                               related_nodes=related)
+
+    client = get_rest_client()
+    depup = client.deployment_updates.get(update_id)
+    if depup.second_execution_id:
+        _install()
+        client.deployment_updates.finalize_commit(update_id)
     else:
         _uninstall()
-        _install()
-    _reinstall()
-
-    # Finalize the commit (i.e. remove relationships or nodes)
-    client = get_rest_client()
-    client.deployment_updates.finalize_commit(update_id)
+        client.deployment_updates.middle_phase(update_id,
+                                               skip_install,
+                                               skip_uninstall,
+                                               node_instances_to_reinstall)
 
 
 @workflow
