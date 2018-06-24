@@ -424,7 +424,10 @@ def update(ctx,
                             if instance.id in changed_ids]
         for instance_holder in instance_holders:
             instance_holder.append(instance)
+
     graph = ctx.graph_mode()
+    to_install = set(instances_by_change['added_instances'][1])
+    to_uninstall = set(instances_by_change['removed_instances'][1])
 
     def _install():
         if skip_install:
@@ -432,9 +435,10 @@ def update(ctx,
         # Adding nodes or node instances should be based on modified instances
         lifecycle.install_node_instances(
             graph=graph,
-            node_instances=set(instances_by_change['added_instances'][1]),
-            related_nodes=set(instances_by_change['added_target_instances_ids']
-                              [1]))
+            node_instances=to_install,
+            related_nodes=set(
+                instances_by_change['added_target_instances_ids'][1])
+        )
 
         # This one as well.
         lifecycle.execute_establish_relationships(
@@ -456,7 +460,7 @@ def update(ctx,
 
         lifecycle.uninstall_node_instances(
             graph=graph,
-            node_instances=set(instances_by_change['removed_instances'][1]),
+            node_instances=to_uninstall,
             ignore_failure=ignore_failure,
             related_nodes=set(
                 instances_by_change['remove_target_instance_ids'][1])
@@ -465,9 +469,14 @@ def update(ctx,
     def _reinstall():
         subgraph = set([])
         for node_instance_id in node_instances_to_reinstall:
-            subgraph = subgraph | ctx.get_node_instance(
+            subgraph |= ctx.get_node_instance(
                 node_instance_id).get_contained_subgraph()
-        intact_nodes = set(ctx.node_instances) - subgraph
+        subgraph -= to_uninstall
+        intact_nodes = set(ctx.node_instances) - subgraph - to_uninstall
+        for n in subgraph:
+            for r in n._relationship_instances:
+                if r in removed_instance_ids:
+                    n._relationship_instances.pop(r)
         lifecycle.reinstall_node_instances(graph=graph,
                                            node_instances=subgraph,
                                            related_nodes=intact_nodes,

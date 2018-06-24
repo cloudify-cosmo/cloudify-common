@@ -185,7 +185,7 @@ class DeploymentUpdatesClient(object):
                workflow_id=None,
                force=False,
                ignore_failure=False,
-               install_first=False,
+               install_first=True,
                skip_reinstall=True):
 
         # TODO better handle testing for a supported archive. in other commands
