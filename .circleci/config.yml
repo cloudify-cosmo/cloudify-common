@@ -13,10 +13,11 @@ defaults:
   - &test_defaults
     docker:
       - image: circleci/python:2.7
+      - image: rabbitmq:3.7.4
     steps:
       - checkout
       - run:
-          name: Install tox, NOTICE we use an old version of tox because of CFY-6398 ( relying dict ordering)
+          name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
           command: sudo pip install tox==1.6.1
       - run:
           name: Run tox of specfic environment
@@ -25,6 +26,7 @@ defaults:
   - &test_defaults_for_python26
     docker:
       - image: circleci/python:2.7
+      - image: rabbitmq:3.7.4
     steps:
       - checkout
       - run:
@@ -69,12 +71,12 @@ jobs:
   test_py27_script_plugin:
     <<: *test_defaults
     environment:
-      DO_ENV: py27_dsl_parser
+      DO_ENV: py27_script_plugin
 
   test_py27_plugins_common:
     <<: *test_defaults
     environment:
-      DO_ENV: py27_dsl_parser
+      DO_ENV: py27_plugins_common
 
   test_py26_dsl_parser:
     <<: *test_defaults_for_python26
@@ -84,12 +86,12 @@ jobs:
   test_py26_script_plugin:
     <<: *test_defaults_for_python26
     environment:
-      DO_ENV: py26_dsl_parser
+      DO_ENV: py26_script_plugin
 
   test_py26_plugins_common:
     <<: *test_defaults_for_python26
     environment:
-      DO_ENV: py26_dsl_parser
+      DO_ENV: py26_plugins_common
 
   docs_plugins_common:
     <<: *test_defaults
