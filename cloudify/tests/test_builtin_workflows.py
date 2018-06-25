@@ -19,7 +19,6 @@ from os import path
 
 import testtools
 from testtools.matchers import MatchesAny, Equals, GreaterThan
-from nose.tools import nottest
 
 from cloudify import exceptions
 from cloudify.plugins import lifecycle
@@ -589,7 +588,6 @@ class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):
         return self.env.storage.get_node_instances(node_id=node_id)[0]
 
 
-@nottest
 @operation
 def exec_op_test_operation(ctx, **kwargs):
     ctx.instance.runtime_properties['test_op_visited'] = True
@@ -597,7 +595,6 @@ def exec_op_test_operation(ctx, **kwargs):
         ctx.instance.runtime_properties['op_kwargs'] = kwargs
 
 
-@nottest
 @operation
 def exec_op_dependency_order_test_operation(ctx, **kwargs):
     ctx.instance.runtime_properties['visit_time'] = time.time()

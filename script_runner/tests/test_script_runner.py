@@ -22,7 +22,7 @@ from collections import namedtuple
 import requests
 import testtools
 from mock import patch
-from nose.tools import nottest, istest
+from pytest import mark
 
 from cloudify.state import current_ctx
 from cloudify.decorators import workflow
@@ -42,8 +42,7 @@ from script_runner.tasks import ILLEGAL_CTX_OPERATION_ERROR
 IS_WINDOWS = os.name == 'nt'
 
 
-@nottest
-class TestScriptRunner(testtools.TestCase):
+class BaseScriptRunner(object):
 
     def _get_temp_path(self):
         """Create a temporary file and return its absolute pathname.
@@ -602,30 +601,26 @@ if __name__ == '__main__':
         return os.path.normpath(os.path.normcase(path))
 
 
-@istest
-class TestScriptRunnerUnixCtxProxy(TestScriptRunner):
+@mark.skipif(IS_WINDOWS, reason='Test skipped on Windows')
+class TestScriptRunnerUnixCtxProxy(BaseScriptRunner, testtools.TestCase):
 
     def setUp(self):
-        if IS_WINDOWS:
-            self.skipTest('Test skipped on windows')
+        super(TestScriptRunnerUnixCtxProxy, self).setUp()
         self.ctx_proxy_type = 'unix'
-        super(TestScriptRunner, self).setUp()
 
 
-@istest
-class TestScriptRunnerTCPCtxProxy(TestScriptRunner):
+class TestScriptRunnerTCPCtxProxy(BaseScriptRunner, testtools.TestCase):
 
     def setUp(self):
+        super(TestScriptRunnerTCPCtxProxy, self).setUp()
         self.ctx_proxy_type = 'tcp'
-        super(TestScriptRunner, self).setUp()
 
 
-@istest
-class TestScriptRunnerHTTPCtxProxy(TestScriptRunner):
+class TestScriptRunnerHTTPCtxProxy(BaseScriptRunner, testtools.TestCase):
 
     def setUp(self):
+        super(TestScriptRunnerHTTPCtxProxy, self).setUp()
         self.ctx_proxy_type = 'http'
-        super(TestScriptRunner, self).setUp()
 
 
 class TestCtxProxyType(testtools.TestCase):
@@ -636,9 +631,8 @@ class TestCtxProxyType(testtools.TestCase):
     def test_tcp_ctx_type(self):
         self.assert_valid_ctx_proxy('tcp', TCPCtxProxy)
 
+    @mark.skipif(IS_WINDOWS, reason='Skipped on windows')
     def test_unix_ctx_type(self):
-        if IS_WINDOWS:
-            self.skipTest('Skipped on windows')
         self.assert_valid_ctx_proxy('unix', UnixCtxProxy)
 
     def test_none_ctx_type(self):

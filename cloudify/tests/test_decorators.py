@@ -17,7 +17,6 @@
 import testtools
 
 from mock import patch
-from nose import tools
 
 from cloudify import ctx as ctx_proxy
 from cloudify import manager
@@ -63,14 +62,12 @@ def some_operation_impl(**kwargs):
     return ctx
 
 
-@tools.nottest
 @operation
-def test_op(**kwargs):
-    run(test_op_impl, **kwargs)
+def run_op(**kwargs):
+    run(assert_op_impl, **kwargs)
 
 
-@tools.nottest
-def test_op_impl(ctx, test_case, **kwargs):
+def assert_op_impl(ctx, test_case, **kwargs):
     test_case.assertEqual(ctx, ctx_proxy)
 
 
@@ -91,7 +88,7 @@ class OperationTest(testtools.TestCase):
         self.assertRaises(RuntimeError,
                           lambda: ctx_proxy.instance.id)
 
-        test_op(test_case=self)
+        run_op(test_case=self)
 
         self.assertRaises(RuntimeError,
                           lambda: ctx_proxy.instance.id)
