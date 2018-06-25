@@ -175,7 +175,7 @@ node_templates:
                            "'user', 'webserver_port', " \
                            "'source_op_secret_id'\] don't exist in this tenant"
 
-        get_secret_not_found = MagicMock(side_effect=TestNotFoundException)
+        get_secret_not_found = MagicMock(side_effect=NotFoundException)
         self.assertRaisesRegexp(exceptions.UnknownSecretError,
                                 expected_message,
                                 prepare_deployment_plan,
@@ -195,9 +195,9 @@ node_templates:
                            " don't exist in this tenant"
 
         get_secret_not_found = MagicMock()
-        get_secret_not_found.side_effect = [None, None, TestNotFoundException,
+        get_secret_not_found.side_effect = [None, None, NotFoundException,
                                             None, None, None,
-                                            TestNotFoundException]
+                                            NotFoundException]
         self.assertRaisesRegexp(exceptions.UnknownSecretError,
                                 expected_message,
                                 prepare_deployment_plan,
@@ -248,7 +248,7 @@ node_templates:
         self.assertFalse(hasattr(parsed, 'secrets'))
 
 
-class TestNotFoundException(Exception):
+class NotFoundException(Exception):
     http_code = 404
 
 

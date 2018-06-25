@@ -22,8 +22,7 @@ import sys
 import subprocess
 from StringIO import StringIO
 
-import testtools
-from nose.tools import nottest, istest
+from pytest import mark
 
 from cloudify.mocks import MockCloudifyContext
 from cloudify.proxy import client
@@ -35,8 +34,7 @@ from cloudify.proxy.server import (UnixCtxProxy,
 IS_WINDOWS = os.name == 'nt'
 
 
-@nottest
-class TestCtxProxy(testtools.TestCase):
+class CtxProxyTestBase(object):
 
     class StubAttribute(object):
         some_property = 'some_value'
@@ -59,8 +57,7 @@ class TestCtxProxy(testtools.TestCase):
             args=args,
             kwargs=kwargs)
 
-    def setUp(self):
-        super(TestCtxProxy, self).setUp()
+    def setUp(self, proxy_server_class):
         self.ctx = MockCloudifyContext(node_id='instance_id', properties={
             'prop1': 'value1',
             'prop2': {
@@ -79,7 +76,7 @@ class TestCtxProxy(testtools.TestCase):
         self.ctx.stub_sleep = self.stub_sleep
         self.ctx.stub_args = self.stub_args
         self.ctx.stub_attr = self.StubAttribute()
-        self.server = self.proxy_server_class(self.ctx)
+        self.server = proxy_server_class(self.ctx)
         self.start_server()
 
     def start_server(self):
@@ -102,7 +99,6 @@ class TestCtxProxy(testtools.TestCase):
 
     def tearDown(self):
         self.stop_server_now()
-        super(TestCtxProxy, self).tearDown()
 
     def request(self, *args):
         return client.client_req(self.server.socket_url, args)
@@ -196,30 +192,23 @@ class TestCtxProxy(testtools.TestCase):
         self.assertEqual(args[1:], response)
 
 
-@istest
-class TestUnixCtxProxy(TestCtxProxy):
+@mark.skipif(IS_WINDOWS, reason='Test skipped on Windows')
+class TestUnixCtxProxy(CtxProxyTestBase, unittest.TestCase):
 
     def setUp(self):
-        if IS_WINDOWS:
-            raise unittest.SkipTest('Test skipped on windows')
-        self.proxy_server_class = UnixCtxProxy
-        super(TestUnixCtxProxy, self).setUp()
+        super(TestUnixCtxProxy, self).setUp(UnixCtxProxy)
 
 
-@istest
-class TestTCPCtxProxy(TestCtxProxy):
+class TestTCPCtxProxy(CtxProxyTestBase, unittest.TestCase):
 
     def setUp(self):
-        self.proxy_server_class = TCPCtxProxy
-        super(TestTCPCtxProxy, self).setUp()
+        super(TestTCPCtxProxy, self).setUp(TCPCtxProxy)
 
 
-@istest
-class TestHTTPCtxProxy(TestCtxProxy):
+class TestHTTPCtxProxy(CtxProxyTestBase, unittest.TestCase):
 
     def setUp(self):
-        self.proxy_server_class = HTTPCtxProxy
-        super(TestHTTPCtxProxy, self).setUp()
+        super(TestHTTPCtxProxy, self).setUp(HTTPCtxProxy)
 
     def start_server(self):
         pass
@@ -232,7 +221,7 @@ class TestHTTPCtxProxy(TestCtxProxy):
         super(TestHTTPCtxProxy, self).test_client_request_timeout()
 
 
-class TestArgumentParsing(testtools.TestCase):
+class TestArgumentParsing(unittest.TestCase):
 
     def mock_client_req(self, socket_url, args, timeout):
         self.assertEqual(socket_url, self.expected.get('socket_url'))
@@ -349,13 +338,13 @@ class TestArgumentParsing(testtools.TestCase):
             sys.stdout = current_stdout
 
 
-class TestCtxEntryPoint(testtools.TestCase):
+class TestCtxEntryPoint(unittest.TestCase):
 
     def test_ctx_in_path(self):
         subprocess.call(['ctx', '--help'])
 
 
-class TestPathDictAccess(testtools.TestCase):
+class TestPathDictAccess(unittest.TestCase):
     def test_simple_set(self):
         obj = {}
         path_dict = PathDictAccess(obj)

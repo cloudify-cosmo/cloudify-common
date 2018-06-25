@@ -24,11 +24,10 @@ import threading
 import Queue
 
 import testtools
-import nose.tools
-import cloudify.logs
 from testtools.matchers import ContainsAll
-from cloudify.decorators import workflow, operation
 
+import cloudify.logs
+from cloudify.decorators import workflow, operation
 from cloudify.exceptions import NonRecoverableError
 from cloudify.workflows import local
 from cloudify.workflows import workflow_context
@@ -38,11 +37,9 @@ PLUGIN_PACKAGE_NAME = 'test-package'
 PLUGIN_PACKAGE_VERSION = '1.1.1'
 
 
-@nose.tools.nottest
-class BaseWorkflowTest(testtools.TestCase):
+class BaseWorkflowTest(object):
 
     def setUp(self):
-        super(BaseWorkflowTest, self).setUp()
         self.work_dir = tempfile.mkdtemp(prefix='cloudify-workflows-')
         self.blueprint_dir = os.path.join(self.work_dir, 'blueprint')
         self.storage_dir = os.path.join(self.work_dir, 'storage')
@@ -50,6 +47,7 @@ class BaseWorkflowTest(testtools.TestCase):
         self.env = None
         os.mkdir(self.storage_dir)
         self.addCleanup(self.cleanup)
+        testtools.TestCase.setUp(self)
 
     def cleanup(self):
         shutil.rmtree(self.work_dir)
@@ -415,8 +413,10 @@ class BaseWorkflowTest(testtools.TestCase):
                 'task_retries': global_retries})
 
 
-@nose.tools.nottest
 class LocalWorkflowTest(BaseWorkflowTest):
+    def setUp(self):
+        super(LocalWorkflowTest, self).setUp()
+
     def test_workflow_and_operation_logging_and_events(self):
 
         def assert_task_events(indexes, events):
@@ -940,16 +940,14 @@ class LocalWorkflowTest(BaseWorkflowTest):
         )
 
 
-@nose.tools.istest
-class LocalWorkflowTestInMemoryStorage(LocalWorkflowTest):
+class LocalWorkflowTestInMemoryStorage(LocalWorkflowTest, testtools.TestCase):
 
     def setUp(self):
         super(LocalWorkflowTestInMemoryStorage, self).setUp()
         self.storage_cls = local.InMemoryStorage
 
 
-@nose.tools.istest
-class LocalWorkflowTestFileStorage(LocalWorkflowTest):
+class LocalWorkflowTestFileStorage(LocalWorkflowTest, testtools.TestCase):
 
     def setUp(self):
         super(LocalWorkflowTestFileStorage, self).setUp()
@@ -957,8 +955,7 @@ class LocalWorkflowTestFileStorage(LocalWorkflowTest):
         self.storage_kwargs = {'storage_dir': self.storage_dir}
 
 
-@nose.tools.istest
-class FileStorageTest(BaseWorkflowTest):
+class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
 
     def setUp(self):
         super(FileStorageTest, self).setUp()
@@ -1067,8 +1064,7 @@ class FileStorageTest(BaseWorkflowTest):
                                setup_env=False, load_env=True)
 
 
-@nose.tools.istest
-class LocalWorkflowEnvironmentTest(BaseWorkflowTest):
+class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
 
     def setUp(self):
         super(LocalWorkflowEnvironmentTest, self).setUp()
