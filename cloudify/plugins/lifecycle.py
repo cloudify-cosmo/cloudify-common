@@ -377,28 +377,14 @@ def _wait_for_host_to_start(host_node_instance):
 
 def prepare_running_agent(host_node_instance):
     tasks = []
-    install_method = utils.internal.get_install_method(
-        host_node_instance.node.properties)
-
     plugins_to_install = filter(lambda plugin: plugin['install'],
                                 host_node_instance.node.plugins_to_install)
-    if (plugins_to_install and
-            install_method != constants.AGENT_INSTALL_METHOD_NONE):
-        node_operations = host_node_instance.node.operations
-        tasks += [host_node_instance.send_event('Installing plugins')]
-        if 'cloudify.interfaces.plugin_installer.install' in \
-                node_operations:
-            # 3.2 Compute Node
-            tasks += [host_node_instance.execute_operation(
-                'cloudify.interfaces.plugin_installer.install',
-                kwargs={'plugins': plugins_to_install})
-            ]
-        else:
-            tasks += [host_node_instance.execute_operation(
-                'cloudify.interfaces.cloudify_agent.install_plugins',
-                kwargs={'plugins': plugins_to_install})
-            ]
 
+    _plugin_install_task = plugin_install_task(host_node_instance,
+                                               plugins_to_install)
+    if _plugin_install_task:
+        tasks += [host_node_instance.send_event('Installing plugins')]
+        tasks += [_plugin_install_task]
     tasks += [
         host_node_instance.execute_operation(
             'cloudify.interfaces.monitoring_agent.install'),
@@ -406,6 +392,25 @@ def prepare_running_agent(host_node_instance):
             'cloudify.interfaces.monitoring_agent.start'),
     ]
     return tasks
+
+
+def plugin_install_task(host_node_instance, plugins_to_install):
+    install_method = utils.internal.get_install_method(
+        host_node_instance.node.properties)
+    if (plugins_to_install and
+            install_method != constants.AGENT_INSTALL_METHOD_NONE):
+        node_operations = host_node_instance.node.operations
+
+        if 'cloudify.interfaces.plugin_installer.install' in \
+                node_operations:
+            # 3.2 Compute Node
+            return host_node_instance.execute_operation(
+                'cloudify.interfaces.plugin_installer.install',
+                kwargs={'plugins': plugins_to_install})
+        else:
+            return host_node_instance.execute_operation(
+                'cloudify.interfaces.cloudify_agent.install_plugins',
+                kwargs={'plugins': plugins_to_install})
 
 
 def _host_post_start(host_node_instance):
