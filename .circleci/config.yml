@@ -9,6 +9,10 @@ checkout:
         git checkout -qf FETCH_HEAD
       fi
 
+attach_workspace: &attach_workspace
+  attach_workspace:
+    at: /home/circleci/project
+
 defaults:
   - &test_defaults
     docker:
@@ -45,6 +49,22 @@ defaults:
           name: Run tox of specfic environment
           command: tox -e $DO_ENV
 
+  - &docs_defaults
+    docker:
+      - image: circleci/python:2.7
+    steps:
+      - checkout
+      - run:
+          name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
+          command: sudo pip install tox==1.6.1
+      - run:
+          name: Run tox of specfic environment
+          command: tox -e $DO_ENV
+      - persist_to_workspace:
+              root: /home/circleci/project
+              paths: #circleci can only handle fixed paths currently
+                - docs
+
   - &deploy_defaults
     docker:
       - image: circleci/python:2.7
@@ -52,6 +72,7 @@ defaults:
       - run:
           name: Install awscli
           command: sudo pip install awscli
+      - *attach_workspace
       - run:
           name: Deploy to S3
           command: |
@@ -94,12 +115,12 @@ jobs:
       DO_ENV: py26_plugins_common
 
   docs_plugins_common:
-    <<: *test_defaults
+    <<: *docs_defaults
     environment:
       DO_ENV: docs_plugins_common
 
   docs_rest_client:
-    <<: *test_defaults
+    <<: *docs_defaults
     environment:
       DO_ENV: docs_rest_client
 
