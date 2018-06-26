@@ -394,6 +394,17 @@ def prepare_running_agent(host_node_instance):
     return tasks
 
 
+def plugin_uninstall_task(host_node_instance, plugins_to_uninstall):
+    install_method = utils.internal.get_install_method(
+        host_node_instance.node.properties)
+    if (plugins_to_uninstall and
+            install_method != constants.AGENT_INSTALL_METHOD_NONE):
+        return host_node_instance.execute_operation(
+            'cloudify.interfaces.cloudify_agent.uninstall_plugins',
+            kwargs={'plugins': plugins_to_uninstall})
+    return None
+
+
 def plugin_install_task(host_node_instance, plugins_to_install):
     install_method = utils.internal.get_install_method(
         host_node_instance.node.properties)
@@ -411,6 +422,7 @@ def plugin_install_task(host_node_instance, plugins_to_install):
             return host_node_instance.execute_operation(
                 'cloudify.interfaces.cloudify_agent.install_plugins',
                 kwargs={'plugins': plugins_to_install})
+    return None
 
 
 def _host_post_start(host_node_instance):
