@@ -448,6 +448,8 @@ def update(ctx,
             modified_relationship_ids=modified_entity_ids['relationship']
         )
 
+        _handle_plugin_after_update(ctx, modified_entity_ids['plugin'], 'add')
+
     def _uninstall():
         if skip_uninstall:
             return
@@ -464,6 +466,10 @@ def update(ctx,
             ignore_failure=ignore_failure,
             related_nodes=set(
                 instances_by_change['remove_target_instance_ids'][1])
+        )
+
+        _handle_plugin_after_update(
+            ctx, modified_entity_ids['plugin'], 'remove'
         )
 
     def _reinstall():
@@ -599,3 +605,48 @@ def _add_validate_to_task_graph(graph, hosts, current_amqp, manager_ip=None,
                         'manager_certificate': manager_certificate}),
             host.send_event('Validation done'))
     return validate_subgraph
+
+
+def _handle_plugin_after_update(ctx, plugins_list, action):
+    """ Either install or uninstall plugins on the relevant hosts """
+
+    prefix = 'I' if action == 'add' else 'Uni'
+    message = '{0}nstalling plugins'.format(prefix)
+
+    graph = ctx.graph_mode()
+    plugin_subgraph = graph.subgraph('handle_plugins')
+
+    # The plugin_list is a list of (possibly empty) dicts that may contain
+    # `add`/`remove` keys and (node_id, plugin_dict) values. E.g.
+    # [{}, {}, {'add': (NODE_ID, PLUGIN_DICT)},
+    # {'add': (NODE_ID, PLUGIN_DICT), 'remove': (NODE_ID, PLUGIN_DICT)}]
+    # So we filter out only those dicts that have the relevant action
+    plugins_to_handle = [p[action] for p in plugins_list if p.get(action)]
+
+    # The list might contain duplicates, and it's organized in the following
+    # way: [(node_id, plugin_dict), (node_id, plugin_to_handle), ...] so
+    # we reorganize it into: {node_id: [list_of_plugins], ...}
+    node_to_plugins_map = {}
+    for node, plugin in plugins_to_handle:
+        node_list = node_to_plugins_map.setdefault(node, [])
+        if plugin not in node_list:
+            node_list.append(plugin)
+
+    for node_id, plugins in node_to_plugins_map.items():
+        if not plugins:
+            continue
+
+        instances = ctx.get_node(node_id).instances
+        for instance in instances:
+            if action == 'add':
+                task = lifecycle.plugin_install_task(instance, plugins)
+            else:
+                task = lifecycle.plugin_uninstall_task(instance, plugins)
+
+            if task:
+                seq = plugin_subgraph.sequence()
+                seq.add(
+                    instance.send_event(message),
+                    task
+                )
+    graph.execute()
