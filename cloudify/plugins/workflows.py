@@ -257,7 +257,8 @@ def _get_all_host_instances(ctx):
 @workflow
 def install_new_agents(ctx, install_agent_timeout, node_ids,
                        node_instance_ids, validate=True, install=True,
-                       manager_ip=None, manager_certificate=None, **_):
+                       manager_ip=None, manager_certificate=None,
+                       stop_old_agent=False, **_):
 
     hosts = _create_hosts_list(ctx, node_ids, node_instance_ids)
     _assert_hosts_started(hosts)
@@ -282,7 +283,8 @@ def install_new_agents(ctx, install_agent_timeout, node_ids,
                     kwargs={
                         'install_agent_timeout': install_agent_timeout,
                         'manager_ip': manager_ip,
-                        'manager_certificate': manager_certificate
+                        'manager_certificate': manager_certificate,
+                        'stop_old_agent': stop_old_agent
                     },
                     allow_kwargs_override=True),
                 host.send_event('New agent installed.'),
@@ -493,43 +495,6 @@ def update(ctx,
     # Finalize the commit (i.e. remove relationships or nodes)
     client = get_rest_client()
     client.deployment_updates.finalize_commit(update_id)
-
-
-@workflow
-def transfer_agents(ctx, transfer_agent_timeout, node_ids, node_instance_ids,
-                    manager_ip, manager_certificate, manager_rest_token,
-                    validate=True, **_):
-
-    hosts = _create_hosts_list(ctx, node_ids, node_instance_ids)
-    # Make sure all hosts' state is started
-    _assert_hosts_started(hosts)
-
-    # Add validate_amqp to task graph
-    graph = ctx.graph_mode()
-    if validate:
-        validate_subgraph =\
-            _add_validate_to_task_graph(graph, hosts, current_amqp=True)
-
-    # Add transfer_agents to new amqp to task graph
-    transfer_subgraph = graph.subgraph('transfer_agents')
-    for host in hosts:
-        seq = transfer_subgraph.sequence()
-        seq.add(
-            host.send_event('Transfering agents to new manager'),
-            host.execute_operation(
-                'cloudify.interfaces.cloudify_agent.transfer_amqp',
-                kwargs={
-                    'transfer_agent_timeout': transfer_agent_timeout,
-                    'manager_ip': manager_ip,
-                    'manager_certificate': manager_certificate,
-                    'manager_rest_token': manager_rest_token
-                },
-                allow_kwargs_override=True),
-            host.send_event('Agent has been transferred to new manager.')
-        )
-    if validate:
-        graph.add_dependency(transfer_subgraph, validate_subgraph)
-    graph.execute()
 
 
 @workflow()
