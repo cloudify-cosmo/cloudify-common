@@ -380,11 +380,11 @@ def prepare_running_agent(host_node_instance):
     plugins_to_install = filter(lambda plugin: plugin['install'],
                                 host_node_instance.node.plugins_to_install)
 
-    _plugin_install_task = plugin_install_task(host_node_instance,
-                                               plugins_to_install)
-    if _plugin_install_task:
+    _plugins_install_task = plugins_install_task(host_node_instance,
+                                                 plugins_to_install)
+    if _plugins_install_task:
         tasks += [host_node_instance.send_event('Installing plugins')]
-        tasks += [_plugin_install_task]
+        tasks += [_plugins_install_task]
     tasks += [
         host_node_instance.execute_operation(
             'cloudify.interfaces.monitoring_agent.install'),
@@ -394,7 +394,7 @@ def prepare_running_agent(host_node_instance):
     return tasks
 
 
-def plugin_uninstall_task(host_node_instance, plugins_to_uninstall):
+def plugins_uninstall_task(host_node_instance, plugins_to_uninstall):
     install_method = utils.internal.get_install_method(
         host_node_instance.node.properties)
     if (plugins_to_uninstall and
@@ -405,7 +405,7 @@ def plugin_uninstall_task(host_node_instance, plugins_to_uninstall):
     return None
 
 
-def plugin_install_task(host_node_instance, plugins_to_install):
+def plugins_install_task(host_node_instance, plugins_to_install):
     install_method = utils.internal.get_install_method(
         host_node_instance.node.properties)
     if (plugins_to_install and

@@ -639,9 +639,9 @@ def _handle_plugin_after_update(ctx, plugins_list, action):
         instances = ctx.get_node(node_id).instances
         for instance in instances:
             if action == 'add':
-                task = lifecycle.plugin_install_task(instance, plugins)
+                task = lifecycle.plugins_install_task(instance, plugins)
             else:
-                task = lifecycle.plugin_uninstall_task(instance, plugins)
+                task = lifecycle.plugins_uninstall_task(instance, plugins)
 
             if task:
                 seq = plugin_subgraph.sequence()
