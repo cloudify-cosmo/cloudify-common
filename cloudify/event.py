@@ -78,8 +78,7 @@ class Event(object):
         message = self._event['message']['text'].encode('utf-8')
         if self.is_log_message:
             message = '{0}: {1}'.format(self.log_level, message)
-        elif (self.event_type in ('task_rescheduled', 'task_failed') and
-              self._verbosity_level > NO_VERBOSE):
+        elif (self.event_type in ('task_rescheduled', 'task_failed')):
             causes = self._event['context'].get('task_error_causes', [])
             if causes:
                 multiple_causes = len(causes) > 1
