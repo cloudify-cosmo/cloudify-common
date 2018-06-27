@@ -54,11 +54,6 @@ class TestEvent(testtools.TestCase):
         test_event = _event('cloudify_event',
                             event_type='task_failed',
                             message=message,
-                            causes=causes)
-        self.assertEqual(test_event.text, message)
-        test_event = _event('cloudify_event',
-                            event_type='task_failed',
-                            message=message,
                             causes=causes,
                             verbosity_level=event.LOW_VERBOSE)
         text = test_event.text
