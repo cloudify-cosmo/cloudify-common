@@ -54,8 +54,7 @@ class TestEvent(testtools.TestCase):
         test_event = _event('cloudify_event',
                             event_type='task_failed',
                             message=message,
-                            causes=causes,
-                            verbosity_level=event.LOW_VERBOSE)
+                            causes=causes)
         text = test_event.text
         self.assertIn(message, text)
         self.assertNotIn('Causes (most recent cause last):', text)
