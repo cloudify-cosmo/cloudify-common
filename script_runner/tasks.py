@@ -337,8 +337,7 @@ def _get_target_path(source):
     # both backslash (to handle windows filesystem) and forward slash
     # (to handle URLs and unix filesystem)
     suffix = re.split(r'\\|/', source)[-1]
-    return tempfile.mktemp(suffix='-{0}'.format(suffix),
-                           dir=create_temp_folder())
+    return os.path.join(create_temp_folder(), suffix)
 
 
 def _get_process_environment(process, proxy):
