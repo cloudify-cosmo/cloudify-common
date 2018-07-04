@@ -369,8 +369,8 @@ def download_resource(download_resource_func, script_path,
                       ssl_cert_content=None):
     split = script_path.split('://')
     schema = split[0]
-    target_path = _get_target_path(script_path)
     if schema in ['http', 'https']:
+        target_path = _get_target_path(script_path)
         with _prepare_ssl_cert(ssl_cert_content) as cert_file:
             response = requests.get(script_path, verify=cert_file)
         # We only accept HTTP 200. Any other code (including other 2xx codes)
@@ -385,7 +385,7 @@ def download_resource(download_resource_func, script_path,
             f.write(content)
         return target_path
     else:
-        return download_resource_func(script_path, target_path)
+        return download_resource_func(script_path)
 
 
 @contextmanager
