@@ -818,7 +818,7 @@ class TestDownloadResource(testtools.TestCase):
             result = tasks.download_resource(None, script_path)
             with open(result) as f:
                 self.assertEqual(script_path, f.read())
-            self.assertTrue(result.endswith('-some_script.py'))
+            self.assertTrue(result.endswith('some_script.py'))
         finally:
             requests.get = original_requests_get
 
