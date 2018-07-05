@@ -290,7 +290,14 @@ class GetAttribute(Function):
             self._validate_ref(node_instance_id, TARGET)
             node_instance = storage.get_node_instance(node_instance_id)
         else:
-            node_instance = self._resolve_node_instance_by_name(storage)
+            try:
+                node_instance = self._resolve_node_instance_by_name(storage)
+            except exceptions.FunctionEvaluationError as e:
+                # Only in outputs scope we allow to continue when an error
+                # occurred
+                if not self.context.get('evaluate_outputs'):
+                    raise
+                return '<ERROR: {0}>'.format(e.message)
 
         value = _get_property_value(node_instance.node_id,
                                     node_instance.runtime_properties,
@@ -635,7 +642,7 @@ def evaluate_outputs(outputs_def,
     outputs = dict((k, v['value']) for k, v in outputs_def.iteritems())
     return evaluate_functions(
         payload=outputs,
-        context={},
+        context={'evaluate_outputs': True},
         get_node_instances_method=get_node_instances_method,
         get_node_instance_method=get_node_instance_method,
         get_node_method=get_node_method,
