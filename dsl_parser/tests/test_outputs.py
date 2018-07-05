@@ -251,14 +251,12 @@ outputs:
         def get_node_instances(node_id=None):
             return []
 
-        try:
-            functions.evaluate_outputs(parsed['outputs'],
-                                       get_node_instances,
-                                       None, None, None)
-            self.fail()
-        except exceptions.FunctionEvaluationError, e:
-            self.assertIn('Node specified in function does not exist', str(e))
-            self.assertIn('webserver', str(e))
+        outputs = functions.evaluate_outputs(parsed['outputs'],
+                                             get_node_instances,
+                                             None, None, None)
+        self.assertIn('Node specified in function does not exist',
+                      outputs['port'])
+        self.assertIn('webserver', outputs['port'])
 
     def test_invalid_multi_instance_evaluation(self):
         yaml = """
@@ -290,16 +288,13 @@ outputs:
         def get_node(node_id):
             return Node({'id': node_id})
 
-        try:
-            functions.evaluate_outputs(parsed['outputs'],
-                                       get_node_instances,
-                                       get_node_instance,
-                                       get_node,
-                                       None)
-            self.fail()
-        except exceptions.FunctionEvaluationError, e:
-            self.assertIn('unambiguously', str(e))
-            self.assertIn('webserver', str(e))
+        outputs = functions.evaluate_outputs(parsed['outputs'],
+                                             get_node_instances,
+                                             get_node_instance,
+                                             get_node,
+                                             None)
+        self.assertIn('unambiguously', outputs['port'])
+        self.assertIn('webserver', outputs['port'])
 
     def test_get_attribute_nested_property(self):
         yaml = """
@@ -347,6 +342,62 @@ outputs:
         self.assertEqual(8080, outputs['port'])
         self.assertEqual('http', outputs['protocol'])
         self.assertIsNone(outputs['none'])
+
+    def test_only_one_unknown_node_instance(self):
+        yaml = """
+node_types:
+    webserver_type: {}
+    unknown_type: {}
+node_templates:
+    webserver:
+        type: webserver_type
+    unknown:
+        type: unknown_type
+        instances:
+            deploy: 0
+outputs:
+    port:
+        value: { get_attribute: [ webserver, endpoint, port ] }
+    protocol:
+        value: { get_attribute: [ webserver, endpoint, url, protocol ] }
+    unknown:
+        value: { get_attribute: [ unknown, endpoint ] }
+"""
+        parsed = self.parse(yaml)
+
+        def get_node_instances(node_id=None):
+            if node_id == 'webserver':
+                node_instance = NodeInstance({
+                   'id': 'webserver1',
+                   'node_id': 'webserver',
+                   'runtime_properties': {
+                       'endpoint': {
+                           'url': {
+                               'protocol': 'http'
+                            },
+                           'port': 8080
+                       }
+                   }
+                })
+                return [node_instance]
+            return []
+
+        def get_node_instance(node_instance_id):
+            return get_node_instances()[0]
+
+        def get_node(node_id):
+            return Node({'id': node_id})
+
+        outputs = functions.evaluate_outputs(parsed['outputs'],
+                                             get_node_instances,
+                                             get_node_instance,
+                                             get_node,
+                                             None)
+
+        self.assertEqual(8080, outputs['port'])
+        self.assertEqual('http', outputs['protocol'])
+        self.assertIn('Node specified in function does not exist',
+                      outputs['unknown'])
 
 
 class NodeInstance(dict):
