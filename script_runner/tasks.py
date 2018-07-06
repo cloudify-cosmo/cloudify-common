@@ -277,12 +277,13 @@ def execute(script_path, ctx, process):
             log_counter = 0
             ctx.logger.info('Waiting for process {0} to end...'.format(pid))
 
-    ctx.logger.info('Process {0} ended'.format(pid))
+    ctx.logger.info('Execution done (PID={0}, return_code={1}): {2}'
+                    .format(pid, return_code, command))
 
-    proxy.close()
-
-    ctx.logger.info('Execution done (return_code={0}): {1}'
-                    .format(return_code, command))
+    try:
+        proxy.close()
+    except Exception:
+        ctx.logger.warning('Failed closing context proxy', exc_info=True)
 
     # happens when more than 1 ctx result command is used
     if isinstance(ctx._return_value, RuntimeError):
