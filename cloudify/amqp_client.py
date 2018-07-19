@@ -27,6 +27,7 @@ import pika
 import pika.exceptions
 
 from cloudify import utils
+from cloudify import cluster
 from cloudify import constants
 from cloudify import exceptions
 from cloudify import broker_config
@@ -144,6 +145,7 @@ class AMQPConnection(object):
                         if params.host != node_ip:
                             params.host = node_ip
                             self._update_env_vars(node_ip)
+                            cluster.set_cluster_active(node_ip)
                         yield params
                     continue
                 else:
