@@ -254,8 +254,7 @@ outputs:
         outputs = functions.evaluate_outputs(parsed['outputs'],
                                              get_node_instances,
                                              None, None, None)
-        self.assertIn('Node specified in function does not exist',
-                      outputs['port'])
+        self.assertIn('Node webserver has no instances', outputs['port'])
         self.assertIn('webserver', outputs['port'])
 
     def test_invalid_multi_instance_evaluation(self):
@@ -396,8 +395,7 @@ outputs:
 
         self.assertEqual(8080, outputs['port'])
         self.assertEqual('http', outputs['protocol'])
-        self.assertIn('Node specified in function does not exist',
-                      outputs['unknown'])
+        self.assertIn('Node unknown has no instances', outputs['unknown'])
 
 
 class NodeInstance(dict):
