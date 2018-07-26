@@ -417,7 +417,8 @@ class OperationHandler(TaskHandler):
                         ctx.source.instance.update()
                         ctx.target.instance.update()
         finally:
-            amqp_client_utils.close_amqp_client()
+            if ctx.task_target:
+                amqp_client_utils.close_amqp_client()
 
         if ctx.operation._operation_retry:
             raise ctx.operation._operation_retry
