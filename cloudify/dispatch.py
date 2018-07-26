@@ -399,23 +399,25 @@ class OperationHandler(TaskHandler):
             # and an amqp client is not required
             kwargs = copy.deepcopy(kwargs)
 
-        if self.cloudify_context.get('has_intrinsic_functions'):
+        try:
+            if self.cloudify_context.get('has_intrinsic_functions'):
+                with state.current_ctx.push(ctx, kwargs):
+                    kwargs = ctx._endpoint.evaluate_functions(payload=kwargs)
+
+            if not self.cloudify_context.get('no_ctx_kwarg'):
+                kwargs['ctx'] = ctx
+
             with state.current_ctx.push(ctx, kwargs):
-                kwargs = ctx._endpoint.evaluate_functions(payload=kwargs)
-
-        if not self.cloudify_context.get('no_ctx_kwarg'):
-            kwargs['ctx'] = ctx
-
-        with state.current_ctx.push(ctx, kwargs):
-            try:
-                result = self.func(*self.args, **kwargs)
-            finally:
-                amqp_client_utils.close_amqp_client()
-                if ctx.type == constants.NODE_INSTANCE:
-                    ctx.instance.update()
-                elif ctx.type == constants.RELATIONSHIP_INSTANCE:
-                    ctx.source.instance.update()
-                    ctx.target.instance.update()
+                try:
+                    result = self.func(*self.args, **kwargs)
+                finally:
+                    if ctx.type == constants.NODE_INSTANCE:
+                        ctx.instance.update()
+                    elif ctx.type == constants.RELATIONSHIP_INSTANCE:
+                        ctx.source.instance.update()
+                        ctx.target.instance.update()
+        finally:
+            amqp_client_utils.close_amqp_client()
 
         if ctx.operation._operation_retry:
             raise ctx.operation._operation_retry
