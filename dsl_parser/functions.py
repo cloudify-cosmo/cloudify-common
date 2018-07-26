@@ -320,8 +320,8 @@ class GetAttribute(Function):
         if len(node_instances) == 0:
             raise exceptions.FunctionEvaluationError(
                 self.name,
-                'Node specified in function does not exist: {0}.'
-                    .format(self.node_name))
+                'Node {0} has no instances.'.format(self.node_name)
+            )
 
         if len(node_instances) == 1:
             return node_instances[0]

@@ -476,7 +476,7 @@ class TestEvaluateFunctions(AbstractTestParser):
         payload = {'a': {'get_attribute': ['node', 'a']}}
         with testtools.testcase.ExpectedException(
                 exceptions.FunctionEvaluationError,
-                '.*does not exist.*'):
+                '.*has no instances.*'):
             functions.evaluate_functions(payload, {}, get_node_instances, None,
                                          None, None)
 
