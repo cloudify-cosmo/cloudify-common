@@ -28,6 +28,7 @@ import traceback
 import StringIO
 import Queue
 from time import sleep
+from contextlib import contextmanager
 
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.constants import VisibilityState
@@ -391,38 +392,46 @@ class OperationHandler(TaskHandler):
 
         ctx = self.ctx
         kwargs = self.kwargs
-        if ctx.task_target:
-            # # this operation requires an AMQP client
-            amqp_client_utils.init_events_publisher()
-        else:
-            # task is local (not through AMQP) so we need clone kwarg
-            # and an amqp client is not required
+        if not ctx.task_target:
+            # task is local (not through AMQP) so we need to clone kwargs
             kwargs = copy.deepcopy(kwargs)
 
-        try:
+        with state.current_ctx.push(ctx, kwargs):
             if self.cloudify_context.get('has_intrinsic_functions'):
-                with state.current_ctx.push(ctx, kwargs):
-                    kwargs = ctx._endpoint.evaluate_functions(payload=kwargs)
+                kwargs = ctx._endpoint.evaluate_functions(payload=kwargs)
 
-            if not self.cloudify_context.get('no_ctx_kwarg'):
-                kwargs['ctx'] = ctx
+        if not self.cloudify_context.get('no_ctx_kwarg'):
+            kwargs['ctx'] = ctx
 
-            with state.current_ctx.push(ctx, kwargs):
-                try:
-                    result = self.func(*self.args, **kwargs)
-                finally:
-                    if ctx.type == constants.NODE_INSTANCE:
-                        ctx.instance.update()
-                    elif ctx.type == constants.RELATIONSHIP_INSTANCE:
-                        ctx.source.instance.update()
-                        ctx.target.instance.update()
-        finally:
-            if ctx.task_target:
-                amqp_client_utils.close_amqp_client()
+        with state.current_ctx.push(ctx, kwargs), self._amqp_client():
+            result = self._run_operation_func(ctx, kwargs)
 
         if ctx.operation._operation_retry:
             raise ctx.operation._operation_retry
         return result
+
+    @contextmanager
+    def _amqp_client(self):
+        # initialize an amqp client only when needed, ie. if the task is
+        # not local
+        with_amqp = bool(self.ctx.task_target)
+        if with_amqp:
+            amqp_client_utils.init_events_publisher()
+        try:
+            yield
+        finally:
+            if with_amqp:
+                amqp_client_utils.close_amqp_client()
+
+    def _run_operation_func(self, ctx, kwargs):
+        try:
+            return self.func(*self.args, **kwargs)
+        finally:
+            if ctx.type == constants.NODE_INSTANCE:
+                ctx.instance.update()
+            elif ctx.type == constants.RELATIONSHIP_INSTANCE:
+                ctx.source.instance.update()
+                ctx.target.instance.update()
 
 
 class WorkflowHandler(TaskHandler):
