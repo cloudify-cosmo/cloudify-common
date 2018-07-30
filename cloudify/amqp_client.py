@@ -527,7 +527,8 @@ def get_client(amqp_host=None,
                ssl_enabled=None,
                ssl_cert_path=None,
                name=None,
-               connect_timeout=10):
+               connect_timeout=10,
+               cls=AMQPConnection):
     """
     Create a client without any handlers in it. Use the `add_handler` method
     to add handlers to this client
@@ -544,8 +545,8 @@ def get_client(amqp_host=None,
         ssl_cert_path
     )
 
-    return AMQPConnection(handlers=[], amqp_params=amqp_params, name=name,
-                          connect_timeout=connect_timeout)
+    return cls(handlers=[], amqp_params=amqp_params, name=name,
+               connect_timeout=connect_timeout)
 
 
 class CloudifyEventsPublisher(object):
