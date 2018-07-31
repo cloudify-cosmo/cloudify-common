@@ -23,7 +23,7 @@ install_requires = [
     'pika==0.11.2',
     'proxy_tools==0.1.0',
     'bottle==0.12.7',
-    'jinja2==2.7.2',
+    'jinja2==2.10',
     'requests_toolbelt'
 ]
 
