@@ -249,7 +249,7 @@ node_templates:
 
 
 class NotFoundException(Exception):
-    http_code = 404
+    status_code = 404
 
 
 class TestEvaluateFunctions(AbstractTestParser):
