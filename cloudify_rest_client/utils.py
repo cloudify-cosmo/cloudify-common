@@ -28,10 +28,14 @@ def tar_file(file_to_tar, destination_dir, tar_name=''):
     :param tar_name: optional tar name.
     :return:
     """
+    def _reset_tarinfo(tarinfo):
+        tarinfo.mode = 0755
+        return tarinfo
+
     tar_name = tar_name or os.path.basename(file_to_tar)
     tar_path = os.path.join(destination_dir, '{0}.tar.gz'.format(tar_name))
     with tarfile.open(tar_path, "w:gz") as tar:
-        tar.add(file_to_tar, arcname=tar_name)
+        tar.add(file_to_tar, arcname=tar_name, filter=_reset_tarinfo)
     return tar_path
 
 
