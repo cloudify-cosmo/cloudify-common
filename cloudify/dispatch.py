@@ -403,8 +403,9 @@ class OperationHandler(TaskHandler):
         if not self.cloudify_context.get('no_ctx_kwarg'):
             kwargs['ctx'] = ctx
 
-        with state.current_ctx.push(ctx, kwargs), self._amqp_client():
-            result = self._run_operation_func(ctx, kwargs)
+        with state.current_ctx.push(ctx, kwargs):
+            with self._amqp_client():  # nested with for py2.6 compat
+                result = self._run_operation_func(ctx, kwargs)
 
         if ctx.operation._operation_retry:
             raise ctx.operation._operation_retry
