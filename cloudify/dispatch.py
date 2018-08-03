@@ -404,7 +404,9 @@ class OperationHandler(TaskHandler):
             kwargs['ctx'] = ctx
 
         with state.current_ctx.push(ctx, kwargs):
-            with self._amqp_client():  # nested with for py2.6 compat
+            # should be single `with` and comma-separate ctxmanagers,
+            # but has to be nested for python 2.6 compat
+            with self._amqp_client():
                 result = self._run_operation_func(ctx, kwargs)
 
         if ctx.operation._operation_retry:
