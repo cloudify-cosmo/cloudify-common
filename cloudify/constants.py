@@ -60,6 +60,8 @@ BYPASS_MAINTENANCE = 'BYPASS_MAINTENANCE'
 LOGGING_CONFIG_FILE = '/etc/cloudify/logging.conf'
 CLUSTER_SETTINGS_PATH_KEY = 'CLOUDIFY_CLUSTER_SETTINGS_PATH'
 
+LOGS_EXCHANGE_NAME = 'cloudify-logs'
+EVENTS_EXCHANGE_NAME = 'cloudify-events'
 MGMTWORKER_QUEUE = 'cloudify.management'
 DEPLOYMENT = 'deployment'
 NODE_INSTANCE = 'node-instance'

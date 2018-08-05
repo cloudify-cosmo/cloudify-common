@@ -20,6 +20,7 @@ import random
 import shlex
 import ssl
 import string
+import importlib
 import subprocess
 import sys
 import tempfile
@@ -30,7 +31,7 @@ from distutils.version import LooseVersion
 
 from cloudify import cluster, constants
 from cloudify.state import workflow_ctx, ctx
-from cloudify.exceptions import CommandExecutionException
+from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
 
 CFY_EXEC_TEMPDIR_ENVVAR = 'CFY_EXEC_TEMP'
@@ -285,6 +286,27 @@ def exception_to_error_cause(exception, tb):
         'traceback': error.getvalue(),
         'type': etype.__name__
     }
+
+
+def get_func(task_name):
+    split = task_name.split('.')
+    module_name = '.'.join(split[:-1])
+    function_name = split[-1]
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as e:
+        raise NonRecoverableError(
+            'No module named {0} ({1})'.format(module_name, e))
+    try:
+        func = getattr(module, function_name)
+    except AttributeError:
+        raise NonRecoverableError(
+            "{0} has no function named '{1}' ".format(module_name,
+                                                      function_name))
+    if not callable(func):
+        raise NonRecoverableError(
+            "{0}.{1} is not callable".format(module_name, function_name))
+    return func
 
 
 class LocalCommandRunner(object):

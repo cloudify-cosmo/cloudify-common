@@ -292,7 +292,8 @@ def populate_base_item(item, message_type):
 
 def amqp_event_out(event):
     populate_base_item(event, 'cloudify_event')
-    _publish_message(event, 'event', logging.getLogger('cloudify_events'))
+    message_type = event['context'].get('message_type') or 'event'
+    _publish_message(event, message_type, logging.getLogger('cloudify_events'))
 
 
 def amqp_log_out(log):

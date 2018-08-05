@@ -31,6 +31,8 @@ from cloudify import cluster
 from cloudify import constants
 from cloudify import exceptions
 from cloudify import broker_config
+from cloudify.constants import EVENTS_EXCHANGE_NAME, LOGS_EXCHANGE_NAME
+
 
 logger = logging.getLogger(__name__)
 
@@ -325,13 +327,14 @@ class AMQPConnection(object):
 class TaskConsumer(object):
     routing_key = ''
 
-    def __init__(self, queue, threadpool_size=5):
+    def __init__(self, queue, threadpool_size=5, exchange_type='direct'):
         self.threadpool_size = threadpool_size
         self.exchange = queue
         self.queue = '{0}_{1}'.format(queue, self.routing_key)
         self._sem = threading.Semaphore(threadpool_size)
         self._connection = None
         self.in_channel = None
+        self.exchange_type = exchange_type
 
     def register(self, connection):
         self._connection = connection
@@ -341,8 +344,10 @@ class TaskConsumer(object):
     def _register_queue(self, channel):
         channel.basic_qos(prefetch_count=self.threadpool_size)
         channel.confirm_delivery()
-        channel.exchange_declare(
-            exchange=self.exchange, auto_delete=False, durable=True)
+        channel.exchange_declare(exchange=self.exchange,
+                                 auto_delete=False,
+                                 durable=True,
+                                 exchange_type=self.exchange_type)
         channel.queue_declare(queue=self.queue,
                               durable=True,
                               auto_delete=False)
@@ -550,22 +555,26 @@ def get_client(amqp_host=None,
 
 
 class CloudifyEventsPublisher(object):
-    EVENTS_EXCHANGE_NAME = 'cloudify-events'
     SOCKET_TIMEOUT = 5
     CONNECTION_ATTEMPTS = 3
-    LOGS_EXCHANGE_NAME = 'cloudify-logs'
     channel_settings = {
         'auto_delete': False,
         'durable': True,
     }
 
     def __init__(self, amqp_params):
-        self.events_handler = SendHandler(self.EVENTS_EXCHANGE_NAME,
-                                          exchange_type='fanout')
-        self.logs_handler = SendHandler(self.LOGS_EXCHANGE_NAME,
-                                        exchange_type='fanout')
+        self.handlers = {
+            'log': SendHandler(LOGS_EXCHANGE_NAME, exchange_type='fanout'),
+            'event': SendHandler(EVENTS_EXCHANGE_NAME,
+                                 exchange_type='topic',
+                                 routing_key='events'),
+            'hook': SendHandler(EVENTS_EXCHANGE_NAME,
+                                exchange_type='topic',
+                                routing_key='events.hooks'),
+        }
+
         self._connection = AMQPConnection(
-            handlers=[self.events_handler, self.logs_handler],
+            handlers=self.handlers.values(),
             amqp_params=amqp_params,
             name=os.environ.get('AGENT_NAME')
         )
@@ -578,11 +587,14 @@ class CloudifyEventsPublisher(object):
         if self._is_closed:
             raise exceptions.ClosedAMQPClientException(
                 'Publish failed, AMQP client already closed')
-        if message_type == 'event':
-            handler = self.events_handler
+
+        handler = self.handlers.get(message_type)
+
+        if handler:
+            handler.publish(message)
         else:
-            handler = self.logs_handler
-        handler.publish(message)
+            logger.error('Unknown message type : {0} for message : {1}'.
+                         format(message_type, message))
 
     def close(self):
         if self._is_closed:

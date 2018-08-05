@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 
-import importlib
 import copy
 import json
 import logging
@@ -357,24 +356,7 @@ class TaskHandler(object):
 
     def get_func(self):
         task_name = self.cloudify_context['task_name']
-        split = task_name.split('.')
-        module_name = '.'.join(split[:-1])
-        function_name = split[-1]
-        try:
-            module = importlib.import_module(module_name)
-        except ImportError as e:
-            raise exceptions.NonRecoverableError(
-                'No module named {0} ({1})'.format(module_name, e))
-        try:
-            func = getattr(module, function_name)
-        except AttributeError:
-            raise exceptions.NonRecoverableError(
-                "{0} has no function named '{1}' ".format(module_name,
-                                                          function_name))
-        if not callable(func):
-            raise exceptions.NonRecoverableError(
-                "{0}.{1} is not callable".format(module_name, function_name))
-        return func
+        return utils.get_func(task_name)
 
 
 class OperationHandler(TaskHandler):
@@ -604,7 +586,8 @@ class WorkflowHandler(TaskHandler):
         self.ctx.internal.send_workflow_event(
             event_type='workflow_started',
             message="Starting '{0}' workflow execution{1}".format(
-                self.ctx.workflow_id, dry_run))
+                self.ctx.workflow_id, dry_run),
+            additional_context={'message_type': 'hook'})
 
     def _workflow_succeeded(self):
         self._update_execution_status(Execution.TERMINATED)
@@ -612,7 +595,9 @@ class WorkflowHandler(TaskHandler):
         self.ctx.internal.send_workflow_event(
             event_type='workflow_succeeded',
             message="'{0}' workflow execution succeeded{1}".format(
-                self.ctx.workflow_id, dry_run))
+                self.ctx.workflow_id, dry_run),
+            additional_context={'message_type': 'hook'}
+        )
 
     def _workflow_failed(self, exception, error_traceback):
         self._update_execution_status(Execution.FAILED, error_traceback)
@@ -620,14 +605,18 @@ class WorkflowHandler(TaskHandler):
             event_type='workflow_failed',
             message="'{0}' workflow execution failed: {1}".format(
                 self.ctx.workflow_id, str(exception)),
-            args={'error': error_traceback})
+            args={'error': error_traceback},
+            additional_context={'message_type': 'hook'}
+        )
 
     def _workflow_cancelled(self):
         self._update_execution_status(Execution.CANCELLED)
         self.ctx.internal.send_workflow_event(
             event_type='workflow_cancelled',
             message="'{0}' workflow execution cancelled".format(
-                self.ctx.workflow_id))
+                self.ctx.workflow_id),
+            additional_context={'message_type': 'hook'}
+        )
 
     def _update_execution_status(self, status, error=None):
         if self.ctx.local or not self.update_execution_status:
