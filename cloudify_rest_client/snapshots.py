@@ -147,7 +147,7 @@ class SnapshotsClient(object):
                 force=False,
                 restore_certificates=False,
                 no_reboot=False,
-                ignore_plugin_installation_failure=False):
+                ignore_plugin_failure=False):
         """
         Restores the snapshot whose id matches the provided snapshot id.
 
@@ -159,7 +159,7 @@ class SnapshotsClient(object):
         :param restore_certificates: Whether to try and restore the
         certificates from the snapshot.
         :param no_reboot: Do not reboot after certificates restore.
-        :param ignore_plugin_installation_failure: Ignore any plugin
+        :param ignore_plugin_failure: Ignore any plugin
         installation failures and continue with restore
         """
         assert snapshot_id
@@ -169,8 +169,8 @@ class SnapshotsClient(object):
             'force': force,
             'restore_certificates': restore_certificates,
             'no_reboot': no_reboot,
-            'ignore_plugin_installation_failure':
-                ignore_plugin_installation_failure
+            'ignore_plugin_failure':
+                ignore_plugin_failure
         }
         response = self.api.post(uri, data=params)
         return Execution(response)
