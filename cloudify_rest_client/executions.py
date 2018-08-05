@@ -26,6 +26,7 @@ class Execution(dict):
     CANCELLING = 'cancelling'
     FORCE_CANCELLING = 'force_cancelling'
     KILL_CANCELLING = 'kill_cancelling'
+    QUEUED = 'queued'
     END_STATES = [TERMINATED, FAILED, CANCELLED]
 
     def __init__(self, execution):
@@ -205,8 +206,8 @@ class ExecutionsClient(object):
          this deployment.
         :param dry_run: If set to true, no actual actions will be performed.\
         This is a dry run of the execution
-        :param queue: If set, If set, blocked executions will be queued and
-        automatically run when the blocking executions are finished
+        :param queue: If set, blocked executions will be queued and
+        automatically run when possible
 
         :raises: IllegalExecutionParametersError
         :return: The created execution.
