@@ -1021,10 +1021,15 @@ class CloudifyWorkflowContextInternal(object):
         send_task_event_func = self.handler.get_send_task_event_func(task)
         events.send_task_event(state, task, send_task_event_func, event)
 
-    def send_workflow_event(self, event_type, message=None, args=None):
+    def send_workflow_event(self,
+                            event_type,
+                            message=None,
+                            args=None,
+                            additional_context=None):
         self.handler.send_workflow_event(event_type=event_type,
                                          message=message,
-                                         args=args)
+                                         args=args,
+                                         additional_context=additional_context)
 
     def start_local_tasks_processing(self):
         self.local_tasks_processor.start()
