@@ -190,7 +190,8 @@ class ExecutionsClient(object):
         return Execution(response)
 
     def start(self, deployment_id, workflow_id, parameters=None,
-              allow_custom_parameters=False, force=False, dry_run=False):
+              allow_custom_parameters=False, force=False, dry_run=False,
+              queue=False):
         """Starts a deployment's workflow execution whose id is provided.
 
         :param deployment_id: The deployment's id to execute a workflow for.
@@ -204,6 +205,9 @@ class ExecutionsClient(object):
          this deployment.
         :param dry_run: If set to true, no actual actions will be performed.\
         This is a dry run of the execution
+        :param queue: If set, If set, blocked executions will be queued and
+        automatically run when the blocking executions are finished
+
         :raises: IllegalExecutionParametersError
         :return: The created execution.
         """
@@ -215,7 +219,8 @@ class ExecutionsClient(object):
             'parameters': parameters,
             'allow_custom_parameters': str(allow_custom_parameters).lower(),
             'force': str(force).lower(),
-            'dry_run': str(dry_run).lower()
+            'dry_run': str(dry_run).lower(),
+            'queue': str(queue).lower()
         }
         uri = '/executions'
         response = self.api.post(uri,
