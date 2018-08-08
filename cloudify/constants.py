@@ -45,6 +45,14 @@ AGENT_INSTALL_METHODS_SCRIPTS = [
     AGENT_INSTALL_METHOD_PROVIDED,
     AGENT_INSTALL_METHOD_PLUGIN
 ]
+# install methods that mean the agent is actually installed (and so can be
+# upgraded - not none or provided)
+AGENT_INSTALL_METHODS_INSTALLED = [
+    AGENT_INSTALL_METHOD_INIT_SCRIPT,
+    AGENT_INSTALL_METHOD_PLUGIN,
+    AGENT_INSTALL_METHOD_REMOTE,
+]
+
 
 COMPUTE_NODE_TYPE = 'cloudify.nodes.Compute'
 
