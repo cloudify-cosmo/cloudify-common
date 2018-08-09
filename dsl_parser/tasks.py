@@ -100,7 +100,8 @@ def _validate_secrets(plan, get_secret_method):
         try:
             get_secret_method(secret_key)
         except Exception as exception:
-            if hasattr(exception, 'http_code') and exception.http_code == 404:
+            if hasattr(exception, 'status_code')\
+                    and exception.status_code == 404:
                 invalid_secrets.append(secret_key)
             else:
                 raise
