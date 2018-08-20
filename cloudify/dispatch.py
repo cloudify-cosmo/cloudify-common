@@ -420,6 +420,11 @@ class OperationHandler(TaskHandler):
 
 
 class WorkflowHandler(TaskHandler):
+
+    def __init__(self, *args, **kwargs):
+        super(WorkflowHandler, self).__init__(*args, **kwargs)
+        self.execution_parameters = copy.deepcopy(self.kwargs)
+
     @property
     def ctx_cls(self):
         if getattr(self.func, 'workflow_system_wide', False):
@@ -587,7 +592,8 @@ class WorkflowHandler(TaskHandler):
             event_type='workflow_started',
             message="Starting '{0}' workflow execution{1}".format(
                 self.ctx.workflow_id, dry_run),
-            additional_context={'message_type': 'hook'})
+            additional_context=self._get_hook_params()
+        )
 
     def _workflow_succeeded(self):
         self._update_execution_status(Execution.TERMINATED)
@@ -596,7 +602,7 @@ class WorkflowHandler(TaskHandler):
             event_type='workflow_succeeded',
             message="'{0}' workflow execution succeeded{1}".format(
                 self.ctx.workflow_id, dry_run),
-            additional_context={'message_type': 'hook'}
+            additional_context=self._get_hook_params()
         )
 
     def _workflow_failed(self, exception, error_traceback):
@@ -606,7 +612,7 @@ class WorkflowHandler(TaskHandler):
             message="'{0}' workflow execution failed: {1}".format(
                 self.ctx.workflow_id, str(exception)),
             args={'error': error_traceback},
-            additional_context={'message_type': 'hook'}
+            additional_context=self._get_hook_params()
         )
 
     def _workflow_cancelled(self):
@@ -615,8 +621,19 @@ class WorkflowHandler(TaskHandler):
             event_type='workflow_cancelled',
             message="'{0}' workflow execution cancelled".format(
                 self.ctx.workflow_id),
-            additional_context={'message_type': 'hook'}
+            additional_context=self._get_hook_params()
         )
+
+    def _get_hook_params(self):
+        is_system_workflow = self.cloudify_context.get('is_system_workflow')
+        hook_params = {
+            'message_type': 'hook',
+            'is_system_workflow': is_system_workflow
+        }
+
+        if not is_system_workflow:
+            hook_params['execution_parameters'] = self.execution_parameters
+        return hook_params
 
     def _update_execution_status(self, status, error=None):
         if self.ctx.local or not self.update_execution_status:
