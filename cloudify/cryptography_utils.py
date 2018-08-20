@@ -24,7 +24,7 @@ from cloudify.constants import SECURITY_FILE_LOCATION
 
 def encrypt(data, key=None):
     key = key or _get_encryption_key()
-    fernet = Fernet256(str(key))
+    fernet = Fernet(str(key))
     return fernet.encrypt(bytes(data))
 
 

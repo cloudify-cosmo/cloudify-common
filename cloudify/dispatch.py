@@ -369,7 +369,11 @@ class OperationHandler(TaskHandler):
 
     def _validate_operation_func(self):
         if not self.func:
-            self.get_func()
+            func = self.get_func()
+            if self.ctx.resume and not getattr(func, 'resumable', False):
+                raise exceptions.NonRecoverableError(
+                    'Cannot resume - operation not resumable: {0}'
+                    .format(func))
 
     def handle(self):
         self._validate_operation_func()

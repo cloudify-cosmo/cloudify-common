@@ -250,3 +250,10 @@ class ExecutionsClient(object):
                                  data={'action': action},
                                  expected_status_code=200)
         return self._wrapper_cls(response)
+
+    def resume(self, execution_id):
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
+        response = self.api.post(uri,
+                                 data={'action': 'resume'},
+                                 expected_status_code=200)
+        return self._wrapper_cls(response)
