@@ -465,12 +465,11 @@ class NoWaitSendHandler(SendHandler):
 
 
 class _RequestResponseHandlerBase(TaskConsumer):
-    def __init__(self, exchange):
+    def __init__(self, exchange, queue=None):
         super(_RequestResponseHandlerBase, self).__init__(exchange)
-        self.queue = None
+        self.queue = queue or uuid.uuid4().hex
 
     def _register_queue(self, channel):
-        self.queue = uuid.uuid4().hex
         self.in_channel.queue_declare(queue=self.queue, exclusive=True,
                                       durable=True)
         channel.basic_consume(self.process, self.queue)
@@ -533,13 +532,17 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
         self._callbacks = {}
 
     def publish(self, message, *args, **kwargs):
-        callback = kwargs.pop('callback')
+        callback = kwargs.pop('callback', None)
         correlation_id = kwargs.pop('correlation_id', None)
         if correlation_id is None:
             correlation_id = uuid.uuid4().hex
-        self._callbacks[correlation_id] = callback
+        if callback:
+            self.wait_for_response(correlation_id, callback)
         super(CallbackRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
+
+    def wait_for_response(self, correlation_id, callback):
+        self._callbacks[correlation_id] = callback
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)

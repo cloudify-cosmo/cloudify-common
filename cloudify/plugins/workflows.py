@@ -19,13 +19,14 @@ from cloudify import constants, utils
 from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
 from cloudify.manager import get_rest_client
+from cloudify.workflows.tasks_graph import make_or_get_graph
 
 
 @workflow
 def install(ctx, **kwargs):
     """Default install workflow"""
     lifecycle.install_node_instances(
-        graph=ctx.graph_mode(),
+        ctx=ctx,
         node_instances=set(ctx.node_instances))
 
 
@@ -34,7 +35,7 @@ def uninstall(ctx, ignore_failure=False, **kwargs):
     """Default uninstall workflow"""
 
     lifecycle.uninstall_node_instances(
-        graph=ctx.graph_mode(),
+        ctx=ctx,
         node_instances=set(ctx.node_instances),
         ignore_failure=ignore_failure)
 
@@ -71,8 +72,7 @@ def auto_heal_reinstall_node_subgraph(
     else:
         subgraph_node_instances = failing_node_host.get_contained_subgraph()
     intact_nodes = set(ctx.node_instances) - subgraph_node_instances
-    graph = ctx.graph_mode()
-    lifecycle.reinstall_node_instances(graph=graph,
+    lifecycle.reinstall_node_instances(ctx,
                                        node_instances=subgraph_node_instances,
                                        related_nodes=intact_nodes,
                                        ignore_failure=ignore_failure)
@@ -416,7 +416,7 @@ def scale_entity(ctx,
             related = added_and_related - added
             try:
                 lifecycle.install_node_instances(
-                    graph=graph,
+                    ctx,
                     node_instances=added,
                     related_nodes=related)
             except Exception:
@@ -424,7 +424,7 @@ def scale_entity(ctx,
                 for task in graph.tasks_iter():
                     graph.remove_task(task)
                 lifecycle.uninstall_node_instances(
-                    graph=graph,
+                    ctx,
                     node_instances=added,
                     ignore_failure=ignore_failure,
                     related_nodes=related)
@@ -435,7 +435,7 @@ def scale_entity(ctx,
                           if i.modification == 'removed')
             related = removed_and_related - removed
             lifecycle.uninstall_node_instances(
-                graph=graph,
+                ctx,
                 node_instances=removed,
                 ignore_failure=ignore_failure,
                 related_nodes=related)
@@ -496,16 +496,15 @@ def _get_all_host_instances(ctx):
     return node_instances
 
 
-@workflow
-def install_new_agents(ctx, install_agent_timeout, node_ids,
-                       node_instance_ids, install_methods=None, validate=True,
-                       install=True, manager_ip=None, manager_certificate=None,
-                       stop_old_agent=False, **_):
-
+@make_or_get_graph
+def _make_install_agents_graph(
+        ctx, install_agent_timeout, node_ids,
+        node_instance_ids, install_methods=None, validate=True,
+        install=True, manager_ip=None, manager_certificate=None,
+        stop_old_agent=False, **_):
     hosts = _create_hosts_list(ctx, node_ids, node_instance_ids,
                                install_methods)
     _assert_hosts_started(hosts)
-
     graph = ctx.graph_mode()
     if validate:
         validate_subgraph = _add_validate_to_task_graph(
@@ -541,6 +540,12 @@ def install_new_agents(ctx, install_agent_timeout, node_ids,
                     'cloudify.interfaces.monitoring.start'))
     if validate and install:
         graph.add_dependency(install_subgraph, validate_subgraph)
+    return graph
+
+
+@workflow
+def install_new_agents(ctx, **kwargs):
+    graph = _make_install_agents_graph(ctx, 'install_agents', **kwargs)
     graph.execute()
 
 
@@ -566,12 +571,11 @@ def restart(ctx, stop_parms, start_parms, run_by_dependency_order, type_names,
           node_ids, node_instance_ids, **kwargs)
 
 
-@workflow
-def execute_operation(ctx, operation, operation_kwargs, allow_kwargs_override,
-                      run_by_dependency_order, type_names, node_ids,
-                      node_instance_ids, **kwargs):
-    """ A generic workflow for executing arbitrary operations on nodes """
-
+@make_or_get_graph
+def _make_execute_operation_graph(ctx, operation, operation_kwargs,
+                                  allow_kwargs_override,
+                                  run_by_dependency_order, type_names,
+                                  node_ids, node_instance_ids, **kwargs):
     graph = ctx.graph_mode()
     subgraphs = {}
 
@@ -630,7 +634,15 @@ def execute_operation(ctx, operation, operation_kwargs, allow_kwargs_override,
             for rel in instance.relationships:
                 graph.add_dependency(subgraphs[instance.id],
                                      subgraphs[rel.target_id])
+    return graph
 
+
+@workflow
+def execute_operation(ctx, **kwargs):
+    """ A generic workflow for executing arbitrary operations on nodes """
+
+    graph = _make_execute_operation_graph(
+        ctx, name='execute_operation', **kwargs)
     graph.execute()
 
 
@@ -670,7 +682,6 @@ def update(ctx,
         for instance_holder in instance_holders:
             instance_holder.append(instance)
 
-    graph = ctx.graph_mode()
     to_install = set(instances_by_change['added_instances'][1])
     to_uninstall = set(instances_by_change['removed_instances'][1])
 
@@ -679,7 +690,7 @@ def update(ctx,
             return
         # Adding nodes or node instances should be based on modified instances
         lifecycle.install_node_instances(
-            graph=graph,
+            ctx,
             node_instances=to_install,
             related_nodes=set(
                 instances_by_change['added_target_instances_ids'][1])
@@ -687,7 +698,7 @@ def update(ctx,
 
         # This one as well.
         lifecycle.execute_establish_relationships(
-            graph=ctx.graph_mode(),
+            ctx,
             node_instances=set(
                 instances_by_change['extended_and_target_instances'][1]),
             modified_relationship_ids=modified_entity_ids['relationship']
@@ -699,14 +710,14 @@ def update(ctx,
         if skip_uninstall:
             return
         lifecycle.execute_unlink_relationships(
-            graph=graph,
+            ctx,
             node_instances=set(
                 instances_by_change['reduced_and_target_instances'][1]),
             modified_relationship_ids=modified_entity_ids['relationship']
         )
 
         lifecycle.uninstall_node_instances(
-            graph=graph,
+            ctx,
             node_instances=to_uninstall,
             ignore_failure=ignore_failure,
             related_nodes=set(
@@ -728,7 +739,7 @@ def update(ctx,
             for r in n._relationship_instances:
                 if r in removed_instance_ids:
                     n._relationship_instances.pop(r)
-        lifecycle.reinstall_node_instances(graph=graph,
+        lifecycle.reinstall_node_instances(ctx,
                                            node_instances=subgraph,
                                            related_nodes=intact_nodes,
                                            ignore_failure=ignore_failure)

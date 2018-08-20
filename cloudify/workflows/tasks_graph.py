@@ -15,11 +15,53 @@
 
 
 import time
+from functools import wraps
+
 
 import networkx as nx
 
 from cloudify.workflows import api
 from cloudify.workflows import tasks
+from cloudify.manager import get_rest_client
+
+
+def get_tasks_graph(client, execution_id, name):
+    graphs = client.tasks_graphs.list(execution_id=execution_id, name=name)
+    if graphs:
+        return graphs[0]
+
+
+class _MethodDecoratorAdaptor(object):
+    def __init__(self, decorator, func):
+        self.decorator = decorator
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        return self.decorator(self.func)(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        return self.decorator(self.func.__get__(instance, owner))
+
+
+def auto_adapt_to_methods(decorator):
+    def adapt(func):
+        return _MethodDecoratorAdaptor(decorator, func)
+    return adapt
+
+
+@auto_adapt_to_methods
+def make_or_get_graph(f):
+    @wraps(f)
+    def _inner(ctx, name, **kwargs):
+        client = get_rest_client()
+        graph = get_tasks_graph(client, ctx.execution_id, name=name)
+        if not graph:
+            graph = f(ctx, **kwargs)
+            graph.store(ctx, client, name=name)
+        else:
+            graph = TaskDependencyGraph.restore(ctx, client, graph, name=name)
+        return graph
+    return _inner
 
 
 class TaskDependencyGraph(object):
@@ -29,13 +71,63 @@ class TaskDependencyGraph(object):
     :param workflow_context: A WorkflowContext instance (used for logging)
     """
 
-    def __init__(self, workflow_context,
+    @classmethod
+    def restore(cls, workflow_context, client, retrieved_graph, name=''):
+        graph = cls(workflow_context, graph_id=retrieved_graph.id)
+        operations = workflow_context.get_operations(retrieved_graph.id)
+        tasks = {}
+        for op_descr in operations:
+            op = OP_TYPES[op_descr.type].restore(workflow_context, graph,
+                                                 op_descr)
+            tasks[op_descr.id] = op
+
+        for op in tasks.values():
+            if op.containing_subgraph:
+                subgraph_id = op.containing_subgraph
+                op.containing_subgraph = None
+                subgraph = tasks[subgraph_id]
+                subgraph.add_task(op)
+            else:
+                graph.add_task(op)
+
+        for op_descr in operations:
+            op = tasks[op_descr.id]
+            for target in op_descr.dependencies:
+                if target not in tasks:
+                    continue
+                target = tasks[target]
+                graph.add_dependency(op, target)
+
+        graph._stored = True
+        return graph
+
+    def __init__(self, workflow_context, graph_id=None,
                  default_subgraph_task_config=None):
         self.ctx = workflow_context
         self.graph = nx.DiGraph()
         default_subgraph_task_config = default_subgraph_task_config or {}
         self._default_subgraph_task_config = default_subgraph_task_config
         self._error = None
+        self._stored = False
+        self.id = graph_id
+
+    def store(self, ctx, client, name):
+        if self.id is not None:
+            raise RuntimeError('Graph already stored')
+        serialized_tasks = []
+        for task in self.tasks_iter():
+            dependencies = list(self.graph.succ.get(task.id, {}).keys())
+            serialized_tasks.append({
+                'operation_id': task.id,
+                'name': task.name,
+                'type': task.task_type,
+                'dependencies': dependencies,
+                'parameters': task.dump()
+            })
+            task.stored = True
+        stored_graph = ctx.store_tasks_graph(name, operations=serialized_tasks)
+        self.id = stored_graph.id
+        self._stored = True
 
     def add_task(self, task):
         """Add a WorkflowTask to this graph
@@ -176,7 +268,8 @@ class TaskDependencyGraph(object):
         """
         now = time.time()
         return (task for task in self.tasks_iter()
-                if task.get_state() == tasks.TASK_PENDING and
+                if (task.get_state() == tasks.TASK_PENDING or
+                    task._should_resume()) and
                 task.execute_after <= now and
                 not (task.containing_subgraph and
                      task.containing_subgraph.get_state() ==
@@ -214,7 +307,8 @@ class TaskDependencyGraph(object):
 
     def _handle_executable_task(self, task):
         """Handle executable task"""
-        task.set_state(tasks.TASK_SENDING)
+        if not task._should_resume():
+            task.set_state(tasks.TASK_SENDING)
         task.apply_async()
 
     def _handle_terminated_task(self, task):
@@ -227,7 +321,8 @@ class TaskDependencyGraph(object):
                          for dependent in dependents]
         self.graph.remove_edges_from(removed_edges)
         self.graph.remove_node(task.id)
-
+        if task.stored:
+            self.ctx.remove_operation(task.id)
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
@@ -236,9 +331,11 @@ class TaskDependencyGraph(object):
                 message = '{0} -> {1}'.format(message, task.error)
             if self._error is None:
                 self._error = RuntimeError(message)
-
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
+            if self.id is not None:
+                self.ctx.store_operation(new_task, dependents, self.id)
+                new_task.stored = True
             self.add_task(new_task)
             added_edges = [(dependent, new_task.id)
                            for dependent in dependents]
@@ -307,7 +404,9 @@ class SubgraphTask(tasks.WorkflowTask):
                  on_failure=None,
                  total_retries=tasks.DEFAULT_SUBGRAPH_TOTAL_RETRIES,
                  retry_interval=tasks.DEFAULT_RETRY_INTERVAL,
-                 send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS):
+                 send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS,
+                 info=None,
+                 **kwargs):
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,
@@ -324,6 +423,21 @@ class SubgraphTask(tasks.WorkflowTask):
         if not self.on_failure:
             self.on_failure = lambda tsk: tasks.HandlerResult.fail()
         self.async_result = tasks.StubAsyncResult()
+
+    @classmethod
+    def restore(cls, ctx, graph, task_descr):
+        params = task_descr.parameters
+        params['task_kwargs'] = {'graph': graph,
+                                 'name': params.get('name', '')}
+        task = super(SubgraphTask, cls).restore(ctx, graph, task_descr)
+        return task
+
+    def dump(self):
+        task = super(SubgraphTask, self).dump()
+        task['task_kwargs'] = {
+            'name': self._name,
+        }
+        return task
 
     def _duplicate(self):
         raise NotImplementedError('self.retried_task should be set explicitly'
@@ -385,3 +499,11 @@ class SubgraphTask(tasks.WorkflowTask):
             new_task.containing_subgraph = self
         if not self.tasks and self.get_state() not in tasks.TERMINATED_STATES:
             self.set_state(tasks.TASK_SUCCEEDED)
+
+
+OP_TYPES = {
+    'RemoteWorkflowTask': tasks.RemoteWorkflowTask,
+    'LocalWorkflowTask': tasks.LocalWorkflowTask,
+    'NOPLocalWorkflowTask': tasks.NOPLocalWorkflowTask,
+    'SubgraphTask': SubgraphTask
+}

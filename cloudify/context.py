@@ -690,6 +690,11 @@ class CloudifyContext(CommonContext):
         return self._context.get('workflow_id')
 
     @property
+    def resume(self):
+        """This run of the operation is a resume of an interrupted run"""
+        return self._context.get('resume', False)
+
+    @property
     def rest_token(self):
         """REST service token"""
         return self._context.get('rest_token')
