@@ -256,11 +256,12 @@ def _get_all_host_instances(ctx):
 
 @workflow
 def install_new_agents(ctx, install_agent_timeout, node_ids,
-                       node_instance_ids, validate=True, install=True,
-                       manager_ip=None, manager_certificate=None,
+                       node_instance_ids, install_methods=None, validate=True,
+                       install=True, manager_ip=None, manager_certificate=None,
                        stop_old_agent=False, **_):
 
-    hosts = _create_hosts_list(ctx, node_ids, node_instance_ids)
+    hosts = _create_hosts_list(ctx, node_ids, node_instance_ids,
+                               install_methods)
     _assert_hosts_started(hosts)
 
     graph = ctx.graph_mode()
@@ -504,9 +505,11 @@ def update(ctx,
 
 
 @workflow()
-def validate_agents(ctx, node_ids, node_instance_ids, **_):
+def validate_agents(ctx, node_ids, node_instance_ids,
+                    install_methods=None, **_):
 
-    hosts = _create_hosts_list(ctx, node_ids, node_instance_ids)
+    hosts = _create_hosts_list(ctx, node_ids, node_instance_ids,
+                               install_methods)
     # Make sure all hosts' state is started
     _assert_hosts_started(hosts)
 
@@ -516,7 +519,9 @@ def validate_agents(ctx, node_ids, node_instance_ids, **_):
     graph.execute()
 
 
-def _create_hosts_list(ctx, node_ids, node_instance_ids):
+def _create_hosts_list(ctx, node_ids, node_instance_ids, install_methods=None):
+    if install_methods is None:
+        install_methods = constants.AGENT_INSTALL_METHODS_INSTALLED
     if node_ids or node_instance_ids:
         filtered_node_instances = _filter_node_instances(
             ctx=ctx,
@@ -542,8 +547,8 @@ def _create_hosts_list(ctx, node_ids, node_instance_ids):
             hosts = filtered_node_instances
     else:
         hosts = [host for host in _get_all_host_instances(ctx)
-                 if utils.internal.get_install_method(host.node.properties) !=
-                 constants.AGENT_INSTALL_METHOD_NONE]
+                 if utils.internal.get_install_method(host.node.properties) in
+                 install_methods]
     return hosts
 
 
