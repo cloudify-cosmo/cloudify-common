@@ -39,7 +39,6 @@ function install_common_prereqs () {
     $SUDO python get-pip.py pip==9.0.1 &&
     $SUDO pip install wheel==0.29.0 &&
     $SUDO pip install setuptools==36.8.0 &&
-    $SUDO pip install awscli &&
     echo "## end of installing common prerequisites"
 
 }
@@ -61,7 +60,13 @@ function upload_to_s3() {
 
     local file_ext=$1
     file=$(basename $(find . -type f -name "*.$file_ext"))
-
+    
+    if  which aws >> /dev/null; then
+        echo "awscli already installed!"
+    else
+        echo "Installing awscli ..."
+        $SUDO pip install awscli
+    fi
     echo "## uploading https://$AWS_S3_BUCKET.s3.amazonaws.com/$AWS_S3_PATH/$file"
     export AWS_SECRET_ACCESS_KEY=${AWS_ACCESS_KEY} &&
     export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} &&
