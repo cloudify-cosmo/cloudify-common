@@ -348,6 +348,7 @@ class RemoteWorkflowTask(WorkflowTask):
             send_task_events=send_task_events)
         self._task_target = task_target
         self._task_queue = task_queue
+        self._task_tenant = None
         self._kwargs = kwargs
         self._cloudify_context = cloudify_context
         self._cloudify_agent = None
@@ -362,7 +363,8 @@ class RemoteWorkflowTask(WorkflowTask):
         try:
             self._set_queue_kwargs()
             task = self.workflow_context.internal.handler.get_task(
-                self, queue=self._task_queue, target=self._task_target)
+                self, queue=self._task_queue, target=self._task_target,
+                tenant=self._task_tenant)
             self.workflow_context.internal.send_task_event(TASK_SENDING, self)
             async_result = self.workflow_context.internal.handler.send_task(
                 self, task)
@@ -419,17 +421,19 @@ class RemoteWorkflowTask(WorkflowTask):
 
     def _set_queue_kwargs(self):
         if self._task_queue is None or self._task_target is None:
-            queue, name = self._get_queue_kwargs()
+            queue, name, tenant = self._get_queue_kwargs()
             if self._task_queue is None:
                 self._task_queue = queue
             if self._task_target is None:
                 self._task_target = name
+            if self._task_tenant is None:
+                self._task_tenant = tenant
         self.kwargs['__cloudify_context']['task_queue'] = self._task_queue
         self.kwargs['__cloudify_context']['task_target'] = self._task_target
 
     def _get_agent_settings(self, node_instance_id, deployment_id,
                             tenant=None):
-        """Get the cloudify_agent dict of the agent.
+        """Get the cloudify_agent dict and the tenant dict of the agent.
 
         This returns cloudify_agent of the actual agent, possibly available
         via deployment proxying.
@@ -445,8 +449,8 @@ class RemoteWorkflowTask(WorkflowTask):
             'cloudify_agent', {})
 
         # we found the actual agent, just return it
-        if 'queue' in cloudify_agent and 'name' in cloudify_agent:
-            return cloudify_agent
+        if cloudify_agent.get('queue') and cloudify_agent.get('name'):
+            return cloudify_agent, self._get_tenant_dict(tenant, client)
 
         # this node instance isn't the real agent, check if it proxies to one
         node = client.nodes.get(deployment_id, node_instance.node_id)
@@ -457,7 +461,7 @@ class RemoteWorkflowTask(WorkflowTask):
             proxy_tenant = remote.get('tenant')
         except KeyError:
             # no queue information and no proxy - cannot continue
-            missing = 'queue' if 'queue' not in cloudify_agent else 'name'
+            missing = 'queue' if not cloudify_agent.get('queue') else 'name'
             raise exceptions.NonRecoverableError(
                 'Missing cloudify_agent.{0} runtime information. '
                 'This most likely means that the Compute node was '
@@ -471,22 +475,30 @@ class RemoteWorkflowTask(WorkflowTask):
                 deployment_id=proxy_deployment,
                 tenant=proxy_tenant)
 
-    def _get_queue_kwargs(self):
-        """Queue and name of the agent that will execute the task
+    def _get_tenant_dict(self, tenant_name, client):
+        if tenant_name is None or \
+                tenant_name == self.cloudify_context['tenant']['name']:
+            return self.cloudify_context['tenant']
+        return client.tenants.get(tenant_name)
 
-        This must return the queue and name of the actual agent, possibly
+    def _get_queue_kwargs(self):
+        """Queue, name, and tenant of the agent that will execute the task
+
+        This must return the values of the actual agent, possibly
         one that is available via deployment proxying.
         """
         executor = self.cloudify_context['executor']
         if executor == 'host_agent':
             if self._cloudify_agent is None:
-                self._cloudify_agent = self._get_agent_settings(
+                self._cloudify_agent, tenant = self._get_agent_settings(
                     node_instance_id=self.cloudify_context['node_id'],
                     deployment_id=self.cloudify_context['deployment_id'],
                     tenant=None)
-            return self._cloudify_agent['queue'], self._cloudify_agent['name']
+            return (self._cloudify_agent['queue'],
+                    self._cloudify_agent['name'],
+                    tenant)
         else:
-            return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE
+            return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None
 
 
 class LocalWorkflowTask(WorkflowTask):
