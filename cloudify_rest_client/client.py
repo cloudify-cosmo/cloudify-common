@@ -151,7 +151,13 @@ class HTTPClient(object):
 
     def _do_request(self, requests_method, request_url, body, params, headers,
                     expected_status_code, stream, verify, timeout):
-        auth = HTTPKerberosAuth() if self.has_kerberos() else None
+        auth = None
+        if self.has_kerberos():
+            if HTTPKerberosAuth is None:
+                raise exceptions.CloudifyClientError(
+                    'Trying to create a client with kerberos, '
+                    'but kerberos_env does not exist')
+            auth = HTTPKerberosAuth()
         response = requests_method(request_url,
                                    data=body,
                                    params=params,
