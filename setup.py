@@ -24,7 +24,8 @@ install_requires = [
     'proxy_tools==0.1.0',
     'bottle==0.12.7',
     'jinja2==2.10',
-    'requests_toolbelt'
+    'requests_toolbelt',
+    'pysnmp==4.4.5'
 ]
 
 try:
