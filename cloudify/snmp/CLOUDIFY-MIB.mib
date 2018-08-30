@@ -1,0 +1,211 @@
+CLOUDIFY-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+  MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, enterprises, Counter64
+    FROM SNMPv2-SMI
+  MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+    FROM SNMPv2-CONF
+  TEXTUAL-CONVENTION, DisplayString
+    FROM SNMPv2-TC;
+cloudify MODULE-IDENTITY
+  LAST-UPDATED "201808231220Z"
+  ORGANIZATION "Cloudify Platform Ltd."
+  CONTACT-INFO "it@cloudify.co"
+  DESCRIPTION
+    "Fourth draft, rename cloudify version to reduce ambiguity, add parameters to all workflow events."
+  REVISION "201808231220Z"
+  DESCRIPTION
+    "Cloudify enterprise MIB tree third draft, renamed TenantID to TenantName."
+  REVISION "201808221420Z"
+  DESCRIPTION
+    "Cloudify enterprise MIB tree second draft. Testing in progress moving to separate MIB."
+  REVISION "201808211455Z"
+  DESCRIPTION
+    "Cloudify enterprise MIB tree."
+  REVISION "201808051507Z"
+  DESCRIPTION
+    "Add workflow notifications"
+  REVISION "201807231240Z"
+  DESCRIPTION
+    "Add testing objects."
+  ::= { enterprises 52312 }
+--
+-- Cloudify version 1 tree
+--
+cloudify1 OBJECT IDENTIFIER ::= { cloudify 1 }
+-- Note that notifications are recommended to be on sub-id 0 to be reverse mappable
+cloudify1MgrNotifications OBJECT IDENTIFIER ::= { cloudify1 0 }
+cloudify1Properties OBJECT IDENTIFIER ::= { cloudify1 1 }
+cloudify1Compliance OBJECT IDENTIFIER ::= { cloudify 1000 }
+cloudify1Groups OBJECT IDENTIFIER ::= { cloudify 1001 }
+--
+-- Shared objects used as properties.
+--
+cloudifyTimeStamp OBJECT-TYPE
+  SYNTAX Counter64
+  MAX-ACCESS read-only
+  STATUS current
+  DESCRIPTION
+    "Timestamp of an event, given in Unix epoch time."
+  ::= { cloudify1Properties 1 }
+cloudifyDeploymentID OBJECT-TYPE
+  SYNTAX DisplayString
+  MAX-ACCESS read-only
+  STATUS current
+  DESCRIPTION
+    "Associated deployment ID."
+  ::= { cloudify1Properties 2 }
+cloudifyTenantName OBJECT-TYPE
+  SYNTAX DisplayString
+  MAX-ACCESS read-only
+  STATUS current
+  DESCRIPTION
+    "Associated tenant ID."
+  ::= { cloudify1Properties 3 }
+cloudifyWorkflowName OBJECT-TYPE
+  SYNTAX DisplayString
+  MAX-ACCESS read-only
+  STATUS current
+  DESCRIPTION
+    "Associated workflow name."
+  ::= { cloudify1Properties 4 }
+cloudifyExecutionID OBJECT-TYPE
+  SYNTAX DisplayString
+  MAX-ACCESS read-only
+  STATUS current
+  DESCRIPTION
+    "Associated execution ID."
+  ::= { cloudify1Properties 5 }
+cloudifyWorkflowParameters OBJECT-TYPE
+  SYNTAX UTF8String
+  MAX-ACCESS read-only
+  STATUS current
+  DESCRIPTION
+    "Parameters provided to a workflow, JSON encoded. If the length of the parameters is too long, a message saying that will be sent instead."
+  ::= { cloudify1Properties 6 }
+cloudifyErrorDetails OBJECT-TYPE
+  SYNTAX UTF8String
+  MAX-ACCESS read-only
+  STATUS current
+  DESCRIPTION
+    "Details of an error. If the length of the error message is too long, it will be truncated."
+  ::= { cloudify1Properties 7 }
+--
+-- Notifications.
+--
+cloudifyWorkflowQueued NOTIFICATION-TYPE
+  OBJECTS {
+    cloudifyTimeStamp,
+    cloudifyTenantName,
+    cloudifyDeploymentID,
+    cloudifyWorkflowName,
+    cloudifyExecutionID,
+    cloudifyWorkflowParameters
+  }
+  STATUS current
+  DESCRIPTION
+    "Notification indicating a workflow has been queued."
+  ::= { cloudify1MgrNotifications 1 }
+cloudifyWorkflowStarted NOTIFICATION-TYPE
+  OBJECTS {
+    cloudifyTimeStamp,
+    cloudifyTenantName,
+    cloudifyDeploymentID,
+    cloudifyWorkflowName,
+    cloudifyExecutionID,
+    cloudifyWorkflowParameters
+  }
+  STATUS current
+  DESCRIPTION
+    "Notification indicating a workflow has started."
+  ::= { cloudify1MgrNotifications 2 }
+cloudifyWorkflowCompleted NOTIFICATION-TYPE
+  OBJECTS {
+    cloudifyTimeStamp,
+    cloudifyTenantName,
+    cloudifyDeploymentID,
+    cloudifyWorkflowName,
+    cloudifyExecutionID,
+    cloudifyWorkflowParameters
+  }
+  STATUS current
+  DESCRIPTION
+    "Notification indicating a workflow has finished successfully."
+  ::= { cloudify1MgrNotifications 3 }
+cloudifyWorkflowCancelled NOTIFICATION-TYPE
+  OBJECTS {
+    cloudifyTimeStamp,
+    cloudifyTenantName,
+    cloudifyDeploymentID,
+    cloudifyWorkflowName,
+    cloudifyExecutionID,
+    cloudifyWorkflowParameters
+  }
+  STATUS current
+  DESCRIPTION
+    "Notification indicating a workflow has been cancelled by user request."
+  ::= { cloudify1MgrNotifications 4 }
+cloudifyWorkflowFailed NOTIFICATION-TYPE
+  OBJECTS {
+    cloudifyTimeStamp,
+    cloudifyTenantName,
+    cloudifyDeploymentID,
+    cloudifyWorkflowName,
+    cloudifyExecutionID,
+    cloudifyWorkflowParameters,
+    cloudifyErrorDetails
+  }
+  STATUS current
+  DESCRIPTION
+    "Notification indicating a workflow has ended with an error."
+  ::= { cloudify1MgrNotifications 5 }
+--
+-- Compliance specification
+--
+cloudifyManagerCompliance MODULE-COMPLIANCE
+  STATUS current
+  DESCRIPTION
+    "Objects required to claim compliance with cloudify manager SNMP implementation"
+  MODULE
+    MANDATORY-GROUPS {
+      cloudify1NotifyGroup,
+      cloudify1PropertiesGroup
+    }
+  ::= { cloudify1Compliance 1 }
+--
+-- Compliance groups.
+--
+cloudify1NotifyGroup NOTIFICATION-GROUP
+  NOTIFICATIONS {
+    cloudifyWorkflowQueued,
+    cloudifyWorkflowStarted,
+    cloudifyWorkflowCompleted,
+    cloudifyWorkflowCancelled,
+    cloudifyWorkflowFailed
+  }
+  STATUS current
+  DESCRIPTION
+    "Cloudify manager notifications"
+  ::= { cloudify1Groups 1 }
+cloudify1PropertiesGroup OBJECT-GROUP
+  OBJECTS {
+    cloudifyTimeStamp,
+    cloudifyDeploymentID,
+    cloudifyTenantName,
+    cloudifyWorkflowName,
+    cloudifyExecutionID,
+    cloudifyWorkflowParameters,
+    cloudifyErrorDetails
+  }
+  STATUS current
+  DESCRIPTION
+    "Cloudify manager notifications objects"
+  ::= { cloudify1Groups 2 }
+--
+-- Types
+--
+UTF8String ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "512t"
+    STATUS       current
+    DESCRIPTION  "A longer string that uses UTF-8."
+    SYNTAX       OCTET STRING (SIZE (0..512))
+END
