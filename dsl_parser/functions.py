@@ -292,6 +292,7 @@ class GetAttribute(Function):
         else:
             try:
                 node_instance = self._resolve_node_instance_by_name(storage)
+                node_instance_id = node_instance.id
             except exceptions.FunctionEvaluationError as e:
                 # Only in outputs scope we allow to continue when an error
                 # occurred
@@ -304,6 +305,14 @@ class GetAttribute(Function):
                                     self.attribute_path,
                                     self.path,
                                     raise_if_not_found=False)
+        # attribute not found in instance runtime properties
+        if value is None:
+            # special case for { get_attribute: [..., node_instance_id] }
+            # returns the node-instance-id
+            if len(self.attribute_path) == 1\
+                    and self.attribute_path[0] == 'node_instance_id':
+                value = node_instance_id
+        # still nothing? look in node properties
         if value is None:
             node = storage.get_node(node_instance.node_id)
             value = _get_property_value(node.id,
