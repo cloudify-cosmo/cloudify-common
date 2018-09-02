@@ -44,7 +44,7 @@ CLOUDIFY_MIB = 'CLOUDIFY-MIB'
 WORKFLOW_QUEUED = 'cloudifyWorkflowQueued'
 WORKFLOW_FAILED = 'cloudifyWorkflowFailed'
 WORKFLOW_STARTED = 'cloudifyWorkflowStarted'
-WORKFLOW_COMPLETED = 'cloudifyWorkflowCompleted'
+WORKFLOW_SUCCEEDED = 'cloudifyWorkflowSucceeded'
 WORKFLOW_CANCELLED = 'cloudifyWorkflowCancelled'
 
 # The object types
@@ -60,7 +60,7 @@ NOTIFY_TYPE = 'trap'
 
 notification_types = {
     'workflow_started': WORKFLOW_STARTED,
-    'workflow_succeeded': WORKFLOW_COMPLETED,
+    'workflow_succeeded': WORKFLOW_SUCCEEDED,
     'workflow_failed': WORKFLOW_FAILED,
     'workflow_cancelled': WORKFLOW_CANCELLED,
     'workflow_queued': WORKFLOW_QUEUED
