@@ -11,22 +11,7 @@ cloudify MODULE-IDENTITY
   ORGANIZATION "Cloudify Platform Ltd."
   CONTACT-INFO "it@cloudify.co"
   DESCRIPTION
-    "Fourth draft, rename cloudify version to reduce ambiguity, add parameters to all workflow events."
-  REVISION "201808231220Z"
-  DESCRIPTION
-    "Cloudify enterprise MIB tree third draft, renamed TenantID to TenantName."
-  REVISION "201808221420Z"
-  DESCRIPTION
-    "Cloudify enterprise MIB tree second draft. Testing in progress moving to separate MIB."
-  REVISION "201808211455Z"
-  DESCRIPTION
     "Cloudify enterprise MIB tree."
-  REVISION "201808051507Z"
-  DESCRIPTION
-    "Add workflow notifications"
-  REVISION "201807231240Z"
-  DESCRIPTION
-    "Add testing objects."
   ::= { enterprises 52312 }
 --
 -- Cloudify version 1 tree
@@ -118,7 +103,7 @@ cloudifyWorkflowStarted NOTIFICATION-TYPE
   DESCRIPTION
     "Notification indicating a workflow has started."
   ::= { cloudify1MgrNotifications 2 }
-cloudifyWorkflowCompleted NOTIFICATION-TYPE
+cloudifyWorkflowSucceeded NOTIFICATION-TYPE
   OBJECTS {
     cloudifyTimeStamp,
     cloudifyTenantName,
@@ -178,7 +163,7 @@ cloudify1NotifyGroup NOTIFICATION-GROUP
   NOTIFICATIONS {
     cloudifyWorkflowQueued,
     cloudifyWorkflowStarted,
-    cloudifyWorkflowCompleted,
+    cloudifyWorkflowSucceeded,
     cloudifyWorkflowCancelled,
     cloudifyWorkflowFailed
   }
