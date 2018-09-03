@@ -7,11 +7,14 @@ IMPORTS
   TEXTUAL-CONVENTION, DisplayString
     FROM SNMPv2-TC;
 cloudify MODULE-IDENTITY
-  LAST-UPDATED "201808231220Z"
+  LAST-UPDATED "201809031120Z"
   ORGANIZATION "Cloudify Platform Ltd."
   CONTACT-INFO "it@cloudify.co"
   DESCRIPTION
     "Cloudify enterprise MIB tree."
+  REVISION "201809031120Z"
+  DESCRIPTION
+    "First release of Cloudify enterprise MIB."
   ::= { enterprises 52312 }
 --
 -- Cloudify version 1 tree
@@ -20,8 +23,8 @@ cloudify1 OBJECT IDENTIFIER ::= { cloudify 1 }
 -- Note that notifications are recommended to be on sub-id 0 to be reverse mappable
 cloudify1MgrNotifications OBJECT IDENTIFIER ::= { cloudify1 0 }
 cloudify1Properties OBJECT IDENTIFIER ::= { cloudify1 1 }
-cloudify1Compliance OBJECT IDENTIFIER ::= { cloudify 1000 }
-cloudify1Groups OBJECT IDENTIFIER ::= { cloudify 1001 }
+cloudify1Compliance OBJECT IDENTIFIER ::= { cloudify1 1000 }
+cloudify1Groups OBJECT IDENTIFIER ::= { cloudify1 1001 }
 --
 -- Shared objects used as properties.
 --
