@@ -444,7 +444,7 @@ class RemoteWorkflowTask(WorkflowTask):
         if host_id == node_instance_id:
             host_node_instance = node_instance
         else:
-            host_node_instance = client.node_instances.get(host_node_instance)
+            host_node_instance = client.node_instances.get(host_id)
         cloudify_agent = host_node_instance.runtime_properties.get(
             'cloudify_agent', {})
 
