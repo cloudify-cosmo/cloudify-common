@@ -309,6 +309,12 @@ def get_func(task_name):
     return func
 
 
+def get_kerberos_indication(kerberos_env):
+    if kerberos_env is None:
+        return None
+    return str(kerberos_env).lower() == 'true'
+
+
 class LocalCommandRunner(object):
 
     def __init__(self, logger=None, host='localhost'):

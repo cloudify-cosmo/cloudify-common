@@ -148,7 +148,9 @@ def get_rest_client(tenant=None):
         tenant=tenant,
         token=utils.get_rest_token(),
         protocol=constants.SECURED_PROTOCOL,
-        cert=utils.get_local_rest_certificate()
+        cert=utils.get_local_rest_certificate(),
+        kerberos_env=utils.get_kerberos_indication(
+            os.environ.get(constants.KERBEROS_ENV_KEY))
     )
 
 
