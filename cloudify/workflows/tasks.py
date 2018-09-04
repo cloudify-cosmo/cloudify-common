@@ -21,7 +21,7 @@ import Queue
 from cloudify import utils
 from cloudify import exceptions
 from cloudify.workflows import api
-from cloudify.manager import get_node_instance
+from cloudify.manager import get_rest_client
 from cloudify.constants import MGMTWORKER_QUEUE
 
 
@@ -348,6 +348,7 @@ class RemoteWorkflowTask(WorkflowTask):
             send_task_events=send_task_events)
         self._task_target = task_target
         self._task_queue = task_queue
+        self._task_tenant = None
         self._kwargs = kwargs
         self._cloudify_context = cloudify_context
         self._cloudify_agent = None
@@ -362,7 +363,8 @@ class RemoteWorkflowTask(WorkflowTask):
         try:
             self._set_queue_kwargs()
             task = self.workflow_context.internal.handler.get_task(
-                self, queue=self._task_queue, target=self._task_target)
+                self, queue=self._task_queue, target=self._task_target,
+                tenant=self._task_tenant)
             self.workflow_context.internal.send_task_event(TASK_SENDING, self)
             async_result = self.workflow_context.internal.handler.send_task(
                 self, task)
@@ -418,30 +420,85 @@ class RemoteWorkflowTask(WorkflowTask):
         return self._kwargs
 
     def _set_queue_kwargs(self):
-        if self._task_queue is None:
-            self._task_queue = self._derive('queue')
-        if self._task_target is None:
-            self._task_target = self._derive('name')
+        if self._task_queue is None or self._task_target is None:
+            queue, name, tenant = self._get_queue_kwargs()
+            if self._task_queue is None:
+                self._task_queue = queue
+            if self._task_target is None:
+                self._task_target = name
+            if self._task_tenant is None:
+                self._task_tenant = tenant
         self.kwargs['__cloudify_context']['task_queue'] = self._task_queue
         self.kwargs['__cloudify_context']['task_target'] = self._task_target
 
-    def _derive(self, property_name):
+    def _get_agent_settings(self, node_instance_id, deployment_id,
+                            tenant=None):
+        """Get the cloudify_agent dict and the tenant dict of the agent.
+
+        This returns cloudify_agent of the actual agent, possibly available
+        via deployment proxying.
+        """
+        client = get_rest_client(tenant)
+        node_instance = client.node_instances.get(node_instance_id)
+        host_id = node_instance.host_id
+        if host_id == node_instance_id:
+            host_node_instance = node_instance
+        else:
+            host_node_instance = client.node_instances.get(host_node_instance)
+        cloudify_agent = host_node_instance.runtime_properties.get(
+            'cloudify_agent', {})
+
+        # we found the actual agent, just return it
+        if cloudify_agent.get('queue') and cloudify_agent.get('name'):
+            return cloudify_agent, self._get_tenant_dict(tenant, client)
+
+        # this node instance isn't the real agent, check if it proxies to one
+        node = client.nodes.get(deployment_id, node_instance.node_id)
+        try:
+            remote = node.properties['agent_config']['extra']['proxy']
+            proxy_deployment = remote['deployment']
+            proxy_node_instance = remote['node_instance']
+            proxy_tenant = remote.get('tenant')
+        except KeyError:
+            # no queue information and no proxy - cannot continue
+            missing = 'queue' if not cloudify_agent.get('queue') else 'name'
+            raise exceptions.NonRecoverableError(
+                'Missing cloudify_agent.{0} runtime information. '
+                'This most likely means that the Compute node was '
+                'never started successfully'.format(missing))
+        else:
+            # the agent does proxy to another, recursively get from that one
+            # (if the proxied-to agent in turn proxies to yet another one,
+            # look up that one, etc)
+            return self._get_agent_settings(
+                node_instance_id=proxy_node_instance,
+                deployment_id=proxy_deployment,
+                tenant=proxy_tenant)
+
+    def _get_tenant_dict(self, tenant_name, client):
+        if tenant_name is None or \
+                tenant_name == self.cloudify_context['tenant']['name']:
+            return self.cloudify_context['tenant']
+        return client.tenants.get(tenant_name)
+
+    def _get_queue_kwargs(self):
+        """Queue, name, and tenant of the agent that will execute the task
+
+        This must return the values of the actual agent, possibly
+        one that is available via deployment proxying.
+        """
         executor = self.cloudify_context['executor']
-        host_id = self.cloudify_context['host_id']
         if executor == 'host_agent':
             if self._cloudify_agent is None:
-                host_node_instance = get_node_instance(host_id)
-                cloudify_agent = host_node_instance.runtime_properties.get(
-                    'cloudify_agent', {})
-                if property_name not in cloudify_agent:
-                    raise exceptions.NonRecoverableError(
-                        'Missing cloudify_agent.{0} runtime information. '
-                        'This most likely means that the Compute node was '
-                        'never started successfully'.format(property_name))
-                self._cloudify_agent = cloudify_agent
-            return self._cloudify_agent[property_name]
+                self._cloudify_agent, tenant = self._get_agent_settings(
+                    node_instance_id=self.cloudify_context['node_id'],
+                    deployment_id=self.cloudify_context['deployment_id'],
+                    tenant=None)
+            return (self._cloudify_agent['queue'],
+                    self._cloudify_agent['name'],
+                    tenant)
         else:
-            return MGMTWORKER_QUEUE
+            return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None
 
 
 class LocalWorkflowTask(WorkflowTask):
