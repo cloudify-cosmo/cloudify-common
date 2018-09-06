@@ -453,7 +453,7 @@ class RemoteWorkflowTask(WorkflowTask):
             return cloudify_agent, self._get_tenant_dict(tenant, client)
 
         # this node instance isn't the real agent, check if it proxies to one
-        node = client.nodes.get(deployment_id, node_instance.node_id)
+        node = client.nodes.get(deployment_id, host_node_instance.node_id)
         try:
             remote = node.properties['agent_config']['extra']['proxy']
             proxy_deployment = remote['deployment']
