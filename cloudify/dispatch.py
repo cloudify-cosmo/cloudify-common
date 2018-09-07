@@ -433,9 +433,8 @@ class WorkflowHandler(TaskHandler):
 
     def handle(self):
         self.kwargs['ctx'] = self.ctx
-        self._validate_workflow_func()
-
         with state.current_workflow_ctx.push(self.ctx, self.kwargs):
+            self._validate_workflow_func()
             if self.ctx.local or self.ctx.dry_run:
                 return self._handle_local_workflow()
             return self._handle_remote_workflow()
