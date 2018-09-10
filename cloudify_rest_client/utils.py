@@ -1,4 +1,5 @@
 import os
+import stat
 import tarfile
 from os.path import expanduser
 from distutils.spawn import find_executable
@@ -28,10 +29,24 @@ def tar_file(file_to_tar, destination_dir, tar_name=''):
     :param tar_name: optional tar name.
     :return:
     """
+    def _reset_tarinfo(tarinfo):
+        """Set all tar'd files to be world-readable, so that other services
+        (nginx) can access the files uploaded by restservice (cfyuser).
+        """
+        tarinfo.mode = tarinfo.mode | stat.S_IROTH
+        if stat.S_ISDIR(tarinfo.mode):
+            # directories must also have u+w so that files can be stored in
+            # them, and have the execute bit set so that permissions can be
+            # exercised for them
+            tarinfo.mode = (tarinfo.mode | stat.S_IWUSR |
+                            stat.S_IXUSR | stat.S_IXOTH)
+
+        return tarinfo
+
     tar_name = tar_name or os.path.basename(file_to_tar)
     tar_path = os.path.join(destination_dir, '{0}.tar.gz'.format(tar_name))
     with tarfile.open(tar_path, "w:gz") as tar:
-        tar.add(file_to_tar, arcname=tar_name)
+        tar.add(file_to_tar, arcname=tar_name, filter=_reset_tarinfo)
     return tar_path
 
 
