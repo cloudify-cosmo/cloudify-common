@@ -1,4 +1,5 @@
 import os
+import stat
 import tarfile
 from os.path import expanduser
 from distutils.spawn import find_executable
@@ -29,7 +30,10 @@ def tar_file(file_to_tar, destination_dir, tar_name=''):
     :return:
     """
     def _reset_tarinfo(tarinfo):
-        tarinfo.mode = 0755
+        """Set all tar'd files to be world-readable, so that other services
+        (nginx) can access the files uploaded by restservice (cfyuser).
+        """
+        tarinfo.mode = tarinfo.mode | stat.S_IROTH
         return tarinfo
 
     tar_name = tar_name or os.path.basename(file_to_tar)
