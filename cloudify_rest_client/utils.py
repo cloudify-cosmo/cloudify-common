@@ -34,6 +34,13 @@ def tar_file(file_to_tar, destination_dir, tar_name=''):
         (nginx) can access the files uploaded by restservice (cfyuser).
         """
         tarinfo.mode = tarinfo.mode | stat.S_IROTH
+        if stat.S_ISDIR(tarinfo.mode):
+            # directories must also have u+w so that files can be stored in
+            # them, and have the execute bit set so that permissions can be
+            # exercised for them
+            tarinfo.mode = (tarinfo.mode | stat.S_IWUSR |
+                            stat.S_IXUSR | stat.S_IXOTH)
+
         return tarinfo
 
     tar_name = tar_name or os.path.basename(file_to_tar)
