@@ -479,7 +479,12 @@ class RemoteWorkflowTask(WorkflowTask):
         if tenant_name is None or \
                 tenant_name == self.cloudify_context['tenant']['name']:
             return self.cloudify_context['tenant']
-        return client.tenants.get(tenant_name)
+        tenant = client.tenants.get(tenant_name)
+        if tenant.get('rabbitmq_vhost') is None:
+            raise exceptions.NonRecoverableError(
+                'Could not get RabbitMQ credentials for tenant {0}'
+                .format(tenant_name))
+        return tenant
 
     def _get_queue_kwargs(self):
         """Queue, name, and tenant of the agent that will execute the task
