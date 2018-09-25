@@ -41,6 +41,13 @@ class LdapResponse(dict):
         return self.get('ldap_domain')
 
     @property
+    def ldap_ou(self):
+        """
+        :return: The LDAP organization unit used by the manager.
+        """
+        return self.get('ldap_ou')
+
+    @property
     def ldap_is_active_directory(self):
         """
         :return: is LDAP an active-directory instance, false otherwise.
@@ -65,6 +72,7 @@ class LdapClient(object):
             ldap_password,
             ldap_is_active_directory,
             ldap_domain='',
+            ldap_ou=None,
             ldap_dn_extra=''):
         """
         Sets the Cloudify manager to work with the LDAP authentication against
@@ -78,6 +86,8 @@ class LdapClient(object):
             'ldap_domain': ldap_domain,
             'ldap_dn_extra': ldap_dn_extra
         }
+        if ldap_ou:
+            params['ldap_ou'] = ldap_ou
         uri = '/ldap'
         response = self.api.post(uri, params)
         return LdapResponse(response)
