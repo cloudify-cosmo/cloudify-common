@@ -104,6 +104,10 @@ class HTTPClient(object):
             return self.kerberos_env
         return bool(HTTPKerberosAuth) and is_kerberos_env()
 
+    def has_auth_header(self):
+        return CLOUDIFY_TOKEN_AUTHENTICATION_HEADER in self.headers or \
+               CLOUDIFY_AUTHENTICATION_HEADER in self.headers
+
     def _raise_client_error(self, response, url=None):
         try:
             result = response.json()
@@ -152,7 +156,7 @@ class HTTPClient(object):
     def _do_request(self, requests_method, request_url, body, params, headers,
                     expected_status_code, stream, verify, timeout):
         auth = None
-        if self.has_kerberos():
+        if self.has_kerberos() and not self.has_auth_header():
             if HTTPKerberosAuth is None:
                 raise exceptions.CloudifyClientError(
                     'Trying to create a client with kerberos, '
