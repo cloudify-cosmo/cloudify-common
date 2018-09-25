@@ -152,7 +152,9 @@ class HTTPClient(object):
     def _do_request(self, requests_method, request_url, body, params, headers,
                     expected_status_code, stream, verify, timeout):
         auth = None
-        if self.has_kerberos():
+        if self.has_kerberos() and \
+            CLOUDIFY_TOKEN_AUTHENTICATION_HEADER not in self.headers and \
+                CLOUDIFY_AUTHENTICATION_HEADER not in self.headers:
             if HTTPKerberosAuth is None:
                 raise exceptions.CloudifyClientError(
                     'Trying to create a client with kerberos, '
