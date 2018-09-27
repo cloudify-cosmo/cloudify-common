@@ -18,11 +18,13 @@ import time
 import uuid
 import Queue
 
-from cloudify import utils
 from cloudify import exceptions
 from cloudify.workflows import api
 from cloudify.manager import get_rest_client
 from cloudify.constants import MGMTWORKER_QUEUE
+from cloudify.utils import exception_to_error_cause, is_agent_alive
+# imported for backwards compat:
+from cloudify.utils import INSPECT_TIMEOUT  # noqa
 
 
 INFINITE_TOTAL_RETRIES = -1
@@ -43,8 +45,6 @@ TASK_FAILED = 'failed'
 TERMINATED_STATES = [TASK_RESCHEDULED, TASK_SUCCEEDED, TASK_FAILED]
 
 DISPATCH_TASK = 'cloudify.dispatch.dispatch'
-
-INSPECT_TIMEOUT = 30
 
 
 def retry_failure_handler(task):
@@ -248,7 +248,7 @@ class WorkflowTask(object):
                 causes = exception.causes or []
             if isinstance(self, LocalWorkflowTask):
                 tb = self.async_result._holder.error[1]
-                causes.append(utils.exception_to_error_cause(exception, tb))
+                causes.append(exception_to_error_cause(exception, tb))
             self.workflow_context.internal.send_task_event(
                 state=self.get_state(),
                 task=self,
