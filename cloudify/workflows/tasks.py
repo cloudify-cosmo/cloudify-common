@@ -22,7 +22,7 @@ from cloudify import exceptions
 from cloudify.workflows import api
 from cloudify.manager import get_rest_client
 from cloudify.constants import MGMTWORKER_QUEUE
-from cloudify.utils import exception_to_error_cause, is_agent_alive
+from cloudify.utils import exception_to_error_cause
 # imported for backwards compat:
 from cloudify.utils import INSPECT_TIMEOUT  # noqa
 
