@@ -27,9 +27,11 @@ import tempfile
 import traceback
 import StringIO
 
+import pika
 from distutils.version import LooseVersion
 
 from cloudify import cluster, constants
+from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.state import workflow_ctx, ctx
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
@@ -414,26 +416,6 @@ def _shlex_split(command):
     return list(lex)
 
 
-if sys.version_info >= (2, 7):
-    # requires 2.7+
-    def wait_for_event(evt, poll_interval=0.5):
-        """Wait for a threading.Event by polling, which allows handling signals.
-        (ie. doesnt block ^C)
-        """
-        while True:
-            if evt.wait(poll_interval):
-                return
-else:
-    def wait_for_event(evt, poll_interval=None):
-        """Wait for a threading.Event. Stub for compatibility."""
-        # in python 2.6, Event.wait always returns None, so we can either:
-        #  - .wait() without a timeout and block ^C which is inconvenient
-        #  - .wait() with timeout and then check .is_set(),
-        #     which is not threadsafe
-        # We choose the inconvenient but safe method.
-        evt.wait()
-
-
 class Internal(object):
 
     @staticmethod
@@ -540,11 +522,12 @@ class Internal(object):
 
 def is_agent_alive(name,
                    client,
-                   timeout=workflows_tasks.INSPECT_TIMEOUT):
+                   timeout=INSPECT_TIMEOUT):
     """
     Send a `ping` service task to an agent, and validate that a correct
     response is received
     """
+    logger = setup_logger('cloudify.utils.is_agent_alive')
     handler = BlockingRequestResponseHandler(exchange=name)
     client.add_handler(handler)
     # messages expire shortly before we hit the timeout - if they haven't
