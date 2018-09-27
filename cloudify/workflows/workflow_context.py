@@ -59,6 +59,9 @@ from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            send_sys_wide_wf_event,
                            send_workflow_node_event)
 
+from cloudify.utils import is_agent_alive
+
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -1208,6 +1211,10 @@ class _TaskDispatcher(object):
         client, handler = self._get_client(task)
 
         result = _AsyncResult(task)
+
+        if not is_agent_alive(task['target'], client):
+            raise exceptions.RecoverableError(
+                'Timed out waiting for agent: {0}'.format(task['target']))
 
         callback = functools.partial(self._received, task['id'], client)
         self._logger.debug('Sending task [{0}] - {1}'.format(task['id'], task))

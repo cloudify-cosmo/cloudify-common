@@ -27,14 +27,17 @@ import tempfile
 import traceback
 import StringIO
 
+import pika
 from distutils.version import LooseVersion
 
 from cloudify import cluster, constants
+from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.state import workflow_ctx, ctx
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
 
 CFY_EXEC_TEMPDIR_ENVVAR = 'CFY_EXEC_TEMP'
+INSPECT_TIMEOUT = 30
 
 
 class ManagerVersion(object):
@@ -413,26 +416,6 @@ def _shlex_split(command):
     return list(lex)
 
 
-if sys.version_info >= (2, 7):
-    # requires 2.7+
-    def wait_for_event(evt, poll_interval=0.5):
-        """Wait for a threading.Event by polling, which allows handling signals.
-        (ie. doesnt block ^C)
-        """
-        while True:
-            if evt.wait(poll_interval):
-                return
-else:
-    def wait_for_event(evt, poll_interval=None):
-        """Wait for a threading.Event. Stub for compatibility."""
-        # in python 2.6, Event.wait always returns None, so we can either:
-        #  - .wait() without a timeout and block ^C which is inconvenient
-        #  - .wait() with timeout and then check .is_set(),
-        #     which is not threadsafe
-        # We choose the inconvenient but safe method.
-        evt.wait()
-
-
 class Internal(object):
 
     @staticmethod
@@ -535,6 +518,39 @@ class Internal(object):
                 ctx._context['tenant']['original_name']
             )
             ctx._context['tenant'].pop('original_name')
+
+
+def is_agent_alive(name,
+                   client,
+                   timeout=INSPECT_TIMEOUT):
+    """
+    Send a `ping` service task to an agent, and validate that a correct
+    response is received
+    """
+    logger = setup_logger('cloudify.utils.is_agent_alive')
+    handler = BlockingRequestResponseHandler(exchange=name)
+    client.add_handler(handler)
+    # messages expire shortly before we hit the timeout - if they haven't
+    # been handled by then, they won't make the timeout
+    expiration = (timeout * 1000) - 200  # milliseconds
+    with client:
+        task = {
+            'service_task': {
+                'task_name': 'ping',
+                'kwargs': {}
+            }
+        }
+        try:
+            response = handler.publish(task, routing_key='service',
+                                       timeout=timeout, expiration=expiration)
+        except pika.exceptions.AMQPError as e:
+            logger.warning('Could not send a ping task to {0}: {1}'
+                           .format(name, e))
+            return False
+        except RuntimeError as e:
+            logger.info('No ping response from {0}: {1}'.format(name, e))
+            return False
+    return 'time' in response
 
 
 internal = Internal()
