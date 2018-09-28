@@ -25,7 +25,9 @@ install_requires = [
     'bottle==0.12.7',
     'jinja2==2.10',
     'requests_toolbelt',
-    'pysnmp==4.4.5'
+    'pysnmp==4.4.5',
+    'opentracing_instrumentation==2.4.3',
+    'jaeger-client==3.11.0'
 ]
 
 try:
