@@ -1204,6 +1204,7 @@ class _TaskDispatcher(object):
             amqp_vhost=self._get_vhost(task)
         )
         client.add_handler(handler)
+        client.consume_in_thread()
         return client, handler
 
     def send_task(self, workflow_task, task):
@@ -1217,7 +1218,6 @@ class _TaskDispatcher(object):
 
         callback = functools.partial(self._received, task['id'], client)
         self._logger.debug('Sending task [{0}] - {1}'.format(task['id'], task))
-        client.consume_in_thread()
         try:
             handler.publish(task, callback=callback, routing_key='operation',
                             correlation_id=task['id'])
