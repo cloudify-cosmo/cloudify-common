@@ -221,7 +221,8 @@ class HTTPClient(object):
 
         # build headers
         headers = headers or {}
-        self.tracer.inject(get_current_span().context, headers)
+        if self.tracer:
+            self.tracer.inject(get_current_span().context, headers)
         total_headers = self.headers.copy()
         total_headers.update(headers)
 
