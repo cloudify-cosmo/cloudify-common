@@ -1216,7 +1216,7 @@ class _TaskDispatcher(object):
         client.consume_in_thread()
 
         if task['queue'] != MGMTWORKER_QUEUE:
-            response = _send_ping_task(task['target'], client, connect=False)
+            response = _send_ping_task(task['target'], client, ping_handler)
             if 'time' not in response:
                 raise exceptions.RecoverableError(
                     'Timed out waiting for agent: {0}'.format(task['target']))

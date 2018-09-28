@@ -544,7 +544,7 @@ def is_agent_alive(name,
     return 'time' in response
 
 
-def _send_ping_task(name, client, handler, timeout):
+def _send_ping_task(name, client, handler, timeout=INSPECT_TIMEOUT):
     logger = setup_logger('cloudify.utils.is_agent_alive')
     task = {
         'service_task': {
