@@ -1212,7 +1212,8 @@ class _TaskDispatcher(object):
 
         result = _AsyncResult(task)
 
-        if not is_agent_alive(task['target'], client, connect=False):
+        if task['queue'] != MGMTWORKER_QUEUE and \
+                not is_agent_alive(task['target'], client, connect=False):
             raise exceptions.RecoverableError(
                 'Timed out waiting for agent: {0}'.format(task['target']))
 
