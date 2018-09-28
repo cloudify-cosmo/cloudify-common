@@ -360,7 +360,7 @@ class CloudifyClient(object):
                  api_version=DEFAULT_API_VERSION, headers=None,
                  query_params=None, cert=None, trust_all=False,
                  username=None, password=None, token=None, tenant=None,
-                 kerberos_env=None):
+                 kerberos_env=None, tracer=None):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -378,6 +378,7 @@ class CloudifyClient(object):
         :param password: Cloudify User password.
         :param token: Cloudify User token.
         :param tenant: Cloudify Tenant name.
+        :param tracer: Opentracing Tracer obj.
         :return: Cloudify client instance.
         """
 
