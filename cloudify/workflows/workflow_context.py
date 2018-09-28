@@ -59,7 +59,7 @@ from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            send_sys_wide_wf_event,
                            send_workflow_node_event)
 
-from cloudify.utils import is_agent_alive
+from cloudify.utils import _send_ping_task
 
 
 try:
@@ -1204,17 +1204,22 @@ class _TaskDispatcher(object):
             amqp_vhost=self._get_vhost(task)
         )
         client.add_handler(handler)
-        client.consume_in_thread()
         return client, handler
 
     def send_task(self, workflow_task, task):
         client, handler = self._get_client(task)
 
         result = _AsyncResult(task)
+        ping_handler = amqp_client.BlockingRequestResponseHandler(
+            exchange=task['target'])
+        client.add_handler(ping_handler)
+        client.consume_in_thread()
 
-        if not is_agent_alive(task['target'], client):
-            raise exceptions.RecoverableError(
-                'Timed out waiting for agent: {0}'.format(task['target']))
+        if task['queue'] != MGMTWORKER_QUEUE:
+            response = _send_ping_task(task['target'], ping_handler)
+            if 'time' not in response:
+                raise exceptions.RecoverableError(
+                    'Timed out waiting for agent: {0}'.format(task['target']))
 
         callback = functools.partial(self._received, task['id'], client)
         self._logger.debug('Sending task [{0}] - {1}'.format(task['id'], task))

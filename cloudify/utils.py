@@ -522,35 +522,49 @@ class Internal(object):
 
 def is_agent_alive(name,
                    client,
-                   timeout=INSPECT_TIMEOUT):
+                   timeout=INSPECT_TIMEOUT,
+                   connect=True):
     """
     Send a `ping` service task to an agent, and validate that a correct
     response is received
+
+    :param name: the agent's amqp exchange name
+    :param client: an AMQPClient for the agent's vhost
+    :param timeout: how long to wait for the response
+    :param connect: whether to connect the client (should be False if it is
+                    already connected)
     """
-    logger = setup_logger('cloudify.utils.is_agent_alive')
     handler = BlockingRequestResponseHandler(exchange=name)
     client.add_handler(handler)
+    if connect:
+        with client:
+            response = _send_ping_task(name, handler, timeout)
+    else:
+        response = _send_ping_task(name, handler, timeout)
+    return 'time' in response
+
+
+def _send_ping_task(name, handler, timeout=INSPECT_TIMEOUT):
+    logger = setup_logger('cloudify.utils.is_agent_alive')
+    task = {
+        'service_task': {
+            'task_name': 'ping',
+            'kwargs': {}
+        }
+    }
     # messages expire shortly before we hit the timeout - if they haven't
     # been handled by then, they won't make the timeout
     expiration = (timeout * 1000) - 200  # milliseconds
-    with client:
-        task = {
-            'service_task': {
-                'task_name': 'ping',
-                'kwargs': {}
-            }
-        }
-        try:
-            response = handler.publish(task, routing_key='service',
-                                       timeout=timeout, expiration=expiration)
-        except pika.exceptions.AMQPError as e:
-            logger.warning('Could not send a ping task to {0}: {1}'
-                           .format(name, e))
-            return False
-        except RuntimeError as e:
-            logger.info('No ping response from {0}: {1}'.format(name, e))
-            return False
-    return 'time' in response
+    try:
+        return handler.publish(task, routing_key='service',
+                               timeout=timeout, expiration=expiration)
+    except pika.exceptions.AMQPError as e:
+        logger.warning('Could not send a ping task to {0}: {1}'
+                       .format(name, e))
+        return {}
+    except RuntimeError as e:
+        logger.info('No ping response from {0}: {1}'.format(name, e))
+        return {}
 
 
 internal = Internal()
