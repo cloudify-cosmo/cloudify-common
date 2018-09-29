@@ -4,8 +4,6 @@ import tarfile
 from os.path import expanduser
 from distutils.spawn import find_executable
 
-from opentracing_instrumentation.request_context import get_current_span
-
 SUPPORTED_ARCHIVE_TYPES = ['zip', 'tar', 'tar.gz', 'tar.bz2']
 
 
@@ -62,31 +60,3 @@ def is_kerberos_env():
     if os.path.exists('/etc/krb5.conf') and find_executable('klist'):
         return True
     return False
-
-
-def with_tracing(func_name=None):
-    """Wrapper function for Flask operation call tracing.
-    This decorator must be activate iff the following condition apply. One of
-    the parent calls must be done inside a 'with span_in_context(span)' scope
-    (otherwise you'd get a parentless span).
-
-    :param name: name to display in tracing
-    """
-
-    def decorator(f):
-        name = func_name
-        if func_name is None:
-            name = f.__name__
-
-        @wraps(f)
-        def with_tracing_wrapper(*args, **kwargs):
-            root_span = get_current_span()
-            with current_app.tracer.start_span(
-                    name,
-                    child_of=root_span) as span:
-                with span_in_context(span):
-                    return f(*args, **kwargs)
-
-        return with_tracing_wrapper
-
-    return decorator

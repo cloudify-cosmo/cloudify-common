@@ -17,7 +17,6 @@ import json
 import logging
 
 import requests
-from opentracing_instrumentation import get_current_span
 from base64 import urlsafe_b64encode
 from requests.packages import urllib3
 
@@ -222,7 +221,7 @@ class HTTPClient(object):
         # build headers
         headers = headers or {}
         if self.tracer:
-            self.tracer.inject(get_current_span().context, headers)
+            self.tracer.inject(self.tracer.current_span.context, headers)
         total_headers = self.headers.copy()
         total_headers.update(headers)
 
