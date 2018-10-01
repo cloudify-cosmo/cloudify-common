@@ -222,6 +222,8 @@ class HTTPClient(object):
         headers = headers or {}
         if self.tracer:
             self.tracer.inject(self.tracer.current_span.context, headers)
+            self.tracer.remove_spans_to_report(
+                self.tracer.current_span.context)
         total_headers = self.headers.copy()
         total_headers.update(headers)
 
