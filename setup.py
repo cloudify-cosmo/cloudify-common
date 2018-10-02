@@ -25,8 +25,7 @@ install_requires = [
     'bottle==0.12.7',
     'jinja2==2.10',
     'requests_toolbelt',
-    'pysnmp==4.4.5',
-    'jaeger-client==3.11.0'
+    'pysnmp==4.4.5'
 ]
 
 try:
