@@ -229,6 +229,10 @@ class CloudifyWorkflowNodeInstance(object):
         :param state: The node state
         :return: the state set
         """
+        # We don't want to alter the state of the instance during a dry run
+        if self.ctx.dry_run:
+            return NOPLocalWorkflowTask(self.ctx)
+
         set_state_task = self.ctx.internal.handler.get_set_state_task(
             self, state)
 
