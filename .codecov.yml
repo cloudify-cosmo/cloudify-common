@@ -1,0 +1,16 @@
+comment: off
+coverage:
+  status:
+    patch:
+      default:
+        target: '80'
+    project:
+      dsl-parser:
+        paths:
+          - dsl_parser
+      cloudify-plugins-common:
+        paths:
+          - cloudify
+      script-runner:
+        paths:
+          - script_runner

@@ -26,6 +26,10 @@ defaults:
       - run:
           name: Run tox of specfic environment
           command: tox -e $DO_ENV
+      - run:
+          name: Push coverage data to codecov
+          command: |
+            bash <(curl -s https://codecov.io/bash) -F $DO_ENV
 
   - &test_defaults_for_python26
     docker:
@@ -48,6 +52,10 @@ defaults:
       - run:
           name: Run tox of specfic environment
           command: tox -e $DO_ENV
+      - run:
+          name: Push coverage data to codecov
+          command: |
+            bash <(curl -s https://codecov.io/bash) -F $DO_ENV
 
   - &docs_defaults
     docker:
