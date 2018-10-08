@@ -61,9 +61,9 @@ class LdapClient(object):
 
     def set(self,
             ldap_server,
-            ldap_username,
-            ldap_password,
-            ldap_is_active_directory,
+            ldap_username=None,
+            ldap_password=None,
+            ldap_is_active_directory=False,
             ldap_domain='',
             ldap_dn_extra=''):
         """
@@ -72,12 +72,14 @@ class LdapClient(object):
         """
         params = {
             'ldap_server': ldap_server,
-            'ldap_username': ldap_username,
-            'ldap_password': ldap_password,
             'ldap_is_active_directory': ldap_is_active_directory,
             'ldap_domain': ldap_domain,
             'ldap_dn_extra': ldap_dn_extra
         }
+        if ldap_username:
+            params['ldap_username'] = ldap_username
+        if ldap_password:
+            params['ldap_password'] = ldap_password
         uri = '/ldap'
         response = self.api.post(uri, params)
         return LdapResponse(response)
