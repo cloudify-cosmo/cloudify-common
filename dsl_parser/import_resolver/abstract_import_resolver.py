@@ -28,6 +28,12 @@ MAX_NUMBER_RETRIES = 5
 DEFAULT_REQUEST_TIMEOUT = 10
 
 
+def is_remote_resource(resource_url):
+    url_parts = resource_url.split(':')
+    if url_parts[0] in ['http', 'https', 'file', 'ftp', 'plugin', 'blueprint']:
+        return True
+
+
 class AbstractImportResolver(object):
     """
     This class is abstract and should be inherited by concrete
@@ -43,8 +49,7 @@ class AbstractImportResolver(object):
         raise NotImplementedError
 
     def fetch_import(self, import_url):
-        url_parts = import_url.split(':')
-        if url_parts[0] in ['http', 'https', 'ftp', 'file']:
+        if is_remote_resource(import_url):
             return self.resolve(import_url)
         return read_import(import_url)
 
