@@ -173,10 +173,12 @@ class TaskHandler(object):
         if self._process_registry:
             self._process_registry.unregister(self, p)
         if p.returncode in (-15, -9):  # SIGTERM, SIGKILL
-            raise exceptions.NonRecoverableError('Process terminated (rc=%d)' % p.returncode)
+            raise exceptions.NonRecoverableError('Process terminated (rc=%d)'
+                                                 % p.returncode)
         elif p.returncode != 0:
             raise exceptions.NonRecoverableError(
-                'Unhandled exception occurred in operation dispatch (rc=%d)' % p.returncode)
+                'Unhandled exception occurred in operation dispatch (rc=%d)'
+                % p.returncode)
 
     def logfile(self):
         try:
