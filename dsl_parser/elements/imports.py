@@ -22,6 +22,8 @@ from dsl_parser import (exceptions,
                         constants,
                         version as _version,
                         utils)
+from dsl_parser.import_resolver.abstract_import_resolver import\
+    is_remote_resource
 from dsl_parser.framework.elements import (Element,
                                            Leaf,
                                            List)
@@ -136,8 +138,7 @@ def _dsl_location_to_url(dsl_location, resources_base_path):
 def _get_resource_location(resource_name,
                            resources_base_path,
                            current_resource_context=None):
-    url_parts = resource_name.split(':')
-    if url_parts[0] in ['http', 'https', 'file', 'ftp', 'plugin']:
+    if is_remote_resource(resource_name):
         return resource_name
 
     if os.path.exists(resource_name):
