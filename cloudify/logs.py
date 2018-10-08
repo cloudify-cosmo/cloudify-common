@@ -24,10 +24,14 @@ from functools import wraps
 from cloudify import constants
 from cloudify import amqp_client_utils
 from cloudify import event as _event
+from cloudify.utils import is_management_environment
 from cloudify.exceptions import ClosedAMQPClientException
 
 EVENT_CLASS = _event.Event
 EVENT_VERBOSITY_LEVEL = _event.NO_VERBOSE
+
+DEFAULT_LOG_FILE_SIZE = 50000000
+DEFAULT_LOG_BACKUPS = 7
 
 
 def message_context_from_cloudify_context(ctx):
@@ -406,8 +410,15 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None):
         file_formatter = logging.Formatter(
             ' %(asctime)-15s - %(name)s - %(levelname)s - %(message)s')
 
-        file_handler = logging.handlers.RotatingFileHandler(
-            filename=log_file, maxBytes=50000000, backupCount=7)
+        # On the manager, we for sure have a logrotate policy.
+        if is_management_environment():
+            file_handler = logging.handlers.WatchedFileHandler(log_file)
+        else:
+            # On linux agents, we may have logrotate in place in the future.
+            # On Windows agents, there's no reliable logrotate alternative.
+            file_handler = logging.handlers.RotatingFileHandler(
+                filename=log_file, maxBytes=DEFAULT_LOG_FILE_SIZE,
+                backupCount=DEFAULT_LOG_BACKUPS)
         file_handler.setLevel(log_level)
         file_handler.setFormatter(file_formatter)
 
