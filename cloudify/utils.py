@@ -567,4 +567,11 @@ def _send_ping_task(name, handler, timeout=INSPECT_TIMEOUT):
         return {}
 
 
+def is_management_environment():
+    """
+    Checks whether we're currently running within a management worker.
+    """
+    return os.environ.get('MGMTWORKER_HOME')
+
+
 internal = Internal()
