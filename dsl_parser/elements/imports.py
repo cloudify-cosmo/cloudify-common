@@ -22,6 +22,7 @@ from dsl_parser import (exceptions,
                         constants,
                         version as _version,
                         utils)
+from dsl_parser.holder import Holder
 from dsl_parser.import_resolver.abstract_import_resolver import\
     is_remote_resource
 from dsl_parser.framework.elements import (Element,
@@ -193,6 +194,9 @@ def _build_ordered_imports(parsed_dsl_holder,
     imports_graph = ImportsGraph()
     imports_graph.add(location(dsl_location), parsed_dsl_holder)
 
+    def _is_parsed_resource(imported_resource):
+        return isinstance(imported_resource, Holder)
+
     def _build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                          _current_import):
         imports_key_holder, imports_value_holder = _current_parsed_dsl_holder.\
@@ -214,15 +218,17 @@ def _build_ordered_imports(parsed_dsl_holder,
                 imports_graph.add_graph_dependency(import_url,
                                                    location(_current_import))
             else:
-                raw_imported_dsl = resolver.fetch_import(import_url)
-                imported_dsl_holder = utils.load_yaml(
-                    raw_yaml=raw_imported_dsl,
-                    error_message="Failed to parse import '{0}' (via '{1}')"
-                                  .format(another_import, import_url),
-                    filename=another_import)
-                imports_graph.add(import_url, imported_dsl_holder,
+                imported_dsl = resolver.fetch_import(import_url)
+                if not _is_parsed_resource(imported_dsl):
+                    imported_dsl = utils.load_yaml(
+                        raw_yaml=imported_dsl,
+                        error_message="Failed to parse import '{0}'"
+                                      "(via '{1}')"
+                                      .format(another_import, import_url),
+                        filename=another_import)
+                imports_graph.add(import_url, imported_dsl,
                                   location(_current_import))
-                _build_ordered_imports_recursive(imported_dsl_holder,
+                _build_ordered_imports_recursive(imported_dsl,
                                                  import_url)
     _build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
     return imports_graph.topological_sort()
