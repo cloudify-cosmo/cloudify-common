@@ -54,13 +54,40 @@ def _parse(dsl_string,
            resolver=None,
            validate_version=True,
            additional_resource_sources=()):
+    resource_base, merged_blueprint_holder =\
+        resolve_blueprint_imports(dsl_location, dsl_string, resolver,
+                                  resources_base_path, validate_version)
+    resource_base = [resource_base]
+    if additional_resource_sources:
+        resource_base.extend(additional_resource_sources)
+
+    # parse blueprint
+    plan = parser.parse(
+        value=merged_blueprint_holder,
+        inputs={
+            'resource_base': resource_base,
+            'validate_version': validate_version
+        },
+        element_cls=blueprint.Blueprint)
+
+    functions.validate_functions(plan)
+    return plan
+
+
+def resolve_blueprint_imports(dsl_location,
+                              dsl_string,
+                              resolver,
+                              resources_base_path,
+                              validate_version):
+    """
+    Goes over all the blueprint's imports and constructs a merged blueprint
+    containing from them.
+    """
     parsed_dsl_holder = utils.load_yaml(raw_yaml=dsl_string,
                                         error_message='Failed to parse DSL',
                                         filename=dsl_location)
-
     if not resolver:
         resolver = DefaultImportResolver()
-
     # validate version schema and extract actual version used
     result = parser.parse(
         parsed_dsl_holder,
@@ -70,7 +97,6 @@ def _parse(dsl_string,
         },
         strict=False)
     version = result['plan_version']
-
     # handle imports
     result = parser.parse(
         value=parsed_dsl_holder,
@@ -84,20 +110,5 @@ def _parse(dsl_string,
         },
         element_cls=blueprint.BlueprintImporter,
         strict=False)
-    resource_base = [result['resource_base']]
-    if additional_resource_sources:
-        resource_base.extend(additional_resource_sources)
 
-    merged_blueprint_holder = result['merged_blueprint']
-
-    # parse blueprint
-    plan = parser.parse(
-        value=merged_blueprint_holder,
-        inputs={
-            'resource_base': resource_base,
-            'validate_version': validate_version
-        },
-        element_cls=blueprint.Blueprint)
-
-    functions.validate_functions(plan)
-    return plan
+    return result['resource_base'], result['merged_blueprint']
