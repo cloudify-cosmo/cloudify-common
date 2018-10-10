@@ -143,8 +143,7 @@ node_templates:
         properties:
             property: { get_capability: [ dep_1, cap_a ]}
 """
-        parsed = prepare_deployment_plan(self.parse_1_3(yaml),
-                                         self._get_secret_mock)
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         node = self.get_node_by_name(parsed, 'node')
         self.assertEqual({'get_capability': ['dep_1', 'cap_a']},
                          node['properties']['property'])
@@ -159,3 +158,119 @@ node_templates:
             self.get_capability_mock,
         )
         self.assertEqual(node['properties']['property'], 'value_a_1')
+
+    def _assert_raises_with_message(self,
+                                    exception_type,
+                                    message,
+                                    callable_obj,
+                                    *args,
+                                    **kwargs):
+        try:
+            callable_obj(*args, **kwargs)
+        except exception_type as e:
+            self.assertIn(message, str(e))
+        else:
+            raise AssertionError('Error was not raised')
+
+    def _test_parsing(self, yaml, message):
+        self._assert_raises_with_message(
+            ValueError,
+            message,
+            self.parse_1_3,
+            yaml
+        )
+
+    def test_get_capability_not_list(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { get_capability: i_should_be_a_list }
+"""
+        self._test_parsing(
+            yaml,
+            message="`get_capability` function argument should be a list. "
+            "Instead it is a <type 'str'> with the value: i_should_be_a_list."
+        )
+
+    def test_get_capability_short_list(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { get_capability: [ only_one_item ] }
+"""
+        self._test_parsing(
+            yaml,
+            message="`get_capability` function argument should be a list "
+                    "with 2 elements - the deployment ID and the capability "
+                    "ID. Instead it is: ['only_one_item']"
+        )
+
+    def test_get_capability_long_list(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { get_capability: [ too, many, items ] }
+"""
+        self._test_parsing(
+            yaml,
+            message="`get_capability` function argument should be a list "
+                    "with 2 elements - the deployment ID and the capability "
+                    "ID. Instead it is: ['too', 'many', 'items']"
+        )
+
+    def test_get_capability_first_complex(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { get_capability: [ [list] , value ] }
+"""
+        self._test_parsing(
+            yaml,
+            message="`get_capability` function arguments can't be complex "
+                    "values; only strings/ints are accepted. Instead, the "
+                    "first value is ['list'] of type <type 'list'>"
+        )
+
+    def test_get_capability_second_complex(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { get_capability: [ value , { complex: value } ] }
+"""
+        self._test_parsing(
+            yaml,
+            message="`get_capability` function arguments can't be complex "
+                    "values; only strings/ints are accepted. Instead, the "
+                    "second value is {'complex': 'value'} "
+                    "of type <type 'dict'>"
+        )
