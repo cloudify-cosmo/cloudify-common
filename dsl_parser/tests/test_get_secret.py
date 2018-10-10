@@ -274,7 +274,8 @@ class TestEvaluateFunctions(AbstractTestParser):
                                      None,
                                      None,
                                      None,
-                                     self._get_secret_mock)
+                                     self._get_secret_mock,
+                                     None)
 
         self.assertEqual(payload['a'], 'id_a_value')
         self.assertEqual(payload['b'], 'id_b_value')
@@ -307,6 +308,7 @@ node_templates:
             None,
             None,
             None,
-            self._get_secret_mock
+            self._get_secret_mock,
+            None
         )
         self.assertEqual(node['properties']['property'], 'secret_value')
