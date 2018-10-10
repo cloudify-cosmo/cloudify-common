@@ -66,16 +66,19 @@ class RuntimeEvaluationStorage(object):
                  get_node_instances_method,
                  get_node_instance_method,
                  get_node_method,
-                 get_secret_method):
+                 get_secret_method,
+                 get_capability_method):
         self._get_node_instances_method = get_node_instances_method
         self._get_node_instance_method = get_node_instance_method
         self._get_node_method = get_node_method
         self._get_secret_method = get_secret_method
+        self._get_capability_method = get_capability_method
 
         self._node_to_node_instances = {}
         self._node_instances = {}
         self._nodes = {}
         self._secrets = {}
+        self._capabilities = {}
 
     def get_node_instances(self, node_id):
         if node_id not in self._node_to_node_instances:
@@ -102,6 +105,13 @@ class RuntimeEvaluationStorage(object):
             secret = self._get_secret_method(secret_key)
             self._secrets[secret_key] = secret.value
         return self._secrets[secret_key]
+
+    def get_capability(self, capability_path):
+        capability_id = '.'.join(capability_path)
+        if capability_id not in self._capabilities:
+            capability = self._get_capability_method(capability_path)
+            self._capabilities[capability_id] = capability
+        return self._capabilities[capability_id]
 
 
 class Function(object):
@@ -610,7 +620,8 @@ def evaluate_functions(payload, context,
                        get_node_instances_method,
                        get_node_instance_method,
                        get_node_method,
-                       get_secret_method):
+                       get_secret_method,
+                       get_capability_method):
     """Evaluate functions in payload.
 
     :param payload: The payload to evaluate.
@@ -619,12 +630,14 @@ def evaluate_functions(payload, context,
     :param get_node_instance_method: A method for getting a node instance.
     :param get_node_method: A method for getting a node.
     :param get_secret_method: A method for getting a secret.
+    :param get_capability_method: A method for getting a capability.
     :return: payload.
     """
     handler = runtime_evaluation_handler(get_node_instances_method,
                                          get_node_instance_method,
                                          get_node_method,
-                                         get_secret_method)
+                                         get_secret_method,
+                                         get_capability_method)
     scan.scan_properties(payload,
                          handler,
                          scope=None,
@@ -638,7 +651,8 @@ def evaluate_outputs(outputs_def,
                      get_node_instances_method,
                      get_node_instance_method,
                      get_node_method,
-                     get_secret_method):
+                     get_secret_method,
+                     get_capability_method):
     """Evaluates an outputs definition containing intrinsic functions.
 
     :param outputs_def: Outputs definition.
@@ -646,6 +660,7 @@ def evaluate_outputs(outputs_def,
     :param get_node_instance_method: A method for getting a node instance.
     :param get_node_method: A method for getting a node.
     :param get_secret_method: A method for getting a secret.
+    :param get_capability_method: A method for getting a capability.
     :return: Outputs dict.
     """
     outputs = dict((k, v['value']) for k, v in outputs_def.iteritems())
@@ -655,7 +670,8 @@ def evaluate_outputs(outputs_def,
         get_node_instances_method=get_node_instances_method,
         get_node_instance_method=get_node_instance_method,
         get_node_method=get_node_method,
-        get_secret_method=get_secret_method)
+        get_secret_method=get_secret_method,
+        get_capability_method=get_capability_method)
 
 
 def _handler(evaluator, **evaluator_kwargs):
@@ -691,13 +707,15 @@ def plan_evaluation_handler(plan):
 def runtime_evaluation_handler(get_node_instances_method,
                                get_node_instance_method,
                                get_node_method,
-                               get_secret_method):
+                               get_secret_method,
+                               get_capability_method):
     return _handler('evaluate_runtime',
                     storage=RuntimeEvaluationStorage(
                         get_node_instances_method=get_node_instances_method,
                         get_node_instance_method=get_node_instance_method,
                         get_node_method=get_node_method,
-                        get_secret_method=get_secret_method))
+                        get_secret_method=get_secret_method,
+                        get_capability_method=get_capability_method))
 
 
 def validate_functions(plan):
