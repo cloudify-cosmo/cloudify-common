@@ -516,6 +516,17 @@ class GetCapability(Function):
                 "elements - the deployment ID and the capability ID. Instead "
                 "it is: {0}".format(args)
             )
+        for arg_index in (0, 1):
+            if isinstance(args[arg_index], (dict, list)):
+                str_val = 'second' if arg_index else 'first'
+                raise ValueError(
+                    "`get_capability` function arguments can't be complex "
+                    "values; only strings/ints are accepted. Instead, the "
+                    "{0} value is {1} of type {2}".format(
+                        str_val, args[arg_index], type(args[arg_index])
+                    )
+                )
+
         self.capability_path = args
 
     def validate(self, plan):
@@ -676,6 +687,33 @@ def evaluate_functions(payload, context,
                          path='payload',
                          replace=True)
     return payload
+
+
+def evaluate_capabilities(capabilities,
+                          get_node_instances_method,
+                          get_node_instance_method,
+                          get_node_method,
+                          get_secret_method,
+                          get_capability_method):
+    """Evaluates capabilities definition containing intrinsic functions.
+
+    :param capabilities: The dict of capabilities to evaluate
+    :param get_node_instances_method: A method for getting node instances.
+    :param get_node_instance_method: A method for getting a node instance.
+    :param get_node_method: A method for getting a node.
+    :param get_secret_method: A method for getting a secret.
+    :param get_capability_method: A method for getting a capability.
+    :return: Outputs dict.
+    """
+    capabilities = dict((k, v['value']) for k, v in capabilities.iteritems())
+    return evaluate_functions(
+        payload=capabilities,
+        context={},
+        get_node_instances_method=get_node_instances_method,
+        get_node_instance_method=get_node_instance_method,
+        get_node_method=get_node_method,
+        get_secret_method=get_secret_method,
+        get_capability_method=get_capability_method)
 
 
 def evaluate_outputs(outputs_def,
