@@ -499,6 +499,37 @@ class GetSecret(Function):
         return storage.get_secret(self.secret_id)
 
 
+@register(name='get_capability')
+class GetCapability(Function):
+    def __init__(self, args, **kwargs):
+        self.capability_path = None
+        super(GetCapability, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, list):
+            raise ValueError(
+                "`get_capability` function argument should be a list. Instead "
+                "it is a {0} with the value: {1}.".format(type(args), args))
+        if not len(args) == 2:
+            raise ValueError(
+                "`get_capability` function argument should be a list with 2 "
+                "elements - the deployment ID and the capability ID. Instead "
+                "it is: {0}".format(args)
+            )
+        self.capability_path = args
+
+    def validate(self, plan):
+        pass
+
+    def evaluate(self, plan):
+        if 'operation' in self.context:
+            self.context['operation']['has_intrinsic_functions'] = True
+        return self.raw
+
+    def evaluate_runtime(self, storage):
+        return storage.get_capability(self.capability_path)
+
+
 @register(name='concat')
 class Concat(Function):
 
