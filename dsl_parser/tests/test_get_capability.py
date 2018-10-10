@@ -44,7 +44,7 @@ node_templates:
                     implementation: p.p
                     inputs:
                         a:
-                          get_capability: 
+                          get_capability:
                             - deployment_id
                             - node_template_capability_id
         relationships:
@@ -59,8 +59,8 @@ node_templates:
                         op_with_get_capability:
                             implementation: p.p
                             inputs:
-                                a: 
-                                  get_capability: 
+                                a:
+                                  get_capability:
                                     - deployment_id
                                     - source_op_capability_id
                 target_interfaces:
@@ -72,8 +72,8 @@ node_templates:
                         op_with_get_capability:
                             implementation: p.p
                             inputs:
-                                a: 
-                                  get_capability: 
+                                a:
+                                  get_capability:
                                     - deployment_id
                                     - target_op_capability_id
 """
@@ -154,7 +154,7 @@ node_templates:
     node:
         type: type
 outputs:
-    output: 
+    output:
       value: { get_capability: [ dep_1, cap_a ]}
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
