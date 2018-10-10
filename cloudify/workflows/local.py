@@ -489,6 +489,10 @@ class InMemoryStorage(_Storage):
         raise NotImplementedError('get_workdir is not implemented by memory '
                                   'storage')
 
+    def get_capability(self):
+        raise NotImplementedError('get_capability is not implemented by '
+                                  'memory storage')
+
 
 class FileStorage(_Storage):
 
@@ -599,6 +603,10 @@ class FileStorage(_Storage):
 
     def get_workdir(self):
         return self._workdir
+
+    def get_capability(self):
+        raise NotImplementedError('get_capability is not implemented by '
+                                  'memory storage')
 
 
 class StorageConflictError(Exception):

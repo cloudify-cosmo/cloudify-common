@@ -67,6 +67,8 @@ outputs:
         value: { to_upper: { get_attribute: [webserver, attribute] } }
     output4:
         value: { to_upper: { get_secret: secret } }
+    output5:
+        value: { to_upper: { get_capability: [ dep_1, cap_a ] } }
 """
         parsed = prepare_deployment_plan(self.parse(yaml),
                                          self._get_secret_mock)
@@ -98,12 +100,14 @@ outputs:
                                        get_node_instances,
                                        get_node_instance,
                                        get_node,
-                                       self._get_secret_mock)
+                                       self._get_secret_mock,
+                                       self._get_capability_mock)
 
         self.assertEqual('FIRST', o['output1'])
         self.assertEqual('PROPERTY_VALUE', o['output2'])
         self.assertEqual('ATTRIBUTE_VALUE', o['output3'])
         self.assertEqual('SECRET_VALUE', o['output4'])
+        self.assertEqual('VALUE_A_1', o['output5'])
 
 
 class NodeInstance(dict):

@@ -19,23 +19,6 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestGetCapability(AbstractTestParser):
-    def setUp(self):
-        self.shared_deployments = {
-            'dep_1': {
-                'capabilities': {
-                    'cap_a': 'value_a_1',
-                    'cap_b': 'value_b_1'
-                }
-            },
-            'dep_2': {
-                'capabilities': {
-                    'cap_a': 'value_a_2',
-                    'cap_b': 'value_b_2'
-                }
-            }
-        }
-        super(TestGetCapability, self).setUp()
-
     def test_has_intrinsic_functions_property(self):
         yaml = """
 relationships:
@@ -60,7 +43,10 @@ node_templates:
                 op_with_get_capability:
                     implementation: p.p
                     inputs:
-                        a: { get_capability: [ deployment_id, node_template_capability_id ] }
+                        a:
+                          get_capability: 
+                            - deployment_id
+                            - node_template_capability_id
         relationships:
             -   type: cloudify.relationships.contained_in
                 target: node
@@ -73,7 +59,10 @@ node_templates:
                         op_with_get_capability:
                             implementation: p.p
                             inputs:
-                                a: { get_capability: [ deployment_id, source_op_capability_id ] }
+                                a: 
+                                  get_capability: 
+                                    - deployment_id
+                                    - source_op_capability_id
                 target_interfaces:
                     test:
                         op_with_no_get_capability:
@@ -83,7 +72,10 @@ node_templates:
                         op_with_get_capability:
                             implementation: p.p
                             inputs:
-                                a: { get_capability: [ deployment_id, target_op_capability_id ] }
+                                a: 
+                                  get_capability: 
+                                    - deployment_id
+                                    - target_op_capability_id
 """
         parsed = prepare_deployment_plan(self.parse(yaml))
         webserver_node = None
@@ -103,11 +95,6 @@ node_templates:
         assertion(webserver_node['relationships'][0]['source_operations'])
         assertion(webserver_node['relationships'][0]['target_operations'])
 
-
-    def get_capability_mock(self, capability_path):
-        dep_id, cap_id = capability_path[0], capability_path[1]
-        return self.shared_deployments[dep_id]['capabilities'][cap_id]
-
     def test_evaluate_functions(self):
 
         payload = {
@@ -125,7 +112,7 @@ node_templates:
                                      None,
                                      None,
                                      None,
-                                     self.get_capability_mock)
+                                     self._get_capability_mock)
 
         self.assertEqual(payload['a'], 'value_a_1')
         self.assertEqual(payload['b'], 'value_a_2')
@@ -155,9 +142,36 @@ node_templates:
             None,
             None,
             None,
-            self.get_capability_mock,
+            self._get_capability_mock,
         )
         self.assertEqual(node['properties']['property'], 'value_a_1')
+
+    def test_capabilities_in_outputs(self):
+        yaml = """
+node_types:
+    type: {}
+node_templates:
+    node:
+        type: type
+outputs:
+    output: 
+      value: { get_capability: [ dep_1, cap_a ]}
+"""
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
+        outputs = parsed.outputs
+        self.assertEqual({'get_capability': ['dep_1', 'cap_a']},
+                         outputs['output']['value'])
+
+        functions.evaluate_functions(
+            parsed,
+            {},
+            None,
+            None,
+            None,
+            None,
+            self._get_capability_mock,
+        )
+        self.assertEqual(outputs['output']['value'], 'value_a_1')
 
     def _assert_raises_with_message(self,
                                     exception_type,
@@ -172,7 +186,7 @@ node_templates:
         else:
             raise AssertionError('Error was not raised')
 
-    def _test_parsing(self, yaml, message):
+    def _assert_parsing_fails(self, yaml, message):
         self._assert_raises_with_message(
             ValueError,
             message,
@@ -192,7 +206,7 @@ node_templates:
         properties:
             property: { get_capability: i_should_be_a_list }
 """
-        self._test_parsing(
+        self._assert_parsing_fails(
             yaml,
             message="`get_capability` function argument should be a list. "
             "Instead it is a <type 'str'> with the value: i_should_be_a_list."
@@ -210,7 +224,7 @@ node_templates:
         properties:
             property: { get_capability: [ only_one_item ] }
 """
-        self._test_parsing(
+        self._assert_parsing_fails(
             yaml,
             message="`get_capability` function argument should be a list "
                     "with 2 elements - the deployment ID and the capability "
@@ -229,7 +243,7 @@ node_templates:
         properties:
             property: { get_capability: [ too, many, items ] }
 """
-        self._test_parsing(
+        self._assert_parsing_fails(
             yaml,
             message="`get_capability` function argument should be a list "
                     "with 2 elements - the deployment ID and the capability "
@@ -248,7 +262,7 @@ node_templates:
         properties:
             property: { get_capability: [ [list] , value ] }
 """
-        self._test_parsing(
+        self._assert_parsing_fails(
             yaml,
             message="`get_capability` function arguments can't be complex "
                     "values; only strings/ints are accepted. Instead, the "
@@ -267,7 +281,7 @@ node_templates:
         properties:
             property: { get_capability: [ value , { complex: value } ] }
 """
-        self._test_parsing(
+        self._assert_parsing_fails(
             yaml,
             message="`get_capability` function arguments can't be complex "
                     "values; only strings/ints are accepted. Instead, the "
