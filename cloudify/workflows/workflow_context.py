@@ -45,7 +45,7 @@ from cloudify.workflows.tasks import (TASK_FAILED,
                                       DEFAULT_SEND_TASK_EVENTS,
                                       DEFAULT_SUBGRAPH_TOTAL_RETRIES)
 from cloudify.constants import MGMTWORKER_QUEUE
-from cloudify import utils, broker_config, logs, exceptions
+from cloudify import utils, logs, exceptions
 from cloudify.state import current_workflow_ctx
 from cloudify.workflows import events
 from cloudify.error_handling import deserialize_known_exception
@@ -1192,21 +1192,18 @@ class _TaskDispatcher(object):
             'cloudify_task': kwargs,
         }
 
-    def _get_vhost(self, task):
-        if task['queue'] == MGMTWORKER_QUEUE:
-            return broker_config.broker_vhost
-        else:
-            return task['tenant']['rabbitmq_vhost']
-
     def _get_client(self, task):
         tenant = task['tenant']
         handler = amqp_client.CallbackRequestResponseHandler(
             exchange=task['target'])
-        client = amqp_client.get_client(
-            amqp_user=tenant['rabbitmq_username'],
-            amqp_pass=tenant['rabbitmq_password'],
-            amqp_vhost=self._get_vhost(task)
-        )
+        if task['queue'] == MGMTWORKER_QUEUE:
+            client = amqp_client.get_client()
+        else:
+            client = amqp_client.get_client(
+                amqp_user=tenant['rabbitmq_username'],
+                amqp_pass=tenant['rabbitmq_password'],
+                amqp_vhost=tenant['rabbitmq_vhost']
+            )
         client.add_handler(handler)
         return client, handler
 
