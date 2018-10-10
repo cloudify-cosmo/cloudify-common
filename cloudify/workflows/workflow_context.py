@@ -1202,7 +1202,7 @@ class _TaskDispatcher(object):
             client = amqp_client.get_client(
                 amqp_user=tenant['rabbitmq_username'],
                 amqp_pass=tenant['rabbitmq_password'],
-                amqp_vhost=task['tenant']['rabbitmq_vhost']
+                amqp_vhost=tenant['rabbitmq_vhost']
             )
         client.add_handler(handler)
         return client, handler
