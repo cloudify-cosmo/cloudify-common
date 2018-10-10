@@ -36,6 +36,7 @@ INPUTS = 'inputs'
 OUTPUTS = 'outputs'
 DERIVED_FROM = 'derived_from'
 DATA_TYPES = 'data_types'
+CAPABILITIES = 'capabilities'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
