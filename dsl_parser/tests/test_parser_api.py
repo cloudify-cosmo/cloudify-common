@@ -3020,6 +3020,48 @@ node_templates:
             'prop1': 'val2',
         }, node2['properties'])
 
+    def test_description_in_imports_with_source_description(self):
+        import_description = "import"
+        app_description = "app"
+        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+description: """ + import_description + """
+node_types:
+  type1:
+     properties:
+"""
+        imported_yaml_filename = self.make_yaml_file(imported_yaml)
+        app = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+description: """ + app_description + """
+imports:
+    - {0}
+node_templates:
+  node1:
+    type: type1
+    """.format(imported_yaml_filename)
+
+        plan = self.parse(app)
+        self.assertEqual(plan[constants.DESCRIPTION], app_description)
+
+    def test_description_in_imports_without_source_description(self):
+        import_description = "import"
+        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+description: """ + import_description + """
+node_types:
+  type1:
+     properties:
+"""
+        imported_yaml_filename = self.make_yaml_file(imported_yaml)
+        app = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - {0}
+node_templates:
+  node1:
+    type: type1
+    """.format(imported_yaml_filename)
+
+        plan = self.parse(app)
+        self.assertEqual(plan[constants.DESCRIPTION], import_description)
+
     def test_null_default(self):
         yaml = """
 plugins:

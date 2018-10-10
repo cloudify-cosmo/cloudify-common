@@ -48,6 +48,10 @@ MERGEABLE_FROM_DSL_VERSION_1_3 = [
     constants.NODE_TEMPLATES
 ]
 
+DONT_OVERWRITE = set([
+    constants.DESCRIPTION
+])
+
 IGNORE = set([
     constants.DSL_DEFINITIONS,
     constants.IMPORTS,
@@ -263,6 +267,8 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
             pass
         elif key_holder.value not in combined_parsed_dsl_holder:
             combined_parsed_dsl_holder.value[key_holder] = value_holder
+        elif key_holder.value in DONT_OVERWRITE:
+            pass
         elif key_holder.value in merge_no_override:
             _, to_dict = combined_parsed_dsl_holder.get_item(key_holder.value)
             _merge_into_dict_or_throw_on_duplicate(
