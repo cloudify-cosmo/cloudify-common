@@ -510,7 +510,7 @@ class GetCapability(Function):
             raise ValueError(
                 "`get_capability` function argument should be a list. Instead "
                 "it is a {0} with the value: {1}.".format(type(args), args))
-        if not len(args) == 2:
+        if len(args) != 2:
             raise ValueError(
                 "`get_capability` function argument should be a list with 2 "
                 "elements - the deployment ID and the capability ID. Instead "
@@ -705,7 +705,7 @@ def evaluate_capabilities(capabilities,
     :param get_capability_method: A method for getting a capability.
     :return: Outputs dict.
     """
-    capabilities = dict((k, v['value']) for k, v in capabilities.iteritems())
+    capabilities = {k: v['value'] for k, v in capabilities.items()}
     return evaluate_functions(
         payload=capabilities,
         context={},

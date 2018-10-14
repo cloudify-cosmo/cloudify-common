@@ -126,9 +126,9 @@ class DeploymentOutputs(dict):
 
 class DeploymentCapabilities(dict):
 
-    def __init__(self, outputs):
+    def __init__(self, capabilities):
         super(DeploymentCapabilities, self).__init__()
-        self.update(outputs)
+        self.update(capabilities)
 
     @property
     def deployment_id(self):
@@ -136,7 +136,7 @@ class DeploymentCapabilities(dict):
         return self['deployment_id']
 
     @property
-    def outputs(self):
+    def capabilities(self):
         """Deployment capabilities as dict."""
         return self['capabilities']
 
