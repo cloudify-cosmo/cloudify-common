@@ -252,3 +252,24 @@ imports:"""
         secret_mock = MagicMock()
         secret_mock.value = secret_id + '_value'
         return secret_mock
+
+    @staticmethod
+    def _get_capability_mock(capability_path):
+        mock_deployments = {
+            'dep_1': {
+                'capabilities': {
+                    'cap_a': 'value_a_1',
+                    'cap_b': 'value_b_1'
+                }
+            },
+            'dep_2': {
+                'capabilities': {
+                    'cap_a': 'value_a_2',
+                    'cap_b': 'value_b_2'
+                }
+            }
+        }
+
+        dep_id, cap_id = capability_path[0], capability_path[1]
+
+        return mock_deployments[dep_id]['capabilities'][cap_id]

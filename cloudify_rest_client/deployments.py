@@ -124,6 +124,23 @@ class DeploymentOutputs(dict):
         return self['outputs']
 
 
+class DeploymentCapabilities(dict):
+
+    def __init__(self, capabilities):
+        super(DeploymentCapabilities, self).__init__()
+        self.update(capabilities)
+
+    @property
+    def deployment_id(self):
+        """Id of the deployment the capabilities belong to."""
+        return self['deployment_id']
+
+    @property
+    def capabilities(self):
+        """Deployment capabilities as dict."""
+        return self['capabilities']
+
+
 class DeploymentOutputsClient(object):
 
     def __init__(self, api):
@@ -141,11 +158,29 @@ class DeploymentOutputsClient(object):
         return DeploymentOutputs(response)
 
 
+class DeploymentCapabilitiesClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+    def get(self, deployment_id):
+        """Gets the capabilities for the provided deployment's Id.
+
+        :param deployment_id: Deployment Id to get capabilities for.
+        :return: Capabilities as dict.
+        """
+        assert deployment_id
+        uri = '/deployments/{0}/capabilities'.format(deployment_id)
+        response = self.api.get(uri)
+        return DeploymentCapabilities(response)
+
+
 class DeploymentsClient(object):
 
     def __init__(self, api):
         self.api = api
         self.outputs = DeploymentOutputsClient(api)
+        self.capabilities = DeploymentCapabilitiesClient(api)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """

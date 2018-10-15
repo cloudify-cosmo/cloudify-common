@@ -188,6 +188,7 @@ outputs:
                           {get_attribute: [webserver, attribute]},
                           {get_input: input},
                           {get_secret: secret},
+                          {get_capability: [ dep_1, cap_a ]},
                           six] }
 """
 
@@ -198,7 +199,8 @@ outputs:
                              tested[2])
             self.assertEqual('input_value', tested[3])
             self.assertEqual({'get_secret': 'secret'}, tested[4])
-            self.assertEqual('six', tested[5])
+            self.assertEqual({'get_capability': ['dep_1', 'cap_a']}, tested[5])
+            self.assertEqual('six', tested[6])
 
         parsed = prepare_deployment_plan(self.parse_1_1(yaml),
                                          self._get_secret_mock)
@@ -227,11 +229,12 @@ outputs:
                                        get_node_instances,
                                        get_node_instance,
                                        get_node,
-                                       self._get_secret_mock)
+                                       self._get_secret_mock,
+                                       self._get_capability_mock)
         self.assertEqual(8080, o['port'])
         self.assertEqual(8080, o['endpoint']['port'])
         self.assertEqual('oneproperty_valueattribute_'
-                         'valueinput_valuesecret_valuesix',
+                         'valueinput_valuesecret_valuevalue_a_1six',
                          o['concatenated'])
 
     def test_unknown_node_instance_evaluation(self):
@@ -253,7 +256,7 @@ outputs:
 
         outputs = functions.evaluate_outputs(parsed['outputs'],
                                              get_node_instances,
-                                             None, None, None)
+                                             None, None, None, None)
         self.assertIn('Node webserver has no instances', outputs['port'])
         self.assertIn('webserver', outputs['port'])
 
@@ -291,7 +294,7 @@ outputs:
                                              get_node_instances,
                                              get_node_instance,
                                              get_node,
-                                             None)
+                                             None, None)
         self.assertIn('unambiguously', outputs['port'])
         self.assertIn('webserver', outputs['port'])
 
@@ -337,7 +340,7 @@ outputs:
                                              get_node_instances,
                                              get_node_instance,
                                              get_node,
-                                             None)
+                                             None, None)
         self.assertEqual(8080, outputs['port'])
         self.assertEqual('http', outputs['protocol'])
         self.assertIsNone(outputs['none'])
@@ -391,7 +394,7 @@ outputs:
                                              get_node_instances,
                                              get_node_instance,
                                              get_node,
-                                             None)
+                                             None, None)
 
         self.assertEqual(8080, outputs['port'])
         self.assertEqual('http', outputs['protocol'])

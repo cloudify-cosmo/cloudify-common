@@ -47,6 +47,30 @@ class Outputs(DictElement):
     schema = Dict(type=Output)
 
 
+class CapabilityDescription(Element):
+
+    schema = Leaf(type=str)
+
+
+class CapabilityValue(Element):
+
+    required = True
+    schema = Leaf(type=elements.PRIMITIVE_TYPES)
+
+
+class Capability(Element):
+
+    schema = {
+        'description': CapabilityDescription,
+        'value': CapabilityValue
+    }
+
+
+class Capabilities(DictElement):
+
+    schema = Dict(type=Capability)
+
+
 class Inputs(data_types.Schema):
     pass
 

@@ -83,7 +83,8 @@ class Blueprint(Element):
         'policies': policies.Policies,
         'workflows': workflows.Workflows,
         'outputs': misc.Outputs,
-        'data_types': data_types.DataTypes
+        'data_types': data_types.DataTypes,
+        'capabilities': misc.Capabilities
     }
 
     requires = {
@@ -115,5 +116,6 @@ class Blueprint(Element):
                 deployment_plugins_to_install,
             constants.WORKFLOW_PLUGINS_TO_INSTALL: workflow_plugins_to_install,
             constants.VERSION: self.child(
-                _version.ToscaDefinitionsVersion).value
+                _version.ToscaDefinitionsVersion).value,
+            constants.CAPABILITIES: self.child(misc.Capabilities).value
         })

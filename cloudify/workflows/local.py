@@ -89,7 +89,8 @@ class _Environment(object):
             get_node_instances_method=self.storage.get_node_instances,
             get_node_instance_method=self.storage.get_node_instance,
             get_node_method=self.storage.get_node,
-            get_secret_method=self.storage.get_secret)
+            get_secret_method=self.storage.get_secret,
+            get_capability_method=self.storage.get_capability)
 
     def evaluate_functions(self, payload, context):
         return dsl_functions.evaluate_functions(
@@ -98,7 +99,8 @@ class _Environment(object):
             get_node_instances_method=self.storage.get_node_instances,
             get_node_instance_method=self.storage.get_node_instance,
             get_node_method=self.storage.get_node,
-            get_secret_method=self.storage.get_secret)
+            get_secret_method=self.storage.get_secret,
+            get_capability_method=self.storage.get_capability)
 
     def execute(self,
                 workflow,
@@ -487,6 +489,10 @@ class InMemoryStorage(_Storage):
         raise NotImplementedError('get_workdir is not implemented by memory '
                                   'storage')
 
+    def get_capability(self):
+        raise NotImplementedError('get_capability is not implemented by '
+                                  'memory storage')
+
 
 class FileStorage(_Storage):
 
@@ -597,6 +603,10 @@ class FileStorage(_Storage):
 
     def get_workdir(self):
         return self._workdir
+
+    def get_capability(self):
+        raise NotImplementedError('get_capability is not implemented by '
+                                  'memory storage')
 
 
 class StorageConflictError(Exception):

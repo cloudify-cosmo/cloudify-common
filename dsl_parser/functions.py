@@ -66,16 +66,19 @@ class RuntimeEvaluationStorage(object):
                  get_node_instances_method,
                  get_node_instance_method,
                  get_node_method,
-                 get_secret_method):
+                 get_secret_method,
+                 get_capability_method):
         self._get_node_instances_method = get_node_instances_method
         self._get_node_instance_method = get_node_instance_method
         self._get_node_method = get_node_method
         self._get_secret_method = get_secret_method
+        self._get_capability_method = get_capability_method
 
         self._node_to_node_instances = {}
         self._node_instances = {}
         self._nodes = {}
         self._secrets = {}
+        self._capabilities = {}
 
     def get_node_instances(self, node_id):
         if node_id not in self._node_to_node_instances:
@@ -102,6 +105,13 @@ class RuntimeEvaluationStorage(object):
             secret = self._get_secret_method(secret_key)
             self._secrets[secret_key] = secret.value
         return self._secrets[secret_key]
+
+    def get_capability(self, capability_path):
+        capability_id = '.'.join(capability_path)
+        if capability_id not in self._capabilities:
+            capability = self._get_capability_method(capability_path)
+            self._capabilities[capability_id] = capability
+        return self._capabilities[capability_id]
 
 
 class Function(object):
@@ -489,6 +499,48 @@ class GetSecret(Function):
         return storage.get_secret(self.secret_id)
 
 
+@register(name='get_capability')
+class GetCapability(Function):
+    def __init__(self, args, **kwargs):
+        self.capability_path = None
+        super(GetCapability, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, list):
+            raise ValueError(
+                "`get_capability` function argument should be a list. Instead "
+                "it is a {0} with the value: {1}.".format(type(args), args))
+        if len(args) != 2:
+            raise ValueError(
+                "`get_capability` function argument should be a list with 2 "
+                "elements - the deployment ID and the capability ID. Instead "
+                "it is: {0}".format(args)
+            )
+        for arg_index in (0, 1):
+            if isinstance(args[arg_index], (dict, list)):
+                str_val = 'second' if arg_index else 'first'
+                raise ValueError(
+                    "`get_capability` function arguments can't be complex "
+                    "values; only strings/ints are accepted. Instead, the "
+                    "{0} value is {1} of type {2}".format(
+                        str_val, args[arg_index], type(args[arg_index])
+                    )
+                )
+
+        self.capability_path = args
+
+    def validate(self, plan):
+        pass
+
+    def evaluate(self, plan):
+        if 'operation' in self.context:
+            self.context['operation']['has_intrinsic_functions'] = True
+        return self.raw
+
+    def evaluate_runtime(self, storage):
+        return storage.get_capability(self.capability_path)
+
+
 @register(name='concat')
 class Concat(Function):
 
@@ -610,7 +662,8 @@ def evaluate_functions(payload, context,
                        get_node_instances_method,
                        get_node_instance_method,
                        get_node_method,
-                       get_secret_method):
+                       get_secret_method,
+                       get_capability_method):
     """Evaluate functions in payload.
 
     :param payload: The payload to evaluate.
@@ -619,12 +672,14 @@ def evaluate_functions(payload, context,
     :param get_node_instance_method: A method for getting a node instance.
     :param get_node_method: A method for getting a node.
     :param get_secret_method: A method for getting a secret.
+    :param get_capability_method: A method for getting a capability.
     :return: payload.
     """
     handler = runtime_evaluation_handler(get_node_instances_method,
                                          get_node_instance_method,
                                          get_node_method,
-                                         get_secret_method)
+                                         get_secret_method,
+                                         get_capability_method)
     scan.scan_properties(payload,
                          handler,
                          scope=None,
@@ -634,11 +689,39 @@ def evaluate_functions(payload, context,
     return payload
 
 
+def evaluate_capabilities(capabilities,
+                          get_node_instances_method,
+                          get_node_instance_method,
+                          get_node_method,
+                          get_secret_method,
+                          get_capability_method):
+    """Evaluates capabilities definition containing intrinsic functions.
+
+    :param capabilities: The dict of capabilities to evaluate
+    :param get_node_instances_method: A method for getting node instances.
+    :param get_node_instance_method: A method for getting a node instance.
+    :param get_node_method: A method for getting a node.
+    :param get_secret_method: A method for getting a secret.
+    :param get_capability_method: A method for getting a capability.
+    :return: Capabilities dict.
+    """
+    capabilities = {k: v['value'] for k, v in capabilities.items()}
+    return evaluate_functions(
+        payload=capabilities,
+        context={},
+        get_node_instances_method=get_node_instances_method,
+        get_node_instance_method=get_node_instance_method,
+        get_node_method=get_node_method,
+        get_secret_method=get_secret_method,
+        get_capability_method=get_capability_method)
+
+
 def evaluate_outputs(outputs_def,
                      get_node_instances_method,
                      get_node_instance_method,
                      get_node_method,
-                     get_secret_method):
+                     get_secret_method,
+                     get_capability_method):
     """Evaluates an outputs definition containing intrinsic functions.
 
     :param outputs_def: Outputs definition.
@@ -646,6 +729,7 @@ def evaluate_outputs(outputs_def,
     :param get_node_instance_method: A method for getting a node instance.
     :param get_node_method: A method for getting a node.
     :param get_secret_method: A method for getting a secret.
+    :param get_capability_method: A method for getting a capability.
     :return: Outputs dict.
     """
     outputs = dict((k, v['value']) for k, v in outputs_def.iteritems())
@@ -655,7 +739,8 @@ def evaluate_outputs(outputs_def,
         get_node_instances_method=get_node_instances_method,
         get_node_instance_method=get_node_instance_method,
         get_node_method=get_node_method,
-        get_secret_method=get_secret_method)
+        get_secret_method=get_secret_method,
+        get_capability_method=get_capability_method)
 
 
 def _handler(evaluator, **evaluator_kwargs):
@@ -691,13 +776,15 @@ def plan_evaluation_handler(plan):
 def runtime_evaluation_handler(get_node_instances_method,
                                get_node_instance_method,
                                get_node_method,
-                               get_secret_method):
+                               get_secret_method,
+                               get_capability_method):
     return _handler('evaluate_runtime',
                     storage=RuntimeEvaluationStorage(
                         get_node_instances_method=get_node_instances_method,
                         get_node_instance_method=get_node_instance_method,
                         get_node_method=get_node_method,
-                        get_secret_method=get_secret_method))
+                        get_secret_method=get_secret_method,
+                        get_capability_method=get_capability_method))
 
 
 def validate_functions(plan):
