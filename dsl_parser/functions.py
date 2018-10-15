@@ -703,7 +703,7 @@ def evaluate_capabilities(capabilities,
     :param get_node_method: A method for getting a node.
     :param get_secret_method: A method for getting a secret.
     :param get_capability_method: A method for getting a capability.
-    :return: Outputs dict.
+    :return: Capabilities dict.
     """
     capabilities = {k: v['value'] for k, v in capabilities.items()}
     return evaluate_functions(
