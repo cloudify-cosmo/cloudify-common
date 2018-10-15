@@ -132,7 +132,7 @@ class DeploymentCapabilities(dict):
 
     @property
     def deployment_id(self):
-        """Deployment Id the outputs belong to."""
+        """Id of the deployment the capabilities belong to."""
         return self['deployment_id']
 
     @property
