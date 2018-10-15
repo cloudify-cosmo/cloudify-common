@@ -173,6 +173,39 @@ outputs:
         )
         self.assertEqual(outputs['output']['value'], 'value_a_1')
 
+    def test_capabilities_in_inputs(self):
+        yaml = """
+inputs:
+    input:
+        default: { get_capability: [ dep_1, cap_a ]}
+node_types:
+    type: {}
+node_templates:
+    node:
+        type: type
+outputs:
+    output:
+      value: { get_input: input }
+"""
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
+        outputs = parsed.outputs
+
+        # `get_input` is evaluated at parse time, so we expect to see it
+        # replaced here with the `get_capability` function
+        self.assertEqual({'get_capability': ['dep_1', 'cap_a']},
+                         outputs['output']['value'])
+
+        functions.evaluate_functions(
+            parsed,
+            {},
+            None,
+            None,
+            None,
+            None,
+            self._get_capability_mock,
+        )
+        self.assertEqual(outputs['output']['value'], 'value_a_1')
+
     def _assert_raises_with_message(self,
                                     exception_type,
                                     message,
