@@ -204,7 +204,7 @@ class SnapshotsClient(object):
             query_params['snapshot_archive_url'] = snapshot_path
             data = None
         else:
-            data = bytes_stream_utils.request_data_file_stream_gen(
+            data = bytes_stream_utils.request_data_file_stream(
                 snapshot_path, progress_callback=progress_callback)
 
         response = self.api.put(uri, params=query_params, data=data,

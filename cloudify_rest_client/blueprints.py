@@ -108,16 +108,8 @@ class BlueprintsClient(object):
             data = None
         else:
             # archive location is a system path
-            if self.api.has_kerberos() and not self.api.has_auth_header():
-                # kerberos currently does not support chunks
-                with open(archive_location, 'rb') as f:
-                    data = f.read()
-                if progress_callback:
-                    progress_callback(1, 1)
-            else:
-                # upload it in chunks
-                data = bytes_stream_utils.request_data_file_stream_gen(
-                    archive_location, progress_callback=progress_callback)
+            data = bytes_stream_utils.request_data_file_stream(
+                archive_location, progress_callback=progress_callback)
 
         return self.api.put(uri, params=query_params, data=data,
                             expected_status_code=201)
