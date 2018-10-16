@@ -30,7 +30,7 @@ def request_data_file_stream(file_path,
     :return: Generator object
     """
 
-    if client.has_kerberos() and not client.has_auth_header():
+    if client and client.has_kerberos() and not client.has_auth_header():
         # kerberos currently does not support chunks
         with open(file_path, 'rb') as f:
             data = f.read()

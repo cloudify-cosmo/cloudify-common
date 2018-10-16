@@ -109,7 +109,9 @@ class BlueprintsClient(object):
         else:
             # archive location is a system path
             data = bytes_stream_utils.request_data_file_stream(
-                archive_location, progress_callback=progress_callback)
+                archive_location,
+                progress_callback=progress_callback,
+                client=self.api)
 
         return self.api.put(uri, params=query_params, data=data,
                             expected_status_code=201)

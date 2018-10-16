@@ -233,7 +233,9 @@ class PluginsClient(object):
                 timeout = (timeout, None)
         else:
             data = bytes_stream_utils.request_data_file_stream(
-                plugin_path, progress_callback=progress_callback)
+                plugin_path,
+                progress_callback=progress_callback,
+                client=self.api)
 
         response = self.api.post(
             '/{self._uri_prefix}'.format(self=self),

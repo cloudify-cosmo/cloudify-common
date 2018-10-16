@@ -205,7 +205,9 @@ class SnapshotsClient(object):
             data = None
         else:
             data = bytes_stream_utils.request_data_file_stream(
-                snapshot_path, progress_callback=progress_callback)
+                snapshot_path,
+                progress_callback=progress_callback,
+                client=self.api)
 
         response = self.api.put(uri, params=query_params, data=data,
                                 expected_status_code=201)
