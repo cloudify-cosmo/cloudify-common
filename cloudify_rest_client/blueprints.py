@@ -107,9 +107,11 @@ class BlueprintsClient(object):
             query_params['blueprint_archive_url'] = archive_location
             data = None
         else:
-            # archive location is a system path - upload it in chunks
-            data = bytes_stream_utils.request_data_file_stream_gen(
-                archive_location, progress_callback=progress_callback)
+            # archive location is a system path
+            data = bytes_stream_utils.request_data_file_stream(
+                archive_location,
+                progress_callback=progress_callback,
+                client=self.api)
 
         return self.api.put(uri, params=query_params, data=data,
                             expected_status_code=201)

@@ -232,8 +232,10 @@ class PluginsClient(object):
             if timeout is not None and isinstance(timeout, (int, float)):
                 timeout = (timeout, None)
         else:
-            data = bytes_stream_utils.request_data_file_stream_gen(
-                plugin_path, progress_callback=progress_callback)
+            data = bytes_stream_utils.request_data_file_stream(
+                plugin_path,
+                progress_callback=progress_callback,
+                client=self.api)
 
         response = self.api.post(
             '/{self._uri_prefix}'.format(self=self),
