@@ -20,6 +20,7 @@ DEFAULT_BUFFER_SIZE = 8192
 
 
 def request_data_file_stream(file_path,
+                             buffer_size=DEFAULT_BUFFER_SIZE,
                              progress_callback=None,
                              client=None):
     """
@@ -27,9 +28,8 @@ def request_data_file_stream(file_path,
     :param file_path: Local path of the file to be transferred
     :param buffer_size: Size of the buffer
     :param progress_callback: Callback function - can be used to print progress
-    :return: Generator object
+    :return: File data or generator object
     """
-
     if client and client.has_kerberos() and not client.has_auth_header():
         # kerberos currently does not support chunks
         with open(file_path, 'rb') as f:
@@ -39,7 +39,9 @@ def request_data_file_stream(file_path,
     else:
         # upload it in chunks
         data = request_data_file_stream_gen(
-            file_path, progress_callback=progress_callback)
+            file_path,
+            buffer_size=buffer_size,
+            progress_callback=progress_callback)
     return data
 
 
