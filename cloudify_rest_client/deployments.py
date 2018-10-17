@@ -72,6 +72,13 @@ class Deployment(dict):
         return self.get('outputs')
 
     @property
+    def capabilities(self):
+        """
+        :return: The capabilities definition of this deployment.
+        """
+        return self.get('capabilities')
+
+    @property
     def description(self):
         """
         :return: The description of this deployment.
