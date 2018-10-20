@@ -37,11 +37,13 @@ OUTPUTS = 'outputs'
 DERIVED_FROM = 'derived_from'
 DATA_TYPES = 'data_types'
 CAPABILITIES = 'capabilities'
+IMPORTED = 'imported'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
 CONTAINED_IN_REL_TYPE = 'cloudify.relationships.contained_in'
 CONNECTED_TO_REL_TYPE = 'cloudify.relationships.connected_to'
+ROOT_ELEMENT_VALUE = 'root'
 
 SCALING_POLICY = 'cloudify.policies.scaling'
 
