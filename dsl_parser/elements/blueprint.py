@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,13 +54,14 @@ class BlueprintImporter(Element):
         'imports': imports.ImportsLoader,
     }
     requires = {
-        imports.ImportsLoader: ['resource_base']
+        imports.ImportsLoader: ['resource_base', constants.IMPORTED]
     }
 
-    def parse(self, resource_base):
+    def parse(self, resource_base, imported):
         return {
             'merged_blueprint': self.child(imports.ImportsLoader).value,
-            'resource_base': resource_base
+            'resource_base': resource_base,
+            constants.IMPORTED: imported
         }
 
 
@@ -93,7 +94,8 @@ class Blueprint(Element):
         policies.Policies: ['scaling_groups']
     }
 
-    def parse(self, workflow_plugins_to_install,
+    def parse(self,
+              workflow_plugins_to_install,
               deployment_plugins_to_install,
               scaling_groups):
         return models.Plan({
@@ -117,5 +119,7 @@ class Blueprint(Element):
             constants.WORKFLOW_PLUGINS_TO_INSTALL: workflow_plugins_to_install,
             constants.VERSION: self.child(
                 _version.ToscaDefinitionsVersion).value,
-            constants.CAPABILITIES: self.child(misc.Capabilities).value
+            constants.CAPABILITIES: self.child(misc.Capabilities).value,
+            constants.IMPORTED:
+                self.context.inputs[constants.IMPORTED]
         })

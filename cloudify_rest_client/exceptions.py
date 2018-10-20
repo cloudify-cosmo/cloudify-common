@@ -152,6 +152,14 @@ class PluginInUseError(CloudifyClientError):
     ERROR_CODE = 'plugin_in_use'
 
 
+class BlueprintInUseError(CloudifyClientError):
+    """
+    Raised if an imported blueprint (is used in another active blueprint)
+    deletion is attempted.
+    """
+    ERROR_CODE = 'blueprint_in_use'
+
+
 class PluginInstallationError(CloudifyClientError):
     """
     Raised if a central deployment agent plugin installation fails.
@@ -256,6 +264,7 @@ ERROR_MAPPING = dict([
         NotModifiedError,
         InvalidExecutionUpdateStatus,
         PluginInUseError,
+        BlueprintInUseError,
         PluginInstallationError,
         PluginInstallationTimeout,
         NotClusterMaster,

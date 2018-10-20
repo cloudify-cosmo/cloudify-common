@@ -15,8 +15,8 @@
 
 import networkx as nx
 
-from dsl_parser import exceptions
 from dsl_parser.framework import elements
+from dsl_parser import exceptions, constants
 from dsl_parser.framework.requirements import Requirement
 
 
@@ -275,7 +275,7 @@ class Parser(object):
     def parse(self,
               value,
               element_cls,
-              element_name='root',
+              element_name=constants.ROOT_ELEMENT_VALUE,
               inputs=None,
               strict=True):
         context = Context(
@@ -443,7 +443,7 @@ def validate_schema_api(element_cls):
 
 def parse(value,
           element_cls,
-          element_name='root',
+          element_name=constants.ROOT_ELEMENT_VALUE,
           inputs=None,
           strict=True):
     validate_schema_api(element_cls)

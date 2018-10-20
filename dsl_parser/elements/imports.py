@@ -88,6 +88,7 @@ class ImportsLoader(Element):
     }
 
     resource_base = None
+    imported = None
 
     def validate(self, **kwargs):
         imports = [i.value for i in self.children()]
@@ -111,16 +112,20 @@ class ImportsLoader(Element):
                 resources_base_path=resources_base_path)
             slash_index = blueprint_location.rfind('/')
             self.resource_base = blueprint_location[:slash_index]
-        return _combine_imports(parsed_dsl_holder=main_blueprint_holder,
-                                dsl_location=blueprint_location,
-                                resources_base_path=resources_base_path,
-                                version=version,
-                                resolver=resolver,
-                                validate_version=validate_version)
+        imports_list, parsed_blueprint = _combine_imports(
+            parsed_dsl_holder=main_blueprint_holder,
+            dsl_location=blueprint_location,
+            resources_base_path=resources_base_path,
+            version=version,
+            resolver=resolver,
+            validate_version=validate_version)
+        self.imported = imports_list
+        return parsed_blueprint
 
     def calculate_provided(self, **kwargs):
         return {
-            'resource_base': self.resource_base
+            'resource_base': self.resource_base,
+            constants.IMPORTED: self.imported
         }
 
 
@@ -175,16 +180,20 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
     version_key_holder, version_value_holder = parsed_dsl_holder.get_item(
         _version.VERSION)
     holder_result.value = {}
+    used_imports = []
     for imported in ordered_imports:
         import_url = imported['import']
+        if import_url is not constants.ROOT_ELEMENT_VALUE:
+            used_imports.append(import_url)
         parsed_imported_dsl_holder = imported['parsed']
         if validate_version:
-            _validate_version(version.raw, import_url,
+            _validate_version(version.raw,
+                              import_url,
                               parsed_imported_dsl_holder)
         _merge_parsed_into_combined(
             holder_result, parsed_imported_dsl_holder, version)
     holder_result.value[version_key_holder] = version_value_holder
-    return holder_result
+    return used_imports, holder_result
 
 
 def _build_ordered_imports(parsed_dsl_holder,
@@ -193,7 +202,7 @@ def _build_ordered_imports(parsed_dsl_holder,
                            resolver):
 
     def location(value):
-        return value or 'root'
+        return value or constants.ROOT_ELEMENT_VALUE
 
     imports_graph = ImportsGraph()
     imports_graph.add(location(dsl_location), parsed_dsl_holder)
