@@ -403,7 +403,7 @@ class TaskConsumer(object):
 
         if properties.reply_to:
             self._connection.publish({
-                'exchange': '',
+                'exchange': self.exchange,
                 'routing_key': properties.reply_to,
                 'properties': pika.BasicProperties(
                     correlation_id=properties.correlation_id),
@@ -470,9 +470,15 @@ class _RequestResponseHandlerBase(TaskConsumer):
         self.queue = None
 
     def _register_queue(self, channel):
-        self.queue = uuid.uuid4().hex
-        self.in_channel.queue_declare(queue=self.queue, exclusive=True,
+        self.in_channel.exchange_declare(exchange=self.exchange,
+                                         auto_delete=False,
+                                         durable=True,
+                                         exchange_type=self.exchange_type)
+        self.queue = '{0}_response_{1}'.format(self.exchange, uuid.uuid4().hex)
+        self.in_channel.queue_declare(queue=self.queue,
+                                      exclusive=True,
                                       durable=True)
+        self.in_channel.queue_bind(queue=self.queue, exchange=self.exchange)
         channel.basic_consume(self.process, self.queue)
 
     def publish(self, message, correlation_id, routing_key='',

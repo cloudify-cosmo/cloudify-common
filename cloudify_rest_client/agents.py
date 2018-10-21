@@ -100,6 +100,20 @@ class Agent(dict):
         return self.get('rabbitmq_exchange')
 
     @property
+    def rabbitmq_username(self):
+        """
+        :return: The RabbitMQ user of the agent.
+        """
+        return self.get('rabbitmq_username')
+
+    @property
+    def rabbitmq_password(self):
+        """
+        :return: The RabbitMQ password of the agent.
+        """
+        return self.get('rabbitmq_password')
+
+    @property
     def state(self):
         """
         :return: The state of the agent.
