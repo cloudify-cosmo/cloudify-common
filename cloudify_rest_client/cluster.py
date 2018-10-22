@@ -163,14 +163,21 @@ class ClusterNodesClient(object):
         Use the credentials returned as part of the ClusterNode structure
         when joining the cluster.
 
+        database_ip is used to validate architecture compatibility of the
+        cluster nodes
+
         :param host_ip: the externally-visible IP of the current node
         :param node_name: the name of this node used internally in the cluster
         :return: representation of the node that will join the cluster
         :rtype: ClusterNode
         """
+        response = self.api.get('/rest/config', filter='postgresql_host')
+        database_ip = response.get('postgresql_host')
+
         response = self.api.put('/cluster/nodes/{0}'.format(node_name), data={
             'host_ip': host_ip,
-            'node_name': node_name
+            'node_name': node_name,
+            'database_ip': database_ip
         })
         return ClusterNode(response)
 

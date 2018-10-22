@@ -242,6 +242,16 @@ class DeploymentPluginNotFound(CloudifyClientError):
     ERROR_CODE = 'deployment_plugin_not_found'
 
 
+class IncompatibleClusterArchitectureException(CloudifyClientError):
+    """
+    Raise when a cluster node with architecture X is trying to join a cluster
+    with architecture Y
+
+    I.E - Master is all-in-one and slave has an external database
+    """
+    ERROR_CODE = 'incompatible_cluster_architecture'
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -269,4 +279,5 @@ ERROR_MAPPING = dict([
         PluginInstallationTimeout,
         NotClusterMaster,
         RemovedFromCluster,
-        DeploymentPluginNotFound]])
+        DeploymentPluginNotFound,
+        IncompatibleClusterArchitectureException]])
