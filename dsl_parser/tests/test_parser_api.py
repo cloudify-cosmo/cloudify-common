@@ -70,7 +70,9 @@ class TestParserApi(AbstractTestParser):
         self.assertEquals('test_node', node['name'])
         self.assertEquals(expected_type, node['type'])
         self.assertEquals('val', node['properties']['key'])
-        # self.assertEquals(1, node['instances']['deploy'])
+
+    def test_empty_blueprint_with_dsl_version(self):
+        self.parse('')
 
     def test_minimal_blueprint(self):
         result = self.parse(self.MINIMAL_BLUEPRINT)

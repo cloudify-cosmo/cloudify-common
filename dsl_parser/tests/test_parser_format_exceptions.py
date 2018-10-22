@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,9 +12,10 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-import dsl_parser.exceptions as exceptions
 
 from dsl_parser.exceptions import (
+    ERROR_UNKNOWN_TYPE,
+    ERROR_INVALID_CHARS,
     DSLParsingFormatException,
     DSLParsingLogicException,
     DSLParsingInputTypeException)
@@ -23,10 +24,6 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestParserFormatExceptions(AbstractTestParser):
-
-    def test_empty_dsl(self):
-        self._assert_dsl_parsing_exception_error_code(
-            '', 1, DSLParsingFormatException)
 
     def test_illegal_yaml_dsl(self):
         yaml = """
@@ -37,16 +34,6 @@ plugins:
         """
         self._assert_dsl_parsing_exception_error_code(
             yaml, -1, DSLParsingFormatException)
-
-    def test_no_node_templates(self):
-        yaml = """
-plugins:
-    plugin1:
-        executor: central_deployment_agent
-        source: dummy
-            """
-        self._assert_dsl_parsing_exception_error_code(
-            yaml, 1, DSLParsingFormatException)
 
     def test_node_templates_list_instead_of_dict(self):
         yaml = """
@@ -912,7 +899,7 @@ node_types:
                 type: unknown-type
                 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, exceptions.ERROR_UNKNOWN_TYPE, DSLParsingLogicException)
+            yaml, ERROR_UNKNOWN_TYPE, DSLParsingLogicException)
 
     def test_invalid_version_field_format(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -937,4 +924,4 @@ node_types:
             key: "M\xf6tley Cr\xfce"
   """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, exceptions.ERROR_INVALID_CHARS, DSLParsingInputTypeException)
+            yaml, ERROR_INVALID_CHARS, DSLParsingInputTypeException)
