@@ -899,9 +899,11 @@ class CloudifyWorkflowContext(
                 raw_node_instances = storage.get_node_instances()
             else:
                 rest = get_rest_client()
-                raw_nodes = rest.nodes.list(deployment_id=self.deployment.id)
+                raw_nodes = rest.nodes.list(deployment_id=self.deployment.id,
+                                            _get_all_results=True)
                 raw_node_instances = rest.node_instances.list(
-                    deployment_id=self.deployment.id)
+                    deployment_id=self.deployment.id,
+                    _get_all_results=True)
 
             WorkflowNodesAndInstancesContainer.__init__(self, self, raw_nodes,
                                                         raw_node_instances)
