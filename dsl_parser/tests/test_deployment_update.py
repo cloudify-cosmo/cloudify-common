@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
+
 import copy
 
 from dsl_parser.multi_instance import modify_deployment
@@ -186,3 +187,27 @@ node_templates:
         related = [n for n in reduced_and_related if n not in reduced]
         self.assertEqual(len(reduced), 1)
         self.assertEqual(len(related), 1)
+
+    def test_add_node_templates_to_empty_blueprint(self):
+        empty_blueprint = self.BASIC_VERSION_SECTION_DSL_1_3
+        plan = self.parse_multi(empty_blueprint)
+        plan['nodes'].append({
+            'name': 'new_node',
+            'id': 'new_node',
+            'type': 'new_type',
+            'number_of_instances': 1,
+            'deploy_number_of_instances': 1,
+            'min_number_of_instances': 1,
+            'max_number_of_instances': 1
+        })
+
+        modified_nodes = plan['nodes']
+        node_instances = self.modify_multi(plan, modified_nodes=modified_nodes)
+
+        self.assertEqual(len(node_instances['added_and_related']), 1)
+        added_and_related = node_instances['added_and_related']
+        added = [n for n in added_and_related if 'modification' in n]
+        self.assertEqual(len(added), 1)
+        self.assertEqual(len(node_instances['removed_and_related']), 0)
+        self.assertEqual(len(node_instances['extended_and_related']), 0)
+        self.assertEqual(len(node_instances['reduced_and_related']), 0)

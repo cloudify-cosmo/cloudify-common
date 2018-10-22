@@ -473,7 +473,6 @@ def _process_node_relationships_operations(relationship,
 
 class NodeTemplates(Element):
 
-    required = True
     schema = Dict(type=NodeTemplate)
     requires = {
         _plugins.Plugins: [Value('plugins')],
