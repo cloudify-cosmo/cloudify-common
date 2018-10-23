@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,12 +14,15 @@
 #    * limitations under the License.
 
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
-from dsl_parser import exceptions
-from dsl_parser.exceptions import DSLParsingLogicException
+from dsl_parser.exceptions import (DSLParsingLogicException,
+                                   ERROR_CODE_CYCLE,
+                                   ERROR_UNKNOWN_TYPE,
+                                   ERROR_VALUE_DOES_NOT_MATCH_TYPE,
+                                   ERROR_INVALID_TYPE_NAME,
+                                   ERROR_CODE_DSL_DEFINITIONS_VERSION_MISMATCH)
 
 
 class TestDataTypes(AbstractTestParser):
-
     def test_unknown_type(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 data_types:
@@ -30,7 +33,7 @@ data_types:
             second: {}
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, exceptions.ERROR_UNKNOWN_TYPE, DSLParsingLogicException)
+            yaml, ERROR_UNKNOWN_TYPE, DSLParsingLogicException)
 
     def test_simple(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -71,7 +74,7 @@ data_types:
                     head: 1
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, exceptions.ERROR_CODE_CYCLE, DSLParsingLogicException)
+            yaml, ERROR_CODE_CYCLE, DSLParsingLogicException)
 
     def test_definitions_with_default_error(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -104,7 +107,7 @@ data_types:
             second: {}
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, exceptions.ERROR_UNKNOWN_TYPE, DSLParsingLogicException)
+            yaml, ERROR_UNKNOWN_TYPE, DSLParsingLogicException)
 
     def test_nested_validation(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
@@ -139,7 +142,7 @@ data_types:
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
-            exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE)
+            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
 
     def test_nested_defaults(self):
         yaml = """
@@ -254,7 +257,7 @@ data_types:
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml,
-            exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE)
+            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
         self.assertIn('a.b.c.d', ex.message)
 
     def test_unknown_parent(self):
@@ -268,7 +271,7 @@ data_types:
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
-            exceptions.ERROR_UNKNOWN_TYPE,
+            ERROR_UNKNOWN_TYPE,
             DSLParsingLogicException)
 
     def test_redefine_primitive(self):
@@ -281,7 +284,7 @@ data_types:
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
-            exceptions.ERROR_INVALID_TYPE_NAME,
+            ERROR_INVALID_TYPE_NAME,
             DSLParsingLogicException)
 
     def test_subtype_override_field_type(self):
@@ -339,7 +342,7 @@ data_types:
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
-            exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE)
+            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
 
     def test_nested_merging(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
@@ -649,7 +652,7 @@ data_types:
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
-            exceptions.ERROR_CODE_DSL_DEFINITIONS_VERSION_MISMATCH)
+            ERROR_CODE_DSL_DEFINITIONS_VERSION_MISMATCH)
 
     def test_implicit_default_value(self):
         yaml = """
