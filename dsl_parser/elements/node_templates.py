@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 import copy
 
+from dsl_parser.relationship_utils import contained_in_is_ancestor_in
 from dsl_parser import (exceptions,
                         utils,
                         constants)
@@ -104,7 +105,7 @@ class NodeTemplateRelationshipTarget(Element):
     def validate(self):
         relationship_type = self.sibling(NodeTemplateRelationshipType).name
         node_name = self.ancestor(NodeTemplate).name
-        node_template_names = self.ancestor(NodeTemplates).initial_value.keys()
+        node_template_names = self.ancestor(NodeTemplates).initial_value_holder
         if self.initial_value not in node_template_names:
             raise exceptions.DSLParsingLogicException(
                 25, "A relationship instance under node '{0}' of type '{1}' "
@@ -282,7 +283,7 @@ class NodeTemplateRelationships(Element):
             relationship_type = relationship.child(
                 NodeTemplateRelationshipType).value
             type_hierarchy = relationship.value[constants.TYPE_HIERARCHY]
-            if constants.CONTAINED_IN_REL_TYPE in type_hierarchy:
+            if contained_in_is_ancestor_in(type_hierarchy):
                 contained_in_relationships.append(relationship_type)
                 contained_in_targets.append(relationship_target)
 
@@ -305,8 +306,8 @@ class NodeTemplateRelationships(Element):
     def calculate_provided(self):
         contained_in_list = [r.child(NodeTemplateRelationshipTarget).value
                              for r in self.children()
-                             if constants.CONTAINED_IN_REL_TYPE in
-                             r.value[constants.TYPE_HIERARCHY]]
+                             if contained_in_is_ancestor_in(
+                             r.value[constants.TYPE_HIERARCHY])]
         contained_in = contained_in_list[0] if contained_in_list else None
         return {
             'contained_in': contained_in

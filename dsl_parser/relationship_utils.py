@@ -13,5 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from dsl_parser import constants
 
-PRIMITIVE_TYPES = (list, bool, int, float, long, basestring, dict)
+
+def contained_in_is_ancestor_in(type_hierarchy):
+    return any(rel for rel in type_hierarchy
+               if constants.CONTAINED_IN_REL_TYPE in rel)

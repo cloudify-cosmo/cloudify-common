@@ -97,10 +97,10 @@ def modify_deployment(nodes,
         filter_out_node_instances(removed_and_related, reduced_and_related)
 
     return {
-        'added_and_related': added_and_related,
-        'extended_and_related': extended_and_related,
-        'reduced_and_related': reduced_and_related,
-        'removed_and_related': removed_and_related
+        constants.ADDED_AND_RELATED: added_and_related,
+        constants.EXTENDED_AND_RELATED: extended_and_related,
+        constants.REDUCED_AND_RELATED: reduced_and_related,
+        constants.REMOVED_AND_RELATED: removed_and_related
     }
 
 

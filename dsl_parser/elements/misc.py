@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ from dsl_parser.framework.elements import (DictElement,
 class OutputDescription(Element):
 
     schema = Leaf(type=str)
+    add_namespace_to_schema_elements = False
 
 
 class OutputValue(Element):
@@ -34,7 +35,7 @@ class OutputValue(Element):
     schema = Leaf(type=elements.PRIMITIVE_TYPES)
 
 
-class Output(Element):
+class Output(DictElement):
 
     schema = {
         'description': OutputDescription,
@@ -50,6 +51,7 @@ class Outputs(DictElement):
 class CapabilityDescription(Element):
 
     schema = Leaf(type=str)
+    add_namespace_to_schema_elements = False
 
 
 class CapabilityValue(Element):
@@ -58,7 +60,7 @@ class CapabilityValue(Element):
     schema = Leaf(type=elements.PRIMITIVE_TYPES)
 
 
-class Capability(Element):
+class Capability(DictElement):
 
     schema = {
         'description': CapabilityDescription,

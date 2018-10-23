@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,19 +18,19 @@ import contextlib
 import importlib
 import urllib2
 import sys
+import re
 
 import yaml.parser
 
-from dsl_parser import yaml_loader
-from dsl_parser import functions
-from dsl_parser import constants
 from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
-    RESLOVER_PARAMETERS_KEY
-from dsl_parser import exceptions
-from dsl_parser.exceptions import (DSLParsingLogicException,
-                                   DSLParsingFormatException)
+    RESLOVER_PARAMETERS_KEY,\
+    NAMESPACE_DELIMITER
 from dsl_parser.import_resolver.default_import_resolver import \
     DefaultImportResolver
+from dsl_parser import (yaml_loader,
+                        functions,
+                        constants,
+                        exceptions)
 
 
 class ResolverInstantiationError(Exception):
@@ -129,7 +129,7 @@ def _merge_flattened_schema_and_instance_properties(
     # in the schema.
     for key in instance_properties.iterkeys():
         if key not in schema_properties:
-            ex = DSLParsingLogicException(
+            ex = exceptions.DSLParsingLogicException(
                 106,
                 undefined_property_error_message.format(
                     node_name,
@@ -144,7 +144,7 @@ def _merge_flattened_schema_and_instance_properties(
         if key not in merged_properties:
             required = property_schema.get('required', True)
             if required and raise_on_missing_property:
-                ex = DSLParsingLogicException(
+                ex = exceptions.DSLParsingLogicException(
                     107,
                     missing_property_error_message.format(
                         node_name,
@@ -220,7 +220,7 @@ def parse_value(
                 _property_description(path),
                 type_name))
 
-    raise DSLParsingLogicException(
+    raise exceptions.DSLParsingLogicException(
         exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE,
         "Property type validation failed in '{0}': property "
         "'{1}' type is '{2}', yet it was assigned with the "
@@ -235,8 +235,9 @@ def load_yaml(raw_yaml, error_message, filename=None):
     try:
         return yaml_loader.load(raw_yaml, filename)
     except yaml.parser.ParserError, ex:
-        raise DSLParsingFormatException(-1, '{0}: Illegal yaml; {1}'
-                                        .format(error_message, ex))
+        raise exceptions.DSLParsingFormatException(-1,
+                                                   '{0}: Illegal yaml; {1}'
+                                                   .format(error_message, ex))
 
 
 def url_exists(url):
@@ -317,3 +318,16 @@ def get_class(class_path):
                          .format(class_module_str, class_name))
 
     return getattr(module, class_name)
+
+
+def generate_namespaced_value(namespace, value):
+    return "{0}{1}{2}".format(namespace, NAMESPACE_DELIMITER, value)
+
+
+def find_namespace_location(value):
+    return value.find(NAMESPACE_DELIMITER)
+
+
+def remove_value_namespace(value):
+    value_namespace_format = '.*{0}'.format(NAMESPACE_DELIMITER)
+    return re.sub(value_namespace_format, '', value)

@@ -18,8 +18,7 @@ import copy
 import networkx as nx
 import yaml
 
-from dsl_parser import constants
-from dsl_parser import rel_graph
+from dsl_parser import constants, rel_graph
 from dsl_parser.tests import scaling
 
 
@@ -2687,9 +2686,10 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
         modification = self.modify_multi(plan=plan,
                                          modified_nodes=modified_nodes)
 
-        added_and_related_node_instances = modification['added_and_related']
+        added_and_related_node_instances =\
+            modification[constants.ADDED_AND_RELATED]
         removed_and_related_node_instances = modification[
-            'removed_and_related']
+            constants.REMOVED_AND_RELATED]
 
         self._assert_modification_instances_count(
             plan=plan,
