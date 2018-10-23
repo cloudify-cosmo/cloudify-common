@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,9 +64,15 @@ class NodeTypes(types.Types):
 
     def calculate_provided(self):
         return {
-            'host_types': self._types_derived_from(constants.HOST_TYPE)
+            'host_types': self._types_derived_from_host_type()
         }
 
-    def _types_derived_from(self, derived_from):
-        return set(type_name for type_name, _type in self.value.items()
-                   if derived_from in _type[constants.TYPE_HIERARCHY])
+    def _types_derived_from_host_type(self):
+        """
+        Finding the types which derived from host type, while
+        disregarding their namespace because host type is a base
+        which will not change.
+        """
+        return {type_name for type_name, _type in self.value.items()
+                if any(constants.HOST_TYPE in
+                       item for item in _type[constants.TYPE_HIERARCHY])}

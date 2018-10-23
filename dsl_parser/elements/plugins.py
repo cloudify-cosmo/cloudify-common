@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ class PluginExecutor(Element):
 
     required = True
     schema = Leaf(type=str)
+    add_namespace_to_schema_elements = False
 
     def validate(self):
         if self.initial_value not in [constants.CENTRAL_DEPLOYMENT_AGENT,
@@ -44,11 +45,13 @@ class PluginExecutor(Element):
 class PluginSource(Element):
 
     schema = Leaf(type=str)
+    add_namespace_to_schema_elements = False
 
 
 class PluginInstall(Element):
 
     schema = Leaf(type=bool)
+    add_namespace_to_schema_elements = False
 
     def parse(self):
         value = self.initial_value
@@ -58,6 +61,7 @@ class PluginInstall(Element):
 class PluginVersionValidatedElement(Element):
 
     schema = Leaf(type=str)
+    add_namespace_to_schema_elements = False
     requires = {
         element_version.ToscaDefinitionsVersion: ['version'],
         'inputs': ['validate_version']

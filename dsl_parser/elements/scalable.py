@@ -99,6 +99,8 @@ class MaxInstances(Instances):
 
 class Properties(DictElement):
 
+    add_namespace_to_schema_elements = False
+
     DEFAULT = {
         'min_instances': MinInstances.default_value,
         'max_instances': MaxInstances.default_value,

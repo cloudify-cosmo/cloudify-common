@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,10 @@ class WorkflowMapping(Element):
     schema = Leaf(type=str)
 
 
+class WorkflowParameters(data_types.Schema):
+    add_namespace_to_schema_elements = False
+
+
 class Workflow(Element):
 
     required = True
@@ -36,7 +40,7 @@ class Workflow(Element):
         Leaf(type=str),
         {
             'mapping': WorkflowMapping,
-            'parameters': data_types.Schema
+            'parameters': WorkflowParameters
         }
     ]
     requires = {

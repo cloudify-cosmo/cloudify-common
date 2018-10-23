@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ import networkx as nx
 
 from dsl_parser import (exceptions,
                         utils,
-                        constants)
+                        constants,
+                        relationship_utils)
 from dsl_parser.elements import (node_templates as _node_templates,
                                  data_types,
                                  scalable,
@@ -36,12 +37,17 @@ class PolicyTriggerSource(Element):
 
     required = True
     schema = Leaf(type=basestring)
+    add_namespace_to_schema_elements = False
+
+
+class PolicyTriggerParameters(data_types.Schema):
+    add_namespace_to_schema_elements = False
 
 
 class PolicyTrigger(DictElement):
 
     schema = {
-        'parameters': data_types.Schema,
+        'parameters': PolicyTriggerParameters,
         'source': PolicyTriggerSource,
     }
 
@@ -50,12 +56,17 @@ class PolicyTypeSource(Element):
 
     required = True
     schema = Leaf(type=basestring)
+    add_namespace_to_schema_elements = False
+
+
+class PolicyTypeProperties(data_types.Schema):
+    add_namespace_to_schema_elements = False
 
 
 class PolicyType(DictElement):
 
     schema = {
-        'properties': data_types.Schema,
+        'properties': PolicyTypeProperties,
         'source': PolicyTypeSource,
     }
 
@@ -75,7 +86,7 @@ class GroupPolicyType(Element):
     required = True
     schema = Leaf(type=basestring)
     requires = {
-        PolicyTypes: [Value('policy_types')]
+        PolicyTypes: [Value(constants.POLICY_TYPES)]
     }
 
     def validate(self, policy_types):
@@ -94,8 +105,8 @@ class GroupPolicyProperties(Element):
     schema = Leaf(type=dict)
     requires = {
         GroupPolicyType: [],
-        PolicyTypes: [Value('policy_types')],
-        data_types.DataTypes: [Value('data_types')]
+        PolicyTypes: [Value(constants.POLICY_TYPES)],
+        data_types.DataTypes: [Value(constants.DATA_TYPES)]
     }
 
     def parse(self, policy_types, data_types):
@@ -120,7 +131,7 @@ class GroupPolicyTriggerType(Element):
     required = True
     schema = Leaf(type=basestring)
     requires = {
-        PolicyTriggers: [Value('policy_triggers')]
+        PolicyTriggers: [Value(constants.POLICY_TRIGGERS)]
     }
 
     def validate(self, policy_triggers):
@@ -141,8 +152,8 @@ class GroupPolicyTriggerParameters(Element):
     schema = Leaf(type=dict)
     requires = {
         GroupPolicyTriggerType: [],
-        PolicyTriggers: [Value('policy_triggers')],
-        data_types.DataTypes: [Value('data_types')]
+        PolicyTriggers: [Value(constants.POLICY_TRIGGERS)],
+        data_types.DataTypes: [Value(constants.DATA_TYPES)]
     }
 
     def parse(self, policy_triggers, data_types):
@@ -230,7 +241,7 @@ class Group(DictElement):
 
     schema = {
         'members': GroupMembers,
-        'policies': GroupPolicies,
+        constants.POLICIES: GroupPolicies,
     }
     requires = {
         _node_templates.NodeTemplates: ['node_template_names']
@@ -255,20 +266,20 @@ class PolicyInstanceType(Element):
     schema = Leaf(type=basestring)
 
     def validate(self):
-        scaling_policy = constants.SCALING_POLICY
-        if self.initial_value != scaling_policy:
+        # Checking for namespaced option
+        if constants.SCALING_POLICY not in self.initial_value:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNSUPPORTED_POLICY,
                 "'{0}' policy type is not implemented. "
                 "Only '{1}' policy type is supported."
-                .format(self.initial_value, scaling_policy))
+                .format(self.initial_value, constants.SCALING_POLICY))
 
 
 class PolicyInstanceTarget(Element):
 
     schema = Leaf(type=basestring)
     requires = {
-        Groups: [Value('groups')]
+        Groups: [Value(constants.GROUPS)]
     }
 
     def validate(self, groups):
@@ -284,6 +295,19 @@ class PolicyInstanceTargets(Element):
 
     required = True
     schema = List(type=PolicyInstanceTarget)
+
+    def parse(self, **kwargs):
+        """
+        This is a patch due to a problem in the infrastructure,
+        the internal targets values do not get a namespace while they should.
+        So in order to allow namespacing, this patch enforces namespace
+        assignment.
+        """
+        if self.namespace:
+            for i in xrange(len(self._initial_value)):
+                self._initial_value[i] = utils.generate_namespaced_value(
+                    self.namespace, self.initial_value[i])
+        return self.initial_value
 
     def validate(self):
         if len(self.children()) < 1:
@@ -315,12 +339,12 @@ class Policies(DictElement):
 
     schema = Dict(type=Policy)
     requires = {
-        Groups: [Value('groups')],
-        _node_templates.NodeTemplates: [Value('node_templates')],
-        _version.ToscaDefinitionsVersion: ['version'],
-        'inputs': ['validate_version']
+        Groups: [Value(constants.GROUPS)],
+        _node_templates.NodeTemplates: [Value(constants.NODE_TEMPLATES)],
+        _version.ToscaDefinitionsVersion: [constants.VERSION],
+        constants.INPUTS: ['validate_version']
     }
-    provides = ['scaling_groups']
+    provides = [constants.SCALING_GROUPS]
 
     def validate(self, version, validate_version, **kwargs):
         if validate_version:
@@ -332,13 +356,19 @@ class Policies(DictElement):
         # the parsed value of "policies" which is only calculated in "parse"
         self._validate_and_update_groups(scaling_groups, node_templates)
         return {
-            'scaling_groups': scaling_groups
+            constants.SCALING_GROUPS: scaling_groups
         }
 
     def _create_scaling_groups(self, groups):
+        def find_scaling_policies(current_policies):
+            """
+            Finds all the scaling policies, which needs to disregard
+            there namespace because this is a basic policy type.
+            """
+            return [policy for policy in current_policies.values()
+                    if constants.SCALING_POLICY in policy['type']]
         policies = self.value
-        scaling_policies = [policy for policy in policies.values()
-                            if policy['type'] == constants.SCALING_POLICY]
+        scaling_policies = find_scaling_policies(policies)
         scaling_groups = {}
         for policy in scaling_policies:
             properties = policy['properties']
@@ -351,7 +381,6 @@ class Policies(DictElement):
         return scaling_groups
 
     def _validate_and_update_groups(self, scaling_groups, node_templates):
-
         member_graph = nx.DiGraph()
         for group_name, group in scaling_groups.items():
             for member in group['members']:
@@ -361,7 +390,9 @@ class Policies(DictElement):
         for node in node_templates:
             node_graph.add_node(node['id'])
             for rel in node.get(constants.RELATIONSHIPS, []):
-                if constants.CONTAINED_IN_REL_TYPE in rel['type_hierarchy']:
+                if relationship_utils.\
+                        contained_in_is_ancestor_in(
+                         rel[constants.TYPE_HIERARCHY]):
                     node_graph.add_edge(node['id'], rel['target_id'])
 
         self._validate_no_group_cycles(member_graph)

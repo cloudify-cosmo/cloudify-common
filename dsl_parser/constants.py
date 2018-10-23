@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,3 +87,10 @@ UNBOUNDED_LITERAL = 'UNBOUNDED'
 UNBOUNDED = -1
 
 SCALING_GROUPS = 'scaling_groups'
+
+NAMESPACE_DELIMITER = '->'
+
+ADDED_AND_RELATED = 'added_and_related'
+REMOVED_AND_RELATED = 'removed_and_related'
+EXTENDED_AND_RELATED = 'extended_and_related'
+REDUCED_AND_RELATED = 'reduced_and_related'

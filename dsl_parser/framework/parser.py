@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 import networkx as nx
 
 from dsl_parser.framework import elements
-from dsl_parser import exceptions, constants
+from dsl_parser import (exceptions,
+                        constants,
+                        functions,
+                        utils)
 from dsl_parser.framework.requirements import Requirement
 
 
@@ -74,6 +77,7 @@ class Context(object):
                  element_cls,
                  element_name,
                  inputs):
+        self.namespace = None
         self.inputs = inputs or {}
         self.element_type_to_elements = {}
         self._root_element = None
@@ -82,7 +86,8 @@ class Context(object):
         self._traverse_element_cls(element_cls=element_cls,
                                    name=element_name,
                                    value=value,
-                                   parent_element=None)
+                                   parent_element=None,
+                                   namespace=self.namespace)
         self._calculate_element_graph()
 
     @property
@@ -124,22 +129,31 @@ class Context(object):
                               element_cls,
                               name,
                               value,
-                              parent_element):
+                              parent_element,
+                              namespace=None):
+        if value:
+            if hasattr(value, 'namespace'):
+                self.namespace = value.namespace or namespace
+            else:
+                # In case of Python primitive types.
+                self.namespace = namespace
         element = element_cls(name=name,
                               initial_value=value,
                               context=self)
+        self._traverse_element(schema=element_cls.schema,
+                               parent_element=element)
         self._add_element(element, parent=parent_element)
-        self._traverse_schema(schema=element_cls.schema,
-                              parent_element=element)
 
-    def _traverse_schema(self, schema, parent_element):
+    def _traverse_element(self, schema, parent_element):
         if isinstance(schema, dict):
             self._traverse_dict_schema(schema=schema,
-                                       parent_element=parent_element)
+                                       parent_element=parent_element,
+                                       namespace=parent_element.namespace)
         elif isinstance(schema, elements.ElementType):
             self._traverse_element_type_schema(
                 schema=schema,
-                parent_element=parent_element)
+                parent_element=parent_element,
+                namespace=parent_element.namespace)
         elif isinstance(schema, list):
             self._traverse_list_schema(schema=schema,
                                        parent_element=parent_element)
@@ -149,7 +163,7 @@ class Context(object):
             raise ValueError('Illegal state should have been identified'
                              ' by schema API validation')
 
-    def _traverse_dict_schema(self, schema, parent_element):
+    def _traverse_dict_schema(self, schema, parent_element, namespace):
         if not isinstance(parent_element.initial_value, dict):
             return
 
@@ -164,16 +178,75 @@ class Context(object):
             self._traverse_element_cls(element_cls=element_cls,
                                        name=name,
                                        value=value,
-                                       parent_element=parent_element)
+                                       parent_element=parent_element,
+                                       namespace=namespace)
         for k_holder, v_holder in parent_element.initial_value_holder.value.\
-                iteritems():
+                items():
             if k_holder.value not in parsed_names:
                 self._traverse_element_cls(element_cls=elements.UnknownElement,
-                                           name=k_holder, value=v_holder,
-                                           parent_element=parent_element)
+                                           name=k_holder,
+                                           value=v_holder,
+                                           parent_element=parent_element,
+                                           namespace=namespace)
 
-    def _traverse_element_type_schema(self, schema, parent_element):
+    def _traverse_element_type_schema(self, schema, parent_element, namespace):
+
+        def set_namespace_get_attribute_property(namespace_value, get_func):
+            value = get_func[0]
+            if value not in functions.AVAILABLE_NODE_TARGETS:
+                get_func[0] = utils.generate_namespaced_value(
+                    namespace_value, value)
+            return get_func
+
+        def handle_intrinsic_function_namespace(element):
+            """
+            This will traverse the element in search of the key,
+            and will run the set namespace function on the key's
+            values only for the relevant intrinsic functions.
+            """
+            if not isinstance(element, dict) or not namespace:
+                # There is no need to search for intrinsic functions, if
+                # there is no namespace or if the element can not contain
+                # them.
+                return element
+            for k, v in element.items():
+                if k == 'get_input':
+                    element[k] = utils.generate_namespaced_value(namespace, v)
+                elif k == 'get_property' or k == 'get_attribute':
+                    element[k] =\
+                        set_namespace_get_attribute_property(namespace, v)
+                if isinstance(v, dict):
+                    element[k] = \
+                        handle_intrinsic_function_namespace(v)
+                elif isinstance(v, list):
+                    for i in xrange(len(v)):
+                        element[k][i] = \
+                            handle_intrinsic_function_namespace(v[i])
+            return element
+
+        def _should_add_leaf_namespace(element):
+            return (isinstance(element._initial_value, basestring) and
+                    element._initial_value not in
+                    constants.USER_PRIMITIVE_TYPES and
+                    element.add_namespace_to_schema_elements)
+
+        def set_leaf_namespace(leaf_namespace, element):
+            if not leaf_namespace:
+                return
+            if _should_add_leaf_namespace(element):
+                element._initial_value = utils.generate_namespaced_value(
+                        leaf_namespace, element._initial_value)
+            elif isinstance(element._initial_value, dict):
+                element._initial_value = \
+                    handle_intrinsic_function_namespace(element._initial_value)
+
+        def set_element_namespace(element_namespace, element_holder):
+            if element_namespace:
+                element_holder.value = utils.generate_namespaced_value(
+                    element_namespace, element_holder.value)
+
         if isinstance(schema, elements.Leaf):
+            set_leaf_namespace(namespace, parent_element)
             return
 
         element_cls = schema.type
@@ -182,10 +255,15 @@ class Context(object):
                 return
             for name_holder, value_holder in parent_element.\
                     initial_value_holder.value.items():
+                current_namespace = value_holder.namespace or namespace
+                if (parent_element.add_namespace_to_schema_elements and
+                        not value_holder.only_children_namespace):
+                    set_element_namespace(current_namespace, name_holder)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,
                                            value=value_holder,
-                                           parent_element=parent_element)
+                                           parent_element=parent_element,
+                                           namespace=current_namespace)
         elif isinstance(schema, elements.List):
             if not isinstance(parent_element.initial_value, list):
                 return
@@ -194,15 +272,16 @@ class Context(object):
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=index,
                                            value=value_holder,
-                                           parent_element=parent_element)
+                                           parent_element=parent_element,
+                                           namespace=namespace)
         else:
             raise ValueError('Illegal state should have been identified'
                              ' by schema API validation')
 
     def _traverse_list_schema(self, schema, parent_element):
         for schema_item in schema:
-            self._traverse_schema(schema=schema_item,
-                                  parent_element=parent_element)
+            self._traverse_element(schema=schema_item,
+                                   parent_element=parent_element)
 
     def _calculate_element_graph(self):
         self.element_graph = nx.DiGraph(self._element_tree)

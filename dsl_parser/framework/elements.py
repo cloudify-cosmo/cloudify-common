@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,6 +55,24 @@ class Element(object):
     requires = {}
     provides = []
 
+    add_namespace_to_schema_elements = True
+    """
+    When True this flag is for marking DSL element's schema fields
+    will get the namespace prefix, when they are imported with
+    a namespace context. So those elements will not collide if
+    imported several of times with different namespaces.
+
+    This flag should be overwritten to False for the following elements:
+    - A leaf element of primitive types (int, float, string and etc),
+      this case is not definite so consider each case to it self.
+    - An element of type "Type" (like NodeType, DataType and etc).
+    - An element which is contained fully in the context of father element,
+      and cannot be referenced from outside that context. like: node type
+      properties.
+    NOTICE: You need to add unit tests both to the element and to the
+    namespaced scenario in both cases.
+    """
+
     def __init__(self, context, initial_value, name=None):
         self.context = context
         initial_value = holder.Holder.of(initial_value)
@@ -73,6 +91,7 @@ class Element(object):
         self.name_end_column = name.end_column
         self._parsed_value = UNPARSED
         self._provided = None
+        self.namespace = self.context.namespace
 
     def __str__(self):
         message = StringIO()

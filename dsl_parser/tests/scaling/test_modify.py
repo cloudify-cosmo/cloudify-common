@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from dsl_parser import constants
 from dsl_parser.tests import scaling
 
 
@@ -29,7 +30,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 1, 0, 1, 0)
         self._assert_added_not_in_previous(plan, modification)
-        added_and_related = modification['added_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
         for instance in added_and_related:
             self.assertEqual('host', instance['name'])
             self.assertIn('host_', instance['id'])
@@ -78,7 +79,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 2, 0, 2, 0)
         self._assert_added_not_in_previous(plan, modification)
-        added_and_related = modification['added_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
         host_nodes = self._nodes_by_name(added_and_related, 'host')
         self.assertEqual(1, len(host_nodes))
         for instance in host_nodes:
@@ -114,7 +115,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 0, 2, 0, 2)
         self._assert_removed_in_previous(plan, modification)
-        removed_and_related = modification['removed_and_related']
+        removed_and_related = modification[constants.REMOVED_AND_RELATED]
         host_nodes = self._nodes_by_name(removed_and_related, 'host')
         self.assertEqual(1, len(host_nodes))
         db_nodes = self._nodes_by_name(removed_and_related, 'db')
@@ -139,7 +140,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 2, 0, 1, 0)
         self._assert_added_not_in_previous(plan, modification)
-        added_and_related = modification['added_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
         host_nodes = self._nodes_by_name(added_and_related, 'host')
         self.assertEqual(1, len(host_nodes))
         for instance in host_nodes:
@@ -175,7 +176,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 0, 2, 0, 1)
         self._assert_removed_in_previous(plan, modification)
-        removed_and_related = modification['removed_and_related']
+        removed_and_related = modification[constants.REMOVED_AND_RELATED]
         host_nodes = self._nodes_by_name(removed_and_related, 'host')
         self.assertEqual(1, len(host_nodes))
         db_nodes = self._nodes_by_name(removed_and_related, 'db')
@@ -201,7 +202,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 5, 0, 4, 0)
         self._assert_added_not_in_previous(plan, modification)
-        added_and_related = modification['added_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
         host_nodes = self._nodes_by_name(added_and_related, 'host')
         self.assertEqual(2, len(host_nodes))
         for instance in host_nodes:
@@ -241,7 +242,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 0, 5, 0, 4)
         self._assert_removed_in_previous(plan, modification)
-        removed_and_related = modification['removed_and_related']
+        removed_and_related = modification[constants.REMOVED_AND_RELATED]
         host_nodes = self._nodes_by_name(removed_and_related, 'host')
         self.assertEqual(2, len(host_nodes))
         db_nodes = self._nodes_by_name(removed_and_related, 'db')
@@ -269,7 +270,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 3, 0, 2, 0)
         self._assert_added_not_in_previous(plan, modification)
-        added_and_related = modification['added_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
         host1_nodes = self._nodes_by_name(added_and_related, 'host1')
         host2_nodes = self._nodes_by_name(added_and_related, 'host2')
         self.assertEqual(1, len(host1_nodes))
@@ -322,7 +323,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 0, 5, 0, 3)
         self._assert_removed_in_previous(plan, modification)
-        removed_and_related = modification['removed_and_related']
+        removed_and_related = modification[constants.REMOVED_AND_RELATED]
         host1_nodes = self._nodes_by_name(removed_and_related, 'host1')
         host2_nodes = self._nodes_by_name(removed_and_related, 'host2')
         self.assertEqual(1, len(host1_nodes))
@@ -363,7 +364,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 2, 0, 1, 0)
         self._assert_added_not_in_previous(plan, modification)
-        added_and_related = modification['added_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
         host2_nodes = self._nodes_by_name(added_and_related, 'host2')
         self.assertEqual(1, len(host2_nodes))
         for instance in host2_nodes:
@@ -410,7 +411,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 0, 5, 0, 1)
         self._assert_removed_in_previous(plan, modification)
-        removed_and_related = modification['removed_and_related']
+        removed_and_related = modification[constants.REMOVED_AND_RELATED]
         host2_nodes = self._nodes_by_name(removed_and_related, 'host2')
         self.assertEqual(1, len(host2_nodes))
         for instance in host2_nodes:
@@ -445,7 +446,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 3, 0, 1, 0)
         self._assert_added_not_in_previous(plan, modification)
-        added_and_related = modification['added_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
         host1_nodes = self._nodes_by_name(added_and_related, 'host1')
         host2_nodes = self._nodes_by_name(added_and_related, 'host2')
         self.assertEqual(1, len(host1_nodes))
@@ -498,7 +499,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         })
         self._assert_modification(modification, 0, 6, 0, 2)
         self._assert_removed_in_previous(plan, modification)
-        removed_and_related = modification['removed_and_related']
+        removed_and_related = modification[constants.REMOVED_AND_RELATED]
         host1_nodes = self._nodes_by_name(removed_and_related, 'host1')
         host2_nodes = self._nodes_by_name(removed_and_related, 'host2')
         self.assertEqual(2, len(host1_nodes))
@@ -556,7 +557,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
             'db': {'instances': 10}
         })
         self._assert_modification(modification, 12, 0, 10, 0)
-        added_and_related = modification['added_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
         added_db_nodes = self._nodes_by_name(added_and_related, 'db')
         self.assertEqual(5, len(added_db_nodes))
         added_host1_nodes = self._nodes_by_name(added_and_related, 'host1')
@@ -589,7 +590,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
         plan = self.parse_multi(yaml)
         modification = self.modify_multi(
             plan, modified_nodes={'host': {'instances': 1}})
-        added = modification['added_and_related']
+        added = modification[constants.ADDED_AND_RELATED]
         self.assertEqual(2, len(added))
 
     def test_removed_ids_hint(self):
@@ -624,7 +625,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
             })
             self._assert_modification(modification, 0, 3, 0, 3)
             removed_host_ids = self._node_ids(self._nodes_by_name(
-                    modification['removed_and_related'], 'host'))
+                    modification[constants.REMOVED_AND_RELATED], 'host'))
             self.assertEqual(removed_host_ids, [host_id])
 
         for host_id in host_ids:
@@ -636,7 +637,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
             })
             self._assert_modification(modification, 0, 3, 0, 3)
             removed_host_ids = self._node_ids(self._nodes_by_name(
-                    modification['removed_and_related'], 'host'))
+                    modification[constants.REMOVED_AND_RELATED], 'host'))
             self.assertNotIn(host_id, removed_host_ids)
 
         for db_id in db_ids:
@@ -648,7 +649,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
             })
             self._assert_modification(modification, 0, 6, 0, 3)
             removed_db_ids = self._node_ids(self._nodes_by_name(
-                    modification['removed_and_related'], 'db'))
+                    modification[constants.REMOVED_AND_RELATED], 'db'))
             self.assertIn(db_id, removed_db_ids)
 
         for db_id in db_ids:
@@ -660,7 +661,7 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
             })
             self._assert_modification(modification, 0, 6, 0, 3)
             removed_db_ids = self._node_ids(self._nodes_by_name(
-                    modification['removed_and_related'], 'db'))
+                    modification[constants.REMOVED_AND_RELATED], 'db'))
             self.assertNotIn(db_id, removed_db_ids)
 
         # give all nodes as include hint to see we only take what is needed
