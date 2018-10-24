@@ -162,9 +162,9 @@ class CreateImportResolverTests(testtools.TestCase):
         try:
             self._test_create_import_resolver(
                 resolver_configuration=resolver_configuration,
-                err_msg_regex='Failed to instantiate resolver '
-                              '\({0}\)\. '
-                              'mock exception'
+                err_msg_regex=r'Failed to instantiate resolver '
+                              r'\({0}\)\. '
+                              r'mock exception'
                 .format(DefaultImportResolver.__name__))
         finally:
             DefaultImportResolver.__init__ = original_init
@@ -175,8 +175,8 @@ class CreateImportResolverTests(testtools.TestCase):
         }
         self._test_create_import_resolver(
             resolver_configuration=resolver_configuration,
-            err_msg_regex='Failed to instantiate resolver '
-                          '\({0}\).*mock exception'
+            err_msg_regex=r'Failed to instantiate resolver '
+                          r'\({0}\).*mock exception'
             .format(failed_custom_resolver_class_path))
 
     def test_create_resolver_illegal_params_type(self):
@@ -186,9 +186,9 @@ class CreateImportResolverTests(testtools.TestCase):
         }
         self._test_create_import_resolver(
             resolver_configuration=resolver_configuration,
-            err_msg_regex='Invalid parameters supplied for the '
-                          'resolver \({0}\): parameters must be '
-                          'a dictionary and not str'
+            err_msg_regex=r'Invalid parameters supplied for the '
+                          r'resolver \({0}\): parameters must be '
+                          r'a dictionary and not str'
             .format(default_resolver_class_path))
 
     def test_create_default_resolver_illegal_params(self):
@@ -198,9 +198,9 @@ class CreateImportResolverTests(testtools.TestCase):
         }
         self._test_create_import_resolver(
             resolver_configuration=resolver_configuration,
-            err_msg_regex='Failed to instantiate resolver \({0}\).*'
-                          '__init__\(\) got an unexpected keyword argument '
-                          '\'wrong parameter name\''
+            err_msg_regex=r'Failed to instantiate resolver \({0}\).*'
+                          r'__init__\(\) got an unexpected keyword argument '
+                          r'\'wrong parameter name\''
             .format(default_resolver_class_path))
 
     def test_create_resolver_illegal_class_path(self):
@@ -210,5 +210,5 @@ class CreateImportResolverTests(testtools.TestCase):
         }
         self._test_create_import_resolver(
             resolver_configuration=resolver_configuration,
-            err_msg_regex='Failed to instantiate resolver '
-                          '\(wrong class path\).*Invalid class path')
+            err_msg_regex=r'Failed to instantiate resolver '
+                          r'\(wrong class path\).*Invalid class path')

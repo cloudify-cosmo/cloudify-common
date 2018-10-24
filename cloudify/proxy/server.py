@@ -246,7 +246,7 @@ def _desugar_attr(obj, attr):
 
 class PathDictAccess(object):
 
-    pattern = re.compile("(.+)\[(\d+)\]")
+    pattern = re.compile(r'(.+)\[(\d+)\]')
 
     def __init__(self, obj):
         self.obj = obj
