@@ -22,13 +22,15 @@ class Holder(object):
                  start_column=None,
                  end_line=None,
                  end_column=None,
-                 filename=None):
+                 filename=None,
+                 namespace=None):
         self.value = value
         self.start_line = start_line
         self.start_column = start_column
         self.end_line = end_line
         self.end_column = end_column
         self.filename = filename
+        self.namespace = namespace
 
     def __str__(self):
         return '{0}<{1}.{2}-{3}.{4} [{5}]>'.format(
@@ -95,4 +97,5 @@ class Holder(object):
                       start_column=self.start_column,
                       end_line=self.end_line,
                       end_column=self.end_column,
-                      filename=self.filename)
+                      filename=self.filename,
+                      namespace=self.namespace)

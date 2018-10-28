@@ -73,6 +73,7 @@ class Element(object):
         self.name_end_column = name.end_column
         self._parsed_value = UNPARSED
         self._provided = None
+        self.namespace = self.initial_value_holder.namespace
 
     def __str__(self):
         message = StringIO()
