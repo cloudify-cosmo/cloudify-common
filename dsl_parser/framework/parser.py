@@ -74,15 +74,18 @@ class Context(object):
                  element_cls,
                  element_name,
                  inputs):
+        self.namespace = None
         self.inputs = inputs or {}
         self.element_type_to_elements = {}
         self._root_element = None
         self._element_tree = nx.DiGraph()
         self._element_graph = nx.DiGraph()
+        # There is no namespace at the 'root' lvl
         self._traverse_element_cls(element_cls=element_cls,
                                    name=element_name,
                                    value=value,
-                                   parent_element=None)
+                                   parent_element=None,
+                                   namespace=self.namespace)
         self._calculate_element_graph()
 
     @property
@@ -124,22 +127,28 @@ class Context(object):
                               element_cls,
                               name,
                               value,
-                              parent_element):
+                              parent_element,
+                              namespace=None):
+        if value:
+            # If there is a point for updating the namespace, it's None on default
+            self.namespace = value.namespace or namespace
         element = element_cls(name=name,
                               initial_value=value,
                               context=self)
+        element = self._traverse_schema(schema=element_cls.schema,
+                                        parent_element=element)
         self._add_element(element, parent=parent_element)
-        self._traverse_schema(schema=element_cls.schema,
-                              parent_element=element)
 
     def _traverse_schema(self, schema, parent_element):
         if isinstance(schema, dict):
             self._traverse_dict_schema(schema=schema,
-                                       parent_element=parent_element)
+                                       parent_element=parent_element,
+                                       namespace=parent_element.namespace)
         elif isinstance(schema, elements.ElementType):
             self._traverse_element_type_schema(
                 schema=schema,
-                parent_element=parent_element)
+                parent_element=parent_element,
+                namespace=parent_element.namespace)
         elif isinstance(schema, list):
             self._traverse_list_schema(schema=schema,
                                        parent_element=parent_element)
@@ -148,8 +157,9 @@ class Context(object):
         else:
             raise ValueError('Illegal state should have been identified'
                              ' by schema API validation')
+        return parent_element
 
-    def _traverse_dict_schema(self, schema, parent_element):
+    def _traverse_dict_schema(self, schema, parent_element, namespace):
         if not isinstance(parent_element.initial_value, dict):
             return
 
@@ -164,15 +174,18 @@ class Context(object):
             self._traverse_element_cls(element_cls=element_cls,
                                        name=name,
                                        value=value,
-                                       parent_element=parent_element)
+                                       parent_element=parent_element,
+                                       namespace=namespace)
         for k_holder, v_holder in parent_element.initial_value_holder.value.\
                 iteritems():
             if k_holder.value not in parsed_names:
                 self._traverse_element_cls(element_cls=elements.UnknownElement,
-                                           name=k_holder, value=v_holder,
-                                           parent_element=parent_element)
+                                           name=k_holder,
+                                           value=v_holder,
+                                           parent_element=parent_element,
+                                           namespace=namespace)
 
-    def _traverse_element_type_schema(self, schema, parent_element):
+    def _traverse_element_type_schema(self, schema, parent_element, namespace):
         if isinstance(schema, elements.Leaf):
             return
 
@@ -182,10 +195,13 @@ class Context(object):
                 return
             for name_holder, value_holder in parent_element.\
                     initial_value_holder.value.items():
+                if namespace:
+                    name_holder.value = "{0}::{1}".format(namespace, name_holder.value)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,
                                            value=value_holder,
-                                           parent_element=parent_element)
+                                           parent_element=parent_element,
+                                           namespace=namespace)
         elif isinstance(schema, elements.List):
             if not isinstance(parent_element.initial_value, list):
                 return
