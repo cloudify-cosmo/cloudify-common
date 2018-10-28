@@ -169,6 +169,34 @@ def _get_resource_location(resource_name,
     return None
 
 
+def _extract_import_parts(import_url,
+                          resources_base_path,
+                          current_resource_context=None):
+    namespace_op_location = import_url.find('::')
+    if namespace_op_location is not -1:
+        return import_url[:namespace_op_location], \
+               _get_resource_location(import_url[namespace_op_location + 2:],
+                                      resources_base_path,
+                                      current_resource_context)
+
+    return None, _get_resource_location(import_url,
+                                        resources_base_path,
+                                        current_resource_context)
+
+
+def _normal_import_url(import_url):
+    '''
+    Removes any URL prefix for getting the path url
+    :param import_url:
+    :return:
+    '''
+    url_op = import_url.find(':')
+    if url_op is not -1:
+        if import_url[:url_op] in ['http', 'https', 'file', 'ftp', 'plugin']:
+            return import_url[url_op + 1:]
+    return import_url
+
+
 def _combine_imports(parsed_dsl_holder, dsl_location,
                      resources_base_path, version, resolver,
                      validate_version):
@@ -186,12 +214,13 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
         if import_url is not constants.ROOT_ELEMENT_VALUE:
             used_imports.append(import_url)
         parsed_imported_dsl_holder = imported['parsed']
+        namespace = imported['namespace']
         if validate_version:
             _validate_version(version.raw,
                               import_url,
                               parsed_imported_dsl_holder)
         _merge_parsed_into_combined(
-            holder_result, parsed_imported_dsl_holder, version)
+            holder_result, parsed_imported_dsl_holder, version, namespace)
     holder_result.value[version_key_holder] = version_value_holder
     return used_imports, holder_result
 
@@ -218,9 +247,10 @@ def _build_ordered_imports(parsed_dsl_holder,
             return
 
         for another_import in imports_value_holder.restore():
-            import_url = _get_resource_location(another_import,
-                                                resources_base_path,
-                                                _current_import)
+            namespace, import_url = _extract_import_parts(another_import,
+                                                          resources_base_path,
+                                                          _current_import)
+            normalized_url = _normal_import_url(import_url)
             if import_url is None:
                 ex = exceptions.DSLParsingLogicException(
                     13, "Import failed: no suitable location found for "
@@ -238,9 +268,11 @@ def _build_ordered_imports(parsed_dsl_holder,
                         error_message="Failed to parse import '{0}'"
                                       "(via '{1}')"
                                       .format(another_import, import_url),
-                        filename=another_import)
-                imports_graph.add(import_url, imported_dsl,
-                                  location(_current_import))
+                        filename=normalized_url)
+                imports_graph.add(import_url,
+                                  imported_dsl,
+                                  location(_current_import),
+                                  namespace)
                 _build_ordered_imports_recursive(imported_dsl,
                                                  import_url)
     _build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
@@ -266,7 +298,8 @@ def _validate_version(dsl_version,
 
 def _merge_parsed_into_combined(combined_parsed_dsl_holder,
                                 parsed_imported_dsl_holder,
-                                version):
+                                version,
+                                namespace):
     merge_no_override = MERGE_NO_OVERRIDE.copy()
     if version['definitions_version'] > (1, 2):
         merge_no_override.update(MERGEABLE_FROM_DSL_VERSION_1_3)
@@ -275,6 +308,7 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
         if key_holder.value in IGNORE:
             pass
         elif key_holder.value not in combined_parsed_dsl_holder:
+            value_holder.namespace = namespace
             combined_parsed_dsl_holder.value[key_holder] = value_holder
         elif key_holder.value in DONT_OVERWRITE:
             pass
@@ -283,7 +317,8 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
             _merge_into_dict_or_throw_on_duplicate(
                 from_dict_holder=value_holder,
                 to_dict_holder=to_dict,
-                key_name=key_holder.value)
+                key_name=key_holder.value,
+                namespace=namespace)
         else:
             if key_holder.value in MERGEABLE_FROM_DSL_VERSION_1_3:
                 msg = ("Import failed: non-mergeable field: '{0}'. "
@@ -295,10 +330,13 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
                 3, msg.format(key_holder.value))
 
 
-def _merge_into_dict_or_throw_on_duplicate(from_dict_holder, to_dict_holder,
-                                           key_name):
+def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
+                                           to_dict_holder,
+                                           key_name,
+                                           namespace):
     for key_holder, value_holder in from_dict_holder.value.iteritems():
         if key_holder.value not in to_dict_holder:
+            value_holder.namespace = namespace
             to_dict_holder.value[key_holder] = value_holder
         else:
             raise exceptions.DSLParsingLogicException(
@@ -312,13 +350,13 @@ class ImportsGraph(object):
         self._imports_tree = nx.DiGraph()
         self._imports_graph = nx.DiGraph()
 
-    def add(self, import_url, parsed, via_import=None):
+    def add(self, import_url, parsed, via_import=None, namespace=None):
         if import_url not in self._imports_tree:
-            self._imports_tree.add_node(import_url, parsed=parsed)
-            self._imports_graph.add_node(import_url, parsed=parsed)
+            self._imports_tree.add_node(import_url, parsed=parsed, namespace=namespace)
+            self._imports_graph.add_node(import_url, parsed=parsed, namespace=namespace)
         if via_import:
-            self._imports_tree.add_edge(import_url, via_import)
-            self._imports_graph.add_edge(import_url, via_import)
+            self._imports_tree.add_edge(import_url, via_import, namespace=namespace)
+            self._imports_graph.add_edge(import_url, via_import, namespace=namespace)
 
     def add_graph_dependency(self, import_url, via_import):
         if via_import:
@@ -327,6 +365,7 @@ class ImportsGraph(object):
     def topological_sort(self):
         return reversed(list(
             ({'import': i,
+              'namespace': self._imports_tree.node[i]['namespace'],
              'parsed': self._imports_tree.node[i]['parsed']}
              for i in nx.topological_sort(self._imports_tree))))
 
