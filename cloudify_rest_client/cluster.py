@@ -50,6 +50,10 @@ class ClusterNode(dict):
     def required(self):
         return self.get('required', None)
 
+    @property
+    def remote_database(self):
+        return self.get('remote_database', None)
+
 
 class ClusterState(dict):
     @property
