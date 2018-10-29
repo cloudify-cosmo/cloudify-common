@@ -21,6 +21,7 @@ from dsl_parser.framework.elements import Element, Leaf
 class ToscaDefinitionsVersion(Element):
 
     schema = Leaf(type=str)
+    add_namespace = False
     provides = ['version']
 
     def validate(self):
