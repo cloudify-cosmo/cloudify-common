@@ -54,6 +54,7 @@ class Element(object):
     required = False
     requires = {}
     provides = []
+    add_namespace = True
 
     def __init__(self, context, initial_value, name=None):
         self.context = context

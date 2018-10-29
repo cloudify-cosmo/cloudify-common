@@ -187,6 +187,12 @@ class Context(object):
 
     def _traverse_element_type_schema(self, schema, parent_element, namespace):
         if isinstance(schema, elements.Leaf):
+            if namespace and \
+                    parent_element._initial_value and\
+                    parent_element.add_namespace and\
+                    parent_element.name != 'tosca_definitions_version':
+                parent_element._initial_value = "{0}::{1}"\
+                    .format(namespace, parent_element._initial_value)
             return
 
         element_cls = schema.type
@@ -195,7 +201,7 @@ class Context(object):
                 return
             for name_holder, value_holder in parent_element.\
                     initial_value_holder.value.items():
-                if namespace:
+                if namespace and parent_element.add_namespace:
                     name_holder.value = "{0}::{1}".format(namespace, name_holder.value)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,
