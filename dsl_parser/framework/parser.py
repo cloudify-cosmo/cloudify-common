@@ -190,7 +190,7 @@ class Context(object):
             if namespace and \
                     parent_element._initial_value and\
                     parent_element.add_namespace and\
-                    parent_element._initial_value != constants.USER_PRIMITIVE_TYPES:
+                    parent_element._initial_value not in constants.USER_PRIMITIVE_TYPES:
                 parent_element._initial_value = "{0}::{1}"\
                     .format(namespace, parent_element._initial_value)
             return
@@ -203,7 +203,7 @@ class Context(object):
                     initial_value_holder.value.items():
                 if namespace and\
                         parent_element.add_namespace and \
-                        name_holder.value != constants.USER_PRIMITIVE_TYPES:
+                        name_holder.value not in constants.USER_PRIMITIVE_TYPES:
                     name_holder.value = "{0}::{1}".format(namespace, name_holder.value)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,
