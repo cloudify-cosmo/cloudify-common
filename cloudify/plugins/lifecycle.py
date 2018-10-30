@@ -192,26 +192,28 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     sequence = subgraph.sequence()
     sequence.add(
         instance.set_state('initializing'),
-        forkjoin(instance.send_event('Creating node'),
+        forkjoin(instance.send_event('Creating node instance'),
                  instance.set_state('creating')),
         instance.execute_operation('cloudify.interfaces.lifecycle.create'),
-        instance.set_state('created'),
+        forkjoin(instance.send_event('Node instance created'),
+                 instance.set_state('created')),
         _relationships_operations(
             subgraph,
             instance,
             'cloudify.interfaces.relationship_lifecycle.preconfigure'
         ),
         forkjoin(instance.set_state('configuring'),
-                 instance.send_event('Configuring node')),
+                 instance.send_event('Configuring node instance')),
         instance.execute_operation('cloudify.interfaces.lifecycle.configure'),
-        instance.set_state('configured'),
+        forkjoin(instance.set_state('configured'),
+                 instance.send_event('Node instance configured')),
         _relationships_operations(
             subgraph,
             instance,
             'cloudify.interfaces.relationship_lifecycle.postconfigure'
         ),
         forkjoin(instance.set_state('starting'),
-                 instance.send_event('Starting node')),
+                 instance.send_event('Starting node instance')),
         instance.execute_operation('cloudify.interfaces.lifecycle.start'))
 
     # If this is a host node, we need to add specific host start
@@ -227,7 +229,8 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
             instance,
             'cloudify.interfaces.relationship_lifecycle.establish'
         ),
-        instance.set_state('started'))
+        forkjoin(instance.set_state('started'),
+                 instance.send_event('Started node instance')))
 
     subgraph.on_failure = get_subgraph_on_failure_handler(instance)
     return subgraph
@@ -237,8 +240,9 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     subgraph = graph.subgraph(instance.id)
     sequence = subgraph.sequence()
     sequence.add(
-        instance.set_state('stopping'),
-        instance.send_event('Stopping node'),
+        forkjoin(
+            instance.set_state('stopping'),
+            instance.send_event('Stopping node instance')),
         instance.execute_operation('cloudify.interfaces.monitoring.stop')
     )
     if is_host_node(instance):
@@ -246,16 +250,21 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
 
     sequence.add(
         instance.execute_operation('cloudify.interfaces.lifecycle.stop'),
-        instance.set_state('stopped'),
+        forkjoin(
+            instance.set_state('stopped'),
+            instance.send_event('Stopped node instance')),
         _relationships_operations(
             subgraph,
             instance,
             'cloudify.interfaces.relationship_lifecycle.unlink',
             reverse=True),
-        instance.set_state('deleting'),
-        instance.send_event('Deleting node'),
+        forkjoin(
+            instance.set_state('deleting'),
+            instance.send_event('Deleting node instance')),
         instance.execute_operation('cloudify.interfaces.lifecycle.delete'),
-        instance.set_state('deleted')
+        forkjoin(
+            instance.set_state('deleted'),
+            instance.send_event('Deleted node instance'))
     )
 
     def set_ignore_handlers(_subgraph):
@@ -385,6 +394,7 @@ def prepare_running_agent(host_node_instance):
     if _plugins_install_task:
         tasks += [host_node_instance.send_event('Installing plugins')]
         tasks += [_plugins_install_task]
+    tasks += [host_node_instance.send_event('Plugins installed')]
     tasks += [
         host_node_instance.execute_operation(
             'cloudify.interfaces.monitoring_agent.install'),
@@ -434,27 +444,31 @@ def _host_post_start(host_node_instance):
         if 'cloudify.interfaces.worker_installer.install' in node_operations:
             # 3.2 Compute Node
             tasks += [
-                host_node_instance.send_event('Installing Agent'),
+                host_node_instance.send_event('Installing agent'),
                 host_node_instance.execute_operation(
                     'cloudify.interfaces.worker_installer.install'),
-                host_node_instance.send_event('Starting Agent'),
+                host_node_instance.send_event('Agent installed'),
+                host_node_instance.send_event('Starting agent'),
                 host_node_instance.execute_operation(
-                    'cloudify.interfaces.worker_installer.start')
+                    'cloudify.interfaces.worker_installer.start'),
+                host_node_instance.send_event('Agent started')
             ]
         else:
             tasks += [
-                host_node_instance.send_event('Creating Agent'),
+                host_node_instance.send_event('Creating agent'),
                 host_node_instance.execute_operation(
-                    'cloudify.interfaces.cloudify_agent.create')
+                    'cloudify.interfaces.cloudify_agent.create'),
+                host_node_instance.send_event('Agent created')
                 ]
             # In remote mode the `create` operation configures/starts the agent
             if install_method in [constants.AGENT_INSTALL_METHOD_PLUGIN,
                                   constants.AGENT_INSTALL_METHOD_INIT_SCRIPT]:
                 tasks += [
                     host_node_instance.send_event('Waiting for '
-                                                  'Agent to start'),
+                                                  'agent to start'),
                     host_node_instance.execute_operation(
-                        'cloudify.interfaces.cloudify_agent.start')
+                        'cloudify.interfaces.cloudify_agent.start'),
+                    host_node_instance.send_event('Agent started'),
                 ]
 
     tasks.extend(prepare_running_agent(host_node_instance))
@@ -501,4 +515,5 @@ def _host_pre_stop(host_node_instance):
                     host_node_instance.execute_operation(
                         'cloudify.interfaces.cloudify_agent.delete')
                 ]
+        tasks += [host_node_instance.send_event('Agent deleted')]
     return tasks
