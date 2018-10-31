@@ -197,21 +197,25 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         instance.execute_operation('cloudify.interfaces.lifecycle.create'),
         forkjoin(instance.send_event('Node instance created'),
                  instance.set_state('created')),
+        instance.send_event('Pre-configuring relationships'),
         _relationships_operations(
             subgraph,
             instance,
             'cloudify.interfaces.relationship_lifecycle.preconfigure'
         ),
+        instance.send_event('Relationships pre-configured'),
         forkjoin(instance.set_state('configuring'),
                  instance.send_event('Configuring node instance')),
         instance.execute_operation('cloudify.interfaces.lifecycle.configure'),
         forkjoin(instance.set_state('configured'),
                  instance.send_event('Node instance configured')),
+        instance.send_event('Post-configuring relationships'),
         _relationships_operations(
             subgraph,
             instance,
             'cloudify.interfaces.relationship_lifecycle.postconfigure'
         ),
+        instance.send_event('Relationships post-configured'),
         forkjoin(instance.set_state('starting'),
                  instance.send_event('Starting node instance')),
         instance.execute_operation('cloudify.interfaces.lifecycle.start'))
@@ -224,11 +228,13 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
 
     sequence.add(
         instance.execute_operation('cloudify.interfaces.monitoring.start'),
+        instance.send_event('Establishing relationships'),
         _relationships_operations(
             subgraph,
             instance,
             'cloudify.interfaces.relationship_lifecycle.establish'
         ),
+        instance.send_event('Relationships established'),
         forkjoin(instance.set_state('started'),
                  instance.send_event('Started node instance')))
 
@@ -253,11 +259,13 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         forkjoin(
             instance.set_state('stopped'),
             instance.send_event('Stopped node instance')),
+        instance.send_event('Unlinking relationships'),
         _relationships_operations(
             subgraph,
             instance,
             'cloudify.interfaces.relationship_lifecycle.unlink',
             reverse=True),
+        instance.send_event('Relationships unlinked'),
         forkjoin(
             instance.set_state('deleting'),
             instance.send_event('Deleting node instance')),
