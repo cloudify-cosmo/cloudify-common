@@ -236,7 +236,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         ),
         instance.send_event('Relationships established'),
         forkjoin(instance.set_state('started'),
-                 instance.send_event('Started node instance')))
+                 instance.send_event('Node instance started')))
 
     subgraph.on_failure = get_subgraph_on_failure_handler(instance)
     return subgraph
