@@ -308,7 +308,9 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
         if key_holder.value in IGNORE:
             pass
         elif key_holder.value not in combined_parsed_dsl_holder:
-            value_holder.namespace = namespace
+            if isinstance(value_holder.value, dict):
+                for k, v in value_holder.value.iteritems():
+                    value_holder.value[k].namespace = namespace
             combined_parsed_dsl_holder.value[key_holder] = value_holder
         elif key_holder.value in DONT_OVERWRITE:
             pass

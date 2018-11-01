@@ -99,7 +99,7 @@ node_types:
     type:
         properties:
             prop1:
-                type: data1
+                type: test::data1
             prop2:
                 type: data2
 node_templates:
@@ -120,4 +120,34 @@ node_templates:
         pass
 
     def test_derives(self):
-        pass
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+data_types:
+    agent_connection:
+        properties:
+            username:
+                type: string
+                default: ubuntu
+            key:
+                type: string
+                default: ~/.ssh/id_rsa
+    agent_installer:
+        properties:
+            connection:
+                type: agent_connection
+                default: {}
+"""
+        import_path = self.make_yaml_file(yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - {0}::{1}
+data_types:
+    agent:
+        derived_from: test::agent_installer
+        properties:
+            basedir:
+                type: string
+                default: /home/
+""".format('test', import_path)
+
+        parsed = self.parse_1_3(main_yaml)
