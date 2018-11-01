@@ -243,15 +243,15 @@ class BlueprintsClient(object):
         Deletes the blueprint whose id matches the provided blueprint id.
 
         :param blueprint_id: The id of the blueprint to be deleted.
-        :param force: Delete blueprint even if there is a deployment
-                      currently using it.
+        :param force: Delete blueprint even if there is a blueprint
+                      currently importing it.
         :return: Deleted blueprint.
         """
         assert blueprint_id
 
         response = self.api.delete(
             '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id),
-            data={'force': force})
+            params={'force': force})
         return self._wrapper_cls(response)
 
     def download(self, blueprint_id, output_file=None, progress_callback=None):
