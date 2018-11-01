@@ -48,7 +48,7 @@ class DerivedFrom(Element):
         if self.initial_value is None:
             return
 
-        if self.initial_value not in self.ancestor(Types).initial_value:
+        if self.initial_value not in self.ancestor(Types).initial_value_holder:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,
                 "Missing definition for {0} '{1}' which is declared as "

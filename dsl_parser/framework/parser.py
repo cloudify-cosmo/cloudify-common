@@ -167,23 +167,26 @@ class Context(object):
         for name, element_cls in schema.items():
             if name not in parent_element.initial_value_holder:
                 value = None
+                current_namespace = namespace
             else:
                 name, value = \
                     parent_element.initial_value_holder.get_item(name)
                 parsed_names.add(name.value)
+                current_namespace = value.namespace or namespace
             self._traverse_element_cls(element_cls=element_cls,
                                        name=name,
                                        value=value,
                                        parent_element=parent_element,
-                                       namespace=namespace)
+                                       namespace=current_namespace)
         for k_holder, v_holder in parent_element.initial_value_holder.value.\
                 iteritems():
             if k_holder.value not in parsed_names:
+                current_namespace = v_holder.namespace or namespace
                 self._traverse_element_cls(element_cls=elements.UnknownElement,
                                            name=k_holder,
                                            value=v_holder,
                                            parent_element=parent_element,
-                                           namespace=namespace)
+                                           namespace=current_namespace)
 
     def _traverse_element_type_schema(self, schema, parent_element, namespace):
         if isinstance(schema, elements.Leaf):
@@ -191,6 +194,7 @@ class Context(object):
                     parent_element._initial_value and\
                     parent_element.add_namespace and\
                     parent_element._initial_value not in constants.USER_PRIMITIVE_TYPES:
+                namespace = parent_element.namespace or namespace
                 parent_element._initial_value = "{0}::{1}"\
                     .format(namespace, parent_element._initial_value)
             return
@@ -201,15 +205,16 @@ class Context(object):
                 return
             for name_holder, value_holder in parent_element.\
                     initial_value_holder.value.items():
-                if namespace and\
+                current_namespace = value_holder.namespace or namespace
+                if current_namespace and\
                         parent_element.add_namespace and \
                         name_holder.value not in constants.USER_PRIMITIVE_TYPES:
-                    name_holder.value = "{0}::{1}".format(namespace, name_holder.value)
+                    name_holder.value = "{0}::{1}".format(current_namespace, name_holder.value)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,
                                            value=value_holder,
                                            parent_element=parent_element,
-                                           namespace=namespace)
+                                           namespace=current_namespace)
         elif isinstance(schema, elements.List):
             if not isinstance(parent_element.initial_value, list):
                 return
