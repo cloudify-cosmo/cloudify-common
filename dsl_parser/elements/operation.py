@@ -30,8 +30,27 @@ from dsl_parser.interfaces.utils import (operation,
 
 
 class OperationImplementation(Element):
+    schema = Leaf(type=object)
 
-    schema = Leaf(type=str)
+    # schema = List(type=Leaf(type=str))
+
+    def validate(self, **kwargs):
+        value = self.initial_value
+        if not isinstance(value, list) and not isinstance(value, str):
+            full_operation_name = '{0}.{1}'.format(
+                self.ancestor(Interface).name,
+                self.ancestor(Operation).name)
+            raise exceptions.DSLParsingLogicException(
+                28,
+                "Operation '{0}' has an illegal implementation value(s) "
+                "'{1}'. valid values are [{2}]".format(
+                    full_operation_name, value, ','.join(['string', 'list'])))
+
+    # def parse(self):
+    #     if isinstance(self.initial_value, list):
+    #         return self.initial_value if self.initial_value is not None else []
+    #     else:
+    #         return self.build_dict_result()
 
     def parse(self):
         return self.initial_value if self.initial_value is not None else ''
@@ -110,7 +129,8 @@ class OperationRetryInterval(Element):
 class Operation(Element):
 
     def parse(self):
-        if isinstance(self.initial_value, basestring):
+        if isinstance(self.initial_value, basestring) \
+                or isinstance(self.initial_value, list):
             return {
                 'implementation': self.initial_value,
                 'executor': None,
