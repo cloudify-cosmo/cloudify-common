@@ -50,7 +50,7 @@ imports:
     -   {0}::{1}
 """.format('test', bottom_file_name)
 
-        result = self.parse(top_level_yaml)
+        self.parse(top_level_yaml)
 
     def test_merging_node_type_import(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -77,11 +77,11 @@ imports:
     -   {0}::{1}
 """.format('test', bottom_file_name)
 
-        result = self.parse(top_level_yaml)
+        self.parse(top_level_yaml)
 
 
 class TestNamespacedDataTypes(AbstractTestParser):
-    def test_namespaced_date_types(self):
+    def test_basic_namespaced_import(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 data_types:
     test_type:
@@ -100,9 +100,6 @@ imports:
 """.format('test', bottom_file_name)
 
         self.parse(top_level_yaml)
-
-    def test_nested_defaults(self):
-        pass
 
     def test_collision(self):
         file1 = """
@@ -212,9 +209,6 @@ node_templates:
         properties = self.parse_1_3(yaml)['nodes'][0]['properties']
         self.assertEqual(properties['prop1']['prop1'], 'value1')
         self.assertEqual(properties['prop2']['prop2'], 'value2')
-
-    def test_nested_merge_with_inheritance(self):
-        pass
 
     def test_complex_nested_merging(self):
         pass
