@@ -132,7 +132,11 @@ class Context(object):
         if value:
             # If there is a point for updating the namespace,
             # it's None on default
-            self.namespace = value.namespace or namespace
+            if hasattr(value, 'namespace'):
+                self.namespace = value.namespace or namespace
+            else:
+                # In case the value is Python standard libs
+                self.namespace = namespace
         element = element_cls(name=name,
                               initial_value=value,
                               context=self)
