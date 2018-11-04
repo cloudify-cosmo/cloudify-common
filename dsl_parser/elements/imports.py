@@ -185,11 +185,12 @@ def _extract_import_parts(import_url,
 
 
 def _normal_import_url(import_url):
-    '''
-    Removes any URL prefix for getting the path url
+    """
+    Removes any URL prefix for getting the path url, like file://.
+    Because this is not needed in the following processing.
     :param import_url:
     :return:
-    '''
+    """
     url_op = import_url.find(':')
     if url_op is not -1:
         if import_url[:url_op] in ['http', 'https', 'file', 'ftp', 'plugin']:
@@ -253,13 +254,13 @@ def _build_ordered_imports(parsed_dsl_holder,
                                                           _current_import)
             if initial_namespace:
                 namespace = '::'.join([initial_namespace, namespace])
-            normalized_url = _normal_import_url(import_url)
             if import_url is None:
                 ex = exceptions.DSLParsingLogicException(
                     13, "Import failed: no suitable location found for "
                         "import '{0}'".format(another_import))
                 ex.failed_import = another_import
                 raise ex
+            normalized_url = _normal_import_url(import_url)
             if import_url in imports_graph:
                 imports_graph.add_graph_dependency(import_url,
                                                    location(_current_import))
@@ -343,11 +344,13 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
     for key_holder, value_holder in from_dict_holder.value.iteritems():
         if key_holder.value not in to_dict_holder or\
                 to_dict_holder.value[key_holder].namespace != namespace:
-            if isinstance(value_holder.value, dict):
-                for _, v in value_holder.value.iteritems():
-                    v.namespace = namespace
-            # value_holder.namespace = namespace
-            key_holder.value = "{0}::{1}".format(namespace, key_holder.value)
+            if namespace:
+                if isinstance(value_holder.value, dict):
+                    for _, v in value_holder.value.iteritems():
+                        v.namespace = namespace
+                # value_holder.namespace = namespace
+                key_holder.value = "{0}::{1}".format(namespace,
+                                                     key_holder.value)
             to_dict_holder.value[key_holder] = value_holder
         else:
             raise exceptions.DSLParsingLogicException(
