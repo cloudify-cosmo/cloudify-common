@@ -240,7 +240,8 @@ def _build_ordered_imports(parsed_dsl_holder,
         return isinstance(imported_resource, Holder)
 
     def _build_ordered_imports_recursive(_current_parsed_dsl_holder,
-                                         _current_import):
+                                         _current_import,
+                                         initial_namespace=None):
         imports_key_holder, imports_value_holder = _current_parsed_dsl_holder.\
             get_item(constants.IMPORTS)
         if not imports_value_holder:
@@ -250,6 +251,8 @@ def _build_ordered_imports(parsed_dsl_holder,
             namespace, import_url = _extract_import_parts(another_import,
                                                           resources_base_path,
                                                           _current_import)
+            if initial_namespace:
+                namespace = '::'.join([initial_namespace, namespace])
             normalized_url = _normal_import_url(import_url)
             if import_url is None:
                 ex = exceptions.DSLParsingLogicException(
@@ -274,7 +277,8 @@ def _build_ordered_imports(parsed_dsl_holder,
                                   location(_current_import),
                                   namespace)
                 _build_ordered_imports_recursive(imported_dsl,
-                                                 import_url)
+                                                 import_url,
+                                                 namespace)
     _build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
     return imports_graph.topological_sort()
 
