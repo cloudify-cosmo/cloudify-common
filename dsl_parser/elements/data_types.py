@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -139,13 +139,11 @@ class SchemaWithInitialDefault(Schema):
 class DataTypeDescription(Element):
 
     schema = Leaf(type=str)
-    add_namespace = False
 
 
 class DataTypeVersion(Element):
 
     schema = Leaf(type=str)
-    add_namespace = False
 
 
 class DataType(types.Type):
