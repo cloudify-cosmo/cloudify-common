@@ -130,7 +130,8 @@ class Context(object):
                               parent_element,
                               namespace=None):
         if value:
-            # If there is a point for updating the namespace, it's None on default
+            # If there is a point for updating the namespace,
+            # it's None on default
             self.namespace = value.namespace or namespace
         element = element_cls(name=name,
                               initial_value=value,
@@ -193,7 +194,8 @@ class Context(object):
             if namespace and \
                     parent_element._initial_value and\
                     parent_element.add_namespace and\
-                    parent_element._initial_value not in constants.USER_PRIMITIVE_TYPES:
+                    parent_element._initial_value not in\
+                    constants.USER_PRIMITIVE_TYPES:
                 namespace = parent_element.namespace or namespace
                 parent_element._initial_value = "{0}::{1}"\
                     .format(namespace, parent_element._initial_value)
@@ -208,8 +210,10 @@ class Context(object):
                 current_namespace = value_holder.namespace or namespace
                 if current_namespace and\
                         parent_element.add_namespace and \
-                        name_holder.value not in constants.USER_PRIMITIVE_TYPES:
-                    name_holder.value = "{0}::{1}".format(current_namespace, name_holder.value)
+                        name_holder.value not in\
+                        constants.USER_PRIMITIVE_TYPES:
+                    name_holder.value = "{0}::{1}".format(
+                        current_namespace, name_holder.value)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,
                                            value=value_holder,

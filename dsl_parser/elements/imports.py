@@ -341,7 +341,8 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                                            key_name,
                                            namespace):
     for key_holder, value_holder in from_dict_holder.value.iteritems():
-        if key_holder.value not in to_dict_holder or to_dict_holder.value[key_holder].namespace != namespace:
+        if key_holder.value not in to_dict_holder or\
+                to_dict_holder.value[key_holder].namespace != namespace:
             if isinstance(value_holder.value, dict):
                 for _, v in value_holder.value.iteritems():
                     v.namespace = namespace
@@ -362,11 +363,15 @@ class ImportsGraph(object):
 
     def add(self, import_url, parsed, via_import=None, namespace=None):
         if import_url not in self._imports_tree:
-            self._imports_tree.add_node(import_url, parsed=parsed, namespace=namespace)
-            self._imports_graph.add_node(import_url, parsed=parsed, namespace=namespace)
+            self._imports_tree.add_node(import_url, parsed=parsed,
+                                        namespace=namespace)
+            self._imports_graph.add_node(import_url, parsed=parsed,
+                                         namespace=namespace)
         if via_import:
-            self._imports_tree.add_edge(import_url, via_import, namespace=namespace)
-            self._imports_graph.add_edge(import_url, via_import, namespace=namespace)
+            self._imports_tree.add_edge(import_url, via_import,
+                                        namespace=namespace)
+            self._imports_graph.add_edge(import_url, via_import,
+                                         namespace=namespace)
 
     def add_graph_dependency(self, import_url, via_import):
         if via_import:
