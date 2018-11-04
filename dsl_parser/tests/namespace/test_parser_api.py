@@ -20,10 +20,39 @@ imports:
     -   {0}::{1}
 """.format('test', bottom_file_name)
 
+        parsed = self.parse(top_level_yaml)
+        vm = parsed['nodes'][0]
+        self.assertEqual(
+            'value',
+            vm['properties']['prop1'])
+
+    def test_node_type_collision_import(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+node_types:
+  test_type:
+    properties:
+      prop1:
+        default: value"""
+        bottom_file_name = self.make_yaml_file(yaml)
+
+        top_level_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+node_types:
+  test_type:
+    properties:
+      prop1:
+        default: value2
+node_templates:
+    test_node1:
+        type: test::test_type
+    test_node2:
+        type: test_type
+imports:
+    -   {0}::{1}
+""".format('test', bottom_file_name)
+
         result = self.parse(top_level_yaml)
 
     def test_merging_node_type_import(self):
-        # TODO: deal with merging
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 node_types:
   test_type:
@@ -72,11 +101,40 @@ imports:
 
         self.parse(top_level_yaml)
 
-    def test_implicit_default_value(self):
-        pass
-
     def test_nested_defaults(self):
         pass
+
+    def test_collision(self):
+        file1 = """
+data_types:
+    data1:
+        properties:
+            prop1:
+                default: value1
+"""
+        import_path = self.make_yaml_file(file1)
+        yaml = """
+imports:
+  - {0}::{1}
+data_types:
+    data1:
+        properties:
+            prop1:
+                default: value2
+node_types:
+    type:
+        properties:
+            prop1:
+                type: test::data1
+            prop2:
+                type: data1
+node_templates:
+    node:
+        type: type
+""".format('test', import_path)
+        properties = self.parse_1_3(yaml)['nodes'][0]['properties']
+        self.assertEqual(properties['prop1']['prop1'], 'value1')
+        self.assertEqual(properties['prop2']['prop1'], 'value2')
 
     def test_imports_merging(self):
         file1 = """
@@ -141,6 +199,18 @@ data_types:
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
   - {0}::{1}
+node_types:
+    vm_type:
+        properties:
+            agent:
+                type: agent
+node_templates:
+    vm:
+        type: vm_type
+        properties:
+            agent:
+                connection:
+                    key: /home/ubuntu/id_rsa
 data_types:
     agent:
         derived_from: test::agent_installer
@@ -150,4 +220,11 @@ data_types:
                 default: /home/
 """.format('test', import_path)
 
-        parsed = self.parse_1_3(main_yaml)
+        parsed = self.parse(main_yaml)
+        vm = parsed['nodes'][0]
+        self.assertEqual(
+            'ubuntu',
+            vm['properties']['agent']['connection']['username'])
+        self.assertEqual(
+            '/home/ubuntu/id_rsa',
+            vm['properties']['agent']['connection']['key'])
