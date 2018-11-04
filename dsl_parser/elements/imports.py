@@ -337,8 +337,12 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                                            key_name,
                                            namespace):
     for key_holder, value_holder in from_dict_holder.value.iteritems():
-        if key_holder.value not in to_dict_holder:
-            value_holder.namespace = namespace
+        if key_holder.value not in to_dict_holder or to_dict_holder.value[key_holder].namespace != namespace:
+            if isinstance(value_holder.value, dict):
+                for _, v in value_holder.value.iteritems():
+                    v.namespace = namespace
+            # value_holder.namespace = namespace
+            key_holder.value = "{0}::{1}".format(namespace, key_holder.value)
             to_dict_holder.value[key_holder] = value_holder
         else:
             raise exceptions.DSLParsingLogicException(
