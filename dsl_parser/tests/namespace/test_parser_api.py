@@ -136,6 +136,51 @@ node_templates:
         self.assertEqual(properties['prop1']['prop1'], 'value1')
         self.assertEqual(properties['prop2']['prop1'], 'value2')
 
+    def test_two_lvl_collision(self):
+        layer1 = """
+data_types:
+    data1:
+        properties:
+            prop1:
+                default: value1
+"""
+        layer1_import_path = self.make_yaml_file(layer1)
+        layer2 = """
+imports:
+  - {0}::{1}
+data_types:
+    data1:
+        properties:
+            prop1:
+                default: value2
+""".format('test1', layer1_import_path)
+        layer2_import_path = self.make_yaml_file(layer2)
+        yaml = """
+imports:
+  - {0}::{1}
+data_types:
+    data1:
+        properties:
+            prop1:
+                default: value3
+node_types:
+    type:
+        properties:
+            prop1:
+                type: test::data1
+            prop2:
+                type: data1
+            prop3:
+                type: test::test1::data1
+node_templates:
+    node:
+        type: type
+""".format('test', layer2_import_path)
+        properties = self.parse_1_3(yaml)['nodes'][0]['properties']
+        self.assertEqual(properties['prop1']['prop1'], 'value2')
+        self.assertEqual(properties['prop2']['prop1'], 'value3')
+        self.assertEqual(properties['prop3']['prop1'], 'value1')
+
     def test_imports_merging(self):
         file1 = """
 data_types:
