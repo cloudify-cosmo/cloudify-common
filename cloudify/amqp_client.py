@@ -421,6 +421,7 @@ class SendHandler(object):
         'auto_delete': False,
         'durable': True,
     }
+    wait_for_publish = True
 
     def __init__(self, exchange, exchange_type='direct', routing_key=''):
         self.exchange = exchange
@@ -453,7 +454,15 @@ class SendHandler(object):
             'exchange': self.exchange,
             'body': json.dumps(message),
             'routing_key': self.routing_key
-        })
+        }, wait=self.wait_for_publish)
+
+
+class NoWaitSendHandler(SendHandler):
+    """
+    A send handler that doesn't wait for the message to be sent.
+    This is useful for buffering cases like sending multiple logs at once.
+    """
+    wait_for_publish = False
 
 
 class _RequestResponseHandlerBase(TaskConsumer):
@@ -584,7 +593,8 @@ class CloudifyEventsPublisher(object):
 
     def __init__(self, amqp_params):
         self.handlers = {
-            'log': SendHandler(LOGS_EXCHANGE_NAME, exchange_type='fanout'),
+            'log': NoWaitSendHandler(LOGS_EXCHANGE_NAME,
+                                     exchange_type='fanout'),
             'event': SendHandler(EVENTS_EXCHANGE_NAME,
                                  exchange_type='topic',
                                  routing_key='events'),
