@@ -424,6 +424,18 @@ def _process_operations(partial_error_message,
                         plugins,
                         error_code,
                         resource_base):
+    def add_operation_to_operations_dict(operation, interface_name):
+        operation_name = operation.pop('name')
+        if operation_name in operations:
+            # Indicate this implicit operation name needs to be
+            # removed as we can only
+            # support explicit implementation in this case
+            operations[operation_name] = None
+        else:
+            operations[operation_name] = operation
+        operations['{0}.{1}'.format(interface_name,
+                                    operation_name)] = operation
+
     operations = {}
     for interface_name, interface in interfaces.items():
         interface_operations = \
@@ -436,16 +448,12 @@ def _process_operations(partial_error_message,
                                                     partial_error_message)),
                 resource_bases=resource_base)
         for operation in interface_operations:
-            operation_name = operation.pop('name')
-            if operation_name in operations:
-                # Indicate this implicit operation name needs to be
-                # removed as we can only
-                # support explicit implementation in this case
-                operations[operation_name] = None
+            if isinstance(operation, list):
+                for inner_operation in operation:
+                    add_operation_to_operations_dict(inner_operation,
+                                                     interface_name)
             else:
-                operations[operation_name] = operation
-            operations['{0}.{1}'.format(interface_name,
-                                        operation_name)] = operation
+                add_operation_to_operations_dict(operation, interface_name)
 
     return dict((operation_name, operation) for operation_name, operation in
                 operations.iteritems() if operation is not None)

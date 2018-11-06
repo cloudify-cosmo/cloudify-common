@@ -285,7 +285,7 @@ class Parser(object):
             inputs=inputs)
 
         for element in context.elements_graph_topological_sort():
-
+            from ..elements.operation import NodeTemplateOperation, OperationImplementation
             if isinstance(element, _BatchDependency):
                 continue
             try:
