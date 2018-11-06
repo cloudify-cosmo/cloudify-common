@@ -249,15 +249,17 @@ def process_operation(
                                                  operation_mapping):
             operation_payload = copy.deepcopy(operation_payload or {})
             if constants.SCRIPT_PATH_PROPERTY in operation_payload:
-                message = "Cannot define '{0}' property in '{1}' for {2} '{3}'" \
-                    .format(constants.SCRIPT_PATH_PROPERTY,
-                            operation_mapping,
-                            'workflow' if is_workflows else 'operation',
-                            operation_name)
+                message = \
+                    "Cannot define '{0}' property in '{1}' for {2} '{3}'" \
+                        .format(constants.SCRIPT_PATH_PROPERTY,
+                                operation_mapping,
+                                'workflow' if is_workflows else 'operation',
+                                operation_name)
                 raise exceptions.DSLParsingLogicException(60, message)
             script_path = operation_mapping
             if is_workflows:
-                operation_mapping = constants.SCRIPT_PLUGIN_EXECUTE_WORKFLOW_TASK
+                operation_mapping = \
+                    constants.SCRIPT_PLUGIN_EXECUTE_WORKFLOW_TASK
                 operation_payload.update({
                     constants.SCRIPT_PATH_PROPERTY: {
                         'default': script_path,
@@ -271,11 +273,12 @@ def process_operation(
                     constants.SCRIPT_PATH_PROPERTY: script_path
                 })
             if constants.SCRIPT_PLUGIN_NAME not in plugins:
-                message = "Script plugin is not defined but it is required for" \
-                          " mapping '{0}' of {1} '{2}'" \
-                    .format(operation_mapping,
-                            'workflow' if is_workflows else 'operation',
-                            operation_name)
+                message = \
+                    "Script plugin is not defined but it is required for" \
+                    " mapping '{0}' of {1} '{2}'" \
+                        .format(operation_mapping,
+                                'workflow' if is_workflows else 'operation',
+                                operation_name)
                 raise exceptions.DSLParsingLogicException(61, message)
 
             if is_workflows:
