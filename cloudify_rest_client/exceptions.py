@@ -247,7 +247,7 @@ class IncompatibleClusterArchitectureError(CloudifyClientError):
     Raise when a cluster node with architecture X is trying to join a cluster
     with architecture Y
 
-    I.E - Master is all-in-one and slave has an external database
+    E.G. - Master is all-in-one and slave has an external database
     """
     ERROR_CODE = 'incompatible_cluster_architecture'
 
