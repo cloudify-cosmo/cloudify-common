@@ -303,5 +303,12 @@ def process_operation(
 
 
 def _resource_exists(resource_bases, resource_name):
+    resource_parts = resource_name.split('://')
+    # If the user refers to a script that's supposed to be located
+    # inside the blueprint's directory, then perform a real check.
+    # Otherwise, assume that the resource exists because the user
+    # may choose to make the resource available later.
+    if resource_parts[0] in ['http', 'https', 'manager', 'local']:
+        return True
     return any(utils.url_exists('{0}/{1}'.format(resource_base, resource_name))
                for resource_base in resource_bases if resource_base)

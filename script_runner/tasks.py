@@ -22,6 +22,7 @@ import time
 import json
 import tempfile
 import subprocess
+import shutil
 from contextlib import contextmanager
 
 import requests
@@ -31,6 +32,7 @@ from cloudify.utils import create_temp_folder
 from cloudify.workflows import ctx as workflows_ctx
 from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
+from cloudify.manager import download_resource_from_manager
 from cloudify.proxy.client import CTX_SOCKET_URL
 from cloudify.proxy.server import (UnixCtxProxy,
                                    TCPCtxProxy,
@@ -73,7 +75,7 @@ def run(script_path, process=None, ssl_cert_content=None, **kwargs):
     if script_path is None:
         raise NonRecoverableError('Script path parameter not defined')
     process = create_process_config(process or {}, kwargs)
-    script_path = download_resource(ctx.download_resource, script_path,
+    script_path = download_resource(ctx, ctx.download_resource, script_path,
                                     ssl_cert_content)
     os.chmod(script_path, 0755)
     script_func = get_run_script_func(script_path, process)
@@ -86,6 +88,7 @@ def run(script_path, process=None, ssl_cert_content=None, **kwargs):
 def execute_workflow(script_path, ssl_cert_content=None, **kwargs):
     ctx = workflows_ctx._get_current_object()
     script_path = download_resource(
+        ctx,
         ctx.internal.handler.download_deployment_resource, script_path,
         ssl_cert_content)
     script_result = process_execution(eval_script, script_path, ctx)
@@ -365,7 +368,7 @@ def _get_process_environment(process, proxy):
     return env
 
 
-def download_resource(download_resource_func, script_path,
+def download_resource(ctx, download_resource_func, script_path,
                       ssl_cert_content=None):
     split = script_path.split('://')
     schema = split[0]
@@ -383,9 +386,16 @@ def download_resource(download_resource_func, script_path,
         content = response.text
         with open(target_path, 'w') as f:
             f.write(content)
-        return target_path
+    elif schema == 'local':
+        manager_path = split[1]
+        shutil.copyfile(manager_path, target_path)
+    elif schema == 'manager':
+        manager_path = split[1]
+        download_resource_from_manager('user/{}'.format(manager_path), ctx.logger, target_path)
     else:
-        return download_resource_func(script_path, target_path)
+        target_path = download_resource_func(script_path, target_path)
+
+    return target_path
 
 
 @contextmanager
