@@ -211,11 +211,10 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
     holder_result.value = {}
     used_imports = []
     for imported in ordered_imports:
-        import_url = imported['import']
+        import_url, namespace = imported['import']
         if import_url is not constants.ROOT_ELEMENT_VALUE:
             used_imports.append(import_url)
         parsed_imported_dsl_holder = imported['parsed']
-        namespace = imported['namespace']
         if validate_version:
             _validate_version(version.raw,
                               import_url,
@@ -261,9 +260,11 @@ def _build_ordered_imports(parsed_dsl_holder,
                 ex.failed_import = another_import
                 raise ex
             normalized_url = _normal_import_url(import_url)
-            if import_url in imports_graph:
+
+            if (import_url, namespace) in imports_graph:
                 imports_graph.add_graph_dependency(import_url,
-                                                   location(_current_import))
+                                                   (location(_current_import), initial_namespace),
+                                                   namespace)
             else:
                 imported_dsl = resolver.fetch_import(import_url)
                 if not _is_parsed_resource(imported_dsl):
@@ -275,11 +276,12 @@ def _build_ordered_imports(parsed_dsl_holder,
                         filename=normalized_url)
                 imports_graph.add(import_url,
                                   imported_dsl,
-                                  location(_current_import),
+                                  (location(_current_import), initial_namespace),
                                   namespace)
                 _build_ordered_imports_recursive(imported_dsl,
                                                  import_url,
                                                  namespace)
+
     _build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
     return imports_graph.topological_sort()
 
@@ -365,25 +367,21 @@ class ImportsGraph(object):
         self._imports_graph = nx.DiGraph()
 
     def add(self, import_url, parsed, via_import=None, namespace=None):
+        node_key = (import_url, namespace)
         if import_url not in self._imports_tree:
-            self._imports_tree.add_node(import_url, parsed=parsed,
-                                        namespace=namespace)
-            self._imports_graph.add_node(import_url, parsed=parsed,
-                                         namespace=namespace)
+            self._imports_tree.add_node(node_key, parsed=parsed)
+            self._imports_graph.add_node(node_key, parsed=parsed)
         if via_import:
-            self._imports_tree.add_edge(import_url, via_import,
-                                        namespace=namespace)
-            self._imports_graph.add_edge(import_url, via_import,
-                                         namespace=namespace)
+            self._imports_tree.add_edge(node_key, via_import)
+            self._imports_graph.add_edge(node_key, via_import)
 
-    def add_graph_dependency(self, import_url, via_import):
+    def add_graph_dependency(self, import_url, via_import, namespace):
         if via_import:
-            self._imports_graph.add_edge(import_url, via_import)
+            self._imports_graph.add_edge((import_url, namespace), via_import)
 
     def topological_sort(self):
         return reversed(list(
             ({'import': i,
-              'namespace': self._imports_tree.node[i]['namespace'],
              'parsed': self._imports_tree.node[i]['parsed']}
              for i in nx.topological_sort(self._imports_tree))))
 
