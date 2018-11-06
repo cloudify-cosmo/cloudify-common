@@ -30,7 +30,10 @@ from dsl_parser.interfaces.utils import (operation,
 
 
 class OperationImplementation(Element):
-    schema = Leaf(type=object)
+    schema = [
+        Leaf(type=str),
+        Leaf(type=list)
+    ]
 
     # schema = List(type=Leaf(type=str))
 
@@ -129,7 +132,8 @@ class OperationRetryInterval(Element):
 class Operation(Element):
 
     def parse(self):
-        if isinstance(self.initial_value, basestring):
+        if isinstance(self.initial_value, basestring) \
+                or isinstance(self.initial_value, list):
             return {
                 'implementation': self.initial_value,
                 'executor': None,
