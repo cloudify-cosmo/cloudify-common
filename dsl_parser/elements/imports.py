@@ -236,8 +236,18 @@ def _build_ordered_imports(parsed_dsl_holder,
     imports_graph = ImportsGraph()
     imports_graph.add(location(dsl_location), parsed_dsl_holder)
 
-    def _is_parsed_resource(imported_resource):
-        return isinstance(imported_resource, Holder)
+    def _is_parsed_resource(item):
+        """
+        Checking if the given item is in parsed format.
+        """
+        return isinstance(item, Holder)
+
+    def _validate_namespace(namespace):
+        if ':' in namespace:
+            raise exceptions.DSLParsingLogicException(
+                212,
+                'Invalid {0}: import\'s namespace cannot'
+                'contain colon'.format(namespace))
 
     def _build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                          _current_import,
@@ -251,6 +261,7 @@ def _build_ordered_imports(parsed_dsl_holder,
             namespace, import_url = _extract_import_parts(another_import,
                                                           resources_base_path,
                                                           _current_import)
+            _validate_namespace(namespace)
             if initial_namespace:
                 namespace = '::'.join([initial_namespace, namespace])
             if import_url is None:
