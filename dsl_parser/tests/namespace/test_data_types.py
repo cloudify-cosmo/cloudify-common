@@ -138,7 +138,7 @@ data_types:
                 default: value2
 """.format('test1', layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
-        yaml = """
+        main_yaml = """
 imports:
   - {0}::{1}
 data_types:
@@ -159,7 +159,7 @@ node_templates:
     node:
         type: type
 """.format('test', layer2_import_path)
-        properties = self.parse_1_3(yaml)['nodes'][0]['properties']
+        properties = self.parse_1_3(main_yaml)['nodes'][0]['properties']
         self.assertEqual(properties['prop1']['prop1'], 'value2')
         self.assertEqual(properties['prop2']['prop1'], 'value3')
         self.assertEqual(properties['prop3']['prop1'], 'value1')
