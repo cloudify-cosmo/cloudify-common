@@ -31,7 +31,7 @@ data_types:
 """
         import_file_name = self.make_yaml_file(imported_yaml)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + self.MINIMAL_BLUEPRINT + """
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   {0}::{1}
 node_types:
@@ -43,9 +43,49 @@ node_templates:
     node:
         type: type
 """.format('test', import_file_name)
+        self.parse_1_2(main_yaml)
 
-        properties = self.parse_1_3(main_yaml)['nodes'][0]['properties']
-        self.assertEqual(properties['prop1']['test_prop']['prop'], 'value')
+    def test_basic_namespace_multi_import(self):
+        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+data_types:
+    test_type:
+        properties:
+            prop:
+                default: value
+    using_test_type:
+        properties:
+            test_prop:
+                type: test_type
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+    -   {2}::{1}
+node_types:
+    type:
+        properties:
+            prop1:
+                type: test::using_test_type
+    other_type:
+        properties:
+            prop1:
+                type: other_test::using_test_type
+node_templates:
+    node:
+        type: type
+    other_node:
+        type: other_type
+""".format('test', import_file_name, 'other_test')
+
+        parsed_yaml = self.parse_1_3(main_yaml)
+        node_properties = parsed_yaml['nodes'][0]['properties']
+        self.assertEqual(
+            node_properties['prop1']['test_prop']['prop'], 'value')
+        other_node_properties = parsed_yaml['nodes'][1]['properties']
+        self.assertEqual(
+            other_node_properties['prop1']['test_prop']['prop'], 'value')
 
     def test_data_type_collision(self):
         imported_yaml = """
@@ -156,7 +196,7 @@ node_templates:
         self.assertEqual(properties['prop1']['prop1'], 'value1')
         self.assertEqual(properties['prop2']['prop2'], 'value2')
 
-    def test_derives_from_namespace_import(self):
+    def test_derives_from_with_namespace_import(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 data_types:
     agent_connection:
