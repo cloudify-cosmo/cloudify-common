@@ -262,9 +262,10 @@ def _build_ordered_imports(parsed_dsl_holder,
             normalized_url = _normal_import_url(import_url)
 
             if (import_url, namespace) in imports_graph:
-                imports_graph.add_graph_dependency(import_url,
-                                                   (location(_current_import), initial_namespace),
-                                                   namespace)
+                imports_graph.add_graph_dependency(
+                    import_url,
+                    (location(_current_import), initial_namespace),
+                    namespace)
             else:
                 imported_dsl = resolver.fetch_import(import_url)
                 if not _is_parsed_resource(imported_dsl):
@@ -274,10 +275,11 @@ def _build_ordered_imports(parsed_dsl_holder,
                                       "(via '{1}')"
                                       .format(another_import, import_url),
                         filename=normalized_url)
-                imports_graph.add(import_url,
-                                  imported_dsl,
-                                  (location(_current_import), initial_namespace),
-                                  namespace)
+                imports_graph.add(
+                    import_url,
+                    imported_dsl,
+                    (location(_current_import), initial_namespace),
+                    namespace)
                 _build_ordered_imports_recursive(imported_dsl,
                                                  import_url,
                                                  namespace)
