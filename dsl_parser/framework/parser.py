@@ -285,6 +285,7 @@ class Parser(object):
             inputs=inputs)
 
         for element in context.elements_graph_topological_sort():
+
             if isinstance(element, _BatchDependency):
                 continue
             try:

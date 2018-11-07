@@ -149,6 +149,7 @@ class NodeTypeOperation(Operation):
 
     schema = [
         Leaf(type=str),
+        Leaf(type=list),
         {
             'implementation': OperationImplementation,
             'inputs': data_types.Schema,
@@ -163,6 +164,7 @@ class NodeTemplateOperation(Operation):
 
     schema = [
         Leaf(type=str),
+        Leaf(type=list),
         {
             'implementation': OperationImplementation,
             'inputs': NodeTemplateOperationInputs,
