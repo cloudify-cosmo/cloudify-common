@@ -45,7 +45,8 @@ MERGE_NO_OVERRIDE = set([
 MERGEABLE_FROM_DSL_VERSION_1_3 = [
     constants.INPUTS,
     constants.OUTPUTS,
-    constants.NODE_TEMPLATES
+    constants.NODE_TEMPLATES,
+    constants.CAPABILITIES
 ]
 
 DONT_OVERWRITE = set([
