@@ -424,8 +424,12 @@ def _process_operations(partial_error_message,
                         plugins,
                         error_code,
                         resource_base):
-    def add_operation_to_operations_dict(operation, interface_name):
+    def add_operation_to_operations_dict(operation,
+                                         interface_name,
+                                         index_in_list=None):
         operation_name = operation.pop('name')
+        if index_in_list:
+            operation_name = '{}.item{}'.format(operation_name, index_in_list)
         if operation_name in operations:
             # Indicate this implicit operation name needs to be
             # removed as we can only
@@ -449,9 +453,10 @@ def _process_operations(partial_error_message,
                 resource_bases=resource_base)
         for operation in interface_operations:
             if isinstance(operation, list):
-                for inner_operation in operation:
+                for index, inner_operation in enumerate(operation):
                     add_operation_to_operations_dict(inner_operation,
-                                                     interface_name)
+                                                     interface_name,
+                                                     index_in_list=index)
             else:
                 add_operation_to_operations_dict(operation, interface_name)
 
