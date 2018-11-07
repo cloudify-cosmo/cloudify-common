@@ -11,17 +11,8 @@ node_templates:
     type: type
     interfaces:
       test:
-        run: script.script_runner.tasks.run
-#        run:
-#          implementation: script.script_runner.tasks.run
-#          inputs:
-#            script_path: { get_input: script_path }
-#            process:     { get_input: process     }
-#            input_as_env_var: { get_input: env_var }
-        run_list:
-          implementation:
-            - "/home/david/Downloads/tests/one.sh"
-            - "/home/david/Downloads/tests/two.sh"
+        run:
+          implementation: script.script_runner.tasks.run
           inputs:
             script_path: { get_input: script_path }
             process:     { get_input: process     }
