@@ -11,9 +11,10 @@
 # limitations under the License.
 ############
 
+from cloudify_rest_client.agents import Agent
 from cloudify_rest_client import CloudifyClient
-from cloudify_rest_client.node_instances import NodeInstance
 from cloudify_rest_client.executions import Execution
+from cloudify_rest_client.node_instances import NodeInstance
 
 
 node_instances = {}
@@ -53,6 +54,10 @@ class MockRestclient(CloudifyClient):
     def manager(self):
         return MockManagerClient()
 
+    @property
+    def agents(self):
+        return MockAgentsClient()
+
 
 class MockNodesClient(object):
 
@@ -88,3 +93,28 @@ class MockManagerClient(object):
 
     def get_context(self):
         return {'context': {}}
+
+
+class MockAgentsClient(object):
+
+    def update(self, name, state):
+        return Agent({
+            'id': name,
+            'name': name,
+            'state': state
+        })
+
+    def get(self, name):
+        return Agent({
+            'id': name,
+            'name': name,
+            'state': 'started'
+        })
+
+    def create(self, name, state, node_instance_id, **kwargs):
+        return Agent({
+            'id': name,
+            'name': name,
+            'node_instance_id': node_instance_id,
+            'state': state
+        })
