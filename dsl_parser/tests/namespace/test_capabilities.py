@@ -69,7 +69,8 @@ imports:
             parsed_yaml[constants.CAPABILITIES]['other_test::port']['value'])
         self.assertEqual(
             'the port',
-            parsed_yaml[constants.CAPABILITIES]['other_test::port']['description'])
+            parsed_yaml[constants.CAPABILITIES]
+            ['other_test::port']['description'])
 
     def test_input_collision(self):
         imported_yaml = """
@@ -95,9 +96,11 @@ capabilities:
         self.assertEqual(
             'one',
             parsed_yaml[constants.CAPABILITIES]['test::port']['description'])
-        self.assertEqual(2, parsed_yaml[constants.CAPABILITIES]['port']['value'])
-        self.assertEqual('two',
-                         parsed_yaml[constants.CAPABILITIES]['port']['description'])
+        self.assertEqual(2,
+                         parsed_yaml[constants.CAPABILITIES]['port']['value'])
+        self.assertEqual(
+            'two',
+            parsed_yaml[constants.CAPABILITIES]['port']['description'])
 
     def test_multi_layer_import_collision(self):
         layer1 = """
@@ -131,16 +134,19 @@ capabilities:
             parsed_yaml[constants.CAPABILITIES]['test::test1::port']['value'])
         self.assertEqual(
             'one',
-            parsed_yaml[constants.CAPABILITIES]['test::test1::port']['description'])
+            parsed_yaml[constants.CAPABILITIES]
+            ['test::test1::port']['description'])
         self.assertEqual(
             2,
             parsed_yaml[constants.CAPABILITIES]['test::port']['value'])
         self.assertEqual(
             'two',
             parsed_yaml[constants.CAPABILITIES]['test::port']['description'])
-        self.assertEqual(3, parsed_yaml[constants.CAPABILITIES]['port']['value'])
-        self.assertEqual('three',
-                         parsed_yaml[constants.CAPABILITIES]['port']['description'])
+        self.assertEqual(3,
+                         parsed_yaml[constants.CAPABILITIES]['port']['value'])
+        self.assertEqual(
+            'three',
+            parsed_yaml[constants.CAPABILITIES]['port']['description'])
 
     def test_imports_merging_with_no_collision(self):
         imported_yaml = """
@@ -167,7 +173,8 @@ capabilities:
         self.assertEqual(
             'one',
             parsed_yaml[constants.CAPABILITIES]['test::port1']['description'])
-        self.assertEqual(2, parsed_yaml[constants.CAPABILITIES]['port2']['value'])
+        self.assertEqual(
+            2, parsed_yaml[constants.CAPABILITIES]['port2']['value'])
         self.assertEqual(
             'two',
             parsed_yaml[constants.CAPABILITIES]['port2']['description'])
