@@ -198,6 +198,7 @@ class Context(object):
             if namespace and \
                     parent_element._initial_value and\
                     parent_element.add_namespace and\
+                    isinstance(parent_element._initial_value, str) and\
                     parent_element._initial_value not in\
                     constants.USER_PRIMITIVE_TYPES:
                 namespace = parent_element.namespace or namespace
