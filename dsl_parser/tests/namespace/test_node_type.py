@@ -183,6 +183,41 @@ node_templates:
                 'value{0}'.format(i+1),
                 vm['properties']['prop1'])
 
+    def test_multi_layer_same_import_collision(self):
+        layer1 = """
+node_types:
+  test_type:
+    properties:
+      prop1:
+        default: value1
+"""
+        layer1_import_path = self.make_yaml_file(layer1)
+        layer2 = """
+imports:
+  - {0}::{1}
+node_templates:
+  test_node:
+    type: test1::test_type
+""".format('test1', layer1_import_path)
+        layer2_import_path = self.make_yaml_file(layer2)
+        main_yaml = """
+imports:
+  - {0}::{1}
+  - {2}
+node_templates:
+    test_node2:
+        type: test::test_type
+""".format('test', layer1_import_path, layer2_import_path)
+        parsed = self.parse_1_3(main_yaml)
+        vm = parsed['nodes'][0]
+        self.assertEqual(
+            'value1',
+            vm['properties']['prop1'])
+        vm = parsed['nodes'][1]
+        self.assertEqual(
+            'value1',
+            vm['properties']['prop1'])
+
 
 class TestDetailNodeTypeNamespaceImport(AbstractTestParser):
     def test_derived_from(self):
@@ -201,29 +236,6 @@ node_types:
 node_templates:
     test_node:
         type: test_type2
-imports:
-    -   {0}::{1}
-""".format('test', import_file_name)
-
-        parsed = self.parse(main_yaml)
-        vm = parsed['nodes'][0]
-        self.assertEqual(
-            'value',
-            vm['properties']['prop1'])
-
-    def test_node_type_import(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-node_types:
-  test_type:
-    properties:
-      prop1: "value" 
-      """
-        import_file_name = self.make_yaml_file(imported_yaml)
-
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-node_templates:
-    test_node:
-        type: test::test_type
 imports:
     -   {0}::{1}
 """.format('test', import_file_name)
