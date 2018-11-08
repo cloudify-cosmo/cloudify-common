@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from dsl_parser import constants
 from dsl_parser.tests import scaling
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
@@ -256,6 +257,8 @@ class TestNamespacedMultiInstance(scaling.BaseTestMultiInstance):
             scalable:
                 properties:
                     default_instances: 2
+                    min_instances: 1
+                    max_instances: 10
 """
 
         import_file_name = self.make_yaml_file(imported_yaml)
@@ -266,11 +269,17 @@ imports:
 """.format('test', import_file_name)
 
         multi_plan = self.parse_multi(main_yaml)
-        nodes = multi_plan['node_instances']
-        self.assertEquals(2, len(nodes))
-        self.assertEquals(2, len(set(self._node_ids(nodes))))
+        nodes_instances = multi_plan[constants.NODE_INSTANCES]
+        self.assertEquals(2, len(nodes_instances))
+        self.assertEquals(2, len(set(self._node_ids(nodes_instances))))
 
-        self.assertIn('host_', nodes[0]['id'])
-        self.assertIn('host_', nodes[1]['id'])
-        self.assertEquals(nodes[0]['id'], nodes[0]['host_id'])
-        self.assertEquals(nodes[1]['id'], nodes[1]['host_id'])
+        self.assertIn('host_', nodes_instances[0]['id'])
+        self.assertIn('host_', nodes_instances[1]['id'])
+        self.assertEquals(nodes_instances[0]['id'],
+                          nodes_instances[0]['host_id'])
+        self.assertEquals(nodes_instances[1]['id'],
+                          nodes_instances[1]['host_id'])
+        node = multi_plan[constants.NODES][0]
+        node_props = node[constants.CAPABILITIES]['scalable']['properties']
+        self.assertEqual(1, node_props['min_instances'])
+        self.assertEqual(10, node_props['max_instances'])
