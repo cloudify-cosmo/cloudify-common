@@ -77,3 +77,7 @@ NODE_INSTANCE = 'node-instance'
 RELATIONSHIP_INSTANCE = 'relationship-instance'
 
 DEFAULT_NETWORK_NAME = 'default'
+
+# This *seriously* shouldn't be here, but we use it in snapshot restore,
+# so it's here until the snapshots become more manageable
+SECURITY_FILE_LOCATION = '/opt/manager/rest-security.conf'
