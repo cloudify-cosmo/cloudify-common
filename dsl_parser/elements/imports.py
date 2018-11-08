@@ -244,7 +244,7 @@ def _build_ordered_imports(parsed_dsl_holder,
         return isinstance(item, Holder)
 
     def _validate_namespace(namespace):
-        if ':' in namespace:
+        if namespace and ':' in namespace:
             raise exceptions.DSLParsingLogicException(
                 212,
                 'Invalid {0}: import\'s namespace cannot'
