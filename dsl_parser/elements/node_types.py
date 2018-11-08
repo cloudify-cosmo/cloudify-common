@@ -68,5 +68,6 @@ class NodeTypes(types.Types):
         }
 
     def _types_derived_from(self, derived_from):
-        return set(type_name for type_name, _type in self.value.items()
-                   if derived_from in _type[constants.TYPE_HIERARCHY])
+        return {type_name for type_name, _type in self.value.items()
+                if any(derived_from in
+                       item for item in _type[constants.TYPE_HIERARCHY])}
