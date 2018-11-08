@@ -167,11 +167,13 @@ class NodeTemplateInterfaces(DictElement):
 class NodeTypeInterface(Interface):
 
     schema = Dict(type=NodeTypeOperation)
+    add_namespace = False
 
 
 class NodeTypeInterfaces(DictElement):
 
     schema = Dict(type=NodeTypeInterface)
+    add_namespace = False
 
 
 def process_interface_operations(
