@@ -26,6 +26,7 @@ class PluginExecutor(Element):
 
     required = True
     schema = Leaf(type=str)
+    add_namespace = False
 
     def validate(self):
         if self.initial_value not in [constants.CENTRAL_DEPLOYMENT_AGENT,

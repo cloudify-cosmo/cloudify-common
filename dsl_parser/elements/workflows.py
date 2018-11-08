@@ -29,6 +29,10 @@ class WorkflowMapping(Element):
     schema = Leaf(type=str)
 
 
+class WorkflowParameters(data_types.Schema):
+    add_namespace = False
+
+
 class Workflow(Element):
 
     required = True
@@ -36,7 +40,7 @@ class Workflow(Element):
         Leaf(type=str),
         {
             'mapping': WorkflowMapping,
-            'parameters': data_types.Schema
+            'parameters': WorkflowParameters
         }
     ]
     requires = {
