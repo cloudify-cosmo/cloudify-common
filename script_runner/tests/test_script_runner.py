@@ -21,8 +21,11 @@ from collections import namedtuple
 
 import requests
 import testtools
+from testfixtures import log_capture
 from mock import patch
 from pytest import mark
+
+from . import string_in_log
 
 from cloudify.state import current_ctx
 from cloudify.decorators import workflow
@@ -403,7 +406,8 @@ subprocess.Popen(
         self.assertRaises(NonRecoverableError,
                           self._run, script_path=None)
 
-    def test_script_error(self):
+    @log_capture('ctx')
+    def test_script_error(self, capture):
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             echo 123123
@@ -422,10 +426,12 @@ subprocess.Popen(
 
             self.assertIn(os.path.basename(script_path), e.command)
             self.assertEqual(e.exit_code, expected_exit_code)
-            self.assertEqual(e.stdout.strip(), '123123')
-            self.assertIn('command_that_does_not_exist', e.stderr.strip())
+            self.assertTrue(string_in_log('123123', capture))
+            self.assertTrue(string_in_log('command_that_does_not_exist',
+                                          capture))
 
-    def test_script_error_from_bad_ctx_request(self):
+    @log_capture('ctx')
+    def test_script_error_from_bad_ctx_request(self, capture):
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx property_that_does_not_exist
@@ -439,8 +445,9 @@ subprocess.Popen(
         except tasks.ProcessException as e:
             self.assertIn(os.path.basename(script_path), e.command)
             self.assertEqual(e.exit_code, 1)
-            self.assertIn('RequestError', e.stderr)
-            self.assertIn('property_that_does_not_exist', e.stderr)
+            self.assertTrue(string_in_log('RequestError', capture))
+            self.assertTrue(string_in_log('property_that_does_not_exist',
+                                          capture))
 
     def test_python_script(self):
         script = '''
@@ -523,7 +530,8 @@ if __name__ == '__main__':
         test('override')
         test({'key': 'value'})
 
-    def test_get_nonexistent_runtime_property(self):
+    @log_capture('ctx')
+    def test_get_nonexistent_runtime_property(self, capture):
         """Accessing a nonexistent runtime property throws an error."""
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
@@ -538,10 +546,11 @@ if __name__ == '__main__':
 
         self.assertIn(os.path.basename(script_path), e.command)
         self.assertEqual(e.exit_code, 1)
-        self.assertIn('RequestError', e.stderr)
-        self.assertIn('nonexistent', e.stderr)
+        self.assertTrue(string_in_log('RequestError', capture))
+        self.assertTrue(string_in_log('nonexistent', capture))
 
-    def test_get_nonexistent_runtime_property_json(self):
+    @log_capture('ctx')
+    def test_get_nonexistent_runtime_property_json(self, capture):
         """Getting an undefined runtime property as json throws an error."""
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
@@ -556,8 +565,8 @@ if __name__ == '__main__':
 
         self.assertIn(os.path.basename(script_path), e.command)
         self.assertEqual(e.exit_code, 1)
-        self.assertIn('RequestError', e.stderr)
-        self.assertIn('nonexistent', e.stderr)
+        self.assertTrue(string_in_log('RequestError', capture))
+        self.assertTrue(string_in_log('nonexistent', capture))
 
     def test_tempdir_no_override(self):
         script_path = self._create_script(

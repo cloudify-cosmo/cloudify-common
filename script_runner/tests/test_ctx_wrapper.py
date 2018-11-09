@@ -21,6 +21,8 @@ import ast
 import testtools
 from testfixtures import log_capture
 
+from . import string_in_log
+
 import cloudify.ctx_wrappers
 from cloudify.exceptions import NonRecoverableError
 from cloudify.exceptions import OperationRetry
@@ -112,19 +114,21 @@ class PythonWrapperTests(testtools.TestCase):
         result = self._run(script)
         self.assertEqual(result['key'], 'value')
 
-    def test_direct_bad_ctx_call(self):
+    @log_capture('ctx')
+    def test_direct_bad_ctx_call(self, capture):
         script = ('ctx("bad_call")')
-        ex = self.assertRaises(ProcessException, self._run, script)
-        self.assertIn(
+        self.assertRaises(ProcessException, self._run, script)
+        self.assertTrue(string_in_log(
             'RuntimeError: bad_call cannot be processed in',
-            str(ex.stderr))
+            capture))
 
-    def test_direct_ctx_call_missing_property(self):
+    @log_capture('ctx')
+    def test_direct_ctx_call_missing_property(self, capture):
         script = ('ctx("node properties missing_node_property")')
-        ex = self.assertRaises(ProcessException, self._run, script)
-        self.assertIn(
+        self.assertRaises(ProcessException, self._run, script)
+        self.assertTrue(string_in_log(
             'illegal path: missing_node_property',
-            str(ex.stderr))
+            capture))
 
     @log_capture('ctx')
     def test_logger(self, capture):
@@ -142,8 +146,8 @@ class PythonWrapperTests(testtools.TestCase):
             'error_message'
         ]
         self._run(script)
-        # first two messages are unrelated to the test
-        del capture.records[:2]
+        # first four messages are unrelated to the test
+        del capture.records[:4]
         for m in range(1, len(expected_levels)):
             self.assertEqual(
                 '{0}: {1}'.format(
@@ -293,13 +297,14 @@ class PythonWrapperTests(testtools.TestCase):
             script=script,
             expected_content='test_node')
 
-    def test_download_missing_resource(self):
+    @log_capture('ctx')
+    def test_download_missing_resource(self, capture):
         script = ('path = ctx.download_resource("missing_resource")\n'
                   'ctx.returns(path)')
-        ex = self.assertRaises(ProcessException, self._run, script)
-        self.assertIn(
+        self.assertRaises(ProcessException, self._run, script)
+        self.assertTrue(string_in_log(
             'IOError: [Errno 2] No such file or directory:',
-            str(ex.stderr))
+            capture))
 
     def test_abort_operation(self):
         script = ('ctx.abort_operation("abort_message")')
