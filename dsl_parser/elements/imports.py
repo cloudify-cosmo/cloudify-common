@@ -364,6 +364,9 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                 if isinstance(value_holder.value, dict):
                     for _, v in value_holder.value.iteritems():
                         v.namespace = namespace
+                elif isinstance(value_holder.value, str):
+                    value_holder.value = "{0}::{1}".format(namespace,
+                                                           value_holder.value)
                 # value_holder.namespace = namespace
                 key_holder.value = "{0}::{1}".format(namespace,
                                                      key_holder.value)
