@@ -265,11 +265,15 @@ def execute(script_path, ctx, process):
     else:
         ctx.logger.debug("Context proxy closed")
 
-    for t, name in [(stdout_consumer, 'stdout'), (stderr_consumer, 'stderr')]:
-        if t:
+    for consumer, name in [(stdout_consumer, 'stdout'),
+                           (stderr_consumer, 'stderr')]:
+        if consumer:
             ctx.logger.debug('Joining consumer thread for %s', name)
-            t.join()
+            consumer.join()
             ctx.logger.debug('Consumer thread for %s ended', name)
+        else:
+            ctx.logger.debug('Consumer thread for %s not created; not joining',
+                             name)
 
     # happens when more than 1 ctx result command is used
     if isinstance(ctx._return_value, RuntimeError):
