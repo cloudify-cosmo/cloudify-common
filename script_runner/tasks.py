@@ -15,13 +15,13 @@
 
 
 import os
-import errno
 import re
 import sys
 import time
 import json
 import tempfile
 import subprocess
+import threading
 from contextlib import contextmanager
 
 import requests
@@ -36,8 +36,6 @@ from cloudify.proxy.server import (UnixCtxProxy,
                                    TCPCtxProxy,
                                    HTTPCtxProxy,
                                    StubCtxProxy)
-
-from cloudify.constants import AGENT_WORK_DIR_KEY
 
 from script_runner import eval_env
 from script_runner import constants
@@ -207,62 +205,42 @@ def execute(script_path, ctx, process):
 
     # Figure out logging.
 
+    log_stdout = process.get('log_stdout', True)
+    log_stderr = process.get('log_stderr', True)
     stderr_to_stdout = process.get('stderr_to_stdout', False)
 
-    logs_root = os.environ.get(AGENT_WORK_DIR_KEY, DEFAULT_TASK_LOG_DIR)
-    logs_dir = os.path.join(logs_root, 'logs', 'tasks')
-    try:
-        os.makedirs(logs_dir)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
+    ctx.logger.debug('log_stdout=%r, log_stderr=%r, stderr_to_stdout=%r',
+                     log_stdout, log_stderr, stderr_to_stdout)
 
-    # ctx.task_id is a uuid
-    stdout_path = os.path.join(logs_dir, "{0}.{1}".format(
-        ctx.task_id, 'out'))
-
-    if stderr_to_stdout:
-        stderr_path = None
+    if log_stderr:
+        stderr_value = subprocess.STDOUT if stderr_to_stdout \
+            else subprocess.PIPE
     else:
-        stderr_path = os.path.join(logs_dir, "{0}.{1}".format(
-            ctx.task_id, 'err'))
+        stderr_value = None
 
-    ctx.logger.info('Executing: {0}, stdout: {1}, stderr: {2}'.format(
-        command, stdout_path, '<redirected to stdout>' if stderr_to_stdout
-        else stderr_path))
+    consume_stderr = stderr_value == subprocess.PIPE
 
-    # We need to support both Python 2.6 and 2.7.
-    # Using nested() is the only way to use multiple context managers
-    # in 2.6. In 2.7, nested() is deprecated in favour of a dedicated
-    # syntax. We could use nested() here with the intention of supporting
-    # 2.6 & 2.7, however that may result in errors if Python is
-    # configured to raise errors when using deprecated code.
-    # So, we will not use nested() here, nor will we use the
-    # 2.7 nested syntax. Once we drop support for 2.6, we can
-    # change this code.
-
-    with open(stdout_path, 'wb') as stdout_file:
-        popen_kwargs = {
-            'args': command,
-            'shell': True,
-            'stdout': stdout_file,
-            'env': env,
-            'cwd': cwd,
-            'bufsize': 1,
-            'close_fds': on_posix
-        }
-
-        if stderr_to_stdout:
-            process = subprocess.Popen(stderr=subprocess.STDOUT,
-                                       **popen_kwargs)
-        else:
-            with open(stderr_path, 'wb') as stderr_file:
-                process = subprocess.Popen(
-                    stderr=stderr_file,
-                    **popen_kwargs)
+    process = subprocess.Popen(
+        args=command,
+        shell=True,
+        stdout=subprocess.PIPE if log_stdout else None,
+        stderr=stderr_value,
+        env=env,
+        cwd=cwd,
+        bufsize=1,
+        close_fds=on_posix)
 
     pid = process.pid
     ctx.logger.info('Process created, PID: {0}'.format(pid))
+
+    stdout_consumer = stderr_consumer = None
+
+    if log_stdout:
+        stdout_consumer = OutputConsumer(process.stdout, ctx.logger, '<out> ')
+        ctx.logger.debug('Started consumer thread for stdout')
+    if consume_stderr:
+        stderr_consumer = OutputConsumer(process.stderr, ctx.logger, '<err> ')
+        ctx.logger.debug('Started consumer thread for stderr')
 
     log_counter = 0
     while True:
@@ -284,6 +262,18 @@ def execute(script_path, ctx, process):
         proxy.close()
     except Exception:
         ctx.logger.warning('Failed closing context proxy', exc_info=True)
+    else:
+        ctx.logger.debug("Context proxy closed")
+
+    for consumer, name in [(stdout_consumer, 'stdout'),
+                           (stderr_consumer, 'stderr')]:
+        if consumer:
+            ctx.logger.debug('Joining consumer thread for %s', name)
+            consumer.join()
+            ctx.logger.debug('Consumer thread for %s ended', name)
+        else:
+            ctx.logger.debug('Consumer thread for %s not created; not joining',
+                             name)
 
     # happens when more than 1 ctx result command is used
     if isinstance(ctx._return_value, RuntimeError):
@@ -292,9 +282,7 @@ def execute(script_path, ctx, process):
         if not (ctx.is_script_exception_defined and
            isinstance(ctx._return_value, ScriptException)):
                 raise ProcessException(command,
-                                       return_code,
-                                       stdout_path,
-                                       stderr_path)
+                                       return_code)
 
 
 def start_ctx_proxy(ctx, process):
@@ -403,26 +391,30 @@ def _prepare_ssl_cert(ssl_cert_content):
 
 
 class ProcessException(Exception):
-    def __init__(self, command, exit_code, stdout_path, stderr_path):
+    def __init__(self, command, exit_code):
         self.command = command
         self.exit_code = exit_code
-        self.stdout_path = stdout_path
-        self.stderr_path = stderr_path
 
-        message = 'command: {0}, exit_code: {1}, stdout: {2}, stderr: ' \
-                  '{3}'.format(command, exit_code, stdout_path, stderr_path)
+        message = 'command: {0}, exit_code: {1}'.format(
+            command, exit_code)
 
         super(ProcessException, self).__init__(message)
 
-    @property
-    def stdout(self):
-        return self._get_consumer_file(self.stdout_path)
 
-    @property
-    def stderr(self):
-        return self._get_consumer_file(self.stderr_path)
+class OutputConsumer(object):
 
-    @staticmethod
-    def _get_consumer_file(path):
-        with open(path, 'rb') as f:
-            return f.read()
+    def __init__(self, out, logger, prefix):
+        self.out = out
+        self.logger = logger
+        self.prefix = prefix
+        self.consumer = threading.Thread(target=self.consume_output)
+        self.consumer.daemon = True
+        self.consumer.start()
+
+    def consume_output(self):
+        for line in self.out:
+            self.logger.info("%s%s", self.prefix, line.rstrip('\n'))
+        self.out.close()
+
+    def join(self):
+        self.consumer.join()
