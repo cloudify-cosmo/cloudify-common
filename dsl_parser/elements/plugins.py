@@ -45,11 +45,13 @@ class PluginExecutor(Element):
 class PluginSource(Element):
 
     schema = Leaf(type=str)
+    add_namespace = False
 
 
 class PluginInstall(Element):
 
     schema = Leaf(type=bool)
+    add_namespace = False
 
     def parse(self):
         value = self.initial_value
@@ -59,6 +61,7 @@ class PluginInstall(Element):
 class PluginVersionValidatedElement(Element):
 
     schema = Leaf(type=str)
+    add_namespace = False
     requires = {
         element_version.ToscaDefinitionsVersion: ['version'],
         'inputs': ['validate_version']
@@ -74,30 +77,37 @@ class PluginVersionValidatedElement(Element):
 
 class PluginInstallArguments(PluginVersionValidatedElement):
     min_version = (1, 1)
+    add_namespace = False
 
 
 class PluginPackageName(PluginVersionValidatedElement):
     min_version = (1, 2)
+    add_namespace = False
 
 
 class PluginPackageVersion(PluginVersionValidatedElement):
     min_version = (1, 2)
+    add_namespace = False
 
 
 class PluginSupportedPlatform(PluginVersionValidatedElement):
     min_version = (1, 2)
+    add_namespace = False
 
 
 class PluginDistribution(PluginVersionValidatedElement):
     min_version = (1, 2)
+    add_namespace = False
 
 
 class PluginDistributionVersion(PluginVersionValidatedElement):
     min_version = (1, 2)
+    add_namespace = False
 
 
 class PluginDistributionRelease(PluginVersionValidatedElement):
     min_version = (1, 2)
+    add_namespace = False
 
 
 class Plugin(DictElement):
