@@ -22,7 +22,6 @@ import networkx as nx
 
 from dsl_parser import (constants,
                         exceptions,
-                        utils,
                         relationship_utils)
 
 NODES = 'nodes'
@@ -832,7 +831,7 @@ def _relationship_type_hierarchy_includes_one_of(relationship,
     def _partial_match_in_list(source, item_list):
         return any([item for item in item_list if item in source])
     relationship_type_hierarchy = relationship['type_hierarchy']
-    return any([_partial_match_in_list(relationship_type,expected_types)
+    return any([_partial_match_in_list(relationship_type, expected_types)
                 for relationship_type in relationship_type_hierarchy])
 
 

@@ -49,7 +49,7 @@ node_templates:
         type: type
 """
 
-    #TODO: copied
+    # TODO: copied
     @staticmethod
     def modify_multi(plan, modified_nodes):
         return modify_deployment(
@@ -115,13 +115,13 @@ imports:
 """.format('test', import_file_name)
 
         plan = self.parse_multi(main_yaml)
-        nodes = \
-            copy.deepcopy(
-                    [n for n in plan['nodes'] if n['id'] != 'test::without_rel'])
+        nodes = copy.deepcopy(
+            [n for n in plan['nodes'] if n['id'] != 'test::without_rel'])
         with_rel_node = nodes[0]
-        with_rel_node['relationships'] = [r for r in
-                                          with_rel_node[constants.RELATIONSHIPS]
-                                          if r['target_id'] != 'test::without_rel']
+        with_rel_node['relationships'] = \
+            [r for r in
+             with_rel_node[constants.RELATIONSHIPS]
+             if r['target_id'] != 'test::without_rel']
         node_instances = self.modify_multi(plan, modified_nodes=nodes)
 
         self.assertEqual(len(node_instances['added_and_related']), 0)
@@ -148,8 +148,10 @@ imports:
         plan = self.parse_multi(main_yaml)
 
         rel_type = 'test::cloudify.relationships.connected_to'
-        with_rel = [n for n in plan[constants.NODES] if n['id'] == 'test::with_rel'][0]
-        without_rel = [n for n in plan[constants.NODES] if n['id'] == 'test::without_rel'][0]
+        with_rel = [n for n in plan[constants.NODES]
+                    if n['id'] == 'test::with_rel'][0]
+        without_rel = [n for n in plan[constants.NODES]
+                       if n['id'] == 'test::without_rel'][0]
         with_rel[constants.RELATIONSHIPS] = \
             [{'type': rel_type,
               'type_hierarchy': [rel_type],
