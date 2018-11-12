@@ -31,4 +31,3 @@ VISIBILITY_EXCEPT_PRIVATE = states_except_private
 
 states_except_global = copy.deepcopy(VisibilityState.STATES)
 states_except_global.remove(VisibilityState.GLOBAL)
-VISIBILITY_EXCEPT_GLOBAL = states_except_global
