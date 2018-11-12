@@ -232,7 +232,8 @@ class Context(object):
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=index,
                                            value=value_holder,
-                                           parent_element=parent_element)
+                                           parent_element=parent_element,
+                                           namespace=namespace)
         else:
             raise ValueError('Illegal state should have been identified'
                              ' by schema API validation')
