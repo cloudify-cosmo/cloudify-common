@@ -19,7 +19,8 @@ import networkx as nx
 
 from dsl_parser import (exceptions,
                         utils,
-                        constants)
+                        constants,
+                        relationship_utils)
 from dsl_parser.elements import (node_templates as _node_templates,
                                  data_types,
                                  scalable,
@@ -361,7 +362,8 @@ class Policies(DictElement):
         for node in node_templates:
             node_graph.add_node(node['id'])
             for rel in node.get(constants.RELATIONSHIPS, []):
-                if constants.CONTAINED_IN_REL_TYPE in rel['type_hierarchy']:
+                if relationship_utils.\
+                        contained_in_is_ancestor_in(rel['type_hierarchy']):
                     node_graph.add_edge(node['id'], rel['target_id'])
 
         self._validate_no_group_cycles(member_graph)

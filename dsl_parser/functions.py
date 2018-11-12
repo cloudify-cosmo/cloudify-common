@@ -18,7 +18,8 @@ import abc
 
 from dsl_parser import (constants,
                         exceptions,
-                        scan)
+                        scan,
+                        relationship_utils)
 
 
 SELF = 'SELF'
@@ -445,7 +446,7 @@ class GetAttribute(Function):
         def _parent_instance(_instance):
             _node = storage.get_node(_instance.node_id)
             for relationship in _node.relationships or []:
-                if (constants.CONTAINED_IN_REL_TYPE in
+                if relationship_utils.contained_in_is_ancestor_in(
                         relationship['type_hierarchy']):
                     target_name = relationship['target_id']
                     target_id = [
