@@ -222,7 +222,7 @@ node_templates:
         expected_plugin2 = host_plugin_def.copy()
         expected_plugin2['name'] = 'test::plugin2'
         expected_test_plugin1 = deployment_plugin_def.copy()
-        expected_test_plugin1['name'] = 'plugin1'
+        expected_test_plugin1['name'] = 'test::plugin1'
         plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
         node2 = self.get_node_by_name(parsed_yaml, 'test::node2')
         plugin2 = node2[constants.PLUGINS_TO_INSTALL][0]
