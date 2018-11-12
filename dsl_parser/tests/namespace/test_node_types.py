@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 from dsl_parser import constants
-from dsl_parser.tests import scaling
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
@@ -38,10 +37,10 @@ imports:
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
-        vm = parsed['nodes'][0]
+        vm = parsed[constants.NODES][0]
         self.assertEqual(
             'value',
-            vm['properties']['prop1'])
+            vm[constants.PROPERTIES]['prop1'])
 
     def test_basic_namespace_multi_import(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -64,14 +63,14 @@ imports:
 """.format('test', import_file_name, 'other')
 
         parsed = self.parse(main_yaml)
-        test_node = parsed['nodes'][0]
+        test_node = parsed[constants.NODES][0]
         self.assertEqual(
             'value',
-            test_node['properties']['prop1'])
-        other_node = parsed['nodes'][1]
+            test_node[constants.PROPERTIES]['prop1'])
+        other_node = parsed[constants.NODES][1]
         self.assertEqual(
             'value',
-            other_node['properties']['prop1'])
+            other_node[constants.PROPERTIES]['prop1'])
 
     def test_node_type_collision_import(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -98,14 +97,14 @@ imports:
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
-        vm = parsed['nodes'][0]
+        vm = parsed[constants.NODES][0]
         self.assertEqual(
             'value2',
-            vm['properties']['prop1'])
-        vm = parsed['nodes'][1]
+            vm[constants.PROPERTIES]['prop1'])
+        vm = parsed[constants.NODES][1]
         self.assertEqual(
             'value',
-            vm['properties']['prop1'])
+            vm[constants.PROPERTIES]['prop1'])
 
     def test_merging_node_type_import(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -133,14 +132,14 @@ imports:
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
-        vm = parsed['nodes'][0]
+        vm = parsed[constants.NODES][0]
         self.assertEqual(
             'value',
-            vm['properties']['prop1'])
-        vm = parsed['nodes'][1]
+            vm[constants.PROPERTIES]['prop1'])
+        vm = parsed[constants.NODES][1]
         self.assertEqual(
             'value',
-            vm['properties']['prop1'])
+            vm[constants.PROPERTIES]['prop1'])
 
     def test_multi_layer_import_collision(self):
         layer1 = """
@@ -179,10 +178,10 @@ node_templates:
 """.format('test', layer2_import_path)
         parsed = self.parse_1_3(main_yaml)
         for i in xrange(0, 3):
-            vm = parsed['nodes'][i]
+            vm = parsed[constants.NODES][i]
             self.assertEqual(
                 'value{0}'.format(i+1),
-                vm['properties']['prop1'])
+                vm[constants.PROPERTIES]['prop1'])
 
     def test_multi_layer_same_import_collision(self):
         layer1 = """
@@ -210,14 +209,14 @@ node_templates:
         type: test::test_type
 """.format('test', layer1_import_path, layer2_import_path)
         parsed = self.parse_1_3(main_yaml)
-        vm = parsed['nodes'][0]
+        vm = parsed[constants.NODES][0]
         self.assertEqual(
             'value1',
-            vm['properties']['prop1'])
-        vm = parsed['nodes'][1]
+            vm[constants.PROPERTIES]['prop1'])
+        vm = parsed[constants.NODES][1]
         self.assertEqual(
             'value1',
-            vm['properties']['prop1'])
+            vm[constants.PROPERTIES]['prop1'])
 
 
 class TestDetailNodeTypeNamespaceImport(AbstractTestParser):
@@ -242,44 +241,7 @@ imports:
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
-        vm = parsed['nodes'][0]
+        vm = parsed[constants.NODES][0]
         self.assertEqual(
             'value',
-            vm['properties']['prop1'])
-
-
-class TestNamespacedMultiInstance(scaling.BaseTestMultiInstance):
-    def test_scalable(self):
-        imported_yaml = self.BASE_BLUEPRINT + """
-    host:
-        type: cloudify.nodes.Compute
-        capabilities:
-            scalable:
-                properties:
-                    default_instances: 2
-                    min_instances: 1
-                    max_instances: 10
-"""
-
-        import_file_name = self.make_yaml_file(imported_yaml)
-
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-imports:
-    -   {0}::{1}
-""".format('test', import_file_name)
-
-        multi_plan = self.parse_multi(main_yaml)
-        nodes_instances = multi_plan[constants.NODE_INSTANCES]
-        self.assertEquals(2, len(nodes_instances))
-        self.assertEquals(2, len(set(self._node_ids(nodes_instances))))
-
-        self.assertIn('host_', nodes_instances[0]['id'])
-        self.assertIn('host_', nodes_instances[1]['id'])
-        self.assertEquals(nodes_instances[0]['id'],
-                          nodes_instances[0]['host_id'])
-        self.assertEquals(nodes_instances[1]['id'],
-                          nodes_instances[1]['host_id'])
-        node = multi_plan[constants.NODES][0]
-        node_props = node[constants.CAPABILITIES]['scalable']['properties']
-        self.assertEqual(1, node_props['min_instances'])
-        self.assertEqual(10, node_props['max_instances'])
+            vm[constants.PROPERTIES]['prop1'])
