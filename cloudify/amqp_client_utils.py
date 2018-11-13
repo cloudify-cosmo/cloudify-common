@@ -61,7 +61,10 @@ class _GlobalEventsPublisher(object):
     def unregister_caller(self):
         with self._connect_lock:
             self._callers -= 1
-            if self._callers == 0:
+            # Can theoretically be less than zero, if this function is called
+            # by dispatch.py as part of cleanup after the init_events_publisher
+            # call failed.
+            if self._callers <= 0:
                 self._disconnect()
                 self._thread.join()
 
@@ -113,6 +116,9 @@ def init_events_publisher():
 
 
 def close_amqp_client():
+    # This function MUST:
+    # 1. Be idempotent
+    # 2. Never raise any exception
     global_events_publisher.unregister_caller()
     global_management_events_publisher.unregister_caller()
 

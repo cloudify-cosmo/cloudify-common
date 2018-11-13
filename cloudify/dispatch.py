@@ -403,7 +403,15 @@ class OperationHandler(TaskHandler):
         # not local
         with_amqp = bool(self.ctx.task_target)
         if with_amqp:
-            amqp_client_utils.init_events_publisher()
+            try:
+                amqp_client_utils.init_events_publisher()
+            except Exception:
+                _, ex, tb = sys.exc_info()
+                # This one should never (!) raise an exception.
+                amqp_client_utils.close_amqp_client()
+                raise exceptions.RecoverableError(
+                    'Failed initializing AMQP connection',
+                    causes=[utils.exception_to_error_cause(ex, tb)])
         try:
             yield
         finally:
@@ -457,8 +465,8 @@ class WorkflowHandler(TaskHandler):
         tenant = self.ctx._context['tenant'].get('original_name',
                                                  self.ctx.tenant_name)
         rest = get_rest_client(tenant=tenant)
-        amqp_client_utils.init_events_publisher()
         try:
+            amqp_client_utils.init_events_publisher()
             try:
                 self._workflow_started()
             except InvalidExecutionUpdateStatus:
