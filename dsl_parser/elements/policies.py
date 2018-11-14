@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -95,8 +95,8 @@ class GroupPolicyProperties(Element):
     schema = Leaf(type=dict)
     requires = {
         GroupPolicyType: [],
-        PolicyTypes: [Value('policy_types')],
-        data_types.DataTypes: [Value('data_types')]
+        PolicyTypes: [Value(constants.POLICY_TYPES)],
+        data_types.DataTypes: [Value(constants.DATA_TYPES)]
     }
 
     def parse(self, policy_types, data_types):
@@ -121,7 +121,7 @@ class GroupPolicyTriggerType(Element):
     required = True
     schema = Leaf(type=basestring)
     requires = {
-        PolicyTriggers: [Value('policy_triggers')]
+        PolicyTriggers: [Value(constants.POLICY_TRIGGERS)]
     }
 
     def validate(self, policy_triggers):
@@ -142,8 +142,8 @@ class GroupPolicyTriggerParameters(Element):
     schema = Leaf(type=dict)
     requires = {
         GroupPolicyTriggerType: [],
-        PolicyTriggers: [Value('policy_triggers')],
-        data_types.DataTypes: [Value('data_types')]
+        PolicyTriggers: [Value(constants.POLICY_TYPES)],
+        data_types.DataTypes: [Value(constants.DATA_TYPES)]
     }
 
     def parse(self, policy_triggers, data_types):
@@ -231,7 +231,7 @@ class Group(DictElement):
 
     schema = {
         'members': GroupMembers,
-        'policies': GroupPolicies,
+        constants.POLICIES: GroupPolicies,
     }
     requires = {
         _node_templates.NodeTemplates: ['node_template_names']
@@ -269,7 +269,7 @@ class PolicyInstanceTarget(Element):
 
     schema = Leaf(type=basestring)
     requires = {
-        Groups: [Value('groups')]
+        Groups: [Value(constants.GROUPS)]
     }
 
     def validate(self, groups):
@@ -316,12 +316,12 @@ class Policies(DictElement):
 
     schema = Dict(type=Policy)
     requires = {
-        Groups: [Value('groups')],
-        _node_templates.NodeTemplates: [Value('node_templates')],
-        _version.ToscaDefinitionsVersion: ['version'],
-        'inputs': ['validate_version']
+        Groups: [Value(constants.GROUPS)],
+        _node_templates.NodeTemplates: [Value(constants.NODE_TEMPLATES)],
+        _version.ToscaDefinitionsVersion: [constants.VERSION],
+        constants.INPUTS: ['validate_version']
     }
-    provides = ['scaling_groups']
+    provides = [constants.SCALING_GROUPS]
 
     def validate(self, version, validate_version, **kwargs):
         if validate_version:
@@ -333,7 +333,7 @@ class Policies(DictElement):
         # the parsed value of "policies" which is only calculated in "parse"
         self._validate_and_update_groups(scaling_groups, node_templates)
         return {
-            'scaling_groups': scaling_groups
+            constants.SCALING_GROUPS: scaling_groups
         }
 
     def _create_scaling_groups(self, groups):
@@ -363,7 +363,7 @@ class Policies(DictElement):
             node_graph.add_node(node['id'])
             for rel in node.get(constants.RELATIONSHIPS, []):
                 if relationship_utils.\
-                        contained_in_is_ancestor_in(rel['type_hierarchy']):
+                        contained_in_is_ancestor_in(rel[constants.TYPE_HIERARCHY]):
                     node_graph.add_edge(node['id'], rel['target_id'])
 
         self._validate_no_group_cycles(member_graph)
