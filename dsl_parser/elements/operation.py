@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import re
 import copy
 
 from dsl_parser import (constants,
@@ -41,6 +42,8 @@ class OperationExecutor(Element):
 
     schema = Leaf(type=str)
 
+    add_namespace = False
+
     def validate(self):
         if self.initial_value is None:
             return
@@ -59,9 +62,15 @@ class OperationExecutor(Element):
                             ','.join(valid_executors)))
 
 
+class NodeTypeOperationInputs(data_types.Schema):
+    add_namespace = False
+
+
 class NodeTemplateOperationInputs(Element):
 
     schema = Leaf(type=dict)
+
+    add_namespace = False
 
     def parse(self):
         return self.initial_value if self.initial_value is not None else {}
@@ -128,7 +137,7 @@ class NodeTypeOperation(Operation):
         Leaf(type=str),
         {
             'implementation': OperationImplementation,
-            'inputs': data_types.Schema,
+            'inputs': NodeTypeOperationInputs,
             'executor': OperationExecutor,
             'max_retries': OperationMaxRetries,
             'retry_interval': OperationRetryInterval,
@@ -199,6 +208,19 @@ def process_operation(
         partial_error_message,
         resource_bases,
         is_workflows=False):
+    def _remove_mapping_namespace(operation_location):
+        """
+        Removing the namespace prefix from mapping string, this
+        is used in case of operation with a script for checking
+        existence of the file.
+        """
+        return re.sub('.*::', '', operation_location)
+
+    def _resource_exists(location_bases, resource_name):
+        resource_name = _remove_mapping_namespace(resource_name)
+        return any(utils.url_exists('{0}/{1}'.format(base, resource_name))
+                   for base in location_bases if base)
+
     payload_field_name = 'parameters' if is_workflows else 'inputs'
     mapping_field_name = 'mapping' if is_workflows else 'implementation'
     operation_mapping = operation_content[mapping_field_name]
@@ -266,7 +288,13 @@ def process_operation(
             operation_payload.update({
                 constants.SCRIPT_PATH_PROPERTY: script_path
             })
-        if constants.SCRIPT_PLUGIN_NAME not in plugins:
+
+        # There can be more then one script plugin defined in the blueprint,
+        # in case of the other one's are namespaced. But they are actual
+        # pointing to the same installed one.
+        script_plugins = [plugin for plugin in plugins
+                          if constants.SCRIPT_PLUGIN_NAME in plugin]
+        if not script_plugins:
             message = "Script plugin is not defined but it is required for" \
                       " mapping '{0}' of {1} '{2}'" \
                 .format(operation_mapping,
@@ -281,11 +309,10 @@ def process_operation(
                 workflow_parameters=operation_payload)
         else:
             if not operation_executor:
-                operation_executor = plugins[constants.SCRIPT_PLUGIN_NAME][
-                    'executor']
+                operation_executor = plugins[script_plugins[0]]['executor']
             return operation(
                 name=operation_name,
-                plugin_name=constants.SCRIPT_PLUGIN_NAME,
+                plugin_name=script_plugins[0],
                 operation_mapping=operation_mapping,
                 operation_inputs=operation_payload,
                 executor=operation_executor,
@@ -302,8 +329,3 @@ def process_operation(
                     'workflow' if is_workflows else 'operation'))
         error_message = base_error_message + partial_error_message
         raise exceptions.DSLParsingLogicException(error_code, error_message)
-
-
-def _resource_exists(resource_bases, resource_name):
-    return any(utils.url_exists('{0}/{1}'.format(resource_base, resource_name))
-               for resource_base in resource_bases if resource_base)
