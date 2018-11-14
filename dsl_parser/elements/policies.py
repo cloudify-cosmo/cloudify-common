@@ -257,7 +257,9 @@ class PolicyInstanceType(Element):
 
     def validate(self):
         scaling_policy = constants.SCALING_POLICY
-        if self.initial_value != scaling_policy:
+
+        # Checking for namespaced option
+        if scaling_policy not in self.initial_value:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNSUPPORTED_POLICY,
                 "'{0}' policy type is not implemented. "
@@ -339,7 +341,7 @@ class Policies(DictElement):
     def _create_scaling_groups(self, groups):
         policies = self.value
         scaling_policies = [policy for policy in policies.values()
-                            if policy['type'] == constants.SCALING_POLICY]
+                            if constants.SCALING_POLICY in policy['type']]
         scaling_groups = {}
         for policy in scaling_policies:
             properties = policy['properties']
