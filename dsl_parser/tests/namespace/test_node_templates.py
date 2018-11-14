@@ -38,6 +38,101 @@ imports:
         self.assertEquals('val', node[constants.PROPERTIES]['key'])
         self.assertEquals(2, node['instances']['deploy'])
 
+    def test_namespaced_script_plugin_interface_use(self):
+        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
+plugins:
+    script:
+        executor: central_deployment_agent
+        install: false
+
+node_types:
+    type:
+        interfaces:
+            test:
+                op:
+                    implementation: stub.py
+                    inputs: {}
+                op2:
+                    implementation: stub.py
+                    inputs:
+                        key:
+                            default: value
+relationships:
+    relationship:
+        source_interfaces:
+            test:
+                op:
+                    implementation: stub.py
+                    inputs: {}
+        target_interfaces:
+            test:
+                op:
+                    implementation: stub.py
+                    inputs: {}
+node_templates:
+    node1:
+        type: type
+        relationships:
+            -   target: node2
+                type: relationship
+    node2:
+        type: type
+
+"""
+        self.make_file_with_name(content='content',
+                                 filename='stub.py')
+        import_file_name = self.make_yaml_file(imported_yaml)
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
+imports:
+- {0}::{1}
+""".format('test', import_file_name)
+        main_yaml_path = self.make_file_with_name(content=main_yaml,
+                                                  filename='blueprint.yaml')
+        result = self.parse_from_path(main_yaml_path)
+        node = [n for n in result['nodes'] if n['name'] == 'test::node1'][0]
+        relationship = node['relationships'][0]
+
+        operation = node['operations']['test.op']
+        operation2 = node['operations']['test.op2']
+        source_operation = relationship['source_operations']['test.op']
+        target_operation = relationship['target_operations']['test.op']
+
+        # TODO: copied
+        def op_struct(plugin_name,
+                      mapping,
+                      inputs=None,
+                      executor=None,
+                      max_retries=None,
+                      retry_interval=None):
+            if not inputs:
+                inputs = {}
+            result = {
+                'plugin': plugin_name,
+                'operation': mapping,
+                'inputs': inputs,
+                'executor': executor,
+                'has_intrinsic_functions': False,
+                'max_retries': max_retries,
+                'retry_interval': retry_interval
+            }
+            return result
+
+        def assert_operation(op, extra_properties=False):
+            inputs = {'script_path': 'test::stub.py'}
+            if extra_properties:
+                inputs.update({'key': 'value'})
+            self.assertEqual(op, op_struct(
+                plugin_name='{0}::{1}'.format('test',
+                                              constants.SCRIPT_PLUGIN_NAME),
+                mapping=constants.SCRIPT_PLUGIN_RUN_TASK,
+                inputs=inputs,
+                executor='central_deployment_agent'))
+
+        assert_operation(operation)
+        assert_operation(operation2, extra_properties=True)
+        assert_operation(source_operation)
+        assert_operation(target_operation)
+
 
 class TestNamespacedMultiInstance(scaling.BaseTestMultiInstance):
     def test_scalable(self):
@@ -74,3 +169,9 @@ imports:
         node_props = node[constants.CAPABILITIES]['scalable']['properties']
         self.assertEqual(1, node_props['min_instances'])
         self.assertEqual(10, node_props['max_instances'])
+      #
+      #
+      # cloudify.interfaces.lifecycle:
+      #   configure: scripts/configure.sh
+      #   start: scripts/start.sh
+      #   stop: scripts/stop.sh
