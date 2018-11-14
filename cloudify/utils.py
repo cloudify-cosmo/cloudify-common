@@ -13,26 +13,29 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from contextlib import contextmanager
-import logging
 import os
-import random
-import shlex
 import ssl
-import string
-import importlib
-import subprocess
 import sys
-import tempfile
-import traceback
-import StringIO
-
 import pika
+import shlex
+import random
+import string
+import tarfile
+import zipfile
+import logging
+import tempfile
+import StringIO
+import importlib
+import traceback
+import subprocess
+
 from distutils.version import LooseVersion
+from contextlib import contextmanager, closing
 
 from cloudify import cluster, constants
-from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.state import workflow_ctx, ctx
+from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
+from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
 
@@ -572,6 +575,34 @@ def is_management_environment():
     Checks whether we're currently running within a management worker.
     """
     return os.environ.get('MGMTWORKER_HOME')
+
+
+def extract_archive(source):
+    if tarfile.is_tarfile(source):
+        return untar(source)
+    elif zipfile.is_zipfile(source):
+        return unzip(source)
+    raise NonRecoverableError(
+        'Unsupported archive type provided or archive is not valid: {0}.'
+        ' Supported archive types are: {1}'
+        .format(source, SUPPORTED_ARCHIVE_TYPES)
+    )
+
+
+def unzip(archive, destination=None):
+    if not destination:
+        destination = tempfile.mkdtemp()
+    with closing(zipfile.ZipFile(archive, 'r')) as zip_file:
+        zip_file.extractall(destination)
+    return destination
+
+
+def untar(archive, destination=None):
+    if not destination:
+        destination = tempfile.mkdtemp()
+    with closing(tarfile.open(name=archive)) as tar:
+        tar.extractall(path=destination, members=tar.getmembers())
+    return destination
 
 
 internal = Internal()
