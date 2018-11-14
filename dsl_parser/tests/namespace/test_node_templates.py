@@ -169,9 +169,5 @@ imports:
         node_props = node[constants.CAPABILITIES]['scalable']['properties']
         self.assertEqual(1, node_props['min_instances'])
         self.assertEqual(10, node_props['max_instances'])
-      #
-      #
-      # cloudify.interfaces.lifecycle:
-      #   configure: scripts/configure.sh
-      #   start: scripts/start.sh
-      #   stop: scripts/stop.sh
+        self.assertEqual(2, node_props['current_instances'])
+        self.assertEqual(2, node_props['planned_instances'])
