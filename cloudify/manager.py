@@ -22,6 +22,7 @@ from cloudify_rest_client import CloudifyClient
 from cloudify_rest_client.constants import VisibilityState
 
 from cloudify import constants
+from cloudify.models_states import AgentState
 from cloudify.state import ctx, workflow_ctx, NotInContext
 from cloudify.cluster import CloudifyClusterClient, get_cluster_settings
 from cloudify.exceptions import HttpException, NonRecoverableError
@@ -433,3 +434,37 @@ class DirtyTrackingDict(dict):
             raise NonRecoverableError('Cannot modify runtime properties of'
                                       ' relationship node instances')
         self.dirty = True
+
+
+def create_agent_record(cloudify_agent,
+                        state=AgentState.CREATING,
+                        client=None):
+    client = client or get_rest_client()
+    client.agents.create(
+        cloudify_agent.get('name'),
+        cloudify_agent.get('node_instance_id'),
+        state,
+        ip=cloudify_agent.get('ip'),
+        install_method=cloudify_agent.get('install_method'),
+        system=_get_agent_system(cloudify_agent),
+        version=cloudify_agent.get('version'),
+        rabbitmq_username=cloudify_agent.get('rabbitmq_username'),
+        rabbitmq_password=cloudify_agent.get('rabbitmq_password'),
+        rabbitmq_exchange=cloudify_agent.get('queue')
+    )
+
+
+def update_agent_record(name, state):
+    client = get_rest_client()
+    client.agents.update(name, state)
+
+
+def _get_agent_system(cloudify_agent):
+    if cloudify_agent.get('windows'):
+        system = 'windows'
+    else:
+        system = cloudify_agent.get('distro')
+        if cloudify_agent.get('distro_codename'):
+            system = '{0} {1}'.format(system,
+                                      cloudify_agent.get('distro_codename'))
+    return system

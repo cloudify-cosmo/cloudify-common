@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from cloudify.models_states import AgentState
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -77,6 +78,48 @@ class Agent(dict):
         """
         return self.get('deployment')
 
+    @property
+    def name(self):
+        """
+        :return: The name of the agent.
+        """
+        return self.get('name')
+
+    @property
+    def node_instance_id(self):
+        """
+        :return: The identifier of the agent's node instance.
+        """
+        return self.get('node_instance_id')
+
+    @property
+    def rabbitmq_exchange(self):
+        """
+        :return: The RabbitMQ exchange of the agent.
+        """
+        return self.get('rabbitmq_exchange')
+
+    @property
+    def state(self):
+        """
+        :return: The state of the agent.
+        """
+        return self.get('state')
+
+    @property
+    def created_at(self):
+        """
+        :return: The creation date of the agent.
+        """
+        return self.get('created_at')
+
+    @property
+    def updated_at(self):
+        """
+        :return: The modification date of the agent.
+        """
+        return self.get('updated_at')
+
 
 class AgentsClient(object):
     def __init__(self, api):
@@ -108,3 +151,41 @@ class AgentsClient(object):
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata']
         )
+
+    def get(self, name):
+        """Get an agent from the manager.
+
+         :param name: The name of the agent
+         :return: The details of the agent
+         """
+        response = self.api.get('/{0}/{1}'.format(self._uri_prefix, name))
+        return self._wrapper_cls(response)
+
+    def create(self, name, node_instance_id, state=AgentState.CREATING,
+               **kwargs):
+        """Create an agent in the DB.
+
+         :param name: The name of the agent
+         :param node_instance_id: The node_instance_id of the agent
+         :param state: The state of the agent
+         :return: The details of the agent
+         """
+        data = {'node_instance_id': node_instance_id,
+                'state': state}
+        data.update(kwargs)
+        response = self.api.post('/{0}/{1}'.format(self._uri_prefix, name),
+                                 data=data,
+                                 expected_status_code=201)
+        return self._wrapper_cls(response)
+
+    def update(self, name, state):
+        """Update agent with the provided state.
+
+        :param name: The name of the agent to update
+        :param state: The updated state
+        :return: The updated agent
+        """
+        data = {'state': state}
+        response = self.api.patch('/{0}/{1}'.format(self._uri_prefix, name),
+                                  data=data)
+        return self._wrapper_cls(response)
