@@ -479,7 +479,8 @@ def _build_and_update_node_instances(ctx,
                 _handle_removed_instances(previous_node_instance_ids,
                                           previous_instances_num,
                                           total_instances_num,
-                                          modified_node)
+                                          modified_node,
+                                          ctx)
         else:
             new_instances_num = (current_instances_num -
                                  previous_instances_num)
@@ -517,16 +518,44 @@ def _build_and_update_node_instances(ctx,
     return previous_containers + new_containers
 
 
+def _get_hints(node, instance_list, ctx):
+    hints = {
+        'raw_include': node.get(
+            'removed_ids_include_hint', []),
+        'raw_exclude': node.get(
+            'removed_ids_exclude_hint', []),
+    }
+    group_members = ctx.get_group_member_mapping()
+
+    for hint_type in 'include', 'exclude':
+        hints[hint_type] = set()
+        for hint in hints['raw_' + hint_type]:
+            # If the hint actual refers to an existing instance, use it
+            if hint in instance_list:
+                hints[hint_type].add(hint)
+                continue
+
+            # Otherwise, if the hint refers to a member of a group and that
+            # group is in the targeted instances, use the group instead
+            for group, member_instances in group_members.items():
+                if hint in member_instances and group in instance_list:
+                    hints[hint_type].add(group)
+
+    return hints['include'], hints['exclude']
+
+
 def _handle_removed_instances(
         previous_node_instance_ids,
         previous_instances_num,
         total_instances_num,
-        modified_node):
+        modified_node,
+        ctx):
     removed_instances_num = previous_instances_num - total_instances_num
-    removed_ids_include_hint = modified_node.get(
-        'removed_ids_include_hint', [])
-    removed_ids_exclude_hint = modified_node.get(
-        'removed_ids_exclude_hint', [])
+    removed_ids_include_hint, removed_ids_exclude_hint = _get_hints(
+        modified_node,
+        previous_node_instance_ids,
+        ctx,
+    )
     for removed_instance_id in removed_ids_include_hint:
         if removed_instances_num <= 0:
             break
@@ -837,6 +866,21 @@ class Context(object):
                 self.node_ids_to_node_instance_ids[
                     _node_id_from_node_instance(node_instance)].add(
                     node_instance_id)
+
+    def get_group_member_mapping(self):
+        group_member_mapping = {}
+        for instance_id, details in (
+            self.previous_deployment_node_graph.nodes_iter(data=True)
+        ):
+            for scaling_group in details.get('node',
+                                             {}).get('scaling_groups', []):
+                scaling_group_id = scaling_group['id']
+                if scaling_group_id not in group_member_mapping:
+                    group_member_mapping[scaling_group_id] = []
+                group_member_mapping[scaling_group_id].append(
+                    instance_id,
+                )
+        return group_member_mapping
 
     @property
     def is_modification(self):
