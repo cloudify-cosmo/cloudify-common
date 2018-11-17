@@ -37,12 +37,17 @@ class PolicyTriggerSource(Element):
 
     required = True
     schema = Leaf(type=basestring)
+    add_namespace = False
+
+
+class PolicyTriggerParameters(data_types.Schema):
+    add_namespace = False
 
 
 class PolicyTrigger(DictElement):
 
     schema = {
-        'parameters': data_types.Schema,
+        'parameters': PolicyTriggerParameters,
         'source': PolicyTriggerSource,
     }
 
@@ -51,12 +56,17 @@ class PolicyTypeSource(Element):
 
     required = True
     schema = Leaf(type=basestring)
+    add_namespace = False
+
+
+class PolicyTypeProperties(data_types.Schema):
+    add_namespace = False
 
 
 class PolicyType(DictElement):
 
     schema = {
-        'properties': data_types.Schema,
+        'properties': PolicyTypeProperties,
         'source': PolicyTypeSource,
     }
 
