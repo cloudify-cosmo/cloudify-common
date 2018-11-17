@@ -171,3 +171,4 @@ imports:
         self.assertEqual(10, node_props['max_instances'])
         self.assertEqual(2, node_props['current_instances'])
         self.assertEqual(2, node_props['planned_instances'])
+        self.assertEqual(2, node_props['default_instances'])
