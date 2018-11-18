@@ -38,7 +38,7 @@ class TestNamespacedPolicies(AbstractTestParser):
         self.assertEqual(default_instances,
                          policy_properties['default_instances'])
 
-    def test_basic_policies(self):
+    def test_basic_namespace_policies(self):
         imported_yaml = """
 groups:
   group:
@@ -69,29 +69,57 @@ imports:
         self._assert_policy(policy,
                             targets= ['test::group'],
                             policy_type='test::cloudify.policies.scaling',
-                            min_instances= 1,
-                            max_instances= 10,
-                            default_instances= 2)
+                            min_instances=1,
+                            max_instances=10,
+                            default_instances=2)
 
-    def test_can_not_merge_namespace_policies(self):
+
+class TestNamespacedPoliciesTriggers(AbstractTestParser):
+    def _assert_policy_trigger(self,
+                               parsed_yaml,
+                               name,
+                               source,
+                               prop_name,
+                               description):
+        triggers = parsed_yaml[constants.POLICY_TRIGGERS]
+        self.assertIn(name, triggers)
+        trigger = triggers[name]
+        self.assertEqual(trigger['source'], source)
+        trigger_parameters = trigger[constants.PARAMETERS]
+        self.assertIn(prop_name, trigger_parameters)
+        self.assertEqual(trigger_parameters[prop_name]['description'],
+                         description)
+
+    def test_basic_namespaced_trigger(self):
         imported_yaml = """
-groups:
-  group:
-    members: [node]
-node_templates:
-  node: {type: type}
-node_types:
-  type: {}
-policies:
-  policy:
-    targets: [group]
-    type: cloudify.policies.scaling
-    properties:
-            default_instances: 2
-            min_instances: 1
-            max_instances: 10
-relationships:
-  cloudify.relationships.contained_in: {}
+policy_triggers:
+    trigger:
+        source: source
+        parameters:
+            param1:
+                description: the description
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('test', import_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        self._assert_policy_trigger(parsed_yaml,
+                                    'test::trigger',
+                                    'source',
+                                    'param1',
+                                    'the description')
+
+    def test_basic_namespace_multi_import(self):
+        imported_yaml = """
+policy_triggers:
+    trigger:
+        source: source
+        parameters:
+            param1:
+                description: the description
 """
         import_file_name = self.make_yaml_file(imported_yaml)
 
@@ -100,7 +128,213 @@ imports:
     -   {0}::{1}
     -   {2}::{1}
 """.format('test', import_file_name, 'other_test')
-        self.assertRaises(
-                exceptions.DSLParsingLogicException,
-                self.parse,
-                main_yaml)
+        parsed_yaml = self.parse(main_yaml)
+        self._assert_policy_trigger(parsed_yaml,
+                                    'test::trigger',
+                                    'source',
+                                    'param1',
+                                    'the description')
+        self._assert_policy_trigger(parsed_yaml,
+                                    'other_test::trigger',
+                                    'source',
+                                    'param1',
+                                    'the description')
+
+    def test_policy_trigger_collision(self):
+        imported_yaml = """
+policy_triggers:
+    trigger:
+        source: source
+        parameters:
+            param1:
+                description: the description
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+policy_triggers:
+    trigger:
+        source: source2
+        parameters:
+            param1:
+                description: the description
+""".format('test', import_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        self._assert_policy_trigger(parsed_yaml,
+                                    'test::trigger',
+                                    'source',
+                                    'param1',
+                                    'the description')
+        self._assert_policy_trigger(parsed_yaml,
+                                    'trigger',
+                                    'source2',
+                                    'param1',
+                                    'the description')
+
+    def test_imports_merging_with_no_collision(self):
+        imported_yaml = """
+policy_triggers:
+    trigger:
+        source: source
+        parameters:
+            param1:
+                description: the description
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+policy_triggers:
+    trigger2:
+        source: source2
+        parameters:
+            param1:
+                description: the description
+""".format('test', import_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        self._assert_policy_trigger(parsed_yaml,
+                                    'test::trigger',
+                                    'source',
+                                    'param1',
+                                    'the description')
+        self._assert_policy_trigger(parsed_yaml,
+                                    'trigger2',
+                                    'source2',
+                                    'param1',
+                                    'the description')
+
+
+class TestNamespacedPoliciesTypes(AbstractTestParser):
+    def _assert_policy_type(self,
+                            parsed_yaml,
+                            policy_name,
+                            source,
+                            prop_name,
+                            prop_description):
+        policy_types = parsed_yaml[constants.POLICY_TYPES]
+        self.assertIn(policy_name, policy_types)
+        policy_type = policy_types[policy_name]
+        self.assertEqual(policy_type['source'], source)
+        trigger_parameters = policy_type[constants.PROPERTIES]
+        self.assertIn(prop_name, trigger_parameters)
+        self.assertEqual(trigger_parameters[prop_name]['description'],
+                         prop_description)
+
+    def test_basic_namespaced_policy_type(self):
+        imported_yaml = """
+policy_types:
+    type:
+        source: source
+        properties:
+            param1:
+                description: the description
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('test', import_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        self._assert_policy_type(parsed_yaml,
+                                 'test::type',
+                                 'source',
+                                 'param1',
+                                 'the description')
+
+    def test_basic_namespace_multi_import(self):
+        imported_yaml = """
+policy_types:
+    type:
+        source: source
+        properties:
+            param1:
+                description: the description
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+    -   {2}::{1}
+""".format('test', import_file_name, 'other_test')
+        parsed_yaml = self.parse(main_yaml)
+        self._assert_policy_type(parsed_yaml,
+                                 'test::type',
+                                 'source',
+                                 'param1',
+                                 'the description')
+        self._assert_policy_type(parsed_yaml,
+                                 'other_test::type',
+                                 'source',
+                                 'param1',
+                                 'the description')
+
+    def test_policy_type_collision(self):
+        imported_yaml = """
+policy_types:
+    type:
+        source: source
+        properties:
+            param1:
+                description: the description
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+policy_types:
+    type:
+        source: source2
+        properties:
+            param1:
+                description: the description
+""".format('test', import_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        self._assert_policy_type(parsed_yaml,
+                                 'test::type',
+                                 'source',
+                                 'param1',
+                                 'the description')
+        self._assert_policy_type(parsed_yaml,
+                                 'type',
+                                 'source2',
+                                 'param1',
+                                 'the description')
+
+    def test_imports_merging_with_no_collision(self):
+        imported_yaml = """
+policy_types:
+    type:
+        source: source
+        properties:
+            param1:
+                description: the description
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+policy_types:
+    type2:
+        source: source
+        properties:
+            param1:
+                description: the description
+""".format('test', import_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        self._assert_policy_type(parsed_yaml,
+                                 'test::type',
+                                 'source',
+                                 'param1',
+                                 'the description')
+        self._assert_policy_type(parsed_yaml,
+                                 'type2',
+                                 'source',
+                                 'param1',
+                                 'the description')
