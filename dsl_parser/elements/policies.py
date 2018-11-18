@@ -86,7 +86,7 @@ class GroupPolicyType(Element):
     required = True
     schema = Leaf(type=basestring)
     requires = {
-        PolicyTypes: [Value('policy_types')]
+        PolicyTypes: [Value(constants.POLICY_TYPES)]
     }
 
     def validate(self, policy_types):
@@ -152,7 +152,7 @@ class GroupPolicyTriggerParameters(Element):
     schema = Leaf(type=dict)
     requires = {
         GroupPolicyTriggerType: [],
-        PolicyTriggers: [Value(constants.POLICY_TYPES)],
+        PolicyTriggers: [Value(constants.POLICY_TRIGGERS)],
         data_types.DataTypes: [Value(constants.DATA_TYPES)]
     }
 
