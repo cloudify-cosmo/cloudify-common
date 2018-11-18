@@ -17,15 +17,15 @@ import os
 import requests
 from urlparse import urljoin
 
-import utils
 from cloudify_rest_client import CloudifyClient
 from cloudify_rest_client.constants import VisibilityState
+from cloudify_rest_client.exceptions import CloudifyClientError
 
-from cloudify import constants
+from cloudify import constants, utils
 from cloudify.models_states import AgentState
 from cloudify.state import ctx, workflow_ctx, NotInContext
-from cloudify.cluster import CloudifyClusterClient, get_cluster_settings
 from cloudify.exceptions import HttpException, NonRecoverableError
+from cloudify.cluster import CloudifyClusterClient, get_cluster_settings
 
 
 class NodeInstance(object):
@@ -440,18 +440,25 @@ def create_agent_record(cloudify_agent,
                         state=AgentState.CREATING,
                         client=None):
     client = client or get_rest_client()
-    client.agents.create(
-        cloudify_agent.get('name'),
-        cloudify_agent.get('node_instance_id'),
-        state,
-        ip=cloudify_agent.get('ip'),
-        install_method=cloudify_agent.get('install_method'),
-        system=_get_agent_system(cloudify_agent),
-        version=cloudify_agent.get('version'),
-        rabbitmq_username=cloudify_agent.get('rabbitmq_username'),
-        rabbitmq_password=cloudify_agent.get('rabbitmq_password'),
-        rabbitmq_exchange=cloudify_agent.get('queue')
-    )
+    try:
+        client.agents.create(
+            cloudify_agent['name'],
+            cloudify_agent['node_instance_id'],
+            state,
+            ip=cloudify_agent.get('ip'),
+            install_method=cloudify_agent.get('install_method'),
+            system=_get_agent_system(cloudify_agent),
+            version=cloudify_agent.get('version'),
+            rabbitmq_username=cloudify_agent.get('rabbitmq_username'),
+            rabbitmq_password=cloudify_agent.get('rabbitmq_password'),
+            rabbitmq_exchange=cloudify_agent.get('queue')
+        )
+    except CloudifyClientError as e:
+        agent = client.agents.get(cloudify_agent['name'])
+        if agent.state != AgentState.DELETED or e.status_code != 409:
+            raise
+        # Reinstalling an existing agent
+        client.agents.update(cloudify_agent['name'], state)
 
 
 def update_agent_record(name, state):
