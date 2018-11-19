@@ -299,9 +299,10 @@ class PolicyInstanceTargets(Element):
     schema = List(type=PolicyInstanceTarget)
 
     def parse(self, **kwargs):
-        for i in xrange(len(self._initial_value)):
-            self._initial_value[i] = '{0}::{1}'.format(
-                self.namespace, self.initial_value[i])
+        if self.namespace:
+            for i in xrange(len(self._initial_value)):
+                self._initial_value[i] = '{0}::{1}'.format(
+                    self.namespace, self.initial_value[i])
         return self.initial_value
 
     def validate(self):
