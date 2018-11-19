@@ -82,6 +82,8 @@ def scale_entity(ctx,
                  delta,
                  scale_compute,
                  ignore_failure=False,
+                 include_instances=None,
+                 exclude_instances=None,
                  **kwargs):
     """Scales in/out the subgraph of node_or_group_name.
 
@@ -106,7 +108,11 @@ def scale_entity(ctx,
     :param scale_compute: should scale apply on compute node containing
                           the specified node
     :param ignore_failure: ignore operations failures in uninstall workflow
+    :param include_instances: Instances to include when scaling down
+    :param exclude_instances: Instances to exclude when scaling down
     """
+    include_instances = include_instances or []
+    exclude_instances = exclude_instances or []
     if isinstance(delta, basestring):
         try:
             delta = int(delta)
@@ -118,8 +124,18 @@ def scale_entity(ctx,
         ctx.logger.info('delta parameter is 0, so no scaling will take place.')
         return
 
+    if delta > 0 and (include_instances or exclude_instances):
+        raise ValueError(
+            'Instances cannot be included or excluded when scaling up.'
+        )
+
     scaling_group = ctx.deployment.scaling_groups.get(scalable_entity_name)
     if scaling_group:
+        if include_instances or exclude_instances:
+            raise ValueError(
+                'Cannot include or exclude instances when using a scaling '
+                'group'
+            )
         curr_num_instances = scaling_group['properties']['current_instances']
         planned_num_instances = curr_num_instances + delta
         scale_id = scalable_entity_name
@@ -132,6 +148,72 @@ def scale_entity(ctx,
         scaled_node = host_node if (scale_compute and host_node) else node
         curr_num_instances = scaled_node.number_of_instances
         planned_num_instances = curr_num_instances + delta
+        if include_instances or exclude_instances:
+            if isinstance(include_instances, basestring):
+                include_instances = [include_instances]
+            if isinstance(exclude_instances, basestring):
+                exclude_instances = [exclude_instances]
+            available_instances = [instance.id for instance in node.instances]
+            include_instances = [str(inst) for inst in include_instances]
+
+            # Validate inclusions/exclusions
+            error_message = ''
+            missing_include = set(include_instances).difference(
+                available_instances,
+            )
+            if missing_include:
+                error_message += (
+                    'The following included instances did not exist: '
+                    '{instances}. '.format(instances=', '.join(
+                        missing_include,
+                    ))
+                )
+            missing_exclude = set(exclude_instances).difference(
+                available_instances,
+            )
+            if missing_exclude:
+                error_message += (
+                    'The following excluded instances did not exist: '
+                    '{instances}. '.format(instances=', '.join(
+                        missing_exclude,
+                    ))
+                )
+            instances_in_both = set(exclude_instances).intersection(
+                include_instances,
+            )
+            if instances_in_both:
+                error_message += (
+                    'The following instances were both excluded and '
+                    'included: {instances}. '.format(instances=', '.join(
+                        instances_in_both,
+                    ))
+                )
+            if planned_num_instances < len(exclude_instances):
+                error_message += (
+                    'Target number of instances is less than excluded '
+                    'instance count. Target number of instances was '
+                    '{target}. Excluded instances were: '
+                    '{instances}. '.format(
+                        target=planned_num_instances,
+                        instances=', '.join(exclude_instances),
+                    )
+                )
+            if scale_compute:
+                error_message += (
+                    'Cannot include or exclude instances while '
+                    'scale_compute is True. Please specify the '
+                    'desired compute instances and set scale_compute '
+                    'to False. '
+                )
+
+            # Abort if there are validation issues
+            if error_message:
+                error_message += (
+                    'Available instances were: {instances}'.format(
+                        instances=', '.join(available_instances),
+                    )
+                )
+                raise RuntimeError(error_message)
         scale_id = scaled_node.id
 
     if planned_num_instances < 0:
@@ -142,8 +224,12 @@ def scale_entity(ctx,
                                  curr_num_instances))
     modification = ctx.deployment.start_modification({
         scale_id: {
-            'instances': planned_num_instances
+            'instances': planned_num_instances,
+            'removed_ids_exclude_hint': exclude_instances,
+            'removed_ids_include_hint': include_instances,
 
+            # While these parameters are now exposed, this comment is being
+            # kept as it provides useful insight into the hints
             # These following parameters are not exposed at the moment,
             # but should be used to control which node instances get scaled in
             # (when scaling in).
