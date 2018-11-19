@@ -18,7 +18,6 @@ import json
 from calendar import timegm
 
 from pysnmp.hlapi import (SnmpEngine,
-                          ObjectType,
                           ContextData,
                           CommunityData,
                           ObjectIdentity,
