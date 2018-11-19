@@ -196,14 +196,24 @@ class Context(object):
     def _traverse_element_type_schema(self, schema, parent_element, namespace):
         if isinstance(schema, elements.Leaf):
             if namespace and \
-                    parent_element._initial_value and\
-                    parent_element.add_namespace and\
-                    isinstance(parent_element._initial_value, str) and\
+                    parent_element._initial_value:
+                if isinstance(parent_element._initial_value, str) and\
                     parent_element._initial_value not in\
-                    constants.USER_PRIMITIVE_TYPES:
-                namespace = parent_element.namespace or namespace
-                parent_element._initial_value = "{0}::{1}"\
-                    .format(namespace, parent_element._initial_value)
+                        constants.USER_PRIMITIVE_TYPES and\
+                        parent_element.add_namespace:
+                    namespace = parent_element.namespace or namespace
+                    parent_element._initial_value = "{0}::{1}"\
+                        .format(namespace, parent_element._initial_value)
+                elif isinstance(parent_element._initial_value, dict):
+                    if 'get_input' in parent_element._initial_value.keys():
+                        function_input = parent_element._initial_value[parent_element._initial_value.keys()[0]]
+                        parent_element._initial_value[parent_element._initial_value.keys()[0]] = "{0}::{1}"\
+                            .format(namespace, function_input)
+                    elif 'get_attribute' in parent_element._initial_value.keys() or\
+                            'get_property' in parent_element._initial_value.keys():
+                        function_input = parent_element._initial_value[parent_element._initial_value.keys()[0]][0]
+                        parent_element._initial_value[parent_element._initial_value.keys()[0]][0] = "{0}::{1}" \
+                            .format(namespace, function_input)
             return
 
         element_cls = schema.type
