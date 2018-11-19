@@ -19,7 +19,7 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 class TestNamespacedOutputs(AbstractTestParser):
 
-    def test_inputs_definition(self):
+    def test_outputs_definition(self):
         imported_yaml = """
 outputs:
     port:
@@ -71,7 +71,7 @@ imports:
             'the port',
             parsed_yaml[constants.OUTPUTS]['other_test::port']['description'])
 
-    def test_input_collision(self):
+    def test_outputs_collision(self):
         imported_yaml = """
 outputs:
     port:
