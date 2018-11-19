@@ -507,6 +507,10 @@ class _WorkflowContextBase(object):
         return self._context.get('dry_run', False)
 
     @property
+    def wait_after_fail(self):
+        return self._context.get('wait_after_fail', 600)
+
+    @property
     def logger(self):
         """A logger for this workflow"""
         if self._logger is None:
