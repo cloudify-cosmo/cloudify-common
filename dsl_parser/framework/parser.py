@@ -15,6 +15,7 @@
 
 import networkx as nx
 
+from dsl_parser import functions
 from dsl_parser.framework import elements
 from dsl_parser import exceptions, constants
 from dsl_parser.framework.requirements import Requirement
@@ -194,6 +195,28 @@ class Context(object):
                                            namespace=current_namespace)
 
     def _traverse_element_type_schema(self, schema, parent_element, namespace):
+
+        def _namespace_get_input(namespace_value, input):
+            return '{0}::{1}'.format(namespace_value, input)
+
+        def _namespace_get_attribute_property(namespace_value, func):
+            value = func[0]
+            if value not in functions.AVAILABLE_NODE_TARGETS:
+                func[0] = '{0}::{1}'.format(namespace_value, value)
+            return func
+
+        def _gen_dict_extract(key, element, function_namespace):
+            if hasattr(element, 'iteritems'):
+                for k, v in element.iteritems():
+                    if k == key:
+                        element[k] = function_namespace(namespace, v)
+                    if isinstance(v, dict):
+                        element[k] = _gen_dict_extract(key, v, function_namespace)
+                    elif isinstance(v, list):
+                        for i in xrange(len(v)):
+                            element[k][i] = _gen_dict_extract(key, v[i], function_namespace)
+            return element
+
         if isinstance(schema, elements.Leaf):
             if namespace and \
                     parent_element._initial_value:
@@ -205,15 +228,12 @@ class Context(object):
                     parent_element._initial_value = "{0}::{1}"\
                         .format(namespace, parent_element._initial_value)
                 elif isinstance(parent_element._initial_value, dict):
-                    if 'get_input' in parent_element._initial_value.keys():
-                        function_input = parent_element._initial_value[parent_element._initial_value.keys()[0]]
-                        parent_element._initial_value[parent_element._initial_value.keys()[0]] = "{0}::{1}"\
-                            .format(namespace, function_input)
-                    elif 'get_attribute' in parent_element._initial_value.keys() or\
-                            'get_property' in parent_element._initial_value.keys():
-                        function_input = parent_element._initial_value[parent_element._initial_value.keys()[0]][0]
-                        parent_element._initial_value[parent_element._initial_value.keys()[0]][0] = "{0}::{1}" \
-                            .format(namespace, function_input)
+                    parent_element._initial_value = \
+                        _gen_dict_extract('get_input', parent_element._initial_value, _namespace_get_input)
+                    parent_element._initial_value = \
+                        _gen_dict_extract('get_property', parent_element._initial_value, _namespace_get_attribute_property)
+                    parent_element._initial_value = \
+                        _gen_dict_extract('get_attribute', parent_element._initial_value, _namespace_get_attribute_property)
             return
 
         element_cls = schema.type

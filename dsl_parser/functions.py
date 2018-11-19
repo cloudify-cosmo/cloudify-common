@@ -21,10 +21,10 @@ from dsl_parser import (constants,
                         scan,
                         relationship_utils)
 
-
 SELF = 'SELF'
 SOURCE = 'SOURCE'
 TARGET = 'TARGET'
+AVAILABLE_NODE_TARGETS = [SELF, SOURCE, TARGET]
 
 TEMPLATE_FUNCTIONS = {}
 
