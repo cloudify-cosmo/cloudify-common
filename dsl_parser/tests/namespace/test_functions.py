@@ -61,6 +61,14 @@ imports:
 
     def test_get_property(self):
         imported_yaml = """
+node_types:
+    test_type:
+        properties:
+            key:
+                default: value
+node_templates:
+    node:
+        type: test_type
 outputs:
     port:
         description: the port
@@ -71,14 +79,6 @@ outputs:
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   {0}::{1}
-node_types:
-    test_type:
-        properties:
-            key:
-                default: value
-node_templates:
-    node:
-        type: test_type
 """.format('test', import_file_name)
 
         parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
@@ -89,6 +89,14 @@ node_templates:
 
     def test_get_attribute(self):
         imported_yaml = """
+node_types:
+    test_type:
+        properties:
+            key:
+                default: value
+node_templates:
+    node:
+        type: test_type
 outputs:
     port:
         description: the port
@@ -99,18 +107,12 @@ outputs:
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   {0}::{1}
-node_types:
-    test_type:
-        properties:
-node_templates:
-    node:
-        type: test_type
 """.format('test', import_file_name)
 
         parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
                                               self._get_secret_mock)
         self.assertEqual(
-            {'get_attribute': ['node', 'key']},
+            {'get_attribute': ['test::node', 'key']},
             parsed_yaml[constants.OUTPUTS]['test::port']['value'])
 
     def test_get_capability(self):
@@ -131,4 +133,27 @@ imports:
                                               self._get_secret_mock)
         self.assertEqual(
             {'get_capability': ['dep_1', 'cap_a']},
+            parsed_yaml[constants.OUTPUTS]['test::port']['value'])
+
+    def test_get_input(self):
+        imported_yaml = """
+inputs:
+    port:
+        default: 8080
+outputs:
+    port:
+        description: the port
+        value: { get_input: port }
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('test', import_file_name)
+
+        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
+                                              self._get_secret_mock)
+        self.assertEqual(
+            8080,
             parsed_yaml[constants.OUTPUTS]['test::port']['value'])
