@@ -227,7 +227,8 @@ class TaskDependencyGraph(object):
             message = "Workflow failed: Task failed '{0}'".format(task.name)
             if task.error:
                 message = '{0} -> {1}'.format(message, task.error)
-            self._error = RuntimeError(message)
+            if self._error is None:
+                self._error = RuntimeError(message)
 
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
