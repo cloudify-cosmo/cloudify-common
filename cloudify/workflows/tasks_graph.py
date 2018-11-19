@@ -142,15 +142,17 @@ class TaskDependencyGraph(object):
 
         # if we got here, we had an error in a task, and we're just waiting
         # for other tasks to return, but not sending new tasks
-        while True:
+        deadline = time.time() + self.ctx.wait_after_fail
+        while deadline > time.time():
             if self._is_execution_cancelled():
                 raise api.ExecutionCancelled()
             for task in self._terminated_tasks():
                 self._handle_terminated_task(task)
             if not any(self._sent_tasks()):
-                raise self._error
+                break
             else:
                 time.sleep(0.1)
+        raise self._error
 
     @staticmethod
     def _is_execution_cancelled():
