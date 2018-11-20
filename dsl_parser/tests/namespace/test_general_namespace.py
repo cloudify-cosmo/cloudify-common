@@ -28,7 +28,7 @@ inputs:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{0}::{1}
+    -   {0}->{0}->{1}
 """.format('test', import_file_name)
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse,

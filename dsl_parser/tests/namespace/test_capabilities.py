@@ -30,16 +30,16 @@ capabilities:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self.assertEqual(1, len(parsed_yaml[constants.CAPABILITIES]))
         self.assertEqual(
             8080,
-            parsed_yaml[constants.CAPABILITIES]['test::port']['value'])
+            parsed_yaml[constants.CAPABILITIES]['test->port']['value'])
         self.assertEqual(
             'the port',
-            parsed_yaml[constants.CAPABILITIES]['test::port']['description'])
+            parsed_yaml[constants.CAPABILITIES]['test->port']['description'])
 
     def test_basic_namespace_multi_import(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -52,25 +52,25 @@ capabilities:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
-    -   {2}::{1}
+    -   {0}->{1}
+    -   {2}->{1}
 """.format('test', import_file_name, 'other_test')
 
         parsed_yaml = self.parse(main_yaml)
         self.assertEqual(2, len(parsed_yaml[constants.CAPABILITIES]))
         self.assertEqual(
             8080,
-            parsed_yaml[constants.CAPABILITIES]['test::port']['value'])
+            parsed_yaml[constants.CAPABILITIES]['test->port']['value'])
         self.assertEqual(
             'the port',
-            parsed_yaml[constants.CAPABILITIES]['test::port']['description'])
+            parsed_yaml[constants.CAPABILITIES]['test->port']['description'])
         self.assertEqual(
             8080,
-            parsed_yaml[constants.CAPABILITIES]['other_test::port']['value'])
+            parsed_yaml[constants.CAPABILITIES]['other_test->port']['value'])
         self.assertEqual(
             'the port',
             parsed_yaml[constants.CAPABILITIES]
-            ['other_test::port']['description'])
+            ['other_test->port']['description'])
 
     def test_input_collision(self):
         imported_yaml = """
@@ -82,7 +82,7 @@ capabilities:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 capabilities:
     port:
         description: two
@@ -92,10 +92,10 @@ capabilities:
         self.assertEqual(2, len(parsed_yaml[constants.CAPABILITIES]))
         self.assertEqual(
             1,
-            parsed_yaml[constants.CAPABILITIES]['test::port']['value'])
+            parsed_yaml[constants.CAPABILITIES]['test->port']['value'])
         self.assertEqual(
             'one',
-            parsed_yaml[constants.CAPABILITIES]['test::port']['description'])
+            parsed_yaml[constants.CAPABILITIES]['test->port']['description'])
         self.assertEqual(2,
                          parsed_yaml[constants.CAPABILITIES]['port']['value'])
         self.assertEqual(
@@ -112,7 +112,7 @@ capabilities:
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 capabilities:
     port:
         description: two
@@ -121,7 +121,7 @@ capabilities:
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 capabilities:
     port:
         description: three
@@ -131,17 +131,17 @@ capabilities:
         self.assertEqual(3, len(parsed_yaml[constants.CAPABILITIES]))
         self.assertEqual(
             1,
-            parsed_yaml[constants.CAPABILITIES]['test::test1::port']['value'])
+            parsed_yaml[constants.CAPABILITIES]['test->test1->port']['value'])
         self.assertEqual(
             'one',
             parsed_yaml[constants.CAPABILITIES]
-            ['test::test1::port']['description'])
+            ['test->test1->port']['description'])
         self.assertEqual(
             2,
-            parsed_yaml[constants.CAPABILITIES]['test::port']['value'])
+            parsed_yaml[constants.CAPABILITIES]['test->port']['value'])
         self.assertEqual(
             'two',
-            parsed_yaml[constants.CAPABILITIES]['test::port']['description'])
+            parsed_yaml[constants.CAPABILITIES]['test->port']['description'])
         self.assertEqual(3,
                          parsed_yaml[constants.CAPABILITIES]['port']['value'])
         self.assertEqual(
@@ -158,7 +158,7 @@ capabilities:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 capabilities:
     port2:
         description: two
@@ -169,10 +169,10 @@ capabilities:
         self.assertEqual(2, len(parsed_yaml[constants.CAPABILITIES]))
         self.assertEqual(
             1,
-            parsed_yaml[constants.CAPABILITIES]['test::port1']['value'])
+            parsed_yaml[constants.CAPABILITIES]['test->port1']['value'])
         self.assertEqual(
             'one',
-            parsed_yaml[constants.CAPABILITIES]['test::port1']['description'])
+            parsed_yaml[constants.CAPABILITIES]['test->port1']['description'])
         self.assertEqual(
             2, parsed_yaml[constants.CAPABILITIES]['port2']['value'])
         self.assertEqual(

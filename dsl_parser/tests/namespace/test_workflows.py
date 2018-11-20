@@ -41,23 +41,23 @@ workflows:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
-    -   {2}::{1}
+    -   {0}->{1}
+    -   {2}->{1}
 """.format('test', import_file_name, 'other_test')
         parsed = self.parse_1_3(main_yaml)
         workflows = parsed[constants.WORKFLOWS]
         self.assertEqual(2, len(workflows))
-        self.assertEqual(workflow_op_struct('test::test_plugin', 'workflow1'),
-                         workflows['test::workflow1'])
+        self.assertEqual(workflow_op_struct('test->test_plugin', 'workflow1'),
+                         workflows['test->workflow1'])
         self.assertEqual(
-            workflow_op_struct('other_test::test_plugin', 'workflow1'),
-            workflows['other_test::workflow1'])
+            workflow_op_struct('other_test->test_plugin', 'workflow1'),
+            workflows['other_test->workflow1'])
         workflow_plugins_to_install =\
             parsed[constants.WORKFLOW_PLUGINS_TO_INSTALL]
         self.assertEqual(2, len(workflow_plugins_to_install))
-        self.assertEqual('test::test_plugin',
+        self.assertEqual('test->test_plugin',
                          workflow_plugins_to_install[0]['name'])
-        self.assertEqual('other_test::test_plugin',
+        self.assertEqual('other_test->test_plugin',
                          workflow_plugins_to_install[1]['name'])
 
     def test_workflow_collision(self):
@@ -69,22 +69,22 @@ workflows:
 
         main_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 workflows:
     workflow1: test_plugin.workflow1
 """.format('test', import_file_name, 'other_test')
         parsed = self.parse_1_3(main_yaml)
         workflows = parsed[constants.WORKFLOWS]
         self.assertEqual(2, len(workflows))
-        self.assertEqual(workflow_op_struct('test::test_plugin', 'workflow1'),
-                         workflows['test::workflow1'])
+        self.assertEqual(workflow_op_struct('test->test_plugin', 'workflow1'),
+                         workflows['test->workflow1'])
         self.assertEqual(
             workflow_op_struct('test_plugin', 'workflow1'),
             workflows['workflow1'])
         workflow_plugins_to_install = \
             parsed[constants.WORKFLOW_PLUGINS_TO_INSTALL]
         self.assertEqual(2, len(workflow_plugins_to_install))
-        self.assertEqual('test::test_plugin',
+        self.assertEqual('test->test_plugin',
                          workflow_plugins_to_install[0]['name'])
         self.assertEqual('test_plugin',
                          workflow_plugins_to_install[1]['name'])
@@ -98,22 +98,22 @@ workflows:
 
         main_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 workflows:
     workflow2: test_plugin.workflow2
 """.format('test', import_file_name, 'other_test')
         parsed = self.parse_1_3(main_yaml)
         workflows = parsed[constants.WORKFLOWS]
         self.assertEqual(2, len(workflows))
-        self.assertEqual(workflow_op_struct('test::test_plugin', 'workflow1'),
-                         workflows['test::workflow1'])
+        self.assertEqual(workflow_op_struct('test->test_plugin', 'workflow1'),
+                         workflows['test->workflow1'])
         self.assertEqual(
             workflow_op_struct('test_plugin', 'workflow2'),
             workflows['workflow2'])
         workflow_plugins_to_install = \
             parsed[constants.WORKFLOW_PLUGINS_TO_INSTALL]
         self.assertEqual(2, len(workflow_plugins_to_install))
-        self.assertEqual('test::test_plugin',
+        self.assertEqual('test->test_plugin',
                          workflow_plugins_to_install[0]['name'])
         self.assertEqual('test_plugin',
                          workflow_plugins_to_install[1]['name'])
@@ -129,18 +129,18 @@ workflows:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
         workflows = parsed[constants.WORKFLOWS]
         self.assertEqual(1, len(workflows))
-        self.assertEqual(workflow_op_struct('test::test_plugin', 'workflow1',),
-                         workflows['test::workflow1'])
+        self.assertEqual(workflow_op_struct('test->test_plugin', 'workflow1',),
+                         workflows['test->workflow1'])
         workflow_plugins_to_install =\
             parsed[constants.WORKFLOW_PLUGINS_TO_INSTALL]
         self.assertEqual(1, len(workflow_plugins_to_install))
-        self.assertEqual('test::test_plugin',
+        self.assertEqual('test->test_plugin',
                          workflow_plugins_to_install[0]['name'])
 
     def test_workflow_advanced_mapping(self):
@@ -162,7 +162,7 @@ workflows:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
@@ -181,12 +181,12 @@ imports:
                 }
             }
         }
-        self.assertEqual(workflow_op_struct('test::test_plugin',
+        self.assertEqual(workflow_op_struct('test->test_plugin',
                                             'workflow1',
                                             parameters),
-                         workflows['test::workflow1'])
+                         workflows['test->workflow1'])
         workflow_plugins_to_install =\
             parsed[constants.WORKFLOW_PLUGINS_TO_INSTALL]
         self.assertEqual(1, len(workflow_plugins_to_install))
-        self.assertEqual('test::test_plugin',
+        self.assertEqual('test->test_plugin',
                          workflow_plugins_to_install[0]['name'])

@@ -33,12 +33,12 @@ data_types:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 node_types:
     type:
         properties:
             prop1:
-                type: test::using_test_type
+                type: test->using_test_type
 node_templates:
     node:
         type: type
@@ -61,17 +61,17 @@ data_types:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
-    -   {2}::{1}
+    -   {0}->{1}
+    -   {2}->{1}
 node_types:
     type:
         properties:
             prop1:
-                type: test::using_test_type
+                type: test->using_test_type
     other_type:
         properties:
             prop1:
-                type: other_test::using_test_type
+                type: other_test->using_test_type
 node_templates:
     node:
         type: type
@@ -98,7 +98,7 @@ data_types:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 data_types:
     data1:
         properties:
@@ -108,7 +108,7 @@ node_types:
     type:
         properties:
             prop1:
-                type: test::data1
+                type: test->data1
             prop2:
                 type: data1
 node_templates:
@@ -130,7 +130,7 @@ data_types:
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 data_types:
     data1:
         properties:
@@ -140,7 +140,7 @@ data_types:
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 data_types:
     data1:
         properties:
@@ -150,11 +150,11 @@ node_types:
     type:
         properties:
             prop1:
-                type: test::data1
+                type: test->data1
             prop2:
                 type: data1
             prop3:
-                type: test::test1::data1
+                type: test->test1->data1
 node_templates:
     node:
         type: type
@@ -175,7 +175,7 @@ data_types:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 data_types:
     data2:
         properties:
@@ -185,7 +185,7 @@ node_types:
     type:
         properties:
             prop1:
-                type: test::data1
+                type: test->data1
             prop2:
                 type: data2
 node_templates:
@@ -217,7 +217,7 @@ data_types:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 node_types:
     vm_type:
         properties:
@@ -232,7 +232,7 @@ node_templates:
                     key: /home/ubuntu/id_rsa
 data_types:
     agent:
-        derived_from: test::agent_installer
+        derived_from: test->agent_installer
         properties:
             basedir:
                 type: string
