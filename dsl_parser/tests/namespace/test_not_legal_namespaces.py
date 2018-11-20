@@ -20,8 +20,7 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 class TestNotLegalNamespaces(AbstractTestParser):
 
     def test_not_legal(self):
-        bad_namespace = [':test', '->test', 'te:st', 'te->st', 'test:',
-                         'test->', ':', '->']
+        bad_namespace = ['->test', 'te->st', 'test->', '->']
         for namespace in bad_namespace:
             imported_yaml = """
 inputs:
