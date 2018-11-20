@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import exceptions
+from dsl_parser import exceptions, constants
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
@@ -33,3 +33,21 @@ imports:
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse,
                           main_yaml)
+
+    def test_namespace_delimiter_can_be_used_with_no_import_related(self):
+        imported_yaml = """
+inputs:
+    ->port:
+        default: 8080
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}
+""".format(import_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        self.assertEqual(1, len(parsed_yaml[constants.INPUTS]))
+        self.assertEqual(
+            8080,
+            parsed_yaml[constants.INPUTS]['->port']['default'])
