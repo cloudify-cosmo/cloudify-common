@@ -30,7 +30,10 @@ def encrypt(data, key=None):
 
 def decrypt(encrypted_data, key=None):
     key = key or _get_encryption_key()
-    fernet = Fernet256(str(key))
+    try:
+        fernet = Fernet256(str(key))
+    except ValueError:
+        return decrypt128(encrypted_data, key)
     return fernet.decrypt(bytes(encrypted_data))
 
 
