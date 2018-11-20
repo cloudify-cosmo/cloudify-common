@@ -14,23 +14,45 @@
 #    * limitations under the License.
 
 import mock
+import time
 import unittest
+from contextlib import contextmanager
 
 from cloudify.workflows import api
 from cloudify.workflows import tasks
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
 
 
+@contextmanager
 def limited_sleep_mock(limit=100):
-    s = [None] * limit + [RuntimeError()]
-    return mock.patch('time.sleep', side_effect=s)
+    # using lists to allow a 'nonlocal' set in py2
+    current_time = [time.time()]
+    calls = [0]
+
+    def _fake_sleep(delta):
+        current_time[0] += delta
+        calls[0] += 1
+        if calls[0] > limit:
+            raise RuntimeError('Timeout')
+
+    def _fake_time():
+        return current_time[0]
+
+    mock_sleep = mock.patch('time.sleep', _fake_sleep)
+    mock_time = mock.patch('time.time', _fake_time)
+    with mock_sleep, mock_time:
+        yield mock_sleep, mock_time
+
+
+class MockWorkflowContext(object):
+    wait_after_fail = 600
 
 
 class TestTasksGraphExecute(unittest.TestCase):
     def test_executes_single_task(self):
         """A single NOP task is executed within a single iteration of the
         tasks graph loop"""
-        g = TaskDependencyGraph(None)
+        g = TaskDependencyGraph(MockWorkflowContext())
         task = tasks.NOPLocalWorkflowTask(None)
         g.add_task(task)
         with limited_sleep_mock(limit=1):
@@ -41,7 +63,7 @@ class TestTasksGraphExecute(unittest.TestCase):
         """Independent tasks will be executed concurrently within the same
         iteration of the graph loop.
         """
-        g = TaskDependencyGraph(None)
+        g = TaskDependencyGraph(MockWorkflowContext())
         task1 = tasks.NOPLocalWorkflowTask(None)
         task2 = tasks.NOPLocalWorkflowTask(None)
         g.add_task(task1)
@@ -63,7 +85,7 @@ class TestTasksGraphExecute(unittest.TestCase):
         task1 = FailedTask(mock.Mock())
         task2 = mock.Mock()
 
-        g = TaskDependencyGraph(None)
+        g = TaskDependencyGraph(MockWorkflowContext())
         seq = g.sequence()
         seq.add(task1, task2)
 
@@ -77,6 +99,48 @@ class TestTasksGraphExecute(unittest.TestCase):
 
         self.assertTrue(task1.is_terminated)
         self.assertFalse(task2.apply_async.called)
+
+    def test_wait_after_fail(self):
+        """When a task fails, the already-running tasks are waited for"""
+        class FailedTask(tasks.WorkflowTask):
+            """Task that fails 1 second after starting"""
+            name = 'failtask'
+
+            def get_state(self):
+                if time.time() > start_time + 1:
+                    return tasks.TASK_FAILED
+                else:
+                    return tasks.TASK_SENT
+
+        class DelayedTask(tasks.WorkflowTask):
+            """Task that succeeds 3 seconds after starting"""
+            name = 'delayedtask'
+
+            def get_state(self):
+                if time.time() > start_time + 3:
+                    return tasks.TASK_SUCCEEDED
+                else:
+                    return tasks.TASK_SENT
+            handle_task_terminated = mock.Mock()
+
+        task1 = FailedTask(mock.Mock())
+        task2 = DelayedTask(mock.Mock())
+
+        g = TaskDependencyGraph(MockWorkflowContext())
+        seq = g.sequence()
+        seq.add(task1, task2)
+        with limited_sleep_mock():
+            start_time = time.time()
+            try:
+                g.execute()
+            except RuntimeError as e:
+                self.assertIn('Workflow failed', e.message)
+            else:
+                self.fail('Expected task to fail')
+
+        # even though the workflow failed 1 second in, the other task was
+        # still waited for and completed
+        task2.handle_task_terminated.assert_called()
 
     def test_task_sequence(self):
         """Tasks in a sequence are called in order"""
@@ -95,7 +159,7 @@ class TestTasksGraphExecute(unittest.TestCase):
             t = Task(None)
             seq_tasks.append(t)
             t.i = i
-        g = TaskDependencyGraph(None)
+        g = TaskDependencyGraph(MockWorkflowContext())
         seq = g.sequence()
         seq.add(*seq_tasks)
 
@@ -111,7 +175,7 @@ class TestTasksGraphExecute(unittest.TestCase):
         """When execution is cancelled, an error is thrown and tasks are
         not executed.
         """
-        g = TaskDependencyGraph(None)
+        g = TaskDependencyGraph(MockWorkflowContext())
         task = mock.Mock()
         g.add_task(task)
         with mock.patch('cloudify.workflows.api.cancel_request', True):

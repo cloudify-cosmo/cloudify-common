@@ -135,6 +135,8 @@ class TaskDependencyGraph(object):
 
             # no more tasks to process, time to move on
             if len(self.graph.node) == 0:
+                if self._error:
+                    raise self._error
                 return
             # sleep some and do it all over again
             else:
