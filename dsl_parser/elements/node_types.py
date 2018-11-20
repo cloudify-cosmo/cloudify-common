@@ -64,10 +64,15 @@ class NodeTypes(types.Types):
 
     def calculate_provided(self):
         return {
-            'host_types': self._types_derived_from(constants.HOST_TYPE)
+            'host_types': self._types_derived_from_host_type()
         }
 
-    def _types_derived_from(self, derived_from):
+    def _types_derived_from_host_type(self):
+        """
+        Finding the types which derived from host type, while
+        disregarding their namespace because host type is a base
+        which will not change.
+        """
         return {type_name for type_name, _type in self.value.items()
-                if any(derived_from in
+                if any(constants.HOST_TYPE in
                        item for item in _type[constants.TYPE_HIERARCHY])}

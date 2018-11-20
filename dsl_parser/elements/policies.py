@@ -299,6 +299,9 @@ class PolicyInstanceTargets(Element):
     schema = List(type=PolicyInstanceTarget)
 
     def parse(self, **kwargs):
+        """
+        This is a patch due to a problem in the infrastructure.
+        """
         if self.namespace:
             for i in xrange(len(self._initial_value)):
                 self._initial_value[i] = utils.generate_namespaced_value(
@@ -356,9 +359,15 @@ class Policies(DictElement):
         }
 
     def _create_scaling_groups(self, groups):
+        def find_scaling_policies(current_policies):
+            """
+            Finds all the scaling policies, which needs to disregard
+            there namespace because this is a basic policy type.
+            """
+            return [policy for policy in current_policies.values()
+                    if constants.SCALING_POLICY in policy['type']]
         policies = self.value
-        scaling_policies = [policy for policy in policies.values()
-                            if constants.SCALING_POLICY in policy['type']]
+        scaling_policies = find_scaling_policies(policies)
         scaling_groups = {}
         for policy in scaling_policies:
             properties = policy['properties']
@@ -371,7 +380,6 @@ class Policies(DictElement):
         return scaling_groups
 
     def _validate_and_update_groups(self, scaling_groups, node_templates):
-
         member_graph = nx.DiGraph()
         for group_name, group in scaling_groups.items():
             for member in group['members']:

@@ -211,9 +211,9 @@ def process_operation(
         is_workflows=False):
     def _remove_mapping_namespace(operation_location):
         """
-        Removing the namespace prefix from mapping string, this
-        is used in case of operation with a script for checking
-        existence of the file.
+        Removing the namespace prefix from mapping string,
+        in case of operation with a script for checking
+        the existence of that script's file.
         """
         return utils.remove_value_namespace(operation_location)
 
