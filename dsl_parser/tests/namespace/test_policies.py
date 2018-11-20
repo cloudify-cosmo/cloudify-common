@@ -55,8 +55,6 @@ policies:
             default_instances: 2
             min_instances: 1
             max_instances: 10
-relationships:
-  cloudify.relationships.contained_in: {}
 """
         import_file_name = self.make_yaml_file(imported_yaml)
 
@@ -69,6 +67,48 @@ imports:
         self._assert_policy(policy,
                             targets= ['test::group'],
                             policy_type='test::cloudify.policies.scaling',
+                            min_instances=1,
+                            max_instances=10,
+                            default_instances=2)
+
+    def test_multi_layer_policies_with_targets(self):
+        """
+        Due to the patch for targets prop, we verify it
+        still receives a namespace in another import.
+        """
+        top_level_yaml = """
+groups:
+  group:
+    members: [node]
+node_templates:
+  node: {type: type}
+node_types:
+  type: {}
+policies:
+  policy:
+    targets: [group]
+    type: cloudify.policies.scaling
+    properties:
+            default_instances: 2
+            min_instances: 1
+            max_instances: 10
+"""
+        top_file_name = self.make_yaml_file(top_level_yaml)
+        middle_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('middle_test', top_file_name)
+        middle_file_name = self.make_yaml_file(middle_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('test', middle_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        policy = parsed_yaml[constants.POLICIES]['test::middle_test::policy']
+        self._assert_policy(policy,
+                            targets= ['test::middle_test::group'],
+                            policy_type='test::middle_test::cloudify.policies.scaling',
                             min_instances=1,
                             max_instances=10,
                             default_instances=2)
