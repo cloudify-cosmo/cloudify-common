@@ -173,7 +173,7 @@ def _get_resource_location(resource_name,
 def _extract_import_parts(import_url,
                           resources_base_path,
                           current_resource_context=None):
-    namespace_op_location = import_url.find('::')
+    namespace_op_location = utils.find_value_namespace(import_url)
     if namespace_op_location is not -1:
         return import_url[:namespace_op_location], \
                _get_resource_location(import_url[namespace_op_location + 2:],
@@ -264,7 +264,8 @@ def _build_ordered_imports(parsed_dsl_holder,
                                                           _current_import)
             _validate_namespace(namespace)
             if initial_namespace:
-                namespace = '::'.join([initial_namespace, namespace])
+                namespace = utils.generate_namespaced_value(initial_namespace,
+                                                            namespace)
             if import_url is None:
                 ex = exceptions.DSLParsingLogicException(
                     13, "Import failed: no suitable location found for "
@@ -365,11 +366,10 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                     for _, v in value_holder.value.iteritems():
                         v.namespace = namespace
                 elif isinstance(value_holder.value, str):
-                    value_holder.value = "{0}::{1}".format(namespace,
-                                                           value_holder.value)
-                # value_holder.namespace = namespace
-                key_holder.value = "{0}::{1}".format(namespace,
-                                                     key_holder.value)
+                    value_holder.value = utils.generate_namespaced_value(
+                        namespace, value_holder.value)
+                key_holder.value = utils.generate_namespaced_value(
+                    namespace, key_holder.value)
             to_dict_holder.value[key_holder] = value_holder
         else:
             raise exceptions.DSLParsingLogicException(

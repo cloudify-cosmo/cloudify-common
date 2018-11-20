@@ -301,7 +301,7 @@ class PolicyInstanceTargets(Element):
     def parse(self, **kwargs):
         if self.namespace:
             for i in xrange(len(self._initial_value)):
-                self._initial_value[i] = '{0}::{1}'.format(
+                self._initial_value[i] = utils.generate_namespaced_value(
                     self.namespace, self.initial_value[i])
         return self.initial_value
 
