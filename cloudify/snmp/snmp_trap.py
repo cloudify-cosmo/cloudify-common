@@ -13,26 +13,19 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import os
 import time
 import json
 from calendar import timegm
 
-from pysmi.reader import HttpReader
-from pysmi.compiler import MibCompiler
-from pysmi.parser.smi import SmiV2Parser
-from pysmi.writer.pyfile import PyFileWriter
-from pysmi.reader.localfile import FileReader
-from pysmi.codegen.pysnmp import PySnmpCodeGen
-from pysmi.searcher.pyfile import PyFileSearcher
 from pysnmp.hlapi import (SnmpEngine,
-                          ObjectType,
                           ContextData,
                           CommunityData,
                           ObjectIdentity,
                           NotificationType,
                           sendNotification,
-                          UdpTransportTarget)
+                          UdpTransportTarget,
+                          OctetString,
+                          Counter64)
 
 from cloudify.utils import setup_logger
 
@@ -41,20 +34,20 @@ from cloudify.utils import setup_logger
 CLOUDIFY_MIB = 'CLOUDIFY-MIB'
 
 # The notification types
-WORKFLOW_QUEUED = 'cloudifyWorkflowQueued'
-WORKFLOW_FAILED = 'cloudifyWorkflowFailed'
-WORKFLOW_STARTED = 'cloudifyWorkflowStarted'
-WORKFLOW_SUCCEEDED = 'cloudifyWorkflowSucceeded'
-WORKFLOW_CANCELLED = 'cloudifyWorkflowCancelled'
+WORKFLOW_QUEUED = '1.3.6.1.4.1.52312.1.0.1'
+WORKFLOW_FAILED = '1.3.6.1.4.1.52312.1.0.5'
+WORKFLOW_STARTED = '1.3.6.1.4.1.52312.1.0.2'
+WORKFLOW_SUCCEEDED = '1.3.6.1.4.1.52312.1.0.3'
+WORKFLOW_CANCELLED = '1.3.6.1.4.1.52312.1.0.4'
 
 # The object types
-ERROR = 'cloudifyErrorDetails'
-TIMESTAMP = 'cloudifyTimeStamp'
-TENANT_NAME = 'cloudifyTenantName'
-EXECUTION_ID = 'cloudifyExecutionID'
-DEPLOYMENT_ID = 'cloudifyDeploymentID'
-WORKFLOW_NAME = 'cloudifyWorkflowName'
-WORKFLOW_PARAMETERS = 'cloudifyWorkflowParameters'
+ERROR = '1.3.6.1.4.1.52312.1.1.7'
+TIMESTAMP = '1.3.6.1.4.1.52312.1.1.1'
+TENANT_NAME = '1.3.6.1.4.1.52312.1.1.3'
+EXECUTION_ID = '1.3.6.1.4.1.52312.1.1.5'
+DEPLOYMENT_ID = '1.3.6.1.4.1.52312.1.1.2'
+WORKFLOW_NAME = '1.3.6.1.4.1.52312.1.1.4'
+WORKFLOW_PARAMETERS = '1.3.6.1.4.1.52312.1.1.6'
 
 NOTIFY_TYPE = 'trap'
 
@@ -68,7 +61,6 @@ notification_types = {
 
 
 def send_snmp_trap(event_context, **kwargs):
-    _compile_cloudify_mib()
     notification_type = _create_notification_type(event_context)
     destination_address = kwargs['destination_address']
     destination_port = kwargs['destination_port']
@@ -104,36 +96,21 @@ def _create_notification_type(event_context):
     execution_parameters = _get_execution_parameters(event_context)
 
     notification_type = NotificationType(
-        ObjectIdentity(CLOUDIFY_MIB, notification_types[event_type]))
+        ObjectIdentity(notification_types[event_type]))
+
     notification_type.addVarBinds(
-        ObjectType(ObjectIdentity(CLOUDIFY_MIB, EXECUTION_ID), execution_id),
-        ObjectType(ObjectIdentity(CLOUDIFY_MIB, WORKFLOW_NAME), workflow_id),
-        ObjectType(ObjectIdentity(CLOUDIFY_MIB, TENANT_NAME), tenant_name),
-        ObjectType(ObjectIdentity(CLOUDIFY_MIB, DEPLOYMENT_ID), deployment_id),
-        ObjectType(ObjectIdentity(CLOUDIFY_MIB, TIMESTAMP), timestamp),
-        ObjectType(ObjectIdentity(CLOUDIFY_MIB, WORKFLOW_PARAMETERS),
-                   execution_parameters)
+        (EXECUTION_ID, OctetString(execution_id)),
+        (WORKFLOW_NAME, OctetString(workflow_id)),
+        (TENANT_NAME, OctetString(tenant_name)),
+        (DEPLOYMENT_ID, OctetString(deployment_id)),
+        (TIMESTAMP, Counter64(timestamp)),
+        (WORKFLOW_PARAMETERS, OctetString(execution_parameters))
     )
 
     if event_type == 'workflow_failed':
         error = _get_error(event_context)
-        notification_type.addVarBinds(ObjectType(ObjectIdentity(
-            CLOUDIFY_MIB, ERROR), error))
+        notification_type.addVarBinds(ERROR, error)
     return notification_type
-
-
-def _compile_cloudify_mib():
-    mibs_dir = "pysnmp_mibs"
-    if os.path.exists('{0}/{1}.py'.format(mibs_dir, CLOUDIFY_MIB)):
-        return
-    mib_compiler = MibCompiler(SmiV2Parser(),
-                               PySnmpCodeGen(),
-                               PyFileWriter(mibs_dir))
-    cloudify_mib_dir = os.path.dirname(os.path.realpath(__file__))
-    mib_compiler.addSources(FileReader(cloudify_mib_dir))
-    mib_compiler.addSources(HttpReader('mibs.snmplabs.com', 80, '/asn1/@mib@'))
-    mib_compiler.addSearchers(PyFileSearcher(mibs_dir))
-    mib_compiler.compile(CLOUDIFY_MIB)
 
 
 def _get_epoch_time(event_context):
