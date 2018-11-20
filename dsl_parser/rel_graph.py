@@ -73,7 +73,8 @@ def build_node_graph(nodes, scaling_groups):
             graph.add_edge(member, group_name,
                            relationship={
                                'type': GROUP_CONTAINED_IN_REL_TYPE,
-                               'type_hierarchy': [GROUP_CONTAINED_IN_REL_TYPE],
+                               constants.TYPE_HIERARCHY:
+                                   [GROUP_CONTAINED_IN_REL_TYPE],
                                'target_id': group_name
                            },
                            index=-1)
@@ -86,7 +87,7 @@ def build_node_graph(nodes, scaling_groups):
         for index, relationship in enumerate(node.get(RELATIONSHIPS, [])):
             target_id = relationship['target_id']
             if (relationship_utils.contained_in_is_ancestor_in(
-                    relationship['type_hierarchy']) and
+                    relationship[constants.TYPE_HIERARCHY]) and
                     node_id in contained_in_group):
                 group_name = contained_in_group[node_id]
                 relationship['target_id'] = group_name
@@ -100,7 +101,8 @@ def build_node_graph(nodes, scaling_groups):
                     top_level_group_name, target_id,
                     relationship={
                         'type': GROUP_CONTAINED_IN_REL_TYPE,
-                        'type_hierarchy': [GROUP_CONTAINED_IN_REL_TYPE],
+                        constants.TYPE_HIERARCHY:
+                            [GROUP_CONTAINED_IN_REL_TYPE],
                         'target_id': target_id
                     },
                     index=-1)
@@ -581,7 +583,7 @@ def _handle_removed_instances(
 def _extract_contained(node, node_instance):
     for node_relationship in node.get('relationships', []):
         if relationship_utils.contained_in_is_ancestor_in(
-                node_relationship['type_hierarchy']):
+                node_relationship[constants.TYPE_HIERARCHY]):
             contained_node_relationship = node_relationship
             break
     else:
@@ -828,10 +830,11 @@ def _verify_and_get_connection_type(relationship):
 
 def _relationship_type_hierarchy_includes_one_of(relationship,
                                                  expected_types):
-    def _partial_match_in_list(source, item_list):
+    def partial_match_in_list(source, item_list):
         return any([item for item in item_list if item in source])
-    relationship_type_hierarchy = relationship['type_hierarchy']
-    return any([_partial_match_in_list(relationship_type, expected_types)
+
+    relationship_type_hierarchy = relationship[constants.TYPE_HIERARCHY]
+    return any([partial_match_in_list(relationship_type, expected_types)
                 for relationship_type in relationship_type_hierarchy])
 
 

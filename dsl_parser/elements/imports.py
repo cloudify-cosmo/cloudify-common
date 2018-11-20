@@ -179,7 +179,8 @@ def _extract_import_parts(import_url,
                                 is the base path.
     :param current_resource_context: Current import statement,
     :return: Will return a breakdown down of the URL to namespace, import_url.
-            If the import is not namespaced, the returned namespace will be None.
+            If the import is not namespaced, the returned namespace will be
+            None.
     """
     namespace_op_location = utils.find_value_namespace(import_url)
     if namespace_op_location is not -1:
@@ -240,16 +241,13 @@ def _build_ordered_imports(parsed_dsl_holder,
     def location(value):
         return value or constants.ROOT_ELEMENT_VALUE
 
-    imports_graph = ImportsGraph()
-    imports_graph.add(location(dsl_location), parsed_dsl_holder)
-
-    def _is_parsed_resource(item):
+    def is_parsed_resource(item):
         """
         Checking if the given item is in parsed yaml type.
         """
         return isinstance(item, Holder)
 
-    def _validate_namespace(namespace):
+    def validate_namespace(namespace):
         """
         The namespace delimiter is not allowed in the namespace.
         """
@@ -259,9 +257,9 @@ def _build_ordered_imports(parsed_dsl_holder,
                 'Invalid {0}: import\'s namespace cannot'
                 'contain colon'.format(namespace))
 
-    def _build_ordered_imports_recursive(_current_parsed_dsl_holder,
-                                         _current_import,
-                                         initial_namespace=None):
+    def build_ordered_imports_recursive(_current_parsed_dsl_holder,
+                                        _current_import,
+                                        context_namespace=None):
         imports_key_holder, imports_value_holder = _current_parsed_dsl_holder.\
             get_item(constants.IMPORTS)
         if not imports_value_holder:
@@ -271,9 +269,9 @@ def _build_ordered_imports(parsed_dsl_holder,
             namespace, import_url = _extract_import_parts(another_import,
                                                           resources_base_path,
                                                           _current_import)
-            _validate_namespace(namespace)
-            if initial_namespace:
-                namespace = utils.generate_namespaced_value(initial_namespace,
+            validate_namespace(namespace)
+            if context_namespace:
+                namespace = utils.generate_namespaced_value(context_namespace,
                                                             namespace)
             if import_url is None:
                 ex = exceptions.DSLParsingLogicException(
@@ -286,11 +284,11 @@ def _build_ordered_imports(parsed_dsl_holder,
             if (import_url, namespace) in imports_graph:
                 imports_graph.add_graph_dependency(
                     import_url,
-                    (location(_current_import), initial_namespace),
+                    (location(_current_import), context_namespace),
                     namespace)
             else:
                 imported_dsl = resolver.fetch_import(import_url)
-                if not _is_parsed_resource(imported_dsl):
+                if not is_parsed_resource(imported_dsl):
                     imported_dsl = utils.load_yaml(
                         raw_yaml=imported_dsl,
                         error_message="Failed to parse import '{0}'"
@@ -300,13 +298,15 @@ def _build_ordered_imports(parsed_dsl_holder,
                 imports_graph.add(
                     import_url,
                     imported_dsl,
-                    (location(_current_import), initial_namespace),
+                    (location(_current_import), context_namespace),
                     namespace)
-                _build_ordered_imports_recursive(imported_dsl,
-                                                 import_url,
-                                                 namespace)
+                build_ordered_imports_recursive(imported_dsl,
+                                                import_url,
+                                                namespace)
 
-    _build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
+    imports_graph = ImportsGraph()
+    imports_graph.add(location(dsl_location), parsed_dsl_holder)
+    build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
     return imports_graph.topological_sort()
 
 
@@ -368,7 +368,7 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                                            to_dict_holder,
                                            key_name,
                                            namespace):
-    def _merge_namespaced_elements(key_holder, namespace, value_holder):
+    def merge_namespaced_elements(key_holder, namespace, value_holder):
         if isinstance(value_holder.value, dict):
             for _, v in value_holder.value.iteritems():
                 v.namespace = namespace
@@ -382,7 +382,7 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
         if key_holder.value not in to_dict_holder or\
                 to_dict_holder.value[key_holder].namespace != namespace:
             if namespace:
-                _merge_namespaced_elements(key_holder, namespace, value_holder)
+                merge_namespaced_elements(key_holder, namespace, value_holder)
             to_dict_holder.value[key_holder] = value_holder
         else:
             raise exceptions.DSLParsingLogicException(
