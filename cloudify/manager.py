@@ -455,7 +455,8 @@ def create_agent_record(cloudify_agent,
         )
     except CloudifyClientError as e:
         agent = client.agents.get(cloudify_agent['name'])
-        if agent.state != AgentState.DELETED or e.status_code != 409:
+        if agent.state not in [AgentState.DELETED, AgentState.DELETING] \
+                or e.status_code != 409:
             raise
         # Reinstalling an existing agent
         client.agents.update(cloudify_agent['name'], state)
