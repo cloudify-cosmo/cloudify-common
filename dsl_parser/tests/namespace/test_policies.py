@@ -60,13 +60,13 @@ policies:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
-        policy = parsed_yaml[constants.POLICIES]['test::policy']
+        policy = parsed_yaml[constants.POLICIES]['test->policy']
         self._assert_policy(policy,
-                            targets= ['test::group'],
-                            policy_type='test::cloudify.policies.scaling',
+                            targets= ['test->group'],
+                            policy_type='test->cloudify.policies.scaling',
                             min_instances=1,
                             max_instances=10,
                             default_instances=2)
@@ -96,19 +96,19 @@ policies:
         top_file_name = self.make_yaml_file(top_level_yaml)
         middle_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('middle_test', top_file_name)
         middle_file_name = self.make_yaml_file(middle_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', middle_file_name)
         parsed_yaml = self.parse(main_yaml)
-        policy = parsed_yaml[constants.POLICIES]['test::middle_test::policy']
+        policy = parsed_yaml[constants.POLICIES]['test->middle_test->policy']
         self._assert_policy(policy,
-                            targets= ['test::middle_test::group'],
-                            policy_type='test::middle_test::cloudify.policies.scaling',
+                            targets= ['test->middle_test->group'],
+                            policy_type='test->middle_test->cloudify.policies.scaling',
                             min_instances=1,
                             max_instances=10,
                             default_instances=2)
@@ -143,11 +143,11 @@ policy_triggers:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
-                                    'test::trigger',
+                                    'test->trigger',
                                     'source',
                                     'param1',
                                     'the description')
@@ -165,17 +165,17 @@ policy_triggers:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
-    -   {2}::{1}
+    -   {0}->{1}
+    -   {2}->{1}
 """.format('test', import_file_name, 'other_test')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
-                                    'test::trigger',
+                                    'test->trigger',
                                     'source',
                                     'param1',
                                     'the description')
         self._assert_policy_trigger(parsed_yaml,
-                                    'other_test::trigger',
+                                    'other_test->trigger',
                                     'source',
                                     'param1',
                                     'the description')
@@ -193,7 +193,7 @@ policy_triggers:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 policy_triggers:
     trigger:
         source: source2
@@ -203,7 +203,7 @@ policy_triggers:
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
-                                    'test::trigger',
+                                    'test->trigger',
                                     'source',
                                     'param1',
                                     'the description')
@@ -226,7 +226,7 @@ policy_triggers:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 policy_triggers:
     trigger2:
         source: source2
@@ -236,7 +236,7 @@ policy_triggers:
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
-                                    'test::trigger',
+                                    'test->trigger',
                                     'source',
                                     'param1',
                                     'the description')
@@ -276,11 +276,11 @@ policy_types:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
-                                 'test::type',
+                                 'test->type',
                                  'source',
                                  'param1',
                                  'the description')
@@ -298,17 +298,17 @@ policy_types:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
-    -   {2}::{1}
+    -   {0}->{1}
+    -   {2}->{1}
 """.format('test', import_file_name, 'other_test')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
-                                 'test::type',
+                                 'test->type',
                                  'source',
                                  'param1',
                                  'the description')
         self._assert_policy_type(parsed_yaml,
-                                 'other_test::type',
+                                 'other_test->type',
                                  'source',
                                  'param1',
                                  'the description')
@@ -326,7 +326,7 @@ policy_types:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 policy_types:
     type:
         source: source2
@@ -336,7 +336,7 @@ policy_types:
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
-                                 'test::type',
+                                 'test->type',
                                  'source',
                                  'param1',
                                  'the description')
@@ -359,7 +359,7 @@ policy_types:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 policy_types:
     type2:
         source: source
@@ -369,7 +369,7 @@ policy_types:
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
-                                 'test::type',
+                                 'test->type',
                                  'source',
                                  'param1',
                                  'the description')

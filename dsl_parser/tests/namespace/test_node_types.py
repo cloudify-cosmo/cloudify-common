@@ -31,9 +31,9 @@ node_types:
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 node_templates:
     test_node:
-        type: test::test_type
+        type: test->test_type
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
@@ -54,12 +54,12 @@ node_types:
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 node_templates:
     test_node:
-        type: test::test_type
+        type: test->test_type
     other_node:
-        type: other::test_type
+        type: other->test_type
 imports:
-    -   {0}::{1}
-    -   {2}::{1}
+    -   {0}->{1}
+    -   {2}->{1}
 """.format('test', import_file_name, 'other')
 
         parsed = self.parse(main_yaml)
@@ -89,11 +89,11 @@ node_types:
         default: value2
 node_templates:
     test_node1:
-        type: test::test_type
+        type: test->test_type
     test_node2:
         type: test_type
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
@@ -124,11 +124,11 @@ node_types:
 
 node_templates:
     test_node:
-        type: test::test_type
+        type: test->test_type
     test_node2:
         type: test_type2
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
@@ -152,7 +152,7 @@ node_types:
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 node_types:
   test_type:
     properties:
@@ -162,7 +162,7 @@ node_types:
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 node_types:
   test_type:
     properties:
@@ -172,9 +172,9 @@ node_templates:
     test_node:
         type: test_type
     test_node2:
-        type: test::test_type
+        type: test->test_type
     test_node3:
-        type: test::test1::test_type
+        type: test->test1->test_type
 """.format('test', layer2_import_path)
         parsed = self.parse_1_3(main_yaml)
         for i in xrange(0, 3):
@@ -194,19 +194,19 @@ node_types:
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
 node_templates:
   test_node:
-    type: test1::test_type
+    type: test1->test_type
 """.format('test1', layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = """
 imports:
-  - {0}::{1}
+  - {0}->{1}
   - {2}
 node_templates:
     test_node2:
-        type: test::test_type
+        type: test->test_type
 """.format('test', layer1_import_path, layer2_import_path)
         parsed = self.parse_1_3(main_yaml)
         vm = parsed[constants.NODES][0]
@@ -232,12 +232,12 @@ node_types:
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 node_types:
   test_type2:
-    derived_from: test::test_type
+    derived_from: test->test_type
 node_templates:
     test_node:
         type: test_type2
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)

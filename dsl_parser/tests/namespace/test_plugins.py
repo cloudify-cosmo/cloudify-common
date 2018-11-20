@@ -66,15 +66,15 @@ node_templates:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         expected_plugin1 = deployment_plugin_def.copy()
-        expected_plugin1['name'] = 'test::plugin1'
+        expected_plugin1['name'] = 'test->plugin1'
         expected_plugin2 = host_plugin_def.copy()
-        expected_plugin2['name'] = 'test::plugin2'
+        expected_plugin2['name'] = 'test->plugin2'
         plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
-        node2 = self.get_node_by_name(parsed_yaml, 'test::node2')
+        node2 = self.get_node_by_name(parsed_yaml, 'test->node2')
         plugin2 = node2[constants.PLUGINS_TO_INSTALL][0]
         self.assertEqual(expected_plugin1, plugin1)
         self.assertEqual(expected_plugin2, plugin2)
@@ -125,25 +125,25 @@ node_templates:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
-    -   {2}::{1}
+    -   {0}->{1}
+    -   {2}->{1}
 """.format('test', import_file_name, 'other_test')
         parsed_yaml = self.parse(main_yaml)
         expected_test_plugin1 = deployment_plugin_def.copy()
-        expected_test_plugin1['name'] = 'test::plugin1'
+        expected_test_plugin1['name'] = 'test->plugin1'
         expected_other_test_plugin1 = deployment_plugin_def.copy()
-        expected_other_test_plugin1['name'] = 'other_test::plugin1'
+        expected_other_test_plugin1['name'] = 'other_test->plugin1'
         expected_test_plugin2 = host_plugin_def.copy()
-        expected_test_plugin2['name'] = 'test::plugin2'
+        expected_test_plugin2['name'] = 'test->plugin2'
         expected_other_test_plugin2 = host_plugin_def.copy()
-        expected_other_test_plugin2['name'] = 'other_test::plugin2'
+        expected_other_test_plugin2['name'] = 'other_test->plugin2'
         other_test_plugin1 =\
-            parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
-        test_plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
-        test_node2 = self.get_node_by_name(parsed_yaml, 'test::node2')
+            parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
+        test_plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
+        test_node2 = self.get_node_by_name(parsed_yaml, 'test->node2')
         test_plugin2 = test_node2[constants.PLUGINS_TO_INSTALL][0]
         other_test_node2 =\
-            self.get_node_by_name(parsed_yaml, 'other_test::node2')
+            self.get_node_by_name(parsed_yaml, 'other_test->node2')
         other_test_plugin2 = other_test_node2[constants.PLUGINS_TO_INSTALL][0]
         self.assertEqual(expected_test_plugin1, test_plugin1)
         self.assertEqual(expected_other_test_plugin1, other_test_plugin1)
@@ -196,7 +196,7 @@ node_templates:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 plugins:
   plugin1:
     distribution: dist
@@ -211,7 +211,7 @@ plugins:
     supported_platform: any
 node_templates:
   node3:
-    type: test::type
+    type: test->type
     interfaces:
      interface:
        op: plugin1.op
@@ -220,13 +220,13 @@ node_templates:
         expected_plugin1 = deployment_plugin_def.copy()
         expected_plugin1['name'] = 'plugin1'
         expected_plugin2 = host_plugin_def.copy()
-        expected_plugin2['name'] = 'test::plugin2'
+        expected_plugin2['name'] = 'test->plugin2'
         expected_test_plugin1 = deployment_plugin_def.copy()
-        expected_test_plugin1['name'] = 'test::plugin1'
-        plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
-        node2 = self.get_node_by_name(parsed_yaml, 'test::node2')
+        expected_test_plugin1['name'] = 'test->plugin1'
+        plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
+        node2 = self.get_node_by_name(parsed_yaml, 'test->node2')
         plugin2 = node2[constants.PLUGINS_TO_INSTALL][0]
-        test_plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
+        test_plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
         self.assertEqual(expected_plugin1, plugin1)
         self.assertEqual(expected_plugin2, plugin2)
         self.assertEqual(expected_test_plugin1, test_plugin1)
@@ -269,7 +269,7 @@ node_templates:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}::{1}
+    -   {0}->{1}
 plugins:
   plugin1:
     distribution: dist
@@ -284,7 +284,7 @@ plugins:
     supported_platform: any
 node_templates:
   node1:
-    type: test::type
+    type: test->type
     interfaces:
      interface:
        op: plugin1.op
@@ -296,10 +296,10 @@ node_templates:
         expected_plugin1 = deployment_plugin_def.copy()
         expected_plugin1['name'] = 'plugin1'
         expected_plugin2 = host_plugin_def.copy()
-        expected_plugin2['name'] = 'test::plugin2'
+        expected_plugin2['name'] = 'test->plugin2'
 
         plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
-        node2 = self.get_node_by_name(parsed_yaml, 'test::node2')
+        node2 = self.get_node_by_name(parsed_yaml, 'test->node2')
         plugin2 = node2[constants.PLUGINS_TO_INSTALL][0]
         self.assertEqual(expected_plugin1, plugin1)
         self.assertEqual(expected_plugin2, plugin2)
