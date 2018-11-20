@@ -539,6 +539,42 @@ outputs:
             'value',
             parsed_yaml[constants.OUTPUTS]['port']['value'])
 
+    def test_multi_layer_namespaced_import(self):
+        layer1_yaml = """
+node_types:
+    test_type:
+        properties:
+            key:
+                default: value
+node_templates:
+    node:
+        type: test_type
+"""
+        layer1_file_name = self.make_yaml_file(layer1_yaml)
+
+        layer2_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('middle_test', layer1_file_name)
+        layer2_file_name = self.make_yaml_file(layer2_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('test', layer2_file_name)
+        main_yaml += """
+outputs:
+    port:
+        description: the port
+        value: { get_property: ["test::middle_test::node", key] }
+"""
+
+        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
+                                              self._get_secret_mock)
+        self.assertEqual(
+            'value',
+            parsed_yaml[constants.OUTPUTS]['port']['value'])
+
 
 class TestGetAttribute(AbstractTestParser):
     def test_has_intrinsic_functions_property(self):
@@ -644,6 +680,42 @@ outputs:
             {'get_attribute': ['test::node', 'key']},
             parsed_yaml[constants.OUTPUTS]['port']['value'])
 
+    def test_get_attribute_from_namespaced_node(self):
+        layer1_yaml = """
+node_types:
+    test_type:
+        properties:
+            key:
+                default: value
+node_templates:
+    node:
+        type: test_type
+"""
+        layer1_file_name = self.make_yaml_file(layer1_yaml)
+
+        layer2_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('middle_test', layer1_file_name)
+        layer2_file_name = self.make_yaml_file(layer2_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('test', layer2_file_name)
+        main_yaml += """
+outputs:
+    port:
+        description: the port
+        value: { get_attribute: ["test::middle_test::node", key] }
+"""
+
+        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
+                                              self._get_secret_mock)
+        self.assertEqual(
+            {'get_attribute': ['test::middle_test::node', 'key']},
+            parsed_yaml[constants.OUTPUTS]['port']['value'])
+
 
 class TestConcat(AbstractTestParser):
     def test_concat_with_namespace(self):
@@ -730,3 +802,32 @@ imports:
         self.assertEqual(
             8080,
             parsed_yaml[constants.OUTPUTS]['test::port']['value'])
+
+    def test_multi_layer_import(self):
+        layer1_yaml = """
+inputs:
+    port:
+        default: 8080
+outputs:
+    port:
+        description: the port
+        value: { get_input: port }
+"""
+        layer1_file_name = self.make_yaml_file(layer1_yaml)
+
+        layer2_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('middle_test', layer1_file_name)
+        layer2_file_name = self.make_yaml_file(layer2_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}::{1}
+""".format('test', layer2_file_name)
+
+        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
+                                              self._get_secret_mock)
+        self.assertEqual(
+            8080,
+            parsed_yaml[constants.OUTPUTS]['test::middle_test::port']['value'])
