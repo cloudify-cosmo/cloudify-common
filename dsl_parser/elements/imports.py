@@ -173,6 +173,14 @@ def _get_resource_location(resource_name,
 def _extract_import_parts(import_url,
                           resources_base_path,
                           current_resource_context=None):
+    """
+    :param import_url: a string which is the import path
+    :param resources_base_path: In case of a relative file path, this
+                                is the base path.
+    :param current_resource_context: Current import statement,
+    :return: Will return a breakdown down of the URL to namespace, import_url.
+            If the import is not namespaced, the returned namespace will be None.
+    """
     namespace_op_location = utils.find_value_namespace(import_url)
     if namespace_op_location is not -1:
         return import_url[:namespace_op_location], \
@@ -185,12 +193,10 @@ def _extract_import_parts(import_url,
                                         current_resource_context)
 
 
-def _normal_import_url(import_url):
+def _normalize_import_url(import_url):
     """
     Removes any URL prefix for getting the path url, like file://.
     Because this is not needed in the following processing.
-    :param import_url:
-    :return:
     """
     url_op = import_url.find(':')
     if url_op is not -1:
@@ -239,12 +245,15 @@ def _build_ordered_imports(parsed_dsl_holder,
 
     def _is_parsed_resource(item):
         """
-        Checking if the given item is in parsed format.
+        Checking if the given item is in parsed yaml type.
         """
         return isinstance(item, Holder)
 
     def _validate_namespace(namespace):
-        if namespace and ':' in namespace:
+        """
+        The namespace delimiter is not allowed in the namespace.
+        """
+        if namespace and constants.NAMESPACE_DELIMITER in namespace:
             raise exceptions.DSLParsingLogicException(
                 212,
                 'Invalid {0}: import\'s namespace cannot'
@@ -272,7 +281,7 @@ def _build_ordered_imports(parsed_dsl_holder,
                         "import '{0}'".format(another_import))
                 ex.failed_import = another_import
                 raise ex
-            normalized_url = _normal_import_url(import_url)
+            normalized_url = _normalize_import_url(import_url)
 
             if (import_url, namespace) in imports_graph:
                 imports_graph.add_graph_dependency(
@@ -331,7 +340,8 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
             pass
         elif key_holder.value not in combined_parsed_dsl_holder:
             if isinstance(value_holder.value, dict):
-                for k, v in value_holder.value.iteritems():
+                # Propagate namespace down
+                for k, _ in value_holder.value.iteritems():
                     value_holder.value[k].namespace = namespace
             combined_parsed_dsl_holder.value[key_holder] = value_holder
         elif key_holder.value in DONT_OVERWRITE:
@@ -358,18 +368,21 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                                            to_dict_holder,
                                            key_name,
                                            namespace):
+    def _merge_namespaced_elements(key_holder, namespace, value_holder):
+        if isinstance(value_holder.value, dict):
+            for _, v in value_holder.value.iteritems():
+                v.namespace = namespace
+        elif isinstance(value_holder.value, str):
+            value_holder.value = utils.generate_namespaced_value(
+                namespace, value_holder.value)
+        key_holder.value = utils.generate_namespaced_value(
+            namespace, key_holder.value)
+
     for key_holder, value_holder in from_dict_holder.value.iteritems():
         if key_holder.value not in to_dict_holder or\
                 to_dict_holder.value[key_holder].namespace != namespace:
             if namespace:
-                if isinstance(value_holder.value, dict):
-                    for _, v in value_holder.value.iteritems():
-                        v.namespace = namespace
-                elif isinstance(value_holder.value, str):
-                    value_holder.value = utils.generate_namespaced_value(
-                        namespace, value_holder.value)
-                key_holder.value = utils.generate_namespaced_value(
-                    namespace, key_holder.value)
+                _merge_namespaced_elements(key_holder, namespace, value_holder)
             to_dict_holder.value[key_holder] = value_holder
         else:
             raise exceptions.DSLParsingLogicException(
