@@ -15,9 +15,11 @@
 
 import networkx as nx
 
-from dsl_parser import functions
 from dsl_parser.framework import elements
-from dsl_parser import exceptions, constants
+from dsl_parser import (exceptions,
+                        constants,
+                        functions,
+                        utils)
 from dsl_parser.framework.requirements import Requirement
 
 
@@ -196,13 +198,15 @@ class Context(object):
 
     def _traverse_element_type_schema(self, schema, parent_element, namespace):
 
-        def _namespace_get_input(namespace_value, input):
-            return '{0}::{1}'.format(namespace_value, input)
+        def _namespace_get_input(namespace_value, input_name):
+            return utils.generate_namespaced_value(
+                namespace_value, input_name)
 
         def _namespace_get_attribute_property(namespace_value, func):
             value = func[0]
             if value not in functions.AVAILABLE_NODE_TARGETS:
-                func[0] = '{0}::{1}'.format(namespace_value, value)
+                func[0] = utils.generate_namespaced_value(
+                    namespace_value, value)
             return func
 
         def _gen_dict_extract(key, element, function_namespace):
@@ -225,8 +229,9 @@ class Context(object):
                         constants.USER_PRIMITIVE_TYPES and\
                         parent_element.add_namespace:
                     namespace = parent_element.namespace or namespace
-                    parent_element._initial_value = "{0}::{1}"\
-                        .format(namespace, parent_element._initial_value)
+                    parent_element._initial_value = \
+                        utils.generate_namespaced_value(
+                            namespace, parent_element._initial_value)
                 elif isinstance(parent_element._initial_value, dict):
                     parent_element._initial_value = \
                         _gen_dict_extract('get_input', parent_element._initial_value, _namespace_get_input)
@@ -247,7 +252,7 @@ class Context(object):
                         parent_element.add_namespace and \
                         name_holder.value not in\
                         constants.USER_PRIMITIVE_TYPES:
-                    name_holder.value = "{0}::{1}".format(
+                    name_holder.value = utils.generate_namespaced_value(
                         current_namespace, name_holder.value)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,

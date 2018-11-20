@@ -216,7 +216,7 @@ def process_operation(
         is used in case of operation with a script for checking
         existence of the file.
         """
-        return re.sub('.*::', '', operation_location)
+        return utils.remove_value_namespace(operation_location)
 
     def _resource_exists(location_bases, resource_name):
         resource_name = _remove_mapping_namespace(resource_name)

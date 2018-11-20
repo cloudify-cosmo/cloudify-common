@@ -18,11 +18,13 @@ import contextlib
 import importlib
 import urllib2
 import sys
+import re
 
 import yaml.parser
 
 from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
-    RESLOVER_PARAMETERS_KEY
+    RESLOVER_PARAMETERS_KEY,\
+    NAMESPACE_DELIMITER
 from dsl_parser.import_resolver.default_import_resolver import \
     DefaultImportResolver
 from dsl_parser import (yaml_loader,
@@ -316,3 +318,16 @@ def get_class(class_path):
                          .format(class_module_str, class_name))
 
     return getattr(module, class_name)
+
+
+def generate_namespaced_value(namespace, value):
+    return "{0}{1}{2}".format(namespace, NAMESPACE_DELIMITER, value)
+
+
+def find_value_namespace(value):
+    return value.find(NAMESPACE_DELIMITER)
+
+
+def remove_value_namespace(value):
+    value_namespace_format = '.*{0}'.format(NAMESPACE_DELIMITER)
+    return re.sub(value_namespace_format, '', value)
