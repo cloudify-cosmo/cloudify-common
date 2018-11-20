@@ -215,10 +215,15 @@ class Context(object):
                     if k == key:
                         element[k] = function_namespace(namespace, v)
                     if isinstance(v, dict):
-                        element[k] = _gen_dict_extract(key, v, function_namespace)
+                        element[k] = _gen_dict_extract(key,
+                                                       v,
+                                                       function_namespace)
                     elif isinstance(v, list):
                         for i in xrange(len(v)):
-                            element[k][i] = _gen_dict_extract(key, v[i], function_namespace)
+                            element[k][i] = _gen_dict_extract(
+                                key,
+                                v[i],
+                                function_namespace)
             return element
 
         if isinstance(schema, elements.Leaf):
@@ -234,11 +239,17 @@ class Context(object):
                             namespace, parent_element._initial_value)
                 elif isinstance(parent_element._initial_value, dict):
                     parent_element._initial_value = \
-                        _gen_dict_extract('get_input', parent_element._initial_value, _namespace_get_input)
+                        _gen_dict_extract('get_input',
+                                          parent_element._initial_value,
+                                          _namespace_get_input)
                     parent_element._initial_value = \
-                        _gen_dict_extract('get_property', parent_element._initial_value, _namespace_get_attribute_property)
+                        _gen_dict_extract('get_property',
+                                          parent_element._initial_value,
+                                          _namespace_get_attribute_property)
                     parent_element._initial_value = \
-                        _gen_dict_extract('get_attribute', parent_element._initial_value, _namespace_get_attribute_property)
+                        _gen_dict_extract('get_attribute',
+                                          parent_element._initial_value,
+                                          _namespace_get_attribute_property)
             return
 
         element_cls = schema.type

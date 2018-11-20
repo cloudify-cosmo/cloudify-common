@@ -127,32 +127,34 @@ imports:
 """.format('test', import_file_name, 'other_test')
         parsed_yaml = self.parse_1_3(main_yaml)
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
-        ['test->test_relationship'])
+                             ['test->test_relationship'])
         self.assertEquals('test->test_relationship', test_relationship['name'])
         self.assertEquals(test_relationship[constants.TYPE_HIERARCHY],
                           ['test->empty_rel', 'test->test_relationship'])
         result_test_interface_3 = \
             (test_relationship[interfaces_const.SOURCE_INTERFACES]
-            ['test_interface3'])
+             ['test_interface3'])
         self.assertEquals(interfaces_const.NO_OP,
                           result_test_interface_3['test_interface3_op1'])
         result_test_interface_4 = \
             (test_relationship[interfaces_const.TARGET_INTERFACES]
-            ['test_interface4'])
+             ['test_interface4'])
         self.assertEquals(
             operation_mapping(implementation='test->test_plugin.task_name',
                               inputs={'key':
-                                          {'default': 'value',
-                                           'type': 'string'}},
+                                      {'default': 'value',
+                                       'type': 'string'}},
                               executor='central_deployment_agent',
                               max_retries=5,
                               retry_interval=6),
             result_test_interface_4['test_interface4_op1'])
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
                              ['other_test->test_relationship'])
-        self.assertEquals('other_test->test_relationship', test_relationship['name'])
+        self.assertEquals('other_test->test_relationship',
+                          test_relationship['name'])
         self.assertEquals(test_relationship[constants.TYPE_HIERARCHY],
-                          ['other_test->empty_rel', 'other_test->test_relationship'])
+                          ['other_test->empty_rel',
+                           'other_test->test_relationship'])
         result_test_interface_3 = \
             (test_relationship[interfaces_const.SOURCE_INTERFACES]
                 ['test_interface3'])
@@ -162,13 +164,14 @@ imports:
             (test_relationship[interfaces_const.TARGET_INTERFACES]
                 ['test_interface4'])
         self.assertEquals(
-            operation_mapping(implementation='other_test->test_plugin.task_name',
-                              inputs={'key':
-                                      {'default': 'value',
-                                       'type': 'string'}},
-                              executor='central_deployment_agent',
-                              max_retries=5,
-                              retry_interval=6),
+            operation_mapping(
+                implementation='other_test->test_plugin.task_name',
+                inputs={'key':
+                        {'default': 'value',
+                         'type': 'string'}},
+                executor='central_deployment_agent',
+                max_retries=5,
+                retry_interval=6),
             result_test_interface_4['test_interface4_op1'])
 
     def test_relationship_collision(self):
@@ -265,10 +268,13 @@ imports:
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')
         parsed_yaml = self.parse_from_path(main_yaml_path)
-        relationship = parsed_yaml[constants.RELATIONSHIPS]['test->relationship']
+        relationship =\
+            parsed_yaml[constants.RELATIONSHIPS]['test->relationship']
 
-        source_operation = relationship[interfaces_const.SOURCE_INTERFACES]['test']
-        target_operation = relationship[interfaces_const.TARGET_INTERFACES]['test']
+        source_operation =\
+            relationship[interfaces_const.SOURCE_INTERFACES]['test']
+        target_operation =\
+            relationship[interfaces_const.TARGET_INTERFACES]['test']
 
         def assert_operation(op, extra_properties=False):
             inputs = {}

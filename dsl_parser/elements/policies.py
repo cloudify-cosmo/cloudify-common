@@ -382,7 +382,8 @@ class Policies(DictElement):
             node_graph.add_node(node['id'])
             for rel in node.get(constants.RELATIONSHIPS, []):
                 if relationship_utils.\
-                        contained_in_is_ancestor_in(rel[constants.TYPE_HIERARCHY]):
+                        contained_in_is_ancestor_in(
+                         rel[constants.TYPE_HIERARCHY]):
                     node_graph.add_edge(node['id'], rel['target_id'])
 
         self._validate_no_group_cycles(member_graph)

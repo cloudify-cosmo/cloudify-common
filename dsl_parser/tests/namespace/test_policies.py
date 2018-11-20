@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import constants, exceptions
+from dsl_parser import constants
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
@@ -65,7 +65,7 @@ imports:
         parsed_yaml = self.parse(main_yaml)
         policy = parsed_yaml[constants.POLICIES]['test->policy']
         self._assert_policy(policy,
-                            targets= ['test->group'],
+                            targets=['test->group'],
                             policy_type='test->cloudify.policies.scaling',
                             min_instances=1,
                             max_instances=10,
@@ -106,12 +106,13 @@ imports:
 """.format('test', middle_file_name)
         parsed_yaml = self.parse(main_yaml)
         policy = parsed_yaml[constants.POLICIES]['test->middle_test->policy']
-        self._assert_policy(policy,
-                            targets= ['test->middle_test->group'],
-                            policy_type='test->middle_test->cloudify.policies.scaling',
-                            min_instances=1,
-                            max_instances=10,
-                            default_instances=2)
+        self._assert_policy(
+            policy,
+            targets=['test->middle_test->group'],
+            policy_type='test->middle_test->cloudify.policies.scaling',
+            min_instances=1,
+            max_instances=10,
+            default_instances=2)
 
 
 class TestNamespacedPoliciesTriggers(AbstractTestParser):

@@ -262,7 +262,8 @@ imports:
         }
         self.assertEqual(expected,
                          parsed['scaling_groups']['test->group']['properties'])
-        self.assertEqual(expected, parsed['policies']['test->policy']['properties'])
+        self.assertEqual(expected,
+                         parsed['policies']['test->policy']['properties'])
 
     def test_recursive(self):
         imported_yaml = """
@@ -680,7 +681,7 @@ outputs:
             {'get_attribute': ['test->node', 'key']},
             parsed_yaml[constants.OUTPUTS]['port']['value'])
 
-    def test_get_attribute_from_namespaced_node(self):
+    def test_basic_namespace_multi_import(self):
         layer1_yaml = """
 node_types:
     test_type:
