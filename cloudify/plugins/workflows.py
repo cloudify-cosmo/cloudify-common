@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from itertools import chain
+
 from cloudify import constants, utils
 from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
@@ -76,6 +78,203 @@ def auto_heal_reinstall_node_subgraph(
                                        ignore_failure=ignore_failure)
 
 
+def get_groups_with_members(ctx):
+    """
+        Get group instance membership.
+
+        :param ctx: cloudify context
+        :return: A dict keyed on scaling group instances with lists of node
+                 instances belonging to that group instance.
+
+                 e.g.
+                 {
+                     "vmgroup_x8u01s": ["fakevm_lfog3x", "fakevm2_gmlwzu"],
+                     "vmgroup_m2d2cf": ["fakevm_j067z2", "fakevm2_7zcbg2"],
+                 }
+    """
+    groups_members = {}
+    for instance in ctx.node_instances:
+        scaling_group_ids = [sg.get('id') for sg in instance.scaling_groups]
+        for sg_id in scaling_group_ids:
+            if sg_id not in groups_members:
+                groups_members[sg_id] = []
+            groups_members[sg_id].append(instance.id)
+    return groups_members
+
+
+def _check_for_too_many_exclusions(exclude_instances, available_instances,
+                                   delta, groups_members):
+    """
+        Check whether the amount of exluded instances will make it possible to
+        scale down by the given delta.
+
+        :param exclude_instances: A list of node instance IDs to exclude.
+        :param available_instances: A list of all available instance IDs. For
+                                    groups this should include both the group
+                                    instance IDs and the member node instance
+                                    IDs.
+        :param delta: How much to scale by. This is expected to be negative.
+        :param groups_members: A dict of group instances with their members,
+                               e.g. produced by get_groups_with_members
+        :return: A string detailing problems if there are any, or an empty
+                 string if there are no problems.
+    """
+    if groups_members:
+        excluded_groups = set()
+        # For groups, we must add all group instances to the exclusions that
+        # contain an excluded node instance as one of their members, AND we
+        # must add all group instances that are excluded, as the
+        # exclude_instances list could legitimately contain both
+        for inst in exclude_instances:
+            for group, members in groups_members.items():
+                if inst in members or inst == group:
+                    excluded_groups.add(group)
+        planned_group_instances = len(groups_members) + delta
+        if planned_group_instances < len(excluded_groups):
+            return (
+                'Instances from too many different groups were excluded. '
+                'Target number of group instances was {group_count}, but '
+                '{excluded_count} excluded groups.'.format(
+                    group_count=planned_group_instances,
+                    excluded_count=len(excluded_groups),
+                )
+            )
+    else:
+        planned_num_instances = len(available_instances) + delta
+        if planned_num_instances < len(exclude_instances):
+            return (
+                'Target number of instances is less than excluded '
+                'instance count. Target number of instances was '
+                '{target}. Excluded instances were: '
+                '{instances}. '.format(
+                    target=planned_num_instances,
+                    instances=', '.join(exclude_instances),
+                )
+            )
+
+    # No problems found, return no error
+    return ''
+
+
+def _get_available_instances_list(available_instances, groups_members):
+    """
+        Get a string of available instances, given a list of instance IDs
+        and a group membership list.
+        This string will be formatted for providing helpful feedback to a
+        user, e.g. regarding available instances when they have selected a
+        non-existent instance.
+
+        :param available_instances: A list of all available instance IDs. For
+                                    groups this should include both the group
+                                    instance IDs and the member node instance
+                                    IDs.
+                                    This will be ignored if groups_members
+                                    contains anything.
+        :param groups_members: A dict of group instances with their members,
+                               e.g. produced by get_groups_with_members
+        :return: A user-friendly string listing what instances are valid for
+                 selection based on the provided inputs.
+    """
+    if groups_members:
+        return 'Groups and member instances were: {groups}'.format(
+            groups='; '.join(
+                '{group}: {members}'.format(
+                    group=group,
+                    members=', '.join(members)
+                )
+                for group, members in groups_members.items()
+            ),
+        )
+    else:
+        return 'Available instances were: {instances}'.format(
+            instances=', '.join(available_instances),
+        )
+
+
+def validate_inclusions_and_exclusions(include_instances, exclude_instances,
+                                       available_instances,
+                                       delta, scale_compute,
+                                       groups_members=None):
+    """
+        Validate provided lists of included or excluded node instances for
+        scale down operations.
+
+        :param include_instances: A list of node instance IDs to include.
+        :param exclude_instances: A list of node instance IDs to exclude.
+        :param available_instances: A list of all available instance IDs. For
+                                    groups this should include both the group
+                                    instance IDs and the member node instance
+                                    IDs.
+        :param delta: How much to scale by. This is expected to be negative.
+        :param scale_compute: A boolean determining whether scaling compute
+                              instances containing the target nodes has been
+                              requested.
+        :param groups_members: A dict of group instances with their members,
+                               e.g. produced by get_groups_with_members
+        :raises: RuntimeError if there are validation issues.
+    """
+    if not include_instances and not exclude_instances:
+        # We have no inclusions or exclusions, so they can't be wrong!
+        return
+
+    # Validate inclusions/exclusions
+    error_message = ''
+    missing_include = set(include_instances).difference(
+        available_instances,
+    )
+    if missing_include:
+        error_message += (
+            'The following included instances did not exist: '
+            '{instances}. '.format(instances=', '.join(
+                missing_include,
+            ))
+        )
+    missing_exclude = set(exclude_instances).difference(
+        available_instances,
+    )
+    if missing_exclude:
+        error_message += (
+            'The following excluded instances did not exist: '
+            '{instances}. '.format(instances=', '.join(
+                missing_exclude,
+            ))
+        )
+    instances_in_both = set(exclude_instances).intersection(
+        include_instances,
+    )
+
+    if instances_in_both:
+        error_message += (
+            'The following instances were both excluded and '
+            'included: {instances}. '.format(instances=', '.join(
+                instances_in_both,
+            ))
+        )
+
+    error_message += _check_for_too_many_exclusions(
+        exclude_instances,
+        available_instances,
+        delta,
+        groups_members,
+    )
+
+    if scale_compute:
+        error_message += (
+            'Cannot include or exclude instances while '
+            'scale_compute is True. Please specify the '
+            'desired compute instances and set scale_compute '
+            'to False. '
+        )
+
+    # Abort if there are validation issues
+    if error_message:
+        error_message += _get_available_instances_list(
+            available_instances,
+            groups_members,
+        )
+        raise RuntimeError(error_message)
+
+
 @workflow
 def scale_entity(ctx,
                  scalable_entity_name,
@@ -113,6 +312,13 @@ def scale_entity(ctx,
     """
     include_instances = include_instances or []
     exclude_instances = exclude_instances or []
+    if isinstance(include_instances, basestring):
+        include_instances = [include_instances]
+    if isinstance(exclude_instances, basestring):
+        exclude_instances = [exclude_instances]
+    include_instances = [str(inst) for inst in include_instances]
+    exclude_instances = [str(inst) for inst in exclude_instances]
+
     if isinstance(delta, basestring):
         try:
             delta = int(delta)
@@ -131,11 +337,20 @@ def scale_entity(ctx,
 
     scaling_group = ctx.deployment.scaling_groups.get(scalable_entity_name)
     if scaling_group:
-        if include_instances or exclude_instances:
-            raise ValueError(
-                'Cannot include or exclude instances when using a scaling '
-                'group'
-            )
+        groups_members = get_groups_with_members(ctx)
+        # Available instances for checking inclusions/exclusions needs to
+        # include all groups and their members
+        available_instances = set(chain.from_iterable(
+            groups_members.values())
+        ).union(groups_members.keys())
+        validate_inclusions_and_exclusions(
+            include_instances,
+            exclude_instances,
+            available_instances=available_instances,
+            delta=delta,
+            scale_compute=scale_compute,
+            groups_members=groups_members,
+        )
         curr_num_instances = scaling_group['properties']['current_instances']
         planned_num_instances = curr_num_instances + delta
         scale_id = scalable_entity_name
@@ -144,76 +359,17 @@ def scale_entity(ctx,
         if not node:
             raise ValueError("No scalable entity named {0} was found".format(
                 scalable_entity_name))
+        validate_inclusions_and_exclusions(
+            include_instances,
+            exclude_instances,
+            available_instances=[instance.id for instance in node.instances],
+            delta=delta,
+            scale_compute=scale_compute,
+        )
         host_node = node.host_node
         scaled_node = host_node if (scale_compute and host_node) else node
         curr_num_instances = scaled_node.number_of_instances
         planned_num_instances = curr_num_instances + delta
-        if include_instances or exclude_instances:
-            if isinstance(include_instances, basestring):
-                include_instances = [include_instances]
-            if isinstance(exclude_instances, basestring):
-                exclude_instances = [exclude_instances]
-            available_instances = [instance.id for instance in node.instances]
-            include_instances = [str(inst) for inst in include_instances]
-
-            # Validate inclusions/exclusions
-            error_message = ''
-            missing_include = set(include_instances).difference(
-                available_instances,
-            )
-            if missing_include:
-                error_message += (
-                    'The following included instances did not exist: '
-                    '{instances}. '.format(instances=', '.join(
-                        missing_include,
-                    ))
-                )
-            missing_exclude = set(exclude_instances).difference(
-                available_instances,
-            )
-            if missing_exclude:
-                error_message += (
-                    'The following excluded instances did not exist: '
-                    '{instances}. '.format(instances=', '.join(
-                        missing_exclude,
-                    ))
-                )
-            instances_in_both = set(exclude_instances).intersection(
-                include_instances,
-            )
-            if instances_in_both:
-                error_message += (
-                    'The following instances were both excluded and '
-                    'included: {instances}. '.format(instances=', '.join(
-                        instances_in_both,
-                    ))
-                )
-            if planned_num_instances < len(exclude_instances):
-                error_message += (
-                    'Target number of instances is less than excluded '
-                    'instance count. Target number of instances was '
-                    '{target}. Excluded instances were: '
-                    '{instances}. '.format(
-                        target=planned_num_instances,
-                        instances=', '.join(exclude_instances),
-                    )
-                )
-            if scale_compute:
-                error_message += (
-                    'Cannot include or exclude instances while '
-                    'scale_compute is True. Please specify the '
-                    'desired compute instances and set scale_compute '
-                    'to False. '
-                )
-
-            # Abort if there are validation issues
-            if error_message:
-                error_message += (
-                    'Available instances were: {instances}'.format(
-                        instances=', '.join(available_instances),
-                    )
-                )
-                raise RuntimeError(error_message)
         scale_id = scaled_node.id
 
     if planned_num_instances < 0:
