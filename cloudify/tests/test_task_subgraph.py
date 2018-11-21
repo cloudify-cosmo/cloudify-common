@@ -195,7 +195,7 @@ class TaskSubgraphWorkflowTests(testtools.TestCase):
     def test_subgraph_retry_sanity(self):
         self.assertRaises(RuntimeError,
                           self._run, 'subgraph_retry', subgraph_retries=0)
-        self.assertEqual(len(self.invocations), 3)
+        self.assertEqual(len(self.invocations), 2)
 
     def test_subgraph_retry(self):
         self._run('subgraph_retry', subgraph_retries=1)
@@ -205,7 +205,7 @@ class TaskSubgraphWorkflowTests(testtools.TestCase):
         self.assertRaises(RuntimeError,
                           self._run, 'subgraph_retry_failure',
                           subgraph_retries=2)
-        self.assertEqual(len(self.invocations), 7)
+        self.assertEqual(len(self.invocations), 6)
 
     def test_invalid_task_in_two_subgraphs(self):
         self.assertRaises(RuntimeError,
