@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-
+import mock
 import testtools
 
 from cloudify import decorators
@@ -28,7 +28,6 @@ def operation(ctx, arg, total_retries=0, **_):
     invocations = runtime_properties.get('invocations', [])
     invocations.append(arg)
     ctx.instance.runtime_properties['invocations'] = invocations
-
     current_retries = runtime_properties.get('current_retries', {})
     invocation_current_retries = current_retries.get(arg, 0)
     if invocation_current_retries < total_retries:
@@ -108,7 +107,8 @@ def _test_subgraph_retry(ctx, graph, instance):
                                            'total_retries': total_retries}))
         return result
 
-    subgraph = build_graph(total_retries=2)
+    # first call must retry, so a total_retries that is surely larger than 0
+    subgraph = build_graph(total_retries=100)
 
     def retry_handler(subgraph2):
         if subgraph2.failed_task.name != ('cloudify.tests.test_task_subgraph.'
@@ -157,11 +157,12 @@ class TaskSubgraphWorkflowTests(testtools.TestCase):
         self.env = env
 
     def _run(self, test, subgraph_retries=0):
-        self.env.execute('workflow',
-                         parameters={'test': test},
-                         task_retries=1,
-                         task_retry_interval=0,
-                         subgraph_retries=subgraph_retries)
+        with mock.patch('time.sleep'):
+            self.env.execute('workflow',
+                             parameters={'test': test},
+                             task_retries=1,
+                             task_retry_interval=0,
+                             subgraph_retries=subgraph_retries)
 
     @property
     def invocations(self):
@@ -189,12 +190,12 @@ class TaskSubgraphWorkflowTests(testtools.TestCase):
         self.assertEqual(len(invocations), 8)
         self.assertEqual(invocations, sorted(invocations))
         for i in range(4):
-            self.assertEqual(invocations[2*i], invocations[2*i+1])
+            self.assertEqual(invocations[2 * i], invocations[2 * i + 1])
 
     def test_subgraph_retry_sanity(self):
         self.assertRaises(RuntimeError,
                           self._run, 'subgraph_retry', subgraph_retries=0)
-        self.assertEqual(len(self.invocations), 2)
+        self.assertEqual(len(self.invocations), 3)
 
     def test_subgraph_retry(self):
         self._run('subgraph_retry', subgraph_retries=1)
@@ -204,7 +205,7 @@ class TaskSubgraphWorkflowTests(testtools.TestCase):
         self.assertRaises(RuntimeError,
                           self._run, 'subgraph_retry_failure',
                           subgraph_retries=2)
-        self.assertEqual(len(self.invocations), 6)
+        self.assertEqual(len(self.invocations), 7)
 
     def test_invalid_task_in_two_subgraphs(self):
         self.assertRaises(RuntimeError,
