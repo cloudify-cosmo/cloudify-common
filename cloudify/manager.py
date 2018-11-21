@@ -19,7 +19,6 @@ from urlparse import urljoin
 
 from cloudify_rest_client import CloudifyClient
 from cloudify_rest_client.constants import VisibilityState
-from cloudify_rest_client.exceptions import CloudifyClientError
 
 from cloudify import constants, utils
 from cloudify.models_states import AgentState
@@ -440,25 +439,18 @@ def create_agent_record(cloudify_agent,
                         state=AgentState.CREATING,
                         client=None):
     client = client or get_rest_client()
-    try:
-        client.agents.create(
-            cloudify_agent['name'],
-            cloudify_agent['node_instance_id'],
-            state,
-            ip=cloudify_agent.get('ip'),
-            install_method=cloudify_agent.get('install_method'),
-            system=_get_agent_system(cloudify_agent),
-            version=cloudify_agent.get('version'),
-            rabbitmq_username=cloudify_agent.get('rabbitmq_username'),
-            rabbitmq_password=cloudify_agent.get('rabbitmq_password'),
-            rabbitmq_exchange=cloudify_agent.get('queue')
-        )
-    except CloudifyClientError as e:
-        agent = client.agents.get(cloudify_agent['name'])
-        if agent.state != AgentState.DELETED or e.status_code != 409:
-            raise
-        # Reinstalling an existing agent
-        client.agents.update(cloudify_agent['name'], state)
+    client.agents.create(
+        cloudify_agent['name'],
+        cloudify_agent['node_instance_id'],
+        state,
+        ip=cloudify_agent.get('ip'),
+        install_method=cloudify_agent.get('install_method'),
+        system=_get_agent_system(cloudify_agent),
+        version=cloudify_agent.get('version'),
+        rabbitmq_username=cloudify_agent.get('rabbitmq_username'),
+        rabbitmq_password=cloudify_agent.get('rabbitmq_password'),
+        rabbitmq_exchange=cloudify_agent.get('queue')
+    )
 
 
 def update_agent_record(name, state):

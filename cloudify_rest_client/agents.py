@@ -173,9 +173,8 @@ class AgentsClient(object):
         data = {'node_instance_id': node_instance_id,
                 'state': state}
         data.update(kwargs)
-        response = self.api.post('/{0}/{1}'.format(self._uri_prefix, name),
-                                 data=data,
-                                 expected_status_code=201)
+        response = self.api.put('/{0}/{1}'.format(self._uri_prefix, name),
+                                data=data)
         return self._wrapper_cls(response)
 
     def update(self, name, state):
