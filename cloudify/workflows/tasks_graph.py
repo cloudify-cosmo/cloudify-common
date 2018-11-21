@@ -35,6 +35,7 @@ class TaskDependencyGraph(object):
         self.graph = nx.DiGraph()
         default_subgraph_task_config = default_subgraph_task_config or {}
         self._default_subgraph_task_config = default_subgraph_task_config
+        self._error = None
 
     def add_task(self, task):
         """Add a WorkflowTask to this graph
@@ -115,7 +116,7 @@ class TaskDependencyGraph(object):
         still being executed.
         """
 
-        while True:
+        while self._error is None:
 
             if self._is_execution_cancelled():
                 raise api.ExecutionCancelled()
@@ -128,16 +129,37 @@ class TaskDependencyGraph(object):
             for task in self._terminated_tasks():
                 self._handle_terminated_task(task)
 
+            # if there was an error when handling terminated tasks, don't
+            # continue on to sending new tasks in handle_executable
+            if self._error:
+                break
+
             # handle all executable tasks
             for task in self._executable_tasks():
                 self._handle_executable_task(task)
 
             # no more tasks to process, time to move on
             if len(self.graph.node) == 0:
+                if self._error:
+                    raise self._error
                 return
             # sleep some and do it all over again
             else:
                 time.sleep(0.1)
+
+        # if we got here, we had an error in a task, and we're just waiting
+        # for other tasks to return, but not sending new tasks
+        deadline = time.time() + self.ctx.wait_after_fail
+        while deadline > time.time():
+            if self._is_execution_cancelled():
+                raise api.ExecutionCancelled()
+            for task in self._terminated_tasks():
+                self._handle_terminated_task(task)
+            if not any(self._sent_tasks()):
+                break
+            else:
+                time.sleep(0.1)
+        raise self._error
 
     @staticmethod
     def _is_execution_cancelled():
@@ -170,6 +192,11 @@ class TaskDependencyGraph(object):
         return (task for task in self.tasks_iter()
                 if task.get_state() in tasks.TERMINATED_STATES)
 
+    def _sent_tasks(self):
+        """Tasks that are in the 'sent' state"""
+        return (task for task in self.tasks_iter()
+                if task.get_state() == tasks.TASK_SENT)
+
     def _task_has_dependencies(self, task):
         """
         :param task: The task
@@ -194,20 +221,23 @@ class TaskDependencyGraph(object):
         """Handle terminated task"""
 
         handler_result = task.handle_task_terminated()
-        if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
-            if isinstance(task, SubgraphTask) and task.failed_task:
-                task = task.failed_task
-            message = "Workflow failed: Task failed '{0}'".format(task.name)
-            if task.error:
-                message = '{0} -> {1}'.format(message, task.error)
-            raise RuntimeError(message)
 
         dependents = self.graph.predecessors(task.id)
         removed_edges = [(dependent, task.id)
                          for dependent in dependents]
         self.graph.remove_edges_from(removed_edges)
         self.graph.remove_node(task.id)
-        if handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
+
+        if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
+            if isinstance(task, SubgraphTask) and task.failed_task:
+                task = task.failed_task
+            message = "Workflow failed: Task failed '{0}'".format(task.name)
+            if task.error:
+                message = '{0} -> {1}'.format(message, task.error)
+            if self._error is None:
+                self._error = RuntimeError(message)
+
+        elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
             self.add_task(new_task)
             added_edges = [(dependent, new_task.id)

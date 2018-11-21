@@ -199,7 +199,7 @@ class ExecutionsClient(object):
 
     def start(self, deployment_id, workflow_id, parameters=None,
               allow_custom_parameters=False, force=False, dry_run=False,
-              queue=False):
+              queue=False, wait_after_fail=600):
         """Starts a deployment's workflow execution whose id is provided.
 
         :param deployment_id: The deployment's id to execute a workflow for.
@@ -228,7 +228,8 @@ class ExecutionsClient(object):
             'allow_custom_parameters': str(allow_custom_parameters).lower(),
             'force': str(force).lower(),
             'dry_run': str(dry_run).lower(),
-            'queue': str(queue).lower()
+            'queue': str(queue).lower(),
+            'wait_after_fail': wait_after_fail
         }
         uri = '/executions'
         response = self.api.post(uri,
