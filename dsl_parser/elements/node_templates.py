@@ -424,12 +424,9 @@ def _process_operations(partial_error_message,
                         plugins,
                         error_code,
                         resource_base):
-    def add_operation_to_operations_dict(operation,
-                                         interface_name,
-                                         index_in_list=None):
-        operation_name = operation.pop('name')
-        if index_in_list is not None:
-            operation_name = '{}.item{}'.format(operation_name, index_in_list)
+    def add_operation_to_operations_dict(operation_name,
+                                         operation,
+                                         interface_name):
         if operation_name in operations:
             # Indicate this implicit operation name needs to be
             # removed as we can only
@@ -452,13 +449,19 @@ def _process_operations(partial_error_message,
                                                     partial_error_message)),
                 resource_bases=resource_base)
         for operation in interface_operations:
-            if isinstance(operation, list):
-                for index, inner_operation in enumerate(operation):
-                    add_operation_to_operations_dict(inner_operation,
-                                                     interface_name,
-                                                     index_in_list=index)
+            if isinstance(operation, list) and operation:
+                # The name of the operation has been originally popped,
+                # therefore this deleted the key for the rest of the
+                # operations
+                for op in operation[1:]:
+                    del op['name']
+                add_operation_to_operations_dict(operation[0].pop('name'),
+                                                 operation,
+                                                 interface_name)
             else:
-                add_operation_to_operations_dict(operation, interface_name)
+                add_operation_to_operations_dict(operation.pop('name'),
+                                                 operation,
+                                                 interface_name)
 
     return dict((operation_name, operation) for operation_name, operation in
                 operations.iteritems() if operation is not None)
