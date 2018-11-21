@@ -428,7 +428,7 @@ def _process_operations(partial_error_message,
                                          interface_name,
                                          index_in_list=None):
         operation_name = operation.pop('name')
-        if index_in_list:
+        if index_in_list is not None:
             operation_name = '{}.item{}'.format(operation_name, index_in_list)
         if operation_name in operations:
             # Indicate this implicit operation name needs to be
