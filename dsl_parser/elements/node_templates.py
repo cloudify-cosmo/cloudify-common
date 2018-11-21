@@ -570,20 +570,28 @@ def _process_nodes_plugins(processed_nodes,
 
 def _get_plugins_from_operations(operations_lists,
                                  processed_plugins):
+    def add_to_plugins(operation):
+        plugin_name = operation['plugin']
+        if not plugin_name:
+            # no-op
+            return
+        plugin = processed_plugins[plugin_name]
+        operation_executor = operation['executor']
+        plugin_key = (plugin_name, operation_executor)
+        if plugin_key not in plugins:
+            plugin = copy.deepcopy(plugin)
+            plugin['executor'] = operation_executor
+            plugins[plugin_key] = plugin
+
     plugins = {}
     for operations in operations_lists:
         for operation in operations.values():
-            plugin_name = operation['plugin']
-            if not plugin_name:
-                # no-op
-                continue
-            plugin = processed_plugins[plugin_name]
-            operation_executor = operation['executor']
-            plugin_key = (plugin_name, operation_executor)
-            if plugin_key not in plugins:
-                plugin = copy.deepcopy(plugin)
-                plugin['executor'] = operation_executor
-                plugins[plugin_key] = plugin
+            if isinstance(operation, list):
+                for inner_op in operation:
+                    add_to_plugins(inner_op)
+            else:
+                add_to_plugins(operation)
+
     return plugins.values()
 
 
