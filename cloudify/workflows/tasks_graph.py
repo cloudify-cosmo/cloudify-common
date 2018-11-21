@@ -129,6 +129,11 @@ class TaskDependencyGraph(object):
             for task in self._terminated_tasks():
                 self._handle_terminated_task(task)
 
+            # if there was an error when handling terminated tasks, don't
+            # continue on to sending new tasks in handle_executable
+            if self._error:
+                break
+
             # handle all executable tasks
             for task in self._executable_tasks():
                 self._handle_executable_task(task)
