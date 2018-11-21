@@ -666,10 +666,22 @@ def dispatch(__cloudify_context, *args, **kwargs):
     if not dispatch_handler_cls:
         raise exceptions.NonRecoverableError('No handler for task type: {0}'
                                              .format(dispatch_type))
-    handler = dispatch_handler_cls(cloudify_context=__cloudify_context,
-                                   args=args,
-                                   kwargs=kwargs)
-    return handler.handle_or_dispatch_to_subprocess_if_remote()
+    if not isinstance(__cloudify_context['task_name'], list):
+        handler = dispatch_handler_cls(cloudify_context=__cloudify_context,
+                                       args=args,
+                                       kwargs=kwargs)
+        return handler.handle_or_dispatch_to_subprocess_if_remote()
+    else:
+        op_results = []
+        for task_name in __cloudify_context['task_name']:
+            curr_ctx = copy.deepcopy(__cloudify_context)
+            curr_ctx['task_name'] = task_name
+            handler = dispatch_handler_cls(cloudify_context=__cloudify_context,
+                                           args=args,
+                                           kwargs=kwargs)
+            result = handler.handle_or_dispatch_to_subprocess_if_remote()
+            op_results.append(result)
+        return op_results
 
 
 def main():
