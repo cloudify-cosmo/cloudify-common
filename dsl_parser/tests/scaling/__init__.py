@@ -15,7 +15,7 @@
 
 import itertools
 
-from dsl_parser import rel_graph
+from dsl_parser import rel_graph, constants
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
@@ -110,7 +110,7 @@ node_templates:
             nodes=plan['nodes'],
             scaling_groups=plan['scaling_groups'])
         previous_node_instances = plan['node_instances']
-        added_and_related = modification['added_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
         previous_graph, _ = rel_graph.build_previous_deployment_node_graph(
             plan_node_graph=plan_node_graph,
             previous_node_instances=previous_node_instances)
@@ -131,7 +131,7 @@ node_templates:
             nodes=plan['nodes'],
             scaling_groups=plan['scaling_groups'])
         previous_node_instances = plan['node_instances']
-        removed_and_related = modification['removed_and_related']
+        removed_and_related = modification[constants.REMOVED_AND_RELATED]
         previous_graph, _ = rel_graph.build_previous_deployment_node_graph(
             plan_node_graph=plan_node_graph,
             previous_node_instances=previous_node_instances)
@@ -149,8 +149,8 @@ node_templates:
                              expected_removed_and_related_count,
                              expected_added_count,
                              expected_removed_count):
-        added_and_related = modification['added_and_related']
-        removed_and_related = modification['removed_and_related']
+        added_and_related = modification[constants.ADDED_AND_RELATED]
+        removed_and_related = modification[constants.REMOVED_AND_RELATED]
         added = [instance for instance in added_and_related
                  if instance.get('modification') == 'added']
         removed = [instance for instance in removed_and_related

@@ -15,11 +15,23 @@
 
 import copy
 
+from dsl_parser import constants
 from dsl_parser.multi_instance import modify_deployment
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
-class TestDeploymentUpdate(AbstractTestParser):
+class BaseDeploymentUpdateTest(AbstractTestParser):
+    @staticmethod
+    def modify_multi(plan, modified_nodes):
+        return modify_deployment(
+                nodes=modified_nodes,
+                previous_nodes=plan['nodes'],
+                previous_node_instances=plan['node_instances'],
+                modified_nodes=(),
+                scaling_groups={})
+
+
+class TestDeploymentUpdate(BaseDeploymentUpdateTest):
     BASE_BLUEPRINT = """
 node_types:
     cloudify.nodes.Compute:
@@ -51,15 +63,6 @@ node_templates:
         type: type
 """
 
-    @staticmethod
-    def modify_multi(plan, modified_nodes):
-        return modify_deployment(
-                nodes=modified_nodes,
-                previous_nodes=plan['nodes'],
-                previous_node_instances=plan['node_instances'],
-                modified_nodes=(),
-                scaling_groups={})
-
     def test_add_node(self):
         blueprint = self.BASE_BLUEPRINT + self.BASE_NODES
 
@@ -86,15 +89,18 @@ node_templates:
         modified_nodes = plan['nodes']
         node_instances = self.modify_multi(plan, modified_nodes=modified_nodes)
 
-        self.assertEqual(len(node_instances['added_and_related']), 2)
-        added_and_related = node_instances['added_and_related']
+        self.assertEqual(len(node_instances[constants.ADDED_AND_RELATED]), 2)
+        added_and_related = node_instances[constants.ADDED_AND_RELATED]
         added = [n for n in added_and_related if 'modification' in n]
         related = [n for n in added_and_related if n not in added]
         self.assertEqual(len(added), 1)
         self.assertEqual(len(related), 1)
-        self.assertEqual(len(node_instances['removed_and_related']), 0)
-        self.assertEqual(len(node_instances['extended_and_related']), 0)
-        self.assertEqual(len(node_instances['reduced_and_related']), 0)
+        self.assertEqual(len(node_instances[constants.REMOVED_AND_RELATED]),
+                         0)
+        self.assertEqual(len(node_instances[constants.EXTENDED_AND_RELATED]),
+                         0)
+        self.assertEqual(len(node_instances[constants.REDUCED_AND_RELATED]),
+                         0)
 
     def test_remove_node(self):
         blueprint = self.BASE_BLUEPRINT + self.BASE_NODES + """
@@ -113,16 +119,17 @@ node_templates:
                                           if r['target_id'] != 'without_rel']
         node_instances = self.modify_multi(plan, modified_nodes=nodes)
 
-        self.assertEqual(len(node_instances['added_and_related']), 0)
-        self.assertEqual(len(node_instances['removed_and_related']), 2)
-        removed_and_related = node_instances['removed_and_related']
+        self.assertEqual(len(node_instances[constants.ADDED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[constants.REMOVED_AND_RELATED]), 2)
+        removed_and_related = node_instances[constants.REMOVED_AND_RELATED]
         removed = [n for n in removed_and_related if 'modification' in n]
         related = [n for n in removed_and_related if n not in removed]
         self.assertEqual(len(removed), 1)
         self.assertEqual(len(related), 1)
-        self.assertEqual(len(node_instances['extended_and_related']), 0)
-        self.assertEqual(len(node_instances['reduced_and_related']), 1)
-        reduced_and_related = node_instances['reduced_and_related']
+        self.assertEqual(len(node_instances[constants.EXTENDED_AND_RELATED]),
+                         0)
+        self.assertEqual(len(node_instances[constants.REDUCED_AND_RELATED]), 1)
+        reduced_and_related = node_instances[constants.REDUCED_AND_RELATED]
         reduced = [n for n in reduced_and_related if 'modification' in n]
         self.assertEqual(len(reduced), 1)
 
@@ -151,15 +158,18 @@ node_templates:
         modified_nodes = [with_rel, without_rel]
         node_instances = self.modify_multi(plan, modified_nodes=modified_nodes)
 
-        self.assertEqual(len(node_instances['added_and_related']), 0)
-        self.assertEqual(len(node_instances['removed_and_related']), 0)
-        self.assertEqual(len(node_instances['extended_and_related']), 2)
-        extended_and_related = node_instances['extended_and_related']
+        self.assertEqual(len(node_instances[constants.ADDED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[constants.REMOVED_AND_RELATED]),
+                         0)
+        self.assertEqual(len(node_instances[constants.EXTENDED_AND_RELATED]),
+                         2)
+        extended_and_related = node_instances[constants.EXTENDED_AND_RELATED]
         extended = [n for n in extended_and_related if 'modification' in n]
         related = [n for n in extended_and_related if n not in extended]
         self.assertEqual(len(extended), 1)
         self.assertEqual(len(related), 1)
-        self.assertEqual(len(node_instances['reduced_and_related']), 0)
+        self.assertEqual(len(node_instances[constants.REDUCED_AND_RELATED]),
+                         0)
 
     def test_remove_relationship(self):
         blueprint = self.BASE_BLUEPRINT + self.BASE_NODES + """
@@ -178,11 +188,14 @@ node_templates:
 
         node_instances = self.modify_multi(plan, modified_nodes=nodes)
 
-        self.assertEqual(len(node_instances['added_and_related']), 0)
-        self.assertEqual(len(node_instances['removed_and_related']), 0)
-        self.assertEqual(len(node_instances['extended_and_related']), 0)
-        self.assertEqual(len(node_instances['reduced_and_related']), 2)
-        reduced_and_related = node_instances['reduced_and_related']
+        self.assertEqual(len(node_instances[constants.ADDED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[constants.REMOVED_AND_RELATED]),
+                         0)
+        self.assertEqual(len(node_instances[constants.EXTENDED_AND_RELATED]),
+                         0)
+        self.assertEqual(len(node_instances[constants.REDUCED_AND_RELATED]),
+                         2)
+        reduced_and_related = node_instances[constants.REDUCED_AND_RELATED]
         reduced = [n for n in reduced_and_related if 'modification' in n]
         related = [n for n in reduced_and_related if n not in reduced]
         self.assertEqual(len(reduced), 1)
@@ -204,10 +217,13 @@ node_templates:
         modified_nodes = plan['nodes']
         node_instances = self.modify_multi(plan, modified_nodes=modified_nodes)
 
-        self.assertEqual(len(node_instances['added_and_related']), 1)
-        added_and_related = node_instances['added_and_related']
+        self.assertEqual(len(node_instances[constants.ADDED_AND_RELATED]), 1)
+        added_and_related = node_instances[constants.ADDED_AND_RELATED]
         added = [n for n in added_and_related if 'modification' in n]
         self.assertEqual(len(added), 1)
-        self.assertEqual(len(node_instances['removed_and_related']), 0)
-        self.assertEqual(len(node_instances['extended_and_related']), 0)
-        self.assertEqual(len(node_instances['reduced_and_related']), 0)
+        self.assertEqual(len(node_instances[constants.REMOVED_AND_RELATED]),
+                         0)
+        self.assertEqual(len(node_instances[constants.EXTENDED_AND_RELATED]),
+                         0)
+        self.assertEqual(len(node_instances[constants.REDUCED_AND_RELATED]),
+                         0)

@@ -19,7 +19,6 @@ from dsl_parser.interfaces import constants as interfaces_const
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
-# TODO: copied
 def op_struct(implementation,
               inputs=None,
               executor=None,

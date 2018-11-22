@@ -48,11 +48,11 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed = prepare_deployment_plan(self.parse(main_yaml))
-        vm = self.get_node_by_name(parsed, 'test->vm')
-        self.assertEqual('10.0.0.1', vm['properties']['ip_duplicate'])
-        server = self.get_node_by_name(parsed, 'test->server')
-        self.assertEqual('10.0.0.1', server['properties']['endpoint'])
+        plan = prepare_deployment_plan(self.parse(main_yaml))
+        vm = self.get_node_by_name(plan, 'test->vm')
+        self.assertEqual('10.0.0.1', vm[constants.PROPERTIES]['ip_duplicate'])
+        server = self.get_node_by_name(plan, 'test->server')
+        self.assertEqual('10.0.0.1', server[constants.PROPERTIES]['endpoint'])
 
     def test_node_template_properties_with_dsl_definitions(self):
         imported_yaml = """
@@ -87,8 +87,10 @@ imports:
 """.format('test', import_file_name)
 
         plan = prepare_deployment_plan(self.parse_1_2(main_yaml))
-        props1 = self.get_node_by_name(plan, 'test->node1')['properties']
-        props2 = self.get_node_by_name(plan, 'test->node2')['properties']
+        props1 = self.get_node_by_name(plan,
+                                       'test->node1')[constants.PROPERTIES]
+        props2 = self.get_node_by_name(plan,
+                                       'test->node2')[constants.PROPERTIES]
         self.assertEqual({
             'prop1': 'value1',
             'prop2': 'value1',
@@ -125,16 +127,18 @@ node_templates:
 """
         import_file_name = self.make_yaml_file(imported_yaml)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed = prepare_deployment_plan(self.parse(main_yaml))
-        vm = self.get_node_by_name(parsed, 'test->vm')
-        self.assertEqual('10.0.0.1', vm['operations']['op']['inputs']['x'])
+        plan = prepare_deployment_plan(self.parse(main_yaml))
+        vm = self.get_node_by_name(plan, 'test->vm')
         self.assertEqual('10.0.0.1',
-                         vm['operations']['interface.op']['inputs']['x'])
+                         vm['operations']['op'][constants.INPUTS]['x'])
+        self.assertEqual(
+            '10.0.0.1',
+            vm['operations']['interface.op'][constants.INPUTS]['x'])
 
     def test_node_template_interfaces_with_dsl_definitions(self):
         imported_yaml = """
@@ -169,20 +173,26 @@ node_templates:
 """
         import_file_name = self.make_yaml_file(imported_yaml)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed = prepare_deployment_plan(self.parse_1_2(main_yaml))
-        node1 = self.get_node_by_name(parsed, 'test->node1')
-        node2 = self.get_node_by_name(parsed, 'test->node2')
-        self.assertEqual('value1', node1['operations']['op']['inputs']['x'])
+        plan = prepare_deployment_plan(self.parse_1_2(main_yaml))
+        node1_operations = self.get_node_by_name(plan,
+                                                 'test->node1')['operations']
+        node2_operations = self.get_node_by_name(plan,
+                                                 'test->node2')['operations']
         self.assertEqual('value1',
-                         node1['operations']['interface.op']['inputs']['x'])
-        self.assertEqual('value2', node2['operations']['op']['inputs']['x'])
+                         node1_operations['op'][constants.INPUTS]['x'])
+        self.assertEqual(
+            'value1',
+            node1_operations['interface.op'][constants.INPUTS]['x'])
         self.assertEqual('value2',
-                         node2['operations']['interface.op']['inputs']['x'])
+                         node2_operations['op'][constants.INPUTS]['x'])
+        self.assertEqual(
+            'value2',
+            node2_operations['interface.op'][constants.INPUTS]['x'])
 
     def test_node_template_capabilities(self):
         imported_yaml = """
@@ -211,15 +221,15 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed = prepare_deployment_plan(self.parse_1_3(main_yaml))
-        node = self.get_node_by_name(parsed, 'test->node')
+        plan = prepare_deployment_plan(self.parse_1_3(main_yaml))
+        node = self.get_node_by_name(plan, 'test->node')
         self.assertEqual({
             'default_instances': 10,
             'min_instances': 20,
             'max_instances': 10,
             'current_instances': 10,
             'planned_instances': 10,
-        }, node['capabilities']['scalable']['properties'])
+        }, node[constants.CAPABILITIES]['scalable'][constants.PROPERTIES])
 
     def test_policies_properties(self):
         imported_yaml = """
@@ -252,7 +262,7 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed = prepare_deployment_plan(self.parse_1_3(main_yaml))
+        plan = prepare_deployment_plan(self.parse_1_3(main_yaml))
         expected = {
             'default_instances': 10,
             'min_instances': 20,
@@ -260,10 +270,12 @@ imports:
             'current_instances': 10,
             'planned_instances': 10,
         }
-        self.assertEqual(expected,
-                         parsed['scaling_groups']['test->group']['properties'])
-        self.assertEqual(expected,
-                         parsed['policies']['test->policy']['properties'])
+        self.assertEqual(
+            expected,
+            plan['scaling_groups']['test->group'][constants.PROPERTIES])
+        self.assertEqual(
+            expected,
+            plan[constants.POLICIES]['test->policy'][constants.PROPERTIES])
 
     def test_recursive(self):
         imported_yaml = """
@@ -297,12 +309,12 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed = prepare_deployment_plan(self.parse(main_yaml))
-        vm = self.get_node_by_name(parsed, 'test->vm')
-        self.assertEqual(0, vm['properties']['b'])
-        self.assertEqual(1, vm['properties']['x'])
-        self.assertEqual(1, vm['properties']['y'])
-        self.assertEqual(1, vm['properties']['z'])
+        plan = prepare_deployment_plan(self.parse(main_yaml))
+        vm = self.get_node_by_name(plan, 'test->vm')
+        self.assertEqual(0, vm[constants.PROPERTIES]['b'])
+        self.assertEqual(1, vm[constants.PROPERTIES]['x'])
+        self.assertEqual(1, vm[constants.PROPERTIES]['y'])
+        self.assertEqual(1, vm[constants.PROPERTIES]['z'])
 
     def test_source_and_target_interfaces(self):
         imported_yaml = """
@@ -349,37 +361,29 @@ node_templates:
             -   type: rel
                 target: node1
 """
-
-        def do_assertions():
-            """
-            Assertions are made for explicit node names in a relationship
-            and another time for SOURCE & TARGET keywords.
-            """
-            node = self.get_node_by_name(prepared, 'test->node2')
-            source_ops = node['relationships'][0]['source_operations']
-            self.assertEqual(2,
-                             source_ops['source_interface.op1']['inputs']
-                             ['source_a'])
-            self.assertEqual(1,
-                             source_ops['source_interface.op1']['inputs']
-                             ['target_a'])
-            target_ops = node['relationships'][0]['target_operations']
-            self.assertEqual(2,
-                             target_ops['target_interface.op2']['inputs']
-                             ['source_a'])
-            self.assertEqual(1,
-                             target_ops['target_interface.op2']['inputs']
-                             ['target_a'])
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   {0}->{1}
 """.format('test', import_file_name)
-        # Explicit node template names
-        prepared = prepare_deployment_plan(self.parse(main_yaml % {
+        plan = prepare_deployment_plan(self.parse(main_yaml % {
             'source': 'test->node2', 'target': 'node1'}))
-        do_assertions()
+        node = self.get_node_by_name(plan, 'test->node2')
+        source_ops = node[constants.RELATIONSHIPS][0]['source_operations']
+        self.assertEqual(2,
+                         source_ops['source_interface.op1'][constants.INPUTS]
+                         ['source_a'])
+        self.assertEqual(1,
+                         source_ops['source_interface.op1'][constants.INPUTS]
+                         ['target_a'])
+        target_ops = node[constants.RELATIONSHIPS][0]['target_operations']
+        self.assertEqual(2,
+                         target_ops['target_interface.op2'][constants.INPUTS]
+                         ['source_a'])
+        self.assertEqual(1,
+                         target_ops['target_interface.op2'][constants.INPUTS]
+                         ['target_a'])
 
     def test_recursive_with_nesting(self):
         imported_yaml = """
@@ -403,12 +407,12 @@ node_templates:
 imports:
     -   {0}->{1}
 """.format('test', import_file_name)
-        parsed = prepare_deployment_plan(self.parse(main_yaml))
-        vm = self.get_node_by_name(parsed, 'test->vm')
-        self.assertEqual(1, vm['properties']['b'][0])
-        self.assertEqual(2, vm['properties']['b'][1])
-        self.assertEqual(1, vm['properties']['c'][0])
-        self.assertEqual(2, vm['properties']['c'][1])
+        plan = prepare_deployment_plan(self.parse(main_yaml))
+        vm = self.get_node_by_name(plan, 'test->vm')
+        self.assertEqual(1, vm[constants.PROPERTIES]['b'][0])
+        self.assertEqual(2, vm[constants.PROPERTIES]['b'][1])
+        self.assertEqual(1, vm[constants.PROPERTIES]['c'][0])
+        self.assertEqual(2, vm[constants.PROPERTIES]['c'][1])
 
     def test_recursive_get_property_in_outputs(self):
         imported_yaml = """
@@ -438,8 +442,8 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed = prepare_deployment_plan(self.parse(main_yaml))
-        output_value = parsed.outputs['test->o']['value']
+        plan = prepare_deployment_plan(self.parse(main_yaml))
+        output_value = plan.outputs['test->o']['value']
         self.assertEqual(1, output_value['a'][0])
         self.assertEqual(2, output_value['a'][1])
         self.assertEqual(0, output_value['b'][0])
@@ -499,11 +503,11 @@ imports:
 
         parsed = prepare_deployment_plan(self.parse(main_yaml))
         vm = self.get_node_by_name(parsed, 'test->vm')
-        self.assertEqual(80, vm['properties']['a'])
-        self.assertEqual('site1', vm['properties']['b'])
-        self.assertEqual('key2', vm['properties']['c'])
+        self.assertEqual(80, vm[constants.PROPERTIES]['a'])
+        self.assertEqual('site1', vm[constants.PROPERTIES]['b'])
+        self.assertEqual('key2', vm[constants.PROPERTIES]['c'])
         server = self.get_node_by_name(parsed, 'test->server')
-        self.assertEqual(80, server['properties']['port'])
+        self.assertEqual(80, server[constants.PROPERTIES]['port'])
         outputs = parsed.outputs
         self.assertEqual(80, outputs['test->a']['value'])
         self.assertEqual('http', outputs['test->b']['value'])
@@ -534,11 +538,11 @@ outputs:
         value: { get_property: [test->node, key] }
 """
 
-        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
-                                              self._get_secret_mock)
+        plan = prepare_deployment_plan(self.parse(main_yaml),
+                                       self._get_secret_mock)
         self.assertEqual(
             'value',
-            parsed_yaml[constants.OUTPUTS]['port']['value'])
+            plan[constants.OUTPUTS]['port']['value'])
 
     def test_multi_layer_namespaced_import(self):
         layer1_yaml = """
@@ -570,11 +574,11 @@ outputs:
         value: { get_property: [test->middle_test->node, key] }
 """
 
-        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
-                                              self._get_secret_mock)
+        plan = prepare_deployment_plan(self.parse(main_yaml),
+                                       self._get_secret_mock)
         self.assertEqual(
             'value',
-            parsed_yaml[constants.OUTPUTS]['port']['value'])
+            plan[constants.OUTPUTS]['port']['value'])
 
 
 class TestGetAttribute(AbstractTestParser):
@@ -641,15 +645,17 @@ imports:
                 break
         self.assertIsNotNone(webserver_node)
 
-        def assertion(operations):
-            op = operations['test.op_with_no_get_attribute']
-            self.assertIs(False, op.get('has_intrinsic_functions'))
-            op = operations['test.op_with_get_attribute']
-            self.assertIs(True, op.get('has_intrinsic_functions'))
+        def assert_operation_fields(operations_list):
+            for operations in operations_list:
+                op = operations['test.op_with_no_get_attribute']
+                self.assertIs(False, op.get('has_intrinsic_functions'))
+                op = operations['test.op_with_get_attribute']
+                self.assertIs(True, op.get('has_intrinsic_functions'))
 
-        assertion(webserver_node['operations'])
-        assertion(webserver_node['relationships'][0]['source_operations'])
-        assertion(webserver_node['relationships'][0]['target_operations'])
+        assert_operation_fields(
+            [webserver_node['operations'],
+             webserver_node[constants.RELATIONSHIPS][0]['source_operations'],
+             webserver_node[constants.RELATIONSHIPS][0]['target_operations']])
 
     def test_get_attribute_from_namespaced_node(self):
         imported_yaml = """
@@ -675,11 +681,11 @@ outputs:
         value: { get_attribute: [test->node, key] }
 """
 
-        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
-                                              self._get_secret_mock)
+        plan = prepare_deployment_plan(self.parse(main_yaml),
+                                       self._get_secret_mock)
         self.assertEqual(
             {'get_attribute': ['test->node', 'key']},
-            parsed_yaml[constants.OUTPUTS]['port']['value'])
+            plan[constants.OUTPUTS]['port']['value'])
 
     def test_basic_namespace_multi_import(self):
         layer1_yaml = """
@@ -711,11 +717,11 @@ outputs:
         value: { get_attribute: [test->middle_test->node, key] }
 """
 
-        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
-                                              self._get_secret_mock)
+        plan = prepare_deployment_plan(self.parse(main_yaml),
+                                       self._get_secret_mock)
         self.assertEqual(
             {'get_attribute': ['test->middle_test->node', 'key']},
-            parsed_yaml[constants.OUTPUTS]['port']['value'])
+            plan[constants.OUTPUTS]['port']['value'])
 
 
 class TestConcat(AbstractTestParser):
@@ -733,11 +739,11 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml))
-        self.assertEqual(1, len(parsed_yaml[constants.OUTPUTS]))
+        plan = prepare_deployment_plan(self.parse(main_yaml))
+        self.assertEqual(1, len(plan[constants.OUTPUTS]))
         self.assertEqual(
             'onetwothree',
-            parsed_yaml[constants.OUTPUTS]['test->port']['value'])
+            plan[constants.OUTPUTS]['test->port']['value'])
 
 
 class TestNonRelatedNodeFunctions(AbstractTestParser):
@@ -755,11 +761,11 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
-                                              self._get_secret_mock)
+        plan = prepare_deployment_plan(self.parse(main_yaml),
+                                       self._get_secret_mock)
         self.assertEqual(
             {'get_secret': 'secret'},
-            parsed_yaml[constants.OUTPUTS]['test->port']['value'])
+            plan[constants.OUTPUTS]['test->port']['value'])
 
     def test_get_capability(self):
         imported_yaml = """
@@ -775,11 +781,11 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
-                                              self._get_secret_mock)
+        plan = prepare_deployment_plan(self.parse(main_yaml),
+                                       self._get_secret_mock)
         self.assertEqual(
             {'get_capability': ['dep_1', 'cap_a']},
-            parsed_yaml[constants.OUTPUTS]['test->port']['value'])
+            plan[constants.OUTPUTS]['test->port']['value'])
 
     def test_get_input(self):
         imported_yaml = """
@@ -798,11 +804,11 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
 
-        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
-                                              self._get_secret_mock)
+        plan = prepare_deployment_plan(self.parse(main_yaml),
+                                       self._get_secret_mock)
         self.assertEqual(
             8080,
-            parsed_yaml[constants.OUTPUTS]['test->port']['value'])
+            plan[constants.OUTPUTS]['test->port']['value'])
 
     def test_multi_layer_import(self):
         layer1_yaml = """
@@ -827,8 +833,8 @@ imports:
     -   {0}->{1}
 """.format('test', layer2_file_name)
 
-        parsed_yaml = prepare_deployment_plan(self.parse(main_yaml),
-                                              self._get_secret_mock)
+        plan = prepare_deployment_plan(self.parse(main_yaml),
+                                       self._get_secret_mock)
         self.assertEqual(
             8080,
-            parsed_yaml[constants.OUTPUTS]['test->middle_test->port']['value'])
+            plan[constants.OUTPUTS]['test->middle_test->port']['value'])

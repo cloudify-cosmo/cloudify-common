@@ -17,11 +17,9 @@ from dsl_parser import constants
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
-# TODO: this code already exists
 def workflow_op_struct(plugin_name,
                        mapping,
                        parameters=None):
-
     if not parameters:
         parameters = {}
     return {
@@ -31,12 +29,16 @@ def workflow_op_struct(plugin_name,
     }
 
 
-class TestGeneralNamespacedWorkflows(AbstractTestParser):
-    def test_basic_namespace_multi_import(self):
-        imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
-workflows:
-    workflow1: test_plugin.workflow1"""
+class TestNamespacedWorkflows(AbstractTestParser):
 
+    def basic_blueprint(self):
+        return self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
+workflows:
+    workflow1: test_plugin.workflow1
+"""
+
+    def test_basic_namespace_multi_import(self):
+        imported_yaml = self.basic_blueprint()
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -61,10 +63,7 @@ imports:
                          workflow_plugins_to_install[1]['name'])
 
     def test_workflow_collision(self):
-        imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
-workflows:
-    workflow1: test_plugin.workflow1"""
-
+        imported_yaml = self.basic_blueprint()
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
@@ -90,10 +89,7 @@ workflows:
                          workflow_plugins_to_install[1]['name'])
 
     def test_imports_merging_with_no_collision(self):
-        imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
-workflows:
-    workflow1: test_plugin.workflow1"""
-
+        imported_yaml = self.basic_blueprint()
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
@@ -118,13 +114,8 @@ workflows:
         self.assertEqual('test_plugin',
                          workflow_plugins_to_install[1]['name'])
 
-
-class TestDetailNamespacedWorkflows(AbstractTestParser):
     def test_workflow_basic_mapping(self):
-        imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
-workflows:
-    workflow1: test_plugin.workflow1"""
-
+        imported_yaml = self.basic_blueprint()
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """

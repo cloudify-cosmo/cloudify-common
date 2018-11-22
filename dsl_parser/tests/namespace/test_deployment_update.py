@@ -15,12 +15,17 @@
 
 import copy
 
-from dsl_parser import constants
-from dsl_parser.multi_instance import modify_deployment
-from dsl_parser.tests.abstract_test_parser import AbstractTestParser
+from dsl_parser.tests.test_deployment_update import BaseDeploymentUpdateTest
+from dsl_parser.constants import (NODES,
+                                  ADDED_AND_RELATED,
+                                  REMOVED_AND_RELATED,
+                                  EXTENDED_AND_RELATED,
+                                  REDUCED_AND_RELATED,
+                                  RELATIONSHIPS
+                                  )
 
 
-class TestNamespacedDeploymentUpdate(AbstractTestParser):
+class TestNamespacedDeploymentUpdate(BaseDeploymentUpdateTest):
     BASE_BLUEPRINT = """
 node_types:
     cloudify.nodes.Compute:
@@ -49,16 +54,6 @@ node_templates:
         type: type
 """
 
-    # TODO: copied
-    @staticmethod
-    def modify_multi(plan, modified_nodes):
-        return modify_deployment(
-                nodes=modified_nodes,
-                previous_nodes=plan['nodes'],
-                previous_node_instances=plan['node_instances'],
-                modified_nodes=(),
-                scaling_groups={})
-
     def test_add_node(self):
         import_file_name = self.make_yaml_file(self.BASE_BLUEPRINT)
 
@@ -68,7 +63,7 @@ imports:
 """.format('test', import_file_name)
 
         plan = self.parse_multi(main_yaml)
-        plan[constants.NODES].append({
+        plan[NODES].append({
             'name': 'new_node',
             'id': 'new_node',
             'type': 'new_type',
@@ -87,25 +82,25 @@ imports:
             ]
         })
 
-        modified_nodes = plan[constants.NODES]
+        modified_nodes = plan[NODES]
         node_instances = self.modify_multi(plan, modified_nodes=modified_nodes)
 
-        self.assertEqual(len(node_instances['added_and_related']), 2)
-        added_and_related = node_instances['added_and_related']
+        self.assertEqual(len(node_instances[ADDED_AND_RELATED]), 2)
+        added_and_related = node_instances[ADDED_AND_RELATED]
         added = [n for n in added_and_related if 'modification' in n]
         related = [n for n in added_and_related if n not in added]
         self.assertEqual(len(added), 1)
         self.assertEqual(len(related), 1)
-        self.assertEqual(len(node_instances['removed_and_related']), 0)
-        self.assertEqual(len(node_instances['extended_and_related']), 0)
-        self.assertEqual(len(node_instances['reduced_and_related']), 0)
+        self.assertEqual(len(node_instances[REMOVED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[EXTENDED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[REDUCED_AND_RELATED]), 0)
 
     def test_remove_node(self):
         imported_yaml = self.BASE_BLUEPRINT + """
         relationships:
             -  type: cloudify.relationships.connected_to
                target: without_rel
-    """
+"""
 
         import_file_name = self.make_yaml_file(imported_yaml)
 
@@ -116,24 +111,24 @@ imports:
 
         plan = self.parse_multi(main_yaml)
         nodes = copy.deepcopy(
-            [n for n in plan['nodes'] if n['id'] != 'test->without_rel'])
+            [n for n in plan[NODES] if n['id'] != 'test->without_rel'])
         with_rel_node = nodes[0]
-        with_rel_node['relationships'] = \
+        with_rel_node[RELATIONSHIPS] = \
             [r for r in
-             with_rel_node[constants.RELATIONSHIPS]
+             with_rel_node[RELATIONSHIPS]
              if r['target_id'] != 'test->without_rel']
         node_instances = self.modify_multi(plan, modified_nodes=nodes)
 
-        self.assertEqual(len(node_instances['added_and_related']), 0)
-        self.assertEqual(len(node_instances['removed_and_related']), 2)
-        removed_and_related = node_instances['removed_and_related']
+        self.assertEqual(len(node_instances[ADDED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[REMOVED_AND_RELATED]), 2)
+        removed_and_related = node_instances[REMOVED_AND_RELATED]
         removed = [n for n in removed_and_related if 'modification' in n]
         related = [n for n in removed_and_related if n not in removed]
         self.assertEqual(len(removed), 1)
         self.assertEqual(len(related), 1)
-        self.assertEqual(len(node_instances['extended_and_related']), 0)
-        self.assertEqual(len(node_instances['reduced_and_related']), 1)
-        reduced_and_related = node_instances['reduced_and_related']
+        self.assertEqual(len(node_instances[EXTENDED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[REDUCED_AND_RELATED]), 1)
+        reduced_and_related = node_instances[REDUCED_AND_RELATED]
         reduced = [n for n in reduced_and_related if 'modification' in n]
         self.assertEqual(len(reduced), 1)
 
@@ -148,11 +143,11 @@ imports:
         plan = self.parse_multi(main_yaml)
 
         rel_type = 'test->cloudify.relationships.connected_to'
-        with_rel = [n for n in plan[constants.NODES]
+        with_rel = [n for n in plan[NODES]
                     if n['id'] == 'test->with_rel'][0]
-        without_rel = [n for n in plan[constants.NODES]
+        without_rel = [n for n in plan[NODES]
                        if n['id'] == 'test->without_rel'][0]
-        with_rel[constants.RELATIONSHIPS] = \
+        with_rel[RELATIONSHIPS] = \
             [{'type': rel_type,
               'type_hierarchy': [rel_type],
               'target_id': without_rel['id'],
@@ -169,15 +164,15 @@ imports:
         modified_nodes = [with_rel, without_rel]
         node_instances = self.modify_multi(plan, modified_nodes=modified_nodes)
 
-        self.assertEqual(len(node_instances['added_and_related']), 0)
-        self.assertEqual(len(node_instances['removed_and_related']), 0)
-        self.assertEqual(len(node_instances['extended_and_related']), 2)
-        extended_and_related = node_instances['extended_and_related']
+        self.assertEqual(len(node_instances[ADDED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[REMOVED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[EXTENDED_AND_RELATED]), 2)
+        extended_and_related = node_instances[EXTENDED_AND_RELATED]
         extended = [n for n in extended_and_related if 'modification' in n]
         related = [n for n in extended_and_related if n not in extended]
         self.assertEqual(len(extended), 1)
         self.assertEqual(len(related), 1)
-        self.assertEqual(len(node_instances['reduced_and_related']), 0)
+        self.assertEqual(len(node_instances[REDUCED_AND_RELATED]), 0)
 
     def test_remove_relationship(self):
         imported_yaml = self.BASE_BLUEPRINT + """
@@ -195,17 +190,17 @@ imports:
 
         plan = self.parse_multi(main_yaml)
 
-        nodes = copy.deepcopy(plan[constants.NODES])
+        nodes = copy.deepcopy(plan[NODES])
         node_with_rel = [n for n in nodes if n['id'] == 'test->with_rel'][0]
-        node_with_rel[constants.RELATIONSHIPS] = []
+        node_with_rel[RELATIONSHIPS] = []
 
         node_instances = self.modify_multi(plan, modified_nodes=nodes)
 
-        self.assertEqual(len(node_instances['added_and_related']), 0)
-        self.assertEqual(len(node_instances['removed_and_related']), 0)
-        self.assertEqual(len(node_instances['extended_and_related']), 0)
-        self.assertEqual(len(node_instances['reduced_and_related']), 2)
-        reduced_and_related = node_instances['reduced_and_related']
+        self.assertEqual(len(node_instances[ADDED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[REMOVED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[EXTENDED_AND_RELATED]), 0)
+        self.assertEqual(len(node_instances[REDUCED_AND_RELATED]), 2)
+        reduced_and_related = node_instances[REDUCED_AND_RELATED]
         reduced = [n for n in reduced_and_related if 'modification' in n]
         related = [n for n in reduced_and_related if n not in reduced]
         self.assertEqual(len(reduced), 1)
