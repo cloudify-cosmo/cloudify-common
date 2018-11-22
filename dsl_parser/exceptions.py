@@ -31,6 +31,15 @@ class UnknownInputError(Exception):
         super(UnknownInputError, self).__init__(*args, **kwargs)
 
 
+class InputEvaluationError(Exception):
+    """
+    An error raised when the provided input cannot be evaluated (e.g. when
+    it's missing an attribute that has been required)
+    """
+    def __init__(self, *args, **kwargs):
+        super(InputEvaluationError, self).__init__(*args, **kwargs)
+
+
 class FunctionEvaluationError(Exception):
     """
     An error raised when an intrinsic function was unable to get evaluated.
