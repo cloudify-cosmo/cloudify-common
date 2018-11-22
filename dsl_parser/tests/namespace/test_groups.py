@@ -18,8 +18,7 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestNamespacedGroups(AbstractTestParser):
-    def test_groups_definition(self):
-        imported_yaml = self.BASIC_TYPE + """
+    basic_group_blueprint = """
 node_types:
     test_type: {}
 node_templates:
@@ -29,35 +28,27 @@ groups:
     group:
         members: [node1]
 """
-        import_file_name = self.make_yaml_file(imported_yaml)
 
+    def setUp(self):
+        super(TestNamespacedGroups, self).setUp()
+        self.import_file_name = self.make_yaml_file(self.basic_group_blueprint)
+
+    def test_groups_definition(self):
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   {0}->{1}
-""".format('test', import_file_name)
+""".format('test', self.import_file_name)
         parsed_yaml = self.parse(main_yaml)
         groups = parsed_yaml[constants.GROUPS]
         self.assertEqual(groups['test->group']['members'],
                          ['test->node1'])
 
     def test_basic_namespace_multi_import(self):
-        imported_yaml = self.BASIC_TYPE + """
-node_types:
-    test_type: {}
-node_templates:
-    node1:
-        type: test_type
-groups:
-    group:
-        members: [node1]
-"""
-        import_file_name = self.make_yaml_file(imported_yaml)
-
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   {0}->{1}
     -   {2}->{1}
-""".format('test', import_file_name, 'other_test')
+""".format('test', self.import_file_name, 'other_test')
 
         parsed_yaml = self.parse(main_yaml)
         groups = parsed_yaml[constants.GROUPS]
@@ -68,24 +59,13 @@ imports:
                          ['other_test->node1'])
 
     def test_group_collision(self):
-        imported_yaml = self.BASIC_TYPE + """
-node_types:
-    test_type: {}
-node_templates:
-    node1:
-        type: test_type
-groups:
-    group:
-        members: [node1]
-"""
-        import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
   - {0}->{1}
 groups:
     group:
         members: ["test->node1"]
-""".format('test', import_file_name)
+""".format('test', self.import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         groups = parsed_yaml[constants.GROUPS]
         self.assertEqual(2, len(groups))
@@ -95,28 +75,17 @@ groups:
                          ['test->node1'])
 
     def test_imports_merging_with_no_collision(self):
-        imported_yaml = self.BASIC_TYPE + """
-node_types:
-    test_type: {}
-node_templates:
-    node1:
-        type: test_type
-groups:
-    group1:
-        members: [node1]
-"""
-        import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
   - {0}->{1}
 groups:
     group2:
         members: ["test->node1"]
-""".format('test', import_file_name)
+""".format('test', self.import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         groups = parsed_yaml[constants.GROUPS]
         self.assertEqual(2, len(groups))
-        self.assertEqual(groups['test->group1']['members'],
+        self.assertEqual(groups['test->group']['members'],
                          ['test->node1'])
         self.assertEqual(groups['group2']['members'],
                          ['test->node1'])

@@ -18,6 +18,24 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestNamespacedPolicies(AbstractTestParser):
+    basic_blueprint = """
+groups:
+  group:
+    members: [node]
+node_templates:
+  node: {type: type}
+node_types:
+  type: {}
+policies:
+  policy:
+    targets: [group]
+    type: cloudify.policies.scaling
+    properties:
+            default_instances: 2
+            min_instances: 1
+            max_instances: 10
+"""
+
     def _assert_policy(self,
                        policy,
                        targets,
@@ -39,24 +57,7 @@ class TestNamespacedPolicies(AbstractTestParser):
                          policy_properties['default_instances'])
 
     def test_basic_namespace_policies(self):
-        imported_yaml = """
-groups:
-  group:
-    members: [node]
-node_templates:
-  node: {type: type}
-node_types:
-  type: {}
-policies:
-  policy:
-    targets: [group]
-    type: cloudify.policies.scaling
-    properties:
-            default_instances: 2
-            min_instances: 1
-            max_instances: 10
-"""
-        import_file_name = self.make_yaml_file(imported_yaml)
+        import_file_name = self.make_yaml_file(self.basic_blueprint)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
@@ -76,24 +77,7 @@ imports:
         Due to the patch for targets prop, we verify it
         still receives a namespace in another import.
         """
-        top_level_yaml = """
-groups:
-  group:
-    members: [node]
-node_templates:
-  node: {type: type}
-node_types:
-  type: {}
-policies:
-  policy:
-    targets: [group]
-    type: cloudify.policies.scaling
-    properties:
-            default_instances: 2
-            min_instances: 1
-            max_instances: 10
-"""
-        top_file_name = self.make_yaml_file(top_level_yaml)
+        top_file_name = self.make_yaml_file(self.basic_blueprint)
         middle_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   {0}->{1}
@@ -116,6 +100,17 @@ imports:
 
 
 class TestNamespacedPoliciesTriggers(AbstractTestParser):
+    @staticmethod
+    def _basic_policy_trigger(source='source', name='trigger'):
+        return """
+policy_triggers:
+    {1}:
+        source: {0}
+        parameters:
+            param1:
+                description: the description
+""".format(source, name)
+
     def _assert_policy_trigger(self,
                                parsed_yaml,
                                name,
@@ -132,14 +127,7 @@ class TestNamespacedPoliciesTriggers(AbstractTestParser):
                          description)
 
     def test_basic_namespaced_trigger(self):
-        imported_yaml = """
-policy_triggers:
-    trigger:
-        source: source
-        parameters:
-            param1:
-                description: the description
-"""
+        imported_yaml = self._basic_policy_trigger()
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -154,14 +142,7 @@ imports:
                                     'the description')
 
     def test_basic_namespace_multi_import(self):
-        imported_yaml = """
-policy_triggers:
-    trigger:
-        source: source
-        parameters:
-            param1:
-                description: the description
-"""
+        imported_yaml = self._basic_policy_trigger()
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -182,26 +163,13 @@ imports:
                                     'the description')
 
     def test_policy_trigger_collision(self):
-        imported_yaml = """
-policy_triggers:
-    trigger:
-        source: source
-        parameters:
-            param1:
-                description: the description
-"""
+        imported_yaml = self._basic_policy_trigger()
         import_file_name = self.make_yaml_file(imported_yaml)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 imports:
     -   {0}->{1}
-policy_triggers:
-    trigger:
-        source: source2
-        parameters:
-            param1:
-                description: the description
-""".format('test', import_file_name)
+""".format('test', import_file_name) + self._basic_policy_trigger('source2')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
                                     'test->trigger',
@@ -215,26 +183,14 @@ policy_triggers:
                                     'the description')
 
     def test_imports_merging_with_no_collision(self):
-        imported_yaml = """
-policy_triggers:
-    trigger:
-        source: source
-        parameters:
-            param1:
-                description: the description
-"""
+        imported_yaml = self._basic_policy_trigger()
         import_file_name = self.make_yaml_file(imported_yaml)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 imports:
     -   {0}->{1}
-policy_triggers:
-    trigger2:
-        source: source2
-        parameters:
-            param1:
-                description: the description
-""".format('test', import_file_name)
+""".format('test', import_file_name) +\
+            self._basic_policy_trigger('source2', 'trigger2')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
                                     'test->trigger',
@@ -249,6 +205,17 @@ policy_triggers:
 
 
 class TestNamespacedPoliciesTypes(AbstractTestParser):
+    @staticmethod
+    def _basic_policy_type(source='source', name='type'):
+        return """
+policy_types:
+    {1}:
+        source: {0}
+        properties:
+            param1:
+                description: the description
+""".format(source, name)
+
     def _assert_policy_type(self,
                             parsed_yaml,
                             policy_name,
@@ -265,17 +232,10 @@ class TestNamespacedPoliciesTypes(AbstractTestParser):
                          prop_description)
 
     def test_basic_namespaced_policy_type(self):
-        imported_yaml = """
-policy_types:
-    type:
-        source: source
-        properties:
-            param1:
-                description: the description
-"""
+        imported_yaml = self._basic_policy_type()
         import_file_name = self.make_yaml_file(imported_yaml)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 imports:
     -   {0}->{1}
 """.format('test', import_file_name)
@@ -287,17 +247,10 @@ imports:
                                  'the description')
 
     def test_basic_namespace_multi_import(self):
-        imported_yaml = """
-policy_types:
-    type:
-        source: source
-        properties:
-            param1:
-                description: the description
-"""
+        imported_yaml = self._basic_policy_type()
         import_file_name = self.make_yaml_file(imported_yaml)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 imports:
     -   {0}->{1}
     -   {2}->{1}
@@ -315,26 +268,13 @@ imports:
                                  'the description')
 
     def test_policy_type_collision(self):
-        imported_yaml = """
-policy_types:
-    type:
-        source: source
-        properties:
-            param1:
-                description: the description
-"""
+        imported_yaml = self._basic_policy_type()
         import_file_name = self.make_yaml_file(imported_yaml)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 imports:
     -   {0}->{1}
-policy_types:
-    type:
-        source: source2
-        properties:
-            param1:
-                description: the description
-""".format('test', import_file_name)
+""".format('test', import_file_name) + self._basic_policy_type('source2')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
                                  'test->type',
@@ -348,26 +288,14 @@ policy_types:
                                  'the description')
 
     def test_imports_merging_with_no_collision(self):
-        imported_yaml = """
-policy_types:
-    type:
-        source: source
-        properties:
-            param1:
-                description: the description
-"""
+        imported_yaml = self._basic_policy_type()
         import_file_name = self.make_yaml_file(imported_yaml)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 imports:
     -   {0}->{1}
-policy_types:
-    type2:
-        source: source
-        properties:
-            param1:
-                description: the description
-""".format('test', import_file_name)
+""".format('test', import_file_name) +\
+            self._basic_policy_type('source2', 'type2')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
                                  'test->type',
@@ -376,6 +304,6 @@ policy_types:
                                  'the description')
         self._assert_policy_type(parsed_yaml,
                                  'type2',
-                                 'source',
+                                 'source2',
                                  'param1',
                                  'the description')

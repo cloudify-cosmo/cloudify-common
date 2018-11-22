@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from dsl_parser import constants
+
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.node_instances import NodeInstance
 
@@ -21,10 +23,10 @@ class DeploymentModificationNodeInstances(dict):
 
     def __init__(self, node_instances):
         self.update(node_instances)
-        self['added_and_related'] = [NodeInstance(instance) for instance
-                                     in self.get('added_and_related', [])]
-        self['removed_and_related'] = [NodeInstance(instance) for instance
-                                       in self.get('removed_and_related', [])]
+        self[constants.ADDED_AND_RELATED] = [NodeInstance(instance) for instance
+                                     in self.get(constants.ADDED_AND_RELATED, [])]
+        self[constants.REMOVED_AND_RELATED] = [NodeInstance(instance) for instance
+                                       in self.get(constants.REMOVED_AND_RELATED, [])]
         self['before_modification'] = [NodeInstance(instance) for instance
                                        in self.get('before_modification', [])]
         self['before_rollback'] = [NodeInstance(instance) for instance
@@ -33,12 +35,12 @@ class DeploymentModificationNodeInstances(dict):
     @property
     def added_and_related(self):
         """List of added nodes and nodes that are related to them"""
-        return self['added_and_related']
+        return self[constants.ADDED_AND_RELATED]
 
     @property
     def removed_and_related(self):
         """List of removed nodes and nodes that are related to them"""
-        return self['removed_and_related']
+        return self[constants.REMOVED_AND_RELATED]
 
     @property
     def before_modification(self):
@@ -62,8 +64,8 @@ class DeploymentModification(dict):
 
     def __init__(self, modification):
         self.update(modification)
-        self['node_instances'] = DeploymentModificationNodeInstances(
-            self.get('node_instances') or {})
+        self[constants.NODE_INSTANCES] = DeploymentModificationNodeInstances(
+            self.get(constants.NODE_INSTANCES) or {})
 
     @property
     def id(self):
@@ -84,7 +86,7 @@ class DeploymentModification(dict):
     def node_instances(self):
         """Dict containing added_and_related and remove_and_related node
         instances list"""
-        return self['node_instances']
+        return self[constants.NODE_INSTANCES]
 
     @property
     def modified_nodes(self):

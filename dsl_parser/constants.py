@@ -89,3 +89,8 @@ UNBOUNDED = -1
 SCALING_GROUPS = 'scaling_groups'
 
 NAMESPACE_DELIMITER = '->'
+
+ADDED_AND_RELATED = 'added_and_related'
+REMOVED_AND_RELATED = 'removed_and_related'
+EXTENDED_AND_RELATED = 'extended_and_related'
+REDUCED_AND_RELATED = 'reduced_and_related'

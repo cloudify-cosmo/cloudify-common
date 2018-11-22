@@ -18,14 +18,21 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestNamespacedInputs(AbstractTestParser):
+    @staticmethod
+    def _default_input(description, default, name='port'):
+        return """
+inputs:
+    {2}:
+        description: {0}
+        default: {1}
+""".format(description, default, name)
+
+    def _assert_input(self, inputs, name, description, default):
+        self.assertEqual(default, inputs[name]['default'])
+        self.assertEqual(description, inputs[name]['description'])
 
     def test_inputs_definition(self):
-        imported_yaml = """
-inputs:
-    port:
-        description: the port
-        default: 8080
-"""
+        imported_yaml = self._default_input('the port', 8080)
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -33,21 +40,12 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
-        self.assertEqual(1, len(parsed_yaml[constants.INPUTS]))
-        self.assertEqual(
-            8080,
-            parsed_yaml[constants.INPUTS]['test->port']['default'])
-        self.assertEqual(
-            'the port',
-            parsed_yaml[constants.INPUTS]['test->port']['description'])
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(1, len(inputs))
+        self._assert_input(inputs, 'test->port', 'the port', 8080)
 
     def test_basic_namespace_multi_import(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-inputs:
-    port:
-        description: the port
-        default: 8080
-"""
+        imported_yaml = self._default_input('the port', 8080)
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -57,117 +55,52 @@ imports:
 """.format('test', import_file_name, 'other_test')
 
         parsed_yaml = self.parse(main_yaml)
-        self.assertEqual(2, len(parsed_yaml[constants.INPUTS]))
-        self.assertEqual(
-            8080,
-            parsed_yaml[constants.INPUTS]['test->port']['default'])
-        self.assertEqual(
-            'the port',
-            parsed_yaml[constants.INPUTS]['test->port']['description'])
-        self.assertEqual(
-            8080,
-            parsed_yaml[constants.INPUTS]['other_test->port']['default'])
-        self.assertEqual(
-            'the port',
-            parsed_yaml[constants.INPUTS]['other_test->port']['description'])
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(2, len(inputs))
+        self._assert_input(inputs, 'test->port', 'the port', 8080)
+        self._assert_input(inputs, 'other_test->port', 'the port', 8080)
 
     def test_input_collision(self):
-        imported_yaml = """
-inputs:
-    port:
-        description: one
-        default: 1
-"""
+        imported_yaml = self._default_input('one', 1)
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
   - {0}->{1}
-inputs:
-    port:
-        description: two
-        default: 2
-""".format('test', import_file_name)
+""".format('test', import_file_name) + self._default_input('two', 2)
         parsed_yaml = self.parse_1_3(main_yaml)
-        self.assertEqual(2, len(parsed_yaml[constants.INPUTS]))
-        self.assertEqual(
-            1,
-            parsed_yaml[constants.INPUTS]['test->port']['default'])
-        self.assertEqual(
-            'one',
-            parsed_yaml[constants.INPUTS]['test->port']['description'])
-        self.assertEqual(2, parsed_yaml[constants.INPUTS]['port']['default'])
-        self.assertEqual('two',
-                         parsed_yaml[constants.INPUTS]['port']['description'])
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(2, len(inputs))
+        self._assert_input(inputs, 'test->port', 'one', 1)
+        self._assert_input(inputs, 'port', 'two', 2)
 
     def test_multi_layer_import_collision(self):
-        layer1 = """
-inputs:
-    port:
-        description: one
-        default: 1
-"""
+        layer1 = self._default_input('one', 1)
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = """
 imports:
   - {0}->{1}
-inputs:
-    port:
-        description: two
-        default: 2
-""".format('test1', layer1_import_path)
+""".format('test1', layer1_import_path) + self._default_input('two', 2)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = """
 imports:
   - {0}->{1}
-inputs:
-    port:
-        description: three
-        default: 3
-""".format('test', layer2_import_path)
+""".format('test', layer2_import_path) + self._default_input('three', 3)
         parsed_yaml = self.parse_1_3(main_yaml)
-        self.assertEqual(3, len(parsed_yaml[constants.INPUTS]))
-        self.assertEqual(
-            1,
-            parsed_yaml[constants.INPUTS]['test->test1->port']['default'])
-        self.assertEqual(
-            'one',
-            parsed_yaml[constants.INPUTS]['test->test1->port']['description'])
-        self.assertEqual(
-            2,
-            parsed_yaml[constants.INPUTS]['test->port']['default'])
-        self.assertEqual(
-            'two',
-            parsed_yaml[constants.INPUTS]['test->port']['description'])
-        self.assertEqual(3, parsed_yaml[constants.INPUTS]['port']['default'])
-        self.assertEqual('three',
-                         parsed_yaml[constants.INPUTS]['port']['description'])
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(3, len(inputs))
+        self._assert_input(inputs, 'test->test1->port', 'one', 1)
+        self._assert_input(inputs, 'test->port', 'two', 2)
+        self._assert_input(inputs, 'port', 'three', 3)
 
     def test_imports_merging_with_no_collision(self):
-        imported_yaml = """
-inputs:
-    port1:
-        description: one
-        default: 1
-"""
+        imported_yaml = self._default_input('one', 1, 'port1')
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
   - {0}->{1}
-inputs:
-    port2:
-        description: two
-        default: 2
-
-""".format('test', import_file_name)
+""".format('test', import_file_name) + self._default_input('two', 2, 'port2')
         parsed_yaml = self.parse_1_3(main_yaml)
-        self.assertEqual(2, len(parsed_yaml[constants.INPUTS]))
-        self.assertEqual(
-            1,
-            parsed_yaml[constants.INPUTS]['test->port1']['default'])
-        self.assertEqual(
-            'one',
-            parsed_yaml[constants.INPUTS]['test->port1']['description'])
-        self.assertEqual(2, parsed_yaml[constants.INPUTS]['port2']['default'])
-        self.assertEqual(
-            'two',
-            parsed_yaml[constants.INPUTS]['port2']['description'])
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(2, len(inputs))
+        self._assert_input(inputs, 'test->port1', 'one', 1)
+        self._assert_input(inputs, 'port2', 'two', 2)

@@ -20,8 +20,7 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestNamespacedPlugins(AbstractTestParser):
-    def test_basic_namespaced_plugin_fields(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+    base_blueprint = """
 node_types:
   type:
     properties:
@@ -43,19 +42,29 @@ node_templates:
      interface:
        op: plugin2.op
 """
-        base_plugin_def = {constants.PLUGIN_DISTRIBUTION: 'dist',
-                           constants.PLUGIN_DISTRIBUTION_RELEASE: 'release',
-                           constants.PLUGIN_DISTRIBUTION_VERSION: 'version',
-                           constants.PLUGIN_INSTALL_KEY: True,
-                           constants.PLUGIN_INSTALL_ARGUMENTS_KEY: '123',
-                           constants.PLUGIN_PACKAGE_NAME: 'name',
-                           constants.PLUGIN_PACKAGE_VERSION: 'version',
-                           constants.PLUGIN_SOURCE_KEY: 'source',
-                           constants.PLUGIN_SUPPORTED_PLATFORM: 'any'}
-        deployment_plugin_def = base_plugin_def.copy()
+
+    base_plugin_def = {constants.PLUGIN_DISTRIBUTION: 'dist',
+                       constants.PLUGIN_DISTRIBUTION_RELEASE: 'release',
+                       constants.PLUGIN_DISTRIBUTION_VERSION: 'version',
+                       constants.PLUGIN_INSTALL_KEY: True,
+                       constants.PLUGIN_INSTALL_ARGUMENTS_KEY: '123',
+                       constants.PLUGIN_PACKAGE_NAME: 'name',
+                       constants.PLUGIN_PACKAGE_VERSION: 'version',
+                       constants.PLUGIN_SOURCE_KEY: 'source',
+                       constants.PLUGIN_SUPPORTED_PLATFORM: 'any'}
+
+    @staticmethod
+    def _expected_plugin(name, plugin_def):
+        plugin = plugin_def.copy()
+        plugin['name'] = name
+        return plugin
+
+    def test_basic_namespaced_plugin_fields(self):
+        imported_yaml = self.base_blueprint
+        deployment_plugin_def = self.base_plugin_def.copy()
         deployment_plugin_def[constants.PLUGIN_EXECUTOR_KEY] =\
             'central_deployment_agent'
-        host_plugin_def = base_plugin_def.copy()
+        host_plugin_def = self.base_plugin_def.copy()
         host_plugin_def[constants.PLUGIN_EXECUTOR_KEY] = 'host_agent'
         raw_parsed = yaml.safe_load(imported_yaml)
         raw_parsed['plugins'] = {
@@ -69,10 +78,10 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
-        expected_plugin1 = deployment_plugin_def.copy()
-        expected_plugin1['name'] = 'test->plugin1'
-        expected_plugin2 = host_plugin_def.copy()
-        expected_plugin2['name'] = 'test->plugin2'
+        expected_plugin1 = self._expected_plugin('test->plugin1',
+                                                 deployment_plugin_def)
+        expected_plugin2 = self._expected_plugin('test->plugin2',
+                                                 host_plugin_def)
         plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
         node2 = self.get_node_by_name(parsed_yaml, 'test->node2')
         plugin2 = node2[constants.PLUGINS_TO_INSTALL][0]
@@ -80,41 +89,11 @@ imports:
         self.assertEqual(expected_plugin2, plugin2)
 
     def test_basic_namespace_multi_import(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-node_types:
-  type:
-    properties:
-      prop1:
-        default: value
-  cloudify.nodes.Compute:
-    properties:
-      prop1:
-        default: value
-node_templates:
-  node1:
-    type: type
-    interfaces:
-     interface:
-       op: plugin1.op
-  node2:
-    type: cloudify.nodes.Compute
-    interfaces:
-     interface:
-       op: plugin2.op
-"""
-        base_plugin_def = {constants.PLUGIN_DISTRIBUTION: 'dist',
-                           constants.PLUGIN_DISTRIBUTION_RELEASE: 'release',
-                           constants.PLUGIN_DISTRIBUTION_VERSION: 'version',
-                           constants.PLUGIN_INSTALL_KEY: True,
-                           constants.PLUGIN_INSTALL_ARGUMENTS_KEY: '123',
-                           constants.PLUGIN_PACKAGE_NAME: 'name',
-                           constants.PLUGIN_PACKAGE_VERSION: 'version',
-                           constants.PLUGIN_SOURCE_KEY: 'source',
-                           constants.PLUGIN_SUPPORTED_PLATFORM: 'any'}
-        deployment_plugin_def = base_plugin_def.copy()
+        imported_yaml = self.base_blueprint
+        deployment_plugin_def = self.base_plugin_def.copy()
         deployment_plugin_def[constants.PLUGIN_EXECUTOR_KEY] =\
             'central_deployment_agent'
-        host_plugin_def = base_plugin_def.copy()
+        host_plugin_def = self.base_plugin_def.copy()
         host_plugin_def[constants.PLUGIN_EXECUTOR_KEY] = 'host_agent'
         raw_parsed = yaml.safe_load(imported_yaml)
         raw_parsed['plugins'] = {
@@ -129,14 +108,14 @@ imports:
     -   {2}->{1}
 """.format('test', import_file_name, 'other_test')
         parsed_yaml = self.parse(main_yaml)
-        expected_test_plugin1 = deployment_plugin_def.copy()
-        expected_test_plugin1['name'] = 'test->plugin1'
-        expected_other_test_plugin1 = deployment_plugin_def.copy()
-        expected_other_test_plugin1['name'] = 'other_test->plugin1'
-        expected_test_plugin2 = host_plugin_def.copy()
-        expected_test_plugin2['name'] = 'test->plugin2'
-        expected_other_test_plugin2 = host_plugin_def.copy()
-        expected_other_test_plugin2['name'] = 'other_test->plugin2'
+        expected_test_plugin1 = self._expected_plugin('test->plugin1',
+                                                      deployment_plugin_def)
+        expected_other_test_plugin1 = self._expected_plugin(
+            'other_test->plugin1', deployment_plugin_def)
+        expected_test_plugin2 = self._expected_plugin('test->plugin2',
+                                                      host_plugin_def)
+        expected_other_test_plugin2 = self._expected_plugin(
+            'other_test->plugin2', host_plugin_def)
         other_test_plugin1 =\
             parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
         test_plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
@@ -151,41 +130,11 @@ imports:
         self.assertEqual(expected_other_test_plugin2, other_test_plugin2)
 
     def test_plugin_collision(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-node_types:
-  type:
-    properties:
-      prop1:
-        default: value
-  cloudify.nodes.Compute:
-    properties:
-      prop1:
-        default: value
-node_templates:
-  node1:
-    type: type
-    interfaces:
-     interface:
-       op: plugin1.op
-  node2:
-    type: cloudify.nodes.Compute
-    interfaces:
-     interface:
-       op: plugin2.op
-"""
-        base_plugin_def = {constants.PLUGIN_DISTRIBUTION: 'dist',
-                           constants.PLUGIN_DISTRIBUTION_RELEASE: 'release',
-                           constants.PLUGIN_DISTRIBUTION_VERSION: 'version',
-                           constants.PLUGIN_INSTALL_KEY: True,
-                           constants.PLUGIN_INSTALL_ARGUMENTS_KEY: '123',
-                           constants.PLUGIN_PACKAGE_NAME: 'name',
-                           constants.PLUGIN_PACKAGE_VERSION: 'version',
-                           constants.PLUGIN_SOURCE_KEY: 'source',
-                           constants.PLUGIN_SUPPORTED_PLATFORM: 'any'}
-        deployment_plugin_def = base_plugin_def.copy()
+        imported_yaml = self.base_blueprint
+        deployment_plugin_def = self.base_plugin_def.copy()
         deployment_plugin_def[constants.PLUGIN_EXECUTOR_KEY] =\
             'central_deployment_agent'
-        host_plugin_def = base_plugin_def.copy()
+        host_plugin_def = self.base_plugin_def.copy()
         host_plugin_def[constants.PLUGIN_EXECUTOR_KEY] = 'host_agent'
         raw_parsed = yaml.safe_load(imported_yaml)
         raw_parsed['plugins'] = {
@@ -217,12 +166,12 @@ node_templates:
        op: plugin1.op
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
-        expected_plugin1 = deployment_plugin_def.copy()
-        expected_plugin1['name'] = 'plugin1'
-        expected_plugin2 = host_plugin_def.copy()
-        expected_plugin2['name'] = 'test->plugin2'
-        expected_test_plugin1 = deployment_plugin_def.copy()
-        expected_test_plugin1['name'] = 'test->plugin1'
+        expected_plugin1 = self._expected_plugin('plugin1',
+                                                 deployment_plugin_def)
+        expected_plugin2 = self._expected_plugin('test->plugin2',
+                                                 host_plugin_def)
+        expected_test_plugin1 = self._expected_plugin('test->plugin1',
+                                                      deployment_plugin_def)
         plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
         node2 = self.get_node_by_name(parsed_yaml, 'test->node2')
         plugin2 = node2[constants.PLUGINS_TO_INSTALL][0]
@@ -249,17 +198,8 @@ node_templates:
      interface:
        op: plugin2.op
 """
-        base_plugin_def = {constants.PLUGIN_DISTRIBUTION: 'dist',
-                           constants.PLUGIN_DISTRIBUTION_RELEASE: 'release',
-                           constants.PLUGIN_DISTRIBUTION_VERSION: 'version',
-                           constants.PLUGIN_INSTALL_KEY: True,
-                           constants.PLUGIN_INSTALL_ARGUMENTS_KEY: '123',
-                           constants.PLUGIN_PACKAGE_NAME: 'name',
-                           constants.PLUGIN_PACKAGE_VERSION: 'version',
-                           constants.PLUGIN_SOURCE_KEY: 'source',
-                           constants.PLUGIN_SUPPORTED_PLATFORM: 'any'}
 
-        host_plugin_def = base_plugin_def.copy()
+        host_plugin_def = self.base_plugin_def.copy()
         host_plugin_def[constants.PLUGIN_EXECUTOR_KEY] = 'host_agent'
         raw_parsed = yaml.safe_load(imported_yaml)
         raw_parsed['plugins'] = {
@@ -290,13 +230,13 @@ node_templates:
        op: plugin1.op
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
-        deployment_plugin_def = base_plugin_def.copy()
+        deployment_plugin_def = self.base_plugin_def.copy()
         deployment_plugin_def[constants.PLUGIN_EXECUTOR_KEY] =\
             'central_deployment_agent'
-        expected_plugin1 = deployment_plugin_def.copy()
-        expected_plugin1['name'] = 'plugin1'
-        expected_plugin2 = host_plugin_def.copy()
-        expected_plugin2['name'] = 'test->plugin2'
+        expected_plugin1 = self._expected_plugin('plugin1',
+                                                 deployment_plugin_def)
+        expected_plugin2 = self._expected_plugin('test->plugin2',
+                                                 host_plugin_def)
 
         plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
         node2 = self.get_node_by_name(parsed_yaml, 'test->node2')

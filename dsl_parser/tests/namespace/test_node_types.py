@@ -18,17 +18,18 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestGeneralNodeTypeNamespaceImport(AbstractTestParser):
-
-    def test_node_type_import(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+    base_node_type = """
 node_types:
   test_type:
     properties:
       prop1:
-        default: value"""
-        import_file_name = self.make_yaml_file(imported_yaml)
+        default: value
+"""
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+    def test_node_type_import(self):
+        import_file_name = self.make_yaml_file(self.base_node_type)
+
+        main_yaml = """
 node_templates:
     test_node:
         type: test->test_type
@@ -43,15 +44,9 @@ imports:
             vm[constants.PROPERTIES]['prop1'])
 
     def test_basic_namespace_multi_import(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-node_types:
-  test_type:
-    properties:
-      prop1:
-        default: value"""
-        import_file_name = self.make_yaml_file(imported_yaml)
+        import_file_name = self.make_yaml_file(self.base_node_type)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 node_templates:
     test_node:
         type: test->test_type
@@ -73,15 +68,9 @@ imports:
             other_node[constants.PROPERTIES]['prop1'])
 
     def test_node_type_collision_import(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-node_types:
-  test_type:
-    properties:
-      prop1:
-        default: value"""
-        import_file_name = self.make_yaml_file(imported_yaml)
+        import_file_name = self.make_yaml_file(self.base_node_type)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 node_types:
   test_type:
     properties:
@@ -107,15 +96,9 @@ imports:
             vm[constants.PROPERTIES]['prop1'])
 
     def test_merging_node_type_import(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-node_types:
-  test_type:
-    properties:
-      prop1:
-        default: value"""
-        import_file_name = self.make_yaml_file(imported_yaml)
+        import_file_name = self.make_yaml_file(self.base_node_type)
 
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 node_types:
   test_type2:
     properties:
@@ -184,14 +167,7 @@ node_templates:
                 vm[constants.PROPERTIES]['prop1'])
 
     def test_multi_layer_same_import_collision(self):
-        layer1 = """
-node_types:
-  test_type:
-    properties:
-      prop1:
-        default: value1
-"""
-        layer1_import_path = self.make_yaml_file(layer1)
+        layer1_import_path = self.make_yaml_file(self.base_node_type)
         layer2 = """
 imports:
   - {0}->{1}
@@ -211,25 +187,17 @@ node_templates:
         parsed = self.parse_1_3(main_yaml)
         vm = parsed[constants.NODES][0]
         self.assertEqual(
-            'value1',
+            'value',
             vm[constants.PROPERTIES]['prop1'])
         vm = parsed[constants.NODES][1]
         self.assertEqual(
-            'value1',
+            'value',
             vm[constants.PROPERTIES]['prop1'])
 
+    def test_derived_from_field(self):
+        import_file_name = self.make_yaml_file(self.base_node_type)
 
-class TestDetailNodeTypeNamespaceImport(AbstractTestParser):
-    def test_derived_from(self):
-        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-node_types:
-  test_type:
-    properties:
-      prop1:
-        default: value"""
-        import_file_name = self.make_yaml_file(imported_yaml)
-
-        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        main_yaml = """
 node_types:
   test_type2:
     derived_from: test->test_type
