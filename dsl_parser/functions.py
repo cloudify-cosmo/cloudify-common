@@ -147,25 +147,77 @@ class Function(object):
 class GetInput(Function):
 
     def __init__(self, args, **kwargs):
-        self.input_name = None
+        self.input_value = None
         super(GetInput, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        valid_args_type = isinstance(args, basestring)
-        if not valid_args_type:
+        if not isinstance(args, basestring) \
+                and not (isinstance(args, list) and len(args) >= 1):
             raise ValueError(
-                "get_input function argument should be a string, "
-                "but is '{0}'.".format(args))
-        self.input_name = args
+                "Illegal argument(s) passed to {0} function. Expected either"
+                "a string or a list [input_name [, key1/index1 [,...]]] but "
+                "got {1}".format(self.name, ','.join(
+                    [str(arg) for arg in args])))
+        self.input_value = args
 
     def validate(self, plan):
-        if self.input_name not in plan.inputs:
+        input_value = self.input_value[0] \
+            if isinstance(self.input_value, list) else self.input_value
+        if input_value not in plan.inputs:
             raise exceptions.UnknownInputError(
                 "get_input function references an "
-                "unknown input '{0}'.".format(self.input_name))
+                "unknown input '{0}'.".format(input_value))
 
     def evaluate(self, plan):
-        return plan.inputs[self.input_name]
+        if isinstance(self.input_value, list):
+            return self._get_input_attribute(plan.inputs[self.input_value[0]])
+        return plan.inputs[self.input_value]
+
+    def _get_input_attribute(self, root):
+        def _get_error_string(attr_list):
+            if not attr_list:
+                return ''
+            s = str(attr_list[0])
+            for attr in attr_list[1:]:
+                if isinstance(attr, int):
+                    s += '[{0}]'.format(attr)
+                else:
+                    s += '.{0}'.format(attr)
+            return s
+
+        value = root
+        for index, attr in enumerate(self.input_value[1:]):
+            if isinstance(value, dict):
+                if attr not in value:
+                    raise exceptions.InputEvaluationError(
+                        "Input attribute '{0}' of '{1}', "
+                        "doesn't exist.".format(
+                            attr,
+                            _get_error_string(self.input_value[:index + 1])))
+
+                value = value[attr]
+            elif isinstance(value, list):
+                try:
+                    value = value[attr]
+                except TypeError:
+                    raise exceptions.InputEvaluationError(
+                        "Item in index {0} in the get_input arguments list "
+                        "'{1}' is expected to be an int but got {2}.".format(
+                            index, self.input_value, type(attr).__name__))
+                except IndexError:
+                    raise exceptions.InputEvaluationError(
+                        "List size of '{0}' is {1} but index {2} is "
+                        "retrieved.".format(
+                            _get_error_string(self.input_value[:index + 1]),
+                            len(value),
+                            attr))
+            else:
+                raise exceptions.FunctionEvaluationError(
+                    self.name,
+                    "Object {0} has no attribute {1}".format(
+                        _get_error_string(
+                            self.input_value[:index + 1]), attr))
+        return value
 
     def evaluate_runtime(self, storage):
         raise RuntimeError('runtime evaluation for {0} is not supported'
