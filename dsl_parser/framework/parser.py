@@ -140,8 +140,8 @@ class Context(object):
         element = element_cls(name=name,
                               initial_value=value,
                               context=self)
-        element = self._traverse_element(schema=element_cls.schema,
-                                         parent_element=element)
+        self._traverse_element(schema=element_cls.schema,
+                               parent_element=element)
         self._add_element(element, parent=parent_element)
 
     def _traverse_element(self, schema, parent_element):
@@ -162,7 +162,6 @@ class Context(object):
         else:
             raise ValueError('Illegal state should have been identified'
                              ' by schema API validation')
-        return parent_element
 
     def _traverse_dict_schema(self, schema, parent_element, namespace):
         if not isinstance(parent_element.initial_value, dict):
@@ -172,96 +171,77 @@ class Context(object):
         for name, element_cls in schema.items():
             if name not in parent_element.initial_value_holder:
                 value = None
-                current_namespace = namespace
             else:
                 name, value = \
                     parent_element.initial_value_holder.get_item(name)
                 parsed_names.add(name.value)
-                current_namespace = value.namespace or namespace
             self._traverse_element_cls(element_cls=element_cls,
                                        name=name,
                                        value=value,
                                        parent_element=parent_element,
-                                       namespace=current_namespace)
+                                       namespace=namespace)
         for k_holder, v_holder in parent_element.initial_value_holder.value.\
-                iteritems():
+                items():
             if k_holder.value not in parsed_names:
-                current_namespace = v_holder.namespace or namespace
                 self._traverse_element_cls(element_cls=elements.UnknownElement,
                                            name=k_holder,
                                            value=v_holder,
                                            parent_element=parent_element,
-                                           namespace=current_namespace)
+                                           namespace=namespace)
 
     def _traverse_element_type_schema(self, schema, parent_element, namespace):
 
-        def set_namespace_get_input(namespace_value, input_name):
-            return utils.generate_namespaced_value(
-                namespace_value, input_name)
-
-        def set_namespace_get_attribute_property(namespace_value, func):
-            value = func[0]
+        def set_namespace_get_attribute_property(namespace_value, get_func):
+            value = get_func[0]
             if value not in functions.AVAILABLE_NODE_TARGETS:
-                func[0] = utils.generate_namespaced_value(
+                get_func[0] = utils.generate_namespaced_value(
                     namespace_value, value)
-            return func
+            return get_func
 
-        def find_and_namespace_key(key, element, function_namespace):
+        def handle_intrinsic_function_namespace(element):
             """
             This will traverse the element in search of the key,
             and will run the set namespace function on the key's
             values.
             """
-            if hasattr(element, 'iteritems'):
-                for k, v in element.iteritems():
-                    if k == key:
-                        element[k] = function_namespace(namespace, v)
-                    if isinstance(v, dict):
-                        element[k] = \
-                            find_and_namespace_key(key,
-                                                   v,
-                                                   function_namespace)
-                    elif isinstance(v, list):
-                        for i in xrange(len(v)):
-                            element[k][i] = \
-                                find_and_namespace_key(
-                                    key,
-                                    v[i],
-                                    function_namespace)
+            if not isinstance(element, dict) or not namespace:
+                # There is no need to search for intrinsic functions, if
+                # there is no namespace or if the element will not contain
+                # them.
+                return element
+            for k, v in element.items():
+                if k == 'get_input':
+                    element[k] = utils.generate_namespaced_value(namespace, v)
+                elif k == 'get_property' or k == 'get_attribute':
+                    element[k] =\
+                        set_namespace_get_attribute_property(namespace, v)
+                if isinstance(v, dict):
+                    element[k] = \
+                        handle_intrinsic_function_namespace(v)
+                elif isinstance(v, list):
+                    for i in xrange(len(v)):
+                        element[k][i] = \
+                            handle_intrinsic_function_namespace(v[i])
             return element
 
-        def set_leaf_namespace(leaf_namespace, element):
-            if leaf_namespace:
-                if isinstance(element._initial_value, str) and \
-                        element._initial_value not in \
-                        constants.USER_PRIMITIVE_TYPES and \
-                        element.add_namespace:
-                    leaf_namespace = element.namespace or leaf_namespace
-                    element._initial_value = utils.generate_namespaced_value(
-                            leaf_namespace, element._initial_value)
-                elif isinstance(element._initial_value, dict):
-                    element._initial_value = \
-                        find_and_namespace_key('get_input',
-                                               element._initial_value,
-                                               set_namespace_get_input)
-                    element._initial_value = \
-                        find_and_namespace_key(
-                            'get_property',
-                            element._initial_value,
-                            set_namespace_get_attribute_property)
-                    element._initial_value = \
-                        find_and_namespace_key(
-                            'get_attribute',
-                            element._initial_value,
-                            set_namespace_get_attribute_property)
+        def _should_add_leaf_namespace(element):
+            return (isinstance(element._initial_value, basestring) and
+                    element._initial_value not in
+                    constants.USER_PRIMITIVE_TYPES and
+                    element.add_namespace_to_schema_elements)
 
-        def set_namespace_to_element(element_namespace,
-                                     element_holder,
-                                     add_namespace):
-            if element_namespace and \
-                    add_namespace and \
-                    element_holder.value not in \
-                    constants.USER_PRIMITIVE_TYPES:
+        def set_leaf_namespace(leaf_namespace, element):
+            if not leaf_namespace:
+                return
+            if _should_add_leaf_namespace(element):
+                element._initial_value = utils.generate_namespaced_value(
+                        leaf_namespace, element._initial_value)
+            elif isinstance(element._initial_value, dict):
+                element._initial_value = \
+                    handle_intrinsic_function_namespace(element._initial_value)
+
+        def set_element_namespace(element_namespace, element_holder):
+            if element_namespace:
                 element_holder.value = utils.generate_namespaced_value(
                     element_namespace, element_holder.value)
 
@@ -276,9 +256,8 @@ class Context(object):
             for name_holder, value_holder in parent_element.\
                     initial_value_holder.value.items():
                 current_namespace = value_holder.namespace or namespace
-                set_namespace_to_element(current_namespace,
-                                         name_holder,
-                                         parent_element.add_namespace)
+                if parent_element.add_namespace_to_schema_elements:
+                    set_element_namespace(current_namespace, name_holder)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,
                                            value=value_holder,

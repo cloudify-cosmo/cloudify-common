@@ -92,7 +92,7 @@ imports:
         self._assert_output(outputs, 'test->port', 'two', 2)
         self._assert_output(outputs, 'port', 'three', 3)
 
-    def test_imports_merging_with_no_collision(self):
+    def test_outputs_merging_with_no_collision(self):
         imported_yaml = self._default_output('one', 1, 'port1')
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """

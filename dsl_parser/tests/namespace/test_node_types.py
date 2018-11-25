@@ -38,10 +38,10 @@ imports:
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
-        vm = parsed[constants.NODES][0]
+        test_node = parsed[constants.NODES][0]
         self.assertEqual(
             'value',
-            vm[constants.PROPERTIES]['prop1'])
+            test_node[constants.PROPERTIES]['prop1'])
 
     def test_basic_namespace_multi_import(self):
         import_file_name = self.make_yaml_file(self.base_node_type)
@@ -86,14 +86,14 @@ imports:
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
-        vm = parsed[constants.NODES][0]
+        test_node2 = parsed[constants.NODES][0]
         self.assertEqual(
             'value2',
-            vm[constants.PROPERTIES]['prop1'])
-        vm = parsed[constants.NODES][1]
+            test_node2[constants.PROPERTIES]['prop1'])
+        test_node = parsed[constants.NODES][1]
         self.assertEqual(
             'value',
-            vm[constants.PROPERTIES]['prop1'])
+            test_node[constants.PROPERTIES]['prop1'])
 
     def test_merging_node_type_import(self):
         import_file_name = self.make_yaml_file(self.base_node_type)
@@ -115,14 +115,14 @@ imports:
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
-        vm = parsed[constants.NODES][0]
+        test_node = parsed[constants.NODES][0]
         self.assertEqual(
             'value',
-            vm[constants.PROPERTIES]['prop1'])
-        vm = parsed[constants.NODES][1]
+            test_node[constants.PROPERTIES]['prop1'])
+        test_node2 = parsed[constants.NODES][1]
         self.assertEqual(
             'value',
-            vm[constants.PROPERTIES]['prop1'])
+            test_node2[constants.PROPERTIES]['prop1'])
 
     def test_multi_layer_import_collision(self):
         layer1 = """
@@ -161,10 +161,10 @@ node_templates:
 """.format('test', layer2_import_path)
         parsed = self.parse_1_3(main_yaml)
         for i in xrange(0, 3):
-            vm = parsed[constants.NODES][i]
+            test_node = parsed[constants.NODES][i]
             self.assertEqual(
                 'value{0}'.format(i+1),
-                vm[constants.PROPERTIES]['prop1'])
+                test_node[constants.PROPERTIES]['prop1'])
 
     def test_multi_layer_same_import_collision(self):
         layer1_import_path = self.make_yaml_file(self.base_node_type)
@@ -185,14 +185,14 @@ node_templates:
         type: test->test_type
 """.format('test', layer1_import_path, layer2_import_path)
         parsed = self.parse_1_3(main_yaml)
-        vm = parsed[constants.NODES][0]
+        test_node = parsed[constants.NODES][0]
         self.assertEqual(
             'value',
-            vm[constants.PROPERTIES]['prop1'])
-        vm = parsed[constants.NODES][1]
+            test_node[constants.PROPERTIES]['prop1'])
+        test_node2 = parsed[constants.NODES][1]
         self.assertEqual(
             'value',
-            vm[constants.PROPERTIES]['prop1'])
+            test_node2[constants.PROPERTIES]['prop1'])
 
     def test_derived_from_field(self):
         import_file_name = self.make_yaml_file(self.base_node_type)
@@ -209,7 +209,7 @@ imports:
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
-        vm = parsed[constants.NODES][0]
+        test_node = parsed[constants.NODES][0]
         self.assertEqual(
             'value',
-            vm[constants.PROPERTIES]['prop1'])
+            test_node[constants.PROPERTIES]['prop1'])

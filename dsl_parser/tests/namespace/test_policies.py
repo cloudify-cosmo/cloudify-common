@@ -182,7 +182,7 @@ imports:
                                     'param1',
                                     'the description')
 
-    def test_imports_merging_with_no_collision(self):
+    def test_policy_trigger_merging_with_no_collision(self):
         imported_yaml = self._basic_policy_trigger()
         import_file_name = self.make_yaml_file(imported_yaml)
 
@@ -287,7 +287,7 @@ imports:
                                  'param1',
                                  'the description')
 
-    def test_imports_merging_with_no_collision(self):
+    def test_policies_merging_with_no_collision(self):
         imported_yaml = self._basic_policy_type()
         import_file_name = self.make_yaml_file(imported_yaml)
 

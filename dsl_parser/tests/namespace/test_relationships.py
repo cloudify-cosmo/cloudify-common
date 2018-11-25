@@ -203,7 +203,7 @@ relationships:
         self.assertEquals({'default': 1}, properties[
             'prop'])
 
-    def test_imports_merging_with_no_collision(self):
+    def test_relationships_merging_with_no_collision(self):
         imported_yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
     test_relationship1:

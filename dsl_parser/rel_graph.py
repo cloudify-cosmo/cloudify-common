@@ -830,11 +830,13 @@ def _verify_and_get_connection_type(relationship):
 
 def _relationship_type_hierarchy_includes_one_of(relationship,
                                                  expected_types):
-    def partial_match_in_list(source, item_list):
-        return any([item for item in item_list if item in source])
+    def search_relationship_type(type_name, types_list):
+        # Searching in the expected types while neglecting the namespace
+        # differences, because these are types.yaml basic types.
+        return any([item for item in types_list if item in type_name])
 
     relationship_type_hierarchy = relationship[constants.TYPE_HIERARCHY]
-    return any([partial_match_in_list(relationship_type, expected_types)
+    return any([search_relationship_type(relationship_type, expected_types)
                 for relationship_type in relationship_type_hierarchy])
 
 

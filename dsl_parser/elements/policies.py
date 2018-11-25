@@ -37,11 +37,11 @@ class PolicyTriggerSource(Element):
 
     required = True
     schema = Leaf(type=basestring)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class PolicyTriggerParameters(data_types.Schema):
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class PolicyTrigger(DictElement):
@@ -56,11 +56,11 @@ class PolicyTypeSource(Element):
 
     required = True
     schema = Leaf(type=basestring)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class PolicyTypeProperties(data_types.Schema):
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class PolicyType(DictElement):
@@ -266,15 +266,13 @@ class PolicyInstanceType(Element):
     schema = Leaf(type=basestring)
 
     def validate(self):
-        scaling_policy = constants.SCALING_POLICY
-
         # Checking for namespaced option
-        if scaling_policy not in self.initial_value:
+        if constants.SCALING_POLICY not in self.initial_value:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNSUPPORTED_POLICY,
                 "'{0}' policy type is not implemented. "
                 "Only '{1}' policy type is supported."
-                .format(self.initial_value, scaling_policy))
+                .format(self.initial_value, constants.SCALING_POLICY))
 
 
 class PolicyInstanceTarget(Element):
@@ -300,7 +298,10 @@ class PolicyInstanceTargets(Element):
 
     def parse(self, **kwargs):
         """
-        This is a patch due to a problem in the infrastructure.
+        This is a patch due to a problem in the infrastructure,
+        the internal targets values do not get a namespace while they should.
+        So in order to allow namespacing, this patch enforce namespace
+        assignment.
         """
         if self.namespace:
             for i in xrange(len(self._initial_value)):

@@ -32,7 +32,7 @@ from dsl_parser.framework.requirements import (
 class SchemaPropertyDescription(Element):
 
     schema = Leaf(type=str)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class SchemaPropertyType(Element):
@@ -58,7 +58,7 @@ class SchemaPropertyType(Element):
 class SchemaPropertyDefault(Element):
 
     schema = Leaf(type=elements.PRIMITIVE_TYPES)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
     requires = {
         SchemaPropertyType: [Requirement('component_types',
@@ -95,7 +95,7 @@ class SchemaPropertyDefault(Element):
 class SchemaPropertyRequired(Element):
 
     schema = Leaf(type=bool)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
     requires = {
         _version.ToscaDefinitionsVersion: ['version'],
@@ -133,7 +133,7 @@ class Schema(DictElement):
 
 
 class SchemaWithInitialDefault(Schema):
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class DataTypeDescription(Element):
@@ -154,8 +154,6 @@ class DataType(types.Type):
         'derived_from': types.DataTypeDerivedFrom,
         'version': DataTypeVersion
     }
-
-    add_namespace = False
 
     requires = {
         'self': [
