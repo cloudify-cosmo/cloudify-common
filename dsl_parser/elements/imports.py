@@ -178,32 +178,21 @@ def _extract_import_parts(import_url,
     :param resources_base_path: In case of a relative file path, this
                                 is the base path.
     :param current_resource_context: Current import statement,
-    :return: Will return a breakdown down of the URL to namespace, import_url.
-            If the import is not namespaced, the returned namespace will be
+    :return: Will return a breakdown down of the URL to
+            (namespace, import_url). If the import is not
+            namespaced, the returned namespace will be
             None.
     """
-    namespace_op_location = utils.find_value_namespace(import_url)
+    namespace_op_location = utils.find_namespace_location(import_url)
+    namespace = None
+
     if namespace_op_location is not -1:
-        return import_url[:namespace_op_location], \
-               _get_resource_location(import_url[namespace_op_location + 2:],
-                                      resources_base_path,
-                                      current_resource_context)
+        namespace = import_url[:namespace_op_location]
+        import_url = import_url[namespace_op_location + 2:]
 
-    return None, _get_resource_location(import_url,
-                                        resources_base_path,
-                                        current_resource_context)
-
-
-def _normalize_import_url(import_url):
-    """
-    Removes any URL prefix for getting the path url, like file://.
-    Because this is not needed in the following processing.
-    """
-    url_op = import_url.find(':')
-    if url_op is not -1:
-        if import_url[:url_op] in ['http', 'https', 'file', 'ftp', 'plugin']:
-            return import_url[url_op + 1:]
-    return import_url
+    return namespace, _get_resource_location(import_url,
+                                             resources_base_path,
+                                             current_resource_context)
 
 
 def _combine_imports(parsed_dsl_holder, dsl_location,
@@ -255,7 +244,7 @@ def _build_ordered_imports(parsed_dsl_holder,
             raise exceptions.DSLParsingLogicException(
                 212,
                 'Invalid {0}: import\'s namespace cannot'
-                'contain colon'.format(namespace))
+                'contain namespace delimiter'.format(namespace))
 
     def build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                         _current_import,
@@ -279,7 +268,6 @@ def _build_ordered_imports(parsed_dsl_holder,
                         "import '{0}'".format(another_import))
                 ex.failed_import = another_import
                 raise ex
-            normalized_url = _normalize_import_url(import_url)
 
             if (import_url, namespace) in imports_graph:
                 imports_graph.add_graph_dependency(
@@ -294,7 +282,7 @@ def _build_ordered_imports(parsed_dsl_holder,
                         error_message="Failed to parse import '{0}'"
                                       "(via '{1}')"
                                       .format(another_import, import_url),
-                        filename=normalized_url)
+                        filename=import_url)
                 imports_graph.add(
                     import_url,
                     imported_dsl,
@@ -335,14 +323,14 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
     if version['definitions_version'] > (1, 2):
         merge_no_override.update(MERGEABLE_FROM_DSL_VERSION_1_3)
     for key_holder, value_holder in parsed_imported_dsl_holder.value.\
-            iteritems():
+            items():
         if key_holder.value in IGNORE:
             pass
         elif key_holder.value not in combined_parsed_dsl_holder:
             if isinstance(value_holder.value, dict):
                 # Propagate namespace down
-                for k, _ in value_holder.value.iteritems():
-                    value_holder.value[k].namespace = namespace
+                for _, v in value_holder.value.items():
+                    v.namespace = namespace
             combined_parsed_dsl_holder.value[key_holder] = value_holder
         elif key_holder.value in DONT_OVERWRITE:
             pass
@@ -364,25 +352,26 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
                 3, msg.format(key_holder.value))
 
 
+def _merge_namespaced_elements(key_holder, namespace, value_holder):
+    if isinstance(value_holder.value, dict):
+        for _, v in value_holder.value.items():
+            v.namespace = namespace
+    elif isinstance(value_holder.value, str):
+        value_holder.value = utils.generate_namespaced_value(
+            namespace, value_holder.value)
+    key_holder.value = utils.generate_namespaced_value(
+        namespace, key_holder.value)
+
+
 def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                                            to_dict_holder,
                                            key_name,
                                            namespace):
-    def merge_namespaced_elements(key_holder, namespace, value_holder):
-        if isinstance(value_holder.value, dict):
-            for _, v in value_holder.value.iteritems():
-                v.namespace = namespace
-        elif isinstance(value_holder.value, str):
-            value_holder.value = utils.generate_namespaced_value(
-                namespace, value_holder.value)
-        key_holder.value = utils.generate_namespaced_value(
-            namespace, key_holder.value)
-
-    for key_holder, value_holder in from_dict_holder.value.iteritems():
+    for key_holder, value_holder in from_dict_holder.value.items():
         if key_holder.value not in to_dict_holder or\
                 to_dict_holder.value[key_holder].namespace != namespace:
             if namespace:
-                merge_namespaced_elements(key_holder, namespace, value_holder)
+                _merge_namespaced_elements(key_holder, namespace, value_holder)
             to_dict_holder.value[key_holder] = value_holder
         else:
             raise exceptions.DSLParsingLogicException(

@@ -124,7 +124,7 @@ imports:
             value=3
         )
 
-    def test_imports_merging_with_no_collision(self):
+    def test_capabilities_merging_with_no_collision(self):
         imported_yaml = self._basic_capability('one', 1)
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = self._basic_capability('two', 2, 'port2') + """

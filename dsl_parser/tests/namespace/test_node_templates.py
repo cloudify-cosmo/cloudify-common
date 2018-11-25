@@ -16,6 +16,7 @@
 from dsl_parser import constants
 from dsl_parser.tests import scaling
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
+from dsl_parser.tests.test_parser_api import op_struct
 
 
 class TestDetailNodeTemplateNamespaceImport(AbstractTestParser):
@@ -96,26 +97,6 @@ imports:
         operation2 = node['operations']['test.op2']
         source_operation = relationship['source_operations']['test.op']
         target_operation = relationship['target_operations']['test.op']
-
-        # TODO: copied
-        def op_struct(plugin_name,
-                      mapping,
-                      inputs=None,
-                      executor=None,
-                      max_retries=None,
-                      retry_interval=None):
-            if not inputs:
-                inputs = {}
-            result = {
-                'plugin': plugin_name,
-                'operation': mapping,
-                'inputs': inputs,
-                'executor': executor,
-                'has_intrinsic_functions': False,
-                'max_retries': max_retries,
-                'retry_interval': retry_interval
-            }
-            return result
 
         def assert_operation(op, extra_properties=False):
             inputs = {'script_path': 'test->stub.py'}

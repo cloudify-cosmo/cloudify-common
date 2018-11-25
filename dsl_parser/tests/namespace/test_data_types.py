@@ -164,7 +164,7 @@ node_templates:
         self.assertEqual(properties['prop2']['prop1'], 'value3')
         self.assertEqual(properties['prop3']['prop1'], 'value1')
 
-    def test_imports_merging_with_no_collision(self):
+    def test_data_types_merging_with_no_collision(self):
         imported_yaml = """
 data_types:
     data1:

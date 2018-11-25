@@ -26,7 +26,7 @@ from dsl_parser.framework.elements import (DictElement,
 class OutputDescription(Element):
 
     schema = Leaf(type=str)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class OutputValue(Element):
@@ -51,7 +51,7 @@ class Outputs(DictElement):
 class CapabilityDescription(Element):
 
     schema = Leaf(type=str)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class CapabilityValue(Element):

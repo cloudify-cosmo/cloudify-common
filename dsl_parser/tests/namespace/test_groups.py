@@ -74,7 +74,7 @@ groups:
         self.assertEqual(groups['group']['members'],
                          ['test->node1'])
 
-    def test_imports_merging_with_no_collision(self):
+    def test_groups_merging_with_no_collision(self):
         main_yaml = """
 imports:
   - {0}->{1}

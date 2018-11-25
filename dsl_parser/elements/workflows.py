@@ -30,7 +30,7 @@ class WorkflowMapping(Element):
 
 
 class WorkflowParameters(data_types.Schema):
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class Workflow(Element):

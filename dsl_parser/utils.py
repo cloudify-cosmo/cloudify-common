@@ -324,7 +324,7 @@ def generate_namespaced_value(namespace, value):
     return "{0}{1}{2}".format(namespace, NAMESPACE_DELIMITER, value)
 
 
-def find_value_namespace(value):
+def find_namespace_location(value):
     return value.find(NAMESPACE_DELIMITER)
 
 

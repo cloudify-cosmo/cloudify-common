@@ -17,7 +17,7 @@ from dsl_parser import exceptions, constants
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
-class TestGeneralNamspace(AbstractTestParser):
+class TestGeneralNamespace(AbstractTestParser):
     def test_import_with_two_namespace(self):
         imported_yaml = """
 inputs:

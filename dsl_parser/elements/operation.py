@@ -41,7 +41,7 @@ class OperationExecutor(Element):
 
     schema = Leaf(type=str)
 
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
     def validate(self):
         if self.initial_value is None:
@@ -62,14 +62,14 @@ class OperationExecutor(Element):
 
 
 class NodeTypeOperationInputs(data_types.Schema):
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class NodeTemplateOperationInputs(Element):
 
     schema = Leaf(type=dict)
 
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
     def parse(self):
         return self.initial_value if self.initial_value is not None else {}
@@ -165,25 +165,25 @@ class Interface(DictElement):
 class NodeTemplateInterface(Interface):
 
     schema = Dict(type=NodeTemplateOperation)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class NodeTemplateInterfaces(DictElement):
 
     schema = Dict(type=NodeTemplateInterface)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class NodeTypeInterface(Interface):
 
     schema = Dict(type=NodeTypeOperation)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 class NodeTypeInterfaces(DictElement):
 
     schema = Dict(type=NodeTypeInterface)
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
 
 def process_interface_operations(
@@ -291,7 +291,7 @@ def process_operation(
             })
 
         # There can be more then one script plugin defined in the blueprint,
-        # in case of the other one's are namespaced. But they are actual
+        # in case of the other one's are namespaced. But they are actually
         # pointing to the same installed one.
         script_plugins = [plugin for plugin in plugins
                           if constants.SCRIPT_PLUGIN_NAME in plugin]

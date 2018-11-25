@@ -25,7 +25,6 @@ class Instances(Element):
 
     schema = Leaf(type=(int, dict))
     default_value = None
-    add_namespace = False
 
     def validate(self):
         value = self.initial_value
@@ -100,7 +99,7 @@ class MaxInstances(Instances):
 
 class Properties(DictElement):
 
-    add_namespace = False
+    add_namespace_to_schema_elements = False
 
     DEFAULT = {
         'min_instances': MinInstances.default_value,

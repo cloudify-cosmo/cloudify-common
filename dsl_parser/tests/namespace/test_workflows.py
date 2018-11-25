@@ -88,7 +88,7 @@ workflows:
         self.assertEqual('test_plugin',
                          workflow_plugins_to_install[1]['name'])
 
-    def test_imports_merging_with_no_collision(self):
+    def test_workflows_merging_with_no_collision(self):
         imported_yaml = self.basic_blueprint()
         import_file_name = self.make_yaml_file(imported_yaml)
 

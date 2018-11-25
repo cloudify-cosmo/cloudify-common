@@ -677,7 +677,7 @@ node_templates:
         self.assertEqual(node1['properties']['prop1']['inner'],
                          'inner_default')
 
-    def test_imports_merging(self):
+    def test_data_types_merging(self):
         file1 = """
 data_types:
     data1:
