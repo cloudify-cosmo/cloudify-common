@@ -259,9 +259,12 @@ def _build_ordered_imports(parsed_dsl_holder,
                                                           resources_base_path,
                                                           _current_import)
             validate_namespace(namespace)
-            if context_namespace:
+            if context_namespace and namespace:
                 namespace = utils.generate_namespaced_value(context_namespace,
                                                             namespace)
+            elif context_namespace and not namespace:
+                # In case, a namespace was added earlier in the import chain
+                namespace = context_namespace
             if import_url is None:
                 ex = exceptions.DSLParsingLogicException(
                     13, "Import failed: no suitable location found for "
@@ -327,7 +330,7 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
         if key_holder.value in IGNORE:
             pass
         elif key_holder.value not in combined_parsed_dsl_holder:
-            if isinstance(value_holder.value, dict):
+            if isinstance(value_holder.value, dict) and namespace:
                 # Propagate namespace down
                 for _, v in value_holder.value.items():
                     v.namespace = namespace
@@ -356,7 +359,7 @@ def _merge_namespaced_elements(key_holder, namespace, value_holder):
     if isinstance(value_holder.value, dict):
         for _, v in value_holder.value.items():
             v.namespace = namespace
-    elif isinstance(value_holder.value, str):
+    elif isinstance(value_holder.value, basestring):
         value_holder.value = utils.generate_namespaced_value(
             namespace, value_holder.value)
     key_holder.value = utils.generate_namespaced_value(
