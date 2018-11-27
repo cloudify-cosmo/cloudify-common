@@ -51,3 +51,28 @@ imports:
         self.assertEqual(
             8080,
             parsed_yaml[constants.INPUTS]['->port']['default'])
+
+    def test_mixing_regular_import_with_namespace_import(self):
+        basic_input = """
+inputs:
+    {0}:
+        default: 1
+"""
+        layer1 = basic_input.format('port')
+        layer1_import_path = self.make_yaml_file(layer1)
+        layer2 = """
+imports:
+  - {0}
+""".format(layer1_import_path)
+        layer2_import_path = self.make_yaml_file(layer2)
+        main_yaml = """
+imports:
+  - {0}->{1}
+  - {2}->{1}
+""".format('test', layer2_import_path, 'other_test')
+        parsed_yaml = self.parse_1_3(main_yaml)
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(2, len(inputs))
+        self.assertIn('test->port', inputs)
+        self.assertIn('other_test->port', inputs)
+
