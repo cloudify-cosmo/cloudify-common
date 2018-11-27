@@ -438,6 +438,9 @@ class DirtyTrackingDict(dict):
 def create_agent_record(cloudify_agent,
                         state=AgentState.CREATING,
                         client=None):
+    # Proxy agents are not being saved in the agents table
+    if _is_proxied(cloudify_agent):
+        return
     client = client or get_rest_client()
     client.agents.create(
         cloudify_agent['name'],
@@ -453,9 +456,12 @@ def create_agent_record(cloudify_agent,
     )
 
 
-def update_agent_record(name, state):
+def update_agent_record(cloudify_agent, state):
+    # Proxy agents are not being saved in the agents table
+    if _is_proxied(cloudify_agent):
+        return
     client = get_rest_client()
-    client.agents.update(name, state)
+    client.agents.update(cloudify_agent['name'], state)
 
 
 def _get_agent_system(cloudify_agent):
@@ -467,3 +473,7 @@ def _get_agent_system(cloudify_agent):
             system = '{0} {1}'.format(system,
                                       cloudify_agent.get('distro_codename'))
     return system
+
+
+def _is_proxied(cloudify_agent):
+    return cloudify_agent.get('proxy')
