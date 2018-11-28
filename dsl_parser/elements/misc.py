@@ -107,3 +107,13 @@ class Description(Element):
 class Metadata(Element):
 
     schema = Leaf(type=dict)
+
+
+class NamespaceMapping(Element):
+
+    schema = Leaf(type=str)
+
+
+class NamespacesMapping(DictElement):
+
+    schema = Dict(type=NamespaceMapping)

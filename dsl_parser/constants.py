@@ -38,6 +38,7 @@ DERIVED_FROM = 'derived_from'
 DATA_TYPES = 'data_types'
 CAPABILITIES = 'capabilities'
 IMPORTED = 'imported'
+NAMESPACES_MAPPING = 'namespaces_mapping'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'

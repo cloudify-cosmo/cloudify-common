@@ -85,7 +85,8 @@ class Blueprint(Element):
         'workflows': workflows.Workflows,
         'outputs': misc.Outputs,
         'data_types': data_types.DataTypes,
-        'capabilities': misc.Capabilities
+        'capabilities': misc.Capabilities,
+        'namespaces_mapping': misc.NamespacesMapping
     }
 
     requires = {
@@ -121,5 +122,7 @@ class Blueprint(Element):
                 _version.ToscaDefinitionsVersion).value,
             constants.CAPABILITIES: self.child(misc.Capabilities).value,
             constants.IMPORTED:
-                self.context.inputs[constants.IMPORTED]
+                self.context.inputs[constants.IMPORTED],
+            constants.NAMESPACES_MAPPING:
+                self.child(misc.NamespacesMapping).value
         })

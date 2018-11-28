@@ -195,6 +195,18 @@ def _extract_import_parts(import_url,
                                              current_resource_context)
 
 
+def _is_blueprint_import(import_url):
+    return import_url.startswith('blueprint:')
+
+
+def _add_namespaces_mapping_holder(holder, mapping):
+    key_holder = Holder(constants.NAMESPACES_MAPPING)
+    holder.value[key_holder] = Holder({})
+    for key, value in mapping.iteritems():
+        item_holder = Holder(key)
+        holder.value[key_holder].value[item_holder] = Holder(value)
+
+
 def _combine_imports(parsed_dsl_holder, dsl_location,
                      resources_base_path, version, resolver,
                      validate_version):
@@ -207,9 +219,12 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
         _version.VERSION)
     holder_result.value = {}
     used_imports = set()
+    namespaces_mapping = {}
     for imported in ordered_imports:
         import_url, namespace = imported['import']
         if import_url != constants.ROOT_ELEMENT_VALUE:
+            if _is_blueprint_import(import_url):
+                namespaces_mapping[namespace] = import_url.replace('blueprint:', '')
             used_imports.add(import_url)
         parsed_imported_dsl_holder = imported['parsed']
         if validate_version:
@@ -219,6 +234,7 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
         _merge_parsed_into_combined(
             holder_result, parsed_imported_dsl_holder, version, namespace)
     holder_result.value[version_key_holder] = version_value_holder
+    _add_namespaces_mapping_holder(holder_result, namespaces_mapping)
     return used_imports, holder_result
 
 
