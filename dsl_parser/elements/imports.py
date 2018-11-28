@@ -90,7 +90,6 @@ class ImportsLoader(Element):
     }
 
     resource_base = None
-    imported = None
 
     def validate(self, **kwargs):
         imports = [i.value for i in self.children()]
@@ -114,20 +113,18 @@ class ImportsLoader(Element):
                 resources_base_path=resources_base_path)
             slash_index = blueprint_location.rfind('/')
             self.resource_base = blueprint_location[:slash_index]
-        imports_list, parsed_blueprint = _combine_imports(
+        parsed_blueprint = _combine_imports(
             parsed_dsl_holder=main_blueprint_holder,
             dsl_location=blueprint_location,
             resources_base_path=resources_base_path,
             version=version,
             resolver=resolver,
             validate_version=validate_version)
-        self.imported = imports_list
         return parsed_blueprint
 
     def calculate_provided(self, **kwargs):
         return {
-            'resource_base': self.resource_base,
-            constants.IMPORTED: self.imported
+            'resource_base': self.resource_base
         }
 
 
@@ -196,22 +193,30 @@ def _extract_import_parts(import_url,
                                              current_resource_context)
 
 
+def _insert_imported_list(blueprint_holder, blueprints_imported):
+    key_holder = Holder(constants.IMPORTED_BLUEPRINTS)
+    blueprint_holder.value[key_holder] = Holder([])
+    value_holder = blueprint_holder.value[key_holder]
+
+    for import_url in blueprints_imported:
+        value_holder.value.append(Holder(import_url))
+
+
 def _combine_imports(parsed_dsl_holder, dsl_location,
                      resources_base_path, version, resolver,
                      validate_version):
-    ordered_imports = _build_ordered_imports(parsed_dsl_holder,
-                                             dsl_location,
-                                             resources_base_path,
-                                             resolver)
+    ordered_imports, blueprint_imports = _build_ordered_imports(
+        parsed_dsl_holder,
+        dsl_location,
+        resources_base_path,
+        resolver)
     holder_result = parsed_dsl_holder.copy()
     version_key_holder, version_value_holder = parsed_dsl_holder.get_item(
         _version.VERSION)
     holder_result.value = {}
-    used_imports = []
+    _insert_imported_list(holder_result, blueprint_imports)
     for imported in ordered_imports:
         import_url, namespace = imported['import']
-        if import_url is not constants.ROOT_ELEMENT_VALUE:
-            used_imports.append(import_url)
         parsed_imported_dsl_holder = imported['parsed']
         if validate_version:
             _validate_version(version.raw,
@@ -222,7 +227,7 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
             holder_result, parsed_imported_dsl_holder,
             version, namespace, is_cloudify_types)
     holder_result.value[version_key_holder] = version_value_holder
-    return used_imports, holder_result
+    return holder_result
 
 
 def _build_ordered_imports(parsed_dsl_holder,
@@ -298,6 +303,18 @@ def _build_ordered_imports(parsed_dsl_holder,
             return import_key
         return import_url, namespace
 
+    def validate_blueprint_import_namespace(namespace, import_url):
+        """
+        Blueprint import must be used with namespace, this is enforced for
+        enabling the use of scripts from the imported blueprint which needs
+        the namespace for maintaining the path to the scripts.
+        """
+        if not namespace:
+            raise exceptions.DSLParsingLogicException(
+                213,
+                'Invalid {0}: blueprint import cannot'
+                'be used without namespace'.format(import_url))
+
     def build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                         _current_import,
                                         context_namespace=None):
@@ -326,6 +343,11 @@ def _build_ordered_imports(parsed_dsl_holder,
                         "import '{0}'".format(another_import))
                 ex.failed_import = another_import
                 raise ex
+
+            if utils.is_blueprint_import(import_url):
+                validate_blueprint_import_namespace(namespace, import_url)
+                blueprint_id = utils.remove_blueprint_import_prefix(import_url)
+                blueprint_imports.add(blueprint_id)
 
             import_key = resolve_import_graph_key(import_url, namespace)
             import_context = (location(_current_import), context_namespace)
@@ -365,9 +387,10 @@ def _build_ordered_imports(parsed_dsl_holder,
                                                 namespace)
 
     imports_graph = ImportsGraph()
+    blueprint_imports = set()
     imports_graph.add(location(dsl_location), parsed_dsl_holder)
     build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
-    return imports_graph.topological_sort()
+    return imports_graph.topological_sort(), blueprint_imports
 
 
 def _validate_version(dsl_version,
@@ -408,6 +431,9 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
                                          is_cloudify_types)
         if key_holder.value in IGNORE:
             pass
+        elif key_holder.value == constants.IMPORTED_BLUEPRINTS:
+            _, to_dict = combined_parsed_dsl_holder.get_item(key_holder.value)
+            _merge_lists_with_no_duplicates(value_holder, to_dict)
         elif key_holder.value not in combined_parsed_dsl_holder:
             if isinstance(value_holder.value, dict) and namespace:
                 # Propagate namespace down
@@ -465,6 +491,12 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
             raise exceptions.DSLParsingLogicException(
                 4, "Import failed: Could not merge '{0}' due to conflict "
                    "on '{1}'".format(key_name, key_holder.value))
+
+
+def _merge_lists_with_no_duplicates(from_dict_holder, to_dict_holder):
+    for value_holder in from_dict_holder.value:
+        if value_holder not in to_dict_holder.value:
+            to_dict_holder.value.append(value_holder)
 
 
 class ImportsGraph(object):

@@ -20,6 +20,7 @@ from dsl_parser.elements import (
 from dsl_parser.framework.elements import (DictElement,
                                            Element,
                                            Leaf,
+                                           List,
                                            Dict)
 
 
@@ -107,3 +108,17 @@ class Description(Element):
 class Metadata(Element):
 
     schema = Leaf(type=dict)
+
+
+class Imported(Element):
+
+    schema = Leaf(type=basestring)
+
+
+class ImportedBlueprints(Element):
+    """
+    Internal DSL element used for maintaining a list of imported blueprints,
+    this is for enabling protection against their deletion when used.
+    """
+
+    schema = List(type=Imported)

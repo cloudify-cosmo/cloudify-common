@@ -3242,18 +3242,3 @@ node_templates:
         plugin2 = node2['plugins_to_install'][0]
         self.assertEqual(expected_plugin1, plugin1)
         self.assertEqual(expected_plugin2, plugin2)
-
-    def test_imported_list(self):
-        imported_blueprint_yaml = self.BASIC_PLUGIN + self.BASIC_TYPE
-
-        imported_blueprint = self.make_yaml_file(imported_blueprint_yaml, True)
-
-        yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
-imports:
-    -   {0}
-    -   http://www.getcloudify.org/spec/cloudify/4.5.dev1/types.yaml
-""".format(imported_blueprint) + self.BASIC_NODE_TEMPLATES_SECTION
-
-        result = self.parse(yaml)
-        self._assert_blueprint(result)
-        self.assertEquals(len(result[constants.IMPORTED]), 2)

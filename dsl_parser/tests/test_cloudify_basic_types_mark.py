@@ -33,7 +33,7 @@ node_types:
         default: value
 """
         resolver = DefaultImportResolver()
-        _, merged_blueprint, _ = resolve_blueprint_imports(
+        _, merged_blueprint = resolve_blueprint_imports(
             dsl_location=None,
             dsl_string=main_yaml,
             resolver=resolver,
