@@ -335,3 +335,11 @@ def remove_value_namespace(value):
 
 def check_if_cloudify_type(type_name):
     return type_name.startswith(constants.CLOUDIFY_TYPE_PREFIX)
+
+
+def is_blueprint_import(import_url):
+    return import_url.startswith(constants.BLUEPRINT_IMPORT)
+
+
+def remove_blueprint_import_prefix(import_url):
+    return import_url.replace(constants.BLUEPRINT_IMPORT, '')

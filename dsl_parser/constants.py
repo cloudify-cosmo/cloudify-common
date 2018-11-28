@@ -37,7 +37,7 @@ OUTPUTS = 'outputs'
 DERIVED_FROM = 'derived_from'
 DATA_TYPES = 'data_types'
 CAPABILITIES = 'capabilities'
-IMPORTED = 'imported'
+IMPORTED_BLUEPRINTS = 'imported_blueprints'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
@@ -90,6 +90,7 @@ SCALING_GROUPS = 'scaling_groups'
 
 NAMESPACE_DELIMITER = '->'
 CLOUDIFY_TYPE_PREFIX = 'cloudify.'
+BLUEPRINT_IMPORT = 'blueprint:'
 
 ADDED_AND_RELATED = 'added_and_related'
 REMOVED_AND_RELATED = 'removed_and_related'

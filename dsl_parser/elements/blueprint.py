@@ -54,14 +54,13 @@ class BlueprintImporter(Element):
         'imports': imports.ImportsLoader,
     }
     requires = {
-        imports.ImportsLoader: ['resource_base', constants.IMPORTED]
+        imports.ImportsLoader: ['resource_base']
     }
 
-    def parse(self, resource_base, imported):
+    def parse(self, resource_base):
         return {
             'merged_blueprint': self.child(imports.ImportsLoader).value,
-            'resource_base': resource_base,
-            constants.IMPORTED: imported
+            'resource_base': resource_base
         }
 
 
@@ -85,7 +84,8 @@ class Blueprint(Element):
         'workflows': workflows.Workflows,
         'outputs': misc.Outputs,
         'data_types': data_types.DataTypes,
-        'capabilities': misc.Capabilities
+        'capabilities': misc.Capabilities,
+        'imported_blueprints': misc.ImportedBlueprints
     }
 
     requires = {
@@ -120,6 +120,6 @@ class Blueprint(Element):
             constants.VERSION: self.child(
                 _version.ToscaDefinitionsVersion).value,
             constants.CAPABILITIES: self.child(misc.Capabilities).value,
-            constants.IMPORTED:
-                self.context.inputs[constants.IMPORTED]
+            constants.IMPORTED_BLUEPRINTS:
+                self.child(misc.ImportedBlueprints).value
         })

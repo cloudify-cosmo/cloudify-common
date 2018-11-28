@@ -13,9 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import (functions,
-                        utils,
-                        constants)
+from dsl_parser import functions, utils
 from dsl_parser.framework import parser
 from dsl_parser.elements import blueprint
 from dsl_parser.import_resolver.default_import_resolver import \
@@ -55,7 +53,7 @@ def _parse(dsl_string,
            resolver=None,
            validate_version=True,
            additional_resource_sources=()):
-    resource_base, merged_blueprint_holder, imported =\
+    resource_base, merged_blueprint_holder =\
         resolve_blueprint_imports(dsl_location, dsl_string, resolver,
                                   resources_base_path, validate_version)
     resource_base = [resource_base]
@@ -67,8 +65,7 @@ def _parse(dsl_string,
         value=merged_blueprint_holder,
         inputs={
             'resource_base': resource_base,
-            'validate_version': validate_version,
-            constants.IMPORTED: imported
+            'validate_version': validate_version
         },
         element_cls=blueprint.Blueprint)
 
@@ -114,5 +111,4 @@ def resolve_blueprint_imports(dsl_location,
         strict=False)
 
     return result['resource_base'],\
-        result['merged_blueprint'],\
-        result[constants.IMPORTED]
+        result['merged_blueprint']
