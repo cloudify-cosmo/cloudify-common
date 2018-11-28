@@ -827,3 +827,11 @@ plugins:
         }
         for key, value in fields.items():
             test_field(key, value)
+
+    def test_not_valid_blueprint_import(self):
+        yaml = """
+imports:
+    -   blueprint:test
+"""
+        self._assert_dsl_parsing_exception_error_code(
+            yaml, 213, DSLParsingLogicException)

@@ -246,6 +246,18 @@ def _build_ordered_imports(parsed_dsl_holder,
                 'Invalid {0}: import\'s namespace cannot'
                 'contain namespace delimiter'.format(namespace))
 
+    def validate_blueprint_import(namespace, import_url):
+        """
+        Blueprint import must be used with namespace, this is enforced for
+        enabling the use of scripts in the imported blueprint which needs
+        the namespace for maintaining the path to the scripts.
+        """
+        if not namespace and import_url.startswith('blueprint:'):
+            raise exceptions.DSLParsingLogicException(
+                213,
+                'Invalid {0}: blueprint import cannot'
+                'be used without namespace'.format(import_url))
+
     def build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                         _current_import,
                                         context_namespace=None):
@@ -265,12 +277,15 @@ def _build_ordered_imports(parsed_dsl_holder,
             elif context_namespace and not namespace:
                 # In case, a namespace was added earlier in the import chain
                 namespace = context_namespace
+
             if import_url is None:
                 ex = exceptions.DSLParsingLogicException(
                     13, "Import failed: no suitable location found for "
                         "import '{0}'".format(another_import))
                 ex.failed_import = another_import
                 raise ex
+
+            validate_blueprint_import(namespace, import_url)
 
             if (import_url, namespace) in imports_graph:
                 imports_graph.add_graph_dependency(
