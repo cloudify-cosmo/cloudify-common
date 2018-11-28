@@ -3244,16 +3244,27 @@ node_templates:
         self.assertEqual(expected_plugin2, plugin2)
 
     def test_imported_list(self):
-        imported_blueprint_yaml = self.BASIC_PLUGIN + self.BASIC_TYPE
-
-        imported_blueprint = self.make_yaml_file(imported_blueprint_yaml, True)
-
-        yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+        layer1 = """
 imports:
-    -   {0}
-    -   http://www.getcloudify.org/spec/cloudify/4.5.dev1/types.yaml
-""".format(imported_blueprint) + self.BASIC_NODE_TEMPLATES_SECTION
-
-        result = self.parse(yaml)
-        self._assert_blueprint(result)
-        self.assertEquals(len(result[constants.IMPORTED]), 2)
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+"""
+        layer1_import_path = self.make_yaml_file(layer1)
+        layer2 = """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - {0}->{1}
+""".format('test1', layer1_import_path)
+        layer2_import_path = self.make_yaml_file(layer2)
+        main_yaml = """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - {0}->{1}
+""".format('test', layer2_import_path)
+        parsed_yaml = self.parse_1_3(main_yaml)
+        imports = parsed_yaml[constants.IMPORTED]
+        self.assertEquals(len(imports), 3)
+        self.assertEqual(
+            {'file:' + layer1_import_path,
+             'file:' + layer2_import_path,
+             'http://www.getcloudify.org/spec/cloudify/4.5/types.yaml'},
+            imports)

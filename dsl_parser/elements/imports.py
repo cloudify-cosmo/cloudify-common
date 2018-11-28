@@ -206,11 +206,11 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
     version_key_holder, version_value_holder = parsed_dsl_holder.get_item(
         _version.VERSION)
     holder_result.value = {}
-    used_imports = []
+    used_imports = set()
     for imported in ordered_imports:
         import_url, namespace = imported['import']
-        if import_url is not constants.ROOT_ELEMENT_VALUE:
-            used_imports.append(import_url)
+        if import_url != constants.ROOT_ELEMENT_VALUE:
+            used_imports.add(import_url)
         parsed_imported_dsl_holder = imported['parsed']
         if validate_version:
             _validate_version(version.raw,
