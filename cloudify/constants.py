@@ -83,3 +83,5 @@ DEFAULT_NETWORK_NAME = 'default'
 SECURITY_FILE_LOCATION = '/opt/manager/rest-security.conf'
 
 SUPPORTED_ARCHIVE_TYPES = ('zip', 'tar', 'tar.gz', 'tar.bz2')
+
+NEW_TOKEN_FILE_NAME = 'new_token'
