@@ -360,8 +360,11 @@ def _merge_namespaced_elements(key_holder, namespace, value_holder):
         for _, v in value_holder.value.items():
             v.namespace = namespace
     elif isinstance(value_holder.value, basestring):
-        value_holder.value = utils.generate_namespaced_value(
-            namespace, value_holder.value)
+        # In case of primitive type we a need a different way to mark
+        # the sub elements with the namespace, but leaving the option
+        # for the DSL element to not receive the namespace.
+        value_holder.only_sons_namespace = True
+        value_holder.namespace = namespace
     key_holder.value = utils.generate_namespaced_value(
         namespace, key_holder.value)
 

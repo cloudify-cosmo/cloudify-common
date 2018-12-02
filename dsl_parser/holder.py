@@ -23,7 +23,8 @@ class Holder(object):
                  end_line=None,
                  end_column=None,
                  filename=None,
-                 namespace=None):
+                 namespace=None,
+                 only_sons_namespace=False):
         self.value = value
         self.start_line = start_line
         self.start_column = start_column
@@ -31,6 +32,10 @@ class Holder(object):
         self.end_column = end_column
         self.filename = filename
         self.namespace = namespace
+
+        # This flag will mark that the namespace scope is only
+        # for the holder sons.
+        self.only_sons_namespace = only_sons_namespace
 
     def __str__(self):
         return '{0}<{1}.{2}-{3}.{4} [{5}]>'.format(
@@ -98,4 +103,5 @@ class Holder(object):
                       end_line=self.end_line,
                       end_column=self.end_column,
                       filename=self.filename,
-                      namespace=self.namespace)
+                      namespace=self.namespace,
+                      only_sons_namespace=self.only_sons_namespace)

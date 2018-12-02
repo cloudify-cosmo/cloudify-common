@@ -256,7 +256,8 @@ class Context(object):
             for name_holder, value_holder in parent_element.\
                     initial_value_holder.value.items():
                 current_namespace = value_holder.namespace or namespace
-                if parent_element.add_namespace_to_schema_elements:
+                if (parent_element.add_namespace_to_schema_elements and
+                        not value_holder.only_sons_namespace):
                     set_element_namespace(current_namespace, name_holder)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,
