@@ -13,8 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import constants, utils
-from dsl_parser.exceptions import DSLParsingLogicException
+import copy
+from dsl_parser import constants, utils, exceptions
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 from ..import_resolver.default_import_resolver import DefaultImportResolver
 
@@ -36,7 +36,7 @@ class ResolverWithBlueprintSupport(DefaultImportResolver):
                      self).fetch_import(import_url)
 
     def _fetch_blueprint_import(self):
-        return self.blueprint_yaml
+        return copy.deepcopy(self.blueprint_yaml)
 
 
 class TestImportedBlueprints(AbstractTestParser):
@@ -133,4 +133,52 @@ imports:
     -   blueprint:test
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 213, DSLParsingLogicException)
+            yaml, 213, exceptions.DSLParsingLogicException)
+
+
+class TestNamespacesMapping(AbstractTestParser):
+    blueprint_imported = """
+namespaces_mapping:
+  ns: blueprint
+"""
+
+    def test_merging_namespaces_mapping(self):
+        resolver = ResolverWithBlueprintSupport(self.blueprint_imported)
+        layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - namespace->blueprint:test
+"""
+        layer1_import_path = self.make_yaml_file(layer1)
+        layer2 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - {0}->{1}
+  - namespace->blueprint:test
+""".format('test1', layer1_import_path)
+        layer2_import_path = self.make_yaml_file(layer2)
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - {0}->{1}
+  - {2}->{1}
+""".format('test', layer2_import_path, 'other_test')
+        parsed_yaml = self.parse(main_yaml, resolver=resolver)
+        namespaces_mapping = parsed_yaml[constants.NAMESPACES_MAPPING]
+        self.assertItemsEqual({'other_test->test1->namespace': 'test',
+                               'test->test1->namespace': 'test',
+                               'other_test->test1->namespace->ns': 'blueprint',
+                               'test->test1->namespace->ns': 'blueprint',
+                               'other_test->namespace->ns': 'blueprint',
+                               'test->namespace': 'blueprint',
+                               'other_test->namespace': 'blueprint',
+                               'test->namespace->ns': 'blueprint'
+                               },
+                              namespaces_mapping)
+
+    def test_blueprints_imports_with_the_same_import(self):
+        resolver = ResolverWithBlueprintSupport(self.blueprint_imported)
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   same->blueprint:test
+    -   same->blueprint:other
+"""
+        self.assertRaises(exceptions.DSLParsingLogicException,
+                          self.parse, yaml, resolver=resolver)

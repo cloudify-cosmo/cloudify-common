@@ -85,7 +85,8 @@ class Blueprint(Element):
         'outputs': misc.Outputs,
         'data_types': data_types.DataTypes,
         'capabilities': misc.Capabilities,
-        'imported_blueprints': misc.ImportedBlueprints
+        'imported_blueprints': misc.ImportedBlueprints,
+        'namespaces_mapping': misc.NamespacesMapping
     }
 
     requires = {
@@ -121,5 +122,7 @@ class Blueprint(Element):
                 _version.ToscaDefinitionsVersion).value,
             constants.CAPABILITIES: self.child(misc.Capabilities).value,
             constants.IMPORTED_BLUEPRINTS:
-                self.child(misc.ImportedBlueprints).value
+                self.child(misc.ImportedBlueprints).value,
+            constants.NAMESPACES_MAPPING:
+                self.child(misc.NamespacesMapping).value
         })
