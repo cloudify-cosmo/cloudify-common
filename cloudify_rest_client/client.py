@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 GigaSpaces Technologies Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ from cloudify_rest_client.cluster import ClusterClient
 from cloudify_rest_client.ldap import LdapClient
 from cloudify_rest_client.secrets import SecretsClient
 from cloudify_rest_client.agents import AgentsClient
+from cloudify_rest_client.summary import SummaryClient
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -420,3 +421,7 @@ class CloudifyClient(object):
         self.ldap = LdapClient(self._client)
         self.secrets = SecretsClient(self._client)
         self.agents = AgentsClient(self._client)
+        self.summary_nodes = SummaryClient(self._client, 'nodes')
+        self.summary_node_instances = SummaryClient(self._client,
+                                                    'node_instances')
+        self.summary_deployments = SummaryClient(self._client, 'deployments')
