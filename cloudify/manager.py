@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,9 @@ from cloudify_rest_client.constants import VisibilityState
 
 from cloudify import constants, utils
 from cloudify.state import ctx, workflow_ctx, NotInContext
-from cloudify.exceptions import HttpException, NonRecoverableError
+from cloudify.exceptions import (HttpException,
+                                 NonRecoverableError,
+                                 ResourceNotFoundException)
 from cloudify.cluster import CloudifyClusterClient, get_cluster_settings
 
 
@@ -211,11 +213,40 @@ def download_resource(blueprint_id,
     :param target_path: optional target path for the resource
     :returns: path to the downloaded resource
     """
+    if _is_resource_origin_from_imported_blueprint(resource_path):
+        namespace, resource_path = _extract_resource_parts(resource_path)
+
+        client = get_rest_client()
+        namespaces_mapping = client.blueprints.get(
+            blueprint_id, ['plan'])["namespaces_mapping"]
+        if namespace not in namespaces_mapping:
+            logger.error("Resource path {} contained blueprint reference "
+                         "that can be resolved.".format(resource_path))
+            raise ResourceNotFoundException(resource_path)
+
+        blueprint_id = namespaces_mapping[namespace]
+
     resource = get_resource(blueprint_id,
                             deployment_id,
                             tenant_name,
                             resource_path)
     return _save_resource(logger, resource, resource_path, target_path)
+
+
+def _is_resource_origin_from_imported_blueprint(resource_path):
+    return constants.NAMESPACE_BLUEPRINT_IMPORT_DELIMITER in resource_path
+
+
+def _extract_resource_parts(resource_path):
+    """
+    A resource path can be with namespace, which will create the following
+    structure: <namespace><namespace-delimiter><the actual path>. So this
+    function will separate to the individual components.
+    """
+    namespace, _, resource_path =\
+        resource_path.rpartition(
+            constants.NAMESPACE_BLUEPRINT_IMPORT_DELIMITER)
+    return namespace, resource_path
 
 
 def get_resource_from_manager(resource_path, base_url=None):

@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,3 +87,5 @@ SUPPORTED_ARCHIVE_TYPES = ('zip', 'tar', 'tar.gz', 'tar.bz2')
 NEW_TOKEN_FILE_NAME = 'new_token'
 
 CLOUDIFY_API_AUTH_TOKEN_HEADER = 'API-Authentication-Token'
+
+NAMESPACE_BLUEPRINT_IMPORT_DELIMITER = '->'

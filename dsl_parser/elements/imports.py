@@ -202,10 +202,20 @@ def _insert_imported_list(blueprint_holder, blueprints_imported):
         value_holder.value.append(Holder(import_url))
 
 
+def _insert_namespaces_mapping(blueprint_holder, mapping):
+    key_holder = Holder(constants.NAMESPACES_MAPPING)
+    blueprint_holder.value[key_holder] = Holder({})
+    value_holder = blueprint_holder.value[key_holder]
+
+    for namespace, blueprint_id in mapping.items():
+        namespace_holder = Holder(namespace)
+        value_holder.value[namespace_holder] = Holder(blueprint_id)
+
+
 def _combine_imports(parsed_dsl_holder, dsl_location,
                      resources_base_path, version, resolver,
                      validate_version):
-    ordered_imports, blueprint_imports = _build_ordered_imports(
+    ordered_imports, blueprint_imports, mapping = _build_ordered_imports(
         parsed_dsl_holder,
         dsl_location,
         resources_base_path,
@@ -215,6 +225,7 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
         _version.VERSION)
     holder_result.value = {}
     _insert_imported_list(holder_result, blueprint_imports)
+    _insert_namespaces_mapping(holder_result, mapping)
     for imported in ordered_imports:
         import_url, namespace = imported['import']
         parsed_imported_dsl_holder = imported['parsed']
@@ -315,6 +326,19 @@ def _build_ordered_imports(parsed_dsl_holder,
                 'Invalid {0}: blueprint import cannot'
                 'be used without namespace'.format(import_url))
 
+    def add_namespace_to_mapping(blueprint_id, namespace):
+        """
+        The mapping is saved only for namespaced blueprint import
+        in order of supporting imported scripts, so one-to-one
+        mapping (blueprint-namespace) is a must for to be able to
+        pull the scripts.
+        """
+        if namespaces_mapping.get(namespace, None):
+            raise exceptions.DSLParsingLogicException(
+                214, "Import failed {0}: can not use the same"
+                     " namespace for importing blueprints".format(namespace))
+        namespaces_mapping[namespace] = blueprint_id
+
     def build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                         _current_import,
                                         context_namespace=None):
@@ -348,6 +372,7 @@ def _build_ordered_imports(parsed_dsl_holder,
                 validate_blueprint_import_namespace(namespace, import_url)
                 blueprint_id = utils.remove_blueprint_import_prefix(import_url)
                 blueprint_imports.add(blueprint_id)
+                add_namespace_to_mapping(blueprint_id, namespace)
 
             import_key = resolve_import_graph_key(import_url, namespace)
             import_context = (location(_current_import), context_namespace)
@@ -388,9 +413,12 @@ def _build_ordered_imports(parsed_dsl_holder,
 
     imports_graph = ImportsGraph()
     blueprint_imports = set()
+    namespaces_mapping = {}
+
     imports_graph.add(location(dsl_location), parsed_dsl_holder)
     build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
-    return imports_graph.topological_sort(), blueprint_imports
+    sorted_imports_graph = imports_graph.topological_sort()
+    return sorted_imports_graph, blueprint_imports, namespaces_mapping
 
 
 def _validate_version(dsl_version,
@@ -434,6 +462,13 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
         elif key_holder.value == constants.IMPORTED_BLUEPRINTS:
             _, to_dict = combined_parsed_dsl_holder.get_item(key_holder.value)
             _merge_lists_with_no_duplicates(value_holder, to_dict)
+        elif key_holder.value == constants.NAMESPACES_MAPPING:
+            _, to_dict = combined_parsed_dsl_holder.get_item(key_holder.value)
+            _merge_into_dict_or_throw_on_duplicate(
+                from_dict_holder=value_holder,
+                to_dict_holder=to_dict,
+                key_name=key_holder.value,
+                namespace=namespace)
         elif key_holder.value not in combined_parsed_dsl_holder:
             if isinstance(value_holder.value, dict) and namespace:
                 # Propagate namespace down

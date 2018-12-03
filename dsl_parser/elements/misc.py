@@ -123,3 +123,17 @@ class ImportedBlueprints(Element):
     """
 
     schema = List(type=Imported)
+
+
+class NamespaceMapping(Element):
+
+    schema = Leaf(type=basestring)
+    add_namespace_to_schema_elements = False
+
+
+class NamespacesMapping(DictElement):
+    """
+    An internal DSL element for mapping all the used blueprints import
+    namespaces.
+    """
+    schema = Dict(type=NamespaceMapping)
