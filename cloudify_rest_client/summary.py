@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,3 +31,10 @@ class SummaryClient(object):
             params=params,
         )
         return ListResponse(response['items'], response['metadata'])
+
+
+class SummariesClient(object):
+    def __init__(self, api):
+        self.nodes = SummaryClient(api, 'nodes')
+        self.node_instances = SummaryClient(api, 'node_instances')
+        self.deployments = SummaryClient(api, 'deployments')

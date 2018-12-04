@@ -45,7 +45,7 @@ from cloudify_rest_client.cluster import ClusterClient
 from cloudify_rest_client.ldap import LdapClient
 from cloudify_rest_client.secrets import SecretsClient
 from cloudify_rest_client.agents import AgentsClient
-from cloudify_rest_client.summary import SummaryClient
+from cloudify_rest_client.summary import SummariesClient
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -421,7 +421,4 @@ class CloudifyClient(object):
         self.ldap = LdapClient(self._client)
         self.secrets = SecretsClient(self._client)
         self.agents = AgentsClient(self._client)
-        self.summary_nodes = SummaryClient(self._client, 'nodes')
-        self.summary_node_instances = SummaryClient(self._client,
-                                                    'node_instances')
-        self.summary_deployments = SummaryClient(self._client, 'deployments')
+        self.summary = SummariesClient(self._client)
