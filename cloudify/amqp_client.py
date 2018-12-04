@@ -68,7 +68,8 @@ class AMQPParams(object):
                  amqp_vhost=None,
                  ssl_enabled=None,
                  ssl_cert_path=None,
-                 socket_timeout=3):
+                 socket_timeout=3,
+                 heartbeat_interval=HEARTBEAT_INTERVAL):
         super(AMQPParams, self).__init__()
         username = amqp_user or broker_config.broker_username
         password = amqp_pass or broker_config.broker_password
@@ -93,7 +94,7 @@ class AMQPParams(object):
             'credentials': credentials,
             'ssl': ssl_enabled or broker_config.broker_ssl_enabled,
             'ssl_options': broker_ssl_options,
-            'heartbeat': HEARTBEAT_INTERVAL,
+            'heartbeat': heartbeat_interval,
             'socket_timeout': socket_timeout
         }
 
