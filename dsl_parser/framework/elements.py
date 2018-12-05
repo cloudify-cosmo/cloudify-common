@@ -57,12 +57,19 @@ class Element(object):
 
     add_namespace_to_schema_elements = True
     """
-    This flag should be overwritten to False in the following situations:
-    - A leaf element of primitive types.
+    When True this flag is for marking DSL element's schema fields
+    will get the namespace prefix, when they are imported with
+    a namespace context. So those elements will not collide if
+    imported several of times with different namespaces.
+
+    This flag should be overwritten to False for the following elements:
+    - A leaf element of primitive types (int, float, string and etc),
+      this case is not definite so consider each case to it self.
     - An element of type "Type" (like NodeType, DataType and etc).
     - An element which is contained fully in the context of father element,
-      and cannot be referenced from outside that context.
-    NOTICE: You need to add unit tests also to the element and to the
+      and cannot be referenced from outside that context. like: node type
+      properties.
+    NOTICE: You need to add unit tests both to the element and to the
     namespaced scenario in both cases.
     """
 

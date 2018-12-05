@@ -18,8 +18,14 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestNamespacedCapabilities(AbstractTestParser):
+    default_capability_name = 'port'
+    default_capability_description = 'the port'
+    default_capability_value = 8080
+
     @staticmethod
-    def _basic_capability(description, value, name='port'):
+    def _basic_capability(description=default_capability_description,
+                          value=default_capability_value,
+                          name=default_capability_name):
         return """
 capabilities:
     {2}:
@@ -32,7 +38,7 @@ capabilities:
         self.assertEqual(capability['value'], value)
 
     def test_capabilities_definition(self):
-        imported_yaml = self._basic_capability('the port', 8080)
+        imported_yaml = self._basic_capability()
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -44,12 +50,12 @@ imports:
         self.assertEqual(1, len(capabilities))
         self._assert_capability(
             capability=capabilities['test->port'],
-            description='the port',
-            value=8080
+            description=self.default_capability_description,
+            value=self.default_capability_value
         )
 
     def test_basic_namespace_multi_import(self):
-        imported_yaml = self._basic_capability('the port', 8080)
+        imported_yaml = self._basic_capability()
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -63,13 +69,13 @@ imports:
         self.assertEqual(2, len(capabilities))
         self._assert_capability(
             capability=capabilities['test->port'],
-            description='the port',
-            value=8080
+            description=self.default_capability_description,
+            value=self.default_capability_value
         )
         self._assert_capability(
             capability=capabilities['other_test->port'],
-            description='the port',
-            value=8080
+            description=self.default_capability_description,
+            value=self.default_capability_value
         )
 
     def test_capability_collision(self):

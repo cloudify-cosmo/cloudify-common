@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from dsl_parser.constants import NODES
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
@@ -80,10 +81,10 @@ node_templates:
 """.format('test', import_file_name, 'other_test')
 
         parsed_yaml = self.parse_1_3(main_yaml)
-        node_properties = parsed_yaml['nodes'][0]['properties']
+        node_properties = parsed_yaml[NODES][0]['properties']
         self.assertEqual(
             node_properties['prop1']['test_prop']['prop'], 'value')
-        other_node_properties = parsed_yaml['nodes'][1]['properties']
+        other_node_properties = parsed_yaml[NODES][1]['properties']
         self.assertEqual(
             other_node_properties['prop1']['test_prop']['prop'], 'value')
 
@@ -115,7 +116,7 @@ node_templates:
     node:
         type: type
 """.format('test', import_file_name)
-        properties = self.parse_1_3(main_yaml)['nodes'][0]['properties']
+        properties = self.parse_1_3(main_yaml)[NODES][0]['properties']
         self.assertEqual(properties['prop1']['prop1'], 'value1')
         self.assertEqual(properties['prop2']['prop1'], 'value2')
 
@@ -159,7 +160,7 @@ node_templates:
     node:
         type: type
 """.format('test', layer2_import_path)
-        properties = self.parse_1_3(main_yaml)['nodes'][0]['properties']
+        properties = self.parse_1_3(main_yaml)[NODES][0]['properties']
         self.assertEqual(properties['prop1']['prop1'], 'value2')
         self.assertEqual(properties['prop2']['prop1'], 'value3')
         self.assertEqual(properties['prop3']['prop1'], 'value1')
@@ -192,7 +193,7 @@ node_templates:
     node:
         type: type
 """.format('test', import_file_name)
-        properties = self.parse_1_3(main_yaml)['nodes'][0]['properties']
+        properties = self.parse_1_3(main_yaml)[NODES][0]['properties']
         self.assertEqual(properties['prop1']['prop1'], 'value1')
         self.assertEqual(properties['prop2']['prop2'], 'value2')
 
@@ -240,7 +241,7 @@ data_types:
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
-        vm = parsed['nodes'][0]
+        vm = parsed[NODES][0]
         self.assertEqual(
             'ubuntu',
             vm['properties']['agent']['connection']['username'])

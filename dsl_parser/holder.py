@@ -24,7 +24,7 @@ class Holder(object):
                  end_column=None,
                  filename=None,
                  namespace=None,
-                 only_sons_namespace=False):
+                 only_children_namespace=False):
         self.value = value
         self.start_line = start_line
         self.start_column = start_column
@@ -34,8 +34,8 @@ class Holder(object):
         self.namespace = namespace
 
         # This flag will mark that the namespace scope is only
-        # for the holder sons.
-        self.only_sons_namespace = only_sons_namespace
+        # applied on the holder (/DSL element) children.
+        self.only_children_namespace = only_children_namespace
 
     def __str__(self):
         return '{0}<{1}.{2}-{3}.{4} [{5}]>'.format(
@@ -104,4 +104,4 @@ class Holder(object):
                       end_column=self.end_column,
                       filename=self.filename,
                       namespace=self.namespace,
-                      only_sons_namespace=self.only_sons_namespace)
+                      only_children_namespace=self.only_children_namespace)

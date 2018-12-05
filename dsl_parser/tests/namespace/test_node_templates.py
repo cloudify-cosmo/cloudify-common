@@ -32,8 +32,8 @@ imports:
     -   {0}->{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
-        self.assertEquals(1, len(parsed_yaml['nodes']))
-        node = parsed_yaml['nodes'][0]
+        self.assertEquals(1, len(parsed_yaml[constants.NODES]))
+        node = parsed_yaml[constants.NODES][0]
         self.assertEquals('test->test_node', node['id'])
         self.assertEquals('test->test_type', node['type'])
         self.assertEquals('val', node[constants.PROPERTIES]['key'])
@@ -90,7 +90,8 @@ imports:
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')
         result = self.parse_from_path(main_yaml_path)
-        node = [n for n in result['nodes'] if n['name'] == 'test->node1'][0]
+        node = [n for n in result[constants.NODES]
+                if n['name'] == 'test->node1'][0]
         relationship = node['relationships'][0]
 
         operation = node['operations']['test.op']

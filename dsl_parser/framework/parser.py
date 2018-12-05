@@ -202,11 +202,11 @@ class Context(object):
             """
             This will traverse the element in search of the key,
             and will run the set namespace function on the key's
-            values.
+            values only for the relevant intrinsic functions.
             """
             if not isinstance(element, dict) or not namespace:
                 # There is no need to search for intrinsic functions, if
-                # there is no namespace or if the element will not contain
+                # there is no namespace or if the element can not contain
                 # them.
                 return element
             for k, v in element.items():
@@ -257,7 +257,7 @@ class Context(object):
                     initial_value_holder.value.items():
                 current_namespace = value_holder.namespace or namespace
                 if (parent_element.add_namespace_to_schema_elements and
-                        not value_holder.only_sons_namespace):
+                        not value_holder.only_children_namespace):
                     set_element_namespace(current_namespace, name_holder)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,

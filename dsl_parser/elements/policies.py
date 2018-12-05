@@ -300,7 +300,7 @@ class PolicyInstanceTargets(Element):
         """
         This is a patch due to a problem in the infrastructure,
         the internal targets values do not get a namespace while they should.
-        So in order to allow namespacing, this patch enforce namespace
+        So in order to allow namespacing, this patch enforces namespace
         assignment.
         """
         if self.namespace:

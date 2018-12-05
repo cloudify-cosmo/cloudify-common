@@ -178,7 +178,7 @@ def _extract_import_parts(import_url,
     :param resources_base_path: In case of a relative file path, this
                                 is the base path.
     :param current_resource_context: Current import statement,
-    :return: Will return a breakdown down of the URL to
+    :return: Will return a breakdown of the URL to
             (namespace, import_url). If the import is not
             namespaced, the returned namespace will be
             None.
@@ -259,12 +259,15 @@ def _build_ordered_imports(parsed_dsl_holder,
                                                           resources_base_path,
                                                           _current_import)
             validate_namespace(namespace)
-            if context_namespace and namespace:
-                namespace = utils.generate_namespaced_value(context_namespace,
-                                                            namespace)
-            elif context_namespace and not namespace:
-                # In case, a namespace was added earlier in the import chain
-                namespace = context_namespace
+            if context_namespace:
+                if namespace:
+                    namespace = utils.generate_namespaced_value(
+                        context_namespace,
+                        namespace)
+                else:
+                    # In case a namespace was added earlier in the import
+                    # chain.
+                    namespace = context_namespace
             if import_url is None:
                 ex = exceptions.DSLParsingLogicException(
                     13, "Import failed: no suitable location found for "
@@ -332,7 +335,7 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
         elif key_holder.value not in combined_parsed_dsl_holder:
             if isinstance(value_holder.value, dict) and namespace:
                 # Propagate namespace down
-                for _, v in value_holder.value.items():
+                for v in value_holder.value.values():
                     v.namespace = namespace
             combined_parsed_dsl_holder.value[key_holder] = value_holder
         elif key_holder.value in DONT_OVERWRITE:
@@ -357,13 +360,13 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
 
 def _merge_namespaced_elements(key_holder, namespace, value_holder):
     if isinstance(value_holder.value, dict):
-        for _, v in value_holder.value.items():
+        for v in value_holder.value.values():
             v.namespace = namespace
     elif isinstance(value_holder.value, basestring):
         # In case of primitive type we a need a different way to mark
         # the sub elements with the namespace, but leaving the option
         # for the DSL element to not receive the namespace.
-        value_holder.only_sons_namespace = True
+        value_holder.only_children_namespace = True
         value_holder.namespace = namespace
     key_holder.value = utils.generate_namespaced_value(
         namespace, key_holder.value)

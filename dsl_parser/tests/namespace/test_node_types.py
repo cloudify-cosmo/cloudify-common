@@ -17,7 +17,7 @@ from dsl_parser import constants
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
-class TestGeneralNodeTypeNamespaceImport(AbstractTestParser):
+class TestNodeTypeNamespaceImport(AbstractTestParser):
     base_node_type = """
 node_types:
   test_type:

@@ -21,8 +21,7 @@ from dsl_parser.constants import (NODES,
                                   REMOVED_AND_RELATED,
                                   EXTENDED_AND_RELATED,
                                   REDUCED_AND_RELATED,
-                                  RELATIONSHIPS
-                                  )
+                                  RELATIONSHIPS)
 
 
 class TestNamespacedDeploymentUpdate(BaseDeploymentUpdateTest):
