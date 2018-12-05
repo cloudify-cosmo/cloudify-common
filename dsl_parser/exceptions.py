@@ -19,22 +19,29 @@ class MissingRequiredInputError(Exception):
     An error raised when a deployment is created and a required input
     was not specified on its creation.
     """
-    def __init__(self, *args, **kwargs):
-        super(MissingRequiredInputError, self).__init__(*args, **kwargs)
+    pass
 
 
 class UnknownInputError(Exception):
     """
     An error raised when an unknown input is specified on deployment creation.
     """
-    def __init__(self, *args, **kwargs):
-        super(UnknownInputError, self).__init__(*args, **kwargs)
+    pass
+
+
+class InputEvaluationError(Exception):
+    """
+    An error raised when the provided input cannot be evaluated (e.g. when
+    it's missing an attribute that has been required)
+    """
+    pass
 
 
 class FunctionEvaluationError(Exception):
     """
     An error raised when an intrinsic function was unable to get evaluated.
     """
+
     def __init__(self, func_name, message=None):
         msg = 'Unable to evaluate {0} function'.format(func_name)
         if message:
@@ -47,8 +54,7 @@ class UnknownSecretError(Exception):
     An error raised when a deployment is created and a required secret
     does not exist.
     """
-    def __init__(self, *args, **kwargs):
-        super(UnknownSecretError, self).__init__(*args, **kwargs)
+    pass
 
 
 class UnsupportedGetSecretError(Exception):
@@ -56,8 +62,7 @@ class UnsupportedGetSecretError(Exception):
     An error raised when a deployment is created and the unsupported get_secret
     intrinsic function appears in the blueprint
     """
-    def __init__(self, *args, **kwargs):
-        super(UnsupportedGetSecretError, self).__init__(*args, **kwargs)
+    pass
 
 
 class DSLParsingException(Exception):

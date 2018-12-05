@@ -16,6 +16,7 @@
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.exceptions import (MissingRequiredInputError,
                                    UnknownInputError,
+                                   InputEvaluationError,
                                    DSLParsingLogicException,
                                    DSLParsingInputTypeException)
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
@@ -72,6 +73,7 @@ node_templates:
             port: { get_input: port }
 """
         self.assertRaises(UnknownInputError, self.parse, yaml)
+
         yaml = """
 node_types:
     webserver_type:
@@ -84,6 +86,20 @@ node_templates:
             port: { get_input: {} }
 """
         self.assertRaises(ValueError, self.parse, yaml)
+
+        yaml = """
+node_types:
+    webserver_type:
+        properties:
+            port: {}
+node_templates:
+    webserver:
+        type: webserver_type
+        properties:
+            port: { get_input: [] }
+"""
+        self.assertRaises(ValueError, self.parse, yaml)
+
         yaml = """
 inputs:
     port: {}
@@ -99,11 +115,9 @@ node_templates:
 """
         self.parse(yaml)
 
-    def test_inputs_provided_to_plan(self):
         yaml = """
 inputs:
-    port:
-        default: 9000
+    port: {}
 node_types:
     webserver_type:
         properties:
@@ -112,29 +126,56 @@ node_templates:
     webserver:
         type: webserver_type
         properties:
+            port: { get_input: [port] }
+"""
+        self.parse(yaml)
+
+    def test_inputs_provided_to_plan(self):
+        yaml = """
+inputs:
+    port:
+        default: 9000
+    port2:
+        default: [{'a': [9000]}]
+node_types:
+    webserver_type:
+        properties:
+            port: {}
+            port2: {}
+node_templates:
+    webserver:
+        type: webserver_type
+        properties:
             port: { get_input: port }
+            port2: { get_input: [port2, 0, 'a', 0] }
 """
         parsed = prepare_deployment_plan(self.parse(yaml),
-                                         inputs={'port': 8000})
+                                         inputs={'port': 8000,
+                                                 'port2': [{'a': [8000]}]})
         self.assertEqual(8000,
                          parsed['nodes'][0]['properties']['port'])
+        self.assertEqual(8000,
+                         parsed['nodes'][0]['properties']['port2'])
 
     def test_missing_input(self):
         yaml = """
 inputs:
     port: {}
     name_i: {}
+    name_j: {}
 node_types:
     webserver_type:
         properties:
             port: {}
             name: {}
+            name2: {}
 node_templates:
     webserver:
         type: webserver_type
         properties:
             port: { get_input: port }
             name: { get_input: name_i }
+            name2: { get_input: [name_j, attr1, 0] }
 """
         e = self.assertRaises(
             MissingRequiredInputError,
@@ -145,6 +186,8 @@ node_templates:
 
         msg = str(e).split('-')[0]  # get first part of message
         self.assertTrue('name_i' in msg)
+        self.assertTrue('name_j' in msg)
+        self.assertFalse('port' in msg)
 
         e = self.assertRaises(
             MissingRequiredInputError,
@@ -154,6 +197,7 @@ node_templates:
         )
 
         msg = str(e).split('-')[0]  # get first part of message
+        self.assertTrue('name_j' in msg)
         self.assertTrue('name_i' in msg)
         self.assertTrue('port' in msg)
 
@@ -162,17 +206,20 @@ node_templates:
 inputs:
     port: {}
     name_i: {}
+    name_j: {}
 node_types:
     webserver_type:
         properties:
             port: {}
             name: {}
+            name2: {}
 node_templates:
     webserver:
         type: webserver_type
         properties:
             port: { get_input: port }
             name: { get_input: name_i }
+            name2: { get_input: [name_j, attr1, 0] }
 """
 
         u = u'M\xf6tley'
@@ -190,44 +237,76 @@ node_templates:
             DSLParsingInputTypeException,
             prepare_deployment_plan,
             self.parse(yaml),
+            inputs={'port': '8080', 'name_i': 'a', 'name_j': u}
+        )
+        msg = str(e).split('-')[0]  # get first part of message
+        self.assertTrue('name_j' in msg)
+
+        e = self.assertRaises(
+            DSLParsingInputTypeException,
+            prepare_deployment_plan,
+            self.parse(yaml),
             inputs={'port': '8080', 'name_i': {'a': [{'a': [u]}]}}
         )
         msg = str(e).split('-')[0]  # get first part of message
         self.assertTrue('name_i' in msg)
+
+        e = self.assertRaises(
+            DSLParsingInputTypeException,
+            prepare_deployment_plan,
+            self.parse(yaml),
+            inputs={'port': '8080',
+                    'name_i': 'a',
+                    'name_j': {'a': [{'a': [u]}]}}
+        )
+        msg = str(e).split('-')[0]  # get first part of message
+        self.assertTrue('name_j' in msg)
 
     def test_inputs_default_value(self):
         yaml = """
 inputs:
     port:
         default: 8080
+    port2:
+        default:
+            a:
+                [8090]
 node_types:
     webserver_type:
         properties:
             port: {}
+            port2: {}
 node_templates:
     webserver:
         type: webserver_type
         properties:
             port: { get_input: port }
+            port2: { get_input: [port2, a, 0] }
 """
         parsed = prepare_deployment_plan(self.parse(yaml))
         self.assertEqual(8080,
                          parsed['nodes'][0]['properties']['port'])
+        self.assertEqual(8090,
+                         parsed['nodes'][0]['properties']['port2'])
 
     def test_unknown_input_provided(self):
         yaml = """
 inputs:
     port:
         default: 8080
+    port2:
+        default: [8090]
 node_types:
     webserver_type:
         properties:
             port: {}
+            port2: {}
 node_templates:
     webserver:
         type: webserver_type
         properties:
             port: { get_input: port }
+            port2: { get_input: [port2, 0] }
 """
 
         self.assertRaisesRegex(
@@ -254,6 +333,9 @@ node_templates:
 inputs:
     port:
         default: 8080
+    port2:
+        default:
+            a: [8090]
 node_types:
     webserver_type:
         properties:
@@ -264,14 +346,20 @@ node_templates:
         properties:
             server:
                 port: { get_input: port }
+                port2: { get_input: [port2, a, 0] }
 """
         parsed = prepare_deployment_plan(self.parse(yaml))
         self.assertEqual(8080,
                          parsed['nodes'][0]['properties']['server']['port'])
+        self.assertEqual(8090,
+                         parsed['nodes'][0]['properties']['server']['port2'])
         yaml = """
 inputs:
     port:
         default: 8080
+    port2:
+        default:
+            a: [8090]
 node_types:
     webserver_type:
         properties:
@@ -282,7 +370,29 @@ node_templates:
         properties:
             server:
                 port: { get_input: port }
+                port2: { get_input: [port2, a, 0] }
                 some_prop: { get_input: unknown }
+"""
+        self.assertRaises(UnknownInputError, self.parse, yaml)
+        yaml = """
+inputs:
+    port:
+        default: 8080
+    port2:
+        default:
+            a: [8090]
+node_types:
+    webserver_type:
+        properties:
+            server: {}
+node_templates:
+    webserver:
+        type: webserver_type
+        properties:
+            server:
+                port: { get_input: port }
+                port2: { get_input: [unknown, a, 0] }
+                some_prop: { get_input: port }
 """
         self.assertRaises(UnknownInputError, self.parse, yaml)
 
@@ -291,6 +401,9 @@ node_templates:
 inputs:
     port:
         default: 8080
+    port2:
+        default:
+            a: [8090]
 node_types:
     webserver_type:
         properties:
@@ -302,14 +415,20 @@ node_templates:
             server:
                 - item1
                 - port: { get_input: port }
+                - port2: { get_input: [port2, a, 0] }
 """
         parsed = prepare_deployment_plan(self.parse(yaml))
         self.assertEqual(8080,
                          parsed['nodes'][0]['properties']['server'][1]['port'])
+        self.assertEqual(
+            8090, parsed['nodes'][0]['properties']['server'][2]['port2'])
         yaml = """
 inputs:
     port:
         default: 8080
+    port2:
+        default:
+            a: [8090]
 node_types:
     webserver_type:
         properties:
@@ -321,6 +440,28 @@ node_templates:
             server:
                 - item1
                 - port: { get_input: port1122 }
+                - port2: { get_input: [port2, a, 0] }
+"""
+        self.assertRaises(UnknownInputError, self.parse, yaml)
+        yaml = """
+inputs:
+    port:
+        default: 8080
+    port2:
+        default:
+            a: [8090]
+node_types:
+    webserver_type:
+        properties:
+            server: {}
+node_templates:
+    webserver:
+        type: webserver_type
+        properties:
+            server:
+                - item1
+                - port: { get_input: port }
+                - port2: { get_input: [unknown, a, 0] }
 """
         self.assertRaises(UnknownInputError, self.parse, yaml)
 
@@ -408,6 +549,91 @@ node_templates:
             target_ops['target_interface.op2']['inputs']['target_port'])
         self.assertEqual(8000, target_ops['op2']['inputs']['target_port'])
 
+    def test_list_input_in_interface(self):
+        yaml = """
+plugins:
+    plugin:
+        executor: central_deployment_agent
+        source: dummy
+inputs:
+    port:
+        default:
+            a: [8080]
+node_types:
+    webserver_type: {}
+relationships:
+    cloudify.relationships.contained_in: {}
+    rel:
+        derived_from: cloudify.relationships.contained_in
+        source_interfaces:
+            source_interface:
+                op1:
+                    implementation: plugin.operation
+                    inputs:
+                        source_port:
+                            default: { get_input: [port, a, 0] }
+        target_interfaces:
+            target_interface:
+                op2:
+                    implementation: plugin.operation
+                    inputs:
+                        target_port:
+                            default: { get_input: [port, a, 0] }
+node_templates:
+    ws1:
+        type: webserver_type
+    webserver:
+        type: webserver_type
+        interfaces:
+            lifecycle:
+                configure:
+                    implementation: plugin.operation
+                    inputs:
+                        port: { get_input: [port, a, 0] }
+        relationships:
+            -   type: rel
+                target: ws1
+"""
+        prepared = prepare_deployment_plan(self.parse(yaml))
+
+        node_template = \
+            [x for x in prepared['nodes'] if x['name'] == 'webserver'][0]
+        op = node_template['operations']['lifecycle.configure']
+        self.assertEqual(8080, op['inputs']['port'])
+        op = node_template['operations']['configure']
+        self.assertEqual(8080, op['inputs']['port'])
+        # relationship interfaces
+        source_ops = node_template['relationships'][0]['source_operations']
+        self.assertEqual(
+            8080,
+            source_ops['source_interface.op1']['inputs']['source_port'])
+        self.assertEqual(8080, source_ops['op1']['inputs']['source_port'])
+        target_ops = node_template['relationships'][0]['target_operations']
+        self.assertEqual(
+            8080,
+            target_ops['target_interface.op2']['inputs']['target_port'])
+        self.assertEqual(8080, target_ops['op2']['inputs']['target_port'])
+
+        prepared = prepare_deployment_plan(self.parse(yaml),
+                                           inputs={'port': {'a': [8000]}})
+        node_template = \
+            [x for x in prepared['nodes'] if x['name'] == 'webserver'][0]
+        op = node_template['operations']['lifecycle.configure']
+        self.assertEqual(8000, op['inputs']['port'])
+        op = node_template['operations']['configure']
+        self.assertEqual(8000, op['inputs']['port'])
+        # relationship interfaces
+        source_ops = node_template['relationships'][0]['source_operations']
+        self.assertEqual(
+            8000,
+            source_ops['source_interface.op1']['inputs']['source_port'])
+        self.assertEqual(8000, source_ops['op1']['inputs']['source_port'])
+        target_ops = node_template['relationships'][0]['target_operations']
+        self.assertEqual(
+            8000,
+            target_ops['target_interface.op2']['inputs']['target_port'])
+        self.assertEqual(8000, target_ops['op2']['inputs']['target_port'])
+
     def test_invalid_input_in_interfaces(self):
         yaml = """
 plugins:
@@ -427,12 +653,33 @@ node_templates:
                         port: { get_input: aaa }
 """
         self.assertRaises(UnknownInputError, self.parse, yaml)
+        yaml = """
+plugins:
+    plugin:
+        executor: central_deployment_agent
+        source: dummy
+node_types:
+    webserver_type: {}
+node_templates:
+    webserver:
+        type: webserver_type
+        interfaces:
+            lifecycle:
+                configure:
+                    implementation: plugin.operation
+                    inputs:
+                        port: { get_input: [aaa, 0] }
+"""
+        self.assertRaises(UnknownInputError, self.parse, yaml)
 
     def test_input_in_outputs(self):
         yaml = """
 inputs:
     port:
         default: 8080
+    port2:
+        default:
+            a: [8090]
 node_types:
     webserver_type:
         properties: {}
@@ -442,10 +689,13 @@ node_templates:
 outputs:
     a:
         value: { get_input: port }
+    b:
+        value: { get_input: [port2, a, 0] }
 """
         prepared = prepare_deployment_plan(self.parse(yaml))
         outputs = prepared.outputs
         self.assertEqual(8080, outputs['a']['value'])
+        self.assertEqual(8090, outputs['b']['value'])
 
     def test_missing_input_exception(self):
         yaml = """
@@ -495,3 +745,63 @@ plugins:
             yaml, 107, DSLParsingLogicException)
         self.assertIn('some_input', ex.message)
         self.assertIn('another_input', ex.message)
+
+    def test_invalid_index_obj_type(self):
+        yaml = """
+inputs:
+    port: {}
+node_types:
+    webserver_type:
+        properties:
+            port: {}
+node_templates:
+    webserver:
+        type: webserver_type
+        properties:
+            port: { get_input: [port, a] }
+"""
+        self.assertRaises(
+            InputEvaluationError,
+            prepare_deployment_plan,
+            self.parse(yaml),
+            inputs={'port': [8000]})
+
+    def test_index_out_of_bounds(self):
+        yaml = """
+inputs:
+    port: {}
+node_types:
+    webserver_type:
+        properties:
+            port: {}
+node_templates:
+    webserver:
+        type: webserver_type
+        properties:
+            port: { get_input: [port, 1] }
+"""
+        self.assertRaises(
+            InputEvaluationError,
+            prepare_deployment_plan,
+            self.parse(yaml),
+            inputs={'port': [8000]})
+
+    def test_input_missing_attr_raises_keyerror(self):
+        yaml = """
+inputs:
+    port: {}
+node_types:
+    webserver_type:
+        properties:
+            port: {}
+node_templates:
+    webserver:
+        type: webserver_type
+        properties:
+            port: { get_input: [port, b] }
+"""
+        self.assertRaises(
+            InputEvaluationError,
+            prepare_deployment_plan,
+            self.parse(yaml),
+            inputs={'port': {'a': 2}})
