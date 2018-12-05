@@ -260,27 +260,9 @@ node_templates:
         self._assert_parsing_fails(
             yaml,
             message="`get_capability` function argument should be a list "
-                    "with 2 elements - the deployment ID and the capability "
-                    "ID. Instead it is: ['only_one_item']"
-        )
-
-    def test_get_capability_long_list(self):
-        yaml = """
-node_types:
-    type:
-        properties:
-            property: {}
-node_templates:
-    node:
-        type: type
-        properties:
-            property: { get_capability: [ too, many, items ] }
-"""
-        self._assert_parsing_fails(
-            yaml,
-            message="`get_capability` function argument should be a list "
-                    "with 2 elements - the deployment ID and the capability "
-                    "ID. Instead it is: ['too', 'many', 'items']"
+                    "with 2 elements at least - [ deployment ID, capability "
+                    "ID [, key/index[, key/index [...]]] ]. Instead it is: "
+                    "[only_one_item]"
         )
 
     def test_get_capability_first_complex(self):
@@ -298,26 +280,6 @@ node_templates:
         self._assert_parsing_fails(
             yaml,
             message="`get_capability` function arguments can't be complex "
-                    "values; only strings/ints are accepted. Instead, the "
-                    "first value is ['list'] of type <type 'list'>"
-        )
-
-    def test_get_capability_second_complex(self):
-        yaml = """
-node_types:
-    type:
-        properties:
-            property: {}
-node_templates:
-    node:
-        type: type
-        properties:
-            property: { get_capability: [ value , { complex: value } ] }
-"""
-        self._assert_parsing_fails(
-            yaml,
-            message="`get_capability` function arguments can't be complex "
-                    "values; only strings/ints are accepted. Instead, the "
-                    "second value is {'complex': 'value'} "
-                    "of type <type 'dict'>"
+                    "values; only strings/ints/dicts are accepted. Instead, "
+                    "the item with index 0 is ['list'] of type <type 'list'>"
         )
