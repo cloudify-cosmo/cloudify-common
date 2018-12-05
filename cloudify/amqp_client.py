@@ -36,9 +36,6 @@ from cloudify.constants import EVENTS_EXCHANGE_NAME, LOGS_EXCHANGE_NAME
 
 logger = logging.getLogger(__name__)
 
-HEARTBEAT_INTERVAL = 30
-
-
 if sys.version_info >= (2, 7):
     # requires 2.7+
     def wait_for_event(evt, poll_interval=0.5):
@@ -69,10 +66,11 @@ class AMQPParams(object):
                  ssl_enabled=None,
                  ssl_cert_path=None,
                  socket_timeout=3,
-                 heartbeat_interval=HEARTBEAT_INTERVAL):
+                 heartbeat_interval=None):
         super(AMQPParams, self).__init__()
         username = amqp_user or broker_config.broker_username
         password = amqp_pass or broker_config.broker_password
+        heartbeat = heartbeat_interval or broker_config.broker_heartbeat
         credentials = pika.credentials.PlainCredentials(
             username=username,
             password=password,
@@ -94,7 +92,7 @@ class AMQPParams(object):
             'credentials': credentials,
             'ssl': ssl_enabled or broker_config.broker_ssl_enabled,
             'ssl_options': broker_ssl_options,
-            'heartbeat': heartbeat_interval,
+            'heartbeat': heartbeat,
             'socket_timeout': socket_timeout
         }
 
@@ -116,7 +114,7 @@ def _get_daemon_factory():
         from cloudify_agent.api.factory import DaemonFactory
     except ImportError:
         # Might not exist in e.g. the REST service
-        DaemonFactory = None
+        DaemonFactory = None  # NOQA
     return DaemonFactory
 
 
