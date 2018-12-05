@@ -75,4 +75,3 @@ imports:
         self.assertEqual(2, len(inputs))
         self.assertIn('test->port', inputs)
         self.assertIn('other_test->port', inputs)
-
