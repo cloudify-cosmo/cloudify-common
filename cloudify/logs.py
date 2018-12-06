@@ -30,9 +30,6 @@ from cloudify.exceptions import ClosedAMQPClientException
 EVENT_CLASS = _event.Event
 EVENT_VERBOSITY_LEVEL = _event.NO_VERBOSE
 
-DEFAULT_LOG_FILE_SIZE = 50000000
-DEFAULT_LOG_BACKUPS = 7
-
 
 def message_context_from_cloudify_context(ctx):
     """Build a message context from a CloudifyContext instance"""
@@ -390,7 +387,8 @@ def setup_subprocess_logger():
                       os.environ.get('AGENT_LOG_DIR'))
 
 
-def setup_agent_logger(log_name, log_level=None, log_dir=None):
+def setup_agent_logger(log_name, log_level=None, log_dir=None,
+                       max_bytes=None, max_history=None):
     if log_level is None:
         log_level = os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG'
 
@@ -414,11 +412,26 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None):
         if is_management_environment():
             file_handler = logging.handlers.WatchedFileHandler(log_file)
         else:
+            # These are only needed on agents, as mgmtworker
+            # has logrotate available.
+            # We explicitly assume that AGENT_LOG_MAX_BYTES and
+            # AGENT_LOG_MAX_HISTORY exist in the environment, because
+            # we don't want to deal with hard-coded defaults at this point
+            # in the code flow. We're OK to assume that these environment
+            # variables are defined in the agent's service configuration file
+            # that had been rendered during agent installation.
+            if max_bytes is None:
+                max_bytes = int(os.environ['AGENT_LOG_MAX_BYTES'])
+
+            if max_history is None:
+                max_history = int(os.environ['AGENT_LOG_MAX_HISTORY'])
+
             # On linux agents, we may have logrotate in place in the future.
             # On Windows agents, there's no reliable logrotate alternative.
+            # So, use Python's RotatingFileHandler which works OK on both.
             file_handler = logging.handlers.RotatingFileHandler(
-                filename=log_file, maxBytes=DEFAULT_LOG_FILE_SIZE,
-                backupCount=DEFAULT_LOG_BACKUPS)
+                filename=log_file, maxBytes=max_bytes,
+                backupCount=max_history)
         file_handler.setLevel(log_level)
         file_handler.setFormatter(file_formatter)
 
