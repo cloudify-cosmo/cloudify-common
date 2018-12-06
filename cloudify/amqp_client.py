@@ -431,7 +431,6 @@ class SendHandler(object):
 
     def register(self, connection):
         self._connection = connection
-
         out_channel = connection.channel()
         out_channel.exchange_declare(exchange=self.exchange,
                                      exchange_type=self.exchange_type,
@@ -454,6 +453,41 @@ class SendHandler(object):
             'body': json.dumps(message),
             'routing_key': self.routing_key
         }, wait=self.wait_for_publish)
+
+
+class ScheduledExecutionHandler(SendHandler):
+
+    def __init__(self, exchange, exchange_type, routing_key,
+                 target_exchange, target_routing_key, ttl):
+
+        super(ScheduledExecutionHandler, self).__init__(exchange,
+                                                        exchange_type,
+                                                        routing_key)
+        # The ultimate exchange and queue the message will be sent to (from
+        #  the Dead Letter queue)
+        self.target_exchange = target_exchange
+        self.target_routing_key = target_routing_key
+        self.ttl = ttl
+
+    def register(self, connection):
+        self._connection = connection
+
+        out_channel = connection.channel()
+        out_channel.exchange_declare(exchange=self.exchange,
+                                     exchange_type=self.exchange_type,
+                                     **self.exchange_settings)
+        # Declare a new temporary queue for the Dead Letter Exchange, and
+        # set the routing key of the MGMTWORKER queue
+        out_channel.queue_declare(queue=self.routing_key,
+                                  arguments={
+                                      'x-message-ttl': self.ttl,
+                                      'x-dead-letter-exchange':
+                                          self.target_exchange,
+                                      'x-dead-letter-routing-key':
+                                          self.target_routing_key
+                                  },
+                                  durable=True)
+        out_channel.queue_bind(exchange=self.exchange, queue=self.routing_key)
 
 
 class NoWaitSendHandler(SendHandler):
