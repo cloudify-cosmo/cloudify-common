@@ -75,3 +75,25 @@ imports:
         self.assertEqual(2, len(inputs))
         self.assertIn('test->port', inputs)
         self.assertIn('other_test->port', inputs)
+
+    def test_namespace_on_cloudify_basic_types(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   test->http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+"""
+        self.assertRaises(exceptions.DSLParsingLogicException,
+                          self.parse, yaml)
+
+    def test_namespace_with_cloudify_types_from_imported(self):
+        layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+"""
+        layer1_import_path = self.make_yaml_file(layer1)
+        main_yaml = """
+imports:
+  - {0}->{1}
+""".format('test', layer1_import_path)
+        parsed_yaml = self.parse_1_3(main_yaml)
+        workflows = parsed_yaml[constants.WORKFLOWS]
+        self.assertIn('install', workflows)

@@ -246,6 +246,21 @@ def _build_ordered_imports(parsed_dsl_holder,
                 'Invalid {0}: import\'s namespace cannot'
                 'contain namespace delimiter'.format(namespace))
 
+    def is_cloudify_basic_types(imported_holder):
+        _, metadata = imported_holder.get_item(constants.METADATA)
+        _, node_types = imported_holder.get_item(constants.NODE_TYPES)
+        if ((metadata and metadata.get_item('cloudify_types')[1]) or
+                (node_types and node_types.get_item('cloudify.nodes.Root')[1])):
+            return True
+        return False
+
+    def validate_import(namespace, cloudify_basic_types):
+        if cloudify_basic_types and namespace:
+            raise exceptions.DSLParsingLogicException(
+                214,
+                'Invalid import namespace {} cannot be used'
+                ' on Cloudify basic types'.format(namespace))
+
     def build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                         _current_import,
                                         context_namespace=None):
@@ -259,6 +274,7 @@ def _build_ordered_imports(parsed_dsl_holder,
                                                           resources_base_path,
                                                           _current_import)
             validate_namespace(namespace)
+            original_namespace = namespace
             if context_namespace:
                 if namespace:
                     namespace = utils.generate_namespaced_value(
@@ -275,10 +291,15 @@ def _build_ordered_imports(parsed_dsl_holder,
                 ex.failed_import = another_import
                 raise ex
 
-            if (import_url, namespace) in imports_graph:
+            import_key = (import_url, namespace)
+            import_context = (location(_current_import), context_namespace)
+            if import_key in imports_graph:
+                is_cloudify_types = imports_graph[import_key]['cloudify_types']
+                if is_cloudify_types:
+                    namespace = None
                 imports_graph.add_graph_dependency(
                     import_url,
-                    (location(_current_import), context_namespace),
+                    import_context,
                     namespace)
             else:
                 imported_dsl = resolver.fetch_import(import_url)
@@ -289,10 +310,15 @@ def _build_ordered_imports(parsed_dsl_holder,
                                       "(via '{1}')"
                                       .format(another_import, import_url),
                         filename=import_url)
+                cloudify_basic_types = is_cloudify_basic_types(imported_dsl)
+                validate_import(original_namespace, cloudify_basic_types)
+                if cloudify_basic_types:
+                    namespace = None
                 imports_graph.add(
                     import_url,
                     imported_dsl,
-                    (location(_current_import), context_namespace),
+                    cloudify_basic_types,
+                    import_context,
                     namespace)
                 build_ordered_imports_recursive(imported_dsl,
                                                 import_url,
@@ -394,11 +420,14 @@ class ImportsGraph(object):
         self._imports_tree = nx.DiGraph()
         self._imports_graph = nx.DiGraph()
 
-    def add(self, import_url, parsed, via_import=None, namespace=None):
+    def add(self, import_url, parsed, cloudify_types=False,
+            via_import=None, namespace=None):
         node_key = (import_url, namespace)
         if import_url not in self._imports_tree:
-            self._imports_tree.add_node(node_key, parsed=parsed)
-            self._imports_graph.add_node(node_key, parsed=parsed)
+            self._imports_tree.add_node(
+                node_key, parsed=parsed, cloudify_types=cloudify_types)
+            self._imports_graph.add_node(
+                node_key, parsed=parsed, cloudify_types=cloudify_types)
         if via_import:
             self._imports_tree.add_edge(node_key, via_import)
             self._imports_graph.add_edge(node_key, via_import)
@@ -415,3 +444,6 @@ class ImportsGraph(object):
 
     def __contains__(self, item):
         return item in self._imports_tree
+
+    def __getitem__(self, item):
+        return self._imports_tree.node[item]
