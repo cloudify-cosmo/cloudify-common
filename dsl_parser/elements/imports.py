@@ -394,8 +394,9 @@ def _merge_namespaced_elements(key_holder, namespace, value_holder):
         # for the DSL element to not receive the namespace.
         value_holder.only_children_namespace = True
         value_holder.namespace = namespace
-    key_holder.value = utils.generate_namespaced_value(
-        namespace, key_holder.value)
+    if not key_holder.value.startswith('cloudify.'):
+        key_holder.value = utils.generate_namespaced_value(
+            namespace, key_holder.value)
 
 
 def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
