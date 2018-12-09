@@ -228,7 +228,8 @@ class Context(object):
             return (isinstance(element._initial_value, basestring) and
                     element._initial_value not in
                     constants.USER_PRIMITIVE_TYPES and
-                    element.add_namespace_to_schema_elements)
+                    element.add_namespace_to_schema_elements and
+                    not element._initial_value.startswith('cloudify.'))
 
         def set_leaf_namespace(leaf_namespace, element):
             if not leaf_namespace:
@@ -258,7 +259,9 @@ class Context(object):
                 current_namespace = value_holder.namespace or namespace
                 if (parent_element.add_namespace_to_schema_elements and
                         not value_holder.only_children_namespace):
-                    set_element_namespace(current_namespace, name_holder)
+                    if (isinstance(name_holder.value, basestring) and not name_holder.value.startswith('cloudify.') or
+                            not isinstance(name_holder.value, basestring)):
+                        set_element_namespace(current_namespace, name_holder)
                 self._traverse_element_cls(element_cls=element_cls,
                                            name=name_holder,
                                            value=value_holder,

@@ -67,7 +67,7 @@ imports:
         policy = parsed_yaml[constants.POLICIES]['test->policy']
         self._assert_policy(policy,
                             targets=['test->group'],
-                            policy_type='test->cloudify.policies.scaling',
+                            policy_type='cloudify.policies.scaling',
                             min_instances=1,
                             max_instances=10,
                             default_instances=2)
@@ -93,7 +93,7 @@ imports:
         self._assert_policy(
             policy,
             targets=['test->middle_test->group'],
-            policy_type='test->middle_test->cloudify.policies.scaling',
+            policy_type='cloudify.policies.scaling',
             min_instances=1,
             max_instances=10,
             default_instances=2)

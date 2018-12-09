@@ -290,3 +290,40 @@ imports:
         assert_operation(source_operation['op'])
         assert_operation(source_operation['op2'], True)
         assert_operation(target_operation['op'])
+
+    def test_partial_path_to_script(self):
+        imported_yaml = self.MINIMAL_BLUEPRINT + """
+plugins:
+    script:
+        executor: central_deployment_agent
+        install: false
+node_types:
+    test_type:
+        properties:
+            key:
+                default: 'default'
+node_templates:
+  vm:
+    type: cloudify.nodes.Compute
+  http_web_server:
+    type: test_type
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: vm
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        start: scripts/start.sh
+"""
+        self.make_file_with_name(content='content',
+                                 filename='start.sh',
+                                 base_dir='scripts')
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    -   {0}->{1}
+""".format('test', import_file_name)
+        main_yaml_path = self.make_file_with_name(content=main_yaml,
+                                                  filename='blueprint.yaml')
+        parsed_yaml = self.parse_from_path(main_yaml_path)
