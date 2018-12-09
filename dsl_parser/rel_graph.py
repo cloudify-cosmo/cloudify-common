@@ -21,8 +21,7 @@ from string import ascii_lowercase, digits
 import networkx as nx
 
 from dsl_parser import (constants,
-                        exceptions,
-                        relationship_utils)
+                        exceptions)
 
 NODES = 'nodes'
 RELATIONSHIPS = 'relationships'
@@ -86,8 +85,7 @@ def build_node_graph(nodes, scaling_groups):
         node_id = node['id']
         for index, relationship in enumerate(node.get(RELATIONSHIPS, [])):
             target_id = relationship['target_id']
-            if (relationship_utils.contained_in_is_ancestor_in(
-                    relationship[constants.TYPE_HIERARCHY]) and
+            if (CONTAINED_IN_REL_TYPE in relationship['type_hierarchy'] and
                     node_id in contained_in_group):
                 group_name = contained_in_group[node_id]
                 relationship['target_id'] = group_name
@@ -582,8 +580,7 @@ def _handle_removed_instances(
 
 def _extract_contained(node, node_instance):
     for node_relationship in node.get('relationships', []):
-        if relationship_utils.contained_in_is_ancestor_in(
-                node_relationship[constants.TYPE_HIERARCHY]):
+        if CONTAINED_IN_REL_TYPE in node_relationship['type_hierarchy']:
             contained_node_relationship = node_relationship
             break
     else:
@@ -828,15 +825,9 @@ def _verify_and_get_connection_type(relationship):
     return connection_type
 
 
-def _relationship_type_hierarchy_includes_one_of(relationship,
-                                                 expected_types):
-    def search_relationship_type(type_name, types_list):
-        # Searching in the expected types while neglecting the namespace
-        # differences, because these are types.yaml basic types.
-        return any([item for item in types_list if item in type_name])
-
-    relationship_type_hierarchy = relationship[constants.TYPE_HIERARCHY]
-    return any([search_relationship_type(relationship_type, expected_types)
+def _relationship_type_hierarchy_includes_one_of(relationship, expected_types):
+    relationship_type_hierarchy = relationship['type_hierarchy']
+    return any([relationship_type in expected_types
                 for relationship_type in relationship_type_hierarchy])
 
 
@@ -991,11 +982,9 @@ class Context(object):
         for source, target, edge_data in graph.edges_iter(data=True):
             include_edge = (
                 _relationship_type_hierarchy_includes_one_of(
-                    edge_data['relationship'],
-                    build_from_types) and not
+                    edge_data['relationship'], build_from_types) and not
                 _relationship_type_hierarchy_includes_one_of(
-                    edge_data['relationship'],
-                    exclude_types))
+                    edge_data['relationship'], exclude_types))
             if include_edge:
                 relationship_base_graph.add_node(source, graph.node[source])
                 relationship_base_graph.add_node(target, graph.node[target])

@@ -19,8 +19,7 @@ import networkx as nx
 
 from dsl_parser import (exceptions,
                         utils,
-                        constants,
-                        relationship_utils)
+                        constants)
 from dsl_parser.elements import (node_templates as _node_templates,
                                  data_types,
                                  scalable,
@@ -266,13 +265,13 @@ class PolicyInstanceType(Element):
     schema = Leaf(type=basestring)
 
     def validate(self):
-        # Checking for namespaced option
-        if constants.SCALING_POLICY not in self.initial_value:
+        scaling_policy = constants.SCALING_POLICY
+        if self.initial_value != scaling_policy:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNSUPPORTED_POLICY,
                 "'{0}' policy type is not implemented. "
                 "Only '{1}' policy type is supported."
-                .format(self.initial_value, constants.SCALING_POLICY))
+                .format(self.initial_value, scaling_policy))
 
 
 class PolicyInstanceTarget(Element):
@@ -360,15 +359,9 @@ class Policies(DictElement):
         }
 
     def _create_scaling_groups(self, groups):
-        def find_scaling_policies(current_policies):
-            """
-            Finds all the scaling policies, which needs to disregard
-            there namespace because this is a basic policy type.
-            """
-            return [policy for policy in current_policies.values()
-                    if constants.SCALING_POLICY in policy['type']]
         policies = self.value
-        scaling_policies = find_scaling_policies(policies)
+        scaling_policies = [policy for policy in policies.values()
+                            if policy['type'] == constants.SCALING_POLICY]
         scaling_groups = {}
         for policy in scaling_policies:
             properties = policy['properties']
@@ -390,9 +383,7 @@ class Policies(DictElement):
         for node in node_templates:
             node_graph.add_node(node['id'])
             for rel in node.get(constants.RELATIONSHIPS, []):
-                if relationship_utils.\
-                        contained_in_is_ancestor_in(
-                         rel[constants.TYPE_HIERARCHY]):
+                if constants.CONTAINED_IN_REL_TYPE in rel['type_hierarchy']:
                     node_graph.add_edge(node['id'], rel['target_id'])
 
         self._validate_no_group_cycles(member_graph)
