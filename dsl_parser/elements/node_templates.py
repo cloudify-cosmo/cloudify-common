@@ -15,7 +15,6 @@
 
 import copy
 
-from dsl_parser.relationship_utils import contained_in_is_ancestor_in
 from dsl_parser import (exceptions,
                         utils,
                         constants)
@@ -283,7 +282,7 @@ class NodeTemplateRelationships(Element):
             relationship_type = relationship.child(
                 NodeTemplateRelationshipType).value
             type_hierarchy = relationship.value[constants.TYPE_HIERARCHY]
-            if contained_in_is_ancestor_in(type_hierarchy):
+            if constants.CONTAINED_IN_REL_TYPE in type_hierarchy:
                 contained_in_relationships.append(relationship_type)
                 contained_in_targets.append(relationship_target)
 
@@ -306,8 +305,8 @@ class NodeTemplateRelationships(Element):
     def calculate_provided(self):
         contained_in_list = [r.child(NodeTemplateRelationshipTarget).value
                              for r in self.children()
-                             if contained_in_is_ancestor_in(
-                             r.value[constants.TYPE_HIERARCHY])]
+                             if constants.CONTAINED_IN_REL_TYPE in
+                             r.value[constants.TYPE_HIERARCHY]]
         contained_in = contained_in_list[0] if contained_in_list else None
         return {
             'contained_in': contained_in

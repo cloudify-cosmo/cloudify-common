@@ -71,7 +71,7 @@ imports:
             'min_number_of_instances': 1,
             'max_number_of_instances': 1,
             'relationships': [
-                {'type': 'test->cloudify.relationships.connected_to',
+                {'type': 'cloudify.relationships.connected_to',
                  'target_id': 'test->without_rel',
                  'type_hierarchy': ['cloudify.relationships.connected_to'],
                  'properties': {
@@ -141,7 +141,7 @@ imports:
 
         plan = self.parse_multi(main_yaml)
 
-        rel_type = 'test->cloudify.relationships.connected_to'
+        rel_type = 'cloudify.relationships.connected_to'
         with_rel = [n for n in plan[NODES]
                     if n['id'] == 'test->with_rel'][0]
         without_rel = [n for n in plan[NODES]

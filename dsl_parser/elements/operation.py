@@ -295,7 +295,8 @@ def process_operation(
         # pointing to the same installed one.
         script_plugins = [plugin for plugin in plugins
                           if constants.SCRIPT_PLUGIN_NAME in plugin]
-        if not script_plugins:
+        script_plugin = script_plugins and script_plugins[0]  # They are all the same
+        if not script_plugin:
             message = "Script plugin is not defined but it is required for" \
                       " mapping '{0}' of {1} '{2}'" \
                 .format(operation_mapping,
@@ -310,10 +311,10 @@ def process_operation(
                 workflow_parameters=operation_payload)
         else:
             if not operation_executor:
-                operation_executor = plugins[script_plugins[0]]['executor']
+                operation_executor = plugins[script_plugin]['executor']
             return operation(
                 name=operation_name,
-                plugin_name=script_plugins[0],
+                plugin_name=script_plugin,
                 operation_mapping=operation_mapping,
                 operation_inputs=operation_payload,
                 executor=operation_executor,
