@@ -21,9 +21,10 @@ class SummaryClient(object):
         self.api = api
         self.summary_type = summary_type
 
-    def get(self, _target_field, **kwargs):
+    def get(self, _target_field, _sub_field=None, **kwargs):
         params = {
             '_target_field': _target_field,
+            '_sub_field': _sub_field,
         }
         params.update(kwargs)
         response = self.api.get(
@@ -35,6 +36,8 @@ class SummaryClient(object):
 
 class SummariesClient(object):
     def __init__(self, api):
+        self.blueprints = SummaryClient(api, 'blueprints')
+        self.deployments = SummaryClient(api, 'deployments')
+        self.executions = SummaryClient(api, 'executions')
         self.nodes = SummaryClient(api, 'nodes')
         self.node_instances = SummaryClient(api, 'node_instances')
-        self.deployments = SummaryClient(api, 'deployments')
