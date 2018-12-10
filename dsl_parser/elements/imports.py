@@ -158,17 +158,8 @@ def _get_resource_location(resource_name,
             urllib.pathname2url(os.path.abspath(resource_name)))
 
     if current_resource_context:
-        candidate_url = current_resource_context[
+        return current_resource_context[
             :current_resource_context.rfind('/') + 1] + resource_name
-        if utils.url_exists(candidate_url):
-            return candidate_url
-
-    if resources_base_path:
-        full_path = os.path.join(resources_base_path, resource_name)
-        return 'file:{0}'.format(
-            urllib.pathname2url(os.path.abspath(full_path)))
-
-    return None
 
 
 def _extract_import_parts(import_url,
