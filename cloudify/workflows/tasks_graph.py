@@ -31,26 +31,36 @@ def get_tasks_graph(client, execution_id, name):
         return graphs[0]
 
 
-class _MethodDecoratorAdaptor(object):
+class _MethodDecorator(object):
+    """Make a function work as a decorator for both a function and a method.
+    """
     def __init__(self, decorator, func):
-        self.decorator = decorator
-        self.func = func
-
-    def __call__(self, *args, **kwargs):
-        return self.decorator(self.func)(*args, **kwargs)
+        self._decorator = decorator
+        self._func = func
 
     def __get__(self, instance, owner):
-        return self.decorator(self.func.__get__(instance, owner))
+        # call the descriptor - get the method form the instance,
+        # and decorate it
+        return self._decorator(self._func.__get__(instance, owner))
+
+    def __call__(self, *args, **kwargs):
+        # decorate the function and call it, as usual in decorators
+        return self._decorator(self._func)(*args, **kwargs)
 
 
-def auto_adapt_to_methods(decorator):
-    def adapt(func):
-        return _MethodDecoratorAdaptor(decorator, func)
-    return adapt
+def method_decorator(decorator):
+    """Make a function work as a decorator for both a function and a method.
+    """
+    def _decorate(func):
+        return _MethodDecorator(decorator, func)
+    return _decorate
 
 
-@auto_adapt_to_methods
+@method_decorator
 def make_or_get_graph(f):
+    """Decorate a graph-creating function with this, to automatically
+    make it try to retrieve the graph from the manager first.
+    """
     @wraps(f)
     def _inner(ctx, name, **kwargs):
         client = get_rest_client()
