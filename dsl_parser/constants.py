@@ -89,6 +89,7 @@ UNBOUNDED = -1
 SCALING_GROUPS = 'scaling_groups'
 
 NAMESPACE_DELIMITER = '->'
+CLOUDIFY_TYPE_PREFIX = 'cloudify.'
 
 ADDED_AND_RELATED = 'added_and_related'
 REMOVED_AND_RELATED = 'removed_and_related'

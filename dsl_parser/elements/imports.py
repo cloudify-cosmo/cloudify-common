@@ -247,14 +247,27 @@ def _build_ordered_imports(parsed_dsl_holder,
                 'contain namespace delimiter'.format(namespace))
 
     def is_cloudify_basic_types(imported_holder):
+        """
+        Cloudify basic types can be recognized with the following rules
+        at high assurance:
+        - Has a node type named cloudify.nodes.Root.
+        - Has a metadata field named cloudify_types.
+        """
         _, metadata = imported_holder.get_item(constants.METADATA)
         _, node_types = imported_holder.get_item(constants.NODE_TYPES)
         if ((metadata and metadata.get_item('cloudify_types')[1]) or
-                (node_types and node_types.get_item('cloudify.nodes.Root')[1])):
+                (node_types and
+                 node_types.get_item('cloudify.nodes.Root')[1])):
             return True
         return False
 
     def validate_import(namespace, cloudify_basic_types):
+        """
+        Cloudify basic types can not be imported with namespace,
+        due to that will disrupt core Cloudify types with the namespace prefix
+        which will not allow proper functioning, like: added a prefix to
+        install workflow.
+        """
         if cloudify_basic_types and namespace:
             raise exceptions.DSLParsingLogicException(
                 214,
@@ -274,16 +287,16 @@ def _build_ordered_imports(parsed_dsl_holder,
                                                           resources_base_path,
                                                           _current_import)
             validate_namespace(namespace)
-            original_namespace = namespace
+            current_namespace = namespace
             if context_namespace:
                 if namespace:
-                    namespace = utils.generate_namespaced_value(
+                    current_namespace = utils.generate_namespaced_value(
                         context_namespace,
                         namespace)
                 else:
                     # In case a namespace was added earlier in the import
                     # chain.
-                    namespace = context_namespace
+                    current_namespace = context_namespace
             if import_url is None:
                 ex = exceptions.DSLParsingLogicException(
                     13, "Import failed: no suitable location found for "
@@ -291,16 +304,16 @@ def _build_ordered_imports(parsed_dsl_holder,
                 ex.failed_import = another_import
                 raise ex
 
-            import_key = (import_url, namespace)
+            import_key = (import_url, current_namespace)
             import_context = (location(_current_import), context_namespace)
             if import_key in imports_graph:
                 is_cloudify_types = imports_graph[import_key]['cloudify_types']
                 if is_cloudify_types:
-                    namespace = None
+                    current_namespace = None
                 imports_graph.add_graph_dependency(
                     import_url,
                     import_context,
-                    namespace)
+                    current_namespace)
             else:
                 imported_dsl = resolver.fetch_import(import_url)
                 if not is_parsed_resource(imported_dsl):
@@ -311,18 +324,18 @@ def _build_ordered_imports(parsed_dsl_holder,
                                       .format(another_import, import_url),
                         filename=import_url)
                 cloudify_basic_types = is_cloudify_basic_types(imported_dsl)
-                validate_import(original_namespace, cloudify_basic_types)
+                validate_import(namespace, cloudify_basic_types)
                 if cloudify_basic_types:
-                    namespace = None
+                    current_namespace = None
                 imports_graph.add(
                     import_url,
                     imported_dsl,
                     cloudify_basic_types,
                     import_context,
-                    namespace)
+                    current_namespace)
                 build_ordered_imports_recursive(imported_dsl,
                                                 import_url,
-                                                namespace)
+                                                current_namespace)
 
     imports_graph = ImportsGraph()
     imports_graph.add(location(dsl_location), parsed_dsl_holder)
@@ -394,7 +407,7 @@ def _merge_namespaced_elements(key_holder, namespace, value_holder):
         # for the DSL element to not receive the namespace.
         value_holder.only_children_namespace = True
         value_holder.namespace = namespace
-    if not key_holder.value.startswith('cloudify.'):
+    if not utils.check_if_cloudify_type(key_holder.value):
         key_holder.value = utils.generate_namespaced_value(
             namespace, key_holder.value)
 

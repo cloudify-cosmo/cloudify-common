@@ -331,3 +331,7 @@ def find_namespace_location(value):
 def remove_value_namespace(value):
     value_namespace_format = '.*{0}'.format(NAMESPACE_DELIMITER)
     return re.sub(value_namespace_format, '', value)
+
+
+def check_if_cloudify_type(type_name):
+    return type_name.startswith(constants.CLOUDIFY_TYPE_PREFIX)
