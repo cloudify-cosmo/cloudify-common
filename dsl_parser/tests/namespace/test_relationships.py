@@ -327,3 +327,7 @@ imports:
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')
         parsed_yaml = self.parse_from_path(main_yaml_path)
+        http_node = parsed_yaml[constants.NODES][0]
+        start_op = http_node['operations']['start']
+        start_op_script_path = start_op['inputs']['script_path']
+        self.assertEqual('test->scripts/start.sh', start_op_script_path)
