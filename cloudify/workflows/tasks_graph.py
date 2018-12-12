@@ -115,6 +115,8 @@ class TaskDependencyGraph(object):
         occurs, the method might return even while there's some operations\
         still being executed.
         """
+        # clear error, in case the tasks graph has been reused
+        self._error = None
 
         while self._error is None:
 
