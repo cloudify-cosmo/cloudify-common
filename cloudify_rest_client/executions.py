@@ -27,6 +27,7 @@ class Execution(dict):
     FORCE_CANCELLING = 'force_cancelling'
     KILL_CANCELLING = 'kill_cancelling'
     QUEUED = 'queued'
+    SCHEDULED = 'scheduled'
     END_STATES = [TERMINATED, FAILED, CANCELLED]
 
     def __init__(self, execution):
@@ -224,7 +225,7 @@ class ExecutionsClient(object):
         """
         assert deployment_id
         assert workflow_id
-
+        scheduled = str(schedule).lower() if schedule else None
         data = {
             'deployment_id': deployment_id,
             'workflow_id': workflow_id,
@@ -233,8 +234,8 @@ class ExecutionsClient(object):
             'force': str(force).lower(),
             'dry_run': str(dry_run).lower(),
             'queue': str(queue).lower(),
-            'wait_after_fail': wait_after_fail,
-            'scheduled_time': str(schedule).lower()
+            'scheduled_time': scheduled,
+            'wait_after_fail': wait_after_fail
         }
         uri = '/executions'
         response = self.api.post(uri,
