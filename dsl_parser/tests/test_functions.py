@@ -17,8 +17,8 @@ from testtools import ExpectedException
 
 from dsl_parser import exceptions
 from dsl_parser.tasks import prepare_deployment_plan
-from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 from dsl_parser.tests.abstract_test_parser import timeout
+from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestGetProperty(AbstractTestParser):
@@ -451,52 +451,6 @@ node_templates:
         self.assertEqual(1, vm['properties']['c'][0])
         self.assertEqual(2, vm['properties']['c'][1])
 
-    @timeout(seconds=10)
-    def test_circular_get_property(self):
-        yaml = """
-node_types:
-    vm_type:
-        properties:
-            a: { type: string }
-            b: { type: string }
-            c: { type: string }
-node_templates:
-    vm:
-        type: vm_type
-        properties:
-            a: { get_property: [SELF, b] }
-            b: { get_property: [SELF, c] }
-            c: { get_property: [SELF, a] }
-"""
-        try:
-            prepare_deployment_plan(self.parse(yaml))
-            self.fail()
-        except RuntimeError, e:
-            self.assertIn('Circular get_property function call detected',
-                          str(e))
-
-    @timeout(seconds=10)
-    def test_circular_get_property_with_nesting(self):
-        yaml = """
-node_types:
-    vm_type:
-        properties:
-            b: { type: string }
-            c: { type: string }
-node_templates:
-    vm:
-        type: vm_type
-        properties:
-            b: { get_property: [SELF, c] }
-            c: [ { get_property: [SELF, b ] }, 2 ]
-"""
-        try:
-            prepare_deployment_plan(self.parse(yaml))
-            self.fail()
-        except RuntimeError, e:
-            self.assertIn('Circular get_property function call detected',
-                          str(e))
-
     def test_recursive_get_property_in_outputs(self):
         yaml = """
 node_types:
@@ -525,53 +479,6 @@ outputs:
         self.assertEqual(0, outputs['o']['value']['b'][0])
         self.assertEqual(1, outputs['o']['value']['b'][1][0])
         self.assertEqual(2, outputs['o']['value']['b'][1][1])
-
-    @timeout(seconds=10)
-    def test_circular_get_property_from_outputs(self):
-        yaml = """
-node_types:
-    vm_type:
-        properties:
-            b: { type: string }
-            c: { type: string }
-node_templates:
-    vm:
-        type: vm_type
-        properties:
-            b: { get_property: [SELF, c] }
-            c: [ { get_property: [SELF, b ] }, 2 ]
-outputs:
-    o:
-        value:
-            a: 1
-            b: { get_property: [vm, b] }
-"""
-        try:
-            prepare_deployment_plan(self.parse(yaml))
-            self.fail()
-        except RuntimeError, e:
-            self.assertIn('Circular get_property function call detected',
-                          str(e))
-
-    @timeout(seconds=10)
-    def test_circular_self_get_property(self):
-        yaml = """
-node_types:
-    vm_type:
-        properties:
-            a: { type: string }
-node_templates:
-    vm:
-        type: vm_type
-        properties:
-            a: [ { get_property: [SELF, a ] } ]
-"""
-        try:
-            prepare_deployment_plan(self.parse(yaml))
-            self.fail()
-        except RuntimeError, e:
-            self.assertIn('Circular get_property function call detected',
-                          str(e))
 
     def test_nested_property_path(self):
         yaml = """
@@ -690,31 +597,6 @@ node_templates:
             self.fail()
         except IndexError, e:
             self.assertIn('index is out of range. Got 10 but list size is 3',
-                          str(e))
-
-    @timeout(seconds=10)
-    def test_circular_nested_property_path(self):
-        yaml = """
-node_types:
-    vm_type:
-        properties:
-            a: { type: string }
-            b: { type: string }
-node_templates:
-    vm:
-        type: vm_type
-        properties:
-            a:
-                a0: { get_property: [ SELF, b, b0 ] }
-            b:
-                b0: { get_property: [ SELF, a, a0 ] }
-"""
-        try:
-            prepare_deployment_plan(self.parse(yaml))
-            self.fail()
-        except RuntimeError, e:
-            self.assertIn('Circular get_property function call detected: '
-                          'vm.b,b0 -> vm.a,a0 -> vm.b,b0',
                           str(e))
 
     @timeout(seconds=10)
@@ -887,6 +769,7 @@ node_templates:
                 self.assertIn('{0} cannot be used with get_attribute function '
                               'in vm.operations.test.op.inputs.a'
                               .format(ref), str(e))
+
         assert_with('SOURCE')
         assert_with('TARGET')
 
@@ -925,6 +808,7 @@ node_templates:
                 self.assertIn('{0} cannot be used with get_attribute function '
                               'in vm.relationship.test.op.inputs.a'
                               .format(ref), str(e))
+
         assert_with('SELF')
 
     def test_illegal_ref_in_outputs(self):
@@ -947,6 +831,7 @@ outputs:
                 self.assertIn('{0} cannot be used with get_attribute '
                               'function in outputs.a.value'
                               .format(ref), str(e))
+
         assert_with('SELF')
         assert_with('SOURCE')
         assert_with('TARGET')
@@ -966,7 +851,7 @@ node_templates:
         properties:
             property: { concat: [1, 2] }
 """
-        with ExpectedException(exceptions.FunctionEvaluationError,
+        with ExpectedException(exceptions.FunctionValidationError,
                                '.*version 1_1 or greater.*'):
             prepare_deployment_plan(self.parse(
                 yaml,
@@ -1045,32 +930,6 @@ node_templates:
         node = self.get_node_by_name(parsed, 'node')
         self.assertEqual('onevalue2three', node['properties']['property'])
 
-    def test_node_template_properties_with_invalid_node_property_cycle(self):
-        yaml = """
-node_types:
-    type:
-        properties:
-            property1: {}
-            property2: {}
-node_templates:
-    node1:
-        type: type
-        properties:
-            property1: { concat:
-                [one, { get_property: [node2, property1] }, three]
-            }
-            property2: value1
-    node2:
-        type: type
-        properties:
-            property1: { concat:
-                [one, { get_property: [node1, property1] }, three]
-            }
-            property2: value2
-"""
-        with ExpectedException(RuntimeError, '.*Circular.*'):
-            prepare_deployment_plan(self.parse_1_1(yaml))
-
     def test_node_template_properties_with_recursive_concat(self):
         yaml = """
 node_types:
@@ -1136,10 +995,14 @@ node_templates:
         self.assertEqual('onevaluethree', inputs['input1'])
         self.assertEqual('onevaluethree', inputs['input2']['key2'])
         self.assertEqual('onevaluethree', inputs['input2']['key3'][1])
-        self.assertEqual({'concat':
-                         ['one', 'value', {'get_attribute': ['SELF',
-                                                             'attribute']}]},
-                         inputs['input3'])
+        self.assertEqual(
+            {
+                'concat': [
+                    'one',
+                    'value',
+                    {'get_attribute': ['SELF', 'attribute']}]
+            },
+            inputs['input3'])
 
     def test_relationship_operation_inputs(self):
         yaml = """
@@ -1193,10 +1056,14 @@ node_templates:
         self.assertEqual('onevaluethree', inputs['input1'])
         self.assertEqual('onevaluethree', inputs['input2']['key2'])
         self.assertEqual('onevalue2three', inputs['input2']['key3'][1])
-        self.assertEqual({'concat':
-                         ['one', 'value', {'get_attribute': ['SOURCE',
-                                                             'attribute']}]},
-                         inputs['input3'])
+        self.assertEqual(
+            {
+                'concat': [
+                    'one',
+                    'value',
+                    {'get_attribute': ['SOURCE', 'attribute']}]
+            },
+            inputs['input3'])
 
     def test_outputs(self):
         yaml = """
@@ -1229,7 +1096,377 @@ outputs:
         outputs = parsed['outputs']
         self.assertEqual('onevaluethree', outputs['output1']['value'])
         self.assertEqual('onevaluethree', outputs['output2']['value'][1])
-        self.assertEqual({'concat':
-                         ['one', 'value', {'get_attribute': ['node',
-                                                             'attribute']}]},
-                         outputs['output3']['value'])
+        self.assertEqual(
+            {
+                'concat':
+                    ['one', 'value', {'get_attribute': ['node', 'attribute']}]
+            },
+            outputs['output3']['value'])
+
+
+class TestFunctionIntegration(AbstractTestParser):
+
+    def test_func_integrations(self):
+        yaml = """
+inputs:
+    some_input:
+        default: some_node
+    some_input2:
+        default: some_input
+node_types:
+    some_type:
+        properties:
+            prop1: {}
+            concat_prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            prop1: 4
+            concat_prop:
+                concat:
+                    - get_property:
+                        - get_input:
+                            get_input: some_input2
+                        - prop1
+                    - 2
+"""
+        parsed = prepare_deployment_plan(self.parse_1_1(yaml))
+        some_node = self.get_node_by_name(parsed, 'some_node')
+        self.assertEqual('42', some_node['properties']['concat_prop'])
+
+        yaml = """
+inputs:
+    dummy_input:
+        default: some_node
+    some_nodesome_node:
+        default: some_nodesome_node
+node_types:
+    some_type:
+        properties:
+            prop: {}
+            dummy_prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            dummy_prop: dummy_value
+            prop:
+                get_attribute:
+                    - get_input: dummy_input
+                    - concat:
+                        - get_attribute: [ some_node, dummy_prop ]
+                    - get_input:
+                        concat:
+                            - get_input: dummy_input
+                            - get_input: dummy_input
+            """
+        prepare_deployment_plan(self.parse_1_1(yaml))
+
+    def test_func_integrations_1_0(self):
+        yaml = """
+inputs:
+    some_input:
+        default: some_node
+node_types:
+    some_type:
+        properties:
+            prop1: {}
+            prop2: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            prop1: 4
+            prop2:
+                get_attribute:
+                    - get_property:
+                        - get_input:
+                            some_input
+                        - prop1
+                    - 2
+"""
+        parsed = prepare_deployment_plan(self.parse(yaml))
+        some_node = self.get_node_by_name(parsed, 'some_node')
+        self.assertDictEqual(
+            {'get_attribute': [4, 2]},
+            some_node['properties']['prop2'])
+
+    def test_func_integrations_within_dict(self):
+        yaml = """
+inputs:
+    some_input:
+        default: some_node
+node_types:
+    some_type:
+        properties:
+            prop1: {}
+            concat_prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            prop1: 4
+            concat_prop:
+                some_result:
+                    concat:
+                        - get_property:
+                            - get_input:
+                                some_input
+                            - prop1
+                        - 2
+"""
+
+        parsed = prepare_deployment_plan(self.parse_1_1(yaml))
+        some_node = self.get_node_by_name(parsed, 'some_node')
+        self.assertDictEqual(
+            {'some_result': '42'},
+            some_node['properties']['concat_prop'])
+
+    def test_func_integrations_within_list(self):
+        yaml = """
+inputs:
+    some_input:
+        default: some_node
+node_types:
+    some_type:
+        properties:
+            prop1: {}
+            concat_prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            prop1: 4
+            concat_prop:
+                - concat:
+                    - get_property:
+                        - get_input:
+                            some_input
+                        - prop1
+                    - 2
+"""
+
+        parsed = prepare_deployment_plan(self.parse_1_1(yaml))
+        some_node = self.get_node_by_name(parsed, 'some_node')
+        self.assertEqual(['42'], some_node['properties']['concat_prop'])
+
+    def test_get_input_doesnt_accept_runtime_func_as_args(self):
+        yaml = """
+node_types:
+    some_type:
+        properties:
+            prop: {}
+            dummy_prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            dummy_prop: dummy_value
+            prop:
+                get_input:
+                    - get_attribute:
+                            - some_node
+                            - dummy_prop
+    """
+        with self.assertRaisesRegexp(
+                exceptions.FunctionValidationError,
+                'Runtime function .+ cannot be nested within a non-runtime '
+                'function \\(found in .+\\)'):
+            prepare_deployment_plan(self.parse(yaml))
+
+        yaml = """
+node_types:
+    some_type:
+        properties:
+            prop: {}
+            dummy_prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            dummy_prop: dummy_value
+            prop:
+                get_input:
+                    concat:
+                        - get_attribute:
+                                - some_node
+                                - dummy_prop
+    """
+        with self.assertRaisesRegexp(
+                exceptions.FunctionValidationError,
+                'Runtime function .+ cannot be nested within a non-runtime '
+                'function \\(found in .+\\)'):
+            prepare_deployment_plan(self.parse_1_1(yaml))
+
+        yaml = """
+inputs:
+    dummy_input:
+        default: some_node
+node_types:
+    some_type:
+        properties:
+            prop: {}
+            dummy_prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            dummy_prop: dummy_value
+            prop:
+                get_attribute:
+                    - get_input: dummy_input
+                    - concat:
+                        - get_attribute: [ some_node, dummy_prop ]
+                    - get_input:
+                        concat:
+                            - get_attribute: [ some_node, dummy_prop ]
+                            - get_input: dummy_input
+    """
+        with self.assertRaisesRegexp(
+                exceptions.FunctionValidationError,
+                'Runtime function .+ cannot be nested within a non-runtime '
+                'function \\(found in .+\\)'):
+            prepare_deployment_plan(self.parse_1_1(yaml))
+
+    def test_get_property_doesnt_accept_runtime_func_as_args(self):
+        yaml = """
+node_types:
+    some_type:
+        properties:
+            prop: {}
+            dummy_prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            dummy_prop: dummy_value
+            prop:
+                get_property:
+                    - get_attribute:
+                            - some_node
+                            - dummy_prop
+                    - shouldn't matter
+    """
+        with self.assertRaisesRegexp(
+                exceptions.FunctionValidationError,
+                'Runtime function .+ cannot be nested within a non-runtime '
+                'function \\(found in .+\\)'):
+            prepare_deployment_plan(self.parse(yaml))
+
+        yaml = """
+node_types:
+    some_type:
+        properties:
+            prop: {}
+            dummy_prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            dummy_prop: dummy_value
+            prop:
+                get_property:
+                    - concat:
+                        - get_attribute:
+                                - some_node
+                                - dummy_prop
+                    - shouldn't matter
+    """
+        with self.assertRaisesRegexp(
+                exceptions.FunctionValidationError,
+                'Runtime function .+ cannot be nested within a non-runtime '
+                'function \\(found in .+\\)'):
+            prepare_deployment_plan(self.parse_1_1(yaml))
+
+    def test_circular_with_dict_argument(self):
+        yaml = """
+node_types:
+    some_type:
+        properties:
+            prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            prop:
+                get_input:
+                    get_property:
+                        - some_node
+                        - prop
+    """
+        with self.assertRaisesRegexp(
+                exceptions.EvaluationRecursionLimitReached,
+                "The recursion limit \\([0-9]+\\) has been reached while "
+                "evaluating the deployment\\..+get_input\\..+"):
+            prepare_deployment_plan(self.parse(yaml))
+
+    def test_circular_with_list_argument(self):
+        yaml = """
+node_types:
+    some_type:
+        properties:
+            prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            prop:
+                get_property:
+                    - get_property:
+                            - some_node
+                            - prop
+                    - shouldn't matter
+        """
+        with self.assertRaisesRegexp(
+                exceptions.EvaluationRecursionLimitReached,
+                "The recursion limit \\([0-9]+\\) has been reached while "
+                "evaluating the deployment\\..+get_property\\[0\\].+"):
+            prepare_deployment_plan(self.parse(yaml))
+
+    def test_circular_within_dict(self):
+        yaml = """
+node_types:
+    some_type:
+        properties:
+            prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            prop:
+                key:
+                    get_property:
+                        - get_property:
+                                - some_node
+                                - prop
+                        - shouldn't matter
+            """
+        with self.assertRaisesRegexp(
+                exceptions.EvaluationRecursionLimitReached,
+                "The recursion limit \\([0-9]+\\) has been reached while "
+                "evaluating the deployment\\..+get_property\\[0\\].+"):
+            prepare_deployment_plan(self.parse(yaml))
+
+    def test_circular_within_list(self):
+        yaml = """
+node_types:
+    some_type:
+        properties:
+            prop: {}
+node_templates:
+    some_node:
+        type: some_type
+        properties:
+            prop:
+                - get_property:
+                    - get_property:
+                            - some_node
+                            - prop
+                    - shouldn't matter
+            """
+        with self.assertRaisesRegexp(
+                exceptions.EvaluationRecursionLimitReached,
+                "The recursion limit \\([0-9]+\\) has been reached while "
+                "evaluating the deployment\\..+get_property\\[0\\].+"):
+            prepare_deployment_plan(self.parse(yaml))

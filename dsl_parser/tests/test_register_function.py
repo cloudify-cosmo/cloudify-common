@@ -28,7 +28,8 @@ class TestFunctionRegistration(AbstractTestParser):
         functions.unregister('to_upper')
 
     def test_registration(self):
-        @functions.register(name='to_upper')
+        @functions.register(name='to_upper',
+                            func_eval_type=functions.HYBRID_FUNC)
         class ToUpper(functions.Function):
 
             def __init__(self, args, **kwargs):

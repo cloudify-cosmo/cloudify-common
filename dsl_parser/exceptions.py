@@ -49,6 +49,18 @@ class FunctionEvaluationError(Exception):
         super(FunctionEvaluationError, self).__init__(msg)
 
 
+class FunctionValidationError(Exception):
+    """
+    An error raised when an intrinsic function was unable to get validated.
+    """
+
+    def __init__(self, func_name, message=None):
+        msg = 'Unable to validate {0} function'.format(func_name)
+        if message:
+            msg = '{0}: {1}'.format(msg, message)
+        super(FunctionValidationError, self).__init__(msg)
+
+
 class UnknownSecretError(Exception):
     """
     An error raised when a deployment is created and a required secret
@@ -61,6 +73,14 @@ class UnsupportedGetSecretError(Exception):
     """
     An error raised when a deployment is created and the unsupported get_secret
     intrinsic function appears in the blueprint
+    """
+    pass
+
+
+class EvaluationRecursionLimitReached(Exception):
+    """
+    An error raised when a recursion limit is reached. This can happen when
+    there's a cyclic call with intrinsic functions.
     """
     pass
 
