@@ -827,8 +827,8 @@ def _verify_and_get_connection_type(relationship):
 
 def _relationship_type_hierarchy_includes_one_of(relationship, expected_types):
     relationship_type_hierarchy = relationship['type_hierarchy']
-    return any([relationship_type in expected_types
-                for relationship_type in relationship_type_hierarchy])
+    return any(relationship_type in expected_types
+               for relationship_type in relationship_type_hierarchy)
 
 
 def _node_id_from_node(node):
