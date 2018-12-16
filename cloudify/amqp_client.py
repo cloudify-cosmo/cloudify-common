@@ -414,6 +414,12 @@ class TaskConsumer(object):
     def handle_task(self, full_task):
         raise NotImplementedError()
 
+    def delete_queue(self, queue):
+        self.in_channel.queue_delete(queue, if_empty=True)
+
+    def delete_exchange(self, exchange):
+        self.in_channel.exchange_delete(exchange)
+
 
 class SendHandler(object):
     exchange_settings = {
