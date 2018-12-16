@@ -295,8 +295,9 @@ def process_operation(
         # pointing to the same installed one.
         script_plugins = [plugin for plugin in plugins
                           if constants.SCRIPT_PLUGIN_NAME in plugin]
-        script_plugin = script_plugins and script_plugins[0]
-        if not script_plugin:
+        if script_plugins:
+            script_plugin = script_plugins[0]
+        else:
             message = "Script plugin is not defined but it is required for" \
                       " mapping '{0}' of {1} '{2}'" \
                 .format(operation_mapping,

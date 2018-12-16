@@ -244,8 +244,7 @@ class Context(object):
         def should_add_element_namespace(element_value):
             # Preventing of adding namespace prefix to cloudify
             # basic types.
-            return not (isinstance(element_value, basestring) and
-                        utils.check_if_cloudify_type(element_value))
+            return not utils.check_if_cloudify_type(element_value)
 
         def set_element_namespace(element_namespace, element_holder):
             if (not element_namespace or
