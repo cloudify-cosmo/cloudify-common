@@ -25,16 +25,19 @@ from cloudify_rest_client.exceptions import CloudifyClientError
 
 def create_agent_record(cloudify_agent,
                         state=AgentState.CREATING,
+                        create_rabbitmq_user=True,
                         client=None):
     # Proxy agents are not being saved in the agents table
     if _is_proxied(cloudify_agent):
         return
-    _initialize_rabbitmq_user(cloudify_agent)
+    if create_rabbitmq_user:
+        _initialize_rabbitmq_user(cloudify_agent)
     client = client or get_rest_client()
     client.agents.create(
         cloudify_agent['name'],
         cloudify_agent['node_instance_id'],
         state,
+        create_rabbitmq_user,
         ip=cloudify_agent.get('ip'),
         install_method=cloudify_agent.get('install_method'),
         system=_get_agent_system(cloudify_agent),
