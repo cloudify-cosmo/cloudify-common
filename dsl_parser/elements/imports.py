@@ -50,7 +50,8 @@ MERGEABLE_FROM_DSL_VERSION_1_3 = [
 ]
 
 DONT_OVERWRITE = set([
-    constants.DESCRIPTION
+    constants.DESCRIPTION,
+    constants.METADATA
 ])
 
 IGNORE = set([
@@ -216,8 +217,10 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
             _validate_version(version.raw,
                               import_url,
                               parsed_imported_dsl_holder)
+        is_cloudify_types = imported['cloudify_types']
         _merge_parsed_into_combined(
-            holder_result, parsed_imported_dsl_holder, version, namespace)
+            holder_result, parsed_imported_dsl_holder,
+            version, namespace, is_cloudify_types)
     holder_result.value[version_key_holder] = version_value_holder
     return used_imports, holder_result
 
@@ -255,10 +258,13 @@ def _build_ordered_imports(parsed_dsl_holder,
         """
         _, metadata = imported_holder.get_item(constants.METADATA)
         _, node_types = imported_holder.get_item(constants.NODE_TYPES)
-        if ((metadata and metadata.get_item('cloudify_types')[1]) or
-                (node_types and
-                 node_types.get_item('cloudify.nodes.Root')[1])):
-            return True
+        if (metadata and metadata.get_item('cloudify_types')[1]) or node_types:
+            root_type = node_types.get_item('cloudify.nodes.Root')[1]
+            if root_type and not root_type.is_cloudify_type:
+                # If it was already marked with the flag,
+                # this means that this blueprint is using Cloudify basic types
+                # and not equal to it.
+                return True
         return False
 
     def validate_import_namespace(namespace,
@@ -278,6 +284,11 @@ def _build_ordered_imports(parsed_dsl_holder,
                     ' on Cloudify basic types.'.format(namespace))
 
     def resolve_import_graph_key(import_url, namespace):
+        """
+        An import's key in the graph key is a combination with
+        it's namespace and it, but in case that the import is
+        Cloudify basic types the key is without the namespace.
+        """
         import_key = (import_url, namespace)
         if import_key in imports_graph:
             return import_key
@@ -285,6 +296,7 @@ def _build_ordered_imports(parsed_dsl_holder,
         import_key = (import_key, None)
         if import_key in imports_graph:
             return import_key
+        return import_url, namespace
 
     def build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                         _current_import,
@@ -375,26 +387,38 @@ def _validate_version(dsl_version,
                         version_value_holder.value))
 
 
+def _mark_key_value_holder_items(value_holder, field_name, field_value):
+    for v in value_holder.value.values():
+        setattr(v, field_name, field_value)
+
+
 def _merge_parsed_into_combined(combined_parsed_dsl_holder,
                                 parsed_imported_dsl_holder,
                                 version,
-                                namespace):
+                                namespace,
+                                is_cloudify_types):
     merge_no_override = MERGE_NO_OVERRIDE.copy()
     if version['definitions_version'] > (1, 2):
         merge_no_override.update(MERGEABLE_FROM_DSL_VERSION_1_3)
     for key_holder, value_holder in parsed_imported_dsl_holder.value.\
             items():
+        if is_cloudify_types and isinstance(value_holder.value, dict):
+            _mark_key_value_holder_items(value_holder,
+                                         'is_cloudify_type',
+                                         is_cloudify_types)
         if key_holder.value in IGNORE:
             pass
         elif key_holder.value not in combined_parsed_dsl_holder:
             if isinstance(value_holder.value, dict) and namespace:
                 # Propagate namespace down
-                for v in value_holder.value.values():
-                    v.namespace = namespace
+                _mark_key_value_holder_items(value_holder,
+                                             'namespace',
+                                             namespace)
             combined_parsed_dsl_holder.value[key_holder] = value_holder
         elif key_holder.value in DONT_OVERWRITE:
             pass
-        elif key_holder.value in merge_no_override:
+        elif (key_holder.value in merge_no_override and
+              not value_holder.is_cloudify_type):
             _, to_dict = combined_parsed_dsl_holder.get_item(key_holder.value)
             _merge_into_dict_or_throw_on_duplicate(
                 from_dict_holder=value_holder,
@@ -468,7 +492,8 @@ class ImportsGraph(object):
     def topological_sort(self):
         return reversed(list(
             ({'import': i,
-             'parsed': self._imports_tree.node[i]['parsed']}
+             'parsed': self._imports_tree.node[i]['parsed'],
+              'cloudify_types': self._imports_tree.node[i]['cloudify_types']}
              for i in nx.topological_sort(self._imports_tree))))
 
     def __contains__(self, item):
