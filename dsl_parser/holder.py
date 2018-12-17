@@ -24,6 +24,7 @@ class Holder(object):
                  end_column=None,
                  filename=None,
                  namespace=None,
+                 is_cloudify_type=False,
                  only_children_namespace=False):
         self.value = value
         self.start_line = start_line
@@ -32,6 +33,7 @@ class Holder(object):
         self.end_column = end_column
         self.filename = filename
         self.namespace = namespace
+        self.is_cloudify_type = is_cloudify_type
 
         # This flag will mark that the namespace scope is only
         # applied on the holder (/DSL element) children.
@@ -104,4 +106,5 @@ class Holder(object):
                       end_column=self.end_column,
                       filename=self.filename,
                       namespace=self.namespace,
+                      is_cloudify_type=self.is_cloudify_type,
                       only_children_namespace=self.only_children_namespace)
