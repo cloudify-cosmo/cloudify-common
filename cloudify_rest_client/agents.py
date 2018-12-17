@@ -176,16 +176,18 @@ class AgentsClient(object):
         return self._wrapper_cls(response)
 
     def create(self, name, node_instance_id, state=AgentState.CREATING,
-               **kwargs):
+               create_rabbitmq_user=True, **kwargs):
         """Create an agent in the DB.
 
          :param name: The name of the agent
          :param node_instance_id: The node_instance_id of the agent
          :param state: The state of the agent
+         :param create_rabbitmq_user: Should create the rabbitmq user or not
          :return: The details of the agent
          """
         data = {'node_instance_id': node_instance_id,
-                'state': state}
+                'state': state,
+                'create_rabbitmq_user': create_rabbitmq_user}
         data.update(kwargs)
         response = self.api.put('/{0}/{1}'.format(self._uri_prefix, name),
                                 data=data)
