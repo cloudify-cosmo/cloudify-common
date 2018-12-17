@@ -41,7 +41,7 @@ from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
 CFY_EXEC_TEMPDIR_ENVVAR = 'CFY_EXEC_TEMP'
 INSPECT_TIMEOUT = 30
-
+ADMIN_API_TOKEN_PATH = '/opt/mgmtworker/work/admin_token'
 
 class ManagerVersion(object):
     """Cloudify manager version helper class."""
@@ -628,5 +628,15 @@ def generate_user_password(password_length=32):
     )
     return password
 
+
+def get_admin_api_token():
+    with open(ADMIN_API_TOKEN_PATH, 'r') as fh:
+        token = fh.read()
+    return token[:-1]
+
+
+def get_rest_token_by_user_id(client, user_id):
+    token = client.user_tokens.get(user_id)
+    return token
 
 internal = Internal()
