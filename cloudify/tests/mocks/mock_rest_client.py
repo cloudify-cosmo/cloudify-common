@@ -111,10 +111,12 @@ class MockAgentsClient(object):
             'state': 'started'
         })
 
-    def create(self, name, state, node_instance_id, **kwargs):
+    def create(self, name, node_instance_id, state, create_rabbitmq_user=True,
+               **kwargs):
         return Agent({
             'id': name,
             'name': name,
             'node_instance_id': node_instance_id,
-            'state': state
+            'state': state,
+            'create_rabbitmq_user': create_rabbitmq_user
         })
