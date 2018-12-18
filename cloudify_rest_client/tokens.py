@@ -47,3 +47,19 @@ class TokensClient(object):
         """
         response = self.api.get('/tokens')
         return Token(response)
+
+
+class UserTokensClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+    def get(self, user_id):
+        """
+        Get an authentication REST token of a specified user
+        :param user_id: The id of the user
+        :return: Token
+        """
+        uri = '/user-tokens/{0}'.format(user_id)
+        response = self.api.get(uri)
+        return Token(response)

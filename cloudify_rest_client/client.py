@@ -35,7 +35,7 @@ from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
-from cloudify_rest_client.tokens import TokensClient
+from cloudify_rest_client.tokens import TokensClient, UserTokensClient
 from cloudify_rest_client.plugins import PluginsClient
 from cloudify_rest_client.maintenance import MaintenanceModeClient
 from cloudify_rest_client.tenants import TenantsClient
@@ -422,3 +422,4 @@ class CloudifyClient(object):
         self.secrets = SecretsClient(self._client)
         self.agents = AgentsClient(self._client)
         self.summary = SummariesClient(self._client)
+        self.user_tokens = UserTokensClient(self._client)
