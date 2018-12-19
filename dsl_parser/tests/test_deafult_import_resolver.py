@@ -74,9 +74,6 @@ class TestDefaultResolver(testtools.TestCase):
             expected_urls_to_resolve=[ORIGINAL_V2_URL, ORIGINAL_V1_URL],
             expected_failure=True,
             partial_err_msg='Failed to resolve the following urls: {0}. '
-                            "In addition, failed to resolve the original "
-                            "import url - Import failed: "
-                            "Unable to open import url {1}"
             .format(str(expected_failed_urls), ORIGINAL_V1_URL))
 
     def test_illegal_resolved_url_from_rules(self):
@@ -94,9 +91,6 @@ class TestDefaultResolver(testtools.TestCase):
             expected_urls_to_resolve=[ILLEGAL_URL, ORIGINAL_V1_URL],
             expected_failure=True,
             partial_err_msg='Failed to resolve the following urls: {0}. '
-                            "In addition, failed to resolve the original "
-                            "import url - Import failed: "
-                            "Unable to open import url {1}"
             .format(str(expected_failed_urls), ORIGINAL_V1_URL))
 
     def test_no_rule_matches(self):
