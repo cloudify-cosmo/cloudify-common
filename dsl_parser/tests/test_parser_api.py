@@ -1963,17 +1963,6 @@ plugins:
         self.assertEquals(1, len(result['nodes'][0][
             'plugins_to_install']))
 
-    def test_import_resources(self):
-        resource_file_name = 'resource_file.yaml'
-        file_path = self.make_file_with_name(
-            self.MINIMAL_BLUEPRINT, resource_file_name, 'resources')
-        resources_base_path = os.path.dirname(file_path)
-        yaml = """
-imports:
-    -   {0}""".format(resource_file_name)
-        result = self.parse(yaml, resources_base_path=resources_base_path)
-        self._assert_minimal_blueprint(result)
-
     def test_recursive_imports_with_inner_circular(self):
         bottom_level_yaml = """
 imports:
