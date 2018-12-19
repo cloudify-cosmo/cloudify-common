@@ -60,6 +60,17 @@ class TestDefaultResolver(testtools.TestCase):
             expected_urls_to_resolve=[
                 INVALID_V1_URL, ILLEGAL_URL, VALID_V1_URL])
 
+    def test_resolve_fallback(self):
+        # with fallback, it first tries the resolved url, and when that fails,
+        # the originally passed url
+        rules = [
+            {VALID_V1_PREFIX: INVALID_URL_PREFIX},
+        ]
+        self._test_default_resolver(
+            import_url=VALID_V1_URL, rules=rules, fallback=True,
+            expected_urls_to_resolve=[
+                INVALID_V1_URL, VALID_V1_URL])
+
     def test_not_accesible_url_from_rules(self):
         rules = [
             {ORIGINAL_V1_PREFIX: ORIGINAL_V2_PREFIX}
@@ -71,12 +82,9 @@ class TestDefaultResolver(testtools.TestCase):
         }
         self._test_default_resolver(
             import_url=ORIGINAL_V1_URL, rules=rules,
-            expected_urls_to_resolve=[ORIGINAL_V2_URL, ORIGINAL_V1_URL],
+            expected_urls_to_resolve=[ORIGINAL_V2_URL],
             expected_failure=True,
-            partial_err_msg='Failed to resolve the following urls: {0}. '
-                            "In addition, failed to resolve the original "
-                            "import url - Import failed: "
-                            "Unable to open import url {1}"
+            partial_err_msg='Failed to resolve the following urls: {0}'
             .format(str(expected_failed_urls), ORIGINAL_V1_URL))
 
     def test_illegal_resolved_url_from_rules(self):
@@ -91,8 +99,26 @@ class TestDefaultResolver(testtools.TestCase):
 
         self._test_default_resolver(
             import_url=ORIGINAL_V1_URL, rules=rules,
+            expected_urls_to_resolve=[ILLEGAL_URL],
+            expected_failure=True,
+            partial_err_msg='Failed to resolve the following urls: {0}'
+            .format(str(expected_failed_urls), ORIGINAL_V1_URL))
+
+    def test_illegal_resolved_url_from_rules_fallback(self):
+        rules = [
+            {ORIGINAL_V1_PREFIX: ILLEGAL_URL_PREFIX}
+        ]
+        expected_failed_urls = {
+            ILLEGAL_URL:
+                'Import failed: Unable to open import url {0}'
+                '; unknown url type: {0}'.format(ILLEGAL_URL)
+        }
+
+        self._test_default_resolver(
+            import_url=ORIGINAL_V1_URL, rules=rules,
             expected_urls_to_resolve=[ILLEGAL_URL, ORIGINAL_V1_URL],
             expected_failure=True,
+            fallback=True,
             partial_err_msg='Failed to resolve the following urls: {0}. '
                             "In addition, failed to resolve the original "
                             "import url - Import failed: "
@@ -178,7 +204,8 @@ class TestDefaultResolver(testtools.TestCase):
     def _test_default_resolver(self, import_url, rules,
                                expected_urls_to_resolve=[],
                                expected_failure=False,
-                               partial_err_msg=None):
+                               partial_err_msg=None,
+                               fallback=False):
 
         urls_to_resolve = []
         number_of_attempts = []
@@ -213,7 +240,7 @@ class TestDefaultResolver(testtools.TestCase):
                     else:
                         return None
 
-        resolver = DefaultImportResolver(rules=rules)
+        resolver = DefaultImportResolver(rules=rules, fallback=fallback)
         with mock.patch('requests.get', new=mock_requests_get,
                         create=True):
             with mock.patch(
