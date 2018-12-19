@@ -162,10 +162,15 @@ def _get_resource_location(resource_name,
             return candidate_url
 
     if resources_base_path:
-        full_path = os.path.join(resources_base_path, resource_name)
-        return 'file:{0}'.format(
-            pathname2url(os.path.abspath(full_path)))
-
+        full_path = os.path.normpath(
+            os.path.join(resources_base_path, resource_name))
+        full_path = os.path.abspath(full_path)
+        if not full_path.startswith(os.path.join(resources_base_path, '')):
+            raise exceptions.DSLParsingLogicException(
+                13,
+                'Unable to import {0}: outside the resources directory'
+                .format(resource_name))
+        return 'file:{0}'.format(pathname2url(full_path))
     return None
 
 
