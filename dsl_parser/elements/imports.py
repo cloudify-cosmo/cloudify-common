@@ -151,10 +151,6 @@ def _get_resource_location(resource_name,
     if is_remote_resource(resource_name):
         return resource_name
 
-    if os.path.exists(resource_name):
-        return 'file:{0}'.format(
-            pathname2url(os.path.abspath(resource_name)))
-
     if current_resource_context:
         candidate_url = current_resource_context[
             :current_resource_context.rfind('/') + 1] + resource_name
