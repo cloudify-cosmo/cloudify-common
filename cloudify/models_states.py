@@ -75,6 +75,7 @@ class AgentState(object):
     DELETED = 'deleted'
     RESTARTING = 'restarting'
     RESTARTED = 'restarted'
+    RESTORED = 'restored'
     UPGRADING = 'upgrading'
     UPGRADED = 'upgraded'
     NONRESPONSIVE = 'nonresponsive'
@@ -82,4 +83,4 @@ class AgentState(object):
 
     STATES = [CREATING, CREATED, CONFIGURING, CONFIGURED, STARTING, STARTED,
               STOPPING, STOPPED, DELETING, DELETED, RESTARTING, RESTARTED,
-              UPGRADING, UPGRADED, FAILED, NONRESPONSIVE]
+              UPGRADING, UPGRADED, FAILED, NONRESPONSIVE, RESTORED]
