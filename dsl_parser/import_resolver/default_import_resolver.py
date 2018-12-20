@@ -75,7 +75,7 @@ class DefaultImportResolver(AbstractImportResolver):
     be resolved, the original url will be tried anyway.
     """
 
-    def __init__(self, rules=None, fallback=False):
+    def __init__(self, rules=None, fallback=True):
         # set the rules
         self.rules = rules
         self._fallback = fallback
