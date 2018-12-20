@@ -43,6 +43,7 @@ CFY_EXEC_TEMPDIR_ENVVAR = 'CFY_EXEC_TEMP'
 INSPECT_TIMEOUT = 30
 ADMIN_API_TOKEN_PATH = '/opt/mgmtworker/work/admin_token'
 
+
 class ManagerVersion(object):
     """Cloudify manager version helper class."""
 
@@ -630,13 +631,14 @@ def generate_user_password(password_length=32):
 
 
 def get_admin_api_token():
-    with open(ADMIN_API_TOKEN_PATH, 'r') as fh:
-        token = fh.read()
-    return token[:-1]
+    with open(ADMIN_API_TOKEN_PATH, 'r') as token_file:
+        token = token_file.read()
+    return token
 
 
 def get_rest_token_by_user_id(client, user_id):
     token = client.user_tokens.get(user_id)
-    return token
+    return token.get('value')
+
 
 internal = Internal()

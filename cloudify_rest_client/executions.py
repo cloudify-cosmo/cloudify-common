@@ -225,7 +225,6 @@ class ExecutionsClient(object):
         """
         assert deployment_id
         assert workflow_id
-        scheduled = str(schedule).lower() if schedule else None
         data = {
             'deployment_id': deployment_id,
             'workflow_id': workflow_id,
@@ -234,7 +233,7 @@ class ExecutionsClient(object):
             'force': str(force).lower(),
             'dry_run': str(dry_run).lower(),
             'queue': str(queue).lower(),
-            'scheduled_time': scheduled,
+            'scheduled_time': schedule,
             'wait_after_fail': wait_after_fail
         }
         uri = '/executions'

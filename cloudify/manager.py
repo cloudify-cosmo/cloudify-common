@@ -120,11 +120,6 @@ class NodeInstance(object):
         return self._relationships
 
 
-def logit(msg):
-    with open('/tmp/cake', 'a') as fh:
-        fh.write('{0}\n'.format(msg))
-
-
 def get_rest_client(tenant=None, api_token=None):
     """
     :param tenant: optional tenant name to connect as
@@ -133,7 +128,6 @@ def get_rest_client(tenant=None, api_token=None):
     :returns: A REST client configured to connect to the manager in context
     :rtype: cloudify_rest_client.CloudifyClient
     """
-    logit('[get_rest_client] tanant={0}, api_token={1}'.format(tenant, api_token))
     cluster_settings = get_cluster_settings()
     if cluster_settings:
         client_class = CloudifyClusterClient
@@ -150,9 +144,10 @@ def get_rest_client(tenant=None, api_token=None):
 
     if api_token:
         headers[constants.CLOUDIFY_API_AUTH_TOKEN_HEADER] = api_token
-        logit('[get_rest_client] Added api_token header')
-    # If api_token was provided no need to use REST token
-    token = None if api_token else utils.get_rest_token()
+        # If api_token was provided no need to use REST token
+        token = None
+    else:
+        token = utils.get_rest_token()
 
     return client_class(
         headers=headers,
