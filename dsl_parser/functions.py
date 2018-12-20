@@ -57,6 +57,25 @@ def _is_function(value):
         and list(value.keys())[0] in TEMPLATE_FUNCTIONS
 
 
+def _convert_attribute_list_to_python_syntax_string(attr_list):
+    """This converts the given attribute list to Python syntax. For example,
+    calling this function with ['obj1', 'attr1', 7, 'attr2'] will output
+    obj1.attr1[7].attr2.
+
+    :param attr_list: the requested attributes/indices list.
+    :return: string representing the requested attributes in Python syntax.
+    """
+    if not attr_list:
+        return ''
+    s = str(attr_list[0])
+    for attr in attr_list[1:]:
+        if isinstance(attr, int):
+            s += '[{0}]'.format(attr)
+        else:
+            s += '.{0}'.format(attr)
+    return s
+
+
 _register_entry_point_functions()
 
 
@@ -107,7 +126,8 @@ class RuntimeEvaluationStorage(object):
         return self._secrets[secret_key]
 
     def get_capability(self, capability_path):
-        capability_id = '.'.join(capability_path)
+        capability_id = _convert_attribute_list_to_python_syntax_string(
+            capability_path)
         if capability_id not in self._capabilities:
             capability = self._get_capability_method(capability_path)
             self._capabilities[capability_id] = capability
@@ -156,8 +176,7 @@ class GetInput(Function):
             raise ValueError(
                 "Illegal argument(s) passed to {0} function. Expected either"
                 "a string or a list [input_name [, key1/index1 [,...]]] but "
-                "got {1}".format(self.name, ','.join(
-                    [str(arg) for arg in args])))
+                "got {1}".format(self.name, args))
         self.input_value = args
 
     def validate(self, plan):
@@ -174,17 +193,6 @@ class GetInput(Function):
         return plan.inputs[self.input_value]
 
     def _get_input_attribute(self, root):
-        def _get_error_string(attr_list):
-            if not attr_list:
-                return ''
-            s = str(attr_list[0])
-            for attr in attr_list[1:]:
-                if isinstance(attr, int):
-                    s += '[{0}]'.format(attr)
-                else:
-                    s += '.{0}'.format(attr)
-            return s
-
         value = root
         for index, attr in enumerate(self.input_value[1:]):
             if isinstance(value, dict):
@@ -193,7 +201,8 @@ class GetInput(Function):
                         "Input attribute '{0}' of '{1}', "
                         "doesn't exist.".format(
                             attr,
-                            _get_error_string(self.input_value[:index + 1])))
+                            _convert_attribute_list_to_python_syntax_string(
+                                self.input_value[:index + 1])))
 
                 value = value[attr]
             elif isinstance(value, list):
@@ -208,14 +217,15 @@ class GetInput(Function):
                     raise exceptions.InputEvaluationError(
                         "List size of '{0}' is {1} but index {2} is "
                         "retrieved.".format(
-                            _get_error_string(self.input_value[:index + 1]),
+                            _convert_attribute_list_to_python_syntax_string(
+                                self.input_value[:index + 1]),
                             len(value),
                             attr))
             else:
                 raise exceptions.FunctionEvaluationError(
                     self.name,
                     "Object {0} has no attribute {1}".format(
-                        _get_error_string(
+                        _convert_attribute_list_to_python_syntax_string(
                             self.input_value[:index + 1]), attr))
         return value
 
@@ -562,20 +572,20 @@ class GetCapability(Function):
             raise ValueError(
                 "`get_capability` function argument should be a list. Instead "
                 "it is a {0} with the value: {1}.".format(type(args), args))
-        if len(args) != 2:
+        if len(args) < 2:
             raise ValueError(
                 "`get_capability` function argument should be a list with 2 "
-                "elements - the deployment ID and the capability ID. Instead "
-                "it is: {0}".format(args)
+                "elements at least - [ deployment ID, capability ID "
+                "[, key/index[, key/index [...]]] ]. Instead it is: "
+                "{0}".format("[" + ','.join([str(a) for a in args]) + "]")
             )
-        for arg_index in (0, 1):
-            if isinstance(args[arg_index], (dict, list)):
-                str_val = 'second' if arg_index else 'first'
+        for arg_index in range(len(args)):
+            if isinstance(args[arg_index], list):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
-                    "values; only strings/ints are accepted. Instead, the "
-                    "{0} value is {1} of type {2}".format(
-                        str_val, args[arg_index], type(args[arg_index])
+                    "values; only strings/ints/dicts are accepted. Instead, "
+                    "the item with index {0} is {1} of type {2}".format(
+                        arg_index, args[arg_index], type(args[arg_index])
                     )
                 )
 
@@ -897,3 +907,50 @@ def validate_functions(plan):
 
     # Change previously replaced get_property instances with raw values
     scan.scan_service_template(plan, replace_with_raw_function, replace=True)
+
+
+def get_nested_attribute_value_of_capability(root, path):
+    value = root
+    for index, attr in enumerate(path[2:]):
+        if isinstance(value, dict):
+            if attr not in value:
+                raise exceptions.FunctionEvaluationError(
+                    "Attribute '{0}' doesn't exist in '{1}' "
+                    "in deployment '{2}'.".format(
+                        attr,
+                        _convert_attribute_list_to_python_syntax_string(
+                            path[1:index + 2]),
+                        path[0]
+                    )
+                )
+
+            value = value[attr]
+        elif isinstance(value, list):
+            try:
+                value = value[attr]
+            except TypeError:
+                raise exceptions.FunctionEvaluationError(
+                    "Item in index '{0}' in the get_capability arguments "
+                    "list '{1}' is expected to be an int "
+                    "but got {2}.".format(
+                        index + 2, path, type(attr).__name__))
+            except IndexError:
+                raise exceptions.FunctionEvaluationError(
+                    "List size of '{0}' is {1}, in "
+                    "deployment '{2}', but index {3} is "
+                    "retrieved.".format(
+                        _convert_attribute_list_to_python_syntax_string(
+                            path[1:index + 2]),
+                        len(value),
+                        path[0],
+                        attr))
+        else:
+            raise exceptions.FunctionEvaluationError(
+                "Object {0}, in capability '{1}' in deployment '{2}', "
+                "has no attribute {3}".format(
+                    _convert_attribute_list_to_python_syntax_string(
+                        path[2:index + 2]),
+                    path[1],
+                    path[0],
+                    attr))
+    return {'value': value}
