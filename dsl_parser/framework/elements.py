@@ -92,6 +92,7 @@ class Element(object):
         self._parsed_value = UNPARSED
         self._provided = None
         self.namespace = self.context.namespace
+        self.is_cloudify_type = self.context.is_cloudify_type
 
     def __str__(self):
         message = StringIO()
