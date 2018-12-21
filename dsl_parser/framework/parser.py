@@ -78,6 +78,7 @@ class Context(object):
                  element_name,
                  inputs):
         self.namespace = None
+        self.is_cloudify_type = False
         self.inputs = inputs or {}
         self.element_type_to_elements = {}
         self._root_element = None
@@ -125,18 +126,26 @@ class Context(object):
         else:
             self._root_element = element
 
+    def _init_context_variable(self, var_name, var_value, element_value):
+        if hasattr(element_value, var_name):
+            element_var_value = getattr(element_value, var_name)
+            setattr(self, var_name, element_var_value or var_value)
+        else:
+            # In case of Python primitive types.
+            setattr(self, var_name, var_value)
+
     def _traverse_element_cls(self,
                               element_cls,
                               name,
                               value,
                               parent_element,
-                              namespace=None):
+                              namespace=None,
+                              is_cloudify_type=False):
         if value:
-            if hasattr(value, 'namespace'):
-                self.namespace = value.namespace or namespace
-            else:
-                # In case of Python primitive types.
-                self.namespace = namespace
+            self._init_context_variable('namespace', namespace, value)
+            self._init_context_variable('is_cloudify_type',
+                                        is_cloudify_type,
+                                        value)
         element = element_cls(name=name,
                               initial_value=value,
                               context=self)
@@ -146,14 +155,17 @@ class Context(object):
 
     def _traverse_element(self, schema, parent_element):
         if isinstance(schema, dict):
-            self._traverse_dict_schema(schema=schema,
-                                       parent_element=parent_element,
-                                       namespace=parent_element.namespace)
+            self._traverse_dict_schema(
+                schema=schema,
+                parent_element=parent_element,
+                namespace=parent_element.namespace,
+                is_cloudify_type=parent_element.is_cloudify_type)
         elif isinstance(schema, elements.ElementType):
             self._traverse_element_type_schema(
                 schema=schema,
                 parent_element=parent_element,
-                namespace=parent_element.namespace)
+                namespace=parent_element.namespace,
+                is_cloudify_type=parent_element.is_cloudify_type)
         elif isinstance(schema, list):
             self._traverse_list_schema(schema=schema,
                                        parent_element=parent_element)
@@ -163,7 +175,8 @@ class Context(object):
             raise ValueError('Illegal state should have been identified'
                              ' by schema API validation')
 
-    def _traverse_dict_schema(self, schema, parent_element, namespace):
+    def _traverse_dict_schema(self, schema, parent_element, namespace,
+                              is_cloudify_type):
         if not isinstance(parent_element.initial_value, dict):
             return
 
@@ -179,7 +192,8 @@ class Context(object):
                                        name=name,
                                        value=value,
                                        parent_element=parent_element,
-                                       namespace=namespace)
+                                       namespace=namespace,
+                                       is_cloudify_type=is_cloudify_type)
         for k_holder, v_holder in parent_element.initial_value_holder.value.\
                 items():
             if k_holder.value not in parsed_names:
@@ -187,9 +201,11 @@ class Context(object):
                                            name=k_holder,
                                            value=v_holder,
                                            parent_element=parent_element,
-                                           namespace=namespace)
+                                           namespace=namespace,
+                                           is_cloudify_type=is_cloudify_type)
 
-    def _traverse_element_type_schema(self, schema, parent_element, namespace):
+    def _traverse_element_type_schema(self, schema, parent_element, namespace,
+                                      is_cloudify_type):
 
         def set_namespace_get_attribute_property(namespace_value, get_func):
             value = get_func[0]
@@ -254,7 +270,8 @@ class Context(object):
                 element_namespace, element_holder.value)
 
         if isinstance(schema, elements.Leaf):
-            set_leaf_namespace(namespace, parent_element)
+            if not is_cloudify_type:
+                set_leaf_namespace(namespace, parent_element)
             return
 
         element_cls = schema.type
@@ -264,14 +281,19 @@ class Context(object):
             for name_holder, value_holder in parent_element.\
                     initial_value_holder.value.items():
                 current_namespace = value_holder.namespace or namespace
+                current_is_cloudify_type = (value_holder.is_cloudify_type or
+                                            is_cloudify_type)
                 if (parent_element.add_namespace_to_schema_elements and
-                        not value_holder.only_children_namespace):
+                        not value_holder.only_children_namespace and
+                        not current_is_cloudify_type):
                     set_element_namespace(current_namespace, name_holder)
-                self._traverse_element_cls(element_cls=element_cls,
-                                           name=name_holder,
-                                           value=value_holder,
-                                           parent_element=parent_element,
-                                           namespace=current_namespace)
+                self._traverse_element_cls(
+                    element_cls=element_cls,
+                    name=name_holder,
+                    value=value_holder,
+                    parent_element=parent_element,
+                    namespace=current_namespace,
+                    is_cloudify_type=current_is_cloudify_type)
         elif isinstance(schema, elements.List):
             if not isinstance(parent_element.initial_value, list):
                 return
@@ -281,7 +303,8 @@ class Context(object):
                                            name=index,
                                            value=value_holder,
                                            parent_element=parent_element,
-                                           namespace=namespace)
+                                           namespace=namespace,
+                                           is_cloudify_type=is_cloudify_type)
         else:
             raise ValueError('Illegal state should have been identified'
                              ' by schema API validation')
