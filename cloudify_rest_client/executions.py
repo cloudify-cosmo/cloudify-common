@@ -27,6 +27,7 @@ class Execution(dict):
     FORCE_CANCELLING = 'force_cancelling'
     KILL_CANCELLING = 'kill_cancelling'
     QUEUED = 'queued'
+    SCHEDULED = 'scheduled'
     END_STATES = [TERMINATED, FAILED, CANCELLED]
 
     def __init__(self, execution):
@@ -199,7 +200,7 @@ class ExecutionsClient(object):
 
     def start(self, deployment_id, workflow_id, parameters=None,
               allow_custom_parameters=False, force=False, dry_run=False,
-              queue=False, wait_after_fail=600):
+              queue=False, schedule=None, wait_after_fail=600):
         """Starts a deployment's workflow execution whose id is provided.
 
         :param deployment_id: The deployment's id to execute a workflow for.
@@ -215,6 +216,9 @@ class ExecutionsClient(object):
         This is a dry run of the execution
         :param queue: If set, blocked executions will be queued and
         automatically run when possible
+        :param schedule: A string representing the date and time this
+        workflow should be executed at. If not passed this workflow will be
+        executed immediately.
 
         :raises: IllegalExecutionParametersError
         :return: The created execution.
@@ -229,6 +233,7 @@ class ExecutionsClient(object):
             'force': str(force).lower(),
             'dry_run': str(dry_run).lower(),
             'queue': str(queue).lower(),
+            'scheduled_time': schedule,
             'wait_after_fail': wait_after_fail
         }
         uri = '/executions'

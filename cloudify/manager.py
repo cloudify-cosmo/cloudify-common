@@ -120,9 +120,11 @@ class NodeInstance(object):
         return self._relationships
 
 
-def get_rest_client(tenant=None):
+def get_rest_client(tenant=None, api_token=None):
     """
     :param tenant: optional tenant name to connect as
+    :param api_token: optional api_token to authenticate with (instead of
+            using REST token)
     :returns: A REST client configured to connect to the manager in context
     :rtype: cloudify_rest_client.CloudifyClient
     """
@@ -140,12 +142,19 @@ def get_rest_client(tenant=None):
     if utils.get_is_bypass_maintenance():
         headers['X-BYPASS-MAINTENANCE'] = 'True'
 
+    if api_token:
+        headers[constants.CLOUDIFY_API_AUTH_TOKEN_HEADER] = api_token
+        # If api_token was provided no need to use REST token
+        token = None
+    else:
+        token = utils.get_rest_token()
+
     return client_class(
         headers=headers,
         host=utils.get_manager_rest_service_host(),
         port=utils.get_manager_rest_service_port(),
         tenant=tenant,
-        token=utils.get_rest_token(),
+        token=token,
         protocol=constants.SECURED_PROTOCOL,
         cert=utils.get_local_rest_certificate(),
         kerberos_env=utils.get_kerberos_indication(
