@@ -240,34 +240,56 @@ class Context(object):
                             handle_intrinsic_function_namespace(v[i])
             return element
 
-        def should_add_leaf_namespace(element):
-            return (isinstance(element._initial_value, basestring) and
-                    element._initial_value not in
-                    constants.USER_PRIMITIVE_TYPES and
-                    element.add_namespace_to_schema_elements and
-                    not utils.check_if_cloudify_type(element._initial_value))
+        def should_add_namespace_to_string_leaf(element):
+            return \
+                (isinstance(element._initial_value, basestring) and
+                 element._initial_value not in
+                 constants.USER_PRIMITIVE_TYPES and
+                 element.add_namespace_to_schema_elements and
+                 not utils.check_if_cloudify_type(element._initial_value) and
+                 not hasattr(element.initial_value_holder, 'skip_namespace'))
 
         def set_leaf_namespace(leaf_namespace, element):
+            """
+            Will update, if necessary, leaf element namespace.
+            Also will update it's holder, for also resolving the namespace
+            in the holder object.
+            """
             if not leaf_namespace:
                 return
-            if should_add_leaf_namespace(element):
-                element._initial_value = utils.generate_namespaced_value(
+            if should_add_namespace_to_string_leaf(element):
+                namespaced_value = utils.generate_namespaced_value(
                         leaf_namespace, element._initial_value)
+                element._initial_value = namespaced_value
+                element.initial_value_holder.value = namespaced_value
+
+                # We need to use this flag, only for yaml level linking.
+                element.initial_value_holder.skip_namespace = True
             elif isinstance(element._initial_value, dict):
+                element.initial_value_holder.value = \
+                    handle_intrinsic_function_namespace(
+                        element.initial_value_holder.value)
                 element._initial_value = \
                     handle_intrinsic_function_namespace(element._initial_value)
 
-        def should_add_element_namespace(element_value):
+                # We need to use this flag, only for yaml level linking.
+                element.initial_value_holder.skip_namespace = True
+
+        def should_add_element_namespace(element_holder):
             # Preventing of adding namespace prefix to cloudify
             # basic types.
-            return not utils.check_if_cloudify_type(element_value)
+            return (not utils.check_if_cloudify_type(element_holder.value) and
+                    not hasattr(element_holder, 'skip_namespace'))
 
         def set_element_namespace(element_namespace, element_holder):
             if (not element_namespace or
-                    not should_add_element_namespace(element_holder.value)):
+                    not should_add_element_namespace(element_holder)):
                 return
             element_holder.value = utils.generate_namespaced_value(
                 element_namespace, element_holder.value)
+
+            # We need to use this flag, only for yaml level linking.
+            element_holder.skip_namespace = True
 
         if isinstance(schema, elements.Leaf):
             if not is_cloudify_type:
