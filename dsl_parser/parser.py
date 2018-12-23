@@ -27,24 +27,41 @@ def parse_from_path(dsl_file_path,
                     additional_resource_sources=()):
     with open(dsl_file_path, 'r') as f:
         dsl_string = f.read()
-    return _parse(dsl_string,
-                  resources_base_path=resources_base_path,
-                  dsl_location=dsl_file_path,
-                  resolver=resolver,
-                  validate_version=validate_version,
-                  additional_resource_sources=additional_resource_sources)
+    plan, _ = _parse(dsl_string,
+                     resources_base_path=resources_base_path,
+                     dsl_location=dsl_file_path,
+                     resolver=resolver,
+                     validate_version=validate_version,
+                     additional_resource_sources=additional_resource_sources)
+    return plan
 
 
 def parse(dsl_string,
           resources_base_path=None,
           dsl_location=None,
           resolver=None,
-          validate_version=True):
-    return _parse(dsl_string,
-                  resources_base_path=resources_base_path,
-                  dsl_location=dsl_location,
-                  resolver=resolver,
-                  validate_version=validate_version)
+          validate_version=True,
+          validate_intrinsic_function=True):
+    plan, _ = _parse(dsl_string,
+                     resources_base_path=resources_base_path,
+                     dsl_location=dsl_location,
+                     resolver=resolver,
+                     validate_version=validate_version,
+                     validate_intrinsic_function=validate_intrinsic_function)
+    return plan
+
+
+def parse_from_import_blueprint(dsl_string,
+                                resources_base_path,
+                                dsl_location,
+                                resolver):
+    _, resolved_blueprint = _parse(dsl_string,
+                                   resources_base_path=resources_base_path,
+                                   dsl_location=dsl_location,
+                                   resolver=resolver,
+                                   validate_version=False,
+                                   validate_intrinsic_function=False)
+    return resolved_blueprint
 
 
 def _parse(dsl_string,
@@ -52,10 +69,11 @@ def _parse(dsl_string,
            dsl_location=None,
            resolver=None,
            validate_version=True,
+           validate_intrinsic_function=True,
            additional_resource_sources=()):
     resource_base, merged_blueprint_holder =\
-        resolve_blueprint_imports(dsl_location, dsl_string, resolver,
-                                  resources_base_path, validate_version)
+        _resolve_blueprint_imports(dsl_location, dsl_string, resolver,
+                                   resources_base_path, validate_version)
     resource_base = [resource_base]
     if additional_resource_sources:
         resource_base.extend(additional_resource_sources)
@@ -69,18 +87,19 @@ def _parse(dsl_string,
         },
         element_cls=blueprint.Blueprint)
 
-    functions.validate_functions(plan)
-    return plan
+    if validate_intrinsic_function:
+        functions.validate_functions(plan)
+    return plan, merged_blueprint_holder
 
 
-def resolve_blueprint_imports(dsl_location,
-                              dsl_string,
-                              resolver,
-                              resources_base_path,
-                              validate_version):
+def _resolve_blueprint_imports(dsl_location,
+                               dsl_string,
+                               resolver,
+                               resources_base_path,
+                               validate_version):
     """
     Goes over all the blueprint's imports and constructs a merged blueprint
-    containing from them.
+    from them.
     """
     parsed_dsl_holder = utils.load_yaml(raw_yaml=dsl_string,
                                         error_message='Failed to parse DSL',

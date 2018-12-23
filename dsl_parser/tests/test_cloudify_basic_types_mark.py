@@ -15,7 +15,7 @@
 
 from dsl_parser import constants
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
-from dsl_parser.parser import resolve_blueprint_imports
+from dsl_parser.parser import parse_from_import_blueprint
 from dsl_parser.import_resolver.default_import_resolver import \
     DefaultImportResolver
 
@@ -33,12 +33,11 @@ node_types:
         default: value
 """
         resolver = DefaultImportResolver()
-        _, merged_blueprint = resolve_blueprint_imports(
+        merged_blueprint = parse_from_import_blueprint(
             dsl_location=None,
             dsl_string=main_yaml,
             resolver=resolver,
-            resources_base_path=None,
-            validate_version=True)
+            resources_base_path=None)
         _, node_types = merged_blueprint.get_item(constants.NODE_TYPES)
         _, root_type = node_types.get_item('cloudify.nodes.Root')
         _, test_type = node_types.get_item('test_type')

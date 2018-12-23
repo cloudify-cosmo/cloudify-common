@@ -209,16 +209,13 @@ def process_operation(
         partial_error_message,
         resource_bases,
         is_workflows=False):
-    def _remove_mapping_namespace(operation_location):
-        """
-        Removing the namespace prefix from mapping string,
-        in case of operation with a script for checking
-        the existence of that script's file.
-        """
-        return utils.remove_value_namespace(operation_location)
 
     def _resource_exists(location_bases, resource_name):
-        resource_name = _remove_mapping_namespace(resource_name)
+        # Removing the namespace prefix from mapping string,
+        # in case of operation with a script for checking
+        # the existence of that script's file.
+        resource_name = utils.remove_namespace(resource_name)
+
         return any(utils.url_exists('{0}/{1}'.format(base, resource_name))
                    for base in location_bases if base)
 

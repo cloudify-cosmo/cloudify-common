@@ -328,7 +328,7 @@ def find_namespace_location(value):
     return value.find(NAMESPACE_DELIMITER)
 
 
-def remove_value_namespace(value):
+def remove_namespace(value):
     value_namespace_format = '.*{0}'.format(NAMESPACE_DELIMITER)
     return re.sub(value_namespace_format, '', value)
 
