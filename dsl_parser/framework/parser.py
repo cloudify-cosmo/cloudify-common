@@ -22,6 +22,11 @@ from dsl_parser import (exceptions,
                         utils)
 from dsl_parser.framework.requirements import Requirement
 
+# Will mark elements that are being parsed, that there is no need to
+# add namespace to them. This is used in case of shared elements
+# across the blueprint.
+SKIP_NAMESPACE_FLAG = 'skip_namespace'
+
 
 class SchemaAPIValidator(object):
 
@@ -90,6 +95,16 @@ class Context(object):
                                    parent_element=None,
                                    namespace=self.namespace)
         self._calculate_element_graph()
+        self._remove_skip_namespace_flag()
+
+    def _remove_skip_namespace_flag(self):
+        """
+        Removing this flag, so it will not interfere with future parsing
+        actions like being parsed from import blueprint.
+        """
+        for element in self._element_tree:
+            if hasattr(element.initial_value_holder, SKIP_NAMESPACE_FLAG):
+                delattr(element.initial_value_holder, SKIP_NAMESPACE_FLAG)
 
     @property
     def parsed_value(self):
@@ -247,7 +262,8 @@ class Context(object):
                  constants.USER_PRIMITIVE_TYPES and
                  element.add_namespace_to_schema_elements and
                  not utils.check_if_cloudify_type(element._initial_value) and
-                 not hasattr(element.initial_value_holder, 'skip_namespace'))
+                 not hasattr(element.initial_value_holder,
+                             SKIP_NAMESPACE_FLAG))
 
         def set_leaf_namespace(leaf_namespace, element):
             """
@@ -279,7 +295,7 @@ class Context(object):
             # Preventing of adding namespace prefix to cloudify
             # basic types.
             return (not utils.check_if_cloudify_type(element_holder.value) and
-                    not hasattr(element_holder, 'skip_namespace'))
+                    not hasattr(element_holder, SKIP_NAMESPACE_FLAG))
 
         def set_element_namespace(element_namespace, element_holder):
             if (not element_namespace or
