@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from dsl_parser import constants
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.exceptions import (MissingRequiredInputError,
                                    UnknownInputError,
@@ -24,10 +25,9 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 class TestInputs(AbstractTestParser):
 
-    def test_inputs_definition(self):
+    def test_empty_inputs(self):
         yaml = """
 inputs: {}
-node_templates: {}
 """
         parsed = self.parse(yaml)
         self.assertEqual(0, len(parsed['inputs']))
@@ -45,20 +45,25 @@ node_templates: {}
         self.assertEqual(8080, parsed['inputs']['port']['default'])
         self.assertEqual('the port', parsed['inputs']['port']['description'])
 
-    def test_two_inputs(self):
+    def test_inputs_definition(self):
         yaml = """
 inputs:
     port:
         description: the port
         default: 8080
+    port2:
+        default: 9090
     ip: {}
 node_templates: {}
 """
         parsed = self.parse(yaml)
-        self.assertEqual(2, len(parsed['inputs']))
-        self.assertEqual(8080, parsed['inputs']['port']['default'])
-        self.assertEqual('the port', parsed['inputs']['port']['description'])
-        self.assertEqual(0, len(parsed['inputs']['ip']))
+        inputs = parsed[constants.INPUTS]
+        self.assertEqual(3, len(inputs))
+        self.assertEqual(8080, inputs['port']['default'])
+        self.assertEqual('the port', inputs['port']['description'])
+        self.assertEqual(9090, inputs['port2']['default'])
+        self.assertNotIn('description', inputs['port2'])
+        self.assertEqual(0, len(inputs['ip']))
 
     def test_verify_get_input_in_properties(self):
         yaml = """
