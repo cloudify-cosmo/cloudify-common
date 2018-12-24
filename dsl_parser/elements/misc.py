@@ -18,6 +18,7 @@ from dsl_parser.elements import (
     data_types,
     version as element_version)
 from dsl_parser.framework.elements import (DictElement,
+                                           DictNoDefaultElement,
                                            Element,
                                            Leaf,
                                            List,
@@ -36,7 +37,7 @@ class OutputValue(Element):
     schema = Leaf(type=elements.PRIMITIVE_TYPES)
 
 
-class Output(DictElement):
+class Output(DictNoDefaultElement):
 
     schema = {
         'description': OutputDescription,
@@ -61,7 +62,7 @@ class CapabilityValue(Element):
     schema = Leaf(type=elements.PRIMITIVE_TYPES)
 
 
-class Capability(DictElement):
+class Capability(DictNoDefaultElement):
 
     schema = {
         'description': CapabilityDescription,

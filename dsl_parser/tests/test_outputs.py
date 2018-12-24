@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,7 +46,6 @@ outputs:
         description: p3
         value: []
     port4:
-        description: p4
         value: false
 """
         parsed = self.parse(yaml)
@@ -60,7 +59,7 @@ outputs:
         self.assertEqual({}, outputs['port2']['value'])
         self.assertEqual('p3', outputs['port3']['description'])
         self.assertEqual([], outputs['port3']['value'])
-        self.assertEqual('p4', outputs['port4']['description'])
+        self.assertNotIn('description', outputs['port4'])
         self.assertFalse(outputs['port4']['value'])
         prepared = prepare_deployment_plan(parsed)
         self.assertEqual(parsed['outputs'], prepared['outputs'])

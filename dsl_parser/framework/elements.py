@@ -190,9 +190,10 @@ class Element(object):
                 "Multiple matches found for '{0}'".format(element_type))
         return matches[0]
 
-    def build_dict_result(self):
+    def build_dict_result(self, with_default=True):
         return dict((child.name, child.value)
-                    for child in self.context.child_elements_iter(self))
+                    for child in self.context.child_elements_iter(self)
+                    if with_default or child.defined)
 
     def children(self):
         return list(self.context.child_elements_iter(self))
@@ -214,8 +215,16 @@ class Element(object):
 
 class DictElement(Element):
 
+    # If turned off will not initialize undefined fields
+    # by user.
+    with_default = True
+
     def parse(self, **kwargs):
-        return self.build_dict_result()
+        return self.build_dict_result(self.with_default)
+
+
+class DictNoDefaultElement(DictElement):
+    with_default = False
 
 
 class UnknownSchema(object):
