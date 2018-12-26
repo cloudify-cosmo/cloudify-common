@@ -43,13 +43,13 @@ capabilities:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         capabilities = parsed_yaml[constants.CAPABILITIES]
         self.assertEqual(1, len(capabilities))
         self._assert_capability(
-            capability=capabilities['test->port'],
+            capability=capabilities['test--port'],
             description=self.default_capability_description,
             value=self.default_capability_value
         )
@@ -60,20 +60,20 @@ imports:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
-    -   {2}->{1}
+    -   {0}--{1}
+    -   {2}--{1}
 """.format('test', import_file_name, 'other_test')
 
         parsed_yaml = self.parse_1_3(main_yaml)
         capabilities = parsed_yaml[constants.CAPABILITIES]
         self.assertEqual(2, len(capabilities))
         self._assert_capability(
-            capability=capabilities['test->port'],
+            capability=capabilities['test--port'],
             description=self.default_capability_description,
             value=self.default_capability_value
         )
         self._assert_capability(
-            capability=capabilities['other_test->port'],
+            capability=capabilities['other_test--port'],
             description=self.default_capability_description,
             value=self.default_capability_value
         )
@@ -83,13 +83,13 @@ imports:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = self._basic_capability('two', 2) + """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         capabilities = parsed_yaml[constants.CAPABILITIES]
         self.assertEqual(2, len(capabilities))
         self._assert_capability(
-            capability=capabilities['test->port'],
+            capability=capabilities['test--port'],
             description='one',
             value=1
         )
@@ -104,23 +104,23 @@ imports:
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = self._basic_capability('two', 2) + """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 """.format('test1', layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = self._basic_capability('three', 3) + """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 """.format('test', layer2_import_path)
         parsed_yaml = self.parse_1_3(main_yaml)
         capabilities = parsed_yaml[constants.CAPABILITIES]
         self.assertEqual(3, len(capabilities))
         self._assert_capability(
-            capability=capabilities['test->test1->port'],
+            capability=capabilities['test--test1--port'],
             description='one',
             value=1
         )
         self._assert_capability(
-            capability=capabilities['test->port'],
+            capability=capabilities['test--port'],
             description='two',
             value=2
         )
@@ -135,13 +135,13 @@ imports:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = self._basic_capability('two', 2, 'port2') + """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         capabilities = parsed_yaml[constants.CAPABILITIES]
         self.assertEqual(2, len(capabilities))
         self._assert_capability(
-            capability=capabilities['test->port'],
+            capability=capabilities['test--port'],
             description='one',
             value=1
         )

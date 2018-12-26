@@ -28,7 +28,7 @@ inputs:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{0}->{1}
+    -   {0}--{0}--{1}
 """.format('test', import_file_name)
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse,
@@ -37,7 +37,7 @@ imports:
     def test_namespace_delimiter_can_be_used_with_no_import_related(self):
         imported_yaml = """
 inputs:
-    ->port:
+    --port:
         default: 8080
 """
         import_file_name = self.make_yaml_file(imported_yaml)
@@ -50,7 +50,7 @@ imports:
         self.assertEqual(1, len(parsed_yaml[constants.INPUTS]))
         self.assertEqual(
             8080,
-            parsed_yaml[constants.INPUTS]['->port']['default'])
+            parsed_yaml[constants.INPUTS]['--port']['default'])
 
     def test_mixing_regular_import_with_namespace_import(self):
         basic_input = """
@@ -67,19 +67,19 @@ imports:
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = """
 imports:
-  - {0}->{1}
-  - {2}->{1}
+  - {0}--{1}
+  - {2}--{1}
 """.format('test', layer2_import_path, 'other_test')
         parsed_yaml = self.parse_1_3(main_yaml)
         inputs = parsed_yaml[constants.INPUTS]
         self.assertEqual(2, len(inputs))
-        self.assertIn('test->port', inputs)
-        self.assertIn('other_test->port', inputs)
+        self.assertIn('test--port', inputs)
+        self.assertIn('other_test--port', inputs)
 
     def test_namespace_on_cloudify_basic_types(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   test->http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    -   test--http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
 """
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse, yaml)
@@ -92,7 +92,7 @@ imports:
         layer1_import_path = self.make_yaml_file(layer1)
         main_yaml = """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 """.format('test', layer1_import_path)
         parsed_yaml = self.parse_1_3(main_yaml)
         workflows = parsed_yaml[constants.WORKFLOWS]
@@ -101,12 +101,12 @@ imports:
     def test_namespace_on_cloudify_types_from_imported(self):
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   test->http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    -   test--http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
 """
         layer1_import_path = self.make_yaml_file(layer1)
         main_yaml = """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 """.format('test', layer1_import_path)
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse, main_yaml)

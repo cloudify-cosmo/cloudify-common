@@ -89,7 +89,7 @@ UNBOUNDED = -1
 
 SCALING_GROUPS = 'scaling_groups'
 
-NAMESPACE_DELIMITER = '->'
+NAMESPACE_DELIMITER = '--'
 CLOUDIFY_TYPE_PREFIX = 'cloudify.'
 BLUEPRINT_IMPORT = 'blueprint:'
 

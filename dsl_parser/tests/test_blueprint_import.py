@@ -73,13 +73,13 @@ imports:
         layer2 = """
 imports:
   - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
-  - {0}->{1}
+  - {0}--{1}
 """.format('test1', layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = """
 imports:
   - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
-  - {0}->{1}
+  - {0}--{1}
 """.format('test', layer2_import_path)
         parsed_yaml = self.parse_1_3(main_yaml)
         imported_blueprints = parsed_yaml[constants.IMPORTED_BLUEPRINTS]
@@ -89,7 +89,7 @@ imports:
         resolver = ResolverWithBlueprintSupport(self.basic_blueprint)
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   ns->blueprint:test
+    -   ns--blueprint:test
 """
         parsed_yaml = self.parse(yaml, resolver=resolver)
         imported_blueprints = parsed_yaml[constants.IMPORTED_BLUEPRINTS]
@@ -103,20 +103,20 @@ imports:
             ResolverWithBlueprintSupport(self.blueprint_with_blueprint_import)
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - ns->blueprint:test
+  - ns--blueprint:test
 """
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
   - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
-  - {0}->{1}
-  - ns->blueprint:another_test
+  - {0}--{1}
+  - ns--blueprint:another_test
 """.format('test1', layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
   - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
-  - {0}->{1}
+  - {0}--{1}
 """.format('test', layer2_import_path)
         parsed_yaml = self.parse(main_yaml, resolver=resolver)
         imported_blueprints = parsed_yaml[constants.IMPORTED_BLUEPRINTS]
@@ -146,30 +146,30 @@ namespaces_mapping:
         resolver = ResolverWithBlueprintSupport(self.blueprint_imported)
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - namespace->blueprint:test
+  - namespace--blueprint:test
 """
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - {0}->{1}
-  - namespace->blueprint:test
+  - {0}--{1}
+  - namespace--blueprint:test
 """.format('test1', layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - {0}->{1}
-  - {2}->{1}
+  - {0}--{1}
+  - {2}--{1}
 """.format('test', layer2_import_path, 'other_test')
         parsed_yaml = self.parse(main_yaml, resolver=resolver)
         namespaces_mapping = parsed_yaml[constants.NAMESPACES_MAPPING]
-        self.assertItemsEqual({'other_test->test1->namespace': 'test',
-                               'test->test1->namespace': 'test',
-                               'other_test->test1->namespace->ns': 'blueprint',
-                               'test->test1->namespace->ns': 'blueprint',
-                               'other_test->namespace->ns': 'blueprint',
-                               'test->namespace': 'blueprint',
-                               'other_test->namespace': 'blueprint',
-                               'test->namespace->ns': 'blueprint'
+        self.assertItemsEqual({'other_test--test1--namespace': 'test',
+                               'test--test1--namespace': 'test',
+                               'other_test--test1--namespace--ns': 'blueprint',
+                               'test--test1--namespace--ns': 'blueprint',
+                               'other_test--namespace--ns': 'blueprint',
+                               'test--namespace': 'blueprint',
+                               'other_test--namespace': 'blueprint',
+                               'test--namespace--ns': 'blueprint'
                                },
                               namespaces_mapping)
 
@@ -177,8 +177,8 @@ imports:
         resolver = ResolverWithBlueprintSupport(self.blueprint_imported)
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   same->blueprint:test
-    -   same->blueprint:other
+    -   same--blueprint:test
+    -   same--blueprint:other
 """
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse, yaml, resolver=resolver)
