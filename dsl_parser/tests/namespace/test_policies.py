@@ -61,12 +61,12 @@ policies:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
-        policy = parsed_yaml[constants.POLICIES]['test->policy']
+        policy = parsed_yaml[constants.POLICIES]['test--policy']
         self._assert_policy(policy,
-                            targets=['test->group'],
+                            targets=['test--group'],
                             policy_type='cloudify.policies.scaling',
                             min_instances=1,
                             max_instances=10,
@@ -80,19 +80,19 @@ imports:
         top_file_name = self.make_yaml_file(self.basic_blueprint)
         middle_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('middle_test', top_file_name)
         middle_file_name = self.make_yaml_file(middle_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', middle_file_name)
         parsed_yaml = self.parse(main_yaml)
-        policy = parsed_yaml[constants.POLICIES]['test->middle_test->policy']
+        policy = parsed_yaml[constants.POLICIES]['test--middle_test--policy']
         self._assert_policy(
             policy,
-            targets=['test->middle_test->group'],
+            targets=['test--middle_test--group'],
             policy_type='cloudify.policies.scaling',
             min_instances=1,
             max_instances=10,
@@ -132,11 +132,11 @@ policy_triggers:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
-                                    'test->trigger',
+                                    'test--trigger',
                                     'source',
                                     'param1',
                                     'the description')
@@ -147,17 +147,17 @@ imports:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
-    -   {2}->{1}
+    -   {0}--{1}
+    -   {2}--{1}
 """.format('test', import_file_name, 'other_test')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
-                                    'test->trigger',
+                                    'test--trigger',
                                     'source',
                                     'param1',
                                     'the description')
         self._assert_policy_trigger(parsed_yaml,
-                                    'other_test->trigger',
+                                    'other_test--trigger',
                                     'source',
                                     'param1',
                                     'the description')
@@ -168,11 +168,11 @@ imports:
 
         main_yaml = """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name) + self._basic_policy_trigger('source2')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
-                                    'test->trigger',
+                                    'test--trigger',
                                     'source',
                                     'param1',
                                     'the description')
@@ -188,12 +188,12 @@ imports:
 
         main_yaml = """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name) +\
             self._basic_policy_trigger('source2', 'trigger2')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_trigger(parsed_yaml,
-                                    'test->trigger',
+                                    'test--trigger',
                                     'source',
                                     'param1',
                                     'the description')
@@ -237,11 +237,11 @@ policy_types:
 
         main_yaml = """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
-                                 'test->type',
+                                 'test--type',
                                  'source',
                                  'param1',
                                  'the description')
@@ -252,17 +252,17 @@ imports:
 
         main_yaml = """
 imports:
-    -   {0}->{1}
-    -   {2}->{1}
+    -   {0}--{1}
+    -   {2}--{1}
 """.format('test', import_file_name, 'other_test')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
-                                 'test->type',
+                                 'test--type',
                                  'source',
                                  'param1',
                                  'the description')
         self._assert_policy_type(parsed_yaml,
-                                 'other_test->type',
+                                 'other_test--type',
                                  'source',
                                  'param1',
                                  'the description')
@@ -273,11 +273,11 @@ imports:
 
         main_yaml = """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name) + self._basic_policy_type('source2')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
-                                 'test->type',
+                                 'test--type',
                                  'source',
                                  'param1',
                                  'the description')
@@ -293,12 +293,12 @@ imports:
 
         main_yaml = """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name) +\
             self._basic_policy_type('source2', 'type2')
         parsed_yaml = self.parse(main_yaml)
         self._assert_policy_type(parsed_yaml,
-                                 'test->type',
+                                 'test--type',
                                  'source',
                                  'param1',
                                  'the description')

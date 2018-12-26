@@ -29,13 +29,13 @@ class TestDetailNodeTemplateNamespaceImport(AbstractTestParser):
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self.assertEquals(1, len(parsed_yaml[constants.NODES]))
         node = parsed_yaml[constants.NODES][0]
-        self.assertEquals('test->test_node', node['id'])
-        self.assertEquals('test->test_type', node['type'])
+        self.assertEquals('test--test_node', node['id'])
+        self.assertEquals('test--test_type', node['type'])
         self.assertEquals('val', node[constants.PROPERTIES]['key'])
         self.assertEquals(2, node['instances']['deploy'])
 
@@ -85,13 +85,13 @@ node_templates:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
 imports:
-- {0}->{1}
+- {0}--{1}
 """.format('test', import_file_name)
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')
         result = self.parse_from_path(main_yaml_path)
         node = [n for n in result[constants.NODES]
-                if n['name'] == 'test->node1'][0]
+                if n['name'] == 'test--node1'][0]
         relationship = node['relationships'][0]
 
         operation = node['operations']['test.op']
@@ -100,11 +100,11 @@ imports:
         target_operation = relationship['target_operations']['test.op']
 
         def assert_operation(op, extra_properties=False):
-            inputs = {'script_path': 'test->stub.py'}
+            inputs = {'script_path': 'test--stub.py'}
             if extra_properties:
                 inputs.update({'key': 'value'})
             self.assertEqual(op, op_struct(
-                plugin_name='{0}->{1}'.format('test',
+                plugin_name='{0}--{1}'.format('test',
                                               constants.SCRIPT_PLUGIN_NAME),
                 mapping=constants.SCRIPT_PLUGIN_RUN_TASK,
                 inputs=inputs,
@@ -133,7 +133,7 @@ class TestNamespacedMultiInstance(scaling.BaseTestMultiInstance):
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
 
         multi_plan = self.parse_multi(main_yaml)

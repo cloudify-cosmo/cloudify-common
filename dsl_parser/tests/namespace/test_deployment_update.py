@@ -58,7 +58,7 @@ node_templates:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
 
         plan = self.parse_multi(main_yaml)
@@ -72,7 +72,7 @@ imports:
             'max_number_of_instances': 1,
             'relationships': [
                 {'type': 'cloudify.relationships.connected_to',
-                 'target_id': 'test->without_rel',
+                 'target_id': 'test--without_rel',
                  'type_hierarchy': ['cloudify.relationships.connected_to'],
                  'properties': {
                      'connection_type': 'all_to_all'
@@ -105,17 +105,17 @@ imports:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
 
         plan = self.parse_multi(main_yaml)
         nodes = copy.deepcopy(
-            [n for n in plan[NODES] if n['id'] != 'test->without_rel'])
+            [n for n in plan[NODES] if n['id'] != 'test--without_rel'])
         with_rel_node = nodes[0]
         with_rel_node[RELATIONSHIPS] = \
             [r for r in
              with_rel_node[RELATIONSHIPS]
-             if r['target_id'] != 'test->without_rel']
+             if r['target_id'] != 'test--without_rel']
         node_instances = self.modify_multi(plan, modified_nodes=nodes)
 
         self.assertEqual(len(node_instances[ADDED_AND_RELATED]), 0)
@@ -136,16 +136,16 @@ imports:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
 
         plan = self.parse_multi(main_yaml)
 
         rel_type = 'cloudify.relationships.connected_to'
         with_rel = [n for n in plan[NODES]
-                    if n['id'] == 'test->with_rel'][0]
+                    if n['id'] == 'test--with_rel'][0]
         without_rel = [n for n in plan[NODES]
-                       if n['id'] == 'test->without_rel'][0]
+                       if n['id'] == 'test--without_rel'][0]
         with_rel[RELATIONSHIPS] = \
             [{'type': rel_type,
               'type_hierarchy': [rel_type],
@@ -184,13 +184,13 @@ imports:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
 
         plan = self.parse_multi(main_yaml)
 
         nodes = copy.deepcopy(plan[NODES])
-        node_with_rel = [n for n in nodes if n['id'] == 'test->with_rel'][0]
+        node_with_rel = [n for n in nodes if n['id'] == 'test--with_rel'][0]
         node_with_rel[RELATIONSHIPS] = []
 
         node_instances = self.modify_multi(plan, modified_nodes=nodes)

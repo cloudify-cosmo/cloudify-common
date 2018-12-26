@@ -20,7 +20,7 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 class TestNotLegalNamespaces(AbstractTestParser):
 
     def test_not_legal(self):
-        bad_namespace = ['->test', 'te->st', 'test->', '->']
+        bad_namespace = ['--test', 'te--st', 'test--', '--']
         for namespace in bad_namespace:
             imported_yaml = """
 inputs:
@@ -32,7 +32,7 @@ inputs:
 
             main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format(namespace, import_file_name)
             self.assertRaises(exceptions.DSLParsingLogicException,
                               self.parse, main_yaml)

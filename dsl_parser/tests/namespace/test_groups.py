@@ -36,56 +36,56 @@ groups:
     def test_groups_definition(self):
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', self.import_file_name)
         parsed_yaml = self.parse(main_yaml)
         groups = parsed_yaml[constants.GROUPS]
-        self.assertEqual(groups['test->group']['members'],
-                         ['test->node1'])
+        self.assertEqual(groups['test--group']['members'],
+                         ['test--node1'])
 
     def test_basic_namespace_multi_import(self):
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
-    -   {2}->{1}
+    -   {0}--{1}
+    -   {2}--{1}
 """.format('test', self.import_file_name, 'other_test')
 
         parsed_yaml = self.parse(main_yaml)
         groups = parsed_yaml[constants.GROUPS]
         self.assertEqual(2, len(groups))
-        self.assertEqual(groups['test->group']['members'],
-                         ['test->node1'])
-        self.assertEqual(groups['other_test->group']['members'],
-                         ['other_test->node1'])
+        self.assertEqual(groups['test--group']['members'],
+                         ['test--node1'])
+        self.assertEqual(groups['other_test--group']['members'],
+                         ['other_test--node1'])
 
     def test_group_collision(self):
         main_yaml = """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 groups:
     group:
-        members: ["test->node1"]
+        members: ["test--node1"]
 """.format('test', self.import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         groups = parsed_yaml[constants.GROUPS]
         self.assertEqual(2, len(groups))
-        self.assertEqual(groups['test->group']['members'],
-                         ['test->node1'])
+        self.assertEqual(groups['test--group']['members'],
+                         ['test--node1'])
         self.assertEqual(groups['group']['members'],
-                         ['test->node1'])
+                         ['test--node1'])
 
     def test_groups_merging_with_no_collision(self):
         main_yaml = """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 groups:
     group2:
-        members: ["test->node1"]
+        members: ["test--node1"]
 """.format('test', self.import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         groups = parsed_yaml[constants.GROUPS]
         self.assertEqual(2, len(groups))
-        self.assertEqual(groups['test->group']['members'],
-                         ['test->node1'])
+        self.assertEqual(groups['test--group']['members'],
+                         ['test--node1'])
         self.assertEqual(groups['group2']['members'],
-                         ['test->node1'])
+                         ['test--node1'])

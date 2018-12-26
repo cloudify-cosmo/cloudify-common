@@ -63,14 +63,14 @@ relationships:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
-                             ['test->test_relationship'])
-        self.assertEquals('test->test_relationship', test_relationship['name'])
+                             ['test--test_relationship'])
+        self.assertEquals('test--test_relationship', test_relationship['name'])
         self.assertEquals(test_relationship[constants.TYPE_HIERARCHY],
-                          ['test->empty_rel', 'test->test_relationship'])
+                          ['test--empty_rel', 'test--test_relationship'])
         result_test_interface_3 = \
             (test_relationship[interfaces_const.SOURCE_INTERFACES]
              ['test_interface3'])
@@ -80,7 +80,7 @@ imports:
             (test_relationship[interfaces_const.TARGET_INTERFACES]
              ['test_interface4'])
         self.assertEquals(
-            operation_mapping(implementation='test->test_plugin.task_name',
+            operation_mapping(implementation='test--test_plugin.task_name',
                               inputs={'key':
                                       {'default': 'value',
                                        'type': 'string'}},
@@ -89,7 +89,7 @@ imports:
                               retry_interval=6),
             result_test_interface_4['test_interface4_op1'])
         self.assertEquals(
-            operation_mapping(implementation='test->test_plugin.task_name',
+            operation_mapping(implementation='test--test_plugin.task_name',
                               inputs={},
                               executor=None,
                               max_retries=None,
@@ -121,15 +121,15 @@ relationships:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}->{1}
-    -   {2}->{1}
+    -   {0}--{1}
+    -   {2}--{1}
 """.format('test', import_file_name, 'other_test')
         parsed_yaml = self.parse_1_3(main_yaml)
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
-                             ['test->test_relationship'])
-        self.assertEquals('test->test_relationship', test_relationship['name'])
+                             ['test--test_relationship'])
+        self.assertEquals('test--test_relationship', test_relationship['name'])
         self.assertEquals(test_relationship[constants.TYPE_HIERARCHY],
-                          ['test->empty_rel', 'test->test_relationship'])
+                          ['test--empty_rel', 'test--test_relationship'])
         result_test_interface_3 = \
             (test_relationship[interfaces_const.SOURCE_INTERFACES]
              ['test_interface3'])
@@ -139,7 +139,7 @@ imports:
             (test_relationship[interfaces_const.TARGET_INTERFACES]
              ['test_interface4'])
         self.assertEquals(
-            operation_mapping(implementation='test->test_plugin.task_name',
+            operation_mapping(implementation='test--test_plugin.task_name',
                               inputs={'key':
                                       {'default': 'value',
                                        'type': 'string'}},
@@ -148,12 +148,12 @@ imports:
                               retry_interval=6),
             result_test_interface_4['test_interface4_op1'])
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
-                             ['other_test->test_relationship'])
-        self.assertEquals('other_test->test_relationship',
+                             ['other_test--test_relationship'])
+        self.assertEquals('other_test--test_relationship',
                           test_relationship['name'])
         self.assertEquals(test_relationship[constants.TYPE_HIERARCHY],
-                          ['other_test->empty_rel',
-                           'other_test->test_relationship'])
+                          ['other_test--empty_rel',
+                           'other_test--test_relationship'])
         result_test_interface_3 = \
             (test_relationship[interfaces_const.SOURCE_INTERFACES]
                 ['test_interface3'])
@@ -164,7 +164,7 @@ imports:
                 ['test_interface4'])
         self.assertEquals(
             operation_mapping(
-                implementation='other_test->test_plugin.task_name',
+                implementation='other_test--test_plugin.task_name',
                 inputs={'key':
                         {'default': 'value',
                          'type': 'string'}},
@@ -184,7 +184,7 @@ relationships:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 relationships:
     test_relationship:
         properties:
@@ -198,7 +198,7 @@ relationships:
         properties = test_relationship[constants.PROPERTIES]
         self.assertEquals({'default': 2}, properties[
             'prop'])
-        test_relationship = relationships['test->test_relationship']
+        test_relationship = relationships['test--test_relationship']
         properties = test_relationship[constants.PROPERTIES]
         self.assertEquals({'default': 1}, properties[
             'prop'])
@@ -214,7 +214,7 @@ relationships:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 relationships:
     test_relationship2:
         properties:
@@ -228,7 +228,7 @@ relationships:
         properties = test_relationship[constants.PROPERTIES]
         self.assertEquals({'default': 2}, properties[
             'prop'])
-        test_relationship = relationships['test->test_relationship1']
+        test_relationship = relationships['test--test_relationship1']
         properties = test_relationship[constants.PROPERTIES]
         self.assertEquals({'default': 1}, properties[
             'prop'])
@@ -262,13 +262,13 @@ relationships:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
 imports:
-  - {0}->{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')
         parsed_yaml = self.parse_from_path(main_yaml_path)
         relationship =\
-            parsed_yaml[constants.RELATIONSHIPS]['test->relationship']
+            parsed_yaml[constants.RELATIONSHIPS]['test--relationship']
 
         source_operation =\
             relationship[interfaces_const.SOURCE_INTERFACES]['test']
@@ -280,7 +280,7 @@ imports:
             if extra_properties:
                 inputs.update({'key': {'default': 'value'}})
             self.assertEqual(op, op_struct(
-                implementation='test->stub.py',
+                implementation='test--stub.py',
                 inputs=inputs,
                 executor=None,
                 max_retries=None,
@@ -322,12 +322,12 @@ node_templates:
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
-    -   {0}->{1}
+    -   {0}--{1}
 """.format('test', import_file_name)
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')
         parsed_yaml = self.parse_from_path(main_yaml_path)
-        http_node = parsed_yaml[constants.NODES][0]
+        http_node = parsed_yaml[constants.NODES][1]
         start_op = http_node['operations']['start']
         start_op_script_path = start_op['inputs']['script_path']
-        self.assertEqual('test->scripts/start.sh', start_op_script_path)
+        self.assertEqual('test--scripts/start.sh', start_op_script_path)
