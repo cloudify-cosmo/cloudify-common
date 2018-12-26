@@ -74,13 +74,16 @@ def _initialize_rabbitmq_user(cloudify_agent):
         cloudify_agent['broker_pass'] = password
 
 
-def delete_agent_rabbitmq_user(agent_name):
+def delete_agent_rabbitmq_user(cloudify_agent):
+    # Proxy agents are not being installed
+    if _is_proxied(cloudify_agent):
+        return
     # Delete the rabbitmq user of the agent
     rabbitmq_client = RabbitMQClient(broker_config.broker_management_hostname,
                                      broker_config.broker_username,
                                      broker_config.broker_password,
                                      verify=broker_config.broker_cert_path)
-    username = USERNAME_PATTERN.format(agent_name)
+    username = USERNAME_PATTERN.format(cloudify_agent['name'])
     rabbitmq_client.delete_user(username)
 
 
