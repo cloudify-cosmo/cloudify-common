@@ -83,10 +83,9 @@ workflows:
         workflow_plugins_to_install = \
             parsed[constants.WORKFLOW_PLUGINS_TO_INSTALL]
         self.assertEqual(2, len(workflow_plugins_to_install))
-        self.assertEqual('test--test_plugin',
-                         workflow_plugins_to_install[1]['name'])
-        self.assertEqual('test_plugin',
-                         workflow_plugins_to_install[0]['name'])
+        self.assertItemsEqual(['test--test_plugin', 'test_plugin'],
+                              [workflow_plugins_to_install[1]['name'],
+                               workflow_plugins_to_install[0]['name']])
 
     def test_workflows_merging_with_no_collision(self):
         imported_yaml = self.basic_blueprint()
