@@ -146,13 +146,14 @@ class _Environment(object):
             workflow, workflow_name, parameters, allow_custom_parameters)
         self.storage.store_execution(execution_id, ctx, merged_parameters)
         try:
-            rv = dispatch.dispatch(__cloudify_context=ctx, **merged_parameters)
+            return dispatch.dispatch(__cloudify_context=ctx,
+                                     **merged_parameters)
         except Exception as e:
             error = e
         else:
             error = None
-        self.storage.execution_ended(execution_id, error)
-        return rv
+        finally:
+            self.storage.execution_ended(execution_id, error)
 
 
 def init_env(blueprint_path,
