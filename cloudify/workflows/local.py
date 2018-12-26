@@ -635,8 +635,7 @@ class FileStorage(_Storage):
         self._blueprint_path = os.path.join(self.resources_root,
                                             data['blueprint_filename'])
         self._provider_context = data.get('provider_context', {})
-        if data.get('created_at'):
-            self.created_at = datetime.fromtimestamp(data['created_at'])
+        self.created_at = data.get('created_at')
         nodes = [Node(node) for node in data['nodes']]
         self._init_locks_and_nodes(nodes)
 
