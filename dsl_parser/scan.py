@@ -31,8 +31,7 @@ def scan_properties(value,
                     scope=None,
                     context=None,
                     path='',
-                    replace=False,
-                    recursive=True):
+                    replace=False):
     """
     Scans properties dict recursively and applies the provided handler
     method for each property.
@@ -48,7 +47,11 @@ def scan_properties(value,
 
     :param value: The properties container (dict/list).
     :param handler: A method for applying for to each property.
+    :param scope: (passed to the handler) - scope of the operation (string).
+    :param context: (passed to the handler) - scanner context (i.e. actual
+        node template).
     :param path: The properties base path (for debugging purposes).
+    :param replace: whether to do an in-place replacement or not.
     """
     if isinstance(value, dict):
         for k, v in value.iteritems():
@@ -57,12 +60,6 @@ def scan_properties(value,
             _collect_secret(result)
             if replace and result != v:
                 value[k] = result
-            if recursive:
-                scan_properties(v, handler,
-                                scope=scope,
-                                context=context,
-                                path=current_path,
-                                replace=replace)
     elif isinstance(value, list):
         for index, item in enumerate(value):
             current_path = '{0}[{1}]'.format(path, index)
@@ -70,13 +67,6 @@ def scan_properties(value,
             _collect_secret(result)
             if replace and result != item:
                 value[index] = result
-            if recursive:
-                scan_properties(item,
-                                handler,
-                                scope=scope,
-                                context=context,
-                                path=path,
-                                replace=replace)
 
 
 def _collect_secret(value):

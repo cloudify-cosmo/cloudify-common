@@ -13,8 +13,10 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import pkg_resources
 import abc
+import pkg_resources
+
+from functools import wraps
 
 from dsl_parser import (constants,
                         exceptions,
@@ -25,16 +27,22 @@ SOURCE = 'SOURCE'
 TARGET = 'TARGET'
 AVAILABLE_NODE_TARGETS = [SELF, SOURCE, TARGET]
 
+# Function eval types: Static cannot be evaluated at runtime,
+# Hybrid can be evaluated both at runtime and statically,
+# Runtime can be evaluated only at runtime.
+STATIC_FUNC, HYBRID_FUNC, RUNTIME_FUNC = range(3)
+
 TEMPLATE_FUNCTIONS = {}
 
 
-def register(fn=None, name=None):
+def register(fn=None, name=None, func_eval_type=HYBRID_FUNC):
     if fn is None:
         def partial(_fn):
-            return register(_fn, name=name)
+            return register(_fn, name, func_eval_type)
         return partial
     TEMPLATE_FUNCTIONS[name] = fn
     fn.name = name
+    fn.func_eval_type = func_eval_type
     return fn
 
 
@@ -77,6 +85,16 @@ def _convert_attribute_list_to_python_syntax_string(attr_list):
 
 
 _register_entry_point_functions()
+
+
+def _contains_legal_nested_attribute_path_items(l):
+    return all(_is_function(x) or isinstance(x, (basestring, int)) for x in l)
+
+
+def _is_legal_nested_attribute_path(l):
+    return isinstance(l, list) \
+           and len(l) >= 2 \
+           and _contains_legal_nested_attribute_path_items(l)
 
 
 class RuntimeEvaluationStorage(object):
@@ -138,8 +156,22 @@ class Function(object):
 
     __metaclass__ = abc.ABCMeta
     name = 'function'
+    func_eval_type = None
 
     def __init__(self, args, scope=None, context=None, path=None, raw=None):
+        """Initializes the instance.
+
+        :param args: function argument. For Static functions, these arguments
+            should be already evaluated by the time "evaluate" is called. For
+            Runtime functions, the same is true for "evaluate_runtime". For
+            Hybrid functions, it is true for both "evaluate" and
+            "evaluate_runtime".
+        :param scope: scope of the operation (string).
+        :param context: scanner context (i.e. actual node template).
+        :param path: current property path.
+        :param raw: actual raw instance of the function, as parsed from the
+            blueprint.
+        """
         self.scope = scope
         self.context = context
         self.path = path
@@ -163,7 +195,7 @@ class Function(object):
         pass
 
 
-@register(name='get_input')
+@register(name='get_input', func_eval_type=STATIC_FUNC)
 class GetInput(Function):
 
     def __init__(self, args, **kwargs):
@@ -171,17 +203,26 @@ class GetInput(Function):
         super(GetInput, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
+        def _is_valid_args_list(l):
+            return isinstance(l, list) \
+                   and len(l) >= 1 \
+                   and _contains_legal_nested_attribute_path_items(l)
+
         if not isinstance(args, basestring) \
-                and not (isinstance(args, list) and len(args) >= 1):
+                and not _is_function(args) \
+                and not _is_valid_args_list(args):
             raise ValueError(
-                "Illegal argument(s) passed to {0} function. Expected either"
-                "a string or a list [input_name [, key1/index1 [,...]]] but "
-                "got {1}".format(self.name, args))
+                "Illegal argument(s) passed to {0} function. Expected either "
+                "a string, or a function, or a list [input_name\\function "
+                "[, key1\\index1\\function [,...]]] "
+                "but got {1}".format(self.name, args))
         self.input_value = args
 
     def validate(self, plan):
         input_value = self.input_value[0] \
             if isinstance(self.input_value, list) else self.input_value
+        if _is_function(input_value):
+            return
         if input_value not in plan.inputs:
             raise exceptions.UnknownInputError(
                 "get_input function references an "
@@ -190,6 +231,10 @@ class GetInput(Function):
     def evaluate(self, plan):
         if isinstance(self.input_value, list):
             return self._get_input_attribute(plan.inputs[self.input_value[0]])
+        if self.input_value not in plan.inputs:
+            raise exceptions.UnknownInputError(
+                "get_input function references an "
+                "unknown input '{0}'.".format(self.input_value))
         return plan.inputs[self.input_value]
 
     def _get_input_attribute(self, root):
@@ -234,7 +279,7 @@ class GetInput(Function):
                            .format(self.name))
 
 
-@register(name='get_property')
+@register(name='get_property', func_eval_type=STATIC_FUNC)
 class GetProperty(Function):
 
     def __init__(self, args, **kwargs):
@@ -243,15 +288,20 @@ class GetProperty(Function):
         super(GetProperty, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, list) or len(args) < 2:
+        if not _is_legal_nested_attribute_path(args):
             raise ValueError(
                 'Illegal arguments passed to {0} function. Expected: '
-                '<node_name, property_name [, nested-property-1, ... ]> but '
-                'got: {1}.'.format(self.name, args))
+                '[ node_name\\function, property_name\\function '
+                '[, nested-property-1\\function, ... ] '
+                'but got: {1}.'.format(self.name, args))
         self.node_name = args[0]
         self.property_path = args[1:]
 
     def validate(self, plan):
+        # Try to evaluate only when the arguments don't contain any functions
+        args = [self.node_name] + self.property_path
+        if any(_is_function(x) for x in args):
+            return
         self.evaluate(plan)
 
     def get_node_template(self, plan):
@@ -298,7 +348,7 @@ class GetProperty(Function):
                            .format(self.name))
 
 
-@register(name='get_attribute')
+@register(name='get_attribute', func_eval_type=RUNTIME_FUNC)
 class GetAttribute(Function):
 
     def __init__(self, args, **kwargs):
@@ -307,15 +357,20 @@ class GetAttribute(Function):
         super(GetAttribute, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, list) or len(args) < 2:
+        if not _is_legal_nested_attribute_path(args):
             raise ValueError(
-                'Illegal arguments passed to {0} function. '
-                'Expected: <node_name, attribute_name [, nested-attr-1, ...]>'
+                'Illegal arguments passed to {0} function. Expected: '
+                '[ node_name\\function, attribute_name\\function '
+                '[, nested-attribute-1\\function, ... ] '
                 'but got: {1}.'.format(self.name, args))
         self.node_name = args[0]
         self.attribute_path = args[1:]
 
     def validate(self, plan):
+        # If any of the arguments are functions don't validate
+        args = [self.node_name] + self.attribute_path
+        if any(_is_function(x) for x in args):
+            return
         if self.scope == scan.OUTPUTS_SCOPE and self.node_name in [SELF,
                                                                    SOURCE,
                                                                    TARGET]:
@@ -536,17 +591,18 @@ class GetAttribute(Function):
                                        self.attribute_path))
 
 
-@register(name='get_secret')
+@register(name='get_secret', func_eval_type=RUNTIME_FUNC)
 class GetSecret(Function):
     def __init__(self, args, **kwargs):
         self.secret_id = None
         super(GetSecret, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, basestring):
+        if not isinstance(args, basestring) and not _is_function(args):
             raise ValueError(
-                "`get_secret` function argument should be a string. Instead "
-                "it is a {0} with the value: {1}.".format(type(args), args))
+                "`get_secret` function argument should be a string\\dict "
+                "(a function). Instead it is a {0} with the "
+                "value: {1}.".format(type(args), args))
         self.secret_id = args
 
     def validate(self, plan):
@@ -561,7 +617,7 @@ class GetSecret(Function):
         return storage.get_secret(self.secret_id)
 
 
-@register(name='get_capability')
+@register(name='get_capability', func_eval_type=RUNTIME_FUNC)
 class GetCapability(Function):
     def __init__(self, args, **kwargs):
         self.capability_path = None
@@ -580,11 +636,13 @@ class GetCapability(Function):
                 "{0}".format("[" + ','.join([str(a) for a in args]) + "]")
             )
         for arg_index in range(len(args)):
-            if isinstance(args[arg_index], list):
+            if not isinstance(args[arg_index], (basestring, int)) \
+                    and not _is_function(args[arg_index]):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
-                    "values; only strings/ints/dicts are accepted. Instead, "
-                    "the item with index {0} is {1} of type {2}".format(
+                    "values; only strings/ints/functions are accepted. "
+                    "Instead, the item with "
+                    "index {0} is {1} of type {2}".format(
                         arg_index, args[arg_index], type(args[arg_index])
                     )
                 )
@@ -603,7 +661,7 @@ class GetCapability(Function):
         return storage.get_capability(self.capability_path)
 
 
-@register(name='concat')
+@register(name='concat', func_eval_type=HYBRID_FUNC)
 class Concat(Function):
 
     def __init__(self, args, **kwargs):
@@ -615,12 +673,12 @@ class Concat(Function):
         if not isinstance(args, list):
             raise ValueError(
                 'Illegal arguments passed to {0} function. '
-                'Expected: [arg1, arg2, ...]'
+                'Expected: [arg1\\function1, arg2\\function2, ...]'
                 'but got: {1}.'.format(self.name, args))
 
     def validate(self, plan):
         if plan.version.definitions_version < (1, 1):
-            raise exceptions.FunctionEvaluationError(
+            raise exceptions.FunctionValidationError(
                 'Using {0} requires using dsl version 1_1 or '
                 'greater, but found: {1} in {2}.'
                 .format(self.name, plan.version, self.path))
@@ -806,10 +864,33 @@ def evaluate_outputs(outputs_def,
 
 
 def _handler(evaluator, **evaluator_kwargs):
+    def _args_to_str_func(args, kwargs):
+        """Used to display extra information when recursion limit is reached.
+
+        :param args: arguments that the function has been called with lastly.
+        :param kwargs: keyword arguments that the function has been called with
+            lastly.
+        :return: relevant string containing information about the arguments.
+        """
+        msg = "Limit was reached with the following path - {}"
+        if args and len(args) == 4:
+            return msg.format(args[3])
+        if kwargs and 'path' in kwargs:
+            return msg.format(kwargs['path'])
+        return ""
+
+    @limit_recursion(10, args_to_str_func=_args_to_str_func)
     def handler(v, scope, context, path):
         evaluated_value = v
         scanned = False
         while True:
+            scan.scan_properties(
+                evaluated_value,
+                handler,
+                scope=scope,
+                context=context,
+                path=path,
+                replace=True)
             func = parse(evaluated_value,
                          scope=scope,
                          context=context,
@@ -820,12 +901,6 @@ def _handler(evaluator, **evaluator_kwargs):
             evaluated_value = getattr(func, evaluator)(**evaluator_kwargs)
             if scanned and previous_evaluated_value == evaluated_value:
                 break
-            scan.scan_properties(evaluated_value,
-                                 handler,
-                                 scope=scope,
-                                 context=context,
-                                 path=path,
-                                 replace=True)
             scanned = True
         return evaluated_value
     return handler
@@ -850,63 +925,46 @@ def runtime_evaluation_handler(get_node_instances_method,
 
 
 def validate_functions(plan):
-    get_property_functions = []
+    # Represents a level in the tree of function calls. A value in index i
+    # represents that a Runtime Function has been seen in levels
+    # with depth >= i+1.
+    # Level with index 0 is the root of the tree, before entering any function
+    # nodes.
+    levels = [False]
 
     def handler(v, scope, context, path):
-        _func = parse(v, scope=scope, context=context, path=path)
-        if isinstance(_func, Function):
-            _func.validate(plan)
-        if isinstance(_func, GetProperty):
-            get_property_functions.append(_func)
-            return _func
+        func = parse(v, scope=scope, context=context, path=path)
+        if isinstance(func, Function):
+            func.validate(plan)
+            # Add a value to the stack for this level.
+            levels.append(False)
+        scan.scan_properties(
+            v,
+            handler,
+            scope=scope,
+            context=context,
+            path=path,
+            replace=False)
+        if isinstance(func, Function):
+            # If a Runtime Function has been seen below this level and this is
+            # a Static Function, raise an exception.
+            if levels[-1] and func.func_eval_type == STATIC_FUNC:
+                raise exceptions.FunctionValidationError(
+                    func.name,
+                    'Runtime function {0} cannot be nested within '
+                    'a non-runtime function (found in {1})'.format(
+                        func.raw, path))
+            # Update the parent level value, whether a Runtime Function has
+            # been seen on this level or below.
+            levels[-2] = \
+                levels[-2] \
+                or func.func_eval_type == RUNTIME_FUNC \
+                or levels[-1]
+            # Remove the value of the stack for this level.
+            levels.pop(-1)
         return v
 
-    # Replace all get_property functions with their instance representation
-    scan.scan_service_template(plan, handler, replace=True)
-
-    if not get_property_functions:
-        return
-
-    # Validate there are no circular get_property calls
-    for func in get_property_functions:
-        property_path = [str(prop) for prop in func.property_path]
-        visited_functions = ['{0}.{1}'.format(
-            func.get_node_template(plan)['name'],
-            constants.FUNCTION_NAME_PATH_SEPARATOR.join(property_path))]
-
-        def validate_no_circular_get_property(*args):
-            r = args[0]
-            if isinstance(r, GetProperty):
-                func_id = '{0}.{1}'.format(
-                    r.get_node_template(plan)['name'],
-                    constants.FUNCTION_NAME_PATH_SEPARATOR.join(
-                        r.property_path))
-                if func_id in visited_functions:
-                    visited_functions.append(func_id)
-                    error_output = [
-                        x.replace(constants.FUNCTION_NAME_PATH_SEPARATOR, ',')
-                        for x in visited_functions
-                    ]
-                    raise RuntimeError(
-                        'Circular get_property function call detected: '
-                        '{0}'.format(' -> '.join(error_output)))
-                visited_functions.append(func_id)
-                r = r.evaluate(plan)
-                validate_no_circular_get_property(r)
-            else:
-                scan.scan_properties(
-                    r, validate_no_circular_get_property, recursive=False)
-
-        result = func.evaluate(plan)
-        validate_no_circular_get_property(result)
-
-    def replace_with_raw_function(*args):
-        if isinstance(args[0], GetProperty):
-            return args[0].raw
-        return args[0]
-
-    # Change previously replaced get_property instances with raw values
-    scan.scan_service_template(plan, replace_with_raw_function, replace=True)
+    scan.scan_service_template(plan, handler, replace=False)
 
 
 def get_nested_attribute_value_of_capability(root, path):
@@ -954,3 +1012,59 @@ def get_nested_attribute_value_of_capability(root, path):
                     path[0],
                     attr))
     return {'value': value}
+
+
+class RecursionLimit(object):
+    def __init__(self, limit, args_to_str_func=None):
+        """Initializes the recursion limit context manager. This context
+        manager limits the recursion only for this specific function, unlike
+        the sys.setrecursionlimit(limit) function, which sets the call stack
+        depth.
+
+        :param limit: recursion limit (inclusive).
+        :param args_to_str_func: function that returns a string containing
+            information about the last arguments used. It's signature should
+            be func(args, kwargs).
+        """
+        self.limit = limit
+        self.args_to_str_func = args_to_str_func
+        self.last_args = None
+        self.last_kwargs = None
+        self.calls_cnt = 0
+
+    def set_last_args(self, last_args, last_kwargs):
+        """Sets the last arguments that were used to call the function wrapped
+        in this context manager.
+
+        :param last_args: last arguments to set.
+        :param last_kwargs: last keyword arguments to set.
+        """
+        self.last_args = last_args
+        self.last_kwargs = last_kwargs
+
+    def __enter__(self):
+        self.calls_cnt += 1
+        if self.calls_cnt > self.limit:
+            msg = "The recursion limit ({}) has been reached while " \
+                  "evaluating the deployment. ".format(self.limit)
+            if self.args_to_str_func and (self.last_args or self.last_kwargs):
+                msg += self.args_to_str_func(self.last_args, self.last_kwargs)
+            raise exceptions.EvaluationRecursionLimitReached(msg)
+
+    def __exit__(self, tp, value, tb):
+        self.calls_cnt -= 1
+
+
+def limit_recursion(limit, args_to_str_func=None):
+    _recursion_limit_ctx = RecursionLimit(limit, args_to_str_func)
+
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            _recursion_limit_ctx.set_last_args(args, kwargs)
+            with _recursion_limit_ctx:
+                return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

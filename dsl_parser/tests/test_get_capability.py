@@ -280,6 +280,7 @@ node_templates:
         self._assert_parsing_fails(
             yaml,
             message="`get_capability` function arguments can't be complex "
-                    "values; only strings/ints/dicts are accepted. Instead, "
-                    "the item with index 0 is ['list'] of type <type 'list'>"
+                    "values; only strings/ints/functions are accepted. "
+                    "Instead, the item with index 0 is ['list'] of "
+                    "type <type 'list'>"
         )
