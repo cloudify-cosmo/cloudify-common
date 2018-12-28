@@ -14,7 +14,7 @@
 #    * limitations under the License.
 
 import copy
-from dsl_parser import constants, utils, exceptions
+from dsl_parser import constants, parser, exceptions
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 from ..import_resolver.default_import_resolver import DefaultImportResolver
 
@@ -22,9 +22,11 @@ from ..import_resolver.default_import_resolver import DefaultImportResolver
 class ResolverWithBlueprintSupport(DefaultImportResolver):
     def __init__(self, blueprint):
         super(ResolverWithBlueprintSupport, self).__init__()
-        self.blueprint_yaml = utils.load_yaml(
-            raw_yaml=blueprint,
-            error_message="Failed to parse blueprint import'")
+        self.blueprint_yaml = parser.parse_from_import_blueprint(
+            dsl_location=None,
+            dsl_string=blueprint,
+            resolver=self,
+            resources_base_path=None)
 
     def _is_blueprint_url(self, import_url):
         return import_url.startswith(constants.BLUEPRINT_IMPORT)
@@ -41,10 +43,12 @@ class ResolverWithBlueprintSupport(DefaultImportResolver):
 
 class TestImportedBlueprints(AbstractTestParser):
     basic_blueprint = """
+tosca_definitions_version: cloudify_dsl_1_3
 imports:
   - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
 """
     blueprint_with_blueprint_import = """
+tosca_definitions_version: cloudify_dsl_1_3
 imported_blueprints:
     - other_test
 """
@@ -138,6 +142,7 @@ imports:
 
 class TestNamespacesMapping(AbstractTestParser):
     blueprint_imported = """
+tosca_definitions_version: cloudify_dsl_1_3
 namespaces_mapping:
   ns: blueprint
 """
@@ -182,3 +187,50 @@ imports:
 """
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse, yaml, resolver=resolver)
+
+
+class TestCloudifyBasicTypes(AbstractTestParser):
+    basic_blueprint = """
+tosca_definitions_version: cloudify_dsl_1_3
+node_types:
+  cloudify.nodes.Root:
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: {}
+        configure: {}
+        start: {}
+        stop: {}
+        delete: {}
+      cloudify.interfaces.validation:
+        creation: {}
+        deletion: {}
+      cloudify.interfaces.monitoring:
+        start: {}
+        stop: {}
+"""
+
+    def test_local_cloudify_types(self):
+        local_types_path = self.make_yaml_file(self.basic_blueprint)
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - {0}
+""".format(local_types_path)
+        self.parse(main_yaml)
+
+    def test_cloudify_basic_types_blueprint_import(self):
+        imported_yaml = """
+tosca_definitions_version: cloudify_dsl_1_3
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+inputs:
+    port:
+        default: 90
+"""
+        resolver = ResolverWithBlueprintSupport(imported_yaml)
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    - ns--blueprint:test
+"""
+        self.parse(yaml, resolver=resolver)
