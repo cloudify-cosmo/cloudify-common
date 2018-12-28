@@ -516,8 +516,8 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                                            key_name,
                                            namespace):
     for key_holder, value_holder in from_dict_holder.value.items():
-        if key_holder.value not in to_dict_holder or\
-                to_dict_holder.value[key_holder].namespace != namespace:
+        _, to_value_holder = to_dict_holder.get_item(key_holder.value)
+        if not to_value_holder or to_value_holder.namespace != namespace:
             if namespace and not value_holder.is_cloudify_type:
                 _merge_namespaced_elements(key_holder, namespace, value_holder)
             to_dict_holder.value[key_holder] = value_holder

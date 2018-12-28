@@ -19,7 +19,8 @@ from dsl_parser.framework import elements
 from dsl_parser import (exceptions,
                         constants,
                         functions,
-                        utils)
+                        utils,
+                        holder)
 from dsl_parser.framework.requirements import Requirement
 
 # Will mark elements that are being parsed, that there is no need to
@@ -95,14 +96,19 @@ class Context(object):
                                    parent_element=None,
                                    namespace=self.namespace)
         self._calculate_element_graph()
-        self._remove_skip_namespace_flag()
+        self._remove_parsing_leftovers()
 
-    def _remove_skip_namespace_flag(self):
+    def _remove_parsing_leftovers(self):
         """
-        Removing this flag, so it will not interfere with future parsing
-        actions like being parsed from import blueprint.
+        Removing any leftover of the parsing process, so it will not interfere
+        with future parsing actions. Which will happen when the blueprint is
+        already uploaded and being imported in another blueprint, so the it'
+        holder structure will be used again.
         """
         for element in self._element_tree:
+            element.initial_value_holder.namespace = None
+
+            # Cleaning 'skip namespace' flag
             if hasattr(element.initial_value_holder, SKIP_NAMESPACE_FLAG):
                 delattr(element.initial_value_holder, SKIP_NAMESPACE_FLAG)
 
@@ -222,10 +228,18 @@ class Context(object):
     def _traverse_element_type_schema(self, schema, parent_element, namespace,
                                       is_cloudify_type):
 
-        def set_namespace_get_attribute_property(namespace_value, get_func):
+        def set_namespace_node_intrinsic_functions(namespace_value, get_func):
             value = get_func[0]
             if value not in functions.AVAILABLE_NODE_TARGETS:
                 get_func[0] = utils.generate_namespaced_value(
+                    namespace_value, value)
+            return get_func
+
+        def set_holder_namespace_node_intrinsic_functions(namespace_value,
+                                                          get_func):
+            value = get_func[0].value
+            if value not in functions.AVAILABLE_NODE_TARGETS:
+                get_func[0].value = utils.generate_namespaced_value(
                     namespace_value, value)
             return get_func
 
@@ -235,18 +249,27 @@ class Context(object):
             and will run the set namespace function on the key's
             values only for the relevant intrinsic functions.
             """
-            if not isinstance(element, dict) or not namespace:
+            if isinstance(element, list):
+                for i in xrange(len(element)):
+                    element[i] = \
+                        handle_intrinsic_function_namespace(
+                            element[i])
+                return element
+            elif not isinstance(element, dict):
                 # There is no need to search for intrinsic functions, if
                 # there is no namespace or if the element can not contain
                 # them.
                 return element
+
             for k, v in element.items():
                 if k == 'get_input':
                     element[k] = utils.generate_namespaced_value(namespace, v)
                 elif k == 'get_property' or k == 'get_attribute':
                     element[k] =\
-                        set_namespace_get_attribute_property(namespace, v)
-                if isinstance(v, dict):
+                        set_namespace_node_intrinsic_functions(namespace, v)
+                if k == 'concat':
+                    element[k] = handle_intrinsic_function_namespace(v)
+                elif isinstance(v, dict):
                     element[k] = \
                         handle_intrinsic_function_namespace(v)
                 elif isinstance(v, list):
@@ -255,27 +278,58 @@ class Context(object):
                             handle_intrinsic_function_namespace(v[i])
             return element
 
+        def handle_holder_intrinsic_function_namespace(element):
+            """
+            This will traverse the element in search of the key,
+            and will run the set namespace function on the key's
+            values only for the relevant intrinsic functions.
+            """
+            if isinstance(element, list):
+                for i in xrange(len(element)):
+                    element[i].value = \
+                        handle_holder_intrinsic_function_namespace(
+                            element[i].value)
+                return element
+            elif not isinstance(element, dict):
+                # There is no need to search for intrinsic functions, if
+                # there is no namespace or if the element can not contain
+                # them.
+                return element
+
+            for k, v in element.items():
+                if k.value == 'get_input':
+                    element[k].value = utils.generate_namespaced_value(
+                            namespace, v.value)
+                elif k.value == 'get_property' or k.value == 'get_attribute':
+                    element[k].value =\
+                        set_holder_namespace_node_intrinsic_functions(
+                            namespace, v.value)
+                if k.value == 'concat':
+                    element[k].value =\
+                        handle_holder_intrinsic_function_namespace(v.value)
+                elif isinstance(v, holder.Holder):
+                    element[k].value = \
+                        handle_holder_intrinsic_function_namespace(v.value)
+            return element
+
         def should_add_namespace_to_string_leaf(element):
             return \
                 (isinstance(element._initial_value, basestring) and
                  element._initial_value not in
                  constants.USER_PRIMITIVE_TYPES and
-                 element.add_namespace_to_schema_elements and
                  not utils.check_if_cloudify_type(element._initial_value) and
                  not hasattr(element.initial_value_holder,
                              SKIP_NAMESPACE_FLAG))
 
-        def set_leaf_namespace(leaf_namespace, element):
+        def set_leaf_namespace(element):
             """
             Will update, if necessary, leaf element namespace.
             Also will update it's holder, for also resolving the namespace
             in the holder object.
             """
-            if not leaf_namespace:
-                return
             if should_add_namespace_to_string_leaf(element):
                 namespaced_value = utils.generate_namespaced_value(
-                        leaf_namespace, element._initial_value)
+                        namespace, element._initial_value)
                 element._initial_value = namespaced_value
                 element.initial_value_holder.value = namespaced_value
 
@@ -283,7 +337,7 @@ class Context(object):
                 element.initial_value_holder.skip_namespace = True
             elif isinstance(element._initial_value, dict):
                 element.initial_value_holder.value = \
-                    handle_intrinsic_function_namespace(
+                    handle_holder_intrinsic_function_namespace(
                         element.initial_value_holder.value)
                 element._initial_value = \
                     handle_intrinsic_function_namespace(element._initial_value)
@@ -304,12 +358,11 @@ class Context(object):
             element_holder.value = utils.generate_namespaced_value(
                 element_namespace, element_holder.value)
 
-            # We need to use this flag, only for yaml level linking.
-            element_holder.skip_namespace = True
-
         if isinstance(schema, elements.Leaf):
-            if not is_cloudify_type:
-                set_leaf_namespace(namespace, parent_element)
+            if (not is_cloudify_type and
+                    namespace and
+                    parent_element.add_namespace_to_schema_elements):
+                set_leaf_namespace(parent_element)
             return
 
         element_cls = schema.type
