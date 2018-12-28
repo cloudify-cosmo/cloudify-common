@@ -34,7 +34,7 @@ class BlueprintVersionExtractor(Element):
     schema = {
         'tosca_definitions_version': _version.ToscaDefinitionsVersion,
         # here so it gets version validated
-        'dsl_definitions': misc.DSLDefinitions,
+        'dsl_definitions': misc.DSLDefinitions
     }
     requires = {
         _version.ToscaDefinitionsVersion: ['version',

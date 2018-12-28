@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,27 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import os
-
-from dsl_parser.parser import parse_from_path as _parse_from_path
-from dsl_parser.tests.resources import dsl
+from dsl_parser import parser, constants
+from ..import_resolver.default_import_resolver import DefaultImportResolver
 
 
-def parse_dsl_resource(path):
+class ResolverWithBlueprintSupport(DefaultImportResolver):
+    def __init__(self, blueprint_mapping):
+        super(ResolverWithBlueprintSupport, self).__init__()
+        self.blueprint_mapping = blueprint_mapping
 
-    dsl_dir = os.path.dirname(dsl.__file__)
-    return _parse_from_path(
-        dsl_file_path=os.path.join(dsl_dir, path),
-    )
+    def _is_blueprint_url(self, import_url):
+        return import_url.startswith(constants.BLUEPRINT_IMPORT)
+
+    def fetch_import(self, import_url):
+        if self._is_blueprint_url(import_url):
+            return self._fetch_blueprint_import(import_url)
+        return super(ResolverWithBlueprintSupport,
+                     self).fetch_import(import_url)
+
+    def _fetch_blueprint_import(self, import_url):
+        return parser.parse_from_import_blueprint(
+            dsl_location=None,
+            dsl_string=self.blueprint_mapping[import_url],
+            resolver=self,
+            resources_base_path=None)

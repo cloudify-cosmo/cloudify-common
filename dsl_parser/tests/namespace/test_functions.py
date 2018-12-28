@@ -16,6 +16,7 @@
 from dsl_parser import constants
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
+from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 
 
 class TestNamespacedGetProperty(AbstractTestParser):
@@ -580,6 +581,39 @@ outputs:
             'value',
             plan[constants.OUTPUTS]['port']['value'])
 
+    def test_node_template_properties_with_blueprint_import(self):
+        basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+inputs:
+    port:
+        default: 90
+node_templates:
+  node:
+    type: cloudify.nodes.WebServer
+    properties:
+      port: { get_input: port}
+  ip:
+    type: cloudify.nodes.WebServer
+    properties:
+      port: { get_property: [node, port] }
+"""
+        second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns--blueprint:first_layer
+"""
+        resolver = Resolver({'blueprint:first_layer': basic_yaml,
+                             'blueprint:second_layer': second_layer})
+        third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns2--blueprint:second_layer
+"""
+        parsed = self.parse(third_layer, resolver=resolver)
+        ip = parsed[constants.NODES][0]
+        self.assertEqual(ip['id'], 'ns2--ns--ip')
+        self.assertEquals(ip['properties']['port'],
+                          {'get_property': ['ns2--ns--node', 'port']})
+
 
 class TestGetAttribute(AbstractTestParser):
     def test_has_intrinsic_functions_property(self):
@@ -723,6 +757,39 @@ outputs:
             {'get_attribute': ['test--middle_test--node', 'key']},
             plan[constants.OUTPUTS]['port']['value'])
 
+    def test_node_template_properties_with_blueprint_import(self):
+        basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+inputs:
+    port:
+        default: 90
+node_templates:
+  node:
+    type: cloudify.nodes.WebServer
+    properties:
+      port: { get_input: port}
+  ip:
+    type: cloudify.nodes.WebServer
+    properties:
+      port: { get_attribute: [node, port] }
+"""
+        second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns--blueprint:first_layer
+"""
+        resolver = Resolver({'blueprint:first_layer': basic_yaml,
+                             'blueprint:second_layer': second_layer})
+        third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns2--blueprint:second_layer
+"""
+        parsed = self.parse(third_layer, resolver=resolver)
+        ip = parsed[constants.NODES][0]
+        self.assertEqual(ip['id'], 'ns2--ns--ip')
+        self.assertEquals(ip['properties']['port'],
+                          {'get_attribute': ['ns2--ns--node', 'port']})
+
 
 class TestConcat(AbstractTestParser):
     def test_concat_with_namespace(self):
@@ -744,6 +811,63 @@ imports:
         self.assertEqual(
             'onetwothree',
             plan[constants.OUTPUTS]['test--port']['value'])
+
+    def test_node_template_properties_with_blueprint_import(self):
+        basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+inputs:
+    port:
+        default: 90
+node_templates:
+  ip:
+    type: cloudify.nodes.WebServer
+    properties:
+      port: { concat: [one, { get_input: port }, three] }
+"""
+        second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns--blueprint:first_layer
+"""
+        resolver = Resolver({'blueprint:first_layer': basic_yaml,
+                             'blueprint:second_layer': second_layer})
+        third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns2--blueprint:second_layer
+"""
+        parsed = self.parse(third_layer, resolver=resolver)
+        ip = parsed[constants.NODES][0]
+        self.assertEqual(ip['id'], 'ns2--ns--ip')
+        self.assertEquals(ip['properties']['port'],
+                          {'concat':
+                            ['one', {'get_input': 'ns2--ns--port'}, 'three']})
+
+    def test_outputs_with_blueprint_import(self):
+        basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+inputs:
+    port:
+        default: 90
+outputs:
+  port:
+    value: { concat: [one, { get_input: port }, three] }
+"""
+        second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns--blueprint:first_layer
+"""
+        resolver = Resolver({'blueprint:first_layer': basic_yaml,
+                             'blueprint:second_layer': second_layer})
+        third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns2--blueprint:second_layer
+"""
+        parsed = self.parse(third_layer, resolver=resolver)
+        outputs = parsed[constants.OUTPUTS]
+        self.assertEqual(outputs['ns2--ns--port']['value'],
+                         {'concat':
+                         ['one', {'get_input': 'ns2--ns--port'}, 'three']})
 
 
 class TestNonRelatedNodeFunctions(AbstractTestParser):
@@ -787,6 +911,8 @@ imports:
             {'get_capability': ['dep_1', 'cap_a']},
             plan[constants.OUTPUTS]['test--port']['value'])
 
+
+class TestGetInput(AbstractTestParser):
     def test_get_input(self):
         imported_yaml = """
 inputs:
@@ -838,3 +964,64 @@ imports:
         self.assertEqual(
             8080,
             plan[constants.OUTPUTS]['test--middle_test--port']['value'])
+
+    def test_node_template_properties_with_blueprint_import(self):
+        basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+inputs:
+    port:
+        default: 90
+node_templates:
+  ip:
+    type: cloudify.nodes.WebServer
+    properties:
+      port: { get_input: port }
+"""
+        second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns--blueprint:first_layer
+"""
+        resolver = Resolver({'blueprint:first_layer': basic_yaml,
+                             'blueprint:second_layer': second_layer})
+        third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns2--blueprint:second_layer
+"""
+        parsed = self.parse(third_layer, resolver=resolver)
+        inputs = parsed[constants.INPUTS]
+        self.assertIn('ns2--ns--port', inputs)
+
+    def test_node_type_properties_with_blueprint_import(self):
+        basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+inputs:
+    port:
+        default: 90
+node_types:
+  test:
+    properties:
+      rules:
+        default: []
+node_templates:
+  vm:
+    type: test
+    properties:
+      rules:
+        - remote_ip_prefix: 0.0.0.0/0
+          port: { get_input: port }
+"""
+        second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns--blueprint:first_layer
+"""
+        resolver = Resolver({'blueprint:first_layer': basic_yaml,
+                             'blueprint:second_layer': second_layer})
+        third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns2--blueprint:second_layer
+"""
+        parsed = self.parse(third_layer, resolver=resolver)
+        inputs = parsed[constants.INPUTS]
+        self.assertIn('ns2--ns--port', inputs)

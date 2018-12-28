@@ -13,32 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import copy
-from dsl_parser import constants, parser, exceptions
+from dsl_parser import constants, exceptions
+from dsl_parser.tests.utils import ResolverWithBlueprintSupport
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
-from ..import_resolver.default_import_resolver import DefaultImportResolver
-
-
-class ResolverWithBlueprintSupport(DefaultImportResolver):
-    def __init__(self, blueprint):
-        super(ResolverWithBlueprintSupport, self).__init__()
-        self.blueprint_yaml = parser.parse_from_import_blueprint(
-            dsl_location=None,
-            dsl_string=blueprint,
-            resolver=self,
-            resources_base_path=None)
-
-    def _is_blueprint_url(self, import_url):
-        return import_url.startswith(constants.BLUEPRINT_IMPORT)
-
-    def fetch_import(self, import_url):
-        if self._is_blueprint_url(import_url):
-            return self._fetch_blueprint_import()
-        return super(ResolverWithBlueprintSupport,
-                     self).fetch_import(import_url)
-
-    def _fetch_blueprint_import(self):
-        return copy.deepcopy(self.blueprint_yaml)
 
 
 class TestImportedBlueprints(AbstractTestParser):
@@ -90,7 +67,8 @@ imports:
         self.assertEqual(len(imported_blueprints), 0)
 
     def test_basic_blueprint_import(self):
-        resolver = ResolverWithBlueprintSupport(self.basic_blueprint)
+        resolver = ResolverWithBlueprintSupport({'blueprint:test':
+                                                 self.basic_blueprint})
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   ns--blueprint:test
@@ -104,7 +82,11 @@ imports:
 
     def test_merge_imported_lists(self):
         resolver =\
-            ResolverWithBlueprintSupport(self.blueprint_with_blueprint_import)
+            ResolverWithBlueprintSupport(
+                {'blueprint:test':
+                    self.blueprint_with_blueprint_import,
+                 'blueprint:another_test':
+                     self.blueprint_with_blueprint_import})
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
   - ns--blueprint:test
@@ -148,7 +130,8 @@ namespaces_mapping:
 """
 
     def test_merging_namespaces_mapping(self):
-        resolver = ResolverWithBlueprintSupport(self.blueprint_imported)
+        resolver = ResolverWithBlueprintSupport({'blueprint:test':
+                                                self.blueprint_imported})
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
   - namespace--blueprint:test
@@ -179,7 +162,11 @@ imports:
                               namespaces_mapping)
 
     def test_blueprints_imports_with_the_same_import(self):
-        resolver = ResolverWithBlueprintSupport(self.blueprint_imported)
+        resolver = ResolverWithBlueprintSupport({'blueprint:test':
+                                                self.blueprint_imported,
+                                                 'blueprint:other':
+                                                     self.blueprint_imported
+                                                 })
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   same--blueprint:test
@@ -227,7 +214,8 @@ inputs:
     port:
         default: 90
 """
-        resolver = ResolverWithBlueprintSupport(imported_yaml)
+        resolver = ResolverWithBlueprintSupport({'blueprint:test':
+                                                 imported_yaml})
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
