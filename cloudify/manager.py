@@ -218,7 +218,7 @@ def download_resource(blueprint_id,
 
         client = get_rest_client()
         namespaces_mapping = client.blueprints.get(
-            blueprint_id, ['plan'])["namespaces_mapping"]
+            blueprint_id, ['plan']).plan["namespaces_mapping"]
         if namespace not in namespaces_mapping:
             logger.error("Resource path {} contained blueprint reference "
                          "that can be resolved.".format(resource_path))
