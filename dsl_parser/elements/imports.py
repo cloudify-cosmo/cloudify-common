@@ -478,8 +478,7 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
             combined_parsed_dsl_holder.value[key_holder] = value_holder
         elif key_holder.value in DONT_OVERWRITE:
             pass
-        elif (key_holder.value in merge_no_override and
-              not value_holder.is_cloudify_type):
+        elif key_holder.value in merge_no_override:
             _, to_dict = combined_parsed_dsl_holder.get_item(key_holder.value)
             _merge_into_dict_or_throw_on_duplicate(
                 from_dict_holder=value_holder,
@@ -519,10 +518,10 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
     for key_holder, value_holder in from_dict_holder.value.items():
         if key_holder.value not in to_dict_holder or\
                 to_dict_holder.value[key_holder].namespace != namespace:
-            if namespace:
+            if namespace and not value_holder.is_cloudify_type:
                 _merge_namespaced_elements(key_holder, namespace, value_holder)
             to_dict_holder.value[key_holder] = value_holder
-        else:
+        elif not value_holder.is_cloudify_type:
             raise exceptions.DSLParsingLogicException(
                 4, "Import failed: Could not merge '{0}' due to conflict "
                    "on '{1}'".format(key_name, key_holder.value))
