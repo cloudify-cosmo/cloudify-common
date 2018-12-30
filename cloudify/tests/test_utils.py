@@ -72,26 +72,28 @@ class TestMethodDecorator(unittest.TestCase):
     def test_function_usage(self):
         @method_decorator
         def deco(f):
-            def _inner():
-                return f() + 2
+            def _inner(*args, **kwargs):
+                return f(*args, **kwargs) + 2
             return _inner
 
         @deco
-        def f():
-            return 42
+        def f(x):
+            return x * 2
 
-        self.assertEqual(f(), 44)
+        self.assertEqual(f(21), 44)
 
     def test_method_usage(self):
         @method_decorator
         def deco(f):
-            def _inner():
-                return f() + 2
+            def _inner(*args, **kwargs):
+                return f(*args, **kwargs) + 2
             return _inner
 
         class A(object):
-            @deco
-            def f(self):
-                return 42
+            y = 5
 
-        self.assertEqual(A().f(), 44)
+            @deco
+            def f(self, x):
+                return self.y + x * 2
+
+        self.assertEqual(A().f(21), 49)
