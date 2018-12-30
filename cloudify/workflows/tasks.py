@@ -106,15 +106,43 @@ class WorkflowTask(object):
         # by the task graph before reached, overridden by the task
         # graph during retries
         self.execute_after = time.time()
+        self.stored = False
+
+    @classmethod
+    def restore(cls, ctx, graph, task_descr):
+        task = cls(
+            workflow_context=ctx,
+            task_id=task_descr['operation_id'],
+            info=task_descr['info'],
+            **task_descr['task_kwargs']
+        )
+        task._state = task_descr['state']
+        task.current_retries = task_descr['current_retries']
+        task.send_task_events = task_descr['send_task_events']
+        task.containing_subgraph = task_descr['containing_subgraph']
+        task.id = task_descr['operation_id']
+        task.stored = True
+        return task
+
+    @property
+    def task_type(self):
+        return self.__class__.__name__
 
     def dump(self):
+        self.stored = True
         return {
-            'id': self.id,
-            'state': self.get_state(),
+            'operation_id': self.id,
+            'name': self.name,
+            'current_retries': self.current_retries,
+            'send_task_events': self.send_task_events,
+            'cloudify_context': self.cloudify_context,
+            'state': self._state,
             'info': self.info,
             'error': self.error,
-            'current_retries': self.current_retries,
-            'cloudify_context': self.cloudify_context
+            'type': self.task_type,
+            'containing_subgraph': getattr(
+                self.containing_subgraph, 'id', None),
+            'task_kwargs': {},
         }
 
     def is_remote(self):
@@ -353,6 +381,14 @@ class RemoteWorkflowTask(WorkflowTask):
         self._cloudify_context = cloudify_context
         self._cloudify_agent = None
 
+    def dump(self):
+        task = super(RemoteWorkflowTask, self).dump()
+        task['task_kwargs'] = {
+            'cloudify_context': self.cloudify_context,
+            'kwargs': self._kwargs
+        }
+        return task
+
     def apply_async(self):
         """
         Call the underlying tasks' apply_async. Verify the worker
@@ -568,11 +604,19 @@ class LocalWorkflowTask(WorkflowTask):
         self._name = name or local_task.__name__
 
     def dump(self):
-        super_dump = super(LocalWorkflowTask, self).dump()
-        super_dump.update({
-            'name': self._name
-        })
-        return super_dump
+        serialized = super(LocalWorkflowTask, self).dump()
+        serialized['task_kwargs'] = {
+            'name': self._name,
+            'local_task': None
+        }
+        return serialized
+
+    @classmethod
+    def restore(cls, ctx, graph, task_descr):
+        task = super(LocalWorkflowTask, cls).restore(ctx, graph, task_descr)
+        # TODO restoring local tasks is not supported yet
+        task.local_task = lambda *a, **kw: None
+        return task
 
     def apply_async(self):
         """
@@ -634,7 +678,7 @@ class LocalWorkflowTask(WorkflowTask):
 # NOP tasks class
 class NOPLocalWorkflowTask(LocalWorkflowTask):
 
-    def __init__(self, workflow_context):
+    def __init__(self, workflow_context, **kwargs):
         super(NOPLocalWorkflowTask, self).__init__(lambda: None,
                                                    workflow_context)
 

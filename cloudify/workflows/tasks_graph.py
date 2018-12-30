@@ -91,7 +91,8 @@ class TaskDependencyGraph(object):
         return TaskSequence(self)
 
     def subgraph(self, name):
-        task = SubgraphTask(name, self, **self._default_subgraph_task_config)
+        task = SubgraphTask(self, info=name,
+                            **self._default_subgraph_task_config)
         self.add_task(task)
         return task
 
@@ -302,30 +303,36 @@ class TaskSequence(object):
 class SubgraphTask(tasks.WorkflowTask):
 
     def __init__(self,
-                 name,
                  graph,
+                 workflow_context=None,
                  task_id=None,
                  on_success=None,
                  on_failure=None,
+                 info=None,
                  total_retries=tasks.DEFAULT_SUBGRAPH_TOTAL_RETRIES,
                  retry_interval=tasks.DEFAULT_RETRY_INTERVAL,
                  send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS):
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,
-            info=name,
+            info=info,
             on_success=on_success,
             on_failure=on_failure,
             total_retries=total_retries,
             retry_interval=retry_interval,
             send_task_events=send_task_events)
         self.graph = graph
-        self._name = name
+        self._name = info
         self.tasks = {}
         self.failed_task = None
         if not self.on_failure:
             self.on_failure = lambda tsk: tasks.HandlerResult.fail()
         self.async_result = tasks.StubAsyncResult()
+
+    @classmethod
+    def restore(cls, ctx, graph, task_descr):
+        task_descr['task_kwargs']['graph'] = graph
+        return super(SubgraphTask, cls).restore(ctx, graph, task_descr)
 
     def _duplicate(self):
         raise NotImplementedError('self.retried_task should be set explicitly'
@@ -350,7 +357,7 @@ class SubgraphTask(tasks.WorkflowTask):
         return TaskSequence(self)
 
     def subgraph(self, name):
-        task = SubgraphTask(name, self.graph,
+        task = SubgraphTask(self.graph, info=name,
                             **self.graph._default_subgraph_task_config)
         self.add_task(task)
         return task
