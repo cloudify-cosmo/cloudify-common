@@ -19,6 +19,7 @@ import uuid
 import Queue
 
 from cloudify import exceptions
+from cloudify.state import current_workflow_ctx
 from cloudify.workflows import api
 from cloudify.manager import get_rest_client
 from cloudify.constants import MGMTWORKER_QUEUE
@@ -183,6 +184,9 @@ class WorkflowTask(object):
                          TASK_RESCHEDULED, TASK_SUCCEEDED, TASK_FAILED]:
             raise RuntimeError('Illegal state set on task: {0} '
                                '[task={1}]'.format(state, str(self)))
+        if self.stored:
+            with current_workflow_ctx.push(self.workflow_context):
+                self.workflow_context.update_operation(self.id, state=state)
         if self._state in TERMINATED_STATES:
             return
         self._state = state
@@ -319,6 +323,14 @@ class WorkflowTask(object):
     def is_subgraph(self):
         return False
 
+    def _should_resume(self):
+        """Has this task already been sent and should be resumed?"""
+        return (self._state in (TASK_SENT, TASK_STARTED) and
+                self.async_result is None)
+
+    def _can_resend(self):
+        return False
+
 
 class RemoteWorkflowTask(WorkflowTask):
     """A WorkflowTask wrapping an AMQP based task"""
@@ -398,13 +410,18 @@ class RemoteWorkflowTask(WorkflowTask):
         """
         try:
             self._set_queue_kwargs()
+            if self._can_resend():
+                self.kwargs['__cloudify_context']['resume'] = True
             task = self.workflow_context.internal.handler.get_task(
                 self, queue=self._task_queue, target=self._task_target,
                 tenant=self._task_tenant)
-            self.workflow_context.internal.send_task_event(TASK_SENDING, self)
-            async_result = self.workflow_context.internal.handler.send_task(
-                self, task)
-            self.set_state(TASK_SENT)
+            async_result = self.workflow_context.internal.handler\
+                .wait_for_result(self, task)
+            if self._state == TASK_SENDING or self._can_resend():
+                self.workflow_context.internal.send_task_event(
+                    TASK_SENDING, self)
+                self.workflow_context.internal.handler.send_task(self, task)
+                self.set_state(TASK_SENT)
             self.async_result = RemoteWorkflowTaskResult(self, async_result)
         except (exceptions.NonRecoverableError,
                 exceptions.RecoverableError) as e:
@@ -546,6 +563,10 @@ class RemoteWorkflowTask(WorkflowTask):
                     tenant)
         else:
             return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None
+
+    def _can_resend(self):
+        return (self.cloudify_context['executor'] != 'host_agent' and
+                self._should_resume())
 
 
 class LocalWorkflowTask(WorkflowTask):
