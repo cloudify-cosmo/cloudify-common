@@ -100,8 +100,9 @@ class TaskDependencyGraph(object):
             serialized_tasks.append(serialized)
         stored_graph = self.ctx.store_tasks_graph(
             name, operations=serialized_tasks)
-        self.id = stored_graph['id']
-        self._stored = True
+        if stored_graph:
+            self.id = stored_graph['id']
+            self._stored = True
 
     def add_task(self, task):
         """Add a WorkflowTask to this graph
