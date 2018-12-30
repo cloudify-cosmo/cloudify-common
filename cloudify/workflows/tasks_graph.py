@@ -246,7 +246,8 @@ class TaskDependencyGraph(object):
         """
         now = time.time()
         return (task for task in self.tasks_iter()
-                if task.get_state() == tasks.TASK_PENDING and
+                if (task.get_state() == tasks.TASK_PENDING or
+                    task._should_resume()) and
                 task.execute_after <= now and
                 not (task.containing_subgraph and
                      task.containing_subgraph.get_state() ==
@@ -284,7 +285,8 @@ class TaskDependencyGraph(object):
 
     def _handle_executable_task(self, task):
         """Handle executable task"""
-        task.set_state(tasks.TASK_SENDING)
+        if not task._should_resume():
+            task.set_state(tasks.TASK_SENDING)
         task.apply_async()
 
     def _handle_terminated_task(self, task):
@@ -381,7 +383,8 @@ class SubgraphTask(tasks.WorkflowTask):
                  info=None,
                  total_retries=tasks.DEFAULT_SUBGRAPH_TOTAL_RETRIES,
                  retry_interval=tasks.DEFAULT_RETRY_INTERVAL,
-                 send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS):
+                 send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS,
+                 **kwargs):
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,
