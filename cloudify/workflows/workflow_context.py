@@ -826,6 +826,27 @@ class _WorkflowContextBase(object):
             self.internal.task_graph.add_task(task)
             return task.apply_async()
 
+    def get_operations(self, graph_id):
+        return self.internal.handler.get_operations(graph_id)
+
+    def update_operation(self, operation_id, state):
+        return self.internal.handler.update_operation(operation_id, state)
+
+    def get_tasks_graph(self, name):
+        return self.internal.handler.get_tasks_graph(self.execution_id, name)
+
+    def store_tasks_graph(self, name, operations=None):
+        return self.internal.handler.store_tasks_graph(
+            self.execution_id, name, operations=operations)
+
+    def store_operation(self, task, dependencies, graph_id):
+        return self.internal.handler.store_operation(
+            task.id, graph_id, task.name, task.task_type,
+            dependencies=dependencies, parameters=task.dump())
+
+    def remove_operation(self, operation_id):
+        return self.internal.handler.remove_operation(operation_id)
+
 
 class WorkflowNodesAndInstancesContainer(object):
 
@@ -1166,6 +1187,12 @@ class CloudifyWorkflowContextHandler(object):
     def scaling_groups(self):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_operations(self, graph_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_operation(self, operation_id, state):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class _AsyncResult(object):
     NOTSET = object()
@@ -1371,6 +1398,38 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
                                  resource_path=resource_path,
                                  target_path=target_path,
                                  logger=logger)
+
+    def get_operations(self, graph_id):
+        client = get_rest_client()
+        operations = client.operations.list(graph_id)
+        return operations
+
+    def update_operation(self, operation_id, state):
+        client = get_rest_client()
+        client.operations.update(operation_id, state=state)
+
+    def get_tasks_graph(self, execution_id, name):
+        client = get_rest_client()
+        return client.tasks_graphs.list(execution_id, name)[0]
+
+    def store_tasks_graph(self, execution_id, name, operations):
+        client = get_rest_client()
+        return client.tasks_graphs.create(execution_id, name, operations)
+
+    def store_operation(self, operation_id, graph_id, operation_name,
+                        operation_type, dependencies, parameters):
+        client = get_rest_client()
+        client.operations.create(
+            operation_id,
+            graph_id,
+            operation_name,
+            type=operation_type,
+            dependencies=dependencies,
+            parameters=parameters)
+
+    def remove_operation(self, operation_id):
+        client = get_rest_client()
+        client.operations.delete(operation_id)
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
