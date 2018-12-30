@@ -29,13 +29,59 @@ class TaskDependencyGraph(object):
     :param workflow_context: A WorkflowContext instance (used for logging)
     """
 
-    def __init__(self, workflow_context,
+    @classmethod
+    def restore(cls, workflow_context, retrieved_graph):
+        graph = cls(workflow_context, graph_id=retrieved_graph['id'])
+        operations = workflow_context.get_operations(retrieved_graph['id'])
+        tasks = {}
+        for op_descr in operations:
+            op = OP_TYPES[op_descr['type']].restore(workflow_context, graph,
+                                                    op_descr)
+            tasks[op_descr['operation_id']] = op
+
+        for op in tasks.values():
+            if op.containing_subgraph:
+                subgraph_id = op.containing_subgraph
+                op.containing_subgraph = None
+                subgraph = tasks[subgraph_id]
+                subgraph.add_task(op)
+            else:
+                graph.add_task(op)
+
+        for op_descr in operations:
+            op = tasks[op_descr['operation_id']]
+            for target in op_descr['dependencies']:
+                if target not in tasks:
+                    continue
+                target = tasks[target]
+                graph.add_dependency(op, target)
+
+        graph._stored = True
+        return graph
+
+    def __init__(self, workflow_context, graph_id=None,
                  default_subgraph_task_config=None):
         self.ctx = workflow_context
         self.graph = nx.DiGraph()
         default_subgraph_task_config = default_subgraph_task_config or {}
         self._default_subgraph_task_config = default_subgraph_task_config
         self._error = None
+        self._stored = False
+        self.id = graph_id
+
+    def store(self, name):
+        if self.id is not None:
+            raise RuntimeError('Graph already stored')
+        serialized_tasks = []
+        for task in self.tasks_iter():
+            serialized = task.dump()
+            serialized['dependencies'] = list(
+                self.graph.succ.get(task.id, {}).keys())
+            serialized_tasks.append(serialized)
+        stored_graph = self.ctx.store_tasks_graph(
+            name, operations=serialized_tasks)
+        self.id = stored_graph['id']
+        self._stored = True
 
     def add_task(self, task):
         """Add a WorkflowTask to this graph
@@ -394,3 +440,11 @@ class SubgraphTask(tasks.WorkflowTask):
             new_task.containing_subgraph = self
         if not self.tasks and self.get_state() not in tasks.TERMINATED_STATES:
             self.set_state(tasks.TASK_SUCCEEDED)
+
+
+OP_TYPES = {
+    'RemoteWorkflowTask': tasks.RemoteWorkflowTask,
+    'LocalWorkflowTask': tasks.LocalWorkflowTask,
+    'NOPLocalWorkflowTask': tasks.NOPLocalWorkflowTask,
+    'SubgraphTask': SubgraphTask
+}
