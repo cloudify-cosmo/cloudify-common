@@ -14,10 +14,14 @@
 #    * limitations under the License.
 
 
-def operation(func=None, **kwargs):
-    """This decorator does not do anything and is kept for backwards
-       compatibility. It is not required for operations to work.
+def operation(func=None, resumable=False, **kwargs):
+    """This decorator is not required for operations to work.
+
+    Use this for readability, and to add additional markers for the function
+    (eg. is it resumable).
     """
+    if func and resumable:
+        func.resumable = True
     return func or operation
 
 
