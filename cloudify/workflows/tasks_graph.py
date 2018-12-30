@@ -276,7 +276,8 @@ class TaskDependencyGraph(object):
                          for dependent in dependents]
         self.graph.remove_edges_from(removed_edges)
         self.graph.remove_node(task.id)
-
+        if task.stored:
+            self.ctx.remove_operation(task.id)
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
@@ -285,9 +286,11 @@ class TaskDependencyGraph(object):
                 message = '{0} -> {1}'.format(message, task.error)
             if self._error is None:
                 self._error = RuntimeError(message)
-
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
+            if self.id is not None:
+                self.ctx.store_operation(new_task, dependents, self.id)
+                new_task.stored = True
             self.add_task(new_task)
             added_edges = [(dependent, new_task.id)
                            for dependent in dependents]
