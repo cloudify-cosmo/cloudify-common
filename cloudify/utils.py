@@ -25,6 +25,7 @@ import zipfile
 import logging
 import tempfile
 import StringIO
+import functools
 import importlib
 import traceback
 import subprocess
@@ -639,6 +640,35 @@ def get_admin_api_token():
 def get_rest_token_by_user_id(client, user_id):
     token = client.user_tokens.get(user_id)
     return token.get('value')
+
+
+class _MethodDecorator(object):
+    """Make a function work as a decorator for both a function and a method.
+    """
+    def __init__(self, decorator, func):
+        self._decorator = decorator
+        self._func = func
+        functools.update_wrapper(self, func)  # equivalent of @wraps
+
+    def __get__(self, instance, owner):
+        # this is relevant when used with a method - we are accessed on
+        # some instance, so get the underlying method, decorate,
+        # and call it
+        return self._decorator(self._func.__get__(instance, owner))
+
+    def __call__(self, *args, **kwargs):
+        # the usual usage - when used with a function, just decorate
+        # and call the function
+        return self._decorator(self._func)(*args, **kwargs)
+
+
+def method_decorator(decorator):
+    """Make a function work as a decorator for both a function and a method.
+    """
+    @functools.wraps(decorator)
+    def _decorate(func):
+        return _MethodDecorator(decorator, func)
+    return _decorate
 
 
 internal = Internal()

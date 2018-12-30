@@ -15,11 +15,31 @@
 
 
 import time
+from functools import wraps
+
 
 import networkx as nx
 
 from cloudify.workflows import api
 from cloudify.workflows import tasks
+from cloudify.utils import method_decorator
+
+
+@method_decorator
+def make_or_get_graph(f):
+    """Decorate a graph-creating function with this, to automatically
+    make it try to retrieve the graph from storage first.
+    """
+    @wraps(f)
+    def _inner(ctx, name, **kwargs):
+        graph = ctx.get_tasks_graph(name)
+        if not graph:
+            graph = f(ctx, **kwargs)
+            graph.store(name=name)
+        else:
+            graph = TaskDependencyGraph.restore(ctx, graph, name=name)
+        return graph
+    return _inner
 
 
 class TaskDependencyGraph(object):
