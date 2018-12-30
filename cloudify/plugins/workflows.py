@@ -19,6 +19,7 @@ from cloudify import constants, utils
 from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
 from cloudify.manager import get_rest_client
+from cloudify.workflows.tasks_graph import make_or_get_graph
 
 
 @workflow
@@ -566,12 +567,11 @@ def restart(ctx, stop_parms, start_parms, run_by_dependency_order, type_names,
           node_ids, node_instance_ids, **kwargs)
 
 
-@workflow
-def execute_operation(ctx, operation, operation_kwargs, allow_kwargs_override,
-                      run_by_dependency_order, type_names, node_ids,
-                      node_instance_ids, **kwargs):
-    """ A generic workflow for executing arbitrary operations on nodes """
-
+@make_or_get_graph
+def _make_execute_operation_graph(ctx, operation, operation_kwargs,
+                                  allow_kwargs_override,
+                                  run_by_dependency_order, type_names,
+                                  node_ids, node_instance_ids, **kwargs):
     graph = ctx.graph_mode()
     subgraphs = {}
 
@@ -630,7 +630,15 @@ def execute_operation(ctx, operation, operation_kwargs, allow_kwargs_override,
             for rel in instance.relationships:
                 graph.add_dependency(subgraphs[instance.id],
                                      subgraphs[rel.target_id])
+    return graph
 
+
+@workflow
+def execute_operation(ctx, **kwargs):
+    """ A generic workflow for executing arbitrary operations on nodes """
+
+    graph = _make_execute_operation_graph(
+        ctx, name='execute_operation', **kwargs)
     graph.execute()
 
 
