@@ -98,6 +98,24 @@ class Context(object):
         self._calculate_element_graph()
         self._remove_parsing_leftovers()
 
+    def _remove_skip_namespace_flag(self, element):
+        """
+        This will traverse the element in search of skip namespace flag,
+        which is leftover after applying namespace on intrinsic functions.
+        """
+        if isinstance(element, list):
+            for i in xrange(len(element)):
+                self._remove_skip_namespace_flag(element[i].value)
+            return
+        elif not isinstance(element, dict):
+            return
+
+        for k, v in element.items():
+            if hasattr(element[k], SKIP_NAMESPACE_FLAG):
+                delattr(element[k], SKIP_NAMESPACE_FLAG)
+            if isinstance(v, holder.Holder) or k.value == 'concat':
+                self._remove_skip_namespace_flag(element[k].value)
+
     def _remove_parsing_leftovers(self):
         """
         Removing any leftover of the parsing process, so it will not interfere
@@ -110,6 +128,8 @@ class Context(object):
 
             # Cleaning 'skip namespace' flag
             if hasattr(element.initial_value_holder, SKIP_NAMESPACE_FLAG):
+                self._remove_skip_namespace_flag(
+                    element.initial_value_holder.value)
                 delattr(element.initial_value_holder, SKIP_NAMESPACE_FLAG)
 
     @property
@@ -283,34 +303,41 @@ class Context(object):
             This will traverse the element in search of the key,
             and will run the set namespace function on the key's
             values only for the relevant intrinsic functions.
+            Also this will return if a sub element has skip namespace
+            flag, this is in purpose for further parsing process.
             """
+            skip_namespace_flag = False
             if isinstance(element, list):
                 for i in xrange(len(element)):
-                    element[i].value = \
+                    element[i].value, skip_namespace_flag = \
                         handle_holder_intrinsic_function_namespace(
                             element[i].value)
-                return element
+                return element, skip_namespace_flag
             elif not isinstance(element, dict):
                 # There is no need to search for intrinsic functions, if
                 # there is no namespace or if the element can not contain
                 # them.
-                return element
+                return element, skip_namespace_flag
 
             for k, v in element.items():
+                if hasattr(element[k], SKIP_NAMESPACE_FLAG):
+                    return element, True
                 if k.value == 'get_input':
                     element[k].value = utils.generate_namespaced_value(
                             namespace, v.value)
+                    element[k].skip_namespace = True
                 elif k.value == 'get_property' or k.value == 'get_attribute':
                     element[k].value =\
                         set_holder_namespace_node_intrinsic_functions(
                             namespace, v.value)
+                    element[k].skip_namespace = True
                 if k.value == 'concat':
-                    element[k].value =\
+                    element[k].value, skip_namespace_flag =\
                         handle_holder_intrinsic_function_namespace(v.value)
                 elif isinstance(v, holder.Holder):
-                    element[k].value = \
+                    element[k].value, skip_namespace_flag = \
                         handle_holder_intrinsic_function_namespace(v.value)
-            return element
+            return element, skip_namespace_flag
 
         def should_add_namespace_to_string_leaf(element):
             return \
@@ -332,18 +359,17 @@ class Context(object):
                         namespace, element._initial_value)
                 element._initial_value = namespaced_value
                 element.initial_value_holder.value = namespaced_value
-
-                # We need to use this flag, only for yaml level linking.
-                element.initial_value_holder.skip_namespace = True
             elif isinstance(element._initial_value, dict):
-                element.initial_value_holder.value = \
+                element.initial_value_holder.value, has_skip_namespace = \
                     handle_holder_intrinsic_function_namespace(
                         element.initial_value_holder.value)
-                element._initial_value = \
-                    handle_intrinsic_function_namespace(element._initial_value)
+                if not has_skip_namespace:
+                    element._initial_value = \
+                        handle_intrinsic_function_namespace(
+                            element._initial_value)
 
-                # We need to use this flag, only for yaml level linking.
-                element.initial_value_holder.skip_namespace = True
+            # We need to use this flag, only for yaml level linking.
+            element.initial_value_holder.skip_namespace = True
 
         def should_add_element_namespace(element_holder):
             # Preventing of adding namespace prefix to cloudify

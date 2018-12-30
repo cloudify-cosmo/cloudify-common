@@ -1025,3 +1025,43 @@ imports:
         parsed = self.parse(third_layer, resolver=resolver)
         inputs = parsed[constants.INPUTS]
         self.assertIn('ns2--ns--port', inputs)
+
+    def test_dsl_definitions_with_blueprint_import(self):
+        basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+inputs:
+    port:
+        default: 90
+dsl_definitions:
+  config: &config
+    region: { get_input: port }
+node_templates:
+  vm:
+    type: cloudify.nodes.WebServer
+    properties:
+      port: *config
+  vm2:
+    type: cloudify.nodes.WebServer
+    properties:
+      port: *config
+"""
+        second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns--blueprint:first_layer
+"""
+        resolver = Resolver({'blueprint:first_layer': basic_yaml,
+                             'blueprint:second_layer': second_layer})
+        third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    - ns2--blueprint:second_layer
+"""
+        parsed = self.parse(third_layer, resolver=resolver)
+        inputs = parsed[constants.INPUTS]
+        self.assertIn('ns2--ns--port', inputs)
+        vm_properties = parsed[constants.NODES][0]['properties']
+        self.assertEqual(vm_properties['port']['region'],
+                         {'get_input': 'ns2--ns--port'})
+        vm_properties = parsed[constants.NODES][1]['properties']
+        self.assertEqual(vm_properties['port']['region'],
+                         {'get_input': 'ns2--ns--port'})
