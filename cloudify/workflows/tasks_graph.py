@@ -22,22 +22,22 @@ import networkx as nx
 
 from cloudify.workflows import api
 from cloudify.workflows import tasks
-from cloudify.utils import method_decorator
+from cloudify.state import workflow_ctx
 
 
-@method_decorator
 def make_or_get_graph(f):
     """Decorate a graph-creating function with this, to automatically
     make it try to retrieve the graph from storage first.
     """
     @wraps(f)
-    def _inner(ctx, name, **kwargs):
-        graph = ctx.get_tasks_graph(name)
+    def _inner(*args, **kwargs):
+        name = kwargs.pop('name')
+        graph = workflow_ctx.get_tasks_graph(name)
         if not graph:
-            graph = f(ctx, **kwargs)
+            graph = f(*args, **kwargs)
             graph.store(name=name)
         else:
-            graph = TaskDependencyGraph.restore(ctx, graph, name=name)
+            graph = TaskDependencyGraph.restore(workflow_ctx, graph)
         return graph
     return _inner
 

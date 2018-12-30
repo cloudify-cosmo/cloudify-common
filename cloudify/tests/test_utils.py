@@ -23,8 +23,7 @@ from cloudify.exceptions import CommandExecutionException
 from cloudify.utils import (
     setup_logger,
     get_exec_tempdir,
-    LocalCommandRunner,
-    method_decorator
+    LocalCommandRunner
 )
 
 
@@ -66,34 +65,3 @@ class TempdirTest(unittest.TestCase):
     @mock.patch.dict(os.environ, {'CFY_EXEC_TEMP': '/fake/temp'})
     def test_executable_override(self):
         self.assertEqual('/fake/temp', get_exec_tempdir())
-
-
-class TestMethodDecorator(unittest.TestCase):
-    def test_function_usage(self):
-        @method_decorator
-        def deco(f):
-            def _inner(*args, **kwargs):
-                return f(*args, **kwargs) + 2
-            return _inner
-
-        @deco
-        def f(x):
-            return x * 2
-
-        self.assertEqual(f(21), 44)
-
-    def test_method_usage(self):
-        @method_decorator
-        def deco(f):
-            def _inner(*args, **kwargs):
-                return f(*args, **kwargs) + 2
-            return _inner
-
-        class A(object):
-            y = 5
-
-            @deco
-            def f(self, x):
-                return self.y + x * 2
-
-        self.assertEqual(A().f(21), 49)
