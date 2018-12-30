@@ -255,3 +255,18 @@ class ExecutionsClient(object):
                                  data={'action': action},
                                  expected_status_code=200)
         return self._wrapper_cls(response)
+
+    def resume(self, execution_id, force=False):
+        """Resume an execution.
+
+        :param execution_id: Id of the execution to resume.
+        :param force: Whether to resume failed/cancelled executions by
+                      retrying their failed tasks.
+        :return: Resumed execution.
+        """
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
+        action = 'force-resume' if force else 'resume'
+        response = self.api.post(uri,
+                                 data={'action': action},
+                                 expected_status_code=200)
+        return self._wrapper_cls(response)
