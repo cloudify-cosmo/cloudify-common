@@ -546,7 +546,7 @@ def _make_install_agents_graph(
 
 @workflow
 def install_new_agents(ctx, **kwargs):
-    graph = _make_install_agents_graph(ctx, 'install_agents', **kwargs)
+    graph = _make_install_agents_graph(ctx, name='install_agents', **kwargs)
     graph.execute()
 
 
