@@ -700,7 +700,7 @@ def update(ctx,
 
         # This one as well.
         lifecycle.execute_establish_relationships(
-            graph=ctx.graph_mode(),
+            graph=graph,
             node_instances=set(
                 instances_by_change['extended_and_target_instances'][1]),
             modified_relationship_ids=modified_entity_ids['relationship']
