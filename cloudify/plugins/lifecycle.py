@@ -17,7 +17,8 @@ import itertools
 
 from cloudify import utils
 from cloudify import constants
-from cloudify.workflows.tasks_graph import forkjoin
+from cloudify.state import workflow_ctx
+from cloudify.workflows.tasks_graph import forkjoin, make_or_get_graph
 from cloudify.workflows import tasks as workflow_tasks
 
 
@@ -46,7 +47,8 @@ def reinstall_node_instances(graph,
     processor = LifecycleProcessor(graph=graph,
                                    node_instances=node_instances,
                                    ignore_failure=ignore_failure,
-                                   related_nodes=related_nodes)
+                                   related_nodes=related_nodes,
+                                   name_prefix='reinstall')
     processor.uninstall()
     processor.install()
 
@@ -58,7 +60,8 @@ def execute_establish_relationships(graph,
     processor = LifecycleProcessor(
             graph=graph,
             related_nodes=node_instances,
-            modified_relationship_ids=modified_relationship_ids)
+            modified_relationship_ids=modified_relationship_ids,
+            name_prefix='establish')
     processor.install()
 
 
@@ -69,7 +72,8 @@ def execute_unlink_relationships(graph,
     processor = LifecycleProcessor(
             graph=graph,
             related_nodes=node_instances,
-            modified_relationship_ids=modified_relationship_ids)
+            modified_relationship_ids=modified_relationship_ids,
+            name_prefix='unlink')
     processor.uninstall()
 
 
@@ -80,24 +84,34 @@ class LifecycleProcessor(object):
                  node_instances=None,
                  related_nodes=None,
                  modified_relationship_ids=None,
-                 ignore_failure=False):
+                 ignore_failure=False,
+                 name_prefix=''):
         self.graph = graph
         self.node_instances = node_instances or set()
         self.intact_nodes = related_nodes or set()
         self.modified_relationship_ids = modified_relationship_ids or {}
         self.ignore_failure = ignore_failure
+        self._name_prefix = name_prefix
 
     def install(self):
-        self._process_node_instances(
+        graph = self._process_node_instances(
+            workflow_ctx,
+            name=self._name_prefix + 'install',
             node_instance_subgraph_func=install_node_instance_subgraph,
             graph_finisher_func=self._finish_install)
+        graph.execute()
 
     def uninstall(self):
-        self._process_node_instances(
+        graph = self._process_node_instances(
+            workflow_ctx,
+            name=self._name_prefix + 'uninstall',
             node_instance_subgraph_func=uninstall_node_instance_subgraph,
             graph_finisher_func=self._finish_uninstall)
+        graph.execute()
 
+    @make_or_get_graph
     def _process_node_instances(self,
+                                ctx,
                                 node_instance_subgraph_func,
                                 graph_finisher_func):
         subgraphs = {}
@@ -110,24 +124,27 @@ class LifecycleProcessor(object):
             subgraphs[instance.id] = self.graph.subgraph(
                 'stub_{0}'.format(instance.id))
 
-        graph_finisher_func(subgraphs)
-        self.graph.execute()
+        graph_finisher_func(self.graph, subgraphs)
+        return self.graph
 
-    def _finish_install(self, subgraphs):
+    def _finish_install(self, graph, subgraphs):
         self._finish_subgraphs(
+            graph=graph,
             subgraphs=subgraphs,
             intact_op='cloudify.interfaces.relationship_lifecycle.establish',
             install=True)
 
-    def _finish_uninstall(self, subgraphs):
+    def _finish_uninstall(self, graph, subgraphs):
         self._finish_subgraphs(
+            graph=graph,
             subgraphs=subgraphs,
             intact_op='cloudify.interfaces.relationship_lifecycle.unlink',
             install=False)
 
-    def _finish_subgraphs(self, subgraphs, intact_op, install):
+    def _finish_subgraphs(self, graph, subgraphs, intact_op, install):
         # Create task dependencies based on node relationships
-        self._add_dependencies(subgraphs=subgraphs,
+        self._add_dependencies(graph=graph,
+                               subgraphs=subgraphs,
                                instances=self.node_instances,
                                install=install)
 
@@ -143,12 +160,13 @@ class LifecycleProcessor(object):
                     source_task_sequence.add(intact_task)
         # Add operations for intact nodes depending on a node instance
         # belonging to node_instances
-        self._add_dependencies(subgraphs=subgraphs,
+        self._add_dependencies(graph=graph,
+                               subgraphs=subgraphs,
                                instances=self.intact_nodes,
                                install=install,
                                on_dependency_added=intact_on_dependency_added)
 
-    def _add_dependencies(self, subgraphs, instances, install,
+    def _add_dependencies(self, graph, subgraphs, instances, install,
                           on_dependency_added=None):
         subgraph_sequences = dict(
             (instance_id, subgraph.sequence())
@@ -163,11 +181,9 @@ class LifecycleProcessor(object):
                     source_subgraph = subgraphs[instance.id]
                     target_subgraph = subgraphs[rel.target_id]
                     if install:
-                        self.graph.add_dependency(source_subgraph,
-                                                  target_subgraph)
+                        graph.add_dependency(source_subgraph, target_subgraph)
                     else:
-                        self.graph.add_dependency(target_subgraph,
-                                                  source_subgraph)
+                        graph.add_dependency(target_subgraph, source_subgraph)
                     if on_dependency_added:
                         task_sequence = subgraph_sequences[instance.id]
                         on_dependency_added(instance, rel, task_sequence)
@@ -467,7 +483,7 @@ def _host_post_start(host_node_instance):
                 host_node_instance.execute_operation(
                     'cloudify.interfaces.cloudify_agent.create'),
                 host_node_instance.send_event('Agent created')
-                ]
+            ]
             # In remote mode the `create` operation configures/starts the agent
             if install_method in [constants.AGENT_INSTALL_METHOD_PLUGIN,
                                   constants.AGENT_INSTALL_METHOD_INIT_SCRIPT]:
