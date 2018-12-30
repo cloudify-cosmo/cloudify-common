@@ -497,16 +497,15 @@ def _get_all_host_instances(ctx):
     return node_instances
 
 
-@workflow
-def install_new_agents(ctx, install_agent_timeout, node_ids,
-                       node_instance_ids, install_methods=None, validate=True,
-                       install=True, manager_ip=None, manager_certificate=None,
-                       stop_old_agent=False, **_):
-
+@make_or_get_graph
+def _make_install_agents_graph(
+        ctx, install_agent_timeout, node_ids,
+        node_instance_ids, install_methods=None, validate=True,
+        install=True, manager_ip=None, manager_certificate=None,
+        stop_old_agent=False, **_):
     hosts = _create_hosts_list(ctx, node_ids, node_instance_ids,
                                install_methods)
     _assert_hosts_started(hosts)
-
     graph = ctx.graph_mode()
     if validate:
         validate_subgraph = _add_validate_to_task_graph(
@@ -542,6 +541,12 @@ def install_new_agents(ctx, install_agent_timeout, node_ids,
                     'cloudify.interfaces.monitoring.start'))
     if validate and install:
         graph.add_dependency(install_subgraph, validate_subgraph)
+    return graph
+
+
+@workflow
+def install_new_agents(ctx, **kwargs):
+    graph = _make_install_agents_graph(ctx, 'install_agents', **kwargs)
     graph.execute()
 
 
