@@ -31,13 +31,13 @@ class TaskDependencyGraph(object):
 
     @classmethod
     def restore(cls, workflow_context, retrieved_graph):
-        graph = cls(workflow_context, graph_id=retrieved_graph['id'])
-        operations = workflow_context.get_operations(retrieved_graph['id'])
+        graph = cls(workflow_context, graph_id=retrieved_graph.id)
+        operations = workflow_context.get_operations(retrieved_graph.id)
         tasks = {}
         for op_descr in operations:
-            op = OP_TYPES[op_descr['type']].restore(workflow_context, graph,
-                                                    op_descr)
-            tasks[op_descr['operation_id']] = op
+            op = OP_TYPES[op_descr.type].restore(workflow_context, graph,
+                                                 op_descr)
+            tasks[op_descr.id] = op
 
         for op in tasks.values():
             if op.containing_subgraph:
@@ -49,8 +49,8 @@ class TaskDependencyGraph(object):
                 graph.add_task(op)
 
         for op_descr in operations:
-            op = tasks[op_descr['operation_id']]
-            for target in op_descr['dependencies']:
+            op = tasks[op_descr.id]
+            for target in op_descr.dependencies:
                 if target not in tasks:
                     continue
                 target = tasks[target]
@@ -380,7 +380,7 @@ class SubgraphTask(tasks.WorkflowTask):
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
-        task_descr['task_kwargs']['graph'] = graph
+        task_descr.parameters['task_kwargs']['graph'] = graph
         return super(SubgraphTask, cls).restore(ctx, graph, task_descr)
 
     def _duplicate(self):

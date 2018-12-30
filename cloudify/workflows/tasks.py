@@ -111,17 +111,17 @@ class WorkflowTask(object):
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
+        params = task_descr.parameters
         task = cls(
             workflow_context=ctx,
-            task_id=task_descr['operation_id'],
-            info=task_descr['info'],
-            **task_descr['task_kwargs']
+            task_id=task_descr.id,
+            info=params['info'],
+            **params['task_kwargs']
         )
-        task._state = task_descr['state']
-        task.current_retries = task_descr['current_retries']
-        task.send_task_events = task_descr['send_task_events']
-        task.containing_subgraph = task_descr['containing_subgraph']
-        task.id = task_descr['operation_id']
+        task._state = task_descr.state
+        task.current_retries = params['current_retries']
+        task.send_task_events = params['send_task_events']
+        task.containing_subgraph = params['containing_subgraph']
         task.stored = True
         return task
 
@@ -132,18 +132,20 @@ class WorkflowTask(object):
     def dump(self):
         self.stored = True
         return {
-            'operation_id': self.id,
+            'id': self.id,
             'name': self.name,
-            'current_retries': self.current_retries,
-            'send_task_events': self.send_task_events,
-            'cloudify_context': self.cloudify_context,
             'state': self._state,
-            'info': self.info,
-            'error': self.error,
             'type': self.task_type,
-            'containing_subgraph': getattr(
-                self.containing_subgraph, 'id', None),
-            'task_kwargs': {},
+            'parameters': {
+                'current_retries': self.current_retries,
+                'send_task_events': self.send_task_events,
+                'cloudify_context': self.cloudify_context,
+                'info': self.info,
+                'error': self.error,
+                'containing_subgraph': getattr(
+                    self.containing_subgraph, 'id', None),
+                'task_kwargs': {},
+            }
         }
 
     def is_remote(self):
@@ -395,7 +397,7 @@ class RemoteWorkflowTask(WorkflowTask):
 
     def dump(self):
         task = super(RemoteWorkflowTask, self).dump()
-        task['task_kwargs'] = {
+        task['parameters']['task_kwargs'] = {
             'cloudify_context': self.cloudify_context,
             'kwargs': self._kwargs
         }
@@ -626,7 +628,7 @@ class LocalWorkflowTask(WorkflowTask):
 
     def dump(self):
         serialized = super(LocalWorkflowTask, self).dump()
-        serialized['task_kwargs'] = {
+        serialized['parameters']['task_kwargs'] = {
             'name': self._name,
             'local_task': None
         }

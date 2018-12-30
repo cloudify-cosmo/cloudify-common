@@ -17,6 +17,7 @@ from unittest import TestCase
 
 
 from cloudify.workflows import tasks, tasks_graph
+from cloudify_rest_client.operations import Operation, TasksGraph
 
 
 def _make_remote_task(kwargs=None):
@@ -33,7 +34,7 @@ class TestSerialize(TestCase):
     def test_task_serialize(self):
         task = _make_remote_task()
         task._state = tasks.TASK_SENT
-        serialized = task.dump()
+        serialized = Operation(task.dump())
         deserialized = tasks.RemoteWorkflowTask.restore(
             ctx=None,
             graph=None,
@@ -58,7 +59,7 @@ class _MockCtx(object):
 
     def store_tasks_graph(self, name, operations):
         self._storage['name'] = name
-        self._storage['operations'] = operations
+        self._storage['operations'] = [Operation(op) for op in operations]
         return {'id': 'abc'}
 
     def get_operations(self, graph_id):
@@ -96,7 +97,7 @@ class TestGraphSerialize(TestCase):
         graph.store(name='graph1')
 
         deserialized = tasks_graph.TaskDependencyGraph.restore(
-            ctx, {'id': graph.id})
+            ctx, TasksGraph({'id': graph.id}))
 
         self.assertEqual(graph.id, deserialized.id)
 

@@ -27,7 +27,7 @@ class Operation(dict):
 
     @property
     def parameters(self):
-        return self.get('parameters')
+        return self.get('parameters', {})
 
 
 class OperationsClient(object):

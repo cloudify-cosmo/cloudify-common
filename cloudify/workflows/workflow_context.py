@@ -841,8 +841,7 @@ class _WorkflowContextBase(object):
 
     def store_operation(self, task, dependencies, graph_id):
         return self.internal.handler.store_operation(
-            task.id, graph_id, task.name, task.task_type,
-            dependencies=dependencies, parameters=task.dump())
+            graph_id=graph_id, dependencies=dependencies, **task.dump())
 
     def remove_operation(self, operation_id):
         return self.internal.handler.remove_operation(operation_id)
@@ -1432,14 +1431,14 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         client = get_rest_client()
         return client.tasks_graphs.create(execution_id, name, operations)
 
-    def store_operation(self, operation_id, graph_id, operation_name,
-                        operation_type, dependencies, parameters):
+    def store_operation(self, graph_id, dependencies,
+                        id, name, type, parameters):
         client = get_rest_client()
         client.operations.create(
-            operation_id,
-            graph_id,
-            operation_name,
-            type=operation_type,
+            operation_id=id,
+            graph_id=graph_id,
+            operation_name=name,
+            type=type,
             dependencies=dependencies,
             parameters=parameters)
 
