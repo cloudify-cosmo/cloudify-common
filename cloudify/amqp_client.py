@@ -507,14 +507,14 @@ class NoWaitSendHandler(SendHandler):
 class _RequestResponseHandlerBase(TaskConsumer):
     def __init__(self, exchange, queue=None):
         super(_RequestResponseHandlerBase, self).__init__(exchange)
-        self.queue = queue or uuid.uuid4().hex
+        self.queue = queue or '{0}_response_{1}'.format(
+            self.exchange, uuid.uuid4().hex)
 
     def _register_queue(self, channel):
         self.in_channel.exchange_declare(exchange=self.exchange,
                                          auto_delete=False,
                                          durable=True,
                                          exchange_type=self.exchange_type)
-        self.queue = '{0}_response_{1}'.format(self.exchange, uuid.uuid4().hex)
         self.in_channel.queue_declare(queue=self.queue, exclusive=True,
                                       durable=True)
         self.in_channel.queue_bind(queue=self.queue, exchange=self.exchange)
