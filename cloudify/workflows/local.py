@@ -27,9 +27,10 @@ from StringIO import StringIO
 from contextlib import contextmanager
 
 from cloudify_rest_client.nodes import Node
+from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.node_instances import NodeInstance
 
-from cloudify import dispatch
+from cloudify import dispatch, utils
 from cloudify.workflows.workflow_context import (
     DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE)
 
@@ -143,8 +144,15 @@ class _Environment(object):
 
         merged_parameters = _merge_and_validate_execution_parameters(
             workflow, workflow_name, parameters, allow_custom_parameters)
-
-        return dispatch.dispatch(__cloudify_context=ctx, **merged_parameters)
+        self.storage.store_execution(execution_id, ctx, merged_parameters)
+        try:
+            rv = dispatch.dispatch(__cloudify_context=ctx,
+                                   **merged_parameters)
+            self.storage.execution_ended(execution_id)
+            return rv
+        except Exception as e:
+            self.storage.execution_ended(execution_id, e)
+            raise e
 
 
 def init_env(blueprint_path,
@@ -460,16 +468,69 @@ class _Storage(object):
     def get_secret(self):
         raise NotImplementedError()
 
+    def get_executions(self):
+        raise NotImplementedError()
+
+    def store_executions(self, executions):
+        raise NotImplementedError()
+
+    def get_execution(self, execution_id):
+        for execution in self.get_executions():
+            if execution['id'] == execution_id:
+                return execution
+
+    def store_execution(self, execution_id, ctx, parameters,
+                        status=Execution.PENDING):
+        executions = self.get_executions()
+        start_time = datetime.now()
+        executions.append({
+            'id': execution_id,
+            'workflow_id': ctx['workflow_id'],
+            'deployment_id': ctx['deployment_id'],
+            'blueprint_id': ctx['blueprint_id'],
+            'is_dry_run': False,
+            'status': status,
+            'status_display': self._get_status_display(status),
+            'parameters': parameters,
+            'created_at': start_time,
+            'started_at': start_time
+        })
+        self.store_executions(executions)
+
+    def execution_ended(self, execution_id, error=None):
+        ended_at = datetime.now()
+        if error:
+            status = Execution.FAILED
+        else:
+            status = Execution.TERMINATED
+        executions = self.get_executions()
+        for execution in executions:
+            if execution['id'] == execution_id:
+                execution.update({
+                    'status': status,
+                    'status_display': self._get_status_display(status),
+                    'ended_at': ended_at,
+                    'error': utils.format_exception(error) if error else None
+                })
+        self.store_executions(executions)
+
+    def _get_status_display(self, status):
+        return {
+            Execution.TERMINATED: 'completed'
+        }.get(status, status)
+
 
 class InMemoryStorage(_Storage):
 
     def __init__(self):
         super(InMemoryStorage, self).__init__()
         self._node_instances = None
+        self._executions = []
 
     def init(self, name, plan, nodes, node_instances, blueprint_path,
              provider_context):
         self.plan = plan
+        self._executions = []
         self._node_instances = dict((instance.id, instance)
                                     for instance in node_instances)
         super(InMemoryStorage, self).init(name, plan, nodes, node_instances,
@@ -501,6 +562,12 @@ class InMemoryStorage(_Storage):
         raise NotImplementedError('get_capability is not implemented by '
                                   'memory storage')
 
+    def get_executions(self):
+        return self._executions
+
+    def store_executions(self, executions):
+        self._executions = executions
+
 
 class FileStorage(_Storage):
 
@@ -513,6 +580,7 @@ class FileStorage(_Storage):
         self._data_path = None
         self._payload_path = None
         self._blueprint_path = None
+        self._executions_path = None
 
     def init(self, name, plan, nodes, node_instances, blueprint_path,
              provider_context):
@@ -522,11 +590,14 @@ class FileStorage(_Storage):
         instances_dir = os.path.join(storage_dir, 'node-instances')
         data_path = os.path.join(storage_dir, 'data')
         payload_path = os.path.join(storage_dir, 'payload')
+        executions_path = os.path.join(storage_dir, 'executions')
         os.makedirs(storage_dir)
         os.mkdir(instances_dir)
         os.mkdir(workdir)
         with open(payload_path, 'w') as f:
-            f.write(json.dumps({}))
+            f.write(json.dumps({}, cls=JSONEncoderWithDatetime))
+        with open(executions_path, 'w') as f:
+            f.write(json.dumps([], cls=JSONEncoderWithDatetime))
 
         blueprint_filename = os.path.basename(os.path.abspath(blueprint_path))
         with open(data_path, 'w') as f:
@@ -535,8 +606,8 @@ class FileStorage(_Storage):
                 'blueprint_filename': blueprint_filename,
                 'nodes': nodes,
                 'provider_context': provider_context or {},
-                'created_at': time.mktime(self.created_at.timetuple())
-            }))
+                'created_at': self.created_at
+            }, cls=JSONEncoderWithDatetime))
         resources_root = os.path.dirname(os.path.abspath(blueprint_path))
         self.resources_root = os.path.join(storage_dir, 'resources')
 
@@ -555,26 +626,26 @@ class FileStorage(_Storage):
         self._workdir = os.path.join(self._storage_dir, 'workdir')
         self._instances_dir = os.path.join(self._storage_dir, 'node-instances')
         self._payload_path = os.path.join(self._storage_dir, 'payload')
+        self._executions_path = os.path.join(self._storage_dir, 'executions')
         self._data_path = os.path.join(self._storage_dir, 'data')
         with open(self._data_path) as f:
-            data = json.loads(f.read())
+            data = json.loads(f.read(), object_hook=load_datetime)
         self.plan = data['plan']
         self.resources_root = os.path.join(self._storage_dir, 'resources')
         self._blueprint_path = os.path.join(self.resources_root,
                                             data['blueprint_filename'])
         self._provider_context = data.get('provider_context', {})
-        if data.get('created_at'):
-            self.created_at = datetime.fromtimestamp(data['created_at'])
+        self.created_at = data.get('created_at')
         nodes = [Node(node) for node in data['nodes']]
         self._init_locks_and_nodes(nodes)
 
     @contextmanager
     def payload(self):
         with open(self._payload_path, 'r') as f:
-            payload = json.load(f)
+            payload = json.load(f, object_hook=load_datetime)
             yield payload
         with open(self._payload_path, 'w') as f:
-            json.dump(payload, f, indent=2)
+            json.dump(payload, f, indent=2, cls=JSONEncoderWithDatetime)
             f.write(os.linesep)
 
     def get_blueprint_path(self):
@@ -586,7 +657,8 @@ class FileStorage(_Storage):
     def _load_instance(self, node_instance_id):
         with self._lock(node_instance_id):
             with open(self._instance_path(node_instance_id)) as f:
-                return NodeInstance(json.loads(f.read()))
+                return NodeInstance(json.loads(f.read(),
+                                               object_hook=load_datetime))
 
     def _store_instance(self, node_instance, lock=True):
         instance_lock = None
@@ -595,7 +667,7 @@ class FileStorage(_Storage):
             instance_lock.acquire()
         try:
             with open(self._instance_path(node_instance.id), 'w') as f:
-                f.write(json.dumps(node_instance))
+                f.write(json.dumps(node_instance, cls=JSONEncoderWithDatetime))
         finally:
             if lock and instance_lock:
                 instance_lock.release()
@@ -619,6 +691,30 @@ class FileStorage(_Storage):
     def get_capability(self):
         raise NotImplementedError('get_capability is not implemented by '
                                   'memory storage')
+
+    def get_executions(self):
+        try:
+            with open(self._executions_path) as f:
+                return json.load(f, object_hook=load_datetime)
+        except (IOError, ValueError):
+            return []
+
+    def store_executions(self, executions):
+        with open(self._executions_path, 'w') as f:
+            json.dump(executions, f, indent=2, cls=JSONEncoderWithDatetime)
+
+
+class JSONEncoderWithDatetime(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return {'__datetime__': time.mktime(obj.timetuple())}
+        return super(JSONEncoderWithDatetime, self).default(obj)
+
+
+def load_datetime(input_dict):
+    if '__datetime__' in input_dict:
+        return datetime.fromtimestamp(input_dict['__datetime__'])
+    return input_dict
 
 
 class StorageConflictError(Exception):
