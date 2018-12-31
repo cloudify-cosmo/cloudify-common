@@ -19,6 +19,7 @@ import uuid
 import Queue
 
 from cloudify import exceptions
+from cloudify.state import current_workflow_ctx
 from cloudify.workflows import api
 from cloudify.manager import get_rest_client
 from cloudify.constants import MGMTWORKER_QUEUE
@@ -106,15 +107,45 @@ class WorkflowTask(object):
         # by the task graph before reached, overridden by the task
         # graph during retries
         self.execute_after = time.time()
+        self.stored = False
+
+    @classmethod
+    def restore(cls, ctx, graph, task_descr):
+        params = task_descr.parameters
+        task = cls(
+            workflow_context=ctx,
+            task_id=task_descr.id,
+            info=params['info'],
+            **params['task_kwargs']
+        )
+        task._state = task_descr.state
+        task.current_retries = params['current_retries']
+        task.send_task_events = params['send_task_events']
+        task.containing_subgraph = params['containing_subgraph']
+        task.stored = True
+        return task
+
+    @property
+    def task_type(self):
+        return self.__class__.__name__
 
     def dump(self):
+        self.stored = True
         return {
             'id': self.id,
-            'state': self.get_state(),
-            'info': self.info,
-            'error': self.error,
-            'current_retries': self.current_retries,
-            'cloudify_context': self.cloudify_context
+            'name': self.name,
+            'state': self._state,
+            'type': self.task_type,
+            'parameters': {
+                'current_retries': self.current_retries,
+                'send_task_events': self.send_task_events,
+                'cloudify_context': self.cloudify_context,
+                'info': self.info,
+                'error': self.error,
+                'containing_subgraph': getattr(
+                    self.containing_subgraph, 'id', None),
+                'task_kwargs': {},
+            }
         }
 
     def is_remote(self):
@@ -155,6 +186,9 @@ class WorkflowTask(object):
                          TASK_RESCHEDULED, TASK_SUCCEEDED, TASK_FAILED]:
             raise RuntimeError('Illegal state set on task: {0} '
                                '[task={1}]'.format(state, str(self)))
+        if self.stored:
+            with current_workflow_ctx.push(self.workflow_context):
+                self.workflow_context.update_operation(self.id, state=state)
         if self._state in TERMINATED_STATES:
             return
         self._state = state
@@ -291,6 +325,14 @@ class WorkflowTask(object):
     def is_subgraph(self):
         return False
 
+    def _should_resume(self):
+        """Has this task already been sent and should be resumed?"""
+        return (self._state in (TASK_SENT, TASK_STARTED) and
+                self.async_result is None)
+
+    def _can_resend(self):
+        return False
+
 
 class RemoteWorkflowTask(WorkflowTask):
     """A WorkflowTask wrapping an AMQP based task"""
@@ -353,6 +395,14 @@ class RemoteWorkflowTask(WorkflowTask):
         self._cloudify_context = cloudify_context
         self._cloudify_agent = None
 
+    def dump(self):
+        task = super(RemoteWorkflowTask, self).dump()
+        task['parameters']['task_kwargs'] = {
+            'cloudify_context': self.cloudify_context,
+            'kwargs': self._kwargs
+        }
+        return task
+
     def apply_async(self):
         """
         Call the underlying tasks' apply_async. Verify the worker
@@ -362,13 +412,18 @@ class RemoteWorkflowTask(WorkflowTask):
         """
         try:
             self._set_queue_kwargs()
+            if self._can_resend():
+                self.kwargs['__cloudify_context']['resume'] = True
             task = self.workflow_context.internal.handler.get_task(
                 self, queue=self._task_queue, target=self._task_target,
                 tenant=self._task_tenant)
-            self.workflow_context.internal.send_task_event(TASK_SENDING, self)
-            async_result = self.workflow_context.internal.handler.send_task(
-                self, task)
-            self.set_state(TASK_SENT)
+            async_result = self.workflow_context.internal.handler\
+                .wait_for_result(self, task)
+            if self._state == TASK_SENDING or self._can_resend():
+                self.workflow_context.internal.send_task_event(
+                    TASK_SENDING, self)
+                self.workflow_context.internal.handler.send_task(self, task)
+                self.set_state(TASK_SENT)
             self.async_result = RemoteWorkflowTaskResult(self, async_result)
         except (exceptions.NonRecoverableError,
                 exceptions.RecoverableError) as e:
@@ -511,6 +566,10 @@ class RemoteWorkflowTask(WorkflowTask):
         else:
             return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None
 
+    def _can_resend(self):
+        return (self.cloudify_context['executor'] != 'host_agent' and
+                self._should_resume())
+
 
 class LocalWorkflowTask(WorkflowTask):
     """A WorkflowTask wrapping a local callable"""
@@ -568,11 +627,19 @@ class LocalWorkflowTask(WorkflowTask):
         self._name = name or local_task.__name__
 
     def dump(self):
-        super_dump = super(LocalWorkflowTask, self).dump()
-        super_dump.update({
-            'name': self._name
-        })
-        return super_dump
+        serialized = super(LocalWorkflowTask, self).dump()
+        serialized['parameters']['task_kwargs'] = {
+            'name': self._name,
+            'local_task': None
+        }
+        return serialized
+
+    @classmethod
+    def restore(cls, ctx, graph, task_descr):
+        task = super(LocalWorkflowTask, cls).restore(ctx, graph, task_descr)
+        # TODO restoring local tasks is not supported yet
+        task.local_task = lambda *a, **kw: None
+        return task
 
     def apply_async(self):
         """
@@ -634,7 +701,7 @@ class LocalWorkflowTask(WorkflowTask):
 # NOP tasks class
 class NOPLocalWorkflowTask(LocalWorkflowTask):
 
-    def __init__(self, workflow_context):
+    def __init__(self, workflow_context, **kwargs):
         super(NOPLocalWorkflowTask, self).__init__(lambda: None,
                                                    workflow_context)
 

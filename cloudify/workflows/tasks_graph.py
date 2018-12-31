@@ -29,13 +29,59 @@ class TaskDependencyGraph(object):
     :param workflow_context: A WorkflowContext instance (used for logging)
     """
 
-    def __init__(self, workflow_context,
+    @classmethod
+    def restore(cls, workflow_context, retrieved_graph):
+        graph = cls(workflow_context, graph_id=retrieved_graph.id)
+        operations = workflow_context.get_operations(retrieved_graph.id)
+        tasks = {}
+        ctx = workflow_context._get_current_object()
+        for op_descr in operations:
+            op = OP_TYPES[op_descr.type].restore(ctx, graph, op_descr)
+            tasks[op_descr.id] = op
+
+        for op in tasks.values():
+            if op.containing_subgraph:
+                subgraph_id = op.containing_subgraph
+                op.containing_subgraph = None
+                subgraph = tasks[subgraph_id]
+                subgraph.add_task(op)
+            else:
+                graph.add_task(op)
+
+        for op_descr in operations:
+            op = tasks[op_descr.id]
+            for target in op_descr.dependencies:
+                if target not in tasks:
+                    continue
+                target = tasks[target]
+                graph.add_dependency(op, target)
+
+        graph._stored = True
+        return graph
+
+    def __init__(self, workflow_context, graph_id=None,
                  default_subgraph_task_config=None):
         self.ctx = workflow_context
         self.graph = nx.DiGraph()
         default_subgraph_task_config = default_subgraph_task_config or {}
         self._default_subgraph_task_config = default_subgraph_task_config
         self._error = None
+        self._stored = False
+        self.id = graph_id
+
+    def store(self, name):
+        if self.id is not None:
+            raise RuntimeError('Graph already stored')
+        serialized_tasks = []
+        for task in self.tasks_iter():
+            serialized = task.dump()
+            serialized['dependencies'] = list(
+                self.graph.succ.get(task.id, {}).keys())
+            serialized_tasks.append(serialized)
+        stored_graph = self.ctx.store_tasks_graph(
+            name, operations=serialized_tasks)
+        self.id = stored_graph['id']
+        self._stored = True
 
     def add_task(self, task):
         """Add a WorkflowTask to this graph
@@ -91,7 +137,8 @@ class TaskDependencyGraph(object):
         return TaskSequence(self)
 
     def subgraph(self, name):
-        task = SubgraphTask(name, self, **self._default_subgraph_task_config)
+        task = SubgraphTask(self, info=name,
+                            **self._default_subgraph_task_config)
         self.add_task(task)
         return task
 
@@ -229,7 +276,8 @@ class TaskDependencyGraph(object):
                          for dependent in dependents]
         self.graph.remove_edges_from(removed_edges)
         self.graph.remove_node(task.id)
-
+        if task.stored:
+            self.ctx.remove_operation(task.id)
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
@@ -238,9 +286,11 @@ class TaskDependencyGraph(object):
                 message = '{0} -> {1}'.format(message, task.error)
             if self._error is None:
                 self._error = RuntimeError(message)
-
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
+            if self.id is not None:
+                self.ctx.store_operation(new_task, dependents, self.id)
+                new_task.stored = True
             self.add_task(new_task)
             added_edges = [(dependent, new_task.id)
                            for dependent in dependents]
@@ -302,30 +352,36 @@ class TaskSequence(object):
 class SubgraphTask(tasks.WorkflowTask):
 
     def __init__(self,
-                 name,
                  graph,
+                 workflow_context=None,
                  task_id=None,
                  on_success=None,
                  on_failure=None,
+                 info=None,
                  total_retries=tasks.DEFAULT_SUBGRAPH_TOTAL_RETRIES,
                  retry_interval=tasks.DEFAULT_RETRY_INTERVAL,
                  send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS):
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,
-            info=name,
+            info=info,
             on_success=on_success,
             on_failure=on_failure,
             total_retries=total_retries,
             retry_interval=retry_interval,
             send_task_events=send_task_events)
         self.graph = graph
-        self._name = name
+        self._name = info
         self.tasks = {}
         self.failed_task = None
         if not self.on_failure:
             self.on_failure = lambda tsk: tasks.HandlerResult.fail()
         self.async_result = tasks.StubAsyncResult()
+
+    @classmethod
+    def restore(cls, ctx, graph, task_descr):
+        task_descr.parameters['task_kwargs']['graph'] = graph
+        return super(SubgraphTask, cls).restore(ctx, graph, task_descr)
 
     def _duplicate(self):
         raise NotImplementedError('self.retried_task should be set explicitly'
@@ -350,7 +406,7 @@ class SubgraphTask(tasks.WorkflowTask):
         return TaskSequence(self)
 
     def subgraph(self, name):
-        task = SubgraphTask(name, self.graph,
+        task = SubgraphTask(self.graph, info=name,
                             **self.graph._default_subgraph_task_config)
         self.add_task(task)
         return task
@@ -387,3 +443,11 @@ class SubgraphTask(tasks.WorkflowTask):
             new_task.containing_subgraph = self
         if not self.tasks and self.get_state() not in tasks.TERMINATED_STATES:
             self.set_state(tasks.TASK_SUCCEEDED)
+
+
+OP_TYPES = {
+    'RemoteWorkflowTask': tasks.RemoteWorkflowTask,
+    'LocalWorkflowTask': tasks.LocalWorkflowTask,
+    'NOPLocalWorkflowTask': tasks.NOPLocalWorkflowTask,
+    'SubgraphTask': SubgraphTask
+}

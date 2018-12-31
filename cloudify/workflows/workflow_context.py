@@ -826,6 +826,26 @@ class _WorkflowContextBase(object):
             self.internal.task_graph.add_task(task)
             return task.apply_async()
 
+    def get_operations(self, graph_id):
+        return self.internal.handler.get_operations(graph_id)
+
+    def update_operation(self, operation_id, state):
+        return self.internal.handler.update_operation(operation_id, state)
+
+    def get_tasks_graph(self, name):
+        return self.internal.handler.get_tasks_graph(self.execution_id, name)
+
+    def store_tasks_graph(self, name, operations=None):
+        return self.internal.handler.store_tasks_graph(
+            self.execution_id, name, operations=operations)
+
+    def store_operation(self, task, dependencies, graph_id):
+        return self.internal.handler.store_operation(
+            graph_id=graph_id, dependencies=dependencies, **task.dump())
+
+    def remove_operation(self, operation_id):
+        return self.internal.handler.remove_operation(operation_id)
+
 
 class WorkflowNodesAndInstancesContainer(object):
 
@@ -1166,6 +1186,12 @@ class CloudifyWorkflowContextHandler(object):
     def scaling_groups(self):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_operations(self, graph_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_operation(self, operation_id, state):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class _AsyncResult(object):
     NOTSET = object()
@@ -1188,20 +1214,34 @@ class _TaskDispatcher(object):
         self._tasks = {}
         self._logger = logging.getLogger('dispatch')
 
-    def make_subtask(self, tenant, target, queue, *args, **kwargs):
-        return {
-            'id': uuid.uuid4().hex,
+    def make_subtask(self, tenant, target, task_id, queue, kwargs):
+        task = {
+            'id': task_id,
             'tenant': tenant,
             'target': target,
             'queue': queue,
-            'args': args,
-            'cloudify_task': kwargs,
+            'task': {
+                'id': task_id,
+                'cloudify_task': {'kwargs': kwargs},
+            }
         }
+        handler = amqp_client.CallbackRequestResponseHandler(
+            exchange=task['target'], queue=task['id'])
+        ping_handler = amqp_client.BlockingRequestResponseHandler(
+            exchange=task['target'])
+        client = self._get_client(task)
+        client.add_handler(handler)
+        client.add_handler(ping_handler)
+        task.update({
+            'client': client,
+            'handler': handler,
+            'ping_handler': ping_handler
+        })
+        client.consume_in_thread()
+        return task
 
     def _get_client(self, task):
         tenant = task['tenant']
-        handler = amqp_client.CallbackRequestResponseHandler(
-            exchange=task['target'])
         if task['queue'] == MGMTWORKER_QUEUE:
             client = amqp_client.get_client()
         else:
@@ -1210,45 +1250,43 @@ class _TaskDispatcher(object):
                 amqp_pass=tenant['rabbitmq_password'],
                 amqp_vhost=tenant['rabbitmq_vhost']
             )
-        client.add_handler(handler)
-        return client, handler
+        return client
 
     def send_task(self, workflow_task, task):
-        client, handler = self._get_client(task)
-
-        result = _AsyncResult(task)
-        ping_handler = amqp_client.BlockingRequestResponseHandler(
-            exchange=task['target'])
-        client.add_handler(ping_handler)
-        client.consume_in_thread()
-
+        handler, ping_handler = task['handler'], task['ping_handler']
         if task['queue'] != MGMTWORKER_QUEUE:
             response = _send_ping_task(task['target'], ping_handler)
             if 'time' not in response:
                 raise exceptions.RecoverableError(
-                    'Timed out waiting for agent: {0}'.format(task['target']))
-
-        callback = functools.partial(self._received, task['id'], client)
-        self._logger.debug('Sending task [{0}] - {1}'.format(task['id'], task))
+                    'Timed out waiting for agent: {0}'
+                    .format(task['target']))
         try:
-            handler.publish(task, callback=callback, routing_key='operation',
+            handler.publish(task['task'], routing_key='operation',
                             correlation_id=task['id'])
         except pika.exceptions.ChannelClosed:
             raise exceptions.RecoverableError(
                 'Could not send to agent {0} - channel does not exist yet'
                 .format(task['target']))
         self._logger.debug('Task [{0}] sent'.format(task['id']))
+        self._set_task_state(workflow_task, TASK_STARTED, {})
+
+    def wait_for_result(self, workflow_task, task):
+        client, handler = task['client'], task['handler']
+        callback = functools.partial(self._received, task['id'], client)
+        handler.wait_for_response(task['id'], callback)
+        result = _AsyncResult(task)
+        self._logger.debug('Sending task [{0}] - {1}'.format(task['id'], task))
 
         self._tasks.setdefault(client, {})[task['id']] = \
             (workflow_task, task, result)
-        self._set_task_state(workflow_task, TASK_STARTED, {})
-
         return result
 
     def _set_task_state(self, workflow_task, state, event):
-        workflow_task.set_state(state)
-        events.send_task_event(
-            state, workflow_task, events.send_task_event_func_remote, event)
+        with current_workflow_ctx.push(workflow_task.workflow_context):
+            workflow_task.set_state(state)
+            events.send_task_event(
+                state, workflow_task,
+                events.send_task_event_func_remote, event)
 
     def _received(self, task_id, client, response):
         self._logger.debug(
@@ -1330,10 +1368,14 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
         # Remote task
         return self._dispatcher.make_subtask(
-            tenant, target, kwargs=workflow_task.kwargs, queue=queue)
+            tenant, target, task_id=workflow_task.id,
+            kwargs=workflow_task.kwargs, queue=queue)
 
     def send_task(self, workflow_task, task):
         return self._dispatcher.send_task(workflow_task, task)
+
+    def wait_for_result(self, workflow_task, task):
+        return self._dispatcher.wait_for_result(workflow_task, task)
 
     @property
     def operation_cloudify_context(self):
@@ -1371,6 +1413,38 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
                                  resource_path=resource_path,
                                  target_path=target_path,
                                  logger=logger)
+
+    def get_operations(self, graph_id):
+        client = get_rest_client()
+        operations = client.operations.list(graph_id)
+        return operations
+
+    def update_operation(self, operation_id, state):
+        client = get_rest_client()
+        client.operations.update(operation_id, state=state)
+
+    def get_tasks_graph(self, execution_id, name):
+        client = get_rest_client()
+        return client.tasks_graphs.list(execution_id, name)[0]
+
+    def store_tasks_graph(self, execution_id, name, operations):
+        client = get_rest_client()
+        return client.tasks_graphs.create(execution_id, name, operations)
+
+    def store_operation(self, graph_id, dependencies,
+                        id, name, type, parameters):
+        client = get_rest_client()
+        client.operations.create(
+            operation_id=id,
+            graph_id=graph_id,
+            operation_name=name,
+            type=type,
+            dependencies=dependencies,
+            parameters=parameters)
+
+    def remove_operation(self, operation_id):
+        client = get_rest_client()
+        client.operations.delete(operation_id)
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
