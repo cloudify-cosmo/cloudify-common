@@ -20,7 +20,9 @@ import importlib
 import shutil
 import uuid
 import json
+import time
 import threading
+from datetime import datetime
 from StringIO import StringIO
 from contextlib import contextmanager
 
@@ -82,6 +84,10 @@ class _Environment(object):
     @property
     def name(self):
         return self.storage.name
+
+    @property
+    def created_at(self):
+        return self.storage.created_at
 
     def outputs(self):
         return dsl_functions.evaluate_outputs(
@@ -356,10 +362,12 @@ class _Storage(object):
         self._locks = None
         self.env = None
         self._provider_context = None
+        self.created_at = None
 
     def init(self, name, plan, nodes, node_instances, blueprint_path,
              provider_context):
         self.name = name
+        self.created_at = datetime.now()
         self.resources_root = os.path.dirname(os.path.abspath(blueprint_path))
         self.plan = plan
         self._provider_context = provider_context or {}
@@ -508,6 +516,7 @@ class FileStorage(_Storage):
 
     def init(self, name, plan, nodes, node_instances, blueprint_path,
              provider_context):
+        self.created_at = datetime.now()
         storage_dir = os.path.join(self._root_storage_dir, name)
         workdir = os.path.join(storage_dir, 'work')
         instances_dir = os.path.join(storage_dir, 'node-instances')
@@ -525,7 +534,8 @@ class FileStorage(_Storage):
                 'plan': plan,
                 'blueprint_filename': blueprint_filename,
                 'nodes': nodes,
-                'provider_context': provider_context or {}
+                'provider_context': provider_context or {},
+                'created_at': time.mktime(self.created_at.timetuple())
             }))
         resources_root = os.path.dirname(os.path.abspath(blueprint_path))
         self.resources_root = os.path.join(storage_dir, 'resources')
@@ -553,6 +563,8 @@ class FileStorage(_Storage):
         self._blueprint_path = os.path.join(self.resources_root,
                                             data['blueprint_filename'])
         self._provider_context = data.get('provider_context', {})
+        if data.get('created_at'):
+            self.created_at = datetime.fromtimestamp(data['created_at'])
         nodes = [Node(node) for node in data['nodes']]
         self._init_locks_and_nodes(nodes)
 
