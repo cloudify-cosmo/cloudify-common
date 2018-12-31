@@ -781,6 +781,11 @@ class CloudifyContext(CommonContext):
             self._bootstrap_context = BootstrapContext(context)
         return self._bootstrap_context
 
+    @property
+    def resume(self):
+        """This run of the operation is a resume of an interrupted run"""
+        return self._context.get('resume', False)
+
     def send_event(self, event):
         """
         Send an event to rabbitmq
