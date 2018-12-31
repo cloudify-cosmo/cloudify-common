@@ -466,7 +466,6 @@ class InMemoryStorage(_Storage):
     def __init__(self):
         super(InMemoryStorage, self).__init__()
         self._node_instances = None
-        self.created_at = None
 
     def init(self, name, plan, nodes, node_instances, blueprint_path,
              provider_context):
@@ -514,7 +513,6 @@ class FileStorage(_Storage):
         self._data_path = None
         self._payload_path = None
         self._blueprint_path = None
-        self.created_at = None
 
     def init(self, name, plan, nodes, node_instances, blueprint_path,
              provider_context):
