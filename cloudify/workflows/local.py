@@ -711,10 +711,10 @@ class JSONEncoderWithDatetime(json.JSONEncoder):
         return super(JSONEncoderWithDatetime, self).default(obj)
 
 
-def load_datetime(dct):
-    if '__datetime__' in dct:
-        return datetime.fromtimestamp(dct['__datetime__'])
-    return dct
+def load_datetime(input_dict):
+    if '__datetime__' in input_dict:
+        return datetime.fromtimestamp(input_dict['__datetime__'])
+    return input_dict
 
 
 class StorageConflictError(Exception):
