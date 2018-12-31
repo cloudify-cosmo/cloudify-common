@@ -20,7 +20,11 @@ import tempfile
 import unittest
 
 from cloudify.exceptions import CommandExecutionException
-from cloudify.utils import setup_logger, get_exec_tempdir, LocalCommandRunner
+from cloudify.utils import (
+    setup_logger,
+    get_exec_tempdir,
+    LocalCommandRunner
+)
 
 
 class LocalCommandRunnerTest(unittest.TestCase):

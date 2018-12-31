@@ -15,11 +15,31 @@
 
 
 import time
+from functools import wraps
+
 
 import networkx as nx
 
 from cloudify.workflows import api
 from cloudify.workflows import tasks
+from cloudify.state import workflow_ctx
+
+
+def make_or_get_graph(f):
+    """Decorate a graph-creating function with this, to automatically
+    make it try to retrieve the graph from storage first.
+    """
+    @wraps(f)
+    def _inner(*args, **kwargs):
+        name = kwargs.pop('name')
+        graph = workflow_ctx.get_tasks_graph(name)
+        if not graph:
+            graph = f(*args, **kwargs)
+            graph.store(name=name)
+        else:
+            graph = TaskDependencyGraph.restore(workflow_ctx, graph)
+        return graph
+    return _inner
 
 
 class TaskDependencyGraph(object):
@@ -80,8 +100,9 @@ class TaskDependencyGraph(object):
             serialized_tasks.append(serialized)
         stored_graph = self.ctx.store_tasks_graph(
             name, operations=serialized_tasks)
-        self.id = stored_graph['id']
-        self._stored = True
+        if stored_graph:
+            self.id = stored_graph['id']
+            self._stored = True
 
     def add_task(self, task):
         """Add a WorkflowTask to this graph
@@ -225,7 +246,8 @@ class TaskDependencyGraph(object):
         """
         now = time.time()
         return (task for task in self.tasks_iter()
-                if task.get_state() == tasks.TASK_PENDING and
+                if (task.get_state() == tasks.TASK_PENDING or
+                    task._should_resume()) and
                 task.execute_after <= now and
                 not (task.containing_subgraph and
                      task.containing_subgraph.get_state() ==
@@ -263,7 +285,8 @@ class TaskDependencyGraph(object):
 
     def _handle_executable_task(self, task):
         """Handle executable task"""
-        task.set_state(tasks.TASK_SENDING)
+        if not task._should_resume():
+            task.set_state(tasks.TASK_SENDING)
         task.apply_async()
 
     def _handle_terminated_task(self, task):
@@ -360,7 +383,8 @@ class SubgraphTask(tasks.WorkflowTask):
                  info=None,
                  total_retries=tasks.DEFAULT_SUBGRAPH_TOTAL_RETRIES,
                  retry_interval=tasks.DEFAULT_RETRY_INTERVAL,
-                 send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS):
+                 send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS,
+                 **kwargs):
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,

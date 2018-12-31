@@ -19,6 +19,7 @@ from cloudify import constants, utils
 from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
 from cloudify.manager import get_rest_client
+from cloudify.workflows.tasks_graph import make_or_get_graph
 
 
 @workflow
@@ -496,16 +497,15 @@ def _get_all_host_instances(ctx):
     return node_instances
 
 
-@workflow
-def install_new_agents(ctx, install_agent_timeout, node_ids,
-                       node_instance_ids, install_methods=None, validate=True,
-                       install=True, manager_ip=None, manager_certificate=None,
-                       stop_old_agent=False, **_):
-
+@make_or_get_graph
+def _make_install_agents_graph(
+        ctx, install_agent_timeout, node_ids,
+        node_instance_ids, install_methods=None, validate=True,
+        install=True, manager_ip=None, manager_certificate=None,
+        stop_old_agent=False, **_):
     hosts = _create_hosts_list(ctx, node_ids, node_instance_ids,
                                install_methods)
     _assert_hosts_started(hosts)
-
     graph = ctx.graph_mode()
     if validate:
         validate_subgraph = _add_validate_to_task_graph(
@@ -541,6 +541,12 @@ def install_new_agents(ctx, install_agent_timeout, node_ids,
                     'cloudify.interfaces.monitoring.start'))
     if validate and install:
         graph.add_dependency(install_subgraph, validate_subgraph)
+    return graph
+
+
+@workflow
+def install_new_agents(ctx, **kwargs):
+    graph = _make_install_agents_graph(ctx, name='install_agents', **kwargs)
     graph.execute()
 
 
@@ -566,12 +572,11 @@ def restart(ctx, stop_parms, start_parms, run_by_dependency_order, type_names,
           node_ids, node_instance_ids, **kwargs)
 
 
-@workflow
-def execute_operation(ctx, operation, operation_kwargs, allow_kwargs_override,
-                      run_by_dependency_order, type_names, node_ids,
-                      node_instance_ids, **kwargs):
-    """ A generic workflow for executing arbitrary operations on nodes """
-
+@make_or_get_graph
+def _make_execute_operation_graph(ctx, operation, operation_kwargs,
+                                  allow_kwargs_override,
+                                  run_by_dependency_order, type_names,
+                                  node_ids, node_instance_ids, **kwargs):
     graph = ctx.graph_mode()
     subgraphs = {}
 
@@ -630,7 +635,15 @@ def execute_operation(ctx, operation, operation_kwargs, allow_kwargs_override,
             for rel in instance.relationships:
                 graph.add_dependency(subgraphs[instance.id],
                                      subgraphs[rel.target_id])
+    return graph
 
+
+@workflow
+def execute_operation(ctx, **kwargs):
+    """ A generic workflow for executing arbitrary operations on nodes """
+
+    graph = _make_execute_operation_graph(
+        ctx, name='execute_operation', **kwargs)
     graph.execute()
 
 
@@ -687,7 +700,7 @@ def update(ctx,
 
         # This one as well.
         lifecycle.execute_establish_relationships(
-            graph=ctx.graph_mode(),
+            graph=graph,
             node_instances=set(
                 instances_by_change['extended_and_target_instances'][1]),
             modified_relationship_ids=modified_entity_ids['relationship']

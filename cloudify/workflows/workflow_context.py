@@ -1189,7 +1189,20 @@ class CloudifyWorkflowContextHandler(object):
     def get_operations(self, graph_id):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_tasks_graph(self, execution_id, name):
+        raise NotImplementedError('Implemented by subclasses')
+
     def update_operation(self, operation_id, state):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def store_tasks_graph(self, execution_id, name, operations):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def store_operation(self, operation_id, graph_id, operation_name,
+                        operation_type, dependencies, parameters):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def remove_operation(self, operation_id):
         raise NotImplementedError('Implemented by subclasses')
 
 
@@ -1425,7 +1438,9 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def get_tasks_graph(self, execution_id, name):
         client = get_rest_client()
-        return client.tasks_graphs.list(execution_id, name)[0]
+        graphs = client.tasks_graphs.list(execution_id, name)
+        if graphs:
+            return graphs[0]
 
     def store_tasks_graph(self, execution_id, name, operations):
         client = get_rest_client()
@@ -1635,6 +1650,23 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
     @property
     def scaling_groups(self):
         return self.storage.plan.get('scaling_groups', {})
+
+    # resumable workflows operations - not implemented for local
+    def get_tasks_graph(self, execution_id, name):
+        pass
+
+    def update_operation(self, operation_id, state):
+        pass
+
+    def store_tasks_graph(self, execution_id, name, operations):
+        pass
+
+    def store_operation(self, operation_id, graph_id, operation_name,
+                        operation_type, dependencies, parameters):
+        pass
+
+    def remove_operation(self, operation_id):
+        pass
 
 
 class Modification(object):
