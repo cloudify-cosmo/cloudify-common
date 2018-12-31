@@ -34,9 +34,9 @@ class TaskDependencyGraph(object):
         graph = cls(workflow_context, graph_id=retrieved_graph.id)
         operations = workflow_context.get_operations(retrieved_graph.id)
         tasks = {}
+        ctx = workflow_context._get_current_object()
         for op_descr in operations:
-            op = OP_TYPES[op_descr.type].restore(workflow_context, graph,
-                                                 op_descr)
+            op = OP_TYPES[op_descr.type].restore(ctx, graph, op_descr)
             tasks[op_descr.id] = op
 
         for op in tasks.values():

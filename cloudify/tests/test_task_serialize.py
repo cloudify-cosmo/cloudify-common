@@ -57,6 +57,9 @@ class _MockCtx(object):
     def __init__(self, storage):
         self._storage = storage
 
+    def _get_current_object(self):
+        return self
+
     def store_tasks_graph(self, name, operations):
         self._storage['name'] = name
         self._storage['operations'] = [Operation(op) for op in operations]
