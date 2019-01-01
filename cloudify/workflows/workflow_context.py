@@ -1447,12 +1447,12 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         return client.tasks_graphs.create(execution_id, name, operations)
 
     def store_operation(self, graph_id, dependencies,
-                        id, name, type, parameters):
+                        id, name, type, parameters, **kwargs):
         client = get_rest_client()
         client.operations.create(
             operation_id=id,
             graph_id=graph_id,
-            operation_name=name,
+            name=name,
             type=type,
             dependencies=dependencies,
             parameters=parameters)
