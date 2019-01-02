@@ -1198,8 +1198,8 @@ class CloudifyWorkflowContextHandler(object):
     def store_tasks_graph(self, execution_id, name, operations):
         raise NotImplementedError('Implemented by subclasses')
 
-    def store_operation(self, operation_id, graph_id, operation_name,
-                        operation_type, dependencies, parameters):
+    def store_operation(self, graph_id, dependencies,
+                        id, name, type, parameters, **kwargs):
         raise NotImplementedError('Implemented by subclasses')
 
     def remove_operation(self, operation_id):
@@ -1661,8 +1661,8 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
     def store_tasks_graph(self, execution_id, name, operations):
         pass
 
-    def store_operation(self, operation_id, graph_id, operation_name,
-                        operation_type, dependencies, parameters):
+    def store_operation(self, graph_id, dependencies,
+                        id, name, type, parameters, **kwargs):
         pass
 
     def remove_operation(self, operation_id):
