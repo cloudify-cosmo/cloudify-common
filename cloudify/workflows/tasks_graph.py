@@ -90,8 +90,6 @@ class TaskDependencyGraph(object):
         self.id = graph_id
 
     def store(self, name):
-        if self.id is not None:
-            raise RuntimeError('Graph already stored')
         serialized_tasks = []
         for task in self.tasks_iter():
             serialized = task.dump()
