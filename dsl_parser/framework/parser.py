@@ -346,7 +346,8 @@ class Context(object):
                  constants.USER_PRIMITIVE_TYPES and
                  not utils.check_if_cloudify_type(element._initial_value) and
                  not hasattr(element.initial_value_holder,
-                             SKIP_NAMESPACE_FLAG))
+                             SKIP_NAMESPACE_FLAG) and
+                    element.add_namespace_to_schema_elements)
 
         def set_leaf_namespace(element):
             """
@@ -385,9 +386,7 @@ class Context(object):
                 element_namespace, element_holder.value)
 
         if isinstance(schema, elements.Leaf):
-            if (not is_cloudify_type and
-                    namespace and
-                    parent_element.add_namespace_to_schema_elements):
+            if not is_cloudify_type and namespace:
                 set_leaf_namespace(parent_element)
             return
 
