@@ -33,6 +33,7 @@ from cloudify.manager import (get_node_instance,
                               get_rest_client,
                               download_resource)
 from cloudify.workflows.tasks import (TASK_FAILED,
+                                      TASK_SENDING,
                                       TASK_STARTED,
                                       TASK_SUCCEEDED,
                                       TASK_RESCHEDULED,
@@ -824,6 +825,7 @@ class _WorkflowContextBase(object):
             return task
         else:
             self.internal.task_graph.add_task(task)
+            task.set_state(TASK_SENDING)
             return task.apply_async()
 
     def get_operations(self, graph_id):
