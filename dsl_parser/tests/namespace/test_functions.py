@@ -1142,15 +1142,24 @@ inputs:
 dsl_definitions:
   config: &config
     region: { get_input: port }
+node_types:
+    test:
+        properties:
+            port:
+                default: 0
+            data:
+                default: []
 node_templates:
   vm:
-    type: cloudify.nodes.WebServer
+    type: test
     properties:
       port: *config
+      data: { get_input: port }
   vm2:
-    type: cloudify.nodes.WebServer
+    type: test
     properties:
       port: *config
+      data: { get_input: port }
 """
         second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
@@ -1170,4 +1179,6 @@ imports:
                          {'get_input': 'ns2--ns--port'})
         vm_properties = parsed[constants.NODES][1][constants.PROPERTIES]
         self.assertEqual(vm_properties['port']['region'],
+                         {'get_input': 'ns2--ns--port'})
+        self.assertEqual(vm_properties['data'],
                          {'get_input': 'ns2--ns--port'})

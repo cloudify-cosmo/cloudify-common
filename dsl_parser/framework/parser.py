@@ -25,7 +25,7 @@ from dsl_parser.framework.requirements import Requirement
 
 # Will mark elements that are being parsed, that there is no need to
 # add namespace to them. This is used in case of shared elements
-# across the blueprint.
+# via yaml anchor across the blueprint.
 SKIP_NAMESPACE_FLAG = 'skip_namespace'
 
 
@@ -248,96 +248,61 @@ class Context(object):
     def _traverse_element_type_schema(self, schema, parent_element, namespace,
                                       is_cloudify_type):
 
-        def set_namespace_node_intrinsic_functions(namespace_value, get_func):
-            value = get_func[0]
+        def set_namespace_node_intrinsic_functions(namespace_value,
+                                                   func_parameters,
+                                                   holder_func_parameters):
+            """
+            This will add namespace to get_property and get_attribute
+            functions.
+            """
+            value = func_parameters[0]
             if value not in functions.AVAILABLE_NODE_TARGETS:
-                get_func[0] = utils.generate_namespaced_value(
+                namespaced_value = utils.generate_namespaced_value(
                     namespace_value, value)
-            return get_func
+                func_parameters[0] = namespaced_value
+                holder_func_parameters[0].value = namespaced_value
 
-        def set_holder_namespace_node_intrinsic_functions(namespace_value,
-                                                          get_func):
-            value = get_func[0].value
-            if value not in functions.AVAILABLE_NODE_TARGETS:
-                get_func[0].value = utils.generate_namespaced_value(
-                    namespace_value, value)
-            return get_func
-
-        def handle_intrinsic_function_namespace(element):
+        def handle_intrinsic_function_namespace(holder_element, element):
             """
             This will traverse the element in search of the key,
             and will run the set namespace function on the key's
             values only for the relevant intrinsic functions.
             """
+            def traverse_list(holder_item, item):
+                for i in xrange(len(item)):
+                    handle_intrinsic_function_namespace(
+                        holder_item.value[i], item[i])
+
             if isinstance(element, list):
-                for i in xrange(len(element)):
-                    element[i] = \
-                        handle_intrinsic_function_namespace(
-                            element[i])
-                return element
+                traverse_list(holder_element, element)
+                return
             elif not isinstance(element, dict):
                 # There is no need to search for intrinsic functions, if
                 # there is no namespace or if the element can not contain
                 # them.
-                return element
+                return
 
             for k, v in element.items():
+                holder_key, holder_value = holder_element.get_item(k)
+                if hasattr(holder_value, SKIP_NAMESPACE_FLAG):
+                    return
                 if k == 'get_input':
-                    element[k] = utils.generate_namespaced_value(namespace, v)
+                    namespaced_value =\
+                        utils.generate_namespaced_value(namespace, v)
+                    element[k] = namespaced_value
+                    holder_element.value[holder_key].value = namespaced_value
+                    holder_value.skip_namespace = True
                 elif k == 'get_property' or k == 'get_attribute':
-                    element[k] =\
-                        set_namespace_node_intrinsic_functions(namespace, v)
-                if k == 'concat':
-                    element[k] = handle_intrinsic_function_namespace(v)
-                elif isinstance(v, dict):
-                    element[k] = \
-                        handle_intrinsic_function_namespace(v)
+                    set_namespace_node_intrinsic_functions(
+                        namespace,
+                        v,
+                        holder_element.value[holder_key].value)
+                    holder_value.skip_namespace = True
+                if isinstance(v, dict) or k == 'concat':
+                    handle_intrinsic_function_namespace(
+                        holder_element.value[holder_key], v)
                 elif isinstance(v, list):
-                    for i in xrange(len(v)):
-                        element[k][i] = \
-                            handle_intrinsic_function_namespace(v[i])
-            return element
-
-        def handle_holder_intrinsic_function_namespace(element):
-            """
-            This will traverse the element in search of the key,
-            and will run the set namespace function on the key's
-            values only for the relevant intrinsic functions.
-            Also this will return if a sub element has skip namespace
-            flag, this is in purpose for further parsing process.
-            """
-            skip_namespace_flag = False
-            if isinstance(element, list):
-                for i in xrange(len(element)):
-                    element[i].value, skip_namespace_flag = \
-                        handle_holder_intrinsic_function_namespace(
-                            element[i].value)
-                return element, skip_namespace_flag
-            elif not isinstance(element, dict):
-                # There is no need to search for intrinsic functions, if
-                # there is no namespace or if the element can not contain
-                # them.
-                return element, skip_namespace_flag
-
-            for k, v in element.items():
-                if hasattr(element[k], SKIP_NAMESPACE_FLAG):
-                    return element, True
-                if k.value == 'get_input':
-                    element[k].value = utils.generate_namespaced_value(
-                            namespace, v.value)
-                    element[k].skip_namespace = True
-                elif k.value == 'get_property' or k.value == 'get_attribute':
-                    element[k].value =\
-                        set_holder_namespace_node_intrinsic_functions(
-                            namespace, v.value)
-                    element[k].skip_namespace = True
-                if k.value == 'concat':
-                    element[k].value, skip_namespace_flag =\
-                        handle_holder_intrinsic_function_namespace(v.value)
-                elif isinstance(v, holder.Holder):
-                    element[k].value, skip_namespace_flag = \
-                        handle_holder_intrinsic_function_namespace(v.value)
-            return element, skip_namespace_flag
+                    traverse_list(holder_element.value[holder_key], v)
 
         def should_add_namespace_to_string_leaf(element):
             return \
@@ -361,13 +326,9 @@ class Context(object):
                 element._initial_value = namespaced_value
                 element.initial_value_holder.value = namespaced_value
             elif isinstance(element._initial_value, dict):
-                element.initial_value_holder.value, has_skip_namespace = \
-                    handle_holder_intrinsic_function_namespace(
-                        element.initial_value_holder.value)
-                if not has_skip_namespace:
-                    element._initial_value = \
-                        handle_intrinsic_function_namespace(
-                            element._initial_value)
+                handle_intrinsic_function_namespace(
+                    element.initial_value_holder,
+                    element._initial_value)
 
             # We need to use this flag, only for yaml level linking.
             element.initial_value_holder.skip_namespace = True
