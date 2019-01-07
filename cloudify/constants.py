@@ -70,7 +70,7 @@ LOGGING_CONFIG_FILE = '/etc/cloudify/logging.conf'
 CLUSTER_SETTINGS_PATH_KEY = 'CLOUDIFY_CLUSTER_SETTINGS_PATH'
 
 LOGS_EXCHANGE_NAME = 'cloudify-logs'
-EVENTS_EXCHANGE_NAME = 'cloudify-events'
+EVENTS_EXCHANGE_NAME = 'cloudify-events-topic'
 MGMTWORKER_QUEUE = 'cloudify.management'
 DEPLOYMENT = 'deployment'
 NODE_INSTANCE = 'node-instance'
