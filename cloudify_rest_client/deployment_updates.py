@@ -240,7 +240,8 @@ class DeploymentUpdatesClient(object):
                                        force=False,
                                        ignore_failure=False,
                                        install_first=False,
-                                       reinstall_list=None):
+                                       reinstall_list=None,
+                                       preview=False):
         data = {
             'workflow_id': workflow_id,
             'skip_install': skip_install,
@@ -249,6 +250,7 @@ class DeploymentUpdatesClient(object):
             'force': force,
             'ignore_failure': ignore_failure,
             'install_first': install_first,
+            'preview': preview,
             'blueprint_id': blueprint_id
         }
         if inputs:
