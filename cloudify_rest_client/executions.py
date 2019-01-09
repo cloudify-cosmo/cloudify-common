@@ -146,6 +146,20 @@ class ExecutionsClient(object):
             params['_sort'] = '-' + sort if is_descending else sort
         return params
 
+    def should_start(self, execution_id):
+        """
+        Check if an execution can currently start running (no system exeuctions
+        / executions under the same deployment are currently running).
+
+        :param execution_id: Id of the executions that needs to be checked.
+        :return: Whether or not this execution can currently start
+        """
+        assert execution_id
+        uri = '/{self._uri_prefix}/{id}/should-start'.format(
+            self=self, id=execution_id)
+        response = self.api.get(uri)
+        return response
+
     def list(self, _include=None, **kwargs):
         """Returns a list of executions.
 
