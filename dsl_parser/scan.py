@@ -19,6 +19,7 @@ NODE_TEMPLATE_RELATIONSHIP_SCOPE = 'node_template_relationship'
 OUTPUTS_SCOPE = 'outputs'
 POLICIES_SCOPE = 'policies'
 SCALING_GROUPS_SCOPE = 'scaling_groups'
+CAPABILITIES_SCOPE = 'capabilities'
 
 # Searching for secrets in the blueprint only one time of the few times
 # that scan_service_template is called
@@ -160,6 +161,13 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
                         context=scaling_group,
                         path='scaling_groups.{0}.properties'.format(
                             group_name),
+                        replace=replace)
+    for capability_name, capability in plan.get('capabilities', {}).items():
+        scan_properties(capability,
+                        handler,
+                        scope=CAPABILITIES_SCOPE,
+                        context=capability,
+                        path='capabilities.{0}'.format(capability_name),
                         replace=replace)
 
     if collect_secrets and len(secrets) > 0:
