@@ -15,7 +15,9 @@
 
 
 class Requirement(object):
-
+    """This class represents a keyword argument that is required by some
+    Element, for it's functions.
+    """
     def __init__(self,
                  name,
                  parsed=False,

@@ -17,6 +17,7 @@ from dsl_parser import (constants,
                         models)
 from dsl_parser.elements import (imports,
                                  misc,
+                                 inputs,
                                  plugins,
                                  node_types,
                                  node_templates,
@@ -72,7 +73,7 @@ class Blueprint(Element):
         'imports': imports.Imports,
         'dsl_definitions': misc.DSLDefinitions,
         'metadata': misc.Metadata,
-        'inputs': misc.Inputs,
+        'inputs': inputs.Inputs,
         'plugins': plugins.Plugins,
         'node_types': node_types.NodeTypes,
         'relationships': relationships.Relationships,
@@ -113,7 +114,7 @@ class Blueprint(Element):
                 self.child(policies.Policies).value,
             constants.GROUPS: self.child(policies.Groups).value,
             constants.SCALING_GROUPS: scaling_groups or {},
-            constants.INPUTS: self.child(misc.Inputs).value,
+            constants.INPUTS: self.child(inputs.Inputs).value,
             constants.OUTPUTS: self.child(misc.Outputs).value,
             constants.DEPLOYMENT_PLUGINS_TO_INSTALL:
                 deployment_plugins_to_install,
@@ -124,5 +125,6 @@ class Blueprint(Element):
             constants.IMPORTED_BLUEPRINTS:
                 self.child(misc.ImportedBlueprints).value,
             constants.NAMESPACES_MAPPING:
-                self.child(misc.NamespacesMapping).value
+                self.child(misc.NamespacesMapping).value,
+            constants.DATA_TYPES: self.child(data_types.DataTypes).value
         })

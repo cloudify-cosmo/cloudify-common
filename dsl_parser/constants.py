@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
+# Copyright (c) 2019 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,6 +39,9 @@ DATA_TYPES = 'data_types'
 CAPABILITIES = 'capabilities'
 IMPORTED_BLUEPRINTS = 'imported_blueprints'
 NAMESPACES_MAPPING = 'namespaces_mapping'
+CONSTRAINTS = 'constraints'
+DEFAULT = 'default'
+TYPE = 'type'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
@@ -83,6 +86,8 @@ RESOLVER_IMPLEMENTATION_KEY = 'implementation'
 RESLOVER_PARAMETERS_KEY = 'parameters'
 
 USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean']
+USER_INPUT_TYPES = ['string', 'integer', 'float', 'boolean', 'list', 'dict',
+                    'regex']
 
 UNBOUNDED_LITERAL = 'UNBOUNDED'
 UNBOUNDED = -1

@@ -57,7 +57,7 @@ def _register_entry_point_functions():
         register(fn=entry_point.load(), name=entry_point.name)
 
 
-def _is_function(value):
+def is_function(value):
     """Does the value represent a template function call?"""
     # functions use the syntax {function_name: args}, so let's look for
     # dicts of length 1 where the only key was registered as a function
@@ -88,7 +88,7 @@ _register_entry_point_functions()
 
 
 def _contains_legal_nested_attribute_path_items(l):
-    return all(_is_function(x) or isinstance(x, (basestring, int)) for x in l)
+    return all(is_function(x) or isinstance(x, (basestring, int)) for x in l)
 
 
 def _is_legal_nested_attribute_path(l):
@@ -209,7 +209,7 @@ class GetInput(Function):
                    and _contains_legal_nested_attribute_path_items(l)
 
         if not isinstance(args, basestring) \
-                and not _is_function(args) \
+                and not is_function(args) \
                 and not _is_valid_args_list(args):
             raise ValueError(
                 "Illegal argument(s) passed to {0} function. Expected either "
@@ -221,7 +221,7 @@ class GetInput(Function):
     def validate(self, plan):
         input_value = self.input_value[0] \
             if isinstance(self.input_value, list) else self.input_value
-        if _is_function(input_value):
+        if is_function(input_value):
             return
         if input_value not in plan.inputs:
             raise exceptions.UnknownInputError(
@@ -300,7 +300,7 @@ class GetProperty(Function):
     def validate(self, plan):
         # Try to evaluate only when the arguments don't contain any functions
         args = [self.node_name] + self.property_path
-        if any(_is_function(x) for x in args):
+        if any(is_function(x) for x in args):
             return
         self.evaluate(plan)
 
@@ -369,7 +369,7 @@ class GetAttribute(Function):
     def validate(self, plan):
         # If any of the arguments are functions don't validate
         args = [self.node_name] + self.attribute_path
-        if any(_is_function(x) for x in args):
+        if any(is_function(x) for x in args):
             return
         if self.scope == scan.OUTPUTS_SCOPE and self.node_name in [SELF,
                                                                    SOURCE,
@@ -598,7 +598,7 @@ class GetSecret(Function):
         super(GetSecret, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, basestring) and not _is_function(args):
+        if not isinstance(args, basestring) and not is_function(args):
             raise ValueError(
                 "`get_secret` function argument should be a string\\dict "
                 "(a function). Instead it is a {0} with the "
@@ -637,7 +637,7 @@ class GetCapability(Function):
             )
         for arg_index in range(len(args)):
             if not isinstance(args[arg_index], (basestring, int)) \
-                    and not _is_function(args[arg_index]):
+                    and not is_function(args[arg_index]):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
                     "values; only strings/ints/functions are accepted. "
@@ -722,7 +722,7 @@ def _get_property_value(node_name,
 
     value = properties
     for p in property_path:
-        if _is_function(value):
+        if is_function(value):
             value = [value, p]
         elif isinstance(value, dict):
             if p not in value:
@@ -768,7 +768,7 @@ def _get_property_value(node_name,
 
 
 def parse(raw_function, scope=None, context=None, path=None):
-    if _is_function(raw_function):
+    if is_function(raw_function):
         func_name, func_args = raw_function.items()[0]
         return TEMPLATE_FUNCTIONS[func_name](func_args,
                                              scope=scope,

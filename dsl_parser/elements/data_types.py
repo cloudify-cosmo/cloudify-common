@@ -13,10 +13,10 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import constants
-from dsl_parser import elements
-from dsl_parser import exceptions
 from dsl_parser import utils
+from dsl_parser import elements
+from dsl_parser import constants
+from dsl_parser import exceptions
 from dsl_parser.elements import types, version as _version
 from dsl_parser.framework.elements import (
     Element,
@@ -53,6 +53,16 @@ class SchemaPropertyType(Element):
 
     def calculate_provided(self, component_types, **kwargs):
         return {'component_types': component_types}
+
+
+class SchemaInputType(SchemaPropertyType):
+
+    def validate(self, data_type, **kwargs):
+        if self.initial_value and self.initial_value not in \
+                constants.USER_INPUT_TYPES and not data_type:
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_UNKNOWN_TYPE,
+                "Illegal type name '{0}'".format(self.initial_value))
 
 
 class SchemaPropertyDefault(Element):
@@ -236,6 +246,10 @@ def _has_type(source, target):
 
 
 SchemaPropertyType.requires[DataType] = [
+    Value('data_type', predicate=_has_type, required=False),
+    Requirement('component_types', predicate=_has_type, required=False)
+]
+SchemaInputType.requires[DataType] = [
     Value('data_type', predicate=_has_type, required=False),
     Requirement('component_types', predicate=_has_type, required=False)
 ]

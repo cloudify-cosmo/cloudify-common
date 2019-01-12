@@ -13,13 +13,20 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import constants
+from dsl_parser import constants as consts
 from dsl_parser.tasks import prepare_deployment_plan
-from dsl_parser.exceptions import (MissingRequiredInputError,
-                                   UnknownInputError,
+from dsl_parser.exceptions import (UnknownInputError,
+                                   ERROR_UNKNOWN_TYPE,
+                                   ConstraintException,
+                                   DSLParsingException,
                                    InputEvaluationError,
+                                   ERROR_MISSING_PROPERTY,
+                                   ERROR_UNDEFINED_PROPERTY,
                                    DSLParsingLogicException,
-                                   DSLParsingInputTypeException)
+                                   MissingRequiredInputError,
+                                   DSLParsingInputTypeException,
+                                   ERROR_VALUE_DOES_NOT_MATCH_TYPE,
+                                   ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA)
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
@@ -30,7 +37,7 @@ class TestInputs(AbstractTestParser):
 inputs: {}
 """
         parsed = self.parse(yaml)
-        self.assertEqual(0, len(parsed['inputs']))
+        self.assertEqual(0, len(parsed[consts.INPUTS]))
 
     def test_input_definition(self):
         yaml = """
@@ -41,9 +48,11 @@ inputs:
 node_templates: {}
 """
         parsed = self.parse(yaml)
-        self.assertEqual(1, len(parsed['inputs']))
-        self.assertEqual(8080, parsed['inputs']['port']['default'])
-        self.assertEqual('the port', parsed['inputs']['port']['description'])
+        self.assertEqual(1, len(parsed[consts.INPUTS]))
+        self.assertEqual(
+            8080, parsed[consts.INPUTS]['port'][consts.DEFAULT])
+        self.assertEqual(
+            'the port', parsed[consts.INPUTS]['port'][consts.DESCRIPTION])
 
     def test_inputs_definition(self):
         yaml = """
@@ -57,11 +66,11 @@ inputs:
 node_templates: {}
 """
         parsed = self.parse(yaml)
-        inputs = parsed[constants.INPUTS]
+        inputs = parsed[consts.INPUTS]
         self.assertEqual(3, len(inputs))
-        self.assertEqual(8080, inputs['port']['default'])
+        self.assertEqual(8080, inputs['port'][consts.DEFAULT])
         self.assertEqual('the port', inputs['port']['description'])
-        self.assertEqual(9090, inputs['port2']['default'])
+        self.assertEqual(9090, inputs['port2'][consts.DEFAULT])
         self.assertNotIn('description', inputs['port2'])
         self.assertEqual(0, len(inputs['ip']))
 
@@ -519,40 +528,42 @@ node_templates:
         node_template = \
             [x for x in prepared['nodes'] if x['name'] == 'webserver'][0]
         op = node_template['operations']['lifecycle.configure']
-        self.assertEqual(8080, op['inputs']['port'])
+        self.assertEqual(8080, op[consts.INPUTS]['port'])
         op = node_template['operations']['configure']
-        self.assertEqual(8080, op['inputs']['port'])
+        self.assertEqual(8080, op[consts.INPUTS]['port'])
         # relationship interfaces
         source_ops = node_template['relationships'][0]['source_operations']
         self.assertEqual(
             8080,
-            source_ops['source_interface.op1']['inputs']['source_port'])
-        self.assertEqual(8080, source_ops['op1']['inputs']['source_port'])
+            source_ops['source_interface.op1'][consts.INPUTS]['source_port'])
+        self.assertEqual(
+            8080, source_ops['op1'][consts.INPUTS]['source_port'])
         target_ops = node_template['relationships'][0]['target_operations']
         self.assertEqual(
             8080,
-            target_ops['target_interface.op2']['inputs']['target_port'])
-        self.assertEqual(8080, target_ops['op2']['inputs']['target_port'])
+            target_ops['target_interface.op2'][consts.INPUTS]['target_port'])
+        self.assertEqual(
+            8080, target_ops['op2'][consts.INPUTS]['target_port'])
 
         prepared = prepare_deployment_plan(self.parse(yaml),
                                            inputs={'port': 8000})
         node_template = \
             [x for x in prepared['nodes'] if x['name'] == 'webserver'][0]
         op = node_template['operations']['lifecycle.configure']
-        self.assertEqual(8000, op['inputs']['port'])
+        self.assertEqual(8000, op[consts.INPUTS]['port'])
         op = node_template['operations']['configure']
-        self.assertEqual(8000, op['inputs']['port'])
+        self.assertEqual(8000, op[consts.INPUTS]['port'])
         # relationship interfaces
         source_ops = node_template['relationships'][0]['source_operations']
         self.assertEqual(
             8000,
-            source_ops['source_interface.op1']['inputs']['source_port'])
-        self.assertEqual(8000, source_ops['op1']['inputs']['source_port'])
+            source_ops['source_interface.op1'][consts.INPUTS]['source_port'])
+        self.assertEqual(8000, source_ops['op1'][consts.INPUTS]['source_port'])
         target_ops = node_template['relationships'][0]['target_operations']
         self.assertEqual(
             8000,
-            target_ops['target_interface.op2']['inputs']['target_port'])
-        self.assertEqual(8000, target_ops['op2']['inputs']['target_port'])
+            target_ops['target_interface.op2'][consts.INPUTS]['target_port'])
+        self.assertEqual(8000, target_ops['op2'][consts.INPUTS]['target_port'])
 
     def test_list_input_in_interface(self):
         yaml = """
@@ -604,40 +615,40 @@ node_templates:
         node_template = \
             [x for x in prepared['nodes'] if x['name'] == 'webserver'][0]
         op = node_template['operations']['lifecycle.configure']
-        self.assertEqual(8080, op['inputs']['port'])
+        self.assertEqual(8080, op[consts.INPUTS]['port'])
         op = node_template['operations']['configure']
-        self.assertEqual(8080, op['inputs']['port'])
+        self.assertEqual(8080, op[consts.INPUTS]['port'])
         # relationship interfaces
         source_ops = node_template['relationships'][0]['source_operations']
         self.assertEqual(
             8080,
-            source_ops['source_interface.op1']['inputs']['source_port'])
-        self.assertEqual(8080, source_ops['op1']['inputs']['source_port'])
+            source_ops['source_interface.op1'][consts.INPUTS]['source_port'])
+        self.assertEqual(8080, source_ops['op1'][consts.INPUTS]['source_port'])
         target_ops = node_template['relationships'][0]['target_operations']
         self.assertEqual(
             8080,
-            target_ops['target_interface.op2']['inputs']['target_port'])
-        self.assertEqual(8080, target_ops['op2']['inputs']['target_port'])
+            target_ops['target_interface.op2'][consts.INPUTS]['target_port'])
+        self.assertEqual(8080, target_ops['op2'][consts.INPUTS]['target_port'])
 
         prepared = prepare_deployment_plan(self.parse(yaml),
                                            inputs={'port': {'a': [8000]}})
         node_template = \
             [x for x in prepared['nodes'] if x['name'] == 'webserver'][0]
         op = node_template['operations']['lifecycle.configure']
-        self.assertEqual(8000, op['inputs']['port'])
+        self.assertEqual(8000, op[consts.INPUTS]['port'])
         op = node_template['operations']['configure']
-        self.assertEqual(8000, op['inputs']['port'])
+        self.assertEqual(8000, op[consts.INPUTS]['port'])
         # relationship interfaces
         source_ops = node_template['relationships'][0]['source_operations']
         self.assertEqual(
             8000,
-            source_ops['source_interface.op1']['inputs']['source_port'])
-        self.assertEqual(8000, source_ops['op1']['inputs']['source_port'])
+            source_ops['source_interface.op1'][consts.INPUTS]['source_port'])
+        self.assertEqual(8000, source_ops['op1'][consts.INPUTS]['source_port'])
         target_ops = node_template['relationships'][0]['target_operations']
         self.assertEqual(
             8000,
-            target_ops['target_interface.op2']['inputs']['target_port'])
-        self.assertEqual(8000, target_ops['op2']['inputs']['target_port'])
+            target_ops['target_interface.op2'][consts.INPUTS]['target_port'])
+        self.assertEqual(8000, target_ops['op2'][consts.INPUTS]['target_port'])
 
     def test_invalid_input_in_interfaces(self):
         yaml = """
@@ -722,7 +733,7 @@ plugins:
     executor: central_deployment_agent
 """
         ex = self._assert_dsl_parsing_exception_error_code(
-            yaml, 107, DSLParsingLogicException)
+            yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
         self.assertIn('some_input', ex.message)
 
     def test_missing_inputs_both_reported(self):
@@ -747,7 +758,7 @@ plugins:
     executor: central_deployment_agent
 """
         ex = self._assert_dsl_parsing_exception_error_code(
-            yaml, 107, DSLParsingLogicException)
+            yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
         self.assertIn('some_input', ex.message)
         self.assertIn('another_input', ex.message)
 
@@ -810,3 +821,411 @@ node_templates:
             prepare_deployment_plan,
             self.parse(yaml),
             inputs={'port': {'a': 2}})
+
+
+class TestInputsConstraints(AbstractTestParser):
+    def test_constraints_successful(self):
+        yaml = """
+inputs:
+    some_input:
+        default: hi
+        constraints:
+            - max_length: 2
+            - min_length: 2
+            - valid_values: [ 'hi', 'ab' ]
+            - length: 2
+            - pattern: '(hi)|(ab)'
+"""
+        parsed = self.parse(yaml)
+        self.assertEqual(1, len(parsed[consts.INPUTS]))
+        self.assertEqual('hi',
+                         parsed[consts.INPUTS]['some_input'][consts.DEFAULT])
+        plan = prepare_deployment_plan(parsed,
+                                       inputs={'some_input': 'ab'})
+        self.assertEqual(1, len(plan[consts.INPUTS]))
+        self.assertEqual('ab', plan[consts.INPUTS]['some_input'])
+
+    def test_constraints_not_successful_with_default(self):
+        yaml = """
+inputs:
+    some_input:
+        default: hi
+        constraints:
+            - max_length: 1
+            - min_length: 2
+            - valid_values: [ 'hi' ]
+            - length: 2
+            - pattern: 'hi'
+"""
+
+        self.assertRaises(ConstraintException, self.parse, yaml)
+
+    def test_constraints_not_successful_with_inserted_input(self):
+        yaml = """
+inputs:
+    some_input:
+        constraints:
+            - max_length: 1
+            - min_length: 2
+            - valid_values: [ 'hi' ]
+            - length: 2
+            - pattern: 'hi'
+"""
+
+        self.assertRaises(ConstraintException, prepare_deployment_plan,
+                          self.parse(yaml), inputs={'some_input': 'hi'})
+
+    def test_input_default_value_has_no_func_and_constraints(self):
+        yaml = """
+inputs:
+    some_input:
+        default: {get_input: i}
+        constraints:
+            - max_length: 1
+"""
+        self.assertRaises(
+            DSLParsingException,
+            self.parse,
+            yaml)
+
+    def test_input_value_has_no_func_and_constraints(self):
+        yaml = """
+inputs:
+    some_input:
+        constraints:
+            - max_length: 1
+"""
+        self.assertRaises(
+            DSLParsingException,
+            prepare_deployment_plan,
+            self.parse(yaml),
+            inputs={'some_input': {'get_input': 'shouldnt matter'}})
+
+    def test_constraints_successful_with_import(self):
+        yaml = """
+inputs:
+    some_input:
+        default: hi
+        constraints:
+            - max_length: 2
+            - min_length: 2
+            - valid_values: [ 'hi', 'ab' ]
+            - length: 2
+            - pattern: '(hi)|(ab)'
+"""
+        import_file_name = self.make_yaml_file(yaml)
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}
+""".format(import_file_name)
+        parsed = self.parse(main_yaml)
+        inputs = parsed[consts.INPUTS]
+        self.assertEqual(5, len(inputs['some_input'][consts.CONSTRAINTS]))
+
+
+class TestInputsTypeValidation(AbstractTestParser):
+    def test_input_default_value_data_type_validation_successful(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: a
+        default:
+            b:
+                c:
+                    d: 123
+data_types:
+    a:
+        properties:
+            b:
+                type: b
+    b:
+        properties:
+            c:
+                type: c
+    c:
+        properties:
+            d:
+                type: integer
+
+"""
+        parsed = self.parse_1_2(yaml)
+        self.assertEqual(
+            parsed[consts.INPUTS]['some_input'][consts.TYPE], 'a')
+        self.assertDictEqual(
+            parsed[consts.INPUTS]['some_input'][consts.DEFAULT],
+            {'b': {'c': {'d': 123}}})
+
+    def test_input_value_data_type_validation_successful(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: a
+data_types:
+    a:
+        properties:
+            b:
+                type: b
+    b:
+        properties:
+            c:
+                type: c
+    c:
+        properties:
+            d:
+                type: integer
+
+"""
+        prepare_deployment_plan(
+            self.parse_1_2(yaml),
+            inputs={'some_input': {'b': {'c': {'d': 123}}}})
+
+    def test_input_default_value_data_type_validation_raises(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: a
+        default:
+            b:
+                c:
+                    d: should_be_int
+data_types:
+    a:
+        properties:
+            b:
+                type: b
+    b:
+        properties:
+            c:
+                type: c
+    c:
+        properties:
+            d:
+                type: integer
+
+"""
+        ex = self._assert_dsl_parsing_exception_error_code(
+            yaml,
+            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
+        self.assertIn('b.c.d', ex.message)
+
+    def test_input_value_data_type_validation_raises(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: a
+data_types:
+    a:
+        properties:
+            b:
+                type: b
+    b:
+        properties:
+            c:
+                type: c
+    c:
+        properties:
+            d:
+                type: integer
+
+"""
+        e = self.assertRaises(
+            DSLParsingException,
+            prepare_deployment_plan,
+            self.parse_1_2(yaml),
+            inputs={'some_input': {'b': {'c': {'d': 'should_be_int'}}}})
+        self.assertEqual(ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA, e.err_code)
+        self.assertIn('b.c.d', e.message)
+
+    def test_input_default_value_data_type_validation_raises_undefined(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: a
+        default:
+            e:
+                c:
+                    d: should_be_int
+data_types:
+    a:
+        properties:
+            b:
+                type: b
+    b:
+        properties:
+            c:
+                type: c
+    c:
+        properties:
+            d:
+                type: integer
+
+"""
+        ex = self._assert_dsl_parsing_exception_error_code(
+            yaml,
+            ERROR_UNDEFINED_PROPERTY)
+        self.assertIn('Undefined property e', ex.message)
+
+    def test_input_value_data_type_validation_raises_undefined(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: a
+data_types:
+    a:
+        properties:
+            b:
+                type: b
+    b:
+        properties:
+            c:
+                type: c
+    c:
+        properties:
+            d:
+                type: integer
+
+"""
+        e = self.assertRaises(
+            DSLParsingException,
+            prepare_deployment_plan,
+            self.parse_1_2(yaml),
+            inputs={'some_input': {'e': {'c': {'d': 'should_be_int'}}}})
+        self.assertEqual(ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA, e.err_code)
+        self.assertIn('Undefined property e', e.message)
+
+    def test_input_value_data_type_validation_raises_with_derived(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: b
+data_types:
+    a:
+        properties:
+            b:
+                type: integer
+    b:
+        derived_from: a
+        properties:
+            c:
+                type: integer
+"""
+        e = self.assertRaises(
+            DSLParsingException,
+            prepare_deployment_plan,
+            self.parse_1_2(yaml),
+            inputs={'some_input': {'c': 123}})
+        self.assertEqual(ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA, e.err_code)
+        self.assertIn('is missing property b', e.message)
+
+    def test_input_default_value_type_validation_raises_with_derived(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: b
+        default:
+            c: 123
+data_types:
+    a:
+        properties:
+            b:
+                type: integer
+    b:
+        derived_from: a
+        properties:
+            c:
+                type: integer
+"""
+        ex = self._assert_dsl_parsing_exception_error_code(
+            yaml,
+            ERROR_MISSING_PROPERTY)
+        self.assertIn('is missing property b', ex.message)
+
+    def test_input_validate_type_raises(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: who_dis?
+"""
+        ex = self._assert_dsl_parsing_exception_error_code(
+            yaml,
+            ERROR_UNKNOWN_TYPE)
+        self.assertIn('Illegal type name', ex.message)
+
+    def test_input_validate_regex_successful(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: regex
+        default: '^$'
+"""
+        parsed = self.parse(yaml)
+        self.assertEqual(
+            parsed[consts.INPUTS]['some_input'][consts.TYPE], 'regex')
+        self.assertEqual(
+            parsed[consts.INPUTS]['some_input'][consts.DEFAULT], '^$')
+
+    def test_input_validate_regex_raises(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: regex
+        default: '\\'
+"""
+        ex = self._assert_dsl_parsing_exception_error_code(
+            yaml,
+            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
+        self.assertIn('Property type validation failed in', ex.message)
+        self.assertIn("type is 'regex'", ex.message)
+
+    def test_input_validate_list_successful(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: list
+        default: [one, two, 3]
+"""
+        parsed = self.parse(yaml)
+        self.assertEqual(
+            parsed[consts.INPUTS]['some_input'][consts.TYPE], 'list')
+        self.assertListEqual(
+            parsed[consts.INPUTS]['some_input'][consts.DEFAULT],
+            ['one', 'two', 3])
+
+    def test_input_validate_list_raises(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: list
+        default: {0_o}
+"""
+        ex = self._assert_dsl_parsing_exception_error_code(
+            yaml,
+            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
+        self.assertIn('Property type validation failed in', ex.message)
+        self.assertIn("type is 'list'", ex.message)
+
+    def test_input_validate_dict_successful(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: dict
+        default: {k: v}
+"""
+        parsed = self.parse(yaml)
+        self.assertEqual(
+            parsed[consts.INPUTS]['some_input'][consts.TYPE], 'dict')
+        self.assertDictEqual(
+            parsed[consts.INPUTS]['some_input'][consts.DEFAULT], {'k': 'v'})
+
+    def test_input_validate_dict_raises(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: dict
+        default: []
+"""
+        ex = self._assert_dsl_parsing_exception_error_code(
+            yaml,
+            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
+        self.assertIn('Property type validation failed in', ex.message)
+        self.assertIn("type is 'dict'", ex.message)

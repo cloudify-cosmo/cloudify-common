@@ -925,3 +925,25 @@ node_types:
   """
         self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_INVALID_CHARS, DSLParsingInputTypeException)
+
+    def test_bad_input_constraints_format(self):
+        yaml = """
+inputs:
+    some_input:
+        constraints:
+            max_length: 1
+            min_length: 1
+"""
+        self._assert_dsl_parsing_exception_error_code(
+            yaml, 1, DSLParsingFormatException)
+
+    def test_bad_input_constraints_property_format(self):
+        yaml = """
+inputs:
+    some_input:
+        - constraints:
+            - max_length: 1
+            - min_length: 1
+"""
+        self._assert_dsl_parsing_exception_error_code(
+            yaml, 1, DSLParsingFormatException)
