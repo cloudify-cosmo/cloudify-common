@@ -327,7 +327,10 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     monitoring_stop = _skip_nop_operations(
         instance.execute_operation('cloudify.interfaces.monitoring.stop')
     )
-    pre_stop = _host_pre_stop(instance)
+    if is_host_node(instance):
+        pre_stop = _host_pre_stop(instance)
+    else:
+        pre_stop = []
 
     stop = _skip_nop_operations(
         task=instance.execute_operation('cloudify.interfaces.lifecycle.stop'),
@@ -350,10 +353,10 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         task=instance.execute_operation(
             'cloudify.interfaces.lifecycle.delete')
     )
-    finish_message = forkjoin(
+    finish_message = [forkjoin(
         instance.set_state('deleted'),
         instance.send_event('Deleted node instance')
-    )
+    )]
 
     def set_ignore_handlers(_subgraph):
         for task in _subgraph.tasks.itervalues():
