@@ -331,10 +331,9 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
 
     stop = _skip_nop_operations(
         task=instance.execute_operation('cloudify.interfaces.lifecycle.stop'),
-        post=forkjoin(
-            instance.set_state('stopped'),
-            instance.send_event('Stopped node instance'))
-    )
+        post=instance.send_event('Stopped node instance'))
+    stopped_set_state = [instance.set_state('stopped')]
+
     unlink = _skip_nop_operations(
         pre=instance.send_event('Unlinking relationships'),
         task=_relationships_operations(
@@ -367,9 +366,12 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         stop_message +
         monitoring_stop +
         pre_stop +
-        stop +
+        (stop or
+         [instance.send_event('Stopped node instance: nothing to do')]) +
+        stopped_set_state +
         unlink +
-        delete +
+        (delete or
+         [instance.send_event('Deleting node instance: nothing to do')]) +
         finish_message
     )
     sequence.add(*tasks)
