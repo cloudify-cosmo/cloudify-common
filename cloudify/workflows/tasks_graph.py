@@ -56,6 +56,8 @@ class TaskDependencyGraph(object):
         tasks = {}
         ctx = workflow_context._get_current_object()
         for op_descr in operations:
+            if op_descr.state in tasks.TERMINATED_STATES:
+                continue
             op = OP_TYPES[op_descr.type].restore(ctx, graph, op_descr)
             tasks[op_descr.id] = op
 
@@ -295,8 +297,6 @@ class TaskDependencyGraph(object):
                          for dependent in dependents]
         self.graph.remove_edges_from(removed_edges)
         self.graph.remove_node(task.id)
-        if task.stored:
-            self.ctx.remove_operation(task.id)
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
