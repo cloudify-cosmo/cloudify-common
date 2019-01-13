@@ -34,7 +34,6 @@ from cloudify.manager import (get_node_instance,
                               download_resource)
 from cloudify.workflows.tasks import (TASK_FAILED,
                                       TASK_SENDING,
-                                      TASK_STARTED,
                                       TASK_SUCCEEDED,
                                       TASK_RESCHEDULED,
                                       RemoteWorkflowTask,
@@ -1283,7 +1282,6 @@ class _TaskDispatcher(object):
                 'Could not send to agent {0} - channel does not exist yet'
                 .format(task['target']))
         self._logger.debug('Task [{0}] sent'.format(task['id']))
-        self._set_task_state(workflow_task, TASK_STARTED, {})
 
     def wait_for_result(self, workflow_task, task):
         client, handler = task['client'], task['handler']

@@ -283,8 +283,6 @@ class TaskDependencyGraph(object):
 
     def _handle_executable_task(self, task):
         """Handle executable task"""
-        if not task._should_resume():
-            task.set_state(tasks.TASK_SENDING)
         task.apply_async()
 
     def _handle_terminated_task(self, task):
