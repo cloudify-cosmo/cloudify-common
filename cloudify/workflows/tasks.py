@@ -19,7 +19,6 @@ import uuid
 import Queue
 
 from cloudify import exceptions
-from cloudify.state import current_workflow_ctx
 from cloudify.workflows import api
 from cloudify.manager import get_rest_client
 from cloudify.constants import MGMTWORKER_QUEUE
