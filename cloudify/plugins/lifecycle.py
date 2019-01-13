@@ -283,10 +283,6 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         ),
         post=instance.send_event('Relationships established'),
     )
-    started = [forkjoin(
-        instance.set_state('started'),
-        instance.send_event('Node instance started (nothing to do)')
-    )]
     if any([create, preconf, configure, postconf, start, post_start,
             monitoring_start, establish]):
         tasks = (
@@ -303,10 +299,16 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
             post_start +
             monitoring_start +
             establish +
-            started
+            [forkjoin(
+                instance.set_state('started'),
+                instance.send_event('Node instance started')
+            )]
         )
     else:
-        tasks = started
+        tasks = [forkjoin(
+            instance.set_state('started'),
+            instance.send_event('Node instance started (nothing to do)')
+        )]
 
     sequence.add(*tasks)
     subgraph.on_failure = get_subgraph_on_failure_handler(instance)
