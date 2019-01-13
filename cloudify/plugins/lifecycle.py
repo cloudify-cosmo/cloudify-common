@@ -318,13 +318,15 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
 def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     subgraph = graph.subgraph(instance.id)
     sequence = subgraph.sequence()
-    monitoring_stop = [
+    stop_message = [
         forkjoin(
             instance.set_state('stopping'),
             instance.send_event('Stopping node instance')
-        ),
-        instance.execute_operation('cloudify.interfaces.monitoring.stop')
+        )
     ]
+    monitoring_stop = _skip_nop_operations(
+        instance.execute_operation('cloudify.interfaces.monitoring.stop')
+    )
     pre_stop = _host_pre_stop(instance)
 
     stop = _skip_nop_operations(
@@ -347,10 +349,11 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
             instance.set_state('deleting'),
             instance.send_event('Deleting node instance')),
         task=instance.execute_operation(
-            'cloudify.interfaces.lifecycle.delete'),
-        post=forkjoin(
-            instance.set_state('deleted'),
-            instance.send_event('Deleted node instance'))
+            'cloudify.interfaces.lifecycle.delete')
+    )
+    finish_message = forkjoin(
+        instance.set_state('deleted'),
+        instance.send_event('Deleted node instance')
     )
 
     def set_ignore_handlers(_subgraph):
@@ -361,11 +364,14 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
                 set_send_node_event_on_error_handler(task, instance)
 
     tasks = (
+        stop_message +
         monitoring_stop +
         pre_stop +
         stop +
         unlink +
-        delete)
+        delete +
+        finish_message
+    )
     sequence.add(*tasks)
 
     if ignore_failure:
