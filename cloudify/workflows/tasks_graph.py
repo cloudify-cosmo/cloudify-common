@@ -53,29 +53,29 @@ class TaskDependencyGraph(object):
     def restore(cls, workflow_context, retrieved_graph):
         graph = cls(workflow_context, graph_id=retrieved_graph.id)
         operations = workflow_context.get_operations(retrieved_graph.id)
-        tasks = {}
+        ops = {}
         ctx = workflow_context._get_current_object()
         for op_descr in operations:
             if op_descr.state in tasks.TERMINATED_STATES:
                 continue
             op = OP_TYPES[op_descr.type].restore(ctx, graph, op_descr)
-            tasks[op_descr.id] = op
+            ops[op_descr.id] = op
 
-        for op in tasks.values():
+        for op in ops.values():
             if op.containing_subgraph:
                 subgraph_id = op.containing_subgraph
                 op.containing_subgraph = None
-                subgraph = tasks[subgraph_id]
+                subgraph = ops[subgraph_id]
                 subgraph.add_task(op)
             else:
                 graph.add_task(op)
 
         for op_descr in operations:
-            op = tasks[op_descr.id]
+            op = ops[op_descr.id]
             for target in op_descr.dependencies:
-                if target not in tasks:
+                if target not in ops:
                     continue
-                target = tasks[target]
+                target = ops[target]
                 graph.add_dependency(op, target)
 
         graph._stored = True
