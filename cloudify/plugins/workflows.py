@@ -22,7 +22,7 @@ from cloudify.manager import get_rest_client
 from cloudify.workflows.tasks_graph import make_or_get_graph
 
 
-@workflow
+@workflow(resumable=True)
 def install(ctx, **kwargs):
     """Default install workflow"""
     lifecycle.install_node_instances(
@@ -30,7 +30,7 @@ def install(ctx, **kwargs):
         node_instances=set(ctx.node_instances))
 
 
-@workflow
+@workflow(resumable=True)
 def uninstall(ctx, ignore_failure=False, **kwargs):
     """Default uninstall workflow"""
 
@@ -544,7 +544,7 @@ def _make_install_agents_graph(
     return graph
 
 
-@workflow
+@workflow(resumable=True)
 def install_new_agents(ctx, **kwargs):
     graph = _make_install_agents_graph(ctx, name='install_agents', **kwargs)
     graph.execute()
@@ -638,7 +638,7 @@ def _make_execute_operation_graph(ctx, operation, operation_kwargs,
     return graph
 
 
-@workflow
+@workflow(resumable=True)
 def execute_operation(ctx, **kwargs):
     """ A generic workflow for executing arbitrary operations on nodes """
 
@@ -759,7 +759,7 @@ def update(ctx,
     client.deployment_updates.finalize_commit(update_id)
 
 
-@workflow()
+@workflow(resumable=True)
 def validate_agents(ctx, node_ids, node_instance_ids,
                     install_methods=None, **_):
 
