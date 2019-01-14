@@ -19,7 +19,6 @@ import uuid
 import Queue
 
 from cloudify import exceptions
-from cloudify.state import current_workflow_ctx
 from cloudify.workflows import api
 from cloudify.manager import get_rest_client
 from cloudify.constants import MGMTWORKER_QUEUE
@@ -139,7 +138,6 @@ class WorkflowTask(object):
             'parameters': {
                 'current_retries': self.current_retries,
                 'send_task_events': self.send_task_events,
-                'cloudify_context': self.cloudify_context,
                 'info': self.info,
                 'error': self.error,
                 'containing_subgraph': getattr(
@@ -187,14 +185,16 @@ class WorkflowTask(object):
             raise RuntimeError('Illegal state set on task: {0} '
                                '[task={1}]'.format(state, str(self)))
         if self.stored:
-            with current_workflow_ctx.push(self.workflow_context):
-                self.workflow_context.update_operation(self.id, state=state)
+            self._update_stored_state(state)
         if self._state in TERMINATED_STATES:
             return
         self._state = state
         if state in TERMINATED_STATES:
             self.is_terminated = True
             self.terminated.put_nowait(True)
+
+    def _update_stored_state(self, state):
+        self.workflow_context.update_operation(self.id, state=state)
 
     def wait_for_terminated(self, timeout=None):
         if self.is_terminated:
@@ -403,6 +403,13 @@ class RemoteWorkflowTask(WorkflowTask):
         }
         return task
 
+    def _update_stored_state(self, state):
+        # no need to store SENDING - all work after SENDING but before SENT
+        # can safely be rerun
+        if state == TASK_SENDING:
+            return
+        return super(RemoteWorkflowTask, self)._update_stored_state(state)
+
     def apply_async(self):
         """
         Call the underlying tasks' apply_async. Verify the worker
@@ -410,6 +417,13 @@ class RemoteWorkflowTask(WorkflowTask):
 
         :return: a RemoteWorkflowTaskResult instance wrapping the async result
         """
+        # the task should be sent to the agent if either:
+        # 1) this is the first execution of this task (state=pending)
+        # 2) this is a resume (state=sent|started) and the task is a central
+        #    deployment agent task
+        should_send = self._state == TASK_PENDING or self._should_resume()
+        if self._state == TASK_PENDING:
+            self.set_state(TASK_SENDING)
         try:
             self._set_queue_kwargs()
             if self._can_resend():
@@ -419,11 +433,11 @@ class RemoteWorkflowTask(WorkflowTask):
                 tenant=self._task_tenant)
             async_result = self.workflow_context.internal.handler\
                 .wait_for_result(self, task)
-            if self._state == TASK_SENDING or self._can_resend():
+            if should_send:
                 self.workflow_context.internal.send_task_event(
                     TASK_SENDING, self)
-                self.workflow_context.internal.handler.send_task(self, task)
                 self.set_state(TASK_SENT)
+                self.workflow_context.internal.handler.send_task(self, task)
             self.async_result = RemoteWorkflowTaskResult(self, async_result)
         except (exceptions.NonRecoverableError,
                 exceptions.RecoverableError) as e:
@@ -641,6 +655,12 @@ class LocalWorkflowTask(WorkflowTask):
         task.local_task = lambda *a, **kw: None
         return task
 
+    def _update_stored_state(self, state):
+        # no need to store SENT - work up to it can safely be redone
+        if state == TASK_SENT:
+            return
+        return super(LocalWorkflowTask, self)._update_stored_state(state)
+
     def apply_async(self):
         """
         Execute the task in the local task thread pool
@@ -709,6 +729,19 @@ class NOPLocalWorkflowTask(LocalWorkflowTask):
     def name(self):
         """The task name"""
         return 'NOP'
+
+    def _update_stored_state(self, state):
+        # the task is always stored as succeeded - nothing to update
+        pass
+
+    def dump(self):
+        stored = super(NOPLocalWorkflowTask, self).dump()
+        stored['state'] = TASK_SUCCEEDED
+        stored['parameters'].update({
+            'info': None,
+            'error': None
+        })
+        return stored
 
     def apply_async(self):
         self.set_state(TASK_SUCCEEDED)
