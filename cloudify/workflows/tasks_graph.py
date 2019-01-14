@@ -71,7 +71,9 @@ class TaskDependencyGraph(object):
                 graph.add_task(op)
 
         for op_descr in operations:
-            op = ops[op_descr.id]
+            op = ops.get(op_descr.id)
+            if op is None:
+                continue
             for target in op_descr.dependencies:
                 if target not in ops:
                     continue
