@@ -160,7 +160,8 @@ class TestDispatchTaskHandler(testtools.TestCase):
             'internal': MagicMock(),
             'execution_id': 'test_execution_id',
             'workflow_id': 'test_workflow_id',
-            'dry_run': False
+            'dry_run': False,
+            'resume': False
         })
         workflow_handler._ctx._context = {'tenant': {'name': 'yes'}}
         workflow_handler._ctx.tenant_name = 'yes'
@@ -199,7 +200,8 @@ class TestDispatchTaskHandler(testtools.TestCase):
             'internal': MagicMock(),
             'execution_id': 'test_execution_id',
             'workflow_id': 'test_workflow_id',
-            'dry_run': False
+            'dry_run': False,
+            'resume': False
         })
         workflow_handler._ctx._context = {'tenant': {'name': 'yes'}}
         workflow_handler._ctx.tenant_name = 'yes'
@@ -235,7 +237,8 @@ class TestDispatchTaskHandler(testtools.TestCase):
             'internal': MagicMock(),
             'execution_id': 'test_execution_id',
             'workflow_id': 'test_workflow_id',
-            'dry_run': False
+            'dry_run': False,
+            'resume': False
         })
         workflow_handler._ctx._context = {'tenant': {
             'name': 'yes',
@@ -270,7 +273,8 @@ class TestDispatchTaskHandler(testtools.TestCase):
             'internal': MagicMock(),
             'execution_id': 'test_execution_id',
             'workflow_id': 'test_workflow_id',
-            'dry_run': False
+            'dry_run': False,
+            'resume': False
         })
 
         # this is for making the implementation go the "local" way despite
