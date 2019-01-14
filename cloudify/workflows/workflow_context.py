@@ -493,6 +493,11 @@ class _WorkflowContextBase(object):
         return self._context.get('rest_token')
 
     @property
+    def resume(self):
+        """Is this workflow being resumed?"""
+        return self._context.get('resume')
+
+    @property
     def tenant_name(self):
         """Cloudify tenant name"""
         return self.tenant.get('name')
