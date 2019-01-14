@@ -354,6 +354,7 @@ class TaskHandler(object):
                 self._func = self.get_func()
             except Exception:
                 self._func = None
+
         return self._func
 
     def get_func(self):
@@ -608,10 +609,11 @@ class WorkflowHandler(TaskHandler):
     def _workflow_started(self):
         self._update_execution_status(Execution.STARTED)
         dry_run = ' (dry run)' if self.ctx.dry_run else ''
+        start_resume = 'Resuming' if self.ctx.resume else 'Starting'
         self.ctx.internal.send_workflow_event(
             event_type='workflow_started',
-            message="Starting '{0}' workflow execution{1}".format(
-                self.ctx.workflow_id, dry_run),
+            message="{0} '{1}' workflow execution{2}".format(
+                start_resume, self.ctx.workflow_id, dry_run),
             additional_context=self._get_hook_params()
         )
 
