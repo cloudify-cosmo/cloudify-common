@@ -369,11 +369,14 @@ class OperationHandler(TaskHandler):
 
     def _validate_operation_func(self):
         if not self.func:
-            func = self.get_func()
-            if self.ctx.resume and not getattr(func, 'resumable', False):
-                raise exceptions.NonRecoverableError(
-                    'Cannot resume - operation not resumable: {0}'
-                    .format(func))
+            # if there is a problem importing/getting the operation function,
+            # this will raise and bubble up
+            self.get_func()
+
+        if self.ctx.resume and not getattr(self._func, 'resumable', False):
+            raise exceptions.NonRecoverableError(
+                'Cannot resume - operation not resumable: {0}'
+                .format(self._func))
 
     def handle(self):
         self._validate_operation_func()
@@ -454,12 +457,16 @@ class WorkflowHandler(TaskHandler):
             return self._handle_remote_workflow()
 
     def _validate_workflow_func(self):
-        if not self.func:
-            try:
+        try:
+            if not self.func:
                 self.get_func()
-            except Exception as e:
-                self._workflow_failed(e, traceback.format_exc())
-                raise
+            if self.ctx.resume and not getattr(self._func, 'resumable', False):
+                raise exceptions.NonRecoverableError(
+                    'Cannot resume - workflow not resumable: {0}'
+                    .format(self._func))
+        except Exception as e:
+            self._workflow_failed(e, traceback.format_exc())
+            raise
 
     @property
     def update_execution_status(self):
