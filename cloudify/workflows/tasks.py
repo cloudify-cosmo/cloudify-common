@@ -124,6 +124,9 @@ class WorkflowTask(object):
         task.stored = True
         return task
 
+    def __repr__(self):
+        return '<{0} {1}>'.format(self.task_type, self.id)
+
     @property
     def task_type(self):
         return self.__class__.__name__
