@@ -20,20 +20,24 @@ def operation(func=None, resumable=False, **kwargs):
     Use this for readability, and to add additional markers for the function
     (eg. is it resumable).
     """
-    if func and resumable:
-        func.resumable = True
-    return func or operation
+    if func:
+        func.resumable = resumable
+        return func
+    else:
+        return lambda fn: operation(fn, resumable=resumable, **kwargs)
 
 
-def workflow(func=None, system_wide=False, **kwargs):
+def workflow(func=None, system_wide=False, resumable=False, **kwargs):
     """This decorator should only be used to decorate system wide
        workflows. It is not required for regular workflows.
     """
     if func:
         func.workflow_system_wide = system_wide
+        func.resumable = resumable
         return func
     else:
-        return lambda fn: workflow(fn, system_wide)
+        return lambda fn: workflow(fn, system_wide=system_wide,
+                                   resumable=resumable, **kwargs)
 
 
 task = operation

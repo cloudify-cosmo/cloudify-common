@@ -354,6 +354,7 @@ class TaskHandler(object):
                 self._func = self.get_func()
             except Exception:
                 self._func = None
+
         return self._func
 
     def get_func(self):
@@ -369,11 +370,14 @@ class OperationHandler(TaskHandler):
 
     def _validate_operation_func(self):
         if not self.func:
-            func = self.get_func()
-            if self.ctx.resume and not getattr(func, 'resumable', False):
-                raise exceptions.NonRecoverableError(
-                    'Cannot resume - operation not resumable: {0}'
-                    .format(func))
+            # if there is a problem importing/getting the operation function,
+            # this will raise and bubble up
+            self.get_func()
+
+        if self.ctx.resume and not getattr(self._func, 'resumable', False):
+            raise exceptions.NonRecoverableError(
+                'Cannot resume - operation not resumable: {0}'
+                .format(self._func))
 
     def handle(self):
         self._validate_operation_func()
@@ -454,12 +458,16 @@ class WorkflowHandler(TaskHandler):
             return self._handle_remote_workflow()
 
     def _validate_workflow_func(self):
-        if not self.func:
-            try:
+        try:
+            if not self.func:
                 self.get_func()
-            except Exception as e:
-                self._workflow_failed(e, traceback.format_exc())
-                raise
+            if self.ctx.resume and not getattr(self._func, 'resumable', False):
+                raise exceptions.NonRecoverableError(
+                    'Cannot resume - workflow not resumable: {0}'
+                    .format(self._func))
+        except Exception as e:
+            self._workflow_failed(e, traceback.format_exc())
+            raise
 
     @property
     def update_execution_status(self):
@@ -601,10 +609,11 @@ class WorkflowHandler(TaskHandler):
     def _workflow_started(self):
         self._update_execution_status(Execution.STARTED)
         dry_run = ' (dry run)' if self.ctx.dry_run else ''
+        start_resume = 'Resuming' if self.ctx.resume else 'Starting'
         self.ctx.internal.send_workflow_event(
             event_type='workflow_started',
-            message="Starting '{0}' workflow execution{1}".format(
-                self.ctx.workflow_id, dry_run),
+            message="{0} '{1}' workflow execution{2}".format(
+                start_resume, self.ctx.workflow_id, dry_run),
             additional_context=self._get_hook_params()
         )
 

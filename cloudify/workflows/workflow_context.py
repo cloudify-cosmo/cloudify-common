@@ -493,6 +493,11 @@ class _WorkflowContextBase(object):
         return self._context.get('rest_token')
 
     @property
+    def resume(self):
+        """Is this workflow being resumed?"""
+        return self._context.get('resume')
+
+    @property
     def tenant_name(self):
         """Cloudify tenant name"""
         return self.tenant.get('name')
@@ -1294,12 +1299,13 @@ class _TaskDispatcher(object):
             (workflow_task, task, result)
         return result
 
-    def _set_task_state(self, workflow_task, state, event):
+    def _set_task_state(self, workflow_task, state, event=None):
         with current_workflow_ctx.push(workflow_task.workflow_context):
             workflow_task.set_state(state)
-            events.send_task_event(
-                state, workflow_task,
-                events.send_task_event_func_remote, event)
+            if event is not None:
+                events.send_task_event(
+                    state, workflow_task,
+                    events.send_task_event_func_remote, event)
 
     def _received(self, task_id, client, response):
         self._logger.debug(
@@ -1325,7 +1331,7 @@ class _TaskDispatcher(object):
                     state = TASK_FAILED
                 _result = exception
                 result.error = True
-                workflow_task.set_state(state)
+                self._set_task_state(workflow_task, state)
             else:
                 state = TASK_SUCCEEDED
                 _result = response.get('result')
