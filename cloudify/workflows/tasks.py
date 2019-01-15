@@ -798,7 +798,6 @@ class WorkflowTaskResult(object):
             self.task = handler_result.retried_task
             task_graph.add_task(self.task)
             self._check_execution_cancelled()
-            self.task.set_state(TASK_SENDING)
             self.task.apply_async()
             self._refresh_state()
 
