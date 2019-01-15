@@ -768,9 +768,6 @@ class DryRunLocalWorkflowTask(LocalWorkflowTask):
         self.set_state(TASK_SUCCEEDED)
         return LocalWorkflowTaskResult(self)
 
-    def is_nop(self):
-        return True
-
 
 class WorkflowTaskResult(object):
     """A base wrapper for workflow task results"""

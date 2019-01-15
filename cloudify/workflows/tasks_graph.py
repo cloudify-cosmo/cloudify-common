@@ -31,6 +31,9 @@ def make_or_get_graph(f):
     """
     @wraps(f)
     def _inner(*args, **kwargs):
+        if workflow_ctx.dry_run:
+            kwargs.pop('name', None)
+            return f(*args, **kwargs)
         name = kwargs.pop('name')
         graph = workflow_ctx.get_tasks_graph(name)
         if not graph:
@@ -291,7 +294,6 @@ class TaskDependencyGraph(object):
 
     def _handle_terminated_task(self, task):
         """Handle terminated task"""
-
         handler_result = task.handle_task_terminated()
 
         dependents = self.graph.predecessors(task.id)

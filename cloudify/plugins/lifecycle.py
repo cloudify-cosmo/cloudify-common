@@ -479,6 +479,8 @@ def is_host_node(node_instance):
 def _wait_for_host_to_start(host_node_instance):
     task = host_node_instance.execute_operation(
         'cloudify.interfaces.host.get_state')
+    if task.is_nop() or workflow_ctx.dry_run:
+        return task
 
     # handler returns True if if get_state returns False,
     # this means, that get_state will be re-executed until
@@ -490,8 +492,7 @@ def _wait_for_host_to_start(host_node_instance):
         else:
             return workflow_tasks.HandlerResult.retry(
                 ignore_total_retries=True)
-    if not task.is_nop():
-        task.on_success = node_get_state_handler
+    task.on_success = node_get_state_handler
     return task
 
 
