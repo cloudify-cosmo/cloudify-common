@@ -371,12 +371,14 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         stop_message = []
         monitoring_stop = []
         pre_stop = []
-        stop = [instance.send_event('Stop: instance already {0}'.format(instance_state))]
+        stop = [instance.send_event(
+            'Stop: instance already {0}'.format(instance_state))]
     if instance_state in ['stopped', 'deleted']:
         stopped_set_state = []
     if instance_state in ['deleted', 'uninitialized']:
         unlink = []
-        delete = [instance.send_event('Delete: instance already {0}'.format(instance_state))]
+        delete = [instance.send_event(
+            'Delete: instance already {0}'.format(instance_state))]
     if instance_state in ['deleted']:
         finish_message = []
 
