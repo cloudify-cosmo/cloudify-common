@@ -23,8 +23,7 @@ from cloudify_rest_client.constants import VisibilityState
 from cloudify import constants, utils
 from cloudify.state import ctx, workflow_ctx, NotInContext
 from cloudify.exceptions import (HttpException,
-                                 NonRecoverableError,
-                                 ResourceNotFoundException)
+                                 NonRecoverableError)
 from cloudify.cluster import CloudifyClusterClient, get_cluster_settings
 
 
@@ -214,17 +213,14 @@ def download_resource(blueprint_id,
     :returns: path to the downloaded resource
     """
     if _is_resource_origin_from_imported_blueprint(resource_path):
+        # If from a local blueprint or loaded blueprint import
         namespace, resource_path = _extract_resource_parts(resource_path)
 
         client = get_rest_client()
         namespaces_mapping = client.blueprints.get(
-            blueprint_id, ['plan']).plan["namespaces_mapping"]
-        if namespace not in namespaces_mapping:
-            logger.error("Resource path {} contained blueprint reference "
-                         "that can be resolved.".format(resource_path))
-            raise ResourceNotFoundException(resource_path)
-
-        blueprint_id = namespaces_mapping[namespace]
+            blueprint_id, ['plan']).plan['namespaces_mapping']
+        if namespace in namespaces_mapping:
+            blueprint_id = namespaces_mapping[namespace]
 
     resource = get_resource(blueprint_id,
                             deployment_id,
