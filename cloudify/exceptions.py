@@ -76,25 +76,6 @@ class HttpException(NonRecoverableError):
         return "{0} ({1}) : {2}".format(self.code, self.url, self.message)
 
 
-class ResourceNotFoundException(NonRecoverableError):
-    """
-    An error raised when a requested resource is not found.
-
-    :param resource_path: The requested resource path, which could contain
-                           namespace of blueprint import.
-
-    """
-
-    def __init__(self, resource_path, causes=None, **kwargs):
-        self.resource_path = resource_path
-        self.code = 404
-        super(ResourceNotFoundException, self).__init__(
-            str(self), causes=causes, **kwargs)
-
-    def __str__(self):
-        return "Resource {1} not found".format(self.resource_path)
-
-
 class CommandExecutionError(RuntimeError):
 
     """
