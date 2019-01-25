@@ -46,7 +46,7 @@ except ImportError as e:
 
 setup(
     name='cloudify-common',
-    version='4.5.5',
+    version='5.0.dev1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     packages=find_packages(),
