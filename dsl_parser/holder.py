@@ -70,8 +70,8 @@ class Holder(object):
 
     def get_item(self, key):
         if not isinstance(self.value, dict):
-            raise ValueError('Value is expected to be of type dict while it'
-                             'is in fact of type {0}'
+            raise ValueError('Value is expected to be a dictionary while it '
+                             'is of type {0}'
                              .format(type(self.value).__name__))
         for key_holder, value_holder in self.value.iteritems():
             if key_holder.value == key:
