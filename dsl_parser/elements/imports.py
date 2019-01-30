@@ -184,7 +184,7 @@ def _extract_import_parts(import_url,
     namespace_op_location = utils.find_namespace_location(import_url)
     namespace = None
 
-    if namespace_op_location is not -1:
+    if namespace_op_location != -1:
         namespace = import_url[:namespace_op_location]
         import_url = import_url[namespace_op_location + 2:]
 
@@ -544,8 +544,8 @@ def _merge_node_templates_relationships(
             # If the current parsed yaml contains only relationships element,
             # the user can only extend with more relationships or merge it
             # with required field to a set a node template.
-                _extend_node_template(from_dict_holder, to_dict_holder)
-                return
+            _extend_node_template(from_dict_holder, to_dict_holder)
+            return
         elif only_relationships_in_source:
             _extend_list_with_namespaced_values(
                 from_dict_holder[constants.RELATIONSHIPS].namespace,
