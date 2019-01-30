@@ -183,7 +183,7 @@ class ClusterHTTPClient(HTTPClient):
                 return super(ClusterHTTPClient, self).do_request(*args,
                                                                  **kwargs)
             except (NotClusterMaster, requests.exceptions.ConnectionError):
-                    continue
+                continue
 
         raise CloudifyClientError('No active node in the cluster!')
 
