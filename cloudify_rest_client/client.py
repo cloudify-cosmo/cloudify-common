@@ -31,7 +31,6 @@ from cloudify_rest_client.nodes import NodesClient
 from cloudify_rest_client.node_instances import NodeInstancesClient
 from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.manager import ManagerClient
-from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
@@ -407,7 +406,6 @@ class CloudifyClient(object):
         self.node_instances = NodeInstancesClient(self._client)
         self.manager = ManagerClient(self._client)
         self.events = EventsClient(self._client)
-        self.search = SearchClient(self._client)
         self.evaluate = EvaluateClient(self._client)
         self.deployment_modifications = DeploymentModificationsClient(
             self._client)
