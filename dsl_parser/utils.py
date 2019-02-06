@@ -348,3 +348,7 @@ def is_blueprint_import(import_url):
 
 def remove_blueprint_import_prefix(import_url):
     return import_url.replace(constants.BLUEPRINT_IMPORT, '')
+
+
+def find_suffix_matches_in_list(sub_str, items):
+    return [item for item in items if item.endswith(sub_str)]

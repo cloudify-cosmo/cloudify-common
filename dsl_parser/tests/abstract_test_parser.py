@@ -208,8 +208,13 @@ imports:"""
                           dsl_version=self.BASIC_VERSION_SECTION_DSL_1_3,
                           resolver=resolver)
 
-    def parse_from_path(self, dsl_path, resources_base_path=None):
-        return dsl_parse_from_path(dsl_path, resources_base_path)
+    def parse_from_path(self,
+                        dsl_path,
+                        resources_base_path=None,
+                        resolver=None):
+        return dsl_parse_from_path(dsl_path,
+                                   resources_base_path,
+                                   resolver=resolver)
 
     def parse_multi(self, yaml):
         return create_deployment_plan(self.parse_1_3(yaml))

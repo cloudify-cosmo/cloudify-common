@@ -15,8 +15,9 @@
 
 from dsl_parser import constants
 from dsl_parser.tests import scaling
-from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 from dsl_parser.tests.test_parser_api import op_struct
+from dsl_parser.tests.abstract_test_parser import AbstractTestParser
+from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 
 
 class TestDetailNodeTemplateNamespaceImport(AbstractTestParser):
@@ -78,7 +79,6 @@ node_templates:
                 type: relationship
     node2:
         type: type
-
 """
         self.make_file_with_name(content='content',
                                  filename='stub.py')
@@ -90,6 +90,91 @@ imports:
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')
         result = self.parse_from_path(main_yaml_path)
+        node = [n for n in result[constants.NODES]
+                if n['name'] == 'test--node1'][0]
+        relationship = node['relationships'][0]
+
+        operation = node['operations']['test.op']
+        operation2 = node['operations']['test.op2']
+        source_operation = relationship['source_operations']['test.op']
+        target_operation = relationship['target_operations']['test.op']
+
+        def assert_operation(op, extra_properties=False):
+            inputs = {'script_path': 'test--stub.py'}
+            if extra_properties:
+                inputs.update({'key': 'value'})
+            self.assertEqual(op, op_struct(
+                plugin_name='{0}--{1}'.format('test',
+                                              constants.SCRIPT_PLUGIN_NAME),
+                mapping=constants.SCRIPT_PLUGIN_RUN_TASK,
+                inputs=inputs,
+                executor='central_deployment_agent'))
+
+        assert_operation(operation)
+        assert_operation(operation2, extra_properties=True)
+        assert_operation(source_operation)
+        assert_operation(target_operation)
+
+    def test_namespaced_script_plugin_interface_use_blueprint_import(self):
+        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
+plugins:
+    script:
+        executor: central_deployment_agent
+        install: false
+
+node_types:
+    type:
+        interfaces:
+            test:
+                op:
+                    implementation: stub.py
+                    inputs: {}
+                op2:
+                    implementation: stub.py
+                    inputs:
+                        key:
+                            default: value
+relationships:
+    relationship:
+        source_interfaces:
+            test:
+                op:
+                    implementation: stub.py
+                    inputs: {}
+        target_interfaces:
+            test:
+                op:
+                    implementation: stub.py
+                    inputs: {}
+node_templates:
+    node1:
+        type: type
+        relationships:
+            -   target: node2
+                type: relationship
+    node2:
+        type: type
+"""
+        import_base_path = self._temp_dir + '/test'
+        self.make_file_with_name(content='content',
+                                 filename='stub.py',
+                                 base_dir=import_base_path)
+        import_path = self.make_file_with_name(content=imported_yaml,
+                                               filename='test.yaml',
+                                               base_dir=import_base_path)
+        resolver = Resolver({'blueprint:test': (imported_yaml, import_path)},
+                            import_base_path)
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
+imports:
+- test--blueprint:test
+"""
+        main_base_path = self._temp_dir + '/main'
+        main_yaml_path = self.make_file_with_name(content=main_yaml,
+                                                  filename='blueprint.yaml',
+                                                  base_dir=main_base_path)
+        result = self.parse_from_path(main_yaml_path,
+                                      resolver=resolver,
+                                      resources_base_path=main_base_path)
         node = [n for n in result[constants.NODES]
                 if n['name'] == 'test--node1'][0]
         relationship = node['relationships'][0]

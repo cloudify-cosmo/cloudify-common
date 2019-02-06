@@ -13,9 +13,11 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from dsl_parser import constants
 from dsl_parser.elements import (data_types,
                                  plugins as _plugins,
-                                 operation)
+                                 operation,
+                                 misc)
 from dsl_parser.framework.requirements import Value, Requirement
 from dsl_parser.framework.elements import (DictElement,
                                            Element,
@@ -45,10 +47,11 @@ class Workflow(Element):
     ]
     requires = {
         'inputs': [Requirement('resource_base', required=False)],
-        _plugins.Plugins: [Value('plugins')]
+        _plugins.Plugins: [Value('plugins')],
+        misc.NamespacesMapping: [Value(constants.NAMESPACES_MAPPING)]
     }
 
-    def parse(self, plugins, resource_base):
+    def parse(self, plugins, resource_base, namespaces_mapping):
         if isinstance(self.initial_value, str):
             operation_content = {'mapping': self.initial_value,
                                  'parameters': {}}
@@ -61,6 +64,7 @@ class Workflow(Element):
             error_code=21,
             partial_error_message='',
             resource_bases=resource_base,
+            remote_resources_namespaces=namespaces_mapping,
             is_workflows=True)
 
 
