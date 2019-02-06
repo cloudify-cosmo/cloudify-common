@@ -488,7 +488,10 @@ class Internal(object):
                       deployment_id=None, plugin_name=None, tenant_name=None,
                       sys_prefix_fallback=True):
         tenant_name = tenant_name or ''
-        plugins_dir = os.path.join(sys.prefix, 'plugins', tenant_name)
+        if tenant_name:
+            plugins_dir = os.path.join(sys.prefix, 'plugins', tenant_name)
+        else:
+            plugins_dir = os.path.join(sys.prefix, 'plugins')
         prefix = None
         if package_name:
             package_version = package_version or Internal._get_package_version(

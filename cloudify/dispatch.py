@@ -82,6 +82,28 @@ DISPATCH_LOGGER_FORMATTER = logging.Formatter(
     '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
 
 
+class DispatchJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        from cloudify.workflows.local import FileStorage
+        if isinstance(obj, FileStorage):
+            return {
+                '__file_storage__': {
+                    'name': obj.name,
+                    'dir': obj._root_storage_dir
+                }
+            }
+        return super(DispatchJSONEncoder, self).default(obj)
+
+
+def load_storage(dct):
+    from cloudify.workflows.local import FileStorage
+    if '__file_storage__' in dct:
+        fs = FileStorage(dct['__file_storage__']['dir'])
+        fs.load(dct['__file_storage__']['name'])
+        return fs
+    return dct
+
+
 class LockedFile(object):
     """Like a writable file object, but writes are under a lock.
 
@@ -148,12 +170,6 @@ class TaskHandler(object):
         self._logfiles = {}
         self._process_registry = process_registry
 
-    def handle_or_dispatch_to_subprocess_if_remote(self):
-        if self.cloudify_context.get('task_target'):
-            return self.dispatch_to_subprocess()
-        else:
-            return self.handle()
-
     def handle(self):
         raise NotImplementedError('Implemented by subclasses')
 
@@ -201,14 +217,13 @@ class TaskHandler(object):
         split = self.cloudify_context['task_name'].split('.')
         dispatch_dir = tempfile.mkdtemp(prefix='task-{0}.{1}-'.format(
             split[0], split[-1]))
-
         try:
             with open(os.path.join(dispatch_dir, 'input.json'), 'w') as f:
                 json.dump({
                     'cloudify_context': self.cloudify_context,
                     'args': self.args,
                     'kwargs': self.kwargs
-                }, f)
+                }, f, cls=DispatchJSONEncoder)
             env = self._build_subprocess_env()
             command_args = [sys.executable, '-u', '-m', 'cloudify.dispatch',
                             dispatch_dir]
@@ -258,6 +273,7 @@ class TaskHandler(object):
         bin_dir = 'Scripts' if os.name == 'nt' else 'bin'
         prefixes = [VIRTUALENV]
         plugin_dir = self._extract_plugin_dir()
+
         if plugin_dir:
             prefixes.insert(0, plugin_dir)
         # Code that concats all bin dirs and is then prepended to the existing
@@ -298,6 +314,8 @@ class TaskHandler(object):
 
     def _extract_plugin_dir(self):
         plugin = self.cloudify_context.get('plugin', {})
+        if not plugin:
+            return
         plugin_name = plugin.get('name')
         package_name = plugin.get('package_name')
         package_version = plugin.get('package_version')
@@ -690,13 +708,13 @@ def dispatch(__cloudify_context, *args, **kwargs):
     handler = dispatch_handler_cls(cloudify_context=__cloudify_context,
                                    args=args,
                                    kwargs=kwargs)
-    return handler.handle_or_dispatch_to_subprocess_if_remote()
+    return handler.dispatch_to_subprocess()
 
 
 def main():
     dispatch_dir = sys.argv[1]
     with open(os.path.join(dispatch_dir, 'input.json')) as f:
-        dispatch_inputs = json.load(f)
+        dispatch_inputs = json.load(f, object_hook=load_storage)
     cloudify_context = dispatch_inputs['cloudify_context']
     args = dispatch_inputs['args']
     kwargs = dispatch_inputs['kwargs']
