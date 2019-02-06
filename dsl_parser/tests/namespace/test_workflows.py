@@ -15,6 +15,7 @@
 
 from dsl_parser import constants
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
+from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 
 
 def workflow_op_struct(plugin_name,
@@ -132,6 +133,102 @@ imports:
         self.assertEqual(1, len(workflow_plugins_to_install))
         self.assertEqual('test--test_plugin',
                          workflow_plugins_to_install[0]['name'])
+
+    def test_workflow_local_namespaced_operation(self):
+        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
+plugins:
+    script:
+        executor: central_deployment_agent
+        install: false
+
+workflows:
+    workflow: stub.py
+    workflow2:
+        mapping: stub.py
+        parameters:
+            key:
+                default: value
+"""
+        self.make_file_with_name(content='content',
+                                 filename='stub.py')
+        import_file_name = self.make_yaml_file(imported_yaml)
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
+imports:
+- {0}--{1}
+""".format('test', import_file_name)
+        main_yaml_path = self.make_file_with_name(content=main_yaml,
+                                                  filename='blueprint.yaml')
+        parsed = self.parse_from_path(main_yaml_path)
+        workflow = parsed[constants.WORKFLOWS]['test--workflow']
+        workflow2 = parsed[constants.WORKFLOWS]['test--workflow2']
+        namespaced_script_plugin = 'test--' + constants.SCRIPT_PLUGIN_NAME
+        self.assertEqual(workflow['operation'],
+                         constants.SCRIPT_PLUGIN_EXECUTE_WORKFLOW_TASK)
+        self.assertEqual(1, len(workflow['parameters']))
+        self.assertEqual(workflow['parameters']['script_path']['default'],
+                         'test--stub.py')
+        self.assertEqual(workflow['plugin'], namespaced_script_plugin)
+
+        self.assertEqual(workflow2['operation'],
+                         constants.SCRIPT_PLUGIN_EXECUTE_WORKFLOW_TASK)
+        self.assertEqual(2, len(workflow2['parameters']))
+        self.assertEqual(workflow2['parameters']['script_path']['default'],
+                         'test--stub.py')
+        self.assertEqual(workflow2['parameters']['key']['default'], 'value')
+        self.assertEqual(workflow['plugin'], namespaced_script_plugin)
+
+    def test_workflow_blueprint_import_namespaced_operation(self):
+        imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
+plugins:
+    script:
+        executor: central_deployment_agent
+        install: false
+
+workflows:
+    workflow: stub.py
+    workflow2:
+        mapping: stub.py
+        parameters:
+            key:
+                default: value
+"""
+        import_base_path = self._temp_dir + '/test'
+        self.make_file_with_name(content='content',
+                                 filename='stub.py',
+                                 base_dir=import_base_path)
+        import_path = self.make_file_with_name(content=imported_yaml,
+                                               filename='test.yaml',
+                                               base_dir=import_base_path)
+        resolver = Resolver({'blueprint:test': (imported_yaml, import_path)},
+                            import_base_path)
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
+imports:
+- test--blueprint:test
+"""
+        main_base_path = self._temp_dir + '/main'
+        main_yaml_path = self.make_file_with_name(content=main_yaml,
+                                                  filename='blueprint.yaml',
+                                                  base_dir=main_base_path)
+        parsed = self.parse_from_path(main_yaml_path,
+                                      resolver=resolver,
+                                      resources_base_path=main_base_path)
+        workflow = parsed[constants.WORKFLOWS]['test--workflow']
+        workflow2 = parsed[constants.WORKFLOWS]['test--workflow2']
+        namespaced_script_plugin = 'test--' + constants.SCRIPT_PLUGIN_NAME
+        self.assertEqual(workflow['operation'],
+                         constants.SCRIPT_PLUGIN_EXECUTE_WORKFLOW_TASK)
+        self.assertEqual(1, len(workflow['parameters']))
+        self.assertEqual(workflow['parameters']['script_path']['default'],
+                         'test--stub.py')
+        self.assertEqual(workflow['plugin'], namespaced_script_plugin)
+
+        self.assertEqual(workflow2['operation'],
+                         constants.SCRIPT_PLUGIN_EXECUTE_WORKFLOW_TASK)
+        self.assertEqual(2, len(workflow2['parameters']))
+        self.assertEqual(workflow2['parameters']['script_path']['default'],
+                         'test--stub.py')
+        self.assertEqual(workflow2['parameters']['key']['default'], 'value')
+        self.assertEqual(workflow['plugin'], namespaced_script_plugin)
 
     def test_workflow_advanced_mapping(self):
         imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """

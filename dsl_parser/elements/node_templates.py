@@ -25,7 +25,8 @@ from dsl_parser.elements import (node_types as _node_types,
                                  operation as _operation,
                                  data_types as _data_types,
                                  scalable,
-                                 version as _version)
+                                 version as _version,
+                                 misc)
 from dsl_parser.framework.requirements import Value, Requirement
 from dsl_parser.framework.elements import (DictElement,
                                            Element,
@@ -348,7 +349,8 @@ class NodeTemplate(Element):
         _node_types.NodeType: [
             Value('node_type',
                   predicate=_node_template_node_type_predicate)],
-        _node_types.NodeTypes: ['host_types']
+        _node_types.NodeTypes: ['host_types'],
+        misc.NamespacesMapping: [Value(constants.NAMESPACES_MAPPING)]
     }
 
     def parse(self,
@@ -356,7 +358,8 @@ class NodeTemplate(Element):
               host_types,
               plugins,
               resource_base,
-              related_node_templates):
+              related_node_templates,
+              namespaces_mapping):
         node = self.build_dict_result()
         node.update({
             'name': self.name,
@@ -375,14 +378,17 @@ class NodeTemplate(Element):
             interfaces=node[constants.INTERFACES],
             plugins=plugins,
             error_code=10,
-            resource_base=resource_base)
+            resource_base=resource_base,
+            remote_resources_namespaces=namespaces_mapping)
 
         node_name_to_node = dict((node['id'], node)
                                  for node in related_node_templates)
-        _post_process_node_relationships(processed_node=node,
-                                         node_name_to_node=node_name_to_node,
-                                         plugins=plugins,
-                                         resource_base=resource_base)
+        _post_process_node_relationships(
+            processed_node=node,
+            node_name_to_node=node_name_to_node,
+            plugins=plugins,
+            resource_base=resource_base,
+            remote_resources_namespaces=namespaces_mapping)
 
         contained_in = self.child(NodeTemplateRelationships).provided[
             'contained_in']
@@ -400,7 +406,8 @@ class NodeTemplate(Element):
 def _post_process_node_relationships(processed_node,
                                      node_name_to_node,
                                      plugins,
-                                     resource_base):
+                                     resource_base,
+                                     remote_resources_namespaces):
     for relationship in processed_node[constants.RELATIONSHIPS]:
         target_node = node_name_to_node[relationship['target_id']]
         _process_node_relationships_operations(
@@ -409,21 +416,24 @@ def _post_process_node_relationships(processed_node,
             operations_attribute='source_operations',
             node_for_plugins=processed_node,
             plugins=plugins,
-            resource_base=resource_base)
+            resource_base=resource_base,
+            remote_resources_namespaces=remote_resources_namespaces)
         _process_node_relationships_operations(
             relationship=relationship,
             interfaces_attribute='target_interfaces',
             operations_attribute='target_operations',
             node_for_plugins=target_node,
             plugins=plugins,
-            resource_base=resource_base)
+            resource_base=resource_base,
+            remote_resources_namespaces=remote_resources_namespaces)
 
 
 def _process_operations(partial_error_message,
                         interfaces,
                         plugins,
                         error_code,
-                        resource_base):
+                        resource_base,
+                        remote_resources_namespaces):
     operations = {}
     for interface_name, interface in interfaces.items():
         interface_operations = \
@@ -434,7 +444,8 @@ def _process_operations(partial_error_message,
                 partial_error_message=(
                     "In interface '{0}' {1}".format(interface_name,
                                                     partial_error_message)),
-                resource_bases=resource_base)
+                resource_bases=resource_base,
+                remote_resources_namespaces=remote_resources_namespaces)
         for operation in interface_operations:
             operation_name = operation.pop('name')
             if operation_name in operations:
@@ -456,7 +467,8 @@ def _process_node_relationships_operations(relationship,
                                            operations_attribute,
                                            node_for_plugins,
                                            plugins,
-                                           resource_base):
+                                           resource_base,
+                                           remote_resources_namespaces):
     partial_error_message = "in relationship of type '{0}' in node '{1}'" \
         .format(relationship['type'],
                 node_for_plugins['id'])
@@ -466,7 +478,8 @@ def _process_node_relationships_operations(relationship,
         interfaces=relationship[interfaces_attribute],
         plugins=plugins,
         error_code=19,
-        resource_base=resource_base)
+        resource_base=resource_base,
+        remote_resources_namespaces=remote_resources_namespaces)
 
     relationship[operations_attribute] = operations
 

@@ -191,14 +191,40 @@ def process_interface_operations(
         plugins,
         error_code,
         partial_error_message,
-        resource_bases):
-    return [process_operation(plugins=plugins,
-                              operation_name=operation_name,
-                              operation_content=operation_content,
-                              error_code=error_code,
-                              partial_error_message=partial_error_message,
-                              resource_bases=resource_bases)
+        resource_bases,
+        remote_resources_namespaces):
+    return [process_operation(
+        plugins=plugins,
+        operation_name=operation_name,
+        operation_content=operation_content,
+        error_code=error_code,
+        partial_error_message=partial_error_message,
+        resource_bases=resource_bases,
+        remote_resources_namespaces=remote_resources_namespaces)
             for operation_name, operation_content in interface.items()]
+
+
+def _is_local_script_resource_exists(resource_bases, resource_path):
+    def resource_exists(location_bases, resource_name):
+        # Removing the namespace prefix from mapping string,
+        # in case of operation with a script for checking
+        # the existence of that script's file.
+        resource_name = utils.remove_namespace(resource_name)
+
+        return any(utils.url_exists('{0}/{1}'.format(base, resource_name))
+                   for base in location_bases if base)
+
+    return resource_bases and resource_exists(resource_bases, resource_path)
+
+
+def _is_remote_script_resource(resource_path, remote_resources_namespaces):
+    """
+    If the script is prefixed with a namespace from the blueprint
+    remote resources namespaces, that means the script is a remote one and
+    already validated when that blueprint was loaded.
+    """
+    return (resource_path[:utils.find_namespace_location(resource_path)] in
+            remote_resources_namespaces)
 
 
 def process_operation(
@@ -208,17 +234,8 @@ def process_operation(
         error_code,
         partial_error_message,
         resource_bases,
+        remote_resources_namespaces,
         is_workflows=False):
-
-    def _resource_exists(location_bases, resource_name):
-        # Removing the namespace prefix from mapping string,
-        # in case of operation with a script for checking
-        # the existence of that script's file.
-        resource_name = utils.remove_namespace(resource_name)
-
-        return any(utils.url_exists('{0}/{1}'.format(base, resource_name))
-                   for base in location_bases if base)
-
     payload_field_name = 'parameters' if is_workflows else 'inputs'
     mapping_field_name = 'mapping' if is_workflows else 'implementation'
     operation_mapping = operation_content[mapping_field_name]
@@ -261,8 +278,10 @@ def process_operation(
                 executor=operation_executor,
                 max_retries=operation_max_retries,
                 retry_interval=operation_retry_interval)
-    elif resource_bases and _resource_exists(resource_bases,
-                                             operation_mapping):
+    elif (_is_local_script_resource_exists(resource_bases,
+                                           operation_mapping) or
+          _is_remote_script_resource(operation_mapping,
+                                     remote_resources_namespaces)):
         operation_payload = copy.deepcopy(operation_payload or {})
         if constants.SCRIPT_PATH_PROPERTY in operation_payload:
             message = "Cannot define '{0}' property in '{1}' for {2} '{3}'" \
@@ -290,8 +309,10 @@ def process_operation(
         # There can be more then one script plugin defined in the blueprint,
         # in case of the other one's are namespaced. But they are actually
         # pointing to the same installed one.
-        script_plugins = [plugin for plugin in plugins
-                          if constants.SCRIPT_PLUGIN_NAME in plugin]
+        script_plugins = utils.find_suffix_matches_in_list(
+            constants.SCRIPT_PLUGIN_NAME,
+            plugins)
+
         if script_plugins:
             script_plugin = script_plugins[0]
         else:
@@ -304,7 +325,7 @@ def process_operation(
 
         if is_workflows:
             return workflow_operation(
-                plugin_name=constants.SCRIPT_PLUGIN_NAME,
+                plugin_name=script_plugin,
                 workflow_mapping=operation_mapping,
                 workflow_parameters=operation_payload)
         else:
@@ -319,11 +340,9 @@ def process_operation(
                 max_retries=operation_max_retries,
                 retry_interval=operation_retry_interval)
     else:
-        # This is an error for validation done somewhere down the
-        # current stack trace
         base_error_message = (
-            "Could not extract plugin from {2} "
-            "mapping '{0}', which is declared for {2} '{1}'. "
+            "Could not extract plugin or a script resource is not found from "
+            "{2} mapping/script-path '{0}', which is declared for {2} '{1}'."
             .format(operation_mapping,
                     operation_name,
                     'workflow' if is_workflows else 'operation'))

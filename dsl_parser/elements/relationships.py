@@ -16,12 +16,13 @@
 from dsl_parser import (constants,
                         utils)
 from dsl_parser.interfaces import interfaces_parser
+from dsl_parser.framework.elements import Dict
+from dsl_parser.framework.requirements import Value, Requirement
 from dsl_parser.elements import (data_types as _data_types,
                                  operation,
                                  plugins as _plugins,
-                                 types)
-from dsl_parser.framework.requirements import Value, Requirement
-from dsl_parser.framework.elements import Dict
+                                 types,
+                                 misc)
 
 
 class Relationship(types.Type):
@@ -38,10 +39,12 @@ class Relationship(types.Type):
         'self': [Value('super_type',
                        predicate=types.derived_from_predicate,
                        required=False)],
-        _data_types.DataTypes: [Value('data_types')]
+        _data_types.DataTypes: [Value('data_types')],
+        misc.NamespacesMapping: [Value(constants.NAMESPACES_MAPPING)]
     }
 
-    def parse(self, super_type, plugins, resource_base, data_types):
+    def parse(self, super_type, plugins, resource_base, data_types,
+              namespaces_mapping):
         relationship_type = self.build_dict_result()
         if not relationship_type.get('derived_from'):
             relationship_type.pop('derived_from', None)
@@ -63,7 +66,8 @@ class Relationship(types.Type):
             rel_obj=relationship_type,
             plugins=plugins,
             rel_name=relationship_type_name,
-            resource_base=resource_base)
+            resource_base=resource_base,
+            remote_resources_namespaces=namespaces_mapping)
         relationship_type['name'] = relationship_type_name
         relationship_type[
             constants.TYPE_HIERARCHY] = self.create_type_hierarchy(super_type)
@@ -76,7 +80,8 @@ class Relationships(types.Types):
     schema = Dict(type=Relationship)
 
 
-def _validate_relationship_fields(rel_obj, plugins, rel_name, resource_base):
+def _validate_relationship_fields(rel_obj, plugins, rel_name, resource_base,
+                                  remote_resources_namespaces):
     for interfaces in [constants.SOURCE_INTERFACES,
                        constants.TARGET_INTERFACES]:
         for interface_name, interface in rel_obj[interfaces].items():
@@ -85,4 +90,5 @@ def _validate_relationship_fields(rel_obj, plugins, rel_name, resource_base):
                 plugins=plugins,
                 error_code=19,
                 partial_error_message="Relationship '{0}'".format(rel_name),
-                resource_bases=resource_base)
+                resource_bases=resource_base,
+                remote_resources_namespaces=remote_resources_namespaces)

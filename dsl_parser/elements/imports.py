@@ -181,12 +181,12 @@ def _extract_import_parts(import_url,
             namespaced, the returned namespace will be
             None.
     """
-    namespace_op_location = utils.find_namespace_location(import_url)
-    namespace = None
+    namespace, _, import_url = \
+        import_url.rpartition(constants.NAMESPACE_DELIMITER)
 
-    if namespace_op_location != -1:
-        namespace = import_url[:namespace_op_location]
-        import_url = import_url[namespace_op_location + 2:]
+    if namespace == '':
+        # The mark of no namespace is None, so we need to use that value.
+        namespace = None
 
     return namespace, _get_resource_location(import_url,
                                              resources_base_path,
