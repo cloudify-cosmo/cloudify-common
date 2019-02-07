@@ -22,6 +22,7 @@ import uuid
 import Queue
 import logging
 import threading
+from collections import deque
 from urlparse import urlsplit, urlunsplit
 
 import pika
@@ -357,6 +358,10 @@ class AMQPConnection(object):
         """
         self.channel_method('publish', wait=wait, timeout=timeout, **message)
 
+    def ack(self, delivery_tag, wait=True, timeout=None):
+        self.channel_method('basic_ack', wait=wait, timeout=timeout,
+                            delivery_tag=delivery_tag)
+
 
 class TaskConsumer(object):
     routing_key = ''
@@ -369,6 +374,7 @@ class TaskConsumer(object):
         self._connection = None
         self.in_channel = None
         self.exchange_type = exchange_type
+        self._tasks_buffer = deque()
 
     def register(self, connection):
         self._connection = connection
@@ -397,16 +403,14 @@ class TaskConsumer(object):
             logger.error('Error parsing task: {0}'.format(body))
             return
 
-        self._sem.acquire()
-        new_thread = threading.Thread(
-            target=self._process_message,
-            args=(properties, full_task)
-        )
-        new_thread.daemon = True
-        new_thread.start()
-        channel.basic_ack(method.delivery_tag)
+        task_args = (properties, full_task, method.delivery_tag)
+        if self._sem.acquire(blocking=False):
+            self._run_task(task_args)
+        else:
+            self._tasks_buffer.append(task_args)
 
-    def _process_message(self, properties, full_task):
+    def _process_message(self, properties, full_task, delivery_tag):
+        self._connection.ack(delivery_tag)
         try:
             result = self.handle_task(full_task)
         except Exception as e:
@@ -424,7 +428,25 @@ class TaskConsumer(object):
                     correlation_id=properties.correlation_id),
                 'body': json.dumps(result)
             })
-        self._sem.release()
+        if not self._maybe_run_next_task():
+            self._sem.release()
+
+    def _run_task(self, task_args):
+        new_thread = threading.Thread(
+            target=self._process_message,
+            args=task_args
+        )
+        new_thread.daemon = True
+        new_thread.start()
+
+    def _maybe_run_next_task(self):
+        try:
+            task_args = self._tasks_buffer.popleft()
+        except IndexError:
+            return False
+        else:
+            self._run_task(task_args)
+            return True
 
     def handle_task(self, full_task):
         raise NotImplementedError()
