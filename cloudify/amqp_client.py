@@ -275,6 +275,7 @@ class AMQPConnection(object):
             except Queue.Empty:
                 return
 
+            target_channel = envelope['channel'] or channel
             method = envelope['method']
             # we use a separate queue to send any possible exceptions back
             # to the calling thread - see the publish method
@@ -282,7 +283,7 @@ class AMQPConnection(object):
             err_queue = envelope.get('err_queue')
 
             try:
-                getattr(channel, method)(**message)
+                getattr(target_channel, method)(**message)
             except pika.exceptions.ConnectionClosed:
                 if self._closed:
                     return
@@ -315,7 +316,8 @@ class AMQPConnection(object):
                 'Attempted to open a channel on a closed connection')
         return self._pika_connection.channel()
 
-    def channel_method(self, method, wait=True, timeout=None, **kwargs):
+    def channel_method(self, method, channel=None, wait=True,
+                       timeout=None, **kwargs):
         """Schedule a channel method to be called from the connection thread.
 
         Use this to schedule a channel method such as .publish or .basic_ack
@@ -337,7 +339,8 @@ class AMQPConnection(object):
         envelope = {
             'method': method,
             'message': kwargs,
-            'err_queue': err_queue
+            'err_queue': err_queue,
+            'channel': channel
         }
         self._connection_tasks_queue.put(envelope)
         if err_queue:
@@ -358,9 +361,9 @@ class AMQPConnection(object):
         """
         self.channel_method('publish', wait=wait, timeout=timeout, **message)
 
-    def ack(self, delivery_tag, wait=True, timeout=None):
+    def ack(self, channel, delivery_tag, wait=True, timeout=None):
         self.channel_method('basic_ack', wait=wait, timeout=timeout,
-                            delivery_tag=delivery_tag)
+                            channel=channel, delivery_tag=delivery_tag)
 
 
 class TaskConsumer(object):
@@ -403,14 +406,14 @@ class TaskConsumer(object):
             logger.error('Error parsing task: {0}'.format(body))
             return
 
-        task_args = (properties, full_task, method.delivery_tag)
+        task_args = (channel, properties, full_task, method.delivery_tag)
         if self._sem.acquire(blocking=False):
             self._run_task(task_args)
         else:
             self._tasks_buffer.append(task_args)
 
-    def _process_message(self, properties, full_task, delivery_tag):
-        self._connection.ack(delivery_tag)
+    def _process_message(self, channel, properties, full_task, delivery_tag):
+        self._connection.ack(channel, delivery_tag)
         try:
             result = self.handle_task(full_task)
         except Exception as e:
