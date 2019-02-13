@@ -400,17 +400,17 @@ def setup_logger_base(log_level, log_dir=None):
 
 
 def setup_subprocess_logger():
-    setup_logger_base(os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG',
-                      os.environ.get('AGENT_LOG_DIR'))
+    setup_logger_base(os.environ.get(constants.AGENT_LOG_LEVEL_KEY) or 'DEBUG',
+                      os.environ.get(constants.AGENT_LOG_DIR_KEY))
 
 
 def setup_agent_logger(log_name, log_level=None, log_dir=None,
                        max_bytes=None, max_history=None):
     if log_level is None:
-        log_level = os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG'
+        log_level = os.environ.get(constants.AGENT_LOG_LEVEL_KEY) or 'DEBUG'
 
     if log_dir is None:
-        log_dir = os.environ.get('AGENT_LOG_DIR')
+        log_dir = os.environ.get(constants.AGENT_LOG_DIR_KEY)
 
     setup_logger_base(log_level, log_dir)
 
@@ -438,10 +438,10 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None,
             # variables are defined in the agent's service configuration file
             # that had been rendered during agent installation.
             if max_bytes is None:
-                max_bytes = int(os.environ['AGENT_LOG_MAX_BYTES'])
+                max_bytes = int(os.environ[constants.AGENT_LOG_MAX_BYTES_KEY])
 
             if max_history is None:
-                max_history = int(os.environ['AGENT_LOG_MAX_HISTORY'])
+                max_history = int(os.environ[constants.AGENT_LOG_MAX_HISTORY_KEY])
 
             # On linux agents, we may have logrotate in place in the future.
             # On Windows agents, there's no reliable logrotate alternative.

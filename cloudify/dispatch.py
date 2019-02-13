@@ -190,8 +190,9 @@ class TaskHandler(object):
             # in that case, the deployment id will be None
             handler_context = handler_context or SYSTEM_DEPLOYMENT
 
-        log_name = os.path.join(os.environ.get('AGENT_LOG_DIR', ''), 'logs',
-                                '{0}.log'.format(handler_context))
+        log_name = os.path.join(os.environ.get(
+            constants.AGENT_LOG_DIR_KEY, ''), 'logs',
+            '{0}.log'.format(handler_context))
 
         return LockedFile.open(log_name)
 
