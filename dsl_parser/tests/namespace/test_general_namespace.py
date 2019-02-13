@@ -15,6 +15,7 @@
 
 from dsl_parser import exceptions, constants
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
+from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 
 
 class TestGeneralNamespace(AbstractTestParser):
@@ -110,3 +111,138 @@ imports:
 """.format('test', layer1_import_path)
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse, main_yaml)
+
+
+class TestImportsResolvingTreeConnections(AbstractTestParser):
+    basic_input = """
+tosca_definitions_version: cloudify_dsl_1_3
+
+inputs:
+    port:
+        default: 1
+"""
+
+    def test_namespace_uncle_import_resolving_with_local_imports(self):
+        layer1_import_path = self.make_yaml_file(self.basic_input)
+
+        layer2 = """
+imports:
+  - test--{0}
+""".format(layer1_import_path)
+        layer2_import_path = self.make_yaml_file(layer2)
+
+        sibling_import_path = self.make_yaml_file(self.basic_input)
+
+        main_yaml = self.basic_input + """
+imports:
+  - other_test--{0}
+  - test--{1}
+""".format(layer2_import_path, sibling_import_path)
+
+        parsed_yaml = self.parse_1_3(main_yaml)
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(3, len(inputs))
+        self.assertIn('port', inputs)
+        self.assertIn('test--port', inputs)
+        self.assertIn('other_test--test--port', inputs)
+
+    def test_namespace_uncle_import_resolving_with_blueprint_imports(self):
+        layer2 = """
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - test--blueprint:layer1
+"""
+
+        main_yaml = self.basic_input + """
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - other_test--blueprint:layer2
+  - test--blueprint:uncle
+"""
+        resolver = Resolver({'blueprint:layer1':
+                            self.basic_input,
+                             'blueprint:layer2':
+                                 layer2,
+                             'blueprint:uncle':
+                                 self.basic_input})
+        parsed_yaml = self.parse_1_3(main_yaml, resolver=resolver)
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(3, len(inputs))
+        self.assertIn('port', inputs)
+        self.assertIn('test--port', inputs)
+        self.assertIn('other_test--test--port', inputs)
+
+    def test_namespace_sibling_import_resolving_with_blueprint_imports(self):
+        layer2 = """
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - test--blueprint:layer1
+"""
+
+        sibling_layer2 = """
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - test--blueprint:sibling
+"""
+
+        main_yaml = """
+imports:
+  - other_test--blueprint:layer2
+  - else_test--blueprint:sibling_layer2
+"""
+        resolver = Resolver({'blueprint:layer1':
+                            self.basic_input,
+                             'blueprint:layer2':
+                                 layer2,
+                             'blueprint:sibling':
+                                 self.basic_input,
+                             'blueprint:sibling_layer2':
+                             sibling_layer2})
+        parsed_yaml = self.parse_1_3(main_yaml, resolver=resolver)
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(2, len(inputs))
+        self.assertIn('else_test--test--port', inputs)
+        self.assertIn('other_test--test--port', inputs)
+
+    def test_namespace_sibling_import_resolving_with_local_imports(self):
+        layer1_import_path = self.make_yaml_file(self.basic_input)
+        layer2 = """
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - test--{0}
+""".format(layer1_import_path)
+        layer2_import_path = self.make_yaml_file(layer2)
+
+        sibling_import_path = self.make_yaml_file(self.basic_input)
+        sibling_layer2 = """
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - test--{0}
+""".format(sibling_import_path)
+        sibling_layer2_import_path = self.make_yaml_file(sibling_layer2)
+
+        main_yaml = """
+imports:
+  - other_test--{0}
+  - else_test--{1}
+""".format(layer2_import_path, sibling_layer2_import_path)
+
+        resolver = Resolver({'blueprint:layer1':
+                            self.basic_input,
+                             'blueprint:layer2':
+                                 layer2,
+                             'blueprint:sibling':
+                                 self.basic_input,
+                             'blueprint:sibling_layer2':
+                             sibling_layer2})
+        parsed_yaml = self.parse_1_3(main_yaml, resolver=resolver)
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(2, len(inputs))
+        self.assertIn('else_test--test--port', inputs)
+        self.assertIn('other_test--test--port', inputs)
