@@ -449,6 +449,21 @@ def _merge_lists_with_no_duplicates(from_dict_holder, to_dict_holder):
             to_dict_holder.value.append(value_holder)
 
 
+def _insert_new_element(target_holder, key_holder, value_holder, namespace):
+    if isinstance(value_holder.value, dict) and namespace:
+        # At this level (second level) in the blueprint there are only dict
+        # or string, and namespacing is only applied to dict elements.
+        new_element = Holder({})
+        _merge_into_dict_or_throw_on_duplicate(
+            from_dict_holder=value_holder,
+            to_dict_holder=new_element,
+            key_name=key_holder.value,
+            namespace=namespace)
+        target_holder.value[key_holder] = new_element
+    else:
+        target_holder.value[key_holder] = value_holder
+
+
 def _merge_parsed_into_combined(combined_parsed_dsl_holder,
                                 parsed_imported_dsl_holder,
                                 version,
@@ -476,12 +491,10 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
                 key_name=key_holder.value,
                 namespace=namespace)
         elif key_holder.value not in combined_parsed_dsl_holder:
-            if isinstance(value_holder.value, dict) and namespace:
-                # Propagate namespace down
-                _mark_key_value_holder_items(value_holder,
-                                             'namespace',
-                                             namespace)
-            combined_parsed_dsl_holder.value[key_holder] = value_holder
+            _insert_new_element(combined_parsed_dsl_holder,
+                                key_holder,
+                                value_holder,
+                                namespace)
         elif key_holder.value in DONT_OVERWRITE:
             pass
         elif key_holder.value in merge_no_override:
@@ -504,8 +517,7 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
 
 def _prepare_namespaced_elements(key_holder, namespace, value_holder):
     if isinstance(value_holder.value, dict):
-        for v in value_holder.value.values():
-            v.namespace = namespace
+        _mark_key_value_holder_items(value_holder, 'namespace', namespace)
     elif isinstance(value_holder.value, basestring):
         # In case of primitive type we a need a different way to mark
         # the sub elements with the namespace, but leaving the option
