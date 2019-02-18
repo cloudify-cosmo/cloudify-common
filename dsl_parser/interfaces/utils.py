@@ -16,7 +16,8 @@
 
 from dsl_parser import (functions,
                         utils)
-from dsl_parser.exceptions import DSLParsingLogicException
+from dsl_parser.exceptions import (ERROR_MISSING_PROPERTY,
+                                   DSLParsingLogicException)
 
 
 def validate_missing_inputs(inputs, schema_inputs):
@@ -32,7 +33,7 @@ def validate_missing_inputs(inputs, schema_inputs):
                                          for input_name in missing_inputs)
             message = "Inputs {0} are missing a value".format(formatted_inputs)
 
-        raise DSLParsingLogicException(107, message)
+        raise DSLParsingLogicException(ERROR_MISSING_PROPERTY, message)
 
 
 def validate_inputs_types(inputs, schema_inputs):

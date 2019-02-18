@@ -17,8 +17,10 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 from dsl_parser.exceptions import (DSLParsingLogicException,
                                    ERROR_CODE_CYCLE,
                                    ERROR_UNKNOWN_TYPE,
-                                   ERROR_VALUE_DOES_NOT_MATCH_TYPE,
+                                   ERROR_MISSING_PROPERTY,
                                    ERROR_INVALID_TYPE_NAME,
+                                   ERROR_UNDEFINED_PROPERTY,
+                                   ERROR_VALUE_DOES_NOT_MATCH_TYPE,
                                    ERROR_CODE_DSL_DEFINITIONS_VERSION_MISMATCH)
 
 
@@ -95,7 +97,7 @@ data_types:
                 type: pair_type
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 106, DSLParsingLogicException)
+            yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
 
     def test_unknown_type_in_datatype(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + self.MINIMAL_BLUEPRINT + """
@@ -572,7 +574,10 @@ node_templates:
     type: type
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 107, DSLParsingLogicException, self.parse_1_2)
+            yaml,
+            ERROR_MISSING_PROPERTY,
+            DSLParsingLogicException,
+            self.parse_1_2)
 
     def test_additional_fields_validation(self):
         yaml = """
@@ -593,7 +598,10 @@ node_templates:
     type: type
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 106, DSLParsingLogicException, self.parse_1_2)
+            yaml,
+            ERROR_UNDEFINED_PROPERTY,
+            DSLParsingLogicException,
+            self.parse_1_2)
 
     def test_nested_required_false(self):
         yaml = """
@@ -613,7 +621,10 @@ node_templates:
     type: type
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 107, DSLParsingLogicException, self.parse_1_2)
+            yaml,
+            ERROR_MISSING_PROPERTY,
+            DSLParsingLogicException,
+            self.parse_1_2)
 
     def test_nested_merge_with_inheritance(self):
         yaml = """

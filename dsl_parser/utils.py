@@ -130,7 +130,7 @@ def _merge_flattened_schema_and_instance_properties(
     for key in instance_properties.iterkeys():
         if key not in schema_properties:
             ex = exceptions.DSLParsingLogicException(
-                106,
+                exceptions.ERROR_UNDEFINED_PROPERTY,
                 undefined_property_error_message.format(
                     node_name,
                     _property_description(path, key)))
@@ -145,7 +145,7 @@ def _merge_flattened_schema_and_instance_properties(
             required = property_schema.get('required', True)
             if required and raise_on_missing_property:
                 ex = exceptions.DSLParsingLogicException(
-                    107,
+                    exceptions.ERROR_MISSING_PROPERTY,
                     missing_property_error_message.format(
                         node_name,
                         _property_description(path, key)))
@@ -180,12 +180,11 @@ def parse_value(
         raise_on_missing_property=True):
     if type_name is None:
         return value
-    if functions.parse(value) != value:
+    elif functions.is_function(value):
         # intrinsic function - not validated at the moment
         return value
-    if type_name == 'integer':
-        if isinstance(value, (int, long)) and not isinstance(
-                value, bool):
+    elif type_name == 'integer':
+        if isinstance(value, (int, long)) and not isinstance(value, bool):
             return value
     elif type_name == 'float':
         if isinstance(value, (int, float, long)) and not isinstance(
@@ -196,6 +195,19 @@ def parse_value(
             return value
     elif type_name == 'string':
         return value
+    elif type_name == 'regex':
+        if isinstance(value, str):
+            try:
+                re.compile(value)
+                return value
+            except re.error:
+                pass
+    elif type_name == 'list':
+        if isinstance(value, (list, tuple)):
+            return value
+    elif type_name == 'dict':
+        if isinstance(value, dict):
+            return value
     elif type_name in data_types:
         if isinstance(value, dict):
             data_schema = data_types[type_name]['properties']

@@ -13,9 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import functions, utils
 from dsl_parser.framework import parser
 from dsl_parser.elements import blueprint
+from dsl_parser import functions, utils, constraints
 from dsl_parser.import_resolver.default_import_resolver import \
     DefaultImportResolver
 
@@ -41,13 +41,15 @@ def parse(dsl_string,
           dsl_location=None,
           resolver=None,
           validate_version=True,
-          validate_intrinsic_function=True):
+          validate_intrinsic_function=True,
+          validate_input_defaults=True):
     plan, _ = _parse(dsl_string,
                      resources_base_path=resources_base_path,
                      dsl_location=dsl_location,
                      resolver=resolver,
                      validate_version=validate_version,
-                     validate_intrinsic_function=validate_intrinsic_function)
+                     validate_intrinsic_function=validate_intrinsic_function,
+                     validate_input_defaults=validate_input_defaults)
     return plan
 
 
@@ -60,7 +62,8 @@ def parse_from_import_blueprint(dsl_string,
                                    dsl_location=dsl_location,
                                    resolver=resolver,
                                    validate_version=False,
-                                   validate_intrinsic_function=False)
+                                   validate_intrinsic_function=False,
+                                   validate_input_defaults=False)
     return resolved_blueprint
 
 
@@ -70,7 +73,21 @@ def _parse(dsl_string,
            resolver=None,
            validate_version=True,
            validate_intrinsic_function=True,
-           additional_resource_sources=()):
+           additional_resource_sources=(),
+           validate_input_defaults=True):
+    """
+
+    :param dsl_string: parsing input in form of a string.
+    :param resources_base_path: resources base path.
+    :param dsl_location: yaml location.
+    :param resolver: resolver.
+    :param validate_version: whether to validate version of the DSL.
+    :param validate_intrinsic_function: whether to validate intrinsic
+    functions.
+    :param additional_resource_sources: additional resource sources.
+    :param validate_input_defaults: whether to validate given input constraints
+    on input default values.
+    """
     resource_base, merged_blueprint_holder =\
         _resolve_blueprint_imports(dsl_location, dsl_string, resolver,
                                    resources_base_path, validate_version)
@@ -86,7 +103,8 @@ def _parse(dsl_string,
             'validate_version': validate_version
         },
         element_cls=blueprint.Blueprint)
-
+    if validate_input_defaults:
+        constraints.validate_input_defaults(plan)
     if validate_intrinsic_function:
         functions.validate_functions(plan)
     return plan, merged_blueprint_holder

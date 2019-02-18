@@ -14,9 +14,7 @@
 #    * limitations under the License.
 
 from dsl_parser import elements
-from dsl_parser.elements import (
-    data_types,
-    version as element_version)
+from dsl_parser.elements import version as element_version
 from dsl_parser.framework.elements import (DictElement,
                                            DictNoDefaultElement,
                                            Element,
@@ -73,10 +71,6 @@ class Capability(DictNoDefaultElement):
 class Capabilities(DictElement):
 
     schema = Dict(type=Capability)
-
-
-class Inputs(data_types.Schema):
-    pass
 
 
 class DSLDefinitions(Element):

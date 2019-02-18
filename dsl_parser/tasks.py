@@ -16,12 +16,15 @@
 import copy
 import json
 
-from dsl_parser import (functions,
-                        exceptions,
-                        scan,
+from dsl_parser import (scan,
+                        utils,
                         models,
                         parser,
+                        functions,
+                        exceptions,
+                        constraints,
                         multi_instance)
+from dsl_parser.constants import INPUTS, DEFAULT, DATA_TYPES, TYPE
 from dsl_parser.multi_instance import modify_deployment
 
 
@@ -47,7 +50,8 @@ def _set_plan_inputs(plan, inputs=None):
     inputs = inputs if inputs else {}
     # Verify inputs satisfied
     missing_inputs = []
-    for input_name, input_def in plan['inputs'].iteritems():
+    for input_name, input_def in plan[INPUTS].iteritems():
+        input_is_missing = False
         if input_name in inputs:
             try:
                 str(json.dumps(inputs[input_name], ensure_ascii=False))
@@ -57,26 +61,55 @@ def _set_plan_inputs(plan, inputs=None):
                     'Illegal characters in input: {0}. '
                     'Only valid ascii chars are supported.'.format(input_name))
         else:
-            if 'default' in input_def and input_def['default'] is not None:
-                inputs[input_name] = input_def['default']
+            if DEFAULT in input_def and input_def[DEFAULT] is not None:
+                inputs[input_name] = input_def[DEFAULT]
             else:
                 missing_inputs.append(input_name)
+                input_is_missing = True
+
+        # Verify inputs comply with the given constraints and also the
+        # data_type, if mentioned
+        input_constraints = constraints.extract_constraints(input_def)
+        if not input_is_missing:
+            constraints.validate_input_value(
+                input_name, input_constraints, inputs[input_name])
+            data_type = input_def.get(TYPE, None)
+            if data_type and DATA_TYPES in plan \
+                    and data_type in plan[DATA_TYPES]:
+                try:
+                    utils.parse_value(
+                        value=inputs[input_name],
+                        type_name=data_type,
+                        data_types=plan[DATA_TYPES],
+                        undefined_property_error_message="Undefined property "
+                                                         "{1} in value of "
+                                                         "input {0}.",
+                        missing_property_error_message="Value of input {0} "
+                                                       "is missing property "
+                                                       "{1}.",
+                        node_name=input_name,
+                        path=[],
+                        raise_on_missing_property=True)
+                except exceptions.DSLParsingLogicException as e:
+                    raise exceptions.DSLParsingException(
+                        exceptions.ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA,
+                        e.message)
 
     if missing_inputs:
         raise exceptions.MissingRequiredInputError(
             "Required inputs {0} were not specified - expected "
-            "inputs: {1}".format(missing_inputs, plan['inputs'].keys())
+            "inputs: {1}".format(missing_inputs, plan[INPUTS].keys())
         )
     # Verify all inputs appear in plan
     not_expected = [input_name for input_name in inputs.keys()
-                    if input_name not in plan['inputs']]
+                    if input_name not in plan[INPUTS]]
     if not_expected:
         raise exceptions.UnknownInputError(
             "Unknown inputs {0} specified - "
             "expected inputs: {1}".format(not_expected,
-                                          plan['inputs'].keys()))
+                                          plan[INPUTS].keys()))
 
-    plan['inputs'] = inputs
+    plan[INPUTS] = inputs
 
 
 def _process_functions(plan):
@@ -114,8 +147,7 @@ def _validate_secrets(plan, get_secret_method):
         )
 
 
-def prepare_deployment_plan(
-        plan, get_secret_method=None, inputs=None, **kwargs):
+def prepare_deployment_plan(plan, get_secret_method=None, inputs=None, **_):
     """
     Prepare a plan for deployment
     """

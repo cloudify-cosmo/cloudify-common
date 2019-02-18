@@ -18,7 +18,9 @@ from dsl_parser import constants
 from dsl_parser.parser import parse_from_path
 from dsl_parser.parser import parse as dsl_parse
 from dsl_parser import exceptions
-from dsl_parser.exceptions import DSLParsingLogicException
+from dsl_parser.exceptions import (ERROR_MISSING_PROPERTY,
+                                   DSLParsingLogicException,
+                                   ERROR_UNDEFINED_PROPERTY)
 from dsl_parser import version
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 from dsl_parser.import_resolver.default_import_resolver import \
@@ -285,7 +287,9 @@ node_types:
     test_type: {}
 """
         ex = self._assert_dsl_parsing_exception_error_code(
-            yaml, 106, DSLParsingLogicException)
+            yaml,
+            ERROR_UNDEFINED_PROPERTY,
+            DSLParsingLogicException)
         self.assertEquals('key', ex.property)
 
     def test_node_doesnt_implement_schema_mandatory_property(self):
@@ -297,7 +301,7 @@ node_types:
             mandatory: {}
 """
         ex = self._assert_dsl_parsing_exception_error_code(
-            yaml, 107, DSLParsingLogicException)
+            yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
         self.assertEquals('mandatory', ex.property)
 
     def test_relationship_instance_set_non_existing_property(self):
@@ -315,7 +319,7 @@ relationships:
     test_relationship: {}
 """
         ex = self._assert_dsl_parsing_exception_error_code(
-            yaml, 106, DSLParsingLogicException)
+            yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
         self.assertEquals('do_not_exist', ex.property)
 
     def test_relationship_instance_doesnt_implement_schema_mandatory_property(self):  # NOQA
@@ -333,7 +337,7 @@ relationships:
             should_implement: {}
 """
         ex = self._assert_dsl_parsing_exception_error_code(
-            yaml, 107, DSLParsingLogicException)
+            yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
         self.assertEquals('should_implement', ex.property)
 
     def test_instance_relationship_more_than_one_contained_in(self):
@@ -428,7 +432,7 @@ groups:
                     key: value
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 106, DSLParsingLogicException)
+            yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
 
     def test_group_policy_type_missing_property(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -447,7 +451,7 @@ groups:
                 properties: {}
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 107, DSLParsingLogicException)
+            yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
 
     def test_group_policy_trigger_undefined_parameter(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -470,7 +474,7 @@ groups:
                             some: undefined
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 106, DSLParsingLogicException)
+            yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
 
     def test_group_policy_trigger_missing_parameter(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -494,7 +498,7 @@ groups:
                         type: trigger
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 107, DSLParsingLogicException)
+            yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
 
     def test_properties_schema_invalid_values_for_types(self):
         def test_type_with_value(prop_type, prop_val):
@@ -521,12 +525,14 @@ node_types:
         test_type_with_value('boolean', '5')
         test_type_with_value('boolean', '5.0')
         test_type_with_value('boolean', '1')
+        test_type_with_value('boolean', 1)
         test_type_with_value('integer', 'not-an-integer')
         test_type_with_value('integer', 'True')
         test_type_with_value('integer', '"True"')
         test_type_with_value('integer', '5.0')
         test_type_with_value('integer', '"5"')
         test_type_with_value('integer', 'NaN')
+        test_type_with_value('integer', '0.2')
         test_type_with_value('float', 'not-a-float')
         test_type_with_value('float', 'True')
         test_type_with_value('float', '"True"')
@@ -785,7 +791,10 @@ node_templates:
     type: type
 """
         self._assert_dsl_parsing_exception_error_code(
-            yaml, 107, DSLParsingLogicException, self.parse_1_2)
+            yaml,
+            ERROR_MISSING_PROPERTY,
+            DSLParsingLogicException,
+            self.parse_1_2)
 
     def test_plugin_fields_version_validation(self):
         base_yaml = """
@@ -827,3 +836,13 @@ plugins:
         }
         for key, value in fields.items():
             test_field(key, value)
+
+    def test_bad_constraint_argument(self):
+        yaml = """
+inputs:
+  some_input:
+    constraints:
+        - max_length: some_string
+"""
+        self._assert_dsl_parsing_exception_error_code(
+            yaml, 212, DSLParsingLogicException, self.parse)

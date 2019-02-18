@@ -54,6 +54,9 @@ class Element(object):
     required = False
     requires = {}
     provides = []
+    """
+    Values this element provides in the format of [ string [, string, ... ] ].
+    """
 
     add_namespace_to_schema_elements = True
     """
