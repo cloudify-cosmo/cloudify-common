@@ -796,6 +796,11 @@ def _create_hosts_list(ctx, node_ids, node_instance_ids, install_methods=None):
                        'node instance {0}').format(node_instance.id)
                 ctx.logger.error(msg)
                 error = True
+            elif node_instance.state != 'started':
+                msg = "Node instance {0} is not in " \
+                      "'started' state".format(node_instance.id)
+                ctx.logger.error(msg)
+                error = True
         if error:
             raise ValueError('Specified filters are not correct.')
         else:
