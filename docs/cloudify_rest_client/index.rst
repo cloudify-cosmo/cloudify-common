@@ -8,7 +8,7 @@ Welcome to cloudify-rest-client's documentation!
 
 What is it?
 -----------
-This rest client provides access to the REST API exposed by a `Cloudify manager <http://getcloudify.org/guide/3.0/quickstart.html>`_.
+This rest client provides access to the REST API exposed by a `Cloudify manager <https://docs.cloudify.co/latest/developer/apis/rest-service/>`_.
 
 
 Basic Usage
