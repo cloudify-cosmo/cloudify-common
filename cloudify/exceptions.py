@@ -118,13 +118,17 @@ class CommandExecutionException(Exception):
         Exception.__init__(self, self.__str__())
 
     def __str__(self):
-        return "Command '{0}' executed with an error." \
-               "\ncode: {1}" \
-               "\nerror: {2}" \
-               "\noutput: {3}" \
-            .format(self.command, self.code,
-                    self.error or None,
-                    self.output or None)
+        return "Command '{0}' executed with error code {1}.\n" \
+               "stderr:\n" \
+               "-------\n" \
+               "{2}\n" \
+               "-------\n" \
+               "stdout:\n" \
+               "-------\n" \
+               "{3}\n" \
+               "-------".format(self.command, self.code,
+                                self.error or '<none>',
+                                self.output or '<none>')
 
 
 class TimeoutException(Exception):

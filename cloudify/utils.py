@@ -374,8 +374,12 @@ class LocalCommandRunner(object):
 
         :param command: The command to execute.
         :param exit_on_failure: False to ignore failures.
-        :param stdout_pipe: False to not pipe the standard output.
-        :param stderr_pipe: False to not pipe the standard error.
+        :param stdout_pipe: False to not pipe the standard output. In this
+                            case, the response object (or raised exception)
+                            will have 'None' for the std_out/output field.
+        :param stderr_pipe: False to not pipe the standard error. In this
+                            case, the response object (or raised exception)
+                            will have 'None' for the std_err/error field.
         :param cwd: the working directory the command will run from.
         :param execution_env: dictionary of environment variables that will
                               be present in the command scope.

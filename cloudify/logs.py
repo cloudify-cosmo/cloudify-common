@@ -108,6 +108,14 @@ class CloudifyBaseLoggingHandler(logging.Handler):
 
     def emit(self, record):
         message = self.format(record)
+
+        if not isinstance(message, unicode):
+            try:
+                message = message.decode('utf-8')
+            except UnicodeDecodeError as ex:
+                message = "<Unable to decode as UTF-8; error message: " \
+                          "{0}>".format(ex)
+
         log = {
             'context': self.context,
             'logger': record.name,

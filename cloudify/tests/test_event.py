@@ -91,6 +91,10 @@ class TestEvent(testtools.TestCase):
         self.assertIn('Causes (most recent cause last):', text)
         self.assertEqual(2, text.count(causes[0]['traceback']))
 
+    def test_event_non_utf8(self):
+        event = _event('cloudify_log', message='\x80abc', level='INFO')
+        self.assertIn("Unable to encode", event.text)
+
 
 def _event(type, event_type=None, level=None, message=None,
            causes=None, verbosity_level=None):

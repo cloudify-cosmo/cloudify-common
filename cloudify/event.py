@@ -75,7 +75,12 @@ class Event(object):
 
     @property
     def text(self):
-        message = self._event['message']['text'].encode('utf-8')
+        message = self._event['message']['text']
+        try:
+            message = message.encode('utf-8')
+        except UnicodeDecodeError as ex:
+            message = "<Unable to encode as UTF-8; error message: {0}>".format(
+                ex)
         if self.is_log_message:
             message = '{0}: {1}'.format(self.log_level, message)
         elif (self.event_type in ('task_rescheduled', 'task_failed')):
