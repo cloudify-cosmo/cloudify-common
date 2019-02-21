@@ -13,7 +13,61 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-__author__ = 'idanmo'
+
+from cloudify_rest_client.responses import ListResponse
+
+
+class ConfigItem(dict):
+    """A configuration entry"""
+    def __init__(self, config):
+        super(ConfigItem, self).__init__()
+        self.update(config)
+
+    @property
+    def name(self):
+        """Name of the configuration entry"""
+        return self.get('name')
+
+    @property
+    def value(self):
+        """The setting value"""
+        return self.get('value')
+
+    @property
+    def schema(self):
+        """JSON schema of the configuration value, if any.
+
+        When changing the setting, the new value must conform to this schema.
+        """
+        return self.get('schema')
+
+    @property
+    def scope(self):
+        """Components affected by this configuration entry.
+
+        Eg. mgmtworker, rest, or agents
+        """
+        return self.get('scope')
+
+    @property
+    def updater_name(self):
+        """Name of the user who last changed this value"""
+        return self.get('updater_name')
+
+    @property
+    def updated_at(self):
+        """Time this value was last changed at"""
+        return self.get('updated_at')
+
+    @property
+    def is_editable(self):
+        """Whether or not it is possible to change this setting.
+
+        Settings that are not marked editable can still be changed by
+        setting force=True, however that might lead to unexpected results.
+        Use with caution.
+        """
+        return self.get('is_editable')
 
 
 class ManagerClient(object):
@@ -27,6 +81,38 @@ class ManagerClient(object):
         """
         response = self.api.get('/status')
         return response
+
+    def get_config(self, name=None, scope=None):
+        """Get configuration of the manager.
+
+        If name is provided, only return that single value. If scope is
+        provided, return all values for that scope.
+        """
+        if name and scope:
+            raise ValueError('Pass either name or scope, not both')
+        if name:
+            response = self.api.get('/config/{0}'.format(name))
+            return ConfigItem(response)
+
+        if scope:
+            response = self.api.get('/config', params={'scope': scope})
+        else:
+            response = self.api.get('/config')
+        return ListResponse([ConfigItem(item) for item in response['items']],
+                            response['metadata'])
+
+    def put_config(self, name, value, force=False):
+        """Update a given setting.
+
+        Note that the new value must conform to the schema, if any.
+
+        :param force: Force changing non-editable settings
+        """
+        response = self.api.put('/config/{0}'.format(name), data={
+            'value': value,
+            'force': force
+        })
+        return ConfigItem(response)
 
     def get_version(self):
         """
