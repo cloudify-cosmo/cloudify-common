@@ -783,23 +783,21 @@ def _create_hosts_list(ctx, node_ids, node_instance_ids, install_methods=None):
             node_ids=node_ids,
             node_instance_ids=node_instance_ids,
             type_names=[])
-        error = False
+        errors = list()
         for node_instance in filtered_node_instances:
             if not lifecycle.is_host_node(node_instance):
-                msg = 'Node instance {0} is not host.'.format(node_instance.id)
-                ctx.logger.error(msg)
-                error = True
+                errors.append('Node instance {0} is not host.'.format(
+                    node_instance.id))
             elif utils.internal.get_install_method(
                     node_instance.node.properties) \
                     == constants.AGENT_INSTALL_METHOD_NONE:
-                msg = ('Agent should not be installed on '
-                       'node instance {0}').format(node_instance.id)
-                ctx.logger.error(msg)
-                error = True
-        if error:
-            raise ValueError('Specified filters are not correct.')
-        else:
-            hosts = filtered_node_instances
+                errors.append(
+                    'Agent should not be installed on node instance '
+                    '{0}').format(node_instance.id)
+        if errors:
+            raise ValueError('Specified filters are not correct:\n{0}'.format(
+                '\n'.join(errors)))
+        hosts = filtered_node_instances
     else:
         hosts = [host for host in _get_all_host_instances(ctx)
                  if utils.internal.get_install_method(host.node.properties) in
