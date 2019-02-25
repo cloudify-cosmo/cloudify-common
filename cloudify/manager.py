@@ -143,10 +143,13 @@ def get_rest_client(tenant=None, api_token=None):
     if utils.get_is_bypass_maintenance():
         headers['X-BYPASS-MAINTENANCE'] = 'True'
 
-    if api_token:
+    # If api_token or execution_token was provided no need to use REST token
+    token = None
+    execution_token = utils.get_execution_token()
+    if execution_token:
+        headers[constants.CLOUDIFY_EXECUTION_TOKEN_HEADER] = execution_token
+    elif api_token:
         headers[constants.CLOUDIFY_API_AUTH_TOKEN_HEADER] = api_token
-        # If api_token was provided no need to use REST token
-        token = None
     else:
         token = utils.get_rest_token()
 

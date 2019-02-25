@@ -680,6 +680,11 @@ class CloudifyContext(CommonContext):
         return self._context.get('execution_id')
 
     @property
+    def execution_token(self):
+        """The token of the current execution"""
+        return self._context.get('execution_token')
+
+    @property
     def workflow_id(self):
         """
         The workflow id the plugin invocation was requested from.
