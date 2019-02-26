@@ -281,8 +281,8 @@ def execute(script_path, ctx, process):
     elif return_code != 0:
         if not (ctx.is_script_exception_defined and
            isinstance(ctx._return_value, ScriptException)):
-                raise ProcessException(command,
-                                       return_code)
+            raise ProcessException(command,
+                                   return_code)
 
 
 def start_ctx_proxy(ctx, process):

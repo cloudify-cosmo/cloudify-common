@@ -22,31 +22,32 @@ from requests.packages import urllib3
 
 from .utils import is_kerberos_env
 from cloudify_rest_client import exceptions
-from cloudify_rest_client.blueprints import BlueprintsClient
-from cloudify_rest_client.snapshots import SnapshotsClient
-from cloudify_rest_client.deployments import DeploymentsClient
-from cloudify_rest_client.deployment_updates import DeploymentUpdatesClient
-from cloudify_rest_client.executions import ExecutionsClient
+from cloudify_rest_client.ldap import LdapClient
 from cloudify_rest_client.nodes import NodesClient
-from cloudify_rest_client.node_instances import NodeInstancesClient
+from cloudify_rest_client.users import UsersClient
+from cloudify_rest_client.agents import AgentsClient
 from cloudify_rest_client.events import EventsClient
+from cloudify_rest_client.cluster import ClusterClient
+from cloudify_rest_client.license import LicenseClient
 from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.search import SearchClient
+from cloudify_rest_client.plugins import PluginsClient
+from cloudify_rest_client.secrets import SecretsClient
+from cloudify_rest_client.tenants import TenantsClient
 from cloudify_rest_client.evaluate import EvaluateClient
+from cloudify_rest_client.summary import SummariesClient
+from cloudify_rest_client.snapshots import SnapshotsClient
+from cloudify_rest_client.blueprints import BlueprintsClient
+from cloudify_rest_client.executions import ExecutionsClient
+from cloudify_rest_client.user_groups import UserGroupsClient
+from cloudify_rest_client.deployments import DeploymentsClient
+from cloudify_rest_client.maintenance import MaintenanceModeClient
+from cloudify_rest_client.node_instances import NodeInstancesClient
+from cloudify_rest_client.tokens import TokensClient, UserTokensClient
+from cloudify_rest_client.deployment_updates import DeploymentUpdatesClient
+from cloudify_rest_client.operations import OperationsClient, TasksGraphClient
 from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
-from cloudify_rest_client.tokens import TokensClient, UserTokensClient
-from cloudify_rest_client.plugins import PluginsClient
-from cloudify_rest_client.maintenance import MaintenanceModeClient
-from cloudify_rest_client.tenants import TenantsClient
-from cloudify_rest_client.user_groups import UserGroupsClient
-from cloudify_rest_client.users import UsersClient
-from cloudify_rest_client.cluster import ClusterClient
-from cloudify_rest_client.ldap import LdapClient
-from cloudify_rest_client.secrets import SecretsClient
-from cloudify_rest_client.agents import AgentsClient
-from cloudify_rest_client.summary import SummariesClient
-from cloudify_rest_client.operations import OperationsClient, TasksGraphClient
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -426,3 +427,4 @@ class CloudifyClient(object):
         self.user_tokens = UserTokensClient(self._client)
         self.operations = OperationsClient(self._client)
         self.tasks_graphs = TasksGraphClient(self._client)
+        self.license = LicenseClient(self._client)
