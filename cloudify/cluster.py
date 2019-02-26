@@ -113,12 +113,13 @@ def set_cluster_active(node, filename=None):
     set_cluster_settings(settings, filename=filename)
 
 
-def get_cluster_amqp_settings():
-    active = get_cluster_active()
-    if active:
-        return {'amqp_host': active}
+def get_cluster_amqp_settings(filename=None):
+    settings = get_cluster_settings(filename=filename)
+
+    if settings:
+        return settings['nodes']['brokers']
     else:
-        return {}
+        return []
 
 
 def delete_cluster_settings(filename=None):
