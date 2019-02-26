@@ -184,7 +184,7 @@ def _extract_import_parts(import_url,
     namespace_op_location = utils.find_namespace_location(import_url)
     namespace = None
 
-    if namespace_op_location is not -1:
+    if namespace_op_location != -1:
         namespace = import_url[:namespace_op_location]
         import_url = import_url[namespace_op_location + 2:]
 
