@@ -100,7 +100,8 @@ class Event(object):
     @property
     def timestamp(self):
         return self._event.get('@timestamp') or \
-               self._event['reported_timestamp']
+               self._event.get('reported_timestamp') or \
+               self._event['timestamp']
 
     @property
     def printable_timestamp(self):
