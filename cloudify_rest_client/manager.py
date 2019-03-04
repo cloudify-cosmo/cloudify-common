@@ -70,6 +70,53 @@ class ConfigItem(dict):
         return self.get('is_editable')
 
 
+class ManagerItem(dict):
+    """A manager entry"""
+    def __init__(self, manager):
+        super(ManagerItem, self).__init__()
+        self.update(manager)
+
+    @property
+    def hostname(self):
+        """
+        Manager's hostname (unique)
+        type: db.Text
+        """
+        return self.get('name')
+
+    @property
+    def private_ip(self):
+        """
+        Manager's private IP
+        type: db.Text
+        """
+        return self.get('private_ip')
+
+    @property
+    def public_ip(self):
+        """
+        Manager's public IP
+        type: db.Text
+        """
+        return self.get('public_ip')
+
+    @property
+    def version(self):
+        """
+        Manager's version
+        type: db.Text
+        """
+        return self.get('version')
+
+    @property
+    def fs_sync_api_key(self):
+        """
+        Manager's FS sync api key - used by Syncthing replication
+        type: db.Text
+        """
+        return self.get('fs_sync_api_key')
+
+
 class ManagerClient(object):
 
     def __init__(self, api):
@@ -113,6 +160,41 @@ class ManagerClient(object):
             'force': force
         })
         return ConfigItem(response)
+
+    def get_manager(self, hostname):
+        """
+        Get a specific manager from the managers table
+        :param hostname: manager to get
+        """
+        if not hostname:
+            raise ValueError('Enter a valid hostname')
+        response = self.api.get('/managers/{0}'.format(hostname))
+        return ManagerItem(response)
+
+    def add_manager(self, hostname, private_ip, public_ip, version,
+                    fs_sync_api_key):
+        """
+        Add a new manager to the managers table
+        """
+        response = self.api.post('/managers', data={
+            'hostname': hostname,
+            'private_ip': private_ip,
+            'public_ip': public_ip,
+            'version': version,
+            'fs_sync_api_key': fs_sync_api_key
+        })
+        return ManagerItem(response)
+
+    def get_managers(self, _include=None):
+        """
+        Get all the managers in the managers table
+        :param _include: list of columns to include in the returned list
+        """
+        response = self.api.get('/managers', _include=_include)
+        return ListResponse(
+            [ManagerItem(item) for item in response['items']],
+            response['metadata']
+        )
 
     def get_version(self):
         """
