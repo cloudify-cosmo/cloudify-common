@@ -109,6 +109,30 @@ class ManagerItem(dict):
         return self.get('version')
 
     @property
+    def edition(self):
+        """
+        Manager's edition
+        type: db.Text
+        """
+        return self.get('edition')
+
+    @property
+    def distribution(self):
+        """
+        Manager's distribution
+        type: db.Text
+        """
+        return self.get('distribution')
+
+    @property
+    def distro_release(self):
+        """
+        Manager's distribution release
+        type: db.Text
+        """
+        return self.get('distro_release')
+
+    @property
     def fs_sync_api_key(self):
         """
         Manager's FS sync api key - used by Syncthing replication
@@ -172,7 +196,7 @@ class ManagerClient(object):
         return ManagerItem(response)
 
     def add_manager(self, hostname, private_ip, public_ip, version,
-                    fs_sync_api_key):
+                    edition, distribution, distro_release, fs_sync_api_key):
         """
         Add a new manager to the managers table
         """
@@ -181,6 +205,9 @@ class ManagerClient(object):
             'private_ip': private_ip,
             'public_ip': public_ip,
             'version': version,
+            'edition': edition,
+            'distribution': distribution,
+            'distro_release': distro_release,
             'fs_sync_api_key': fs_sync_api_key
         })
         return ManagerItem(response)
