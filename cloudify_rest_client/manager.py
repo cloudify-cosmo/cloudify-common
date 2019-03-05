@@ -77,10 +77,18 @@ class ManagerItem(dict):
         self.update(manager)
 
     @property
+    def id(self):
+        """
+        Manager's ID in the DB (unique, incremental)
+        type: int
+        """
+        return self.get('id')
+
+    @property
     def hostname(self):
         """
         Manager's hostname (unique)
-        type: db.Text
+        type: string
         """
         return self.get('name')
 
@@ -88,7 +96,7 @@ class ManagerItem(dict):
     def private_ip(self):
         """
         Manager's private IP
-        type: db.Text
+        type: string
         """
         return self.get('private_ip')
 
@@ -96,7 +104,7 @@ class ManagerItem(dict):
     def public_ip(self):
         """
         Manager's public IP
-        type: db.Text
+        type: string
         """
         return self.get('public_ip')
 
@@ -104,7 +112,7 @@ class ManagerItem(dict):
     def version(self):
         """
         Manager's version
-        type: db.Text
+        type: string
         """
         return self.get('version')
 
@@ -112,7 +120,7 @@ class ManagerItem(dict):
     def edition(self):
         """
         Manager's edition
-        type: db.Text
+        type: string
         """
         return self.get('edition')
 
@@ -120,7 +128,7 @@ class ManagerItem(dict):
     def distribution(self):
         """
         Manager's distribution
-        type: db.Text
+        type: string
         """
         return self.get('distribution')
 
@@ -128,17 +136,17 @@ class ManagerItem(dict):
     def distro_release(self):
         """
         Manager's distribution release
-        type: db.Text
+        type: string
         """
         return self.get('distro_release')
 
     @property
-    def fs_sync_api_key(self):
+    def fs_sync_node_id(self):
         """
-        Manager's FS sync api key - used by Syncthing replication
-        type: db.Text
+        Manager's FS sync node id - used by Syncthing replication
+        type: string
         """
-        return self.get('fs_sync_api_key')
+        return self.get('fs_sync_node_id')
 
 
 class ManagerClient(object):
@@ -186,20 +194,22 @@ class ManagerClient(object):
         return ConfigItem(response)
 
     def add_manager(self, hostname, private_ip, public_ip, version,
-                    edition, distribution, distro_release, fs_sync_api_key):
+                    edition, distribution, distro_release, fs_sync_node_id=''):
         """
         Add a new manager to the managers table
         """
-        response = self.api.post('/managers', data={
+        manager = {
             'hostname': hostname,
             'private_ip': private_ip,
             'public_ip': public_ip,
             'version': version,
             'edition': edition,
             'distribution': distribution,
-            'distro_release': distro_release,
-            'fs_sync_api_key': fs_sync_api_key
-        })
+            'distro_release': distro_release
+        }
+        if fs_sync_node_id:
+            manager['fs_sync_node_id'] = fs_sync_node_id
+        response = self.api.post('/managers', data=manager)
         return ManagerItem(response)
 
     def remove_manager(self, hostname):
@@ -212,6 +222,19 @@ class ManagerClient(object):
         """
         response = self.api.delete('/managers', data={
             'hostname': hostname
+        })
+        return ManagerItem(response)
+
+    def update_manager(self, hostname, fs_sync_node_id):
+        """
+        Updating a manager's FS sync node id used by Syncthing replication
+
+        :param hostname: hostname of the manager to update
+        :param fs_sync_node_id: Syncthing node ID
+        """
+        response = self.api.put('/managers', data={
+            'hostname': hostname,
+            'fs_sync_node_id': fs_sync_node_id
         })
         return ManagerItem(response)
 
