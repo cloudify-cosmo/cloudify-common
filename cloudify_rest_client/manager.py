@@ -185,16 +185,6 @@ class ManagerClient(object):
         })
         return ConfigItem(response)
 
-    def get_manager(self, hostname):
-        """
-        Get a specific manager from the managers table
-        :param hostname: manager to get
-        """
-        if not hostname:
-            raise ValueError('Enter a valid hostname')
-        response = self.api.get('/managers/{0}'.format(hostname))
-        return ManagerItem(response)
-
     def add_manager(self, hostname, private_ip, public_ip, version,
                     edition, distribution, distro_release, fs_sync_api_key):
         """
@@ -212,12 +202,31 @@ class ManagerClient(object):
         })
         return ManagerItem(response)
 
-    def get_managers(self, _include=None):
+    def remove_manager(self, hostname):
         """
-        Get all the managers in the managers table
+        Remove a manager from the managers table
+
+        Will be used for clustering when a manager needs to be removed from
+        the cluster, not necessarily for uninstalling the manager
+        :param hostname: The manager's hostname
+        """
+        response = self.api.delete('/managers', data={
+            'hostname': hostname
+        })
+        return ManagerItem(response)
+
+    def get_managers(self, hostname=None, _include=None):
+        """
+        Get all the managers in the managers table or
+        Get a specific manager based on 'hostname'
+        :param hostname: hostname of manager to return
         :param _include: list of columns to include in the returned list
         """
-        response = self.api.get('/managers', _include=_include)
+        if hostname:
+            response = self.api.get('/managers', params={'hostname': hostname},
+                                    _include=_include)
+        else:
+            response = self.api.get('/managers', _include=_include)
         return ListResponse(
             [ManagerItem(item) for item in response['items']],
             response['metadata']
