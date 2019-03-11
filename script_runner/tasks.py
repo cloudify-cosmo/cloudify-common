@@ -27,7 +27,7 @@ from contextlib import contextmanager
 import requests
 
 from cloudify import ctx as operation_ctx
-from cloudify.utils import create_temp_folder
+from cloudify.utils import create_temp_folder, get_exec_tempdir
 from cloudify.workflows import ctx as workflows_ctx
 from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
@@ -280,7 +280,7 @@ def execute(script_path, ctx, process):
         raise NonRecoverableError(str(ctx._return_value))
     elif return_code != 0:
         if not (ctx.is_script_exception_defined and
-           isinstance(ctx._return_value, ScriptException)):
+                isinstance(ctx._return_value, ScriptException)):
             raise ProcessException(command,
                                    return_code)
 
@@ -337,6 +337,7 @@ def _get_process_environment(process, proxy):
     the current executable.
     """
     env = os.environ.copy()
+    env.setdefault('TMPDIR', get_exec_tempdir())
     process_env = process.get('env', {})
     env.update(process_env)
 
