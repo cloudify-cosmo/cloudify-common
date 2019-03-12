@@ -45,6 +45,9 @@ class Endpoint(object):
                      template_variables=None):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_config(self, name=None, scope=None):
+        raise NotImplementedError('Implemented by subclasses')
+
     def download_resource(self,
                           blueprint_id,
                           deployment_id,
@@ -235,6 +238,10 @@ class ManagerEndpoint(Endpoint):
         else:
             return base_workdir
 
+    def get_config(self, name=None, scope=None):
+        client = manager.get_rest_client()
+        return client.manager.get_config(name=name, scope=scope)
+
 
 class LocalEndpoint(Endpoint):
 
@@ -316,3 +323,7 @@ class LocalEndpoint(Endpoint):
 
     def get_workdir(self):
         return self.storage.get_workdir()
+
+    def get_config(self, name=None, scope=None):
+        # TODO implement stored config for cfy local
+        raise NotImplementedError('Local does not have stored config')
