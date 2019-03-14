@@ -326,4 +326,4 @@ class LocalEndpoint(Endpoint):
 
     def get_config(self, name=None, scope=None):
         # TODO implement stored config for cfy local
-        raise NotImplementedError('Local does not have stored config')
+        return []

@@ -113,7 +113,8 @@ class MockCloudifyContext(CloudifyContext):
                  tenant=None,
                  rest_token=None,
                  provider_context=None,
-                 bootstrap_context=None):
+                 bootstrap_context=None,
+                 config=None):
         tenant = tenant or {}
         super(MockCloudifyContext, self).__init__({
             'blueprint_id': blueprint_id,
@@ -157,6 +158,7 @@ class MockCloudifyContext(CloudifyContext):
                 'instance': None,
                 'node': None
             })
+        self._config = config
 
     @property
     def execution_id(self):
@@ -202,3 +204,6 @@ class MockCloudifyContext(CloudifyContext):
         if key in self._properties:
             return self._properties[key]
         return self._runtime_properties[key]
+
+    def get_config(self, scope=None, name=None):
+        return self._config or []
