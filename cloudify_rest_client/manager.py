@@ -149,6 +149,37 @@ class ManagerItem(dict):
         return self.get('fs_sync_node_id')
 
 
+class RabbitMQBrokerItem(dict):
+    def __init__(self, broker):
+        super(RabbitMQBrokerItem, self).__init__()
+        self.update(broker)
+
+    @property
+    def name(self):
+        """Name of this broker"""
+        return self.get('name')
+
+    @property
+    def host(self):
+        """IP address of this broker"""
+        return self.get('host')
+
+    @property
+    def port(self):
+        """The TCP port this broker is listening on"""
+        return self.get('port')
+
+    @property
+    def params(self):
+        """Additional params to use when creating a connection"""
+        return self.get('params')
+
+    @property
+    def ca_cert_content(self):
+        """Content of the CA cert to use for connecting to this broker"""
+        return self.get('ca_cert_content')
+
+
 class ManagerClient(object):
 
     def __init__(self, api):
@@ -252,6 +283,13 @@ class ManagerClient(object):
             response = self.api.get('/managers', _include=_include)
         return ListResponse(
             [ManagerItem(item) for item in response['items']],
+            response['metadata']
+        )
+
+    def get_brokers(self):
+        response = self.api.get('/brokers',)
+        return ListResponse(
+            [RabbitMQBrokerItem(item) for item in response['items']],
             response['metadata']
         )
 
