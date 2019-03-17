@@ -71,6 +71,8 @@ CLUSTER_SETTINGS_PATH_KEY = 'CLOUDIFY_CLUSTER_SETTINGS_PATH'
 
 LOGS_EXCHANGE_NAME = 'cloudify-logs'
 EVENTS_EXCHANGE_NAME = 'cloudify-events-topic'
+CLUSTER_SERVICE_EXCHANGE_NAME = 'cloudify-cluster-service'
+
 MGMTWORKER_QUEUE = 'cloudify.management'
 DEPLOYMENT = 'deployment'
 NODE_INSTANCE = 'node-instance'
