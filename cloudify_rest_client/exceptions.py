@@ -252,12 +252,18 @@ class IncompatibleClusterArchitectureError(CloudifyClientError):
     ERROR_CODE = 'incompatible_cluster_architecture'
 
 
-class CloudifyLicenseError(CloudifyClientError):
+class ExpiredCloudifyLicense(CloudifyClientError):
     """
-    Raised when there is no Cloudify license on the Manager or when the
-    license has expired
+    Raised when the Cloudify license on the Manager has expired
     """
-    ERROR_CODE = 'expired_or_invalid_cloudify_license'
+    ERROR_CODE = 'expired_cloudify_license'
+
+
+class MissingCloudifyLicense(CloudifyClientError):
+    """
+    Raised when there is no Cloudify license on the Manager
+    """
+    ERROR_CODE = 'missing_cloudify_license'
 
 
 ERROR_MAPPING = dict([
@@ -289,4 +295,5 @@ ERROR_MAPPING = dict([
         RemovedFromCluster,
         DeploymentPluginNotFound,
         IncompatibleClusterArchitectureError,
-        CloudifyLicenseError]])
+        MissingCloudifyLicense,
+        ExpiredCloudifyLicense]])
