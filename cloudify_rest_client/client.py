@@ -257,7 +257,11 @@ class HTTPClient(object):
                 'the manager. Underlying reason: {0}'.format(e))
         except requests.exceptions.ConnectionError as e:
             raise requests.exceptions.ConnectionError(
-                '{0}\nThis can happen when the manager is not working with '
+                '{0}'
+                '\nAn error occurred when trying to connect to the manager,'
+                'please make sure it is online and all required ports are '
+                'open.'
+                '\nThis can also happen when the manager is not working with '
                 'SSL, but the client does'.format(e)
             )
 
