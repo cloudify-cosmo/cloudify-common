@@ -211,29 +211,6 @@ class InvalidExecutionUpdateStatus(CloudifyClientError):
     ERROR_CODE = 'invalid_exception_status_update'
 
 
-class NotClusterMaster(CloudifyClientError):
-    """
-    Raised when the request was served by a manager that is not the master
-    node of a manager cluster.
-    The client should query for the cluster status to learn the master's
-    address, and retry the request.
-    If the client stores the server address, it should update the storage
-    with the new master node address.
-    """
-    ERROR_CODE = 'not_cluster_master'
-
-
-class RemovedFromCluster(CloudifyClientError):
-    """
-    Raised when attempting to contact a manager that was removed from a
-    cluster.
-    The client should retry the request with another manager in the cluster.
-    If the client stores the server address, it should remove this node's
-    address from storage.
-    """
-    ERROR_CODE = 'removed_from_cluster'
-
-
 class DeploymentPluginNotFound(CloudifyClientError):
     """
     Raised when a plugin is listed in the blueprint but is not
@@ -277,7 +254,5 @@ ERROR_MAPPING = dict([
         BlueprintInUseError,
         PluginInstallationError,
         PluginInstallationTimeout,
-        NotClusterMaster,
-        RemovedFromCluster,
         DeploymentPluginNotFound,
         IncompatibleClusterArchitectureError]])
