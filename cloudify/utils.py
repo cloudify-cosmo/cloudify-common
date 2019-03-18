@@ -237,6 +237,16 @@ def get_rest_token():
     return _get_current_context().rest_token
 
 
+def get_execution_token():
+    """
+    Returns the execution token to use when calling the REST service
+    """
+    try:
+        return _get_current_context().execution_token
+    except RuntimeError:  # There is no context
+        return None
+
+
 def get_tenant():
     """
     Returns a dict with the details of the current tenant
@@ -634,11 +644,6 @@ def get_admin_api_token():
     with open(ADMIN_API_TOKEN_PATH, 'r') as token_file:
         token = token_file.read()
     return token
-
-
-def get_rest_token_by_user_id(client, user_id):
-    token = client.user_tokens.get(user_id)
-    return token.get('value')
 
 
 internal = Internal()

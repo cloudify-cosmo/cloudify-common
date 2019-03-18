@@ -20,6 +20,8 @@ import requests
 from base64 import urlsafe_b64encode
 from requests.packages import urllib3
 
+from cloudify import constants
+
 from .utils import is_kerberos_env
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.blueprints import BlueprintsClient
@@ -62,8 +64,6 @@ DEFAULT_PROTOCOL = 'http'
 DEFAULT_API_VERSION = 'v3.1'
 BASIC_AUTH_PREFIX = 'Basic'
 CLOUDIFY_TENANT_HEADER = 'Tenant'
-CLOUDIFY_AUTHENTICATION_HEADER = 'Authorization'
-CLOUDIFY_TOKEN_AUTHENTICATION_HEADER = 'Authentication-Token'
 
 urllib3.disable_warnings(urllib3.exceptions.InsecurePlatformWarning)
 
@@ -89,10 +89,10 @@ class HTTPClient(object):
         self.logger = logging.getLogger('cloudify.rest_client.http')
         self.cert = cert
         self.trust_all = trust_all
-        self._set_header(CLOUDIFY_AUTHENTICATION_HEADER,
+        self._set_header(constants.CLOUDIFY_AUTHENTICATION_HEADER,
                          self._get_auth_header(username, password),
                          log_value=False)
-        self._set_header(CLOUDIFY_TOKEN_AUTHENTICATION_HEADER, token)
+        self._set_header(constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER, token)
         self._set_header(CLOUDIFY_TENANT_HEADER, tenant)
 
     @property
@@ -106,8 +106,11 @@ class HTTPClient(object):
         return bool(HTTPKerberosAuth) and is_kerberos_env()
 
     def has_auth_header(self):
-        return CLOUDIFY_TOKEN_AUTHENTICATION_HEADER in self.headers or \
-               CLOUDIFY_AUTHENTICATION_HEADER in self.headers
+        auth_headers = [constants.CLOUDIFY_AUTHENTICATION_HEADER,
+                        constants.CLOUDIFY_API_AUTH_TOKEN_HEADER,
+                        constants.CLOUDIFY_EXECUTION_TOKEN_HEADER,
+                        constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER]
+        return any(header in self.headers for header in auth_headers)
 
     def _raise_client_error(self, response, url=None):
         try:
