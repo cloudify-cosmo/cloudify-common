@@ -20,6 +20,7 @@ from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
 from cloudify.manager import get_rest_client
 from cloudify.workflows.tasks_graph import make_or_get_graph
+from cloudify.utils import add_plugins_to_install, add_plugins_to_uninstall
 
 
 @workflow(resumable=True)
@@ -663,7 +664,9 @@ def update(ctx,
            skip_uninstall,
            ignore_failure=False,
            install_first=False,
-           node_instances_to_reinstall=None):
+           node_instances_to_reinstall=None,
+           plugins_to_install=None,
+           plugins_to_uninstall=None):
     node_instances_to_reinstall = node_instances_to_reinstall or []
     instances_by_change = {
         'added_instances': (added_instance_ids, []),
@@ -746,6 +749,15 @@ def update(ctx,
                                            related_nodes=intact_nodes,
                                            ignore_failure=ignore_failure)
 
+    def _handle_plugins():
+        """Uninstalls plugins that need to be uninstalled and then installs
+        plugins that need to be installed.
+        """
+        sequence = graph.sequence()
+        add_plugins_to_uninstall(ctx, plugins_to_uninstall, sequence)
+        add_plugins_to_install(ctx, plugins_to_install, sequence)
+        graph.execute()
+
     if install_first:
         _install()
         _uninstall()
@@ -753,6 +765,8 @@ def update(ctx,
         _uninstall()
         _install()
     _reinstall()
+
+    _handle_plugins()
 
     # Finalize the commit (i.e. remove relationships or nodes)
     client = get_rest_client()
