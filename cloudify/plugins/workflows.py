@@ -749,10 +749,7 @@ def update(ctx,
                                            related_nodes=intact_nodes,
                                            ignore_failure=ignore_failure)
 
-    def _handle_plugins():
-        """Uninstalls plugins that need to be uninstalled and then installs
-        plugins that need to be installed.
-        """
+    def _update_plugins():
         sequence = graph.sequence()
         add_plugins_to_uninstall(ctx, plugins_to_uninstall, sequence)
         add_plugins_to_install(ctx, plugins_to_install, sequence)
@@ -766,7 +763,7 @@ def update(ctx,
         _install()
     _reinstall()
 
-    _handle_plugins()
+    _update_plugins()
 
     # Finalize the commit (i.e. remove relationships or nodes)
     client = get_rest_client()

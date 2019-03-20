@@ -32,12 +32,13 @@ import subprocess
 from distutils.version import StrictVersion
 from contextlib import contextmanager, closing
 
+from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
+
 from cloudify import cluster, constants
 from cloudify.state import workflow_ctx, ctx
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
-
 
 CFY_EXEC_TEMPDIR_ENVVAR = 'CFY_EXEC_TEMP'
 INSPECT_TIMEOUT = 30
@@ -647,3 +648,92 @@ def get_admin_api_token():
 
 
 internal = Internal()
+
+
+def extract_plugins_to_install(plugin_list, filter_func):
+    """
+    :param plugin_list: list of plugins.
+    :return: a list of plugins that are marked for installation (that
+    potentially need installation) and pass the given filter function.
+    """
+    return [p for p in plugin_list if p[PLUGIN_INSTALL_KEY] and filter_func(p)]
+
+
+def extract_and_merge_plugins_to_install(deployment_plugins,
+                                         workflow_plugins,
+                                         filter_func=lambda _: True):
+    """Extracts plugins to install and merges them.
+
+    :param deployment_plugins: deployment plugins to install.
+    :param workflow_plugins: workflow plugins to install.
+    :param filter_func: predicate function to filter the plugins, should return
+     True for plugins that don't need to be filtered out.
+    :return: the merged plugins to install.
+    """
+    dep_plugins = extract_plugins_to_install(deployment_plugins, filter_func)
+    wf_plugins = extract_plugins_to_install(workflow_plugins, filter_func)
+    return merge_plugins(dep_plugins, wf_plugins)
+
+
+def merge_plugins(deployment_plugins, workflow_plugins):
+    """Merge plugins to install.
+
+    :param deployment_plugins: deployment plugins to install.
+    :param workflow_plugins: workflow plugins to install.
+    :return: the merged plugins.
+    """
+    added_plugins = set()
+    result = []
+
+    def add_plugins(plugins):
+        for plugin in plugins:
+            if plugin[PLUGIN_NAME_KEY] in added_plugins:
+                continue
+            added_plugins.add(plugin[PLUGIN_NAME_KEY])
+            result.append(plugin)
+
+    for plugins in (deployment_plugins, workflow_plugins):
+        add_plugins(plugins)
+    return result
+
+
+def extract_and_merge_plugins_to_uninstall(deployment_plugins,
+                                           workflow_plugins,
+                                           filter_func=lambda _: True):
+    """Extracts plugins to uninstall and merges them.
+
+    :param deployment_plugins: deployment plugins to uninstall.
+    :param workflow_plugins: workflow plugins to uninstall.
+    :param filter_func: predicate function to filter the plugins, should return
+     True for plugins that don't need to be filtered out.
+    :return: the merged plugins to uninstall.
+    """
+    dep_plugins = extract_plugins_to_install(deployment_plugins, filter_func)
+    wf_plugins = extract_plugins_to_install(workflow_plugins, filter_func)
+    return dep_plugins + wf_plugins
+
+
+def add_plugins_to_install(ctx, plugins_to_install, sequence):
+    """Adds a task to the sequence that installs the plugins.
+    """
+    if not sequence or not ctx or not plugins_to_install:
+        return
+    sequence.add(
+        ctx.send_event('Installing deployment and workflow plugins'),
+        ctx.execute_task(
+            task_name='cloudify_agent.operations.install_plugins',
+            kwargs={'plugins': plugins_to_install}))
+
+
+def add_plugins_to_uninstall(ctx, plugins_to_uninstall, sequence):
+    """Adds a task to the sequence that uninstalls the plugins.
+    """
+    if not sequence or not ctx or not plugins_to_uninstall:
+        return
+    sequence.add(
+        ctx.send_event('Uninstalling deployment and workflow plugins'),
+        ctx.execute_task(
+            task_name='cloudify_agent.operations.uninstall_plugins',
+            kwargs={
+                'plugins': plugins_to_uninstall,
+                'delete_managed_plugins': False}))
