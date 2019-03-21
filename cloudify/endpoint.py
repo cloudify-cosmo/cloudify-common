@@ -159,6 +159,10 @@ class ManagerEndpoint(Endpoint):
         return manager.get_node_instance(node_instance_id,
                                          evaluate_functions=True)
 
+    def get_brokers(self):
+        client = manager.get_rest_client()
+        return client.manager.get_brokers()
+
     def update_node_instance(self, node_instance):
         return manager.update_node_instance(node_instance)
 
