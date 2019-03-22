@@ -274,6 +274,16 @@ class LocalEndpoint(Endpoint):
             state=None,
             version=node_instance.version)
 
+    def get_brokers(self):
+        # This is only used because some tests use a local context despite
+        # current agents making absolutely no sense in a local context
+        return [
+            {
+                'host': '127.0.0.1',
+                'ca_cert_content': '',
+            },
+        ]
+
     def get_resource(self,
                      blueprint_id,
                      deployment_id,
