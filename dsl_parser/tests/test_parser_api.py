@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2013-2019 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,14 +51,16 @@ def op_struct(plugin_name,
 
 def workflow_op_struct(plugin_name,
                        mapping,
-                       parameters=None):
+                       parameters=None,
+                       is_cascading=False):
 
     if not parameters:
         parameters = {}
     return {
         'plugin': plugin_name,
         'operation': mapping,
-        'parameters': parameters
+        'parameters': parameters,
+        'is_cascading': is_cascading
     }
 
 

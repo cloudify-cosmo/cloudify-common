@@ -32,6 +32,13 @@ class WorkflowMapping(Element):
 
 
 class WorkflowParameters(data_types.Schema):
+
+    add_namespace_to_schema_elements = False
+
+
+class WorkflowIsCascading(Element):
+
+    schema = Leaf(type=bool)
     add_namespace_to_schema_elements = False
 
 
@@ -42,7 +49,8 @@ class Workflow(Element):
         Leaf(type=str),
         {
             'mapping': WorkflowMapping,
-            'parameters': WorkflowParameters
+            'parameters': WorkflowParameters,
+            'is_cascading': WorkflowIsCascading
         }
     ]
     requires = {
@@ -55,8 +63,10 @@ class Workflow(Element):
         if isinstance(self.initial_value, str):
             operation_content = {'mapping': self.initial_value,
                                  'parameters': {}}
+            is_cascading = False
         else:
             operation_content = self.build_dict_result()
+            is_cascading = self.initial_value.get('is_cascading', False)
         return operation.process_operation(
             plugins=plugins,
             operation_name=self.name,
@@ -65,7 +75,8 @@ class Workflow(Element):
             partial_error_message='',
             resource_bases=resource_base,
             remote_resources_namespaces=namespaces_mapping,
-            is_workflows=True)
+            is_workflows=True,
+            is_workflow_cascading=is_cascading)
 
 
 class Workflows(DictElement):
