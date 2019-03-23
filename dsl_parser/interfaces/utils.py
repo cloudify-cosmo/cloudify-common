@@ -136,13 +136,3 @@ def operation(name,
         'max_retries': max_retries,
         'retry_interval': retry_interval
     }
-
-
-def workflow_operation(plugin_name,
-                       workflow_mapping,
-                       workflow_parameters):
-    return {
-        'plugin': plugin_name,
-        'operation': workflow_mapping,
-        'parameters': workflow_parameters
-    }

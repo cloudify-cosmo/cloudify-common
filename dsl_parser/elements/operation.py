@@ -25,7 +25,6 @@ from dsl_parser.framework.elements import (DictElement,
                                            Leaf,
                                            Dict)
 from dsl_parser.interfaces.utils import (operation,
-                                         workflow_operation,
                                          no_op_operation)
 
 
@@ -227,6 +226,18 @@ def _is_remote_script_resource(resource_path, remote_resources_namespaces):
             remote_resources_namespaces)
 
 
+def workflow_operation(plugin_name,
+                       workflow_mapping,
+                       workflow_parameters,
+                       is_workflow_cascading):
+    return {
+        'plugin': plugin_name,
+        'operation': workflow_mapping,
+        'parameters': workflow_parameters,
+        'is_cascading': is_workflow_cascading
+    }
+
+
 def process_operation(
         plugins,
         operation_name,
@@ -235,7 +246,8 @@ def process_operation(
         partial_error_message,
         resource_bases,
         remote_resources_namespaces,
-        is_workflows=False):
+        is_workflows=False,
+        is_workflow_cascading=False):
     payload_field_name = 'parameters' if is_workflows else 'inputs'
     mapping_field_name = 'mapping' if is_workflows else 'implementation'
     operation_mapping = operation_content[mapping_field_name]
@@ -266,7 +278,8 @@ def process_operation(
             return workflow_operation(
                 plugin_name=plugin_name,
                 workflow_mapping=mapping,
-                workflow_parameters=operation_payload)
+                workflow_parameters=operation_payload,
+                is_workflow_cascading=is_workflow_cascading)
         else:
             if not operation_executor:
                 operation_executor = plugins[plugin_name]['executor']
@@ -327,7 +340,8 @@ def process_operation(
             return workflow_operation(
                 plugin_name=script_plugin,
                 workflow_mapping=operation_mapping,
-                workflow_parameters=operation_payload)
+                workflow_parameters=operation_payload,
+                is_workflow_cascading=is_workflow_cascading)
         else:
             if not operation_executor:
                 operation_executor = plugins[script_plugin]['executor']

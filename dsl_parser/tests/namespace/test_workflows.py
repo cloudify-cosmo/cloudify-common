@@ -20,13 +20,15 @@ from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 
 def workflow_op_struct(plugin_name,
                        mapping,
-                       parameters=None):
+                       parameters=None,
+                       is_cascading=False):
     if not parameters:
         parameters = {}
     return {
         'plugin': plugin_name,
         'operation': mapping,
-        'parameters': parameters
+        'parameters': parameters,
+        'is_cascading': is_cascading
     }
 
 
@@ -148,6 +150,7 @@ workflows:
         parameters:
             key:
                 default: value
+        is_cascading: true
 """
         self.make_file_with_name(content='content',
                                  filename='stub.py')
@@ -176,6 +179,8 @@ imports:
                          'test--stub.py')
         self.assertEqual(workflow2['parameters']['key']['default'], 'value')
         self.assertEqual(workflow['plugin'], namespaced_script_plugin)
+        self.assertEqual(True, workflow2['is_cascading'])
+        self.assertEqual(False, workflow['is_cascading'])
 
     def test_workflow_blueprint_import_namespaced_operation(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
@@ -191,6 +196,7 @@ workflows:
         parameters:
             key:
                 default: value
+        is_cascading: true
 """
         import_base_path = self._temp_dir + '/test'
         self.make_file_with_name(content='content',
@@ -229,6 +235,8 @@ imports:
                          'test--stub.py')
         self.assertEqual(workflow2['parameters']['key']['default'], 'value')
         self.assertEqual(workflow['plugin'], namespaced_script_plugin)
+        self.assertEqual(True, workflow2['is_cascading'])
+        self.assertEqual(False, workflow['is_cascading'])
 
     def test_workflow_advanced_mapping(self):
         imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
