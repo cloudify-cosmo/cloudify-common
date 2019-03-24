@@ -73,6 +73,13 @@ class License(dict):
         """
         return self.get('signature')
 
+    @property
+    def expired(self):
+        """
+        :returns: Whether or not this Cloudify license has expired
+        """
+        return self.get('expired')
+
 
 class LicenseClient(object):
 
