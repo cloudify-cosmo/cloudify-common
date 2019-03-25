@@ -619,14 +619,7 @@ class CloudifyContext(CommonContext):
 
     def get_brokers(self, network='default'):
         """The brokers, optionally for a non-default network."""
-        brokers = self._endpoint.get_brokers()
-        pctx = self.provider_context
-        networks = pctx['cloudify']['cloudify_agent']['networks']
-        network_broker_ips = networks[network]['brokers']
-        for broker_id, broker_ip in enumerate(network_broker_ips):
-            brokers[broker_id]['host'] = broker_ip
-            brokers[broker_id]['management_host'] = broker_ip
-        return brokers
+        return self._endpoint.get_brokers(network)
 
     @property
     def instance(self):
