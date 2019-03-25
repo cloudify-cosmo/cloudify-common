@@ -368,6 +368,7 @@ class AMQPConnection(object):
 
 class TaskConsumer(object):
     routing_key = ''
+    late_ack = False
 
     def __init__(self, queue, threadpool_size=5, exchange_type='direct'):
         self.threadpool_size = threadpool_size
@@ -413,7 +414,8 @@ class TaskConsumer(object):
             self._tasks_buffer.append(task_args)
 
     def _process_message(self, channel, properties, full_task, delivery_tag):
-        self._connection.ack(channel, delivery_tag)
+        if not self.late_ack:
+            self._connection.ack(channel, delivery_tag)
         try:
             result = self.handle_task(full_task)
         except Exception as e:
@@ -422,7 +424,8 @@ class TaskConsumer(object):
                 'ERROR - failed message processing: '
                 '{0!r}\nbody: {1}'.format(e, full_task)
             )
-
+        if self.late_ack:
+            self._connection.ack(channel, delivery_tag)
         if properties.reply_to:
             self._connection.publish({
                 'exchange': self.exchange,
