@@ -159,9 +159,21 @@ class ManagerEndpoint(Endpoint):
         return manager.get_node_instance(node_instance_id,
                                          evaluate_functions=True)
 
-    def get_brokers(self):
+    def get_brokers(self, network='default'):
         client = manager.get_rest_client()
-        return client.manager.get_brokers()
+
+        brokers = client.manager.get_brokers()
+
+        # Convert the IPs based on the network
+        pctx = self.get_provider_context()
+        networks = pctx['cloudify']['cloudify_agent']['networks']
+        network_broker_ips = networks[network]['brokers']
+
+        for broker_id, broker_ip in enumerate(network_broker_ips):
+            brokers[broker_id]['host'] = broker_ip
+            brokers[broker_id]['management_host'] = broker_ip
+
+        return brokers
 
     def update_node_instance(self, node_instance):
         return manager.update_node_instance(node_instance)
@@ -274,7 +286,7 @@ class LocalEndpoint(Endpoint):
             state=None,
             version=node_instance.version)
 
-    def get_brokers(self):
+    def get_brokers(self, network='default'):
         # This is only used because some tests use a local context despite
         # current agents making absolutely no sense in a local context
         return [
