@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2013-2019 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,9 @@ setup(
     version='5.0.dev1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
-    packages=find_packages(),
+    packages=find_packages(exclude=('dsl_parser.tests*',
+                                    'script_runner.tests*',
+                                    'cloudify.tests*')),
     include_package_data=True,
     license='LICENSE',
     description='Cloudify Common',
