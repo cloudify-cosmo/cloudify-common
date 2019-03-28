@@ -25,7 +25,7 @@ from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
 
 from cloudify.test_utils.dispatch_helper import run
-import cloudify.tests.mocks.mock_rest_client as rest_client_mock
+import cloudify.test_utils.mocks.mock_rest_client as rest_client_mock
 
 
 class MockNotPicklableException(Exception):
