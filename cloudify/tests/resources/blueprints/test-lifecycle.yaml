@@ -1,0 +1,24 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/5.0.dev1/types.yaml
+
+plugins:
+  mock:
+    executor: central_deployment_agent
+    install: false
+
+node_templates:
+  node1:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        precreate: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        create: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        configure: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        start: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        poststart: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        prestop: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        stop: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        delete: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        postdelete: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation

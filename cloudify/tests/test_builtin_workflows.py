@@ -39,6 +39,37 @@ class GlobalCounter(object):
 global_counter = GlobalCounter()
 
 
+class TestInstallWorkflow(testtools.TestCase):
+    lifecycle_blueprint_path = path.join('resources', 'blueprints',
+                                         'test-lifecycle.yaml')
+
+    @workflow_test(lifecycle_blueprint_path)
+    def test_install(self, cfy_local):
+        cfy_local.execute('install')
+        self._make_assertions(
+            cfy_local,
+            ['precreate', 'create', 'configure', 'start', 'poststart']
+        )
+
+    @workflow_test(lifecycle_blueprint_path)
+    def test_uninstall(self, cfy_local):
+        cfy_local.execute('uninstall')
+        self._make_assertions(
+            cfy_local,
+            ['prestop', 'stop', 'delete', 'postdelete']
+        )
+
+    def _make_assertions(self, cfy_local, expected_ops):
+        instances = cfy_local.storage.get_node_instances()
+        instance = instances[0]
+        invocations = instance.runtime_properties['invocations']
+        invoked_operations = [x['operation'] for x in invocations]
+        for op in expected_ops:
+            self.assertIn('cloudify.interfaces.lifecycle.{}'.format(op),
+                          invoked_operations)
+        self.assertEquals(len(invoked_operations), len(expected_ops))
+
+
 class TestExecuteOperationWorkflow(testtools.TestCase):
     execute_blueprint_path = path.join('resources', 'blueprints',
                                        'execute_operation-blueprint.yaml')
@@ -638,6 +669,11 @@ def retry(ctx, count, **_):
     if current_count < count:
         ctx.instance.runtime_properties['current_count'] = current_count + 1
         return ctx.operation.retry()
+
+
+@operation
+def lifecycle_test_operation(ctx, **_):
+    _write_operation(ctx)
 
 
 def _write_operation(ctx):
