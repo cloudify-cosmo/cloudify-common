@@ -226,6 +226,15 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
     tasks = []
+    # Only exists in >= 5.0.
+    if 'cloudify.interfaces.lifecycle.precreate' in instance.node.operations:
+        precreate = _skip_nop_operations(
+            pre=instance.send_event('Precreating node instance'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.precreate'),
+            post=instance.send_event('Node instance precreated'))
+    else:
+        precreate = []
     create = _skip_nop_operations(
         pre=forkjoin(instance.send_event('Creating node instance'),
                      instance.set_state('creating')),
@@ -268,9 +277,20 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     # tasks such as waiting for it to start and installing the agent
     # worker (if necessary)
     if is_host_node(instance):
-        post_start = _host_post_start(instance)
+        host_post_start = _host_post_start(instance)
     else:
-        post_start = []
+        host_post_start = []
+
+    # Only exists in >= 5.0.
+    if 'cloudify.interfaces.lifecycle.poststart' in instance.node.operations:
+        poststart = _skip_nop_operations(
+            pre=instance.send_event('Poststarting node instance'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.poststart'),
+            post=instance.send_event('Node instance poststarted'))
+    else:
+        poststart = []
+
     monitoring_start = _skip_nop_operations(
         instance.execute_operation('cloudify.interfaces.monitoring.start')
     )
@@ -283,10 +303,13 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         ),
         post=instance.send_event('Relationships established'),
     )
-    if any([create, preconf, configure, postconf, start, post_start,
-            monitoring_start, establish]):
+    if any([precreate, create, preconf, configure, postconf, start,
+            host_post_start, poststart, monitoring_start, establish]):
         tasks = (
             [instance.set_state('initializing')] +
+            (precreate or
+             [instance.send_event(
+                 'Precreating node instance: nothing to do')]) +
             (create or
              [instance.send_event('Creating node instance: nothing to do')]) +
             preconf +
@@ -296,7 +319,10 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
             postconf +
             (start or
              [instance.send_event('Starting node instance: nothing to do')]) +
-            post_start +
+            host_post_start +
+            (poststart or
+             [instance.send_event(
+                 'Poststarting node instance: nothing to do')]) +
             monitoring_start +
             establish +
             [forkjoin(
@@ -327,10 +353,21 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     monitoring_stop = _skip_nop_operations(
         instance.execute_operation('cloudify.interfaces.monitoring.stop')
     )
-    if is_host_node(instance):
-        pre_stop = _host_pre_stop(instance)
+
+    # Only exists in >= 5.0.
+    if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
+        prestop = _skip_nop_operations(
+            pre=instance.send_event('Prestopping node instance'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.prestop'),
+            post=instance.send_event('Node instance prestopped'))
     else:
-        pre_stop = []
+        prestop = []
+
+    if is_host_node(instance):
+        host_pre_stop = _host_pre_stop(instance)
+    else:
+        host_pre_stop = []
 
     stop = _skip_nop_operations(
         task=instance.execute_operation('cloudify.interfaces.lifecycle.stop'),
@@ -353,6 +390,16 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         task=instance.execute_operation(
             'cloudify.interfaces.lifecycle.delete')
     )
+    # Only exists in >= 5.0.
+    if 'cloudify.interfaces.lifecycle.postdelete' in instance.node.operations:
+        postdelete = _skip_nop_operations(
+            pre=instance.send_event('Postdeleting node instance'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.postdelete'),
+            post=instance.send_event('Node instance postdeleted'))
+    else:
+        postdelete = []
+
     finish_message = [forkjoin(
         instance.set_state('deleted'),
         instance.send_event('Deleted node instance')
@@ -370,13 +417,15 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     if instance_state in ['stopped', 'deleting', 'deleted', 'uninitialized']:
         stop_message = []
         monitoring_stop = []
-        pre_stop = []
+        host_pre_stop = []
+        prestop = []
         stop = [instance.send_event(
             'Stop: instance already {0}'.format(instance_state))]
     if instance_state in ['stopped', 'deleting', 'deleted']:
         stopped_set_state = []
     if instance_state in ['deleted', 'uninitialized']:
         unlink = []
+        postdelete = []
         delete = [instance.send_event(
             'Delete: instance already {0}'.format(instance_state))]
     if instance_state in ['deleted']:
@@ -385,13 +434,15 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     tasks = (
         stop_message +
         monitoring_stop +
-        pre_stop +
+        prestop +
+        host_pre_stop +
         (stop or
          [instance.send_event('Stopped node instance: nothing to do')]) +
         stopped_set_state +
         unlink +
         (delete or
          [instance.send_event('Deleting node instance: nothing to do')]) +
+        postdelete +
         finish_message
     )
     sequence.add(*tasks)
