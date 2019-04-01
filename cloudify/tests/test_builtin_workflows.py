@@ -39,7 +39,7 @@ class GlobalCounter(object):
 global_counter = GlobalCounter()
 
 
-class TestInstallWorkflow(testtools.TestCase):
+class TestInstallUninstallWorkflows(testtools.TestCase):
     lifecycle_blueprint_path = path.join('resources', 'blueprints',
                                          'test-lifecycle.yaml')
 
@@ -48,26 +48,30 @@ class TestInstallWorkflow(testtools.TestCase):
         cfy_local.execute('install')
         self._make_assertions(
             cfy_local,
-            ['precreate', 'create', 'configure', 'start', 'poststart']
-        )
+            ['cloudify.interfaces.validation.creation',
+             'cloudify.interfaces.lifecycle.precreate',
+             'cloudify.interfaces.lifecycle.create',
+             'cloudify.interfaces.lifecycle.configure',
+             'cloudify.interfaces.lifecycle.start',
+             'cloudify.interfaces.lifecycle.poststart'])
 
     @workflow_test(lifecycle_blueprint_path)
     def test_uninstall(self, cfy_local):
         cfy_local.execute('uninstall')
         self._make_assertions(
             cfy_local,
-            ['prestop', 'stop', 'delete', 'postdelete']
-        )
+            ['cloudify.interfaces.validation.deletion',
+             'cloudify.interfaces.lifecycle.prestop',
+             'cloudify.interfaces.lifecycle.stop',
+             'cloudify.interfaces.lifecycle.delete',
+             'cloudify.interfaces.lifecycle.postdelete'])
 
     def _make_assertions(self, cfy_local, expected_ops):
         instances = cfy_local.storage.get_node_instances()
         instance = instances[0]
         invocations = instance.runtime_properties['invocations']
         invoked_operations = [x['operation'] for x in invocations]
-        for op in expected_ops:
-            self.assertIn('cloudify.interfaces.lifecycle.{}'.format(op),
-                          invoked_operations)
-        self.assertEquals(len(invoked_operations), len(expected_ops))
+        self.assertEquals(invoked_operations, expected_ops)
 
 
 class TestExecuteOperationWorkflow(testtools.TestCase):
