@@ -677,6 +677,7 @@ class WorkflowHandler(TaskHandler):
 
 TASK_HANDLERS = {
     'operation': OperationHandler,
+    'hook': OperationHandler,
     'workflow': WorkflowHandler
 }
 
