@@ -226,6 +226,14 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
     tasks = []
+    creation_validation = _skip_nop_operations(
+        pre=instance.send_event('Validating node instance before creation'),
+        task=instance.execute_operation(
+            'cloudify.interfaces.validation.creation'
+        ),
+        post=instance.send_event('Node instance validated before creation')
+    )
+
     # Only exists in >= 5.0.
     if 'cloudify.interfaces.lifecycle.precreate' in instance.node.operations:
         precreate = _skip_nop_operations(
@@ -303,10 +311,14 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         ),
         post=instance.send_event('Relationships established'),
     )
-    if any([precreate, create, preconf, configure, postconf, start,
-            host_post_start, poststart, monitoring_start, establish]):
+    if any([creation_validation, precreate, create, preconf, configure,
+            postconf, start, host_post_start, poststart, monitoring_start,
+            establish]):
         tasks = (
             [instance.set_state('initializing')] +
+            (creation_validation or
+             [instance.send_event('Validating node instance before creation: '
+                                  'nothing to do')]) +
             (precreate or
              [instance.send_event(
                  'Precreating node instance: nothing to do')]) +
@@ -352,6 +364,14 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     ]
     monitoring_stop = _skip_nop_operations(
         instance.execute_operation('cloudify.interfaces.monitoring.stop')
+    )
+
+    deletion_validation = _skip_nop_operations(
+        pre=instance.send_event('Validating node instance before deletion'),
+        task=instance.execute_operation(
+            'cloudify.interfaces.validation.deletion'
+        ),
+        post=instance.send_event('Node instance validated before deletion')
     )
 
     # Only exists in >= 5.0.
@@ -433,6 +453,9 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
 
     tasks = (
         stop_message +
+        (deletion_validation or
+         [instance.send_event('Validating node instance after deletion: '
+                              'nothing to do')]) +
         monitoring_stop +
         prestop +
         host_pre_stop +
