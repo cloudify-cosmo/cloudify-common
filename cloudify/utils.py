@@ -16,6 +16,7 @@
 import os
 import ssl
 import sys
+import time
 import pika
 import shlex
 import random
@@ -675,19 +676,22 @@ def extract_plugins_to_install(plugin_list, filter_func):
     return [p for p in plugin_list if p[PLUGIN_INSTALL_KEY] and filter_func(p)]
 
 
-def extract_and_merge_plugins_to_install(deployment_plugins,
-                                         workflow_plugins,
-                                         filter_func=lambda _: True):
-    """Extracts plugins to install and merges them.
-
+def extract_and_merge_plugins(deployment_plugins,
+                              workflow_plugins,
+                              filter_func=lambda _: True,
+                              with_repetition=False):
+    """
     :param deployment_plugins: deployment plugins to install.
     :param workflow_plugins: workflow plugins to install.
     :param filter_func: predicate function to filter the plugins, should return
      True for plugins that don't need to be filtered out.
-    :return: the merged plugins to install.
+    :param with_repetition: can plugins appear twice in the list.
+    :return: a list of merged plugins that were marked for installation.
     """
     dep_plugins = extract_plugins_to_install(deployment_plugins, filter_func)
     wf_plugins = extract_plugins_to_install(workflow_plugins, filter_func)
+    if with_repetition:
+        return dep_plugins + wf_plugins
     return merge_plugins(dep_plugins, wf_plugins)
 
 
@@ -711,22 +715,6 @@ def merge_plugins(deployment_plugins, workflow_plugins):
     for plugins in (deployment_plugins, workflow_plugins):
         add_plugins(plugins)
     return result
-
-
-def extract_and_merge_plugins_to_uninstall(deployment_plugins,
-                                           workflow_plugins,
-                                           filter_func=lambda _: True):
-    """Extracts plugins to uninstall and merges them.
-
-    :param deployment_plugins: deployment plugins to uninstall.
-    :param workflow_plugins: workflow plugins to uninstall.
-    :param filter_func: predicate function to filter the plugins, should return
-     True for plugins that don't need to be filtered out.
-    :return: the merged plugins to uninstall.
-    """
-    dep_plugins = extract_plugins_to_install(deployment_plugins, filter_func)
-    wf_plugins = extract_plugins_to_install(workflow_plugins, filter_func)
-    return dep_plugins + wf_plugins
 
 
 def add_plugins_to_install(ctx, plugins_to_install, sequence):
@@ -753,3 +741,20 @@ def add_plugins_to_uninstall(ctx, plugins_to_uninstall, sequence):
             kwargs={
                 'plugins': plugins_to_uninstall,
                 'delete_managed_plugins': False}))
+
+
+def wait_for(callable_obj,
+             callable_obj_key,
+             value_attr,
+             test_condition,
+             exception_class,
+             msg='',
+             timeout=900):
+    deadline = time.time() + timeout
+    while True:
+        if time.time() > deadline:
+            raise exception_class(msg)
+        value = callable_obj(callable_obj_key)
+        if test_condition(getattr(value, value_attr)):
+            return value
+        time.sleep(3)

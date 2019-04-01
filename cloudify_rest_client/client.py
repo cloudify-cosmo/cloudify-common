@@ -43,6 +43,7 @@ from cloudify_rest_client.executions import ExecutionsClient
 from cloudify_rest_client.user_groups import UserGroupsClient
 from cloudify_rest_client.deployments import DeploymentsClient
 from cloudify_rest_client.maintenance import MaintenanceModeClient
+from cloudify_rest_client.plugins_update import PluginsUpdateClient
 from cloudify_rest_client.node_instances import NodeInstancesClient
 from cloudify_rest_client.tokens import TokensClient, UserTokensClient
 from cloudify_rest_client.deployment_updates import DeploymentUpdatesClient
@@ -419,6 +420,7 @@ class CloudifyClient(object):
             self._client)
         self.tokens = TokensClient(self._client)
         self.plugins = PluginsClient(self._client)
+        self.plugins_update = PluginsUpdateClient(self._client)
         self.maintenance_mode = MaintenanceModeClient(self._client)
         self.deployment_updates = DeploymentUpdatesClient(self._client)
         self.tenants = TenantsClient(self._client)

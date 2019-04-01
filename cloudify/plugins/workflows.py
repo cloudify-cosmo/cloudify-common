@@ -668,8 +668,9 @@ def update(ctx,
            ignore_failure=False,
            install_first=False,
            node_instances_to_reinstall=None,
-           plugins_to_install=None,
-           plugins_to_uninstall=None):
+           central_plugins_to_install=None,
+           central_plugins_to_uninstall=None,
+           update_plugins=True):
     node_instances_to_reinstall = node_instances_to_reinstall or []
     instances_by_change = {
         'added_instances': (added_instance_ids, []),
@@ -694,47 +695,50 @@ def update(ctx,
     to_uninstall = set(instances_by_change['removed_instances'][1])
 
     def _install():
-        if skip_install:
-            return
-        # Adding nodes or node instances should be based on modified instances
-        lifecycle.install_node_instances(
-            graph=graph,
-            node_instances=to_install,
-            related_nodes=set(
-                instances_by_change['added_target_instances_ids'][1])
-        )
+        def _install_nodes():
+            if skip_install:
+                return
+            # Adding nodes or node instances should be based on modified
+            # instances
+            lifecycle.install_node_instances(
+                graph=graph,
+                node_instances=to_install,
+                related_nodes=set(
+                    instances_by_change['added_target_instances_ids'][1])
+            )
 
-        # This one as well.
-        lifecycle.execute_establish_relationships(
-            graph=graph,
-            node_instances=set(
-                instances_by_change['extended_and_target_instances'][1]),
-            modified_relationship_ids=modified_entity_ids['relationship']
-        )
+            # This one as well.
+            lifecycle.execute_establish_relationships(
+                graph=graph,
+                node_instances=set(
+                    instances_by_change['extended_and_target_instances'][1]),
+                modified_relationship_ids=modified_entity_ids['relationship']
+            )
 
-        _handle_plugin_after_update(ctx, modified_entity_ids['plugin'], 'add')
+        _install_nodes()
+        _install_plugins_on_agent()
 
     def _uninstall():
-        if skip_uninstall:
-            return
-        lifecycle.execute_unlink_relationships(
-            graph=graph,
-            node_instances=set(
-                instances_by_change['reduced_and_target_instances'][1]),
-            modified_relationship_ids=modified_entity_ids['relationship']
-        )
+        def _uninstall_nodes():
+            if skip_uninstall:
+                return
+            lifecycle.execute_unlink_relationships(
+                graph=graph,
+                node_instances=set(
+                    instances_by_change['reduced_and_target_instances'][1]),
+                modified_relationship_ids=modified_entity_ids['relationship']
+            )
 
-        lifecycle.uninstall_node_instances(
-            graph=graph,
-            node_instances=to_uninstall,
-            ignore_failure=ignore_failure,
-            related_nodes=set(
-                instances_by_change['remove_target_instance_ids'][1])
-        )
+            lifecycle.uninstall_node_instances(
+                graph=graph,
+                node_instances=to_uninstall,
+                ignore_failure=ignore_failure,
+                related_nodes=set(
+                    instances_by_change['remove_target_instance_ids'][1])
+            )
 
-        _handle_plugin_after_update(
-            ctx, modified_entity_ids['plugin'], 'remove'
-        )
+        _uninstall_nodes()
+        _uninstall_plugins_on_agent()
 
     def _reinstall():
         subgraph = set([])
@@ -752,10 +756,24 @@ def update(ctx,
                                            related_nodes=intact_nodes,
                                            ignore_failure=ignore_failure)
 
-    def _update_plugins():
+    def _uninstall_plugins_on_agent():
+        if not update_plugins:
+            return
+        _handle_plugin_after_update(
+            ctx, modified_entity_ids['plugin'], 'remove')
+
+    def _install_plugins_on_agent():
+        if not update_plugins:
+            return
+        _handle_plugin_after_update(
+            ctx, modified_entity_ids['plugin'], 'add')
+
+    def _update_central_plugins():
+        if not update_plugins:
+            return
         sequence = graph.sequence()
-        add_plugins_to_uninstall(ctx, plugins_to_uninstall, sequence)
-        add_plugins_to_install(ctx, plugins_to_install, sequence)
+        add_plugins_to_uninstall(ctx, central_plugins_to_uninstall, sequence)
+        add_plugins_to_install(ctx, central_plugins_to_install, sequence)
         graph.execute()
 
     if install_first:
@@ -766,7 +784,7 @@ def update(ctx,
         _install()
     _reinstall()
 
-    _update_plugins()
+    _update_central_plugins()
 
     # Finalize the commit (i.e. remove relationships or nodes)
     client = get_rest_client()
@@ -865,9 +883,9 @@ def _handle_plugin_after_update(ctx, plugins_list, action):
     # we reorganize it into: {node_id: [list_of_plugins], ...}
     node_to_plugins_map = {}
     for node, plugin in plugins_to_handle:
-        node_list = node_to_plugins_map.setdefault(node, [])
-        if plugin not in node_list:
-            node_list.append(plugin)
+        plugin_list = node_to_plugins_map.setdefault(node, [])
+        if plugin not in plugin_list:
+            plugin_list.append(plugin)
 
     for node_id, plugins in node_to_plugins_map.items():
         if not plugins:
