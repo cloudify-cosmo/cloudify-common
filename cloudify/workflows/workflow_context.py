@@ -459,6 +459,9 @@ class _WorkflowContextBase(object):
             handler = remote_ctx_handler_cls(self)
 
         self._internal = CloudifyWorkflowContextInternal(self, handler)
+        # is this execution being resumed? set to True if at the beginning
+        # of handling the execution, the status was already STARTED
+        self.resume = False
 
     def graph_mode(self):
         """
@@ -500,11 +503,6 @@ class _WorkflowContextBase(object):
     def execution_token(self):
         """The token of the current execution"""
         return self._context.get('execution_token')
-
-    @property
-    def resume(self):
-        """Is this workflow being resumed?"""
-        return self._context.get('resume')
 
     @property
     def tenant_name(self):
