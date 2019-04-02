@@ -617,6 +617,10 @@ class CloudifyContext(CommonContext):
                                                 RELATIONSHIP_INSTANCE,
                                                 self.type))
 
+    def get_managers(self, network='default'):
+        """The managers, optionally for a non-default network."""
+        return self._endpoint.get_managers(network)
+
     def get_brokers(self, network='default'):
         """The brokers, optionally for a non-default network."""
         return self._endpoint.get_brokers(network)
