@@ -840,8 +840,10 @@ inputs:
         self.assertEqual(1, len(parsed[consts.INPUTS]))
         self.assertEqual('hi',
                          parsed[consts.INPUTS]['some_input'][consts.DEFAULT])
-        plan = prepare_deployment_plan(parsed,
-                                       inputs={'some_input': 'ab'})
+        plan = prepare_deployment_plan(parsed, inputs={'some_input': 'ab'})
+        self.assertEqual(1, len(plan[consts.INPUTS]))
+        self.assertEqual('ab', plan[consts.INPUTS]['some_input'])
+        plan = prepare_deployment_plan(parsed, inputs={'some_input': u'ab'})
         self.assertEqual(1, len(plan[consts.INPUTS]))
         self.assertEqual('ab', plan[consts.INPUTS]['some_input'])
 
@@ -1140,7 +1142,7 @@ data_types:
             ERROR_MISSING_PROPERTY)
         self.assertIn('is missing property b', ex.message)
 
-    def test_input_validate_type_raises(self):
+    def test_input_validate_non_existing_type(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 inputs:
     some_input:
@@ -1151,81 +1153,129 @@ inputs:
             ERROR_UNKNOWN_TYPE)
         self.assertIn('Illegal type name', ex.message)
 
-    def test_input_validate_regex_successful(self):
+    def test_validate_regex_value_successful(self):
+        self._test_validate_value_successful('regex', '^$',
+                                             self.assertEqual)
+
+    def test_validate_regex_value_mismatch(self):
+        self._test_validate_value_type_mismatch('regex', '\\')
+
+    def test_validate_regex_value_mismatch_with_deployment_plan(self):
+        self._test_validate_value_type_mismatch_with_deployment_plan('regex',
+                                                                     '\\')
+
+    def test_validate_list_value_successful(self):
+        self._test_validate_value_successful('list', ['one', 'two', 3],
+                                             self.assertListEqual)
+
+    def test_validate_list_value_mismatch(self):
+        self._test_validate_value_type_mismatch('list', {'0_o'})
+
+    def test_validate_list_value_mismatch_with_deployment_plan(self):
+        self._test_validate_value_type_mismatch_with_deployment_plan('list',
+                                                                     '123')
+
+    def test_validate_dict_value_successful(self):
+        self._test_validate_value_successful('dict', {'k': 'v'},
+                                             self.assertDictEqual)
+
+    def test_validate_dict_value_mismatch(self):
+        self._test_validate_value_type_mismatch('dict', [])
+
+    def test_validate_dict_value_mismatch_with_deployment_plan(self):
+        self._test_validate_value_type_mismatch_with_deployment_plan('dict',
+                                                                     'x')
+
+    def test_validate_integer_value_successful(self):
+        self._test_validate_value_successful('integer', 123,
+                                             self.assertEqual)
+        self._test_validate_value_successful('integer', long(),
+                                             self.assertEqual)
+
+    def test_validate_integer_value_mismatch(self):
+        self._test_validate_value_type_mismatch('integer', [])
+        self._test_validate_value_type_mismatch('integer', True)
+
+    def test_validate_integer_value_mismatch_with_deployment_plan(self):
+        self._test_validate_value_type_mismatch_with_deployment_plan('integer',
+                                                                     'x')
+        self._test_validate_value_type_mismatch_with_deployment_plan('integer',
+                                                                     True)
+
+    def test_validate_float_value_successful(self):
+        self._test_validate_value_successful('float', 123,
+                                             self.assertEqual)
+        self._test_validate_value_successful('float', 123.1,
+                                             self.assertEqual)
+        self._test_validate_value_successful('float', long(),
+                                             self.assertEqual)
+
+    def test_validate_float_value_mismatch(self):
+        self._test_validate_value_type_mismatch('float', [])
+        self._test_validate_value_type_mismatch('float', True)
+
+    def test_validate_float_value_mismatch_with_deployment_plan(self):
+        self._test_validate_value_type_mismatch_with_deployment_plan('float',
+                                                                     'x')
+        self._test_validate_value_type_mismatch_with_deployment_plan('float',
+                                                                     True)
+
+    def test_validate_boolean_value_successful(self):
+        self._test_validate_value_successful('boolean', False,
+                                             self.assertEqual)
+
+    def test_validate_boolean_value_mismatch(self):
+        self._test_validate_value_type_mismatch('boolean', [])
+
+    def test_validate_boolean_value_mismatch_with_deployment_plan(self):
+        self._test_validate_value_type_mismatch_with_deployment_plan('boolean',
+                                                                     'x')
+
+    def test_validate_string_value_successful(self):
+        self._test_validate_value_successful('string', 'some_string',
+                                             self.assertEqual)
+        # If the type is string, it should accept anything
+        self._test_validate_value_successful('string', list(),
+                                             self.assertListEqual)
+
+    def _test_validate_value_successful(
+            self, type_name, default_value, value_assert_equal_func):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 inputs:
     some_input:
-        type: regex
-        default: '^$'
-"""
+        type: {0}
+        default: {1}
+""".format(type_name, default_value)
         parsed = self.parse(yaml)
         self.assertEqual(
-            parsed[consts.INPUTS]['some_input'][consts.TYPE], 'regex')
-        self.assertEqual(
-            parsed[consts.INPUTS]['some_input'][consts.DEFAULT], '^$')
+            parsed[consts.INPUTS]['some_input'][consts.TYPE], type_name)
+        value_assert_equal_func(
+            parsed[consts.INPUTS]['some_input'][consts.DEFAULT], default_value)
 
-    def test_input_validate_regex_raises(self):
+    def _test_validate_value_type_mismatch(self, type_name, default_value):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 inputs:
     some_input:
-        type: regex
-        default: '\\'
-"""
+        type: {0}
+        default: {1}
+""".format(type_name, default_value)
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml,
             ERROR_VALUE_DOES_NOT_MATCH_TYPE)
         self.assertIn('Property type validation failed in', ex.message)
-        self.assertIn("type is 'regex'", ex.message)
+        self.assertIn("type is '{}'".format(type_name), ex.message)
 
-    def test_input_validate_list_successful(self):
+    def _test_validate_value_type_mismatch_with_deployment_plan(
+            self, type_name, value):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 inputs:
     some_input:
-        type: list
-        default: [one, two, 3]
-"""
-        parsed = self.parse(yaml)
-        self.assertEqual(
-            parsed[consts.INPUTS]['some_input'][consts.TYPE], 'list')
-        self.assertListEqual(
-            parsed[consts.INPUTS]['some_input'][consts.DEFAULT],
-            ['one', 'two', 3])
-
-    def test_input_validate_list_raises(self):
-        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
-inputs:
-    some_input:
-        type: list
-        default: {0_o}
-"""
-        ex = self._assert_dsl_parsing_exception_error_code(
-            yaml,
-            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
+        type: {}
+""".format(type_name)
+        ex = self.assertRaises(
+            DSLParsingException,
+            prepare_deployment_plan,
+            self.parse(yaml),
+            inputs={'some_input': value})
         self.assertIn('Property type validation failed in', ex.message)
-        self.assertIn("type is 'list'", ex.message)
-
-    def test_input_validate_dict_successful(self):
-        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
-inputs:
-    some_input:
-        type: dict
-        default: {k: v}
-"""
-        parsed = self.parse(yaml)
-        self.assertEqual(
-            parsed[consts.INPUTS]['some_input'][consts.TYPE], 'dict')
-        self.assertDictEqual(
-            parsed[consts.INPUTS]['some_input'][consts.DEFAULT], {'k': 'v'})
-
-    def test_input_validate_dict_raises(self):
-        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
-inputs:
-    some_input:
-        type: dict
-        default: []
-"""
-        ex = self._assert_dsl_parsing_exception_error_code(
-            yaml,
-            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
-        self.assertIn('Property type validation failed in', ex.message)
-        self.assertIn("type is 'dict'", ex.message)
+        self.assertIn("type is '{}'".format(type_name), ex.message)
