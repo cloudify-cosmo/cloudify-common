@@ -24,7 +24,6 @@ from cloudify import constants, utils
 from cloudify.state import ctx, workflow_ctx, NotInContext
 from cloudify.exceptions import (HttpException,
                                  NonRecoverableError)
-from cloudify.cluster import CloudifyClusterClient, get_cluster_settings
 
 
 class NodeInstance(object):
@@ -129,11 +128,7 @@ def get_rest_client(tenant=None, api_token=None):
     :returns: A REST client configured to connect to the manager in context
     :rtype: cloudify_rest_client.CloudifyClient
     """
-    cluster_settings = get_cluster_settings()
-    if cluster_settings:
-        client_class = CloudifyClusterClient
-    else:
-        client_class = CloudifyClient
+    client_class = CloudifyClient
 
     if not tenant:
         tenant = utils.get_tenant_name()
