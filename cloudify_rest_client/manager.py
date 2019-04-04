@@ -256,16 +256,19 @@ class ManagerClient(object):
         })
         return ManagerItem(response)
 
-    def update_manager(self, hostname, fs_sync_node_id):
+    def update_manager(self, hostname, fs_sync_node_id, bootstrap_cluster):
         """
         Updating a manager's FS sync node id used by Syncthing replication
 
         :param hostname: hostname of the manager to update
         :param fs_sync_node_id: Syncthing node ID
+        :param bootstrap_cluster: Whether it is the 1st manager in the cluster
+        or not
         """
         response = self.api.put('/managers', data={
             'hostname': hostname,
-            'fs_sync_node_id': fs_sync_node_id
+            'fs_sync_node_id': fs_sync_node_id,
+            'bootstrap_cluster': bootstrap_cluster
         })
         return ManagerItem(response)
 
