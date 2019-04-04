@@ -34,7 +34,7 @@ from contextlib import contextmanager, closing
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
-from cloudify import cluster, constants
+from cloudify import constants
 from cloudify.state import workflow_ctx, ctx
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.amqp_client import BlockingRequestResponseHandler
@@ -169,11 +169,6 @@ def get_manager_file_server_url():
     """
     Returns the manager file server base url.
     """
-    if cluster.is_cluster_configured():
-        active_node_ip = cluster.get_cluster_active()
-        port = get_manager_rest_service_port()
-        if active_node_ip:
-            return 'https://{0}:{1}/resources'.format(active_node_ip, port)
     return os.environ[constants.MANAGER_FILE_SERVER_URL_KEY]
 
 
@@ -195,11 +190,6 @@ def get_broker_ssl_cert_path():
     """
     Returns location of the broker certificate on the agent
     """
-    if cluster.is_cluster_configured():
-        active_node = cluster.get_cluster_active() or {}
-        broker_ssl_cert_path = active_node.get('internal_cert_path')
-        if broker_ssl_cert_path:
-            return broker_ssl_cert_path
     return os.environ[constants.BROKER_SSL_CERT_PATH]
 
 

@@ -196,13 +196,6 @@ class BootstrapContext(object):
             return self._cloudify_agent.get('broker_ssl_enabled')
 
         @property
-        def cluster(self):
-            """
-            Returns the cluster configuration.
-            """
-            return self._cloudify_agent.get('cluster')
-
-        @property
         def networks(self):
             return self._cloudify_agent.get('networks')
 
@@ -254,7 +247,6 @@ class BootstrapContext(object):
         attributes['broker_user'] = broker_user
         attributes['broker_pass'] = broker_pass
         attributes['broker_vhost'] = broker_vhost
-        attributes['cluster'] = bootstrap_agent.cluster
         return attributes
 
 

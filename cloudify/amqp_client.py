@@ -28,7 +28,6 @@ from urlparse import urlsplit, urlunsplit
 import pika
 import pika.exceptions
 
-from cloudify import cluster
 from cloudify import constants
 from cloudify import exceptions
 from cloudify import broker_config
@@ -167,18 +166,9 @@ class AMQPConnection(object):
             params = self._amqp_params.as_pika_params()
             if self.name and self._daemon_factory:
                 daemon = self._daemon_factory().load(self.name)
-                if daemon.cluster:
-                    for node_ip in daemon.cluster:
-                        if params.host != node_ip:
-                            params.host = node_ip
-                            self._update_env_vars(node_ip)
-                            cluster.set_cluster_active(node_ip)
-                        yield params
-                    continue
-                else:
-                    if params.host != daemon.broker_ip:
-                        params.host = daemon.broker_ip
-                        self._update_env_vars(daemon.broker_ip)
+                if params.host != daemon.broker_ip:
+                    params.host = daemon.broker_ip
+                    self._update_env_vars(daemon.broker_ip)
             logger.debug('Current connection params: {0}'.format(params))
             yield params
 
