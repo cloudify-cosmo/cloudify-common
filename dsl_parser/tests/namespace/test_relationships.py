@@ -19,23 +19,6 @@ from dsl_parser.interfaces import constants as interfaces_const
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
-def op_struct(implementation,
-              inputs=None,
-              executor=None,
-              max_retries=None,
-              retry_interval=None):
-    if not inputs:
-        inputs = {}
-    result = {
-        'implementation': implementation,
-        'inputs': inputs,
-        'executor': executor,
-        'max_retries': max_retries,
-        'retry_interval': retry_interval
-    }
-    return result
-
-
 class TestNamespacedRelationsships(AbstractTestParser):
     def test_basic_namespaced_relationship(self):
         imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
@@ -279,7 +262,7 @@ imports:
             inputs = {}
             if extra_properties:
                 inputs.update({'key': {'default': 'value'}})
-            self.assertEqual(op, op_struct(
+            self.assertEqual(op, operation_mapping(
                 implementation='test--stub.py',
                 inputs=inputs,
                 executor=None,

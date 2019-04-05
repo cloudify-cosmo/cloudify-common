@@ -166,6 +166,35 @@ class LifecycleProcessor(object):
                                install=install,
                                on_dependency_added=intact_on_dependency_added)
 
+    @staticmethod
+    def _handle_dependency_creation(source_subgraph, target_subgraph,
+                                    operation, target_id, graph):
+        if operation:
+            for task_subgraph in target_subgraph.graph.tasks_iter():
+                # If the task is not an operation task
+                if not task_subgraph.cloudify_context:
+                    continue
+
+                operation_path, operation_name = \
+                    (task_subgraph.cloudify_context["operation"]["name"]
+                     .rsplit(".", 1))
+                node_id = task_subgraph.cloudify_context["node_id"]
+                if (operation_path == 'cloudify.interfaces.lifecycle' and
+                        operation_name == operation and
+                        target_id == node_id):
+
+                    # Adding dependency to all post tasks that are dependent
+                    # of the chosen operation, with the assumption that they
+                    # are all only dependent on the operation not each other.
+                    for task_id in target_subgraph.graph.graph.predecessors(
+                            task_subgraph.id):
+                        graph.add_dependency(source_subgraph,
+                                             target_subgraph.graph.get_task(
+                                                 task_id))
+                    break
+        else:
+            graph.add_dependency(source_subgraph, target_subgraph)
+
     def _add_dependencies(self, graph, subgraphs, instances, install,
                           on_dependency_added=None):
         subgraph_sequences = dict(
@@ -180,10 +209,23 @@ class LifecycleProcessor(object):
                         rel.target_node_instance in self.intact_nodes):
                     source_subgraph = subgraphs[instance.id]
                     target_subgraph = subgraphs[rel.target_id]
+
+                    operation = rel.relationship.properties.get("operation",
+                                                                None)
+
                     if install:
-                        graph.add_dependency(source_subgraph, target_subgraph)
+                        self._handle_dependency_creation(source_subgraph,
+                                                         target_subgraph,
+                                                         operation,
+                                                         rel.target_id,
+                                                         graph)
                     else:
-                        graph.add_dependency(target_subgraph, source_subgraph)
+                        self._handle_dependency_creation(target_subgraph,
+                                                         source_subgraph,
+                                                         operation,
+                                                         instance.id,
+                                                         graph)
+
                     if on_dependency_added:
                         task_sequence = subgraph_sequences[instance.id]
                         on_dependency_added(instance, rel, task_sequence)
@@ -225,7 +267,6 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     """
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
-    tasks = []
     creation_validation = _skip_nop_operations(
         pre=instance.send_event('Validating node instance before creation'),
         task=instance.execute_operation(
@@ -274,12 +315,12 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
             instance,
             'cloudify.interfaces.relationship_lifecycle.postconfigure'
         ),
-        post=instance.send_event('Relationships post-configured'),
+        post=instance.send_event('Relationships post-configured')
     )
     start = _skip_nop_operations(
         pre=forkjoin(instance.set_state('starting'),
                      instance.send_event('Starting node instance')),
-        task=instance.execute_operation('cloudify.interfaces.lifecycle.start'),
+        task=instance.execute_operation('cloudify.interfaces.lifecycle.start')
     )
     # If this is a host node, we need to add specific host start
     # tasks such as waiting for it to start and installing the agent
@@ -309,7 +350,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
             instance,
             'cloudify.interfaces.relationship_lifecycle.establish'
         ),
-        post=instance.send_event('Relationships established'),
+        post=instance.send_event('Relationships established')
     )
     if any([creation_validation, precreate, create, preconf, configure,
             postconf, start, host_post_start, poststart, monitoring_start,

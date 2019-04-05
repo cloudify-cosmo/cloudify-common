@@ -42,6 +42,11 @@ relationships:
         derived_from: cloudify.relationships.depends_on
     cloudify.relationships.connected_to:
         derived_from: cloudify.relationships.depends_on
+    cloudify.relationships.depends_on_lifecycle_operation:
+        derived_from: cloudify.relationships.depends_on
+        properties:
+            operation:
+                default: 'configure'
 
 node_templates:
     """

@@ -185,6 +185,10 @@ class CloudifyWorkflowRelationship(object):
         """The relationship target operations"""
         return self._relationship.get('target_operations', {})
 
+    @property
+    def properties(self):
+        return self._relationship.get('properties', {})
+
     def is_derived_from(self, other_relationship):
         """
         :param other_relationship: a string like
