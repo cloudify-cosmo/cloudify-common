@@ -125,6 +125,7 @@ class NodeTemplateRelationshipProperties(Element):
     schema = Leaf(type=dict)
     requires = {
         NodeTemplateRelationshipType: [],
+        NodeTemplateRelationshipTarget: [],
         _relationships.Relationships: [Value('relationships')],
         _data_types.DataTypes: [Value('data_types')]
     }
@@ -147,6 +148,39 @@ class NodeTemplateRelationshipProperties(Element):
                 "'{1}' property which is "
                 'part of its relationship type schema'),
             node_name=self.ancestor(NodeTemplate).name)
+
+    def validate(self, relationships, **kwargs):
+        relationship_type = self.sibling(NodeTemplateRelationshipType).value
+        node_name = self.ancestor(NodeTemplate).name
+
+        if (relationship_type ==
+                'cloudify.relationships.depends_on_lifecycle_operation'):
+            target_node = self.sibling(
+                NodeTemplateRelationshipTarget).value
+            properties = self.initial_value or {}
+            node_templates = self.ancestor(NodeTemplates).initial_value_holder
+
+            operation_input = properties.get('operation', None)
+            if not operation_input:
+                raise exceptions.DSLParsingLogicException(
+                    215,
+                    'For "{1}" node, please supply "{0}" with a defined '
+                    'lifecycle operation target '.format(relationship_type,
+                                                         node_name))
+
+            _, target_node_interfaces = node_templates[target_node].get_item(
+                'interfaces')
+            if (not target_node_interfaces or
+                    operation_input not in
+                    target_node_interfaces['cloudify.interfaces.lifecycle']):
+                raise exceptions.DSLParsingLogicException(
+                    216,
+                    'Please define "{0}" operation in the target node "{1}" '
+                    'for "{3}" node\'s "{2}" relationship'.format(
+                        operation_input,
+                        target_node,
+                        relationship_type,
+                        node_name))
 
 
 class NodeTemplateInstancesDeploy(Element):

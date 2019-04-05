@@ -240,6 +240,9 @@ class TestMultiInstance(scaling.BaseTestMultiInstance):
         relationships:
             -   type: cloudify.relationships.contained_in
                 target: host1
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create: test_plugin.do_nothing
     webserver1:
         type: webserver
         relationships:
@@ -258,16 +261,31 @@ class TestMultiInstance(scaling.BaseTestMultiInstance):
                 target: db
                 properties:
                     connection_type: all_to_all
+    webserver3:
+        type: webserver
+        relationships:
+            -   type: cloudify.relationships.contained_in
+                target: host2
+            -   type: cloudify.relationships.depends_on_lifecycle_operation
+                target: db
+                properties:
+                    operation: create
+                    connection_type: all_to_all
     db_dependent:
         type: db_dependent
         relationships:
             -   type: cloudify.relationships.contained_in
                 target: db
+
+plugins:
+    test_plugin:
+        executor: central_deployment_agent
+        source: dummy
 """
         multi_plan = self.parse_multi(yaml)
         nodes = multi_plan['node_instances']
-        self.assertEquals(19, len(nodes))
-        self.assertEquals(19, len(set(self._node_ids(nodes))))
+        self.assertEquals(21, len(nodes))
+        self.assertEquals(21, len(set(self._node_ids(nodes))))
 
         network_1 = self._nodes_by_name(nodes, 'network')[0]
 
@@ -286,6 +304,9 @@ class TestMultiInstance(scaling.BaseTestMultiInstance):
         webserver2_nodes = self._nodes_by_name(nodes, 'webserver2')
         webserver2_1 = webserver2_nodes[0]
         webserver2_2 = webserver2_nodes[1]
+        webserver3_nodes = self._nodes_by_name(nodes, 'webserver3')
+        webserver3_1 = webserver3_nodes[0]
+        webserver3_2 = webserver3_nodes[1]
         db_nodes = self._nodes_by_name(nodes, 'db')
         db_1 = db_nodes[0]
         db_2 = db_nodes[1]
@@ -308,6 +329,8 @@ class TestMultiInstance(scaling.BaseTestMultiInstance):
         self.assertIn('webserver1_', webserver1_2['id'])
         self.assertIn('webserver2_', webserver2_1['id'])
         self.assertIn('webserver2_', webserver2_2['id'])
+        self.assertIn('webserver3_', webserver3_1['id'])
+        self.assertIn('webserver3_', webserver3_2['id'])
         self.assertIn('db_', db_1['id'])
         self.assertIn('db_', db_2['id'])
         self.assertIn('db_', db_3['id'])
@@ -346,6 +369,8 @@ class TestMultiInstance(scaling.BaseTestMultiInstance):
         webserver1_2_relationships = webserver1_2['relationships']
         webserver2_1_relationships = webserver2_1['relationships']
         webserver2_2_relationships = webserver2_2['relationships']
+        webserver3_1_relationships = webserver3_1['relationships']
+        webserver3_2_relationships = webserver3_2['relationships']
         db_1_relationships = db_1['relationships']
         db_2_relationships = db_2['relationships']
         db_3_relationships = db_3['relationships']
@@ -366,6 +391,8 @@ class TestMultiInstance(scaling.BaseTestMultiInstance):
         self.assertEquals(2, len(webserver1_2_relationships))
         self.assertEquals(5, len(webserver2_1_relationships))
         self.assertEquals(5, len(webserver2_2_relationships))
+        self.assertEquals(5, len(webserver3_1_relationships))
+        self.assertEquals(5, len(webserver3_2_relationships))
         self.assertEquals(1, len(db_1_relationships))
         self.assertEquals(1, len(db_2_relationships))
         self.assertEquals(1, len(db_3_relationships))

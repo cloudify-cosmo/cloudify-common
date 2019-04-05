@@ -29,6 +29,18 @@ class Operation(dict):
     def parameters(self):
         return self.get('parameters', {})
 
+    @property
+    def name(self):
+        return self.get('name')
+
+    @property
+    def containing_subgraph(self):
+        return self.get('parameters', {}).get('containing_subgraph')
+
+    @property
+    def info(self):
+        return self.get('parameters', {}).get('info')
+
 
 class OperationsClient(object):
     def __init__(self, api):
