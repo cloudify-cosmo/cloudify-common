@@ -232,15 +232,21 @@ def parse_value(
                 _property_description(path),
                 type_name))
 
+    prop_path = _property_description(path)
+    if not prop_path:
+        err_msg = "Property type validation failed in '{0}': the defined " \
+                  "type is '{1}', yet it was assigned with the " \
+                  "value '{2}'".format(node_name, type_name, value)
+    else:
+        err_msg = "Property type validation failed in '{0}': property " \
+                  "'{1}' type is '{2}', yet it was assigned with the " \
+                  "value '{3}'".format(node_name,
+                                       _property_description(path),
+                                       type_name,
+                                       value)
+
     raise exceptions.DSLParsingLogicException(
-        exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE,
-        "Property type validation failed in '{0}': property "
-        "'{1}' type is '{2}', yet it was assigned with the "
-        "value '{3}'".format(
-            node_name,
-            _property_description(path),
-            type_name,
-            value))
+        exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE, err_msg)
 
 
 def load_yaml(raw_yaml, error_message, filename=None):

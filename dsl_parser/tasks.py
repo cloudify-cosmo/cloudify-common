@@ -73,27 +73,24 @@ def _set_plan_inputs(plan, inputs=None):
         if not input_is_missing:
             constraints.validate_input_value(
                 input_name, input_constraints, inputs[input_name])
-            data_type = input_def.get(TYPE, None)
-            if data_type and DATA_TYPES in plan \
-                    and data_type in plan[DATA_TYPES]:
-                try:
-                    utils.parse_value(
-                        value=inputs[input_name],
-                        type_name=data_type,
-                        data_types=plan[DATA_TYPES],
-                        undefined_property_error_message="Undefined property "
-                                                         "{1} in value of "
-                                                         "input {0}.",
-                        missing_property_error_message="Value of input {0} "
-                                                       "is missing property "
-                                                       "{1}.",
-                        node_name=input_name,
-                        path=[],
-                        raise_on_missing_property=True)
-                except exceptions.DSLParsingLogicException as e:
-                    raise exceptions.DSLParsingException(
-                        exceptions.ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA,
-                        e.message)
+            try:
+                utils.parse_value(
+                    value=inputs[input_name],
+                    type_name=input_def.get(TYPE, None),
+                    data_types=plan.get(DATA_TYPES, {}),
+                    undefined_property_error_message="Undefined property "
+                                                     "{1} in value of "
+                                                     "input {0}.",
+                    missing_property_error_message="Value of input {0} "
+                                                   "is missing property "
+                                                   "{1}.",
+                    node_name=input_name,
+                    path=[],
+                    raise_on_missing_property=True)
+            except exceptions.DSLParsingLogicException as e:
+                raise exceptions.DSLParsingException(
+                    exceptions.ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA,
+                    e.message)
 
     if missing_inputs:
         raise exceptions.MissingRequiredInputError(
