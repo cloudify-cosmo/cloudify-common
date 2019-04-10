@@ -18,6 +18,7 @@ from cloudify.context import (CloudifyContext,
                               ContextCapabilities,
                               BootstrapContext)
 from cloudify.utils import setup_logger
+from cloudify_rest_client.manager import ManagerItem, RabbitMQBrokerItem
 
 
 class MockRelationshipSubjectContext(object):
@@ -114,7 +115,9 @@ class MockCloudifyContext(CloudifyContext):
                  rest_token=None,
                  provider_context=None,
                  bootstrap_context=None,
-                 config=None):
+                 config=None,
+                 brokers=None,
+                 managers=None):
         tenant = tenant or {}
         super(MockCloudifyContext, self).__init__({
             'blueprint_id': blueprint_id,
@@ -159,6 +162,17 @@ class MockCloudifyContext(CloudifyContext):
                 'node': None
             })
         self._config = config
+        self._brokers = brokers or [{
+            'networks': {
+                'default': 'localhost'
+            },
+            'ca_cert_content': '',
+        }]
+        self._managers = managers or [{
+            'networks': {
+                'default': 'localhost'
+            }
+        }]
 
     @property
     def execution_id(self):
@@ -207,3 +221,9 @@ class MockCloudifyContext(CloudifyContext):
 
     def get_config(self, scope=None, name=None):
         return self._config or []
+
+    def get_managers(self, network=None):
+        return [ManagerItem(m) for m in self._managers]
+
+    def get_brokers(self, network=None):
+        return [RabbitMQBrokerItem(b) for b in self._brokers]

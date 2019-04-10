@@ -23,6 +23,8 @@ from cloudify import logs
 from cloudify.logs import CloudifyPluginLoggingHandler
 from cloudify.exceptions import NonRecoverableError
 
+from cloudify_rest_client.manager import RabbitMQBrokerItem, ManagerItem
+
 
 class Endpoint(object):
 
@@ -159,21 +161,17 @@ class ManagerEndpoint(Endpoint):
         return manager.get_node_instance(node_instance_id,
                                          evaluate_functions=True)
 
+    def get_managers(self, network='default'):
+        client = manager.get_rest_client()
+
+        return [m for m in client.manager.get_managers()
+                if network in m.networks]
+
     def get_brokers(self, network='default'):
         client = manager.get_rest_client()
 
-        brokers = client.manager.get_brokers()
-
-        # Convert the IPs based on the network
-        pctx = self.get_provider_context()
-        networks = pctx['cloudify']['cloudify_agent']['networks']
-        network_broker_ips = networks[network]['brokers']
-
-        for broker_id, broker_ip in enumerate(network_broker_ips):
-            brokers[broker_id]['host'] = broker_ip
-            brokers[broker_id]['management_host'] = broker_ip
-
-        return brokers
+        return [broker for broker in client.manager.get_brokers()
+                if network in broker.networks]
 
     def update_node_instance(self, node_instance):
         return manager.update_node_instance(node_instance)
@@ -290,10 +288,24 @@ class LocalEndpoint(Endpoint):
         # This is only used because some tests use a local context despite
         # current agents making absolutely no sense in a local context
         return [
-            {
+            RabbitMQBrokerItem({
                 'host': '127.0.0.1',
+                'networks': {
+                    'default': '127.0.0.1'
+                },
                 'ca_cert_content': '',
-            },
+            })
+        ]
+
+    def get_managers(self, network='default'):
+        # same issue as get_brokers
+        return [
+            ManagerItem({
+                'private_ip': '127.0.0.1',
+                'networks': {
+                    'default': '127.0.0.1'
+                },
+            })
         ]
 
     def get_resource(self,

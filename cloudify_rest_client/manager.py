@@ -148,6 +148,14 @@ class ManagerItem(dict):
         """
         return self.get('fs_sync_node_id')
 
+    @property
+    def networks(self):
+        """Networks and IPs declared for this manager
+
+        :rtype: dict
+        """
+        return self.get('networks')
+
 
 class RabbitMQBrokerItem(dict):
     def __init__(self, broker):
@@ -178,6 +186,14 @@ class RabbitMQBrokerItem(dict):
     def ca_cert_content(self):
         """Content of the CA cert to use for connecting to this broker"""
         return self.get('ca_cert_content')
+
+    @property
+    def networks(self):
+        """Networks and IPs declared for this broker
+
+        :rtype: dict
+        """
+        return self.get('networks')
 
 
 class ManagerClient(object):
@@ -225,7 +241,8 @@ class ManagerClient(object):
         return ConfigItem(response)
 
     def add_manager(self, hostname, private_ip, public_ip, version,
-                    edition, distribution, distro_release, fs_sync_node_id=''):
+                    edition, distribution, distro_release, fs_sync_node_id='',
+                    networks=None):
         """
         Add a new manager to the managers table
         """
@@ -236,10 +253,12 @@ class ManagerClient(object):
             'version': version,
             'edition': edition,
             'distribution': distribution,
-            'distro_release': distro_release
+            'distro_release': distro_release,
         }
         if fs_sync_node_id:
             manager['fs_sync_node_id'] = fs_sync_node_id
+        if networks:
+            manager['networks'] = networks
         response = self.api.post('/managers', data=manager)
         return ManagerItem(response)
 
