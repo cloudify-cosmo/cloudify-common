@@ -1154,8 +1154,8 @@ inputs:
         self.assertIn('Illegal type name', ex.message)
 
     def test_validate_regex_value_successful(self):
-        self._test_validate_value_successful('regex', '^$',
-                                             self.assertEqual)
+        self._test_validate_value_successful(
+            'regex', '^$', '^.$', self.assertEqual)
 
     def test_validate_regex_value_mismatch(self):
         self._test_validate_value_type_mismatch('regex', '\\')
@@ -1165,8 +1165,8 @@ inputs:
                                                                      '\\')
 
     def test_validate_list_value_successful(self):
-        self._test_validate_value_successful('list', ['one', 'two', 3],
-                                             self.assertListEqual)
+        self._test_validate_value_successful(
+            'list', ['one', 'two', 3], ['', 'three', 1], self.assertListEqual)
 
     def test_validate_list_value_mismatch(self):
         self._test_validate_value_type_mismatch('list', {'0_o'})
@@ -1176,8 +1176,8 @@ inputs:
                                                                      '123')
 
     def test_validate_dict_value_successful(self):
-        self._test_validate_value_successful('dict', {'k': 'v'},
-                                             self.assertDictEqual)
+        self._test_validate_value_successful(
+            'dict', {'k': 'v'}, {'k1': 'v1'}, self.assertDictEqual)
 
     def test_validate_dict_value_mismatch(self):
         self._test_validate_value_type_mismatch('dict', [])
@@ -1187,10 +1187,10 @@ inputs:
                                                                      'x')
 
     def test_validate_integer_value_successful(self):
-        self._test_validate_value_successful('integer', 123,
-                                             self.assertEqual)
-        self._test_validate_value_successful('integer', long(),
-                                             self.assertEqual)
+        self._test_validate_value_successful(
+            'integer', 123, 456, self.assertEqual)
+        self._test_validate_value_successful(
+            'integer', long('123'), long('456'), self.assertEqual)
 
     def test_validate_integer_value_mismatch(self):
         self._test_validate_value_type_mismatch('integer', [])
@@ -1203,12 +1203,12 @@ inputs:
                                                                      True)
 
     def test_validate_float_value_successful(self):
-        self._test_validate_value_successful('float', 123,
-                                             self.assertEqual)
-        self._test_validate_value_successful('float', 123.1,
-                                             self.assertEqual)
-        self._test_validate_value_successful('float', long(),
-                                             self.assertEqual)
+        self._test_validate_value_successful(
+            'float', 123, 456, self.assertEqual)
+        self._test_validate_value_successful(
+            'float', 123.1, 456.1, self.assertEqual)
+        self._test_validate_value_successful(
+            'float', long('123'), long('456'), self.assertEqual)
 
     def test_validate_float_value_mismatch(self):
         self._test_validate_value_type_mismatch('float', [])
@@ -1221,8 +1221,8 @@ inputs:
                                                                      True)
 
     def test_validate_boolean_value_successful(self):
-        self._test_validate_value_successful('boolean', False,
-                                             self.assertEqual)
+        self._test_validate_value_successful(
+            'boolean', False, True, self.assertEqual)
 
     def test_validate_boolean_value_mismatch(self):
         self._test_validate_value_type_mismatch('boolean', [])
@@ -1232,14 +1232,17 @@ inputs:
                                                                      'x')
 
     def test_validate_string_value_successful(self):
-        self._test_validate_value_successful('string', 'some_string',
-                                             self.assertEqual)
+        self._test_validate_value_successful(
+            'string', 'some_string', 'some_other_string', self.assertEqual)
         # If the type is string, it should accept anything
-        self._test_validate_value_successful('string', list(),
-                                             self.assertListEqual)
+        self._test_validate_value_successful(
+            'string', list(), [''], self.assertListEqual)
 
-    def _test_validate_value_successful(
-            self, type_name, default_value, value_assert_equal_func):
+    def _test_validate_value_successful(self,
+                                        type_name,
+                                        default_value,
+                                        input_value,
+                                        value_assert_equal_func):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 inputs:
     some_input:
@@ -1251,6 +1254,17 @@ inputs:
             parsed[consts.INPUTS]['some_input'][consts.TYPE], type_name)
         value_assert_equal_func(
             parsed[consts.INPUTS]['some_input'][consts.DEFAULT], default_value)
+        plan = prepare_deployment_plan(
+            parsed, inputs={'some_input': input_value})
+        value_assert_equal_func(plan['inputs']['some_input'], input_value)
+        if not isinstance(input_value, basestring):
+            return
+        # Testing Unicode case
+        unicode_input_value = unicode(input_value, encoding='utf-8')
+        plan = prepare_deployment_plan(
+            parsed, inputs={'some_input': unicode_input_value})
+        value_assert_equal_func(
+            plan['inputs']['some_input'], unicode_input_value)
 
     def _test_validate_value_type_mismatch(self, type_name, default_value):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
