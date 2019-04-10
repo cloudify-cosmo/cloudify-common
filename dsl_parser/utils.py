@@ -196,7 +196,7 @@ def parse_value(
     elif type_name == 'string':
         return value
     elif type_name == 'regex':
-        if isinstance(value, str):
+        if isinstance(value, basestring):
             try:
                 re.compile(value)
                 return value
