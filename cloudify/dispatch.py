@@ -23,10 +23,11 @@ import subprocess
 import sys
 import tempfile
 import threading
+from time import sleep
 import traceback
 import StringIO
 import Queue
-from time import sleep
+
 from contextlib import contextmanager
 
 from cloudify_rest_client.executions import Execution
@@ -136,6 +137,41 @@ class LockedFile(object):
                 self.LOGFILES.pop(self._filename)
 
 
+class TimeoutWrapper(object):
+    def __init__(self, cloudify_context, process):
+        self.timeout = cloudify_context.get('timeout')
+        self.timeout_recoverable = cloudify_context.get(
+            'timeout_recoverable', False)
+        self.timeout_encountered = False
+        self.process = process
+        self.timer = None
+        self.logger = logging.getLogger(__name__)
+
+    def _timer_func(self):
+        self.timeout_encountered = True
+        self.logger.warning("Terminating subprocess; PID=%d...",
+                            self.process.pid)
+        self.process.terminate()
+        for i in range(10):
+            if self.process.poll() is not None:
+                return
+            self.logger.warning("Subprocess still alive; waiting...")
+            sleep(0.5)
+        self.logger.warning("Subprocess still alive; sending KILL signal")
+        self.process.kill()
+        self.logger.warning("Subprocess killed")
+
+    def __enter__(self):
+        if self.timeout:
+            self.timer = threading.Timer(self.timeout, self._timer_func)
+            self.timer.start()
+        return self
+
+    def __exit__(self, *args):
+        if self.timer:
+            self.timer.cancel()
+
+
 class TaskHandler(object):
     NOTSET = object()
 
@@ -163,19 +199,32 @@ class TaskHandler(object):
         p = subprocess.Popen(*subprocess_args, **subprocess_kwargs)
         if self._process_registry:
             self._process_registry.register(self, p)
-        with self.logfile() as f:
-            while True:
-                line = p.stdout.readline()
-                if line:
-                    f.write(line)
-                if p.poll() is not None:
-                    break
+
+        with TimeoutWrapper(self.cloudify_context, p) as timeout_wrapper:
+            with self.logfile() as f:
+                while True:
+                    line = p.stdout.readline()
+                    if line:
+                        f.write(line)
+                    if p.poll() is not None:
+                        break
+
         if self._process_registry:
             self._process_registry.unregister(self, p)
+        if timeout_wrapper.timeout_encountered:
+            message = 'Process killed due to timeout of %d seconds' % \
+                      timeout_wrapper.timeout
+            if p.poll() is None:
+                message += ', however it has not stopped yet; please check ' \
+                           'process ID {0} manually'.format(p.pid)
+            exception_class = exceptions.RecoverableError if \
+                timeout_wrapper.timeout_recoverable else \
+                exceptions.NonRecoverableError
+            raise exception_class(message)
         if p.returncode in (-15, -9):  # SIGTERM, SIGKILL
             raise exceptions.NonRecoverableError('Process terminated (rc=%d)'
                                                  % p.returncode)
-        elif p.returncode != 0:
+        if p.returncode != 0:
             raise exceptions.NonRecoverableError(
                 'Unhandled exception occurred in operation dispatch (rc=%d)'
                 % p.returncode)

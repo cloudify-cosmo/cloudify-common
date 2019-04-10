@@ -589,6 +589,8 @@ class _WorkflowContextBase(object):
         operation_executor = op_struct['executor']
         operation_total_retries = op_struct['max_retries']
         operation_retry_interval = op_struct['retry_interval']
+        operation_timeout = op_struct['timeout']
+        operation_timeout_recoverable = op_struct['timeout_recoverable']
         task_name = operation_mapping
         if operation_total_retries is None:
             total_retries = self.internal.get_task_configuration()[
@@ -644,13 +646,16 @@ class _WorkflowContextBase(object):
                                          merged_into=operation_properties,
                                          allow_override=allow_kwargs_override)
 
-        return self.execute_task(task_name,
-                                 local=self.local,
-                                 kwargs=final_kwargs,
-                                 node_context=node_context,
-                                 send_task_events=send_task_events,
-                                 total_retries=total_retries,
-                                 retry_interval=operation_retry_interval)
+        return self.execute_task(
+            task_name,
+            local=self.local,
+            kwargs=final_kwargs,
+            node_context=node_context,
+            send_task_events=send_task_events,
+            total_retries=total_retries,
+            retry_interval=operation_retry_interval,
+            timeout=operation_timeout,
+            timeout_recoverable=operation_timeout_recoverable)
 
     @staticmethod
     def _merge_dicts(merged_from, merged_into, allow_override=False):
@@ -681,7 +686,9 @@ class _WorkflowContextBase(object):
     def _build_cloudify_context(self,
                                 task_id,
                                 task_name,
-                                node_context):
+                                node_context,
+                                timeout,
+                                timeout_recoverable):
         node_context = node_context or {}
         context = {
             '__cloudify_context': '0.3',
@@ -690,7 +697,9 @@ class _WorkflowContextBase(object):
             'task_name': task_name,
             'execution_id': self.execution_id,
             'workflow_id': self.workflow_id,
-            'tenant': self.tenant
+            'tenant': self.tenant,
+            'timeout': timeout,
+            'timeout_recoverable': timeout_recoverable
         }
         context.update(node_context)
         context.update(self.internal.handler.operation_cloudify_context)
@@ -705,7 +714,9 @@ class _WorkflowContextBase(object):
                      node_context=None,
                      send_task_events=DEFAULT_SEND_TASK_EVENTS,
                      total_retries=None,
-                     retry_interval=None):
+                     retry_interval=None,
+                     timeout=None,
+                     timeout_recoverable=None):
         """
         Execute a task
 
@@ -720,7 +731,9 @@ class _WorkflowContextBase(object):
         cloudify_context = self._build_cloudify_context(
             task_id,
             task_name,
-            node_context)
+            node_context,
+            timeout,
+            timeout_recoverable)
         kwargs['__cloudify_context'] = cloudify_context
 
         if self.dry_run:

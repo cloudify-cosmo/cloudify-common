@@ -68,7 +68,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 },
                 'stop': {
                     'implementation': 'mock.tasks.stop',
@@ -79,7 +81,9 @@ class InterfacesParserTest(testtools.TestCase):
                     },
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             },
             'interface2': {
@@ -88,7 +92,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             }
         }
@@ -197,7 +203,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 },
                 'stop': {
                     'implementation': 'mock.tasks.stop',
@@ -206,7 +214,9 @@ class InterfacesParserTest(testtools.TestCase):
                     },
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             }
         }
@@ -237,7 +247,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             }
         }
@@ -270,7 +282,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             }
         }
@@ -320,7 +334,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 },
                 'stop': {
                     'implementation': 'mock.tasks.stop',
@@ -331,7 +347,9 @@ class InterfacesParserTest(testtools.TestCase):
                     },
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             },
             'interface2': {
@@ -340,7 +358,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             }
         }
@@ -449,7 +469,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 },
                 'stop': {
                     'implementation': 'mock.tasks.stop',
@@ -458,7 +480,9 @@ class InterfacesParserTest(testtools.TestCase):
                     },
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             }
         }
@@ -489,7 +513,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             }
         }
@@ -531,7 +557,9 @@ class InterfacesParserTest(testtools.TestCase):
                     'inputs': {},
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 },
                 'stop': {
                     'implementation': 'mock.tasks.stop',
@@ -540,7 +568,9 @@ class InterfacesParserTest(testtools.TestCase):
                     },
                     'executor': None,
                     'max_retries': None,
-                    'retry_interval': None
+                    'retry_interval': None,
+                    'timeout': None,
+                    'timeout_recoverable': None
                 }
             }
         }

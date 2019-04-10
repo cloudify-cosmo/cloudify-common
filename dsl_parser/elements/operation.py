@@ -110,8 +110,24 @@ class OperationRetryInterval(Element):
         if validate_version:
             self.validate_version(version, (1, 1))
         if value is not None and value < 0:
-            raise ValueError("'{0}' value must be a non negative number but "
+            raise ValueError("'{0}' value must be a non-negative number but "
                              "got {1}.".format(self.name, value))
+
+
+class OperationTimeout(Element):
+    schema = Leaf(type=(int, float, long))
+
+    def validate(self):
+        value = self.initial_value
+        if value is None:
+            return
+        if value < 0:
+            raise ValueError("'{0}' value must be a non-negative number but "
+                             "got {1}.".format(self.name, value))
+
+
+class OperationTimeoutRecoverable(Element):
+    schema = Leaf(type=bool)
 
 
 class Operation(Element):
@@ -123,7 +139,9 @@ class Operation(Element):
                 'executor': None,
                 'inputs': {},
                 'max_retries': None,
-                'retry_interval': None
+                'retry_interval': None,
+                'timeout': None,
+                'timeout_recoverable': None
             }
         else:
             return self.build_dict_result()
@@ -139,6 +157,8 @@ class NodeTypeOperation(Operation):
             'executor': OperationExecutor,
             'max_retries': OperationMaxRetries,
             'retry_interval': OperationRetryInterval,
+            'timeout': OperationTimeout,
+            'timeout_recoverable': OperationTimeoutRecoverable
         }
     ]
 
@@ -153,6 +173,8 @@ class NodeTemplateOperation(Operation):
             'executor': OperationExecutor,
             'max_retries': OperationMaxRetries,
             'retry_interval': OperationRetryInterval,
+            'timeout': OperationTimeout,
+            'timeout_recoverable': OperationTimeoutRecoverable
         }
     ]
 
@@ -257,6 +279,9 @@ def process_operation(
     operation_executor = operation_content.get('executor', None)
     operation_max_retries = operation_content.get('max_retries', None)
     operation_retry_interval = operation_content.get('retry_interval', None)
+    operation_timeout = operation_content.get('timeout', None)
+    operation_timeout_recoverable = operation_content.get(
+        'timeout_recoverable', None)
 
     if not operation_mapping:
         if is_workflows:
@@ -290,7 +315,9 @@ def process_operation(
                 operation_inputs=operation_payload,
                 executor=operation_executor,
                 max_retries=operation_max_retries,
-                retry_interval=operation_retry_interval)
+                retry_interval=operation_retry_interval,
+                timeout=operation_timeout,
+                timeout_recoverable=operation_timeout_recoverable)
     elif (_is_local_script_resource_exists(resource_bases,
                                            operation_mapping) or
           _is_remote_script_resource(operation_mapping,
@@ -352,7 +379,9 @@ def process_operation(
                 operation_inputs=operation_payload,
                 executor=operation_executor,
                 max_retries=operation_max_retries,
-                retry_interval=operation_retry_interval)
+                retry_interval=operation_retry_interval,
+                timeout=operation_timeout,
+                timeout_recoverable=operation_timeout_recoverable)
     else:
         base_error_message = (
             "Could not extract plugin or a script resource is not found from "
