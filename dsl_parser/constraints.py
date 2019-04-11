@@ -113,7 +113,8 @@ class Equal(Constraint):
     def predicate(self, value):
         return _try_predicate_func(
             lambda: value == self.args,
-            _NOT_COMPARABLE_ERROR_MSG.format(type(self.args), type(value)))
+            _NOT_COMPARABLE_ERROR_MSG.format(
+                type(self.args).__name__, type(value).__name__))
 
 
 @register_constraint(name='greater_than', constraint_data_type=_SCALAR)
@@ -122,7 +123,8 @@ class GreaterThan(Constraint):
     def predicate(self, value):
         return _try_predicate_func(
             lambda: value > self.args,
-            _NOT_COMPARABLE_ERROR_MSG.format(type(self.args), type(value)))
+            _NOT_COMPARABLE_ERROR_MSG.format(
+                type(self.args).__name__, type(value).__name__))
 
 
 @register_constraint(name='greater_or_equal', constraint_data_type=_SCALAR)
@@ -131,7 +133,8 @@ class GreaterOrEqual(Constraint):
     def predicate(self, value):
         return _try_predicate_func(
             lambda: value >= self.args,
-            _NOT_COMPARABLE_ERROR_MSG.format(type(self.args), type(value)))
+            _NOT_COMPARABLE_ERROR_MSG.format(
+                type(self.args).__name__, type(value).__name__))
 
 
 @register_constraint(name='less_than', constraint_data_type=_SCALAR)
@@ -140,7 +143,8 @@ class LessThan(Constraint):
     def predicate(self, value):
         return _try_predicate_func(
             lambda: value < self.args,
-            _NOT_COMPARABLE_ERROR_MSG.format(type(self.args), type(value)))
+            _NOT_COMPARABLE_ERROR_MSG.format(
+                type(self.args).__name__, type(value).__name__))
 
 
 @register_constraint(name='less_or_equal', constraint_data_type=_SCALAR)
@@ -149,7 +153,8 @@ class LessOrEqual(Constraint):
     def predicate(self, value):
         return _try_predicate_func(
             lambda: value <= self.args,
-            _NOT_COMPARABLE_ERROR_MSG.format(type(self.args), type(value)))
+            _NOT_COMPARABLE_ERROR_MSG.format(
+                type(self.args).__name__, type(value).__name__))
 
 
 @register_constraint(name='in_range', constraint_data_type=_DUAL_SCALAR)
@@ -158,7 +163,8 @@ class InRange(Constraint):
     def predicate(self, value):
         return _try_predicate_func(
             lambda: self.args[0] <= value <= self.args[1],
-            _NOT_COMPARABLE_ERROR_MSG.format(type(self.args), type(value)))
+            _NOT_COMPARABLE_ERROR_MSG.format(
+                type(self.args).__name__, type(value).__name__))
 
 
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
@@ -170,7 +176,7 @@ class ValidValues(Constraint):
             "Value cannot be searched in the given "
             "valid values. Constraint argument type "
             "is '{0}' but value type is "
-            "'{1}'.".format(type(self.args), type(value)))
+            "'{1}'.".format(type(self.args).__name__, type(value).__name__))
 
 
 @register_constraint(name='length', constraint_data_type=_SCALAR)
@@ -179,7 +185,8 @@ class Length(Constraint):
     def predicate(self, value):
         return _try_predicate_func(
             lambda: len(value) == self.args,
-            _NO_LENGTH_ERROR_MSG.format(type(value)))
+            _NO_LENGTH_ERROR_MSG.format(
+                type(value).__name__))
 
 
 @register_constraint(name='min_length', constraint_data_type=_SCALAR)
@@ -188,7 +195,7 @@ class MinLength(Constraint):
     def predicate(self, value):
         return _try_predicate_func(
             lambda: len(value) >= self.args,
-            _NO_LENGTH_ERROR_MSG.format(type(value)))
+            _NO_LENGTH_ERROR_MSG.format(type(value).__name__))
 
 
 @register_constraint(name='max_length', constraint_data_type=_SCALAR)
@@ -197,7 +204,7 @@ class MaxLength(Constraint):
     def predicate(self, value):
         return _try_predicate_func(
             lambda: len(value) <= self.args,
-            _NO_LENGTH_ERROR_MSG.format(type(value)))
+            _NO_LENGTH_ERROR_MSG.format(type(value).__name__))
 
 
 @register_constraint(name='pattern', constraint_data_type=_REGEX)
@@ -209,7 +216,7 @@ class Pattern(Constraint):
         if not isinstance(value, basestring):
             raise exceptions.ConstraintException(
                 "Value must be of type string, got type "
-                "'{}'".format(type(value)))
+                "'{}'".format(type(value).__name__))
         return bool(re.match(self.args, value))
 
 
