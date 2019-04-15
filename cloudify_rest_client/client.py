@@ -42,7 +42,6 @@ from cloudify_rest_client.maintenance import MaintenanceModeClient
 from cloudify_rest_client.tenants import TenantsClient
 from cloudify_rest_client.user_groups import UserGroupsClient
 from cloudify_rest_client.users import UsersClient
-from cloudify_rest_client.cluster import ClusterClient
 from cloudify_rest_client.ldap import LdapClient
 from cloudify_rest_client.secrets import SecretsClient
 from cloudify_rest_client.agents import AgentsClient
@@ -423,7 +422,6 @@ class CloudifyClient(object):
         self.tenants = TenantsClient(self._client)
         self.user_groups = UserGroupsClient(self._client)
         self.users = UsersClient(self._client)
-        self.cluster = ClusterClient(self._client)
         self.ldap = LdapClient(self._client)
         self.secrets = SecretsClient(self._client)
         self.agents = AgentsClient(self._client)
