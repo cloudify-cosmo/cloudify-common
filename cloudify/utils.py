@@ -40,7 +40,10 @@ from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
-CFY_EXEC_TEMPDIR_ENVVAR = 'CFY_EXEC_TEMP'
+ENV_CFY_EXEC_TEMPDIR = 'CFY_EXEC_TEMP'
+ENV_AGENT_LOG_MAX_BYTES = 'AGENT_LOG_MAX_BYTES'
+ENV_AGENT_LOG_MAX_HISTORY = 'AGENT_LOG_MAX_HISTORY'
+
 INSPECT_TIMEOUT = 30
 ADMIN_API_TOKEN_PATH = '/opt/mgmtworker/work/admin_token'
 
@@ -283,7 +286,7 @@ def get_exec_tempdir():
     This is needed because some production systems disallow executions from
     the default temporary directory.
     """
-    return os.environ.get(CFY_EXEC_TEMPDIR_ENVVAR) or tempfile.gettempdir()
+    return os.environ.get(ENV_CFY_EXEC_TEMPDIR) or tempfile.gettempdir()
 
 
 def create_temp_folder():

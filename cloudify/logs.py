@@ -24,7 +24,9 @@ from functools import wraps
 from cloudify import constants
 from cloudify import amqp_client_utils
 from cloudify import event as _event
-from cloudify.utils import is_management_environment
+from cloudify.utils import (is_management_environment,
+                            ENV_AGENT_LOG_MAX_BYTES,
+                            ENV_AGENT_LOG_MAX_HISTORY)
 from cloudify.exceptions import ClosedAMQPClientException
 
 EVENT_CLASS = _event.Event
@@ -438,10 +440,10 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None,
             # variables are defined in the agent's service configuration file
             # that had been rendered during agent installation.
             if max_bytes is None:
-                max_bytes = int(os.environ['AGENT_LOG_MAX_BYTES'])
+                max_bytes = int(os.environ[ENV_AGENT_LOG_MAX_BYTES])
 
             if max_history is None:
-                max_history = int(os.environ['AGENT_LOG_MAX_HISTORY'])
+                max_history = int(os.environ[ENV_AGENT_LOG_MAX_HISTORY])
 
             # On linux agents, we may have logrotate in place in the future.
             # On Windows agents, there's no reliable logrotate alternative.
