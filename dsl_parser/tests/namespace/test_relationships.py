@@ -69,14 +69,18 @@ imports:
                                        'type': 'string'}},
                               executor='central_deployment_agent',
                               max_retries=5,
-                              retry_interval=6),
+                              retry_interval=6,
+                              timeout=None,
+                              timeout_recoverable=None),
             result_test_interface_4['test_interface4_op1'])
         self.assertEquals(
             operation_mapping(implementation='test--test_plugin.task_name',
                               inputs={},
                               executor=None,
                               max_retries=None,
-                              retry_interval=None),
+                              retry_interval=None,
+                              timeout=None,
+                              timeout_recoverable=None),
             result_test_interface_4['test_interface4_op2'])
 
     def test_basic_namespace_multi_import(self):
@@ -128,7 +132,9 @@ imports:
                                        'type': 'string'}},
                               executor='central_deployment_agent',
                               max_retries=5,
-                              retry_interval=6),
+                              retry_interval=6,
+                              timeout=None,
+                              timeout_recoverable=None),
             result_test_interface_4['test_interface4_op1'])
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
                              ['other_test--test_relationship'])
@@ -153,7 +159,9 @@ imports:
                          'type': 'string'}},
                 executor='central_deployment_agent',
                 max_retries=5,
-                retry_interval=6),
+                retry_interval=6,
+                timeout=None,
+                timeout_recoverable=None),
             result_test_interface_4['test_interface4_op1'])
 
     def test_relationship_collision(self):
@@ -267,7 +275,9 @@ imports:
                 inputs=inputs,
                 executor=None,
                 max_retries=None,
-                retry_interval=None
+                retry_interval=None,
+                timeout=None,
+                timeout_recoverable=None
             ))
 
         assert_operation(source_operation['op'])

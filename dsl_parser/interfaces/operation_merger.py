@@ -30,7 +30,9 @@ class OperationMerger(object):
                 inputs={},
                 executor=None,
                 max_retries=None,
-                retry_interval=None
+                retry_interval=None,
+                timeout=None,
+                timeout_recoverable=None
             )
         if isinstance(raw_operation, dict):
             return operation_mapping(
@@ -38,7 +40,10 @@ class OperationMerger(object):
                 inputs=raw_operation.get('inputs', {}),
                 executor=raw_operation.get('executor', None),
                 max_retries=raw_operation.get('max_retries', None),
-                retry_interval=raw_operation.get('retry_interval', None)
+                retry_interval=raw_operation.get('retry_interval', None),
+                timeout=raw_operation.get('timeout', None),
+                timeout_recoverable=raw_operation.get('timeout_recoverable',
+                                                      None)
             )
 
     def merge(self):
@@ -96,6 +101,14 @@ class NodeTemplateNodeTypeOperationMerger(OperationMerger):
         return self._derive_with_impl('retry_interval',
                                       merged_operation_implementation)
 
+    def _derive_timeout(self, merged_operation_implementation):
+        return self._derive_with_impl('timeout',
+                                      merged_operation_implementation)
+
+    def _derive_timeout_recoverable(self, merged_operation_implementation):
+        return self._derive_with_impl('timeout_recoverable',
+                                      merged_operation_implementation)
+
     def _derive_with_impl(self, field_name, merged_operation_implementation):
         node_type_operation_value = self.node_type_operation[
             field_name]
@@ -139,6 +152,9 @@ class NodeTemplateNodeTypeOperationMerger(OperationMerger):
                 executor=self.node_type_operation['executor'],
                 max_retries=self.node_type_operation['max_retries'],
                 retry_interval=self.node_type_operation['retry_interval'],
+                timeout=self.node_type_operation['timeout'],
+                timeout_recoverable=self.node_type_operation[
+                    'timeout_recoverable']
             )
 
         if self.node_template_operation == NO_OP:
@@ -157,13 +173,19 @@ class NodeTemplateNodeTypeOperationMerger(OperationMerger):
             merged_operation_implementation)
         merged_operation_retry_interval = self._derive_retry_interval(
             merged_operation_implementation)
+        merged_operation_timeout = self._derive_timeout(
+            merged_operation_implementation)
+        merged_operation_timeout_recoverable = \
+            self._derive_timeout_recoverable(merged_operation_implementation)
 
         return operation_mapping(
             implementation=merged_operation_implementation,
             inputs=merged_operation_inputs,
             executor=merged_operation_executor,
             max_retries=merged_operation_retries,
-            retry_interval=merged_operation_retry_interval
+            retry_interval=merged_operation_retry_interval,
+            timeout=merged_operation_timeout,
+            timeout_recoverable=merged_operation_timeout_recoverable
         )
 
 
@@ -200,12 +222,20 @@ class NodeTypeNodeTypeOperationMerger(OperationMerger):
         merged_operation_retry_interval = \
             self.overriding_node_type_operation['retry_interval']
 
+        merged_operation_timeout = \
+            self.overriding_node_type_operation['timeout']
+
+        merged_operation_timeout_recoverable = \
+            self.overriding_node_type_operation['timeout_recoverable']
+
         return operation_mapping(
             implementation=merged_operation_implementation,
             inputs=merged_operation_inputs,
             executor=merged_operation_executor,
             max_retries=merged_operation_max_retries,
-            retry_interval=merged_operation_retry_interval
+            retry_interval=merged_operation_retry_interval,
+            timeout=merged_operation_timeout,
+            timeout_recoverable=merged_operation_timeout_recoverable
         )
 
 

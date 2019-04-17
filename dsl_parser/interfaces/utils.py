@@ -87,13 +87,16 @@ def merge_schema_and_instance_inputs(schema_inputs,
 
 
 def operation_mapping(implementation, inputs, executor,
-                      max_retries, retry_interval):
+                      max_retries, retry_interval, timeout,
+                      timeout_recoverable):
     return {
         'implementation': implementation,
         'inputs': inputs,
         'executor': executor,
         'max_retries': max_retries,
-        'retry_interval': retry_interval
+        'retry_interval': retry_interval,
+        'timeout': timeout,
+        'timeout_recoverable': timeout_recoverable
     }
 
 
@@ -104,6 +107,8 @@ def no_op():
             executor=None,
             max_retries=None,
             retry_interval=None,
+            timeout=None,
+            timeout_recoverable=None
     )
 
 
@@ -115,7 +120,9 @@ def no_op_operation(operation_name):
             operation_inputs={},
             executor=None,
             max_retries=None,
-            retry_interval=None
+            retry_interval=None,
+            timeout=None,
+            timeout_recoverable=None
     )
 
 
@@ -125,7 +132,9 @@ def operation(name,
               operation_inputs,
               executor,
               max_retries,
-              retry_interval):
+              retry_interval,
+              timeout,
+              timeout_recoverable):
     return {
         'name': name,
         'plugin': plugin_name,
@@ -134,5 +143,7 @@ def operation(name,
         'inputs': operation_inputs,
         'has_intrinsic_functions': False,
         'max_retries': max_retries,
-        'retry_interval': retry_interval
+        'retry_interval': retry_interval,
+        'timeout': timeout,
+        'timeout_recoverable': timeout_recoverable
     }
