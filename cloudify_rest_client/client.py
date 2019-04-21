@@ -29,10 +29,8 @@ from cloudify_rest_client.nodes import NodesClient
 from cloudify_rest_client.users import UsersClient
 from cloudify_rest_client.agents import AgentsClient
 from cloudify_rest_client.events import EventsClient
-from cloudify_rest_client.cluster import ClusterClient
 from cloudify_rest_client.license import LicenseClient
 from cloudify_rest_client.manager import ManagerClient
-from cloudify_rest_client.search import SearchClient
 from cloudify_rest_client.plugins import PluginsClient
 from cloudify_rest_client.secrets import SecretsClient
 from cloudify_rest_client.tenants import TenantsClient
