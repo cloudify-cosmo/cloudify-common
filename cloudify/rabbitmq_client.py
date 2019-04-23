@@ -15,6 +15,7 @@
 ############
 
 
+import random
 import requests
 from urllib import quote
 
@@ -24,17 +25,30 @@ USERNAME_PATTERN = 'rabbitmq_user_{0}'
 
 
 class RabbitMQClient(object):
-    def __init__(self, host, username, password, port=RABBITMQ_MANAGEMENT_PORT,
-                 scheme='https', **request_kwargs):
-        self._host = host
+    def __init__(self, hosts, username, password,
+                 port=RABBITMQ_MANAGEMENT_PORT, scheme='https',
+                 logger=None, **request_kwargs):
+        if isinstance(hosts, basestring):
+            # Single host
+            hosts = [hosts]
+        else:
+            # Multiple hosts, roughly balance the load across them
+            random.shuffle(hosts)
+        self._hosts = hosts
+        self._target_host = self._hosts.pop()
         self._port = port
         self._scheme = scheme
+        self._logger = logger
         request_kwargs.setdefault('auth', (username, password))
         self._request_kwargs = request_kwargs
 
     @property
     def base_url(self):
-        return '{0}://{1}:{2}'.format(self._scheme, self._host, self._port)
+        return '{0}://{1}:{2}'.format(
+            self._scheme,
+            self._target_host,
+            self._port,
+        )
 
     def _do_request(self, request_method, url, **kwargs):
         request_kwargs = self._request_kwargs.copy()
@@ -43,8 +57,35 @@ class RabbitMQClient(object):
             .setdefault('Content-Type', 'application/json',)
 
         url = '{0}/api/{1}'.format(self.base_url, url)
-        response = request_method(url, **request_kwargs)
-        response.raise_for_status()
+        while True:
+            try:
+                response = request_method(url, **request_kwargs)
+                response.raise_for_status()
+                # Successful call, return the results
+                break
+            except Exception as err:
+                base_message = (
+                    'Failed making request to rabbitmq {url}. '
+                    'Error was: {err_type}- {err_msg}. '.format(
+                        url=url,
+                        err_type=type(err),
+                        err_msg=str(err),
+                    )
+                )
+                if len(self._hosts):
+                    if self._logger:
+                        self._logger.warning(
+                            base_message + 'Trying next host.'
+                        )
+                    self._target_host = self._hosts.pop()
+                    continue
+                else:
+                    # We tried all hosts, and nothing worked
+                    if self._logger:
+                        self._logger.error(
+                            base_message + 'No healthy hosts found.'
+                        )
+                    raise
         return response
 
     def get_vhost_names(self):
