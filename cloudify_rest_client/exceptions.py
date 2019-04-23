@@ -244,12 +244,26 @@ class DeploymentPluginNotFound(CloudifyClientError):
 
 class IncompatibleClusterArchitectureError(CloudifyClientError):
     """
-    Raise when a cluster node with architecture X is trying to join a cluster
+    Raised when a cluster node with architecture X is trying to join a cluster
     with architecture Y
 
     E.G. - Master is all-in-one and slave has an external database
     """
     ERROR_CODE = 'incompatible_cluster_architecture'
+
+
+class ExpiredCloudifyLicense(CloudifyClientError):
+    """
+    Raised when the Cloudify license on the Manager has expired
+    """
+    ERROR_CODE = 'expired_cloudify_license'
+
+
+class MissingCloudifyLicense(CloudifyClientError):
+    """
+    Raised when there is no Cloudify license on the Manager
+    """
+    ERROR_CODE = 'missing_cloudify_license'
 
 
 ERROR_MAPPING = dict([
@@ -280,4 +294,6 @@ ERROR_MAPPING = dict([
         NotClusterMaster,
         RemovedFromCluster,
         DeploymentPluginNotFound,
-        IncompatibleClusterArchitectureError]])
+        IncompatibleClusterArchitectureError,
+        MissingCloudifyLicense,
+        ExpiredCloudifyLicense]])
