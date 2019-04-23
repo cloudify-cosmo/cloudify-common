@@ -13,23 +13,22 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from collections import deque
+import copy
+import json
+import logging
 import os
+import Queue
+import random
 import ssl
 import sys
-import json
+import threading
 import time
 import uuid
-import Queue
-import logging
-import threading
-from collections import deque
-from urlparse import urlsplit, urlunsplit
 
 import pika
 import pika.exceptions
 
-from cloudify import cluster
-from cloudify import constants
 from cloudify import exceptions
 from cloudify import broker_config
 from cloudify.constants import EVENTS_EXCHANGE_NAME, LOGS_EXCHANGE_NAME
@@ -40,7 +39,7 @@ logger = logging.getLogger(__name__)
 if sys.version_info >= (2, 7):
     # requires 2.7+
     def wait_for_event(evt, poll_interval=0.5):
-        """Wait for a threading.Event by polling, which allows handling signals.
+        """Wait for a threading.Event by polling, to allow handling of signals.
         (ie. doesnt block ^C)
         """
         while True:
@@ -86,8 +85,8 @@ class AMQPParams(object):
         if not broker_ssl_options:
             broker_ssl_options = broker_config.broker_ssl_options
 
+        self.raw_host = amqp_host or broker_config.broker_hostname
         self._amqp_params = {
-            'host': amqp_host or broker_config.broker_hostname,
             'port': amqp_port or broker_config.broker_port,
             'virtual_host': amqp_vhost or broker_config.broker_vhost,
             'credentials': credentials,
@@ -115,7 +114,7 @@ def _get_daemon_factory():
         from cloudify_agent.api.factory import DaemonFactory
     except ImportError:
         # Might not exist in e.g. the REST service
-        DaemonFactory = None  # NOQA
+        DaemonFactory = None
     return DaemonFactory
 
 
@@ -143,44 +142,18 @@ class AMQPConnection(object):
         # the connection thread
         self._connection_tasks_queue = Queue.Queue()
 
-    @staticmethod
-    def _update_env_vars(new_host):
-        """
-        In cases where the broker IP has changed, we want to update the
-        environment variables
-
-        This is only relevant when were running as the agent worker,
-        and should have no effect when AMQPConnection is used in other
-        places (eg. cfy-agent).
-        """
-        if constants.MANAGER_FILE_SERVER_URL_KEY not in os.environ:
-            return
-        split_url = urlsplit(os.environ[constants.MANAGER_FILE_SERVER_URL_KEY])
-        new_url = split_url._replace(
-            netloc='{0}:{1}'.format(new_host, split_url.port)
-        )
-        os.environ[constants.MANAGER_FILE_SERVER_URL_KEY] = urlunsplit(new_url)
-        os.environ[constants.REST_HOST_KEY] = new_host
-
     def _get_connection_params(self):
+        params = self._amqp_params.as_pika_params()
+        hosts = copy.copy(self._amqp_params.raw_host)
+        if isinstance(hosts, basestring):
+            hosts = [hosts]
+        else:
+            random.shuffle(hosts)
         while True:
-            params = self._amqp_params.as_pika_params()
-            if self.name and self._daemon_factory:
-                daemon = self._daemon_factory().load(self.name)
-                if daemon.cluster:
-                    for node_ip in daemon.cluster:
-                        if params.host != node_ip:
-                            params.host = node_ip
-                            self._update_env_vars(node_ip)
-                            cluster.set_cluster_active(node_ip)
-                        yield params
-                    continue
-                else:
-                    if params.host != daemon.broker_ip:
-                        params.host = daemon.broker_ip
-                        self._update_env_vars(daemon.broker_ip)
-            logger.debug('Current connection params: {0}'.format(params))
-            yield params
+            for host in hosts:
+                params.host = host
+                logger.debug('Current connection params: {0}'.format(params))
+                yield params
 
     def _get_reconnect_backoff(self):
         backoff = self._reconnect_backoff
@@ -533,10 +506,12 @@ class ScheduledExecutionHandler(SendHandler):
         out_channel.queue_declare(queue=self.routing_key,
                                   arguments={
                                       'x-message-ttl': self.ttl,
-                                      'x-dead-letter-exchange':
-                                          self.target_exchange,
-                                      'x-dead-letter-routing-key':
+                                      'x-dead-letter-exchange': (
+                                          self.target_exchange
+                                      ),
+                                      'x-dead-letter-routing-key': (
                                           self.target_routing_key
+                                      ),
                                   },
                                   durable=True)
         out_channel.queue_bind(exchange=self.exchange, queue=self.routing_key)
