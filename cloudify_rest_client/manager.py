@@ -156,6 +156,11 @@ class ManagerItem(dict):
         """
         return self.get('networks')
 
+    @property
+    def ca_cert_content(self):
+        """Content of the CA cert to use for connecting to this manager"""
+        return self.get('ca_cert_content')
+
 
 class RabbitMQBrokerItem(dict):
     def __init__(self, broker):
@@ -241,8 +246,8 @@ class ManagerClient(object):
         return ConfigItem(response)
 
     def add_manager(self, hostname, private_ip, public_ip, version,
-                    edition, distribution, distro_release, fs_sync_node_id='',
-                    networks=None):
+                    edition, distribution, distro_release, ca_cert_content,
+                    fs_sync_node_id='', networks=None):
         """
         Add a new manager to the managers table
         """
@@ -254,6 +259,7 @@ class ManagerClient(object):
             'edition': edition,
             'distribution': distribution,
             'distro_release': distro_release,
+            'ca_cert_content': ca_cert_content
         }
         if fs_sync_node_id:
             manager['fs_sync_node_id'] = fs_sync_node_id
