@@ -25,6 +25,8 @@ from cloudify import constants
 from cloudify import amqp_client_utils
 from cloudify import event as _event
 from cloudify.utils import (is_management_environment,
+                            ENV_AGENT_LOG_LEVEL,
+                            ENV_AGENT_LOG_DIR,
                             ENV_AGENT_LOG_MAX_BYTES,
                             ENV_AGENT_LOG_MAX_HISTORY)
 from cloudify.exceptions import ClosedAMQPClientException
@@ -402,17 +404,17 @@ def setup_logger_base(log_level, log_dir=None):
 
 
 def setup_subprocess_logger():
-    setup_logger_base(os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG',
-                      os.environ.get('AGENT_LOG_DIR'))
+    setup_logger_base(os.environ.get(ENV_AGENT_LOG_LEVEL) or 'DEBUG',
+                      os.environ.get(ENV_AGENT_LOG_DIR))
 
 
 def setup_agent_logger(log_name, log_level=None, log_dir=None,
                        max_bytes=None, max_history=None):
     if log_level is None:
-        log_level = os.environ.get('AGENT_LOG_LEVEL') or 'DEBUG'
+        log_level = os.environ.get(ENV_AGENT_LOG_LEVEL) or 'DEBUG'
 
     if log_dir is None:
-        log_dir = os.environ.get('AGENT_LOG_DIR')
+        log_dir = os.environ.get(ENV_AGENT_LOG_DIR)
 
     setup_logger_base(log_level, log_dir)
 
