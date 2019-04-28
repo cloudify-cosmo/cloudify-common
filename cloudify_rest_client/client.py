@@ -27,6 +27,7 @@ from cloudify_rest_client import exceptions
 from cloudify_rest_client.ldap import LdapClient
 from cloudify_rest_client.nodes import NodesClient
 from cloudify_rest_client.users import UsersClient
+from cloudify_rest_client.sites import SitesClient
 from cloudify_rest_client.agents import AgentsClient
 from cloudify_rest_client.events import EventsClient
 from cloudify_rest_client.license import LicenseClient
@@ -431,3 +432,4 @@ class CloudifyClient(object):
         self.operations = OperationsClient(self._client)
         self.tasks_graphs = TasksGraphClient(self._client)
         self.license = LicenseClient(self._client)
+        self.sites = SitesClient(self._client)
