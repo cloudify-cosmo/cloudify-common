@@ -48,7 +48,7 @@ class TestInstallUninstallWorkflows(testtools.TestCase):
         cfy_local.execute('install')
         self._make_assertions(
             cfy_local,
-            ['cloudify.interfaces.validation.creation',
+            ['cloudify.interfaces.validation.create',
              'cloudify.interfaces.lifecycle.precreate',
              'cloudify.interfaces.lifecycle.create',
              'cloudify.interfaces.lifecycle.configure',
@@ -60,7 +60,7 @@ class TestInstallUninstallWorkflows(testtools.TestCase):
         cfy_local.execute('uninstall')
         self._make_assertions(
             cfy_local,
-            ['cloudify.interfaces.validation.deletion',
+            ['cloudify.interfaces.validation.delete',
              'cloudify.interfaces.lifecycle.prestop',
              'cloudify.interfaces.lifecycle.stop',
              'cloudify.interfaces.lifecycle.delete',
