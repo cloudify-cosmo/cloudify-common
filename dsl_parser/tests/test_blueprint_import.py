@@ -189,8 +189,8 @@ node_types:
         stop: {}
         delete: {}
       cloudify.interfaces.validation:
-        creation: {}
-        deletion: {}
+        create: {}
+        delete: {}
       cloudify.interfaces.monitoring:
         start: {}
         stop: {}

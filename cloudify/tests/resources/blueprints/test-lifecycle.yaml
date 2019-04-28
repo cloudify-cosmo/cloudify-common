@@ -23,5 +23,5 @@ node_templates:
         delete: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
         postdelete: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
       cloudify.interfaces.validation:
-        creation: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
-        deletion: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        create: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation
+        delete: mock.cloudify.tests.test_builtin_workflows.lifecycle_test_operation

@@ -270,7 +270,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     creation_validation = _skip_nop_operations(
         pre=instance.send_event('Validating node instance before creation'),
         task=instance.execute_operation(
-            'cloudify.interfaces.validation.creation'
+            'cloudify.interfaces.validation.create'
         ),
         post=instance.send_event('Node instance validated before creation')
     )
@@ -410,7 +410,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     deletion_validation = _skip_nop_operations(
         pre=instance.send_event('Validating node instance before deletion'),
         task=instance.execute_operation(
-            'cloudify.interfaces.validation.deletion'
+            'cloudify.interfaces.validation.delete'
         ),
         post=instance.send_event('Node instance validated before deletion')
     )
