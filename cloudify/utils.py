@@ -41,6 +41,8 @@ from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
 ENV_CFY_EXEC_TEMPDIR = 'CFY_EXEC_TEMP'
+ENV_AGENT_LOG_LEVEL = 'AGENT_LOG_LEVEL'
+ENV_AGENT_LOG_DIR = 'AGENT_LOG_DIR'
 ENV_AGENT_LOG_MAX_BYTES = 'AGENT_LOG_MAX_BYTES'
 ENV_AGENT_LOG_MAX_HISTORY = 'AGENT_LOG_MAX_HISTORY'
 
