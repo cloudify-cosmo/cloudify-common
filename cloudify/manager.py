@@ -17,14 +17,13 @@ import os
 import requests
 from urlparse import urljoin
 
-from cloudify_rest_client import CloudifyClient
 from cloudify_rest_client.constants import VisibilityState
 
 from cloudify import constants, utils
 from cloudify.state import ctx, workflow_ctx, NotInContext
 from cloudify.exceptions import (HttpException,
                                  NonRecoverableError)
-from cloudify.cluster import CloudifyClusterClient, get_cluster_settings
+from cloudify.cluster import CloudifyClusterClient
 
 
 class NodeInstance(object):
@@ -129,11 +128,6 @@ def get_rest_client(tenant=None, api_token=None):
     :returns: A REST client configured to connect to the manager in context
     :rtype: cloudify_rest_client.CloudifyClient
     """
-    cluster_settings = get_cluster_settings()
-    if cluster_settings:
-        client_class = CloudifyClusterClient
-    else:
-        client_class = CloudifyClient
 
     if not tenant:
         tenant = utils.get_tenant_name()
@@ -153,7 +147,7 @@ def get_rest_client(tenant=None, api_token=None):
     else:
         token = utils.get_rest_token()
 
-    return client_class(
+    return CloudifyClusterClient(
         headers=headers,
         host=utils.get_manager_rest_service_host(),
         port=utils.get_manager_rest_service_port(),
@@ -302,6 +296,8 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
             return None
 
     resource = None
+    deployment_url = ''
+    fileservers = utils.get_manager_file_server_url()
     if deployment_id is not None:
         relative_deployment_path = os.path.join(
             constants.FILE_SERVER_RESOURCES_FOLDER,
@@ -309,12 +305,18 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
             tenant_name,
             deployment_id
         )
-        deployment_base_url = urljoin(
-            utils.get_manager_file_server_url(),
-            relative_deployment_path
-        ).replace('\\', '/')
-        resource = _get_resource(deployment_base_url)
-
+        for base_url in fileservers:
+            deployment_url = urljoin(
+                base_url,
+                relative_deployment_path
+            ).replace('\\', '/')
+            try:
+                resource = _get_resource(deployment_url)
+            except requests.ConnectionError:
+                continue
+            if resource:
+                break
+    blueprint_url = ''
     if resource is None:
         client = get_rest_client()
         blueprint = client.blueprints.get(blueprint_id)
@@ -328,18 +330,24 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
             tenant_name,
             blueprint_id
         )
-        blueprint_base_url = urljoin(
-            utils.get_manager_file_server_url(),
-            relative_blueprint_path
-        ).replace('\\', '/')
-        resource = _get_resource(blueprint_base_url)
-        if resource is None:
-            if deployment_id is None:
-                url = blueprint_base_url
-            else:
-                url = ','.join([deployment_base_url, blueprint_base_url])
-            raise HttpException(url, 404, 'Resource not found: {0}'
-                                .format(resource_path))
+
+        for base_url in fileservers:
+            blueprint_url = urljoin(
+                base_url,
+                relative_blueprint_path
+            ).replace('\\', '/')
+            try:
+                resource = _get_resource(blueprint_url)
+            except requests.ConnectionError:
+                continue
+            if resource:
+                break
+
+    if resource is None:
+        url = '{0},{1}'.format(blueprint_url, deployment_url) \
+            if deployment_url else blueprint_url
+        raise HttpException(url, 404, 'Resource not found: {0}'
+                            .format(resource_path))
     return resource
 
 
