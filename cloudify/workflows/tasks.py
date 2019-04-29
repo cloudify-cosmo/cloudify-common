@@ -668,13 +668,16 @@ class LocalWorkflowTask(WorkflowTask):
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
-        task = super(LocalWorkflowTask, cls).restore(ctx, graph, task_descr)
-        if task_descr and 'task' in task_descr:
-            task.local_task = _LocalTask.restore(task_descr)
+        local_task_descr = task_descr.parameters['task_kwargs'].get(
+            'local_task')
+        if local_task_descr:
+            local_task = _LocalTask.restore(local_task_descr)
         else:
-            # a local task that was not stored
-            task.local_task = lambda *a, **kw: None
-        return task
+            # task wasn't stored. Noqa because we do want to assign a lambda
+            # here, that is a noop.
+            local_task = lambda *a, **kw: None  # NOQA
+        task_descr.parameters['task_kwargs']['local_task'] = local_task
+        return super(LocalWorkflowTask, cls).restore(ctx, graph, task_descr)
 
     def _update_stored_state(self, state):
         # no need to store SENT - work up to it can safely be redone
@@ -1090,7 +1093,7 @@ class _SendNodeEventTask(_LocalTask):
 
     # local/remote only differ by the used output function
     def remote(self):
-        self.send(out_func=logs.logs.amqp_event_out)
+        self.send(out_func=logs.amqp_event_out)
 
     def local(self):
         self.send(out_func=logs.stdout_event_out)
