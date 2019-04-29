@@ -969,23 +969,35 @@ class HandlerResult(object):
 # .send_event, etc.
 
 class _LocalTask(object):
+    """Base class for local tasks, containing utilities."""
+
+    # all local task disable sending task events
     workflow_task_config = {'send_task_events': False}
 
     @property
     def __name__(self):
+        # utility, also making subclasses be similar to plain functions
         return self.__class__.__name__
 
+    # avoid calling .__subclasses__() many times
     _subclass_cache = None
 
     @classmethod
     def restore(cls, task_descr):
+        """Rehydrate a _LocalTask instance from a dict description.
+
+        The dict will contain a 'task' key and possibly a 'kwargs' key.
+        Choose the appropriate subclass and return an instance of it.
+        """
         if cls._subclass_cache is None:
             cls._subclass_cache = {
                 subcls.__name__: subcls for subcls in cls.__subclasses__()
             }
         task_class = cls._subclass_cache[task_descr['task']]
-        return task_class(**task_descr['kwargs'])
+        return task_class(**task_descr.get('kwargs') or {})
 
+    # split local/remote on this level. This allows us to reuse implementation,
+    # avoiding the need for separate local/remote subclasses.
     def __call__(self):
         if workflow_ctx.local:
             return self.local()
@@ -1000,10 +1012,16 @@ class _LocalTask(object):
 
     @property
     def storage(self):
+        """Shorthand for accessing the local storage.
+
+        Only available in local workflows.
+        """
         return workflow_ctx.internal.handler.storage
 
 
 class _SetNodeInstanceStateTask(_LocalTask):
+    """A local task that sets a node instance state."""
+
     def __init__(self, node_instance_id, state):
         self._node_instance_id = node_instance_id
         self._state = state
@@ -1024,13 +1042,15 @@ class _SetNodeInstanceStateTask(_LocalTask):
         return node_instance
 
     def local(self):
-        workflow_ctx.storage.update_node_instance(
+        self.storage.update_node_instance(
             self._node_instance_id,
             state=self._state,
             version=None)
 
 
 class _GetNodeInstanceStateTask(_LocalTask):
+    """A local task that gets a node instance state."""
+
     def __init__(self, node_instance_id):
         self._node_instance_id = node_instance_id
 
@@ -1046,12 +1066,13 @@ class _GetNodeInstanceStateTask(_LocalTask):
         return get_node_instance(self._node_instance_idd).state
 
     def local(self):
-        instance = workflow_ctx.storage.get_node_instance(
+        instance = self.storage.get_node_instance(
             self._node_instance_id)
         return instance.state
 
 
 class _SendNodeEventTask(_LocalTask):
+    """A local task that sends a node event."""
     def __init__(self, node_instance_id, event, additional_context):
         self._node_instance_id = node_instance_id
         self._event = event
@@ -1067,6 +1088,7 @@ class _SendNodeEventTask(_LocalTask):
             }
         }
 
+    # local/remote only differ by the used output function
     def remote(self):
         self.send(out_func=logs.logs.amqp_event_out)
 
@@ -1085,6 +1107,7 @@ class _SendNodeEventTask(_LocalTask):
 
 
 class _SendWorkflowEventTask(_LocalTask):
+    """A local task that sends a workflow event."""
     def __init__(self, event, event_type, args, additional_context=None):
         self._event = event
         self._event_type = event_type
@@ -1112,6 +1135,7 @@ class _SendWorkflowEventTask(_LocalTask):
 
 
 class _UpdateExecutionStatusTask(_LocalTask):
+    """A local task that sets the execution status."""
     def __init__(self, status):
         self._status = status
 
