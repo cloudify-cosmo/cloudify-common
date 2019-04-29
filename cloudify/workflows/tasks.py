@@ -1151,7 +1151,7 @@ class _UpdateExecutionStatusTask(_LocalTask):
         update_execution_status(
             workflow_ctx.execution_id, self._status)
 
-    def local(self, new_status):
+    def local(self):
         raise NotImplementedError(
             'Update execution status is not supported for '
             'local workflow execution')
