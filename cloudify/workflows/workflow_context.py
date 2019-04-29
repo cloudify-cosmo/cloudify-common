@@ -1226,7 +1226,7 @@ class CloudifyWorkflowContextHandler(object):
     def get_send_node_event_task(self, workflow_node_instance,
                                  event, additional_context=None):
         return _SendNodeEventTask(
-            workflow_node_instance, event, additional_context)
+            workflow_node_instance.id, event, additional_context)
 
     def get_send_workflow_event_task(self, event, event_type, args,
                                      additional_context=None):
@@ -1390,6 +1390,17 @@ class _TaskDispatcher(object):
 class _LocalTask(object):
     workflow_task_config = {'send_task_events': False}
 
+    _subclass_cache = None
+
+    @classmethod
+    def restore(cls, task_descr):
+        if cls._subclass_cache is None:
+            cls._subclass_cache = {
+                subcls.__name__: subcls for subcls in cls.__subclasses__()
+            }
+        task_class = cls._subclass_cache[task_descr['task']]
+        return task_class(**task_descr['kwargs'])
+
     def __call__(self):
         if current_workflow_ctx.local:
             return self.local()
@@ -1412,6 +1423,15 @@ class _SetNodeInstanceStateTask(_LocalTask):
         self._node_instance_id = node_instance_id
         self._state = state
 
+    def dump(self):
+        return {
+            'task': self.__class__.__name__,
+            'kwargs': {
+                'node_instance_id': self._node_instance_id,
+                'state': self._state
+            }
+        }
+
     def remote(self):
         node_instance = get_node_instance(self._node_instance_id)
         node_instance.state = self._state
@@ -1429,6 +1449,14 @@ class _GetNodeInstanceStateTask(_LocalTask):
     def __init__(self, node_instance_id):
         self._node_instance_id = node_instance_id
 
+    def dump(self):
+        return {
+            'task': self.__class__.__name__,
+            'kwargs': {
+                'node_instance_id': self._node_instance_id
+            }
+        }
+
     def remote(self):
         return get_node_instance(self._node_instance_idd).state
 
@@ -1439,10 +1467,20 @@ class _GetNodeInstanceStateTask(_LocalTask):
 
 
 class _SendNodeEventTask(_LocalTask):
-    def __init__(self, node_instance, event, additional_context):
-        self._node_instance = node_instance
+    def __init__(self, node_instance_id, event, additional_context):
+        self._node_instance_id = node_instance_id
         self._event = event
         self._additional_context = additional_context
+
+    def dump(self):
+        return {
+            'task': self.__class__.__name__,
+            'kwargs': {
+                'node_instance_id': self._node_instance_id,
+                'event': self._event,
+                'additional_context': self._additional_context
+            }
+        }
 
     def remote(self):
         self.send(out_func=logs.logs.amqp_event_out)
@@ -1451,8 +1489,10 @@ class _SendNodeEventTask(_LocalTask):
         self.send(out_func=logs.stdout_event_out)
 
     def send(self, out_func):
+        node_instance = current_workflow_ctx.get_node_instance(
+            self._node_instance_id)
         send_workflow_node_event(
-            ctx=self._node_instance,
+            ctx=node_instance,
             event_type='workflow_node_event',
             message=self._event,
             additional_context=self._additional_context,
@@ -1466,6 +1506,17 @@ class _SendWorkflowEventTask(_LocalTask):
         self._args = args
         self._additional_context = additional_context
 
+    def dump(self):
+        return {
+            'task': self.__class__.__name__,
+            'kwargs': {
+                'event': self._event,
+                'event_type': self.event_type,
+                'args': self._args,
+                'additional_context': self._additional_context
+            }
+        }
+
     def __call__(self):
         return current_workflow_ctx.internal.send_workflow_event(
             event_type=self._event_type,
@@ -1478,6 +1529,14 @@ class _SendWorkflowEventTask(_LocalTask):
 class _UpdateExecutionStatusTask(_LocalTask):
     def __init__(self, status):
         self._status = status
+
+    def dump(self):
+        return {
+            'task': self.__class__.__name__,
+            'kwargs': {
+                'status': self._status,
+            }
+        }
 
     def remote(self):
         update_execution_status(

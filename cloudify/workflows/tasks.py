@@ -651,17 +651,24 @@ class LocalWorkflowTask(WorkflowTask):
 
     def dump(self):
         serialized = super(LocalWorkflowTask, self).dump()
+        if hasattr(self.local_task, 'dump'):
+            serialized_local_task = self.local_task.dump()
+        else:
+            serialized_local_task = None
         serialized['parameters']['task_kwargs'] = {
             'name': self._name,
-            'local_task': None
+            'local_task': serialized_local_task
         }
         return serialized
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
         task = super(LocalWorkflowTask, cls).restore(ctx, graph, task_descr)
-        # TODO restoring local tasks is not supported yet
-        task.local_task = lambda *a, **kw: None
+        if task_descr and 'task' in task_descr:
+            task.local_task = _LocalTask.restore(task_descr)
+        else:
+            # a local task that was not stored
+            task.local_task = lambda *a, **kw: None
         return task
 
     def _update_stored_state(self, state):
