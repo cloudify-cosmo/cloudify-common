@@ -27,7 +27,7 @@ from cloudify.manager import (
     update_node_instance
 )
 from cloudify.constants import MGMTWORKER_QUEUE
-from cloudify.state import current_workflow_ctx
+from cloudify.state import workflow_ctx
 from cloudify.utils import exception_to_error_cause
 # imported for backwards compat:
 from cloudify.utils import INSPECT_TIMEOUT  # noqa
@@ -971,6 +971,10 @@ class HandlerResult(object):
 class _LocalTask(object):
     workflow_task_config = {'send_task_events': False}
 
+    @property
+    def __name__(self):
+        return self.__class__.__name__
+
     _subclass_cache = None
 
     @classmethod
@@ -983,7 +987,7 @@ class _LocalTask(object):
         return task_class(**task_descr['kwargs'])
 
     def __call__(self):
-        if current_workflow_ctx.local:
+        if workflow_ctx.local:
             return self.local()
         else:
             return self.remote()
@@ -996,7 +1000,7 @@ class _LocalTask(object):
 
     @property
     def storage(self):
-        return current_workflow_ctx.internal.handler.storage
+        return workflow_ctx.internal.handler.storage
 
 
 class _SetNodeInstanceStateTask(_LocalTask):
@@ -1006,7 +1010,7 @@ class _SetNodeInstanceStateTask(_LocalTask):
 
     def dump(self):
         return {
-            'task': self.__class__.__name__,
+            'task': self.__name__,
             'kwargs': {
                 'node_instance_id': self._node_instance_id,
                 'state': self._state
@@ -1020,7 +1024,7 @@ class _SetNodeInstanceStateTask(_LocalTask):
         return node_instance
 
     def local(self):
-        current_workflow_ctx.storage.update_node_instance(
+        workflow_ctx.storage.update_node_instance(
             self._node_instance_id,
             state=self._state,
             version=None)
@@ -1032,7 +1036,7 @@ class _GetNodeInstanceStateTask(_LocalTask):
 
     def dump(self):
         return {
-            'task': self.__class__.__name__,
+            'task': self.__name__,
             'kwargs': {
                 'node_instance_id': self._node_instance_id
             }
@@ -1042,7 +1046,7 @@ class _GetNodeInstanceStateTask(_LocalTask):
         return get_node_instance(self._node_instance_idd).state
 
     def local(self):
-        instance = current_workflow_ctx.storage.get_node_instance(
+        instance = workflow_ctx.storage.get_node_instance(
             self._node_instance_id)
         return instance.state
 
@@ -1055,7 +1059,7 @@ class _SendNodeEventTask(_LocalTask):
 
     def dump(self):
         return {
-            'task': self.__class__.__name__,
+            'task': self.__name__,
             'kwargs': {
                 'node_instance_id': self._node_instance_id,
                 'event': self._event,
@@ -1070,7 +1074,7 @@ class _SendNodeEventTask(_LocalTask):
         self.send(out_func=logs.stdout_event_out)
 
     def send(self, out_func):
-        node_instance = current_workflow_ctx.get_node_instance(
+        node_instance = workflow_ctx.get_node_instance(
             self._node_instance_id)
         logs.send_workflow_node_event(
             ctx=node_instance,
@@ -1089,7 +1093,7 @@ class _SendWorkflowEventTask(_LocalTask):
 
     def dump(self):
         return {
-            'task': self.__class__.__name__,
+            'task': self.__name__,
             'kwargs': {
                 'event': self._event,
                 'event_type': self.event_type,
@@ -1099,7 +1103,7 @@ class _SendWorkflowEventTask(_LocalTask):
         }
 
     def __call__(self):
-        return current_workflow_ctx.internal.send_workflow_event(
+        return workflow_ctx.internal.send_workflow_event(
             event_type=self._event_type,
             message=self._event,
             args=self._args,
@@ -1121,7 +1125,7 @@ class _UpdateExecutionStatusTask(_LocalTask):
 
     def remote(self):
         update_execution_status(
-            current_workflow_ctx.execution_id, self._status)
+            workflow_ctx.execution_id, self._status)
 
     def local(self, new_status):
         raise NotImplementedError(
