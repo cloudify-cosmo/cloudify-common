@@ -237,8 +237,7 @@ class CloudifyWorkflowNodeInstance(object):
         if self.ctx.dry_run:
             return NOPLocalWorkflowTask(self.ctx)
 
-        set_state_task = self.ctx.internal.handler.get_set_state_task(
-            self, state)
+        set_state_task = _SetNodeInstanceStateTask(self.id, state)
 
         return self.ctx.local_task(
             local_task=set_state_task,
@@ -251,7 +250,7 @@ class CloudifyWorkflowNodeInstance(object):
 
         :return: The node state
         """
-        get_state_task = self.ctx.internal.handler.get_get_state_task(self)
+        get_state_task = _GetNodeInstanceStateTask(self.id)
         return self.ctx.local_task(
             local_task=get_state_task,
             node=self)
@@ -264,8 +263,8 @@ class CloudifyWorkflowNodeInstance(object):
         :param additional_context: additional context to be added to the
                context
         """
-        send_event_task = self.ctx.internal.handler.get_send_node_event_task(
-            self, event, additional_context)
+        send_event_task = _SendNodeEventTask(
+            self.id, event, additional_context)
         return self.ctx.local_task(
             local_task=send_event_task,
             node=self,
@@ -557,7 +556,7 @@ class _WorkflowContextBase(object):
                context
         """
 
-        send_event_task = self.internal.handler.get_send_workflow_event_task(
+        send_event_task = _SendWorkflowEventTask(
             event, event_type, args, additional_context)
         return self.local_task(
             local_task=send_event_task,
@@ -677,8 +676,7 @@ class _WorkflowContextBase(object):
         Note that the workflow status gets automatically updated before and
         after its run (whether the run succeeded or failed)
         """
-        update_execution_status_task = \
-            self.internal.handler.get_update_execution_status_task(new_status)
+        update_execution_status_task = _UpdateExecutionStatusTask(new_status)
 
         return self.local_task(
             local_task=update_execution_status_task,
@@ -1215,27 +1213,6 @@ class CloudifyWorkflowContextHandler(object):
 
     def remove_operation(self, operation_id):
         raise NotImplementedError('Implemented by subclasses')
-
-    # factory methods for local tasks
-    # TODO: if possible, consider inlining those to simplify
-    def get_set_state_task(self, workflow_node_instance, state):
-        return _SetNodeInstanceStateTask(workflow_node_instance.id, state)
-
-    def get_get_state_task(self, workflow_node_instance):
-        return _GetNodeInstanceStateTask(workflow_node_instance.id)
-
-    def get_send_node_event_task(self, workflow_node_instance,
-                                 event, additional_context=None):
-        return _SendNodeEventTask(
-            workflow_node_instance.id, event, additional_context)
-
-    def get_send_workflow_event_task(self, event, event_type, args,
-                                     additional_context=None):
-        return _SendWorkflowEventTask(event, event_type, args,
-                                      additional_context)
-
-    def get_update_execution_status_task(self, new_status):
-        return _UpdateExecutionStatusTask(new_status)
 
 
 class _AsyncResult(object):
