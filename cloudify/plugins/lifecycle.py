@@ -270,7 +270,8 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     # Only exists in >= 5.0.
     if 'cloudify.interfaces.validation.create' in instance.node.operations:
         creation_validation = _skip_nop_operations(
-            pre=instance.send_event('Validating node instance before creation'),
+            pre=instance.send_event(
+                'Validating node instance before creation'),
             task=instance.execute_operation(
                 'cloudify.interfaces.validation.create'
             ),
@@ -414,7 +415,8 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     # Only exists in >= 5.0.
     if 'cloudify.interfaces.validation.delete' in instance.node.operations:
         deletion_validation = _skip_nop_operations(
-            pre=instance.send_event('Validating node instance before deletion'),
+            pre=instance.send_event(
+                'Validating node instance before deletion'),
             task=instance.execute_operation(
                 'cloudify.interfaces.validation.delete'
             ),
