@@ -1168,30 +1168,11 @@ class CloudifyWorkflowContextHandler(object):
     def get_send_task_event_func(self, task):
         raise NotImplementedError('Implemented by subclasses')
 
-    def get_update_execution_status_task(self, new_status):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_send_node_event_task(self, workflow_node_instance,
-                                 event, additional_context=None):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_send_workflow_event_task(self, event, event_type, args,
-                                     additional_context=None):
-        raise NotImplementedError('Implemented by subclasses')
-
     def get_task(self, workflow_task, queue=None, target=None, tenant=None):
         raise NotImplementedError('Implemented by subclasses')
 
     @property
     def operation_cloudify_context(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_set_state_task(self,
-                           workflow_node_instance,
-                           state):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_get_state_task(self, workflow_node_instance):
         raise NotImplementedError('Implemented by subclasses')
 
     def send_workflow_event(self, event_type, message=None, args=None,
@@ -1233,6 +1214,27 @@ class CloudifyWorkflowContextHandler(object):
 
     def remove_operation(self, operation_id):
         raise NotImplementedError('Implemented by subclasses')
+
+    # factory methods for local tasks
+    # TODO: if possible, consider inlining those to simplify
+    def get_set_state_task(self, workflow_node_instance, state):
+        return _SetNodeInstanceStateTask(workflow_node_instance.id, state)
+
+    def get_get_state_task(self, workflow_node_instance):
+        return _GetNodeInstanceStateTask(workflow_node_instance.id)
+
+    def get_send_node_event_task(self, workflow_node_instance,
+                                 event, additional_context=None):
+        return _SendNodeEventTask(
+            workflow_node_instance, event, additional_context)
+
+    def get_send_workflow_event_task(self, event, event_type, args,
+                                     additional_context=None):
+        return _SendWorkflowEventTask(event, event_type, args,
+                                      additional_context)
+
+    def get_update_execution_status_task(self, new_status):
+        return _UpdateExecutionStatusTask(new_status)
 
 
 class _AsyncResult(object):
@@ -1377,6 +1379,116 @@ class _TaskDispatcher(object):
         client.close(wait=False)
 
 
+# Local tasks implementation
+# A local task is a callable that will be passed to a LocalWorkflowTask,
+# and then executed in a separate thread (see LocalTasksProcessing). Those
+# tasks can implement .restore (classmethod) and .dump methods in order to
+# be resumable.
+# The user-facing interface for those tasks are node_instance.set_state,
+# .send_event, etc.
+
+class _LocalTask(object):
+    workflow_task_config = {'send_task_events': False}
+
+    def __call__(self):
+        if current_workflow_ctx.local:
+            return self.local()
+        else:
+            return self.remote()
+
+    def local(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def remote(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    @property
+    def storage(self):
+        return current_workflow_ctx.internal.handler.storage
+
+
+class _SetNodeInstanceStateTask(_LocalTask):
+    def __init__(self, node_instance_id, state):
+        self._node_instance_id = node_instance_id
+        self._state = state
+
+    def remote(self):
+        node_instance = get_node_instance(self._node_instance_id)
+        node_instance.state = self._state
+        update_node_instance(node_instance)
+        return node_instance
+
+    def local(self):
+        current_workflow_ctx.storage.update_node_instance(
+            self._node_instance_id,
+            state=self._state,
+            version=None)
+
+
+class _GetNodeInstanceStateTask(_LocalTask):
+    def __init__(self, node_instance_id):
+        self._node_instance_id = node_instance_id
+
+    def remote(self):
+        return get_node_instance(self._node_instance_idd).state
+
+    def local(self):
+        instance = current_workflow_ctx.storage.get_node_instance(
+            self._node_instance_id)
+        return instance.state
+
+
+class _SendNodeEventTask(_LocalTask):
+    def __init__(self, node_instance, event, additional_context):
+        self._node_instance = node_instance
+        self._event = event
+        self._additional_context = additional_context
+
+    def remote(self):
+        self.send(out_func=logs.logs.amqp_event_out)
+
+    def local(self):
+        self.send(out_func=logs.stdout_event_out)
+
+    def send(self, out_func):
+        send_workflow_node_event(
+            ctx=self._node_instance,
+            event_type='workflow_node_event',
+            message=self._event,
+            additional_context=self._additional_context,
+            out_func=out_func)
+
+
+class _SendWorkflowEventTask(_LocalTask):
+    def __init__(self, event, event_type, args, additional_context=None):
+        self._event = event
+        self._event_type = event_type
+        self._args = args
+        self._additional_context = additional_context
+
+    def __call__(self):
+        return current_workflow_ctx.internal.send_workflow_event(
+            event_type=self._event_type,
+            message=self._event,
+            args=self._args,
+            additional_context=self._additional_context
+        )
+
+
+class _UpdateExecutionStatusTask(_LocalTask):
+    def __init__(self, status):
+        self._status = status
+
+    def remote(self):
+        update_execution_status(
+            current_workflow_ctx.execution_id, self._status)
+
+    def local(self, new_status):
+        raise NotImplementedError(
+            'Update execution status is not supported for '
+            'local workflow execution')
+
+
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
         super(RemoteContextHandler, self).__init__(*args, **kwargs)
@@ -1388,21 +1500,6 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def get_send_task_event_func(self, task):
         return events.send_task_event_func_remote
-
-    def get_update_execution_status_task(self, new_status):
-        def update_execution_status_task():
-            update_execution_status(self.workflow_ctx.execution_id, new_status)
-        return update_execution_status_task
-
-    def get_send_workflow_event_task(self, event, event_type, args,
-                                     additional_context=None):
-        @task_config(send_task_events=False)
-        def send_event_task():
-            self.send_workflow_event(event_type=event_type,
-                                     message=event,
-                                     args=args,
-                                     additional_context=additional_context)
-        return send_event_task
 
     def get_task(self, workflow_task, queue=None, target=None, tenant=None):
         # augment cloudify context with target and queue
@@ -1424,23 +1521,6 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         return {'local': False,
                 'bypass_maintenance': utils.get_is_bypass_maintenance(),
                 'rest_token': utils.get_rest_token()}
-
-    def get_set_state_task(self,
-                           workflow_node_instance,
-                           state):
-        @task_config(send_task_events=False)
-        def set_state_task():
-            node_state = get_node_instance(workflow_node_instance.id)
-            node_state.state = state
-            update_node_instance(node_state)
-            return node_state
-        return set_state_task
-
-    def get_get_state_task(self, workflow_node_instance):
-        @task_config(send_task_events=False)
-        def get_state_task():
-            return get_node_instance(workflow_node_instance.id).state
-        return get_state_task
 
     def download_deployment_resource(self,
                                      blueprint_id,
@@ -1545,17 +1625,6 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
                             additional_context=additional_context,
                             out_func=logs.amqp_event_out)
 
-    def get_send_node_event_task(self, workflow_node_instance,
-                                 event, additional_context=None):
-        @task_config(send_task_events=False)
-        def send_event_task():
-            send_workflow_node_event(ctx=workflow_node_instance,
-                                     event_type='workflow_node_event',
-                                     message=event,
-                                     additional_context=additional_context,
-                                     out_func=logs.amqp_event_out)
-        return send_event_task
-
     @property
     def scaling_groups(self):
         if not self._scaling_groups:
@@ -1606,34 +1675,6 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
     def get_send_task_event_func(self, task):
         return events.send_task_event_func_local
 
-    def get_update_execution_status_task(self, new_status):
-        raise NotImplementedError(
-            'Update execution status is not supported for '
-            'local workflow execution')
-
-    def get_send_node_event_task(self, workflow_node_instance,
-                                 event, additional_context=None):
-        @task_config(send_task_events=False)
-        def send_event_task():
-            send_workflow_node_event(ctx=workflow_node_instance,
-                                     event_type='workflow_node_event',
-                                     message=event,
-                                     additional_context=additional_context,
-                                     out_func=logs.stdout_event_out)
-        return send_event_task
-
-    def get_send_workflow_event_task(self, event, event_type, args,
-                                     additional_context=None):
-        @task_config(send_task_events=False)
-        def send_event_task():
-            send_workflow_event(ctx=self.workflow_ctx,
-                                event_type=event_type,
-                                message=event,
-                                args=args,
-                                additional_context=additional_context,
-                                out_func=logs.stdout_event_out)
-        return send_event_task
-
     def get_task(self, workflow_task, queue=None, target=None, tenant=None):
         raise NotImplementedError('Not implemented by local workflow tasks')
 
@@ -1641,25 +1682,6 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
     def operation_cloudify_context(self):
         return {'local': True,
                 'storage': self.storage}
-
-    def get_set_state_task(self,
-                           workflow_node_instance,
-                           state):
-        @task_config(send_task_events=False)
-        def set_state_task():
-            self.storage.update_node_instance(
-                workflow_node_instance.id,
-                state=state,
-                version=None)
-        return set_state_task
-
-    def get_get_state_task(self, workflow_node_instance):
-        @task_config(send_task_events=False)
-        def get_state_task():
-            instance = self.storage.get_node_instance(
-                workflow_node_instance.id)
-            return instance.state
-        return get_state_task
 
     def send_workflow_event(self, event_type, message=None, args=None,
                             additional_context=None):
