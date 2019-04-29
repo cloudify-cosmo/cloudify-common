@@ -267,13 +267,17 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     """
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
-    creation_validation = _skip_nop_operations(
-        pre=instance.send_event('Validating node instance before creation'),
-        task=instance.execute_operation(
-            'cloudify.interfaces.validation.create'
-        ),
-        post=instance.send_event('Node instance validated before creation')
-    )
+    # Only exists in >= 5.0.
+    if 'cloudify.interfaces.validation.create' in instance.node.operations:
+        creation_validation = _skip_nop_operations(
+            pre=instance.send_event('Validating node instance before creation'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.validation.create'
+            ),
+            post=instance.send_event('Node instance validated before creation')
+        )
+    else:
+        creation_validation = []
 
     # Only exists in >= 5.0.
     if 'cloudify.interfaces.lifecycle.precreate' in instance.node.operations:
@@ -407,13 +411,17 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         instance.execute_operation('cloudify.interfaces.monitoring.stop')
     )
 
-    deletion_validation = _skip_nop_operations(
-        pre=instance.send_event('Validating node instance before deletion'),
-        task=instance.execute_operation(
-            'cloudify.interfaces.validation.delete'
-        ),
-        post=instance.send_event('Node instance validated before deletion')
-    )
+    # Only exists in >= 5.0.
+    if 'cloudify.interfaces.validation.delete' in instance.node.operations:
+        deletion_validation = _skip_nop_operations(
+            pre=instance.send_event('Validating node instance before deletion'),
+            task=instance.execute_operation(
+                'cloudify.interfaces.validation.delete'
+            ),
+            post=instance.send_event('Node instance validated before deletion')
+        )
+    else:
+        deletion_validation = []
 
     # Only exists in >= 5.0.
     if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
