@@ -332,6 +332,14 @@ class AMQPConnection(object):
                      If true, an exception will be raised if the message
                      cannot be sent.
         """
+        properties = message.get('properties') or pika.BasicProperties()
+        if properties.delivery_mode is None:
+            # Unless the sender has decided that the message should have a
+            # specific delivery mode, we'll make sure it's persistent so that
+            # it isn't lost in the event of broker/cluster outage (as long as
+            # it's on a durable queue).
+            properties.delivery_mode = 2
+        message['properties'] = properties
         self.channel_method('publish', wait=wait, timeout=timeout, **message)
 
     def ack(self, channel, delivery_tag, wait=True, timeout=None):
