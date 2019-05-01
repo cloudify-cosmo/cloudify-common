@@ -31,18 +31,11 @@ class Site(dict):
         return self.get('name')
 
     @property
-    def latitude(self):
+    def location(self):
         """
-        :return: The latitude of the sites location.
+        :return: The location of the site : latitude,longitude.
         """
-        return self.get('latitude')
-
-    @property
-    def longitude(self):
-        """
-        :return: The longitude of the sites location.
-        """
-        return self.get('longitude')
+        return self.get('location')
 
     @property
     def created_at(self):
@@ -66,47 +59,39 @@ class SitesClient(object):
         self._uri_prefix = 'sites'
         self._wrapper_cls = Site
 
-    def create(self, name, latitude=None, longitude=None,
-               visibility=VisibilityState.TENANT):
+    def create(self, name, location=None, visibility=VisibilityState.TENANT):
         """
         Create a new site.
 
         :param name: The name of the site
-        :param latitude: The latitude of the sites location
-        :param longitude: The longitude of the sites location
+        :param location: The location of the site : "latitude,longitude".
         :param visibility: The visibility of the site, can be 'private',
                            'tenant' or 'global'
         :return: The created site.
         """
-        data = {
-            'latitude': latitude,
-            'longitude': longitude,
-            'visibility': visibility
-        }
-        # Remove the keys with value None
-        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        data = {'visibility': visibility}
+        if location:
+            data['location'] = location
         response = self.api.put(
             '/{self._uri_prefix}/{name}'.format(self=self, name=name),
             data=data
         )
         return self._wrapper_cls(response)
 
-    def update(self, name, latitude=None, longitude=None,
-               visibility=VisibilityState.TENANT, new_name=None):
+    def update(self, name, location=None, visibility=VisibilityState.TENANT,
+               new_name=None):
         """
         Update an existing site.
 
         :param name: The name of the site
-        :param latitude: The new latitude of the sites location
-        :param longitude: The new longitude of the sites location
+        :param location: The location of the site : "latitude,longitude".
         :param visibility: The new visibility of the site, can be 'private',
                            'tenant' or 'global'
         :param new_name: The new name of the site
         :return: The created site.
         """
         data = {
-            'latitude': latitude,
-            'longitude': longitude,
+            'location': location,
             'visibility': visibility,
             'new_name': new_name
         }
