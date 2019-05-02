@@ -90,7 +90,7 @@ class ManagerItem(dict):
         Manager's hostname (unique)
         type: string
         """
-        return self.get('name')
+        return self.get('hostname')
 
     @property
     def private_ip(self):
