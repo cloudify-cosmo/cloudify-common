@@ -246,8 +246,9 @@ class ManagerClient(object):
         return ConfigItem(response)
 
     def add_manager(self, hostname, private_ip, public_ip, version,
-                    edition, distribution, distro_release, ca_cert_content,
-                    fs_sync_node_id='', networks=None):
+                    edition, distribution, distro_release,
+                    ca_cert_content=None, fs_sync_node_id='',
+                    networks=None):
         """
         Add a new manager to the managers table
         """
@@ -258,9 +259,10 @@ class ManagerClient(object):
             'version': version,
             'edition': edition,
             'distribution': distribution,
-            'distro_release': distro_release,
-            'ca_cert_content': ca_cert_content
+            'distro_release': distro_release
         }
+        if ca_cert_content:
+            manager['ca_cert_content'] = ca_cert_content
         if fs_sync_node_id:
             manager['fs_sync_node_id'] = fs_sync_node_id
         if networks:
