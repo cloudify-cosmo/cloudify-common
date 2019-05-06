@@ -20,6 +20,13 @@ import urllib2
 import sys
 import re
 
+try:
+    # Python 3.x
+    from urllib.parse import urlparse
+except ImportError:
+    # Python 2.7
+    from urlparse import urlparse
+
 import yaml.parser
 
 from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
@@ -265,6 +272,12 @@ def url_exists(url):
             return True
     except urllib2.URLError:
         return False
+
+
+def is_valid_url(url):
+    # Checks whether a given string represents a valid
+    # URL (syntax-wise).
+    return urlparse(url).scheme != ''
 
 
 def create_import_resolver(resolver_configuration):
