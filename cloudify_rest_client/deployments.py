@@ -85,6 +85,20 @@ class Deployment(dict):
         """
         return self.get('description')
 
+    @property
+    def site_name(self):
+        """
+        :return: The site of this deployment.
+        """
+        return self.get('site_name')
+
+    @property
+    def visibility(self):
+        """
+        :return: The visibility of this deployment.
+        """
+        return self.get('visibility')
+
 
 class Workflow(dict):
 
@@ -229,7 +243,8 @@ class DeploymentsClient(object):
                deployment_id,
                inputs=None,
                visibility=VisibilityState.TENANT,
-               skip_plugins_validation=False):
+               skip_plugins_validation=False,
+               site_name=None):
         """
         Creates a new deployment for the provided blueprint id and
         deployment id.
@@ -244,6 +259,7 @@ class DeploymentsClient(object):
                                 manager. If validation is skipped,
                                 plugins containing source URL will
                                 be installed from source.
+        :param site_name: The name of the site for the deployment.
         :return: The created deployment.
         """
         assert blueprint_id
@@ -251,6 +267,8 @@ class DeploymentsClient(object):
         data = {'blueprint_id': blueprint_id, 'visibility': visibility}
         if inputs:
             data['inputs'] = inputs
+        if site_name:
+            data['site_name'] = site_name
         data['skip_plugins_validation'] = skip_plugins_validation
         uri = '/deployments/{0}'.format(deployment_id)
         response = self.api.put(uri, data, expected_status_code=201)
@@ -294,5 +312,23 @@ class DeploymentsClient(object):
         data = {'visibility': visibility}
         return self.api.patch(
             '/deployments/{0}/set-visibility'.format(deployment_id),
+            data=data
+        )
+
+    def set_site(self, deployment_id, site_name=None, detach_site=False):
+        """
+        Updates the deployment's site
+
+        :param deployment_id: Deployment's id to update.
+        :param site_name: The site to update
+        :param detach_site: True for detaching the current site, making the
+                            deployment siteless
+        :return: The deployment.
+        """
+        data = {'detach_site': detach_site}
+        if site_name:
+            data['site_name'] = site_name
+        return self.api.post(
+            '/deployments/{0}/set-site'.format(deployment_id),
             data=data
         )
