@@ -16,6 +16,7 @@
 
 import os
 import re
+import shutil
 import sys
 import time
 import json
@@ -374,7 +375,16 @@ def download_resource(download_resource_func, script_path,
             f.write(content)
         return target_path
     else:
-        return download_resource_func(script_path, target_path)
+        # Specifically check for "file://" url. We can't do that in the
+        # condition above ('if schema in...') because the "requests"
+        # package doesn't ship with built-in support for "file://"
+        # URL's.
+        if schema == 'file' and len(split) > 1:
+            shutil.copyfile(split[1], target_path)
+            result = target_path
+        else:
+            result = download_resource_func(script_path, target_path)
+        return result
 
 
 @contextmanager
