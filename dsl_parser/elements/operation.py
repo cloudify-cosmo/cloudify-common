@@ -318,7 +318,8 @@ def process_operation(
                 retry_interval=operation_retry_interval,
                 timeout=operation_timeout,
                 timeout_recoverable=operation_timeout_recoverable)
-    elif (_is_local_script_resource_exists(resource_bases,
+    elif (utils.is_valid_url(operation_mapping) or
+          _is_local_script_resource_exists(resource_bases,
                                            operation_mapping) or
           _is_remote_script_resource(operation_mapping,
                                      remote_resources_namespaces)):
