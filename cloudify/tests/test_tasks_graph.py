@@ -15,7 +15,7 @@
 
 import mock
 import time
-import unittest
+import testtools
 from contextlib import contextmanager
 
 from cloudify.workflows import api
@@ -40,15 +40,16 @@ def limited_sleep_mock(limit=100):
 
     mock_sleep = mock.patch('time.sleep', _fake_sleep)
     mock_time = mock.patch('time.time', _fake_time)
-    with mock_sleep, mock_time:
-        yield mock_sleep, mock_time
+    with mock_sleep:
+        with mock_time:
+            yield mock_sleep, mock_time
 
 
 class MockWorkflowContext(object):
     wait_after_fail = 600
 
 
-class TestTasksGraphExecute(unittest.TestCase):
+class TestTasksGraphExecute(testtools.TestCase):
     def test_executes_single_task(self):
         """A single NOP task is executed within a single iteration of the
         tasks graph loop"""

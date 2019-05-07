@@ -993,9 +993,9 @@ class _LocalTask(object):
         Choose the appropriate subclass and return an instance of it.
         """
         if cls._subclass_cache is None:
-            cls._subclass_cache = {
-                subcls.__name__: subcls for subcls in cls.__subclasses__()
-            }
+            cls._subclass_cache = dict(
+                (subcls.__name__, subcls) for subcls in cls.__subclasses__()
+            )
         task_class = cls._subclass_cache[task_descr['task']]
         return task_class(**task_descr.get('kwargs') or {})
 

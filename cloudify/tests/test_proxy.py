@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 
-import unittest
 import os
 import threading
 import time
@@ -22,6 +21,7 @@ import sys
 import subprocess
 from StringIO import StringIO
 
+import testtools
 from pytest import mark
 
 from cloudify.mocks import MockCloudifyContext
@@ -58,6 +58,7 @@ class CtxProxyTestBase(object):
             kwargs=kwargs)
 
     def setUp(self, proxy_server_class):
+        super(CtxProxyTestBase, self).setUp()
         self.ctx = MockCloudifyContext(node_id='instance_id', properties={
             'prop1': 'value1',
             'prop2': {
@@ -98,6 +99,7 @@ class CtxProxyTestBase(object):
             time.sleep(0.1)
 
     def tearDown(self):
+        super(CtxProxyTestBase, self).tearDown()
         self.stop_server_now()
 
     def request(self, *args):
@@ -193,19 +195,19 @@ class CtxProxyTestBase(object):
 
 
 @mark.skipif(IS_WINDOWS, reason='Test skipped on Windows')
-class TestUnixCtxProxy(CtxProxyTestBase, unittest.TestCase):
+class TestUnixCtxProxy(CtxProxyTestBase, testtools.TestCase):
 
     def setUp(self):
         super(TestUnixCtxProxy, self).setUp(UnixCtxProxy)
 
 
-class TestTCPCtxProxy(CtxProxyTestBase, unittest.TestCase):
+class TestTCPCtxProxy(CtxProxyTestBase, testtools.TestCase):
 
     def setUp(self):
         super(TestTCPCtxProxy, self).setUp(TCPCtxProxy)
 
 
-class TestHTTPCtxProxy(CtxProxyTestBase, unittest.TestCase):
+class TestHTTPCtxProxy(CtxProxyTestBase, testtools.TestCase):
 
     def setUp(self):
         super(TestHTTPCtxProxy, self).setUp(HTTPCtxProxy)
@@ -221,7 +223,7 @@ class TestHTTPCtxProxy(CtxProxyTestBase, unittest.TestCase):
         super(TestHTTPCtxProxy, self).test_client_request_timeout()
 
 
-class TestArgumentParsing(unittest.TestCase):
+class TestArgumentParsing(testtools.TestCase):
 
     def mock_client_req(self, socket_url, args, timeout):
         self.assertEqual(socket_url, self.expected.get('socket_url'))
@@ -338,13 +340,13 @@ class TestArgumentParsing(unittest.TestCase):
             sys.stdout = current_stdout
 
 
-class TestCtxEntryPoint(unittest.TestCase):
+class TestCtxEntryPoint(testtools.TestCase):
 
     def test_ctx_in_path(self):
         subprocess.call(['ctx', '--help'])
 
 
-class TestPathDictAccess(unittest.TestCase):
+class TestPathDictAccess(testtools.TestCase):
     def test_simple_set(self):
         obj = {}
         path_dict = PathDictAccess(obj)

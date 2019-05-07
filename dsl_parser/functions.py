@@ -825,7 +825,7 @@ def evaluate_capabilities(capabilities,
     :param get_capability_method: A method for getting a capability.
     :return: Capabilities dict.
     """
-    capabilities = {k: v['value'] for k, v in capabilities.items()}
+    capabilities = dict((k, v['value']) for k, v in capabilities.items())
     return evaluate_functions(
         payload=capabilities,
         context={},
@@ -872,7 +872,7 @@ def _handler(evaluator, **evaluator_kwargs):
             lastly.
         :return: relevant string containing information about the arguments.
         """
-        msg = "Limit was reached with the following path - {}"
+        msg = "Limit was reached with the following path - {0}"
         if args and len(args) == 4:
             return msg.format(args[3])
         if kwargs and 'path' in kwargs:
@@ -1045,7 +1045,7 @@ class RecursionLimit(object):
     def __enter__(self):
         self.calls_cnt += 1
         if self.calls_cnt > self.limit:
-            msg = "The recursion limit ({}) has been reached while " \
+            msg = "The recursion limit ({0}) has been reached while " \
                   "evaluating the deployment. ".format(self.limit)
             if self.args_to_str_func and (self.last_args or self.last_kwargs):
                 msg += self.args_to_str_func(self.last_args, self.last_kwargs)

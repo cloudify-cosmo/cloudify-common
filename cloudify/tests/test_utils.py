@@ -17,7 +17,7 @@ import os
 import mock
 import logging
 import tempfile
-import unittest
+from testtools import TestCase
 
 from cloudify import utils
 from cloudify.exceptions import CommandExecutionException
@@ -30,7 +30,7 @@ from cloudify.utils import (
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
 
-class LocalCommandRunnerTest(unittest.TestCase):
+class LocalCommandRunnerTest(TestCase):
 
     runner = None
 
@@ -60,7 +60,7 @@ class LocalCommandRunnerTest(unittest.TestCase):
         self.assertTrue('TEST_KEY=TEST_VALUE' in response.std_out)
 
 
-class TempdirTest(unittest.TestCase):
+class TempdirTest(TestCase):
     def test_executable_no_override(self):
         sys_default_tempdir = tempfile.gettempdir()
         self.assertEqual(sys_default_tempdir, get_exec_tempdir())
@@ -70,7 +70,7 @@ class TempdirTest(unittest.TestCase):
         self.assertEqual('/fake/temp', get_exec_tempdir())
 
 
-class TestPluginFunctions(unittest.TestCase):
+class TestPluginFunctions(TestCase):
 
     def test_extract_plugins_is_correct(self):
         def true(_):
@@ -103,7 +103,7 @@ class TestPluginFunctions(unittest.TestCase):
             merge_plugins_mock.assert_called_with(dep_plugins[1:], wf_plugins)
 
     def test_merge_is_correct(self):
-        deployment_plugins = [{PLUGIN_NAME_KEY: 'dummy{}'.format(i)}
+        deployment_plugins = [{PLUGIN_NAME_KEY: 'dummy{0}'.format(i)}
                               for i in range(3)]
         workflow_plugins = deployment_plugins + [{PLUGIN_NAME_KEY: 'dummy3'}]
         result = merge_plugins(deployment_plugins, workflow_plugins)
@@ -125,7 +125,7 @@ class TestPluginFunctions(unittest.TestCase):
         utils.add_plugins_to_uninstall(None, False, None)
 
 
-class TestPluginInstallationTaskExecutionFuncs(unittest.TestCase):
+class TestPluginInstallationTaskExecutionFuncs(TestCase):
     def setUp(self):
         super(TestPluginInstallationTaskExecutionFuncs, self).setUp()
         self.ctx_mock = mock.Mock()

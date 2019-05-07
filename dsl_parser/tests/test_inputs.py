@@ -1169,7 +1169,7 @@ inputs:
             'list', ['one', 'two', 3], ['', 'three', 1], self.assertListEqual)
 
     def test_validate_list_value_mismatch(self):
-        self._test_validate_value_type_mismatch('list', {'0_o'})
+        self._test_validate_value_type_mismatch('list', set(['0_o']))
 
     def test_validate_list_value_mismatch_with_deployment_plan(self):
         self._test_validate_value_type_mismatch_with_deployment_plan('list',
@@ -1277,14 +1277,14 @@ inputs:
             yaml,
             ERROR_VALUE_DOES_NOT_MATCH_TYPE)
         self.assertIn('Property type validation failed in', ex.message)
-        self.assertIn("type is '{}'".format(type_name), ex.message)
+        self.assertIn("type is '{0}'".format(type_name), ex.message)
 
     def _test_validate_value_type_mismatch_with_deployment_plan(
             self, type_name, value):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 inputs:
     some_input:
-        type: {}
+        type: {0}
 """.format(type_name)
         ex = self.assertRaises(
             DSLParsingException,
@@ -1292,4 +1292,4 @@ inputs:
             self.parse(yaml),
             inputs={'some_input': value})
         self.assertIn('Property type validation failed in', ex.message)
-        self.assertIn("type is '{}'".format(type_name), ex.message)
+        self.assertIn("type is '{0}'".format(type_name), ex.message)

@@ -216,7 +216,7 @@ class Pattern(Constraint):
         if not isinstance(value, basestring):
             raise exceptions.ConstraintException(
                 "Value must be of type string, got type "
-                "'{}'".format(type(value).__name__))
+                "'{0}'".format(type(value).__name__))
         return bool(re.match(self.args, value))
 
 
