@@ -73,6 +73,6 @@ class NodeTypes(types.Types):
         disregarding their namespace because host type is a base
         which will not change.
         """
-        return {type_name for type_name, _type in self.value.items()
-                if any(constants.HOST_TYPE in
-                       item for item in _type[constants.TYPE_HIERARCHY])}
+        return set(type_name for type_name, _type in self.value.items()
+                   if any(constants.HOST_TYPE in
+                   item for item in _type[constants.TYPE_HIERARCHY]))
