@@ -44,10 +44,10 @@ defaults:
                    pyenv local 2.6.9
       - run:
           name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
-          command: sudo pip install tox==1.6.1 tox-pyenv
+          command: sudo ~/.pyenv/versions/2.6.9/bin/pip install tox==1.6.1 tox-pyenv
       - run:
           name: Run tox of specfic environment
-          command: tox -e $DO_ENV
+          command: ~/.pyenv/versions/2.6.9/bin/tox -e $DO_ENV
 
   - &docs_defaults
     docker:
