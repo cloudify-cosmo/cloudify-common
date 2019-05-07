@@ -103,7 +103,7 @@ class TestPluginFunctions(TestCase):
             merge_plugins_mock.assert_called_with(dep_plugins[1:], wf_plugins)
 
     def test_merge_is_correct(self):
-        deployment_plugins = [{PLUGIN_NAME_KEY: 'dummy{}'.format(i)}
+        deployment_plugins = [{PLUGIN_NAME_KEY: 'dummy{0}'.format(i)}
                               for i in range(3)]
         workflow_plugins = deployment_plugins + [{PLUGIN_NAME_KEY: 'dummy3'}]
         result = merge_plugins(deployment_plugins, workflow_plugins)
