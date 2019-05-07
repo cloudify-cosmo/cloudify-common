@@ -296,7 +296,7 @@ def _build_ordered_imports(parsed_dsl_holder,
             if not context_namespace or namespace != context_namespace:
                 raise exceptions.DSLParsingLogicException(
                     214,
-                    'Invalid import namespace {}: cannot be used'
+                    'Invalid import namespace {0}: cannot be used'
                     ' on Cloudify basic types.'.format(namespace))
 
     def resolve_import_graph_key(import_url, namespace):
