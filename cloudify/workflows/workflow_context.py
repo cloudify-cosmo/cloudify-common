@@ -589,8 +589,9 @@ class _WorkflowContextBase(object):
         operation_executor = op_struct['executor']
         operation_total_retries = op_struct['max_retries']
         operation_retry_interval = op_struct['retry_interval']
-        operation_timeout = op_struct['timeout']
-        operation_timeout_recoverable = op_struct['timeout_recoverable']
+        operation_timeout = op_struct.get('timeout', None)
+        operation_timeout_recoverable = op_struct.get('timeout_recoverable',
+                                                      None)
         task_name = operation_mapping
         if operation_total_retries is None:
             total_retries = self.internal.get_task_configuration()[
