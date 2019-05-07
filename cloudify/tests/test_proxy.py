@@ -58,6 +58,7 @@ class CtxProxyTestBase(object):
             kwargs=kwargs)
 
     def setUp(self, proxy_server_class):
+        super(CtxProxyTestBase, self).setUp()
         self.ctx = MockCloudifyContext(node_id='instance_id', properties={
             'prop1': 'value1',
             'prop2': {
