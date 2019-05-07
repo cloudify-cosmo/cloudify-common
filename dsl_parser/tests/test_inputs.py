@@ -1169,7 +1169,7 @@ inputs:
             'list', ['one', 'two', 3], ['', 'three', 1], self.assertListEqual)
 
     def test_validate_list_value_mismatch(self):
-        self._test_validate_value_type_mismatch('list', {'0_o'})
+        self._test_validate_value_type_mismatch('list', set(['0_o']))
 
     def test_validate_list_value_mismatch_with_deployment_plan(self):
         self._test_validate_value_type_mismatch_with_deployment_plan('list',

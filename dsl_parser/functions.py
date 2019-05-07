@@ -1045,7 +1045,7 @@ class RecursionLimit(object):
     def __enter__(self):
         self.calls_cnt += 1
         if self.calls_cnt > self.limit:
-            msg = "The recursion limit ({}) has been reached while " \
+            msg = "The recursion limit ({0}) has been reached while " \
                   "evaluating the deployment. ".format(self.limit)
             if self.args_to_str_func and (self.last_args or self.last_kwargs):
                 msg += self.args_to_str_func(self.last_args, self.last_kwargs)
