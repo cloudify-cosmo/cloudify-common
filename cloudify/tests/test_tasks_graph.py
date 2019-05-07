@@ -40,8 +40,9 @@ def limited_sleep_mock(limit=100):
 
     mock_sleep = mock.patch('time.sleep', _fake_sleep)
     mock_time = mock.patch('time.time', _fake_time)
-    with mock_sleep, mock_time:
-        yield mock_sleep, mock_time
+    with mock_sleep:
+        with mock_time:
+            yield mock_sleep, mock_time
 
 
 class MockWorkflowContext(object):
