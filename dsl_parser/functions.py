@@ -872,7 +872,7 @@ def _handler(evaluator, **evaluator_kwargs):
             lastly.
         :return: relevant string containing information about the arguments.
         """
-        msg = "Limit was reached with the following path - {}"
+        msg = "Limit was reached with the following path - {0}"
         if args and len(args) == 4:
             return msg.format(args[3])
         if kwargs and 'path' in kwargs:
