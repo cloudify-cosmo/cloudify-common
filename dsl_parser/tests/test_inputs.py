@@ -1292,4 +1292,4 @@ inputs:
             self.parse(yaml),
             inputs={'some_input': value})
         self.assertIn('Property type validation failed in', ex.message)
-        self.assertIn("type is '{}'".format(type_name), ex.message)
+        self.assertIn("type is '{0}'".format(type_name), ex.message)

@@ -35,7 +35,7 @@ class Constraint(Element):
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,
                 "Empty constraint operator name given. Allowed operators: "
-                "{}".format(constraints.CONSTRAINTS))
+                "{0}".format(constraints.CONSTRAINTS))
         if len(constraint_op_keys) > 1:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,
