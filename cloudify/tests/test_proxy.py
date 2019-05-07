@@ -99,6 +99,7 @@ class CtxProxyTestBase(object):
             time.sleep(0.1)
 
     def tearDown(self):
+        super(CtxProxyTestBase, self).tearDown()
         self.stop_server_now()
 
     def request(self, *args):
