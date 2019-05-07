@@ -825,7 +825,7 @@ def evaluate_capabilities(capabilities,
     :param get_capability_method: A method for getting a capability.
     :return: Capabilities dict.
     """
-    capabilities = {k: v['value'] for k, v in capabilities.items()}
+    capabilities = dict((k, v['value']) for k, v in capabilities.items())
     return evaluate_functions(
         payload=capabilities,
         context={},
