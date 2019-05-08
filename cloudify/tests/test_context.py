@@ -53,8 +53,9 @@ class CloudifyContextTest(testtools.TestCase):
         cls.file_server_process = FileServer(resources_path)
         cls.file_server_process.start()
 
-        os.environ[constants.MANAGER_FILE_SERVER_URL_KEY] = \
-            "http://localhost:{0}".format(PORT)
+        os.environ[constants.REST_PORT_KEY] = "{0}".format(PORT)
+        os.environ[constants.REST_HOST_KEY] = "localhost"
+        os.environ[constants.MANAGER_FILE_SERVER_SCHEME] = "http"
         _, os.environ[constants.LOCAL_REST_CERT_FILE_KEY] = tempfile.mkstemp()
         cls.context = context.CloudifyContext({
             'blueprint_id': '',
