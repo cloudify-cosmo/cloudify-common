@@ -682,14 +682,20 @@ class WorkflowHandler(TaskHandler):
         )
 
     def _workflow_failed(self, exception, error_traceback):
-        self._update_execution_status(Execution.FAILED, error_traceback)
-        self.ctx.internal.send_workflow_event(
-            event_type='workflow_failed',
-            message="'{0}' workflow execution failed: {1}".format(
-                self.ctx.workflow_id, str(exception)),
-            args={'error': error_traceback},
-            additional_context=self._get_hook_params()
-        )
+        try:
+            self.ctx.internal.send_workflow_event(
+                event_type='workflow_failed',
+                message="'{0}' workflow execution failed: {1}".format(
+                    self.ctx.workflow_id, str(exception)),
+                args={'error': error_traceback},
+                additional_context=self._get_hook_params()
+            )
+            self._update_execution_status(Execution.FAILED, error_traceback)
+        except Exception:
+            logger = logging.getLogger(__name__)
+            logger.exception('Exception raised when attempting to update '
+                             'execution state')
+            raise exception
 
     def _workflow_cancelled(self):
         self._update_execution_status(Execution.CANCELLED)
