@@ -170,6 +170,15 @@ def format_exception(e):
             return repr(e)
 
 
+def get_manager_name():
+    """Hostname/id of the current manager.
+
+    Available only on mgmtworkers, returns the hostname of the manager
+    this is running on.
+    """
+    return os.environ[constants.MANAGER_NAME]
+
+
 def get_manager_file_server_scheme():
     """
     Returns the manager file server base url.
