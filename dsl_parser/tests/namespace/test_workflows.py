@@ -21,7 +21,7 @@ from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 def workflow_op_struct(plugin_name,
                        mapping,
                        parameters=None,
-                       is_cascading=False):
+                       is_cascading=True):
     if not parameters:
         parameters = {}
     return {

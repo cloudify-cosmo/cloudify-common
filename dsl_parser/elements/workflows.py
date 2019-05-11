@@ -63,10 +63,10 @@ class Workflow(Element):
         if isinstance(self.initial_value, str):
             operation_content = {'mapping': self.initial_value,
                                  'parameters': {}}
-            is_cascading = False
+            is_cascading = True
         else:
             operation_content = self.build_dict_result()
-            is_cascading = self.initial_value.get('is_cascading', False)
+            is_cascading = self.initial_value.get('is_cascading', True)
         return operation.process_operation(
             plugins=plugins,
             operation_name=self.name,
