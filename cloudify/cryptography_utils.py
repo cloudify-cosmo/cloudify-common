@@ -18,6 +18,9 @@ import json
 import os
 
 from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from cloudify.constants import SECURITY_FILE_LOCATION
 
@@ -51,6 +54,22 @@ def _get_encryption_key():
     with open(SECURITY_FILE_LOCATION) as security_conf_file:
         rest_security_conf = json.load(security_conf_file)
         return rest_security_conf['encryption_key']
+
+
+def generate_key_using_password(password):
+    password = password.encode()
+    salt = b'salt_'
+    # should verify it is safe enough, option: generate a random one and
+    # log it to the user
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=64,
+        salt=salt,
+        iterations=100000,
+        backend=default_backend()
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password))
+    return key
 
 
 class Fernet256(Fernet):

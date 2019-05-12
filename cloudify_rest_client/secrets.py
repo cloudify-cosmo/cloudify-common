@@ -69,6 +69,13 @@ class Secret(dict):
         """
         return self.get('is_hidden_value')
 
+    @property
+    def tenant_name(self):
+        """
+        :return: the secret's tenant name
+        """
+        return self.get('tenant_name')
+
 
 class SecretsClient(object):
 
@@ -125,6 +132,17 @@ class SecretsClient(object):
     def get(self, key):
         response = self.api.get('/secrets/{0}'.format(key))
         return Secret(response)
+
+    def export(self, **kwargs):
+        """
+        Returns a list of secrets to be exported
+
+        :param kwargs: the parameters given from the user
+        :return: Secrets' list
+        """
+        params = kwargs
+        response = self.api.get('/secrets/command/export', params=params)
+        return response
 
     def list(self, sort=None, is_descending=False, **kwargs):
         """
