@@ -141,7 +141,7 @@ class SecretsClient(object):
         :return: Secrets' list
         """
         params = kwargs
-        response = self.api.get('/secrets/command/export', params=params)
+        response = self.api.get('/secrets/share/export', params=params)
         return response
 
     def list(self, sort=None, is_descending=False, **kwargs):
