@@ -220,7 +220,8 @@ class ManagerClient(object):
         provided, return all values for that scope.
         """
         if name and scope:
-            raise ValueError('Pass either name or scope, not both')
+            response = self.api.get('/config/{0}.{1}'.format(scope, name))
+            return ConfigItem(response)
         if name:
             response = self.api.get('/config/{0}'.format(name))
             return ConfigItem(response)
