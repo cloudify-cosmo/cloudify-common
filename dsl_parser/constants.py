@@ -85,9 +85,8 @@ VALIDATE_DEFINITIONS_VERSION = 'validate_definitions_version'
 RESOLVER_IMPLEMENTATION_KEY = 'implementation'
 RESLOVER_PARAMETERS_KEY = 'parameters'
 
-USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean']
-USER_INPUT_TYPES = ['string', 'integer', 'float', 'boolean', 'list', 'dict',
-                    'regex']
+USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean', 'list',
+                        'dict', 'regex']
 
 UNBOUNDED_LITERAL = 'UNBOUNDED'
 UNBOUNDED = -1

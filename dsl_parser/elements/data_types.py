@@ -59,7 +59,7 @@ class SchemaInputType(SchemaPropertyType):
 
     def validate(self, data_type, **kwargs):
         if self.initial_value and self.initial_value not in \
-                constants.USER_INPUT_TYPES and not data_type:
+                constants.USER_PRIMITIVE_TYPES and not data_type:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,
                 "Illegal type name '{0}'".format(self.initial_value))
