@@ -180,7 +180,7 @@ imports:
         self.assertEqual(workflow2['parameters']['key']['default'], 'value')
         self.assertEqual(workflow['plugin'], namespaced_script_plugin)
         self.assertEqual(True, workflow2['is_cascading'])
-        self.assertEqual(False, workflow['is_cascading'])
+        self.assertEqual(True, workflow['is_cascading'])
 
     def test_workflow_blueprint_import_namespaced_operation(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
@@ -196,7 +196,7 @@ workflows:
         parameters:
             key:
                 default: value
-        is_cascading: true
+        is_cascading: false
 """
         import_base_path = self._temp_dir + '/test'
         self.make_file_with_name(content='content',
@@ -235,8 +235,8 @@ imports:
                          'test--stub.py')
         self.assertEqual(workflow2['parameters']['key']['default'], 'value')
         self.assertEqual(workflow['plugin'], namespaced_script_plugin)
-        self.assertEqual(True, workflow2['is_cascading'])
-        self.assertEqual(False, workflow['is_cascading'])
+        self.assertEqual(False, workflow2['is_cascading'])
+        self.assertEqual(True, workflow['is_cascading'])
 
     def test_workflow_advanced_mapping(self):
         imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
