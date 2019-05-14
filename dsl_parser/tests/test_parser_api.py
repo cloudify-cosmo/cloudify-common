@@ -1695,6 +1695,12 @@ node_templates:
             float3: 5.0
             float4: 5
             float5: -5.7
+            dict1:
+                test: 1
+            dict2: {}
+            list1: [1, 2]
+            list2: []
+            regex: ^.$
 
 node_types:
     test_type:
@@ -1741,11 +1747,48 @@ node_types:
                 type: float
             float5:
                 type: float
-                """
+            dict1:
+                type: dict
+            dict2:
+                type: dict
+            list1:
+                type: list
+            list2:
+                type: list
+            regex:
+                type: regex
+            """
         result = self.parse(yaml)
         self.assertEquals(1, len(result['nodes']))
         node = result['nodes'][0]
         self.assertEquals('test_node', node['id'])
+        self.assertEqual(node['properties'], {
+            'boolean4': False,
+            'boolean5': True,
+            'boolean6': True,
+            'boolean7': False,
+            'boolean1': True,
+            'boolean2': False,
+            'boolean3': False,
+            'boolean8': False,
+            'float4': 5,
+            'float5': -5.7,
+            'float1': 5.7,
+            'float2': 5.735935,
+            'float3': 5.0,
+            'integer2': -5,
+            'integer3': 1000000000000,
+            'integer4': 0,
+            'integer1': 5,
+            'dict1': {'test': 1},
+            'dict2': {},
+            'string4': 5.7,
+            'string2': True,
+            'string3': 5,
+            'string1': 'val',
+            'list1': [1, 2],
+            'list2': [],
+            'regex': '^.$'})
 
     def test_version_field(self):
         yaml = self.MINIMAL_BLUEPRINT + self.BASIC_VERSION_SECTION_DSL_1_0
