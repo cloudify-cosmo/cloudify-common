@@ -109,7 +109,7 @@ def _create_notification_type(event_context):
 
     if event_type == 'workflow_failed':
         error = _get_error(event_context)
-        notification_type.addVarBinds(ERROR, error)
+        notification_type.addVarBinds((ERROR, OctetString(error)))
     return notification_type
 
 
