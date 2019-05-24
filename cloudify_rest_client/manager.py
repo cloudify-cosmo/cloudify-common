@@ -341,7 +341,7 @@ class ManagerClient(object):
             params['port'] = port
         if networks:
             params['networks'] = networks
-        response = self.api.post('/brokers', params=params)
+        response = self.api.post('/brokers', data=params)
         return RabbitMQBrokerItem(response)
 
     def remove_broker(self, name):
@@ -355,7 +355,7 @@ class ManagerClient(object):
 
         :return: The broker that was deleted.
         """
-        response = self.api.delete('/brokers', params={'name': name})
+        response = self.api.delete('/brokers', data={'name': name})
         return RabbitMQBrokerItem(response)
 
     def get_brokers(self):
