@@ -317,6 +317,47 @@ class ManagerClient(object):
             response['metadata']
         )
 
+    def add_broker(self, name, address, port=None, networks=None):
+        """Add a broker to the brokers table.
+
+        This will allow cloudify components to use this broker.
+        It will not actually create the broker- the creation should be
+        done beforehand using cfy_manager.
+
+        :param name: The broker's name.
+        :param address: The broker's address.
+        :param port: The broker's port, if not default (5671).
+        :param networks: The broker's networks. This will default to having a
+        default network with the address parameter. If this is supplied, the
+        address in the address parameter must belong to one of the networks.
+
+        :return: The broker that was created.
+        """
+        params = {
+            'name': name,
+            'address': address,
+        }
+        if port:
+            params['port'] = port
+        if networks:
+            params['networks'] = networks
+        response = self.api.post('/brokers', params=params)
+        return RabbitMQBrokerItem(response)
+
+    def remove_broker(self, name):
+        """Remove a broker from the brokers table.
+
+        This will stop cloudify components from talking directly to the
+        specified broker. It will not take any action against the broker
+        itself, which should be removed using cfy_manager.
+
+        :param name: The broker's name.
+
+        :return: The broker that was deleted.
+        """
+        response = self.api.delete('/brokers', params={'name': name})
+        return RabbitMQBrokerItem(response)
+
     def get_brokers(self):
         response = self.api.get('/brokers',)
         return ListResponse(
