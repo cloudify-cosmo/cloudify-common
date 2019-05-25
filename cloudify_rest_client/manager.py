@@ -178,6 +178,27 @@ class RabbitMQBrokerItem(dict):
         return self.get('host')
 
     @property
+    def username(self):
+        """Admin username for this broker.
+
+        Only set if the calling user has the broker_credentials permission.
+        """
+        return self.get('username')
+
+    @property
+    def password(self):
+        """Admin password for this broker.
+
+        Only set if the calling user has the broker_credentials permission.
+        """
+        return self.get('password')
+
+    @property
+    def management_host(self):
+        """IP address of this broker"""
+        return self.get('management_host')
+
+    @property
     def port(self):
         """The TCP port this broker is listening on"""
         return self.get('port')
