@@ -179,7 +179,7 @@ def download_resource_from_manager(resource_path, logger, target_path=None):
     :param target_path: optional target path for the resource
     :returns: path to the downloaded resource
     """
-    resource = get_resource_from_manager(resource_path)
+    resource = get_resource_from_manager(resource_path, logger=logger)
     return _save_resource(logger, resource, resource_path, target_path)
 
 
@@ -242,17 +242,32 @@ def _extract_resource_parts(resource_path):
     return namespace, resource_path
 
 
-def get_resource_from_manager(resource_path, base_url=None):
+def get_resource_from_manager(resource_path,
+                              base_url=None,
+                              base_urls=None,
+                              logger=None):
     """
     Get resource from the manager file server.
 
     :param resource_path: path to resource on the file server
+    :param base_url: deprecated parameter before cluster managers
+    :param base_urls: new parameter that replaces base_url is a list.
     :returns: resource content
     """
+
+    urls = []
+    base_urls = base_urls or []
+
     if base_url is None:
         base_url = utils.get_manager_file_server_url()
+    if not isinstance(base_url, list) and base_url not in base_urls:
+        base_urls.append(base_url)
+    del base_url
 
-    url = '{0}/{1}'.format(base_url, resource_path)
+    # Get the list of manager paths for the resourse
+    for base_url in base_urls:
+        urls.append('{0}/{1}'.format(base_url, resource_path))
+ 
     verify = utils.get_local_rest_certificate()
 
     headers = {}
@@ -262,10 +277,15 @@ def get_resource_from_manager(resource_path, base_url=None):
     except NotInContext:
         headers[constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER] = \
             workflow_ctx.rest_token
-    response = requests.get(url, verify=verify, headers=headers)
-    if not response.ok:
-        raise HttpException(url, response.status_code, response.reason)
-    return response.content
+    # Try manager path until a manager is available.
+    for url in urls:
+        response = requests.get(url, verify=verify, headers=headers)
+        if response.ok:
+          return response.content
+    if logger:
+        logger.info('Tried each url in {urls}. None were OK.'.format(urls=urls))
+    # Raise the last one.
+    raise HttpException(url, response.status_code, response.reason)
 
 
 def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
