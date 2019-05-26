@@ -99,6 +99,7 @@ class MockCloudifyContext(CloudifyContext):
     def __init__(self,
                  node_id=None,
                  node_name=None,
+                 node_type=None,
                  blueprint_id=None,
                  deployment_id=None,
                  execution_id=None,
@@ -155,7 +156,7 @@ class MockCloudifyContext(CloudifyContext):
                 relationships=relationships)
             self._capabilities = capabilities or ContextCapabilities(
                 self._endpoint, self._instance)
-            self._node = MockNodeContext(node_name, properties)
+            self._node = MockNodeContext(node_name, properties, node_type)
         if self._source is None and self._target:
             self._source = MockContext({
                 'instance': None,
