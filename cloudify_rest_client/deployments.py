@@ -276,7 +276,8 @@ class DeploymentsClient(object):
 
     def delete(self, deployment_id,
                ignore_live_nodes=False,
-               delete_db_mode=False):
+               delete_db_mode=False,
+               with_logs=False):
         """
         Deletes the deployment whose id matches the provided deployment id.
         By default, deployment with live nodes deletion is not allowed and
@@ -288,6 +289,8 @@ class DeploymentsClient(object):
                the DB. This option is used by the `delete_dep_env` workflow to
                make sure the dep is deleted AFTER the workflow finished
                successfully.
+        :param with_logs: when set to true, the management workers' logs for
+               the deployment are deleted as well.
         :return: The deleted deployment.
         """
         assert deployment_id
@@ -295,7 +298,8 @@ class DeploymentsClient(object):
         ignore_live_nodes = 'true' if ignore_live_nodes else 'false'
         delete_db_mode = 'true' if delete_db_mode else 'false'
         params = {'ignore_live_nodes': ignore_live_nodes,
-                  'delete_db_mode': delete_db_mode}
+                  'delete_db_mode': delete_db_mode,
+                  'delete_logs': 'true' if with_logs else 'false'}
 
         response = self.api.delete('/deployments/{0}'.format(deployment_id),
                                    params=params)
