@@ -150,8 +150,8 @@ class WorkflowTask(object):
             'name': self.name,
             'state': self._state,
             'type': self.task_type,
-            'retried_task': self.retried_task,
             'parameters': {
+                'retried_task': self.retried_task,
                 'current_retries': self.current_retries,
                 'send_task_events': self.send_task_events,
                 'info': self.info,
