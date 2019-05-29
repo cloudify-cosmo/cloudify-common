@@ -256,6 +256,10 @@ class ManagerEndpoint(Endpoint):
         client = manager.get_rest_client()
         return client.manager.get_config(name=name, scope=scope)
 
+    def update_operation(self, operation_id, state):
+        client = manager.get_rest_client()
+        client.operations.update(operation_id, state=state)
+
 
 class LocalEndpoint(Endpoint):
 
@@ -365,3 +369,7 @@ class LocalEndpoint(Endpoint):
     def get_config(self, name=None, scope=None):
         # TODO implement stored config for cfy local
         return []
+
+    def update_operation(self, operation_id, state):
+        # operation storage is not supported for local
+        return None
