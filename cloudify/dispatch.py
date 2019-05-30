@@ -44,7 +44,7 @@ from cloudify import constants
 from cloudify.amqp_client_utils import AMQPWrappedThread
 from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.workflows import workflow_context
-from cloudify.workflows import api
+from cloudify.workflows import api, tasks
 from cloudify.constants import LOGGING_CONFIG_FILE
 from cloudify.error_handling import (
     serialize_known_exception,
@@ -448,11 +448,17 @@ class OperationHandler(TaskHandler):
             # should be single `with` and comma-separate ctxmanagers,
             # but has to be nested for python 2.6 compat
             with self._amqp_client():
-                result = self._run_operation_func(ctx, kwargs)
+                try:
+                    result = self._run_operation_func(ctx, kwargs)
+                except Exception:
+                    ctx.update_operation(tasks.TASK_FAILED)
+                    raise
 
-        if ctx.operation._operation_retry:
-            raise ctx.operation._operation_retry
-        return result
+            if ctx.operation._operation_retry:
+                ctx.update_operation(tasks.TASK_RESCHEDULED)
+                raise ctx.operation._operation_retry
+            ctx.update_operation(tasks.TASK_SUCCEEDED)
+            return result
 
     @contextmanager
     def _amqp_client(self):

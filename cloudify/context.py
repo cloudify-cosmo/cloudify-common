@@ -818,8 +818,14 @@ class CloudifyContext(CommonContext):
             self._provider_context = self._endpoint.get_provider_context()
         return self._provider_context
 
-    def get_resource(self,
-                     resource_path):
+    def update_operation(self, state):
+        """Update current operation state.
+
+        :param state: New operation state
+        """
+        self._endpoint.update_operation(self.task_id, state)
+
+    def get_resource(self, resource_path):
         """
         Retrieves a resource bundled with the blueprint as a string.
 
