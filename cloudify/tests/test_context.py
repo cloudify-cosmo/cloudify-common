@@ -138,7 +138,8 @@ class CloudifyContextTest(testtools.TestCase):
 
     @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
     def test_get_non_existing_resource(self, _):
-        self.assertRaises(exceptions.HttpException, self.context.get_resource,
+        self.assertRaises(exceptions.NonRecoverableError,
+                          self.context.get_resource,
                           'non_existing.log')
 
     def test_ctx_instance_in_relationship(self):
