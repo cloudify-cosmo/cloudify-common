@@ -179,7 +179,7 @@ def download_resource_from_manager(resource_path, logger, target_path=None):
     :param target_path: optional target path for the resource
     :returns: path to the downloaded resource
     """
-    resource = get_resource_from_manager(resource_path)
+    resource = get_resource_from_manager(resource_path, logger=logger)
     return _save_resource(logger, resource, resource_path, target_path)
 
 
@@ -242,17 +242,28 @@ def _extract_resource_parts(resource_path):
     return namespace, resource_path
 
 
-def get_resource_from_manager(resource_path, base_url=None):
+def get_resource_from_manager(resource_path,
+                              base_url=None,
+                              base_urls=None,
+                              logger=None):
     """
     Get resource from the manager file server.
 
     :param resource_path: path to resource on the file server
+    :param base_url: The base URL to manager file server. Deprecated.
+    :param base_urls: A list of base URL to cluster manager file servers.
+    :param resource_path: path to resource on the file server.
+    :param logger: logger to use for info output
     :returns: resource content
     """
-    if base_url is None:
-        base_url = utils.get_manager_file_server_url()
+    base_urls = base_urls or []
+    manager_file_server_urls = utils.get_manager_file_server_url()
 
-    url = '{0}/{1}'.format(base_url, resource_path)
+    for manager_file_server_url in manager_file_server_urls:
+        base_urls.append(manager_file_server_url)
+    if base_url is not None:
+        base_urls.insert(0, base_url)
+
     verify = utils.get_local_rest_certificate()
 
     headers = {}
@@ -262,10 +273,23 @@ def get_resource_from_manager(resource_path, base_url=None):
     except NotInContext:
         headers[constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER] = \
             workflow_ctx.rest_token
-    response = requests.get(url, verify=verify, headers=headers)
-    if not response.ok:
-        raise HttpException(url, response.status_code, response.reason)
-    return response.content
+    for next_url in base_urls:
+        url = '{0}/{1}'.format(next_url, resource_path)
+        response = requests.get(url, verify=verify, headers=headers)
+        if response.ok:
+            return response.content
+        elif logger:
+            logger.info(
+                'Failed to connect to manager {0} file server endpoint. '
+                'Status: {1} '
+                'Reason: {2}. Trying next endpoint.'.format(
+                    url,
+                    response.status_code,
+                    response.reason))
+
+    raise NonRecoverableError(
+        'Failed to download resource from '
+        'any manager file server endpoints.')
 
 
 def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
@@ -287,9 +311,10 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
     :returns: resource content
     """
 
-    def _get_resource(base_url):
+    def _get_resource(base_urls):
         try:
-            return get_resource_from_manager(resource_path, base_url=base_url)
+            return get_resource_from_manager(
+                resource_path, base_urls=base_urls)
         except HttpException as e:
             if e.code != 404:
                 raise
@@ -311,7 +336,7 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
                 relative_deployment_path
             ).replace('\\', '/')
             try:
-                resource = _get_resource(deployment_url)
+                resource = _get_resource([deployment_url])
             except requests.ConnectionError:
                 continue
             if resource:
@@ -337,7 +362,7 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
                 relative_blueprint_path
             ).replace('\\', '/')
             try:
-                resource = _get_resource(blueprint_url)
+                resource = _get_resource([blueprint_url])
             except requests.ConnectionError:
                 continue
             if resource:
