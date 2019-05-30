@@ -36,43 +36,6 @@ def validate_missing_inputs(inputs, schema_inputs):
         raise DSLParsingLogicException(ERROR_MISSING_PROPERTY, message)
 
 
-def validate_inputs_types(inputs, schema_inputs):
-    for input_key, _input in schema_inputs.iteritems():
-        input_type = _input.get('type')
-        if input_type is None:
-            # no type defined - no validation
-            continue
-        input_val = inputs[input_key]
-
-        if functions.parse(input_val) != input_val:
-            # intrinsic function - not validated at the moment
-            continue
-
-        if input_type == 'integer':
-            if isinstance(input_val, (int, long)) and not \
-                    isinstance(input_val, bool):
-                continue
-        elif input_type == 'float':
-            if isinstance(input_val, (int, float, long)) and not \
-                    isinstance(input_val, bool):
-                continue
-        elif input_type == 'boolean':
-            if isinstance(input_val, bool):
-                continue
-        elif input_type == 'string':
-            continue
-        else:
-            raise DSLParsingLogicException(
-                    80, "Unexpected type defined in inputs schema "
-                        "for input '{0}' - unknown type is {1}"
-                        .format(input_key, input_type))
-
-        raise DSLParsingLogicException(
-                50, "Input type validation failed: Input '{0}' type "
-                    "is '{1}', yet it was assigned with the value '{2}'"
-                    .format(input_key, input_type, input_val))
-
-
 def merge_schema_and_instance_inputs(schema_inputs,
                                      instance_inputs):
 
@@ -82,7 +45,6 @@ def merge_schema_and_instance_inputs(schema_inputs,
             instance_inputs.items())
 
     validate_missing_inputs(merged_inputs, schema_inputs)
-    validate_inputs_types(merged_inputs, schema_inputs)
     return merged_inputs
 
 
