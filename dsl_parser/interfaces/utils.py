@@ -14,8 +14,7 @@
 #    * limitations under the License.
 
 
-from dsl_parser import (functions,
-                        utils)
+from dsl_parser import utils
 from dsl_parser.exceptions import (ERROR_MISSING_PROPERTY,
                                    DSLParsingLogicException)
 
