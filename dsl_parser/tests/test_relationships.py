@@ -1163,3 +1163,52 @@ node_templates:
               operation: not_existing
 """
         self.assertRaises(DSLParsingLogicException, self.parse, yaml)
+
+
+class TestRelationshipInputValidation(BaseParserApiTest):
+    def test_valid_input_types(self):
+        yaml = """
+relationships:
+    test_relationship:
+        properties:
+            integer:
+                type: integer
+                default: 1
+            list:
+                type: list
+                default: [1, 2]
+            float:
+                type: float
+                default: 1.5
+            string:
+                type: string
+                default: test
+            regex:
+                type: regex
+                default: ^.$
+            boolean:
+                type: boolean
+                default: false
+        """
+        parsed = self.parse(yaml)
+        relationships = parsed['relationships']
+        self.assertEquals(1, len(relationships))
+        test_relationship = relationships['test_relationship']
+        properties = test_relationship['properties']
+        self.assertEqual(1, properties['integer']['default'])
+        self.assertEqual([1, 2], properties['list']['default'])
+        self.assertEqual(1.5, properties['float']['default'])
+        self.assertEqual('test', properties['string']['default'])
+        self.assertEqual('^.$', properties['regex']['default'])
+        self.assertEqual(False, properties['boolean']['default'])
+
+    def test_not_valid_input_type(self):
+        yaml = """
+relationships:
+    test_relationship:
+        properties:
+            not_valid:
+                type: test
+                default: 1
+        """
+        self.assertRaises(DSLParsingLogicException, self.parse, yaml)
