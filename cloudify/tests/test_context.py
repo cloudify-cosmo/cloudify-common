@@ -57,13 +57,16 @@ class CloudifyContextTest(testtools.TestCase):
         os.environ[constants.REST_HOST_KEY] = "localhost"
         os.environ[constants.MANAGER_FILE_SERVER_SCHEME] = "http"
         _, os.environ[constants.LOCAL_REST_CERT_FILE_KEY] = tempfile.mkstemp()
-        cls.context = context.CloudifyContext({
+
+    def setUp(self):
+        super(CloudifyContextTest, self).setUp()
+        self.context = context.CloudifyContext({
             'blueprint_id': '',
             'tenant': {'name': 'default_tenant'}
         })
         # the context logger will try to publish messages to rabbit, which is
         # not available here. instead, we redirect the output to stdout.
-        cls.redirect_log_to_stdout(cls.context.logger)
+        self.redirect_log_to_stdout(self.context.logger)
 
     @classmethod
     def tearDownClass(cls):
