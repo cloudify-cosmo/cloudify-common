@@ -244,28 +244,28 @@ def _extract_resource_parts(resource_path):
 
 def get_resource_from_manager(resource_path,
                               base_url=None,
-                              base_urls=None,
-                              logger=None):
-    """
-    Get resource from the manager file server.
+                              base_urls=None):
+    """Get resource from the manager file server.
 
     :param resource_path: path to resource on the file server
     :param base_url: The base URL to manager file server. Deprecated.
     :param base_urls: A list of base URL to cluster manager file servers.
     :param resource_path: path to resource on the file server.
-    :param logger: logger to use for info output
     :returns: resource content
     """
     base_urls = base_urls or []
-    manager_file_server_urls = utils.get_manager_file_server_url()
-
-    for manager_file_server_url in manager_file_server_urls:
-        base_urls.append(manager_file_server_url)
+    base_urls += utils.get_manager_file_server_url()
     if base_url is not None:
         base_urls.insert(0, base_url)
 
-    verify = utils.get_local_rest_certificate()
+    # if we have multiple managers to try, set connect_timeout so that
+    # we're not waiting forever for a single non-responding manager
+    if len(base_urls) > 1:
+        timeout = (10, None)
+    else:
+        timeout = None
 
+    verify = utils.get_local_rest_certificate()
     headers = {}
     try:
         headers[constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER] = \
@@ -273,23 +273,55 @@ def get_resource_from_manager(resource_path,
     except NotInContext:
         headers[constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER] = \
             workflow_ctx.rest_token
+
     for next_url in base_urls:
-        url = '{0}/{1}'.format(next_url, resource_path)
-        response = requests.get(url, verify=verify, headers=headers)
-        if response.ok:
-            return response.content
-        elif logger:
-            logger.info(
-                'Failed to connect to manager {0} file server endpoint. '
-                'Status: {1} '
-                'Reason: {2}. Trying next endpoint.'.format(
-                    url,
-                    response.status_code,
-                    response.reason))
+        url = urljoin(next_url, resource_path)
+        try:
+            response = requests.get(
+                url, verify=verify, headers=headers, timeout=timeout)
+        except requests.ConnectionError:
+            continue
+        if not response.ok:
+            raise HttpException(url, response.status_code, response.reason)
+        return response.content
 
     raise NonRecoverableError(
-        'Failed to download resource from '
-        'any manager file server endpoints.')
+        'Failed to download {0}: unable to connect to any manager (tried: {1})'
+        .format(resource_path, ', '.join(base_urls))
+    )
+
+
+def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path):
+    """For the given resource_path, generate all firesever paths to try.
+
+    Eg. for path of "foo.txt", generate:
+        - /resources/deployments/default_tenant/dep1/foo.txt
+        - /resources/blueprints/default_tenant/bp1/foo.txt
+        - /foo.txt
+    """
+    if deployment_id:
+        yield os.path.join(
+            constants.FILE_SERVER_RESOURCES_FOLDER,
+            constants.FILE_SERVER_DEPLOYMENTS_FOLDER,
+            tenant_name,
+            deployment_id,
+            resource_path
+        ).replace('\\', '/')
+
+    client = get_rest_client()
+    blueprint = client.blueprints.get(blueprint_id)
+    if blueprint['visibility'] == VisibilityState.GLOBAL:
+        tenant_name = blueprint['tenant_name']
+
+    yield os.path.join(
+        constants.FILE_SERVER_RESOURCES_FOLDER,
+        constants.FILE_SERVER_BLUEPRINTS_FOLDER,
+        tenant_name,
+        blueprint_id,
+        resource_path
+    ).replace('\\', '/')
+
+    yield resource_path
 
 
 def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
@@ -310,70 +342,18 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
     :param resource_path: path to resource relative to blueprint folder
     :returns: resource content
     """
-
-    def _get_resource(base_urls):
+    tried_paths = []
+    for path in _resource_paths(
+            blueprint_id, deployment_id, tenant_name, resource_path):
         try:
-            return get_resource_from_manager(
-                resource_path, base_urls=base_urls)
+            return get_resource_from_manager(path)
         except HttpException as e:
             if e.code != 404:
                 raise
-            return None
+            tried_paths.append(path)
 
-    resource = None
-    deployment_url = ''
-    fileservers = utils.get_manager_file_server_url()
-    if deployment_id is not None:
-        relative_deployment_path = os.path.join(
-            constants.FILE_SERVER_RESOURCES_FOLDER,
-            constants.FILE_SERVER_DEPLOYMENTS_FOLDER,
-            tenant_name,
-            deployment_id
-        )
-        for base_url in fileservers:
-            deployment_url = urljoin(
-                base_url,
-                relative_deployment_path
-            ).replace('\\', '/')
-            try:
-                resource = _get_resource([deployment_url])
-            except requests.ConnectionError:
-                continue
-            if resource:
-                break
-    blueprint_url = ''
-    if resource is None:
-        client = get_rest_client()
-        blueprint = client.blueprints.get(blueprint_id)
-
-        if blueprint['visibility'] == VisibilityState.GLOBAL:
-            tenant_name = blueprint['tenant_name']
-
-        relative_blueprint_path = os.path.join(
-            constants.FILE_SERVER_RESOURCES_FOLDER,
-            constants.FILE_SERVER_BLUEPRINTS_FOLDER,
-            tenant_name,
-            blueprint_id
-        )
-
-        for base_url in fileservers:
-            blueprint_url = urljoin(
-                base_url,
-                relative_blueprint_path
-            ).replace('\\', '/')
-            try:
-                resource = _get_resource([blueprint_url])
-            except requests.ConnectionError:
-                continue
-            if resource:
-                break
-
-    if resource is None:
-        url = '{0},{1}'.format(blueprint_url, deployment_url) \
-            if deployment_url else blueprint_url
-        raise HttpException(url, 404, 'Resource not found: {0}'
-                            .format(resource_path))
-    return resource
+    raise HttpException(','.join(tried_paths), 404, 'Resource not found: {0}'
+                        .format(resource_path))
 
 
 def get_node_instance(node_instance_id, evaluate_functions=False):
