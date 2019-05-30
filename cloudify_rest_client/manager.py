@@ -300,9 +300,7 @@ class ManagerClient(object):
         the cluster, not necessarily for uninstalling the manager
         :param hostname: The manager's hostname
         """
-        response = self.api.delete('/managers', data={
-            'hostname': hostname
-        })
+        response = self.api.delete('/managers/{0}'.format(hostname))
         return ManagerItem(response)
 
     def update_manager(self, hostname, fs_sync_node_id, bootstrap_cluster):
@@ -314,8 +312,7 @@ class ManagerClient(object):
         :param bootstrap_cluster: Whether it is the 1st manager in the cluster
         or not
         """
-        response = self.api.put('/managers', data={
-            'hostname': hostname,
+        response = self.api.put('/managers/{0}'.format(hostname), data={
             'fs_sync_node_id': fs_sync_node_id,
             'bootstrap_cluster': bootstrap_cluster
         })
@@ -376,7 +373,23 @@ class ManagerClient(object):
 
         :return: The broker that was deleted.
         """
-        response = self.api.delete('/brokers', data={'name': name})
+        response = self.api.delete('/brokers/{0}'.format(name))
+        return RabbitMQBrokerItem(response)
+
+    def update_broker(self, name, networks):
+        """Update a broker.
+
+        Update a broker, adding or changing networks for that broker.
+        Networks cannot be deleted from a broker without deleting that broker.
+
+        :param name: The broker's name.
+        :param networks: The networks to add or change.
+
+        :return: The updated broker.
+        """
+        response = self.api.put('/brokers/{0}'.format(name), data={
+            'networks': networks,
+        })
         return RabbitMQBrokerItem(response)
 
     def get_brokers(self):
