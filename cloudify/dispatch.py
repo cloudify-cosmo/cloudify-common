@@ -448,6 +448,7 @@ class OperationHandler(TaskHandler):
             # should be single `with` and comma-separate ctxmanagers,
             # but has to be nested for python 2.6 compat
             with self._amqp_client():
+                ctx.update_operation(tasks.TASK_STARTED)
                 try:
                     result = self._run_operation_func(ctx, kwargs)
                 except Exception:
