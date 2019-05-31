@@ -32,7 +32,10 @@ from contextlib import contextmanager
 
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.constants import VisibilityState
-from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
+from cloudify_rest_client.exceptions import (
+    InvalidExecutionUpdateStatus,
+    CloudifyClientError
+)
 
 from cloudify import logs
 from cloudify import exceptions
@@ -448,18 +451,33 @@ class OperationHandler(TaskHandler):
             # should be single `with` and comma-separate ctxmanagers,
             # but has to be nested for python 2.6 compat
             with self._amqp_client():
-                ctx.update_operation(tasks.TASK_STARTED)
-                try:
+                with self._update_operation_state():
                     result = self._run_operation_func(ctx, kwargs)
-                except Exception:
-                    ctx.update_operation(tasks.TASK_FAILED)
-                    raise
 
             if ctx.operation._operation_retry:
-                ctx.update_operation(tasks.TASK_RESCHEDULED)
                 raise ctx.operation._operation_retry
-            ctx.update_operation(tasks.TASK_SUCCEEDED)
-            return result
+        return result
+
+    @contextmanager
+    def _update_operation_state(self):
+        ctx = self.ctx
+        try:
+            ctx.update_operation(tasks.TASK_STARTED)
+        except CloudifyClientError as e:
+            if e.status_code != 404:
+                raise
+            # if we can't update the operation, the operation isn't stored
+            # and we shouldn't update it afterwards either
+            store = False
+        else:
+            store = True
+        try:
+            yield
+        finally:
+            if store:
+                state = tasks.TASK_RESCHEDULED \
+                    if ctx.operation._operation_retry else tasks.TASK_SUCCEEDED
+                ctx.update_operation(state)
 
     @contextmanager
     def _amqp_client(self):
