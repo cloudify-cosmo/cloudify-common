@@ -473,10 +473,18 @@ class OperationHandler(TaskHandler):
             store = True
         try:
             yield
+            error = False
+        except Exception:
+            error = True
+            raise
         finally:
             if store:
-                state = tasks.TASK_RESCHEDULED \
-                    if ctx.operation._operation_retry else tasks.TASK_SUCCEEDED
+                if ctx.operation._operation_retry:
+                    state = tasks.TASK_RESCHEDULED
+                elif error:
+                    state = tasks.TASK_FAILED
+                else:
+                    state = tasks.TASK_SUCCEEDED
                 ctx.update_operation(state)
 
     @contextmanager
