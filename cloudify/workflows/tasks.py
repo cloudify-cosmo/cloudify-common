@@ -429,7 +429,10 @@ class RemoteWorkflowTask(WorkflowTask):
             return
         # final states are set by the agent side
         if state in TERMINATED_STATES:
-            return
+            # Unless we failed sending the task
+            if not (state == TASK_FAILED and self._state in (TASK_SENDING,
+                                                             TASK_SENT)):
+                return
         return super(RemoteWorkflowTask, self)._update_stored_state(state)
 
     def apply_async(self):
@@ -463,6 +466,7 @@ class RemoteWorkflowTask(WorkflowTask):
             self.async_result = RemoteWorkflowTaskResult(self, async_result)
         except (exceptions.NonRecoverableError,
                 exceptions.RecoverableError) as e:
+            self.set_state(TASK_FAILED)
             self.async_result = RemoteWorkflowErrorTaskResult(self, e)
         return self.async_result
 
