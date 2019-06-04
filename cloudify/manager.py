@@ -179,7 +179,7 @@ def download_resource_from_manager(resource_path, logger, target_path=None):
     :param target_path: optional target path for the resource
     :returns: path to the downloaded resource
     """
-    resource = get_resource_from_manager(resource_path, logger=logger)
+    resource = get_resource_from_manager(resource_path)
     return _save_resource(logger, resource, resource_path, target_path)
 
 
