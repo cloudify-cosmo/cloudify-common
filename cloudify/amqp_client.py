@@ -184,7 +184,7 @@ class AMQPConnection(object):
         out_channel = self._pika_connection.channel()
         out_channel.confirm_delivery()
         for handler in self._handlers:
-            handler.register(self)
+            handler.register(self, out_channel)
             logger.info('Registered handler for {0} [{1}]'
                         .format(handler.__class__.__name__,
                                 handler.routing_key))
@@ -256,7 +256,10 @@ class AMQPConnection(object):
             err_queue = envelope.get('err_queue')
 
             try:
-                getattr(target_channel, method)(**message)
+                if callable(method):
+                    method(self, channel, **message)
+                else:
+                    getattr(target_channel, method)(**message)
             except pika.exceptions.ConnectionClosed:
                 if self._closed:
                     return
@@ -281,7 +284,7 @@ class AMQPConnection(object):
     def add_handler(self, handler):
         self._handlers.append(handler)
         if self._pika_connection:
-            handler.register(self)
+            self.channel_method(handler.register)
 
     def channel(self):
         if self._closed or not self._pika_connection:
@@ -357,16 +360,11 @@ class TaskConsumer(object):
         self.queue = '{0}_{1}'.format(queue, self.routing_key)
         self._sem = threading.Semaphore(threadpool_size)
         self._connection = None
-        self.in_channel = None
         self.exchange_type = exchange_type
         self._tasks_buffer = deque()
 
-    def register(self, connection):
+    def register(self, connection, channel):
         self._connection = connection
-        self.in_channel = connection.channel()
-        self._register_queue(self.in_channel)
-
-    def _register_queue(self, channel):
         channel.basic_qos(prefetch_count=self.threadpool_size)
         channel.confirm_delivery()
         channel.exchange_declare(exchange=self.exchange,
@@ -440,12 +438,10 @@ class TaskConsumer(object):
 
     def delete_queue(self, queue):
         self._connection.channel_method(
-            'queue_delete', queue=queue, channel=self.in_channel,
-            if_empty=True)
+            'queue_delete', queue=queue, if_empty=True)
 
     def delete_exchange(self, exchange):
-        self._connection.channel_method(
-            'exchange_delete', exchange=exchange, channel=self.in_channel)
+        self._connection.channel_method('exchange_delete', exchange=exchange)
 
 
 class SendHandler(object):
@@ -462,12 +458,11 @@ class SendHandler(object):
         self.logger = logging.getLogger('dispatch.{0}'.format(self.exchange))
         self._connection = None
 
-    def register(self, connection):
+    def register(self, connection, channel):
         self._connection = connection
-        out_channel = connection.channel()
-        out_channel.exchange_declare(exchange=self.exchange,
-                                     exchange_type=self.exchange_type,
-                                     **self.exchange_settings)
+        channel.exchange_declare(exchange=self.exchange,
+                                 exchange_type=self.exchange_type,
+                                 **self.exchange_settings)
 
     def _log_message(self, message):
         level = message.get('level', 'info')
@@ -492,7 +487,6 @@ class ScheduledExecutionHandler(SendHandler):
 
     def __init__(self, exchange, exchange_type, routing_key,
                  target_exchange, target_routing_key, ttl):
-
         super(ScheduledExecutionHandler, self).__init__(exchange,
                                                         exchange_type,
                                                         routing_key)
@@ -502,27 +496,26 @@ class ScheduledExecutionHandler(SendHandler):
         self.target_routing_key = target_routing_key
         self.ttl = ttl
 
-    def register(self, connection):
+    def register(self, connection, channel):
         self._connection = connection
-
-        out_channel = connection.channel()
-        out_channel.exchange_declare(exchange=self.exchange,
-                                     exchange_type=self.exchange_type,
-                                     **self.exchange_settings)
+        channel.exchange_declare(exchange=self.exchange,
+                                 exchange_type=self.exchange_type,
+                                 **self.exchange_settings)
         # Declare a new temporary queue for the Dead Letter Exchange, and
         # set the routing key of the MGMTWORKER queue
-        out_channel.queue_declare(queue=self.routing_key,
-                                  arguments={
-                                      'x-message-ttl': self.ttl,
-                                      'x-dead-letter-exchange': (
-                                          self.target_exchange
-                                      ),
-                                      'x-dead-letter-routing-key': (
-                                          self.target_routing_key
-                                      ),
-                                  },
-                                  durable=True)
-        out_channel.queue_bind(exchange=self.exchange, queue=self.routing_key)
+        channel.queue_declare(
+            queue=self.routing_key,
+            arguments={
+                'x-message-ttl': self.ttl,
+                'x-dead-letter-exchange': (
+                    self.target_exchange
+                ),
+                'x-dead-letter-routing-key': (
+                    self.target_routing_key
+                ),
+            },
+            durable=True)
+        channel.queue_bind(exchange=self.exchange, queue=self.routing_key)
 
 
 class NoWaitSendHandler(SendHandler):
@@ -539,14 +532,14 @@ class _RequestResponseHandlerBase(TaskConsumer):
         self.queue = queue or '{0}_response_{1}'.format(
             self.exchange, uuid.uuid4().hex)
 
-    def _register_queue(self, channel):
-        self.in_channel.exchange_declare(exchange=self.exchange,
-                                         auto_delete=False,
-                                         durable=True,
-                                         exchange_type=self.exchange_type)
-        self.in_channel.queue_declare(queue=self.queue, exclusive=True,
-                                      durable=True)
-        self.in_channel.queue_bind(queue=self.queue, exchange=self.exchange)
+    def register(self, connection, channel):
+        self._connection = connection
+        channel.exchange_declare(exchange=self.exchange,
+                                 auto_delete=False,
+                                 durable=True,
+                                 exchange_type=self.exchange_type)
+        channel.queue_declare(queue=self.queue, exclusive=True, durable=True)
+        channel.queue_bind(queue=self.queue, exchange=self.exchange)
         channel.basic_consume(self.process, self.queue)
 
     def publish(self, message, correlation_id, routing_key='',
