@@ -137,11 +137,29 @@ class SecretsClient(object):
         """
         Returns a list of secrets to be exported
 
-        :param kwargs: the parameters given from the user
+        :param kwargs: The parameters given from the user
         :return: Secrets' list
         """
         params = kwargs
         response = self.api.get('/secrets/share/export', params=params)
+        return response
+
+    def import_secrets(self, secrets_list, tenant_map_dict=None,
+                       passphrase=None, override_collisions=False):
+        """
+        Creats the imported secrets on the Manager
+
+        :param kwargs: The parameters given by the user
+        :return:
+        """
+        data = {
+            'secrets_list': secrets_list,
+            'tenant_map_dict': tenant_map_dict,
+            'passphrase': passphrase,
+            'override_collisions': override_collisions
+        }
+        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        response = self.api.post('/secrets/share/import', data=data)
         return response
 
     def list(self, sort=None, is_descending=False, **kwargs):
