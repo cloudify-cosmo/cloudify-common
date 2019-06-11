@@ -34,7 +34,8 @@ def op_struct(plugin_name,
               max_retries=None,
               retry_interval=None,
               timeout=None,
-              timeout_recoverable=None):
+              timeout_recoverable=None,
+              timeout_error=None):
     if not inputs:
         inputs = {}
     result = {
@@ -46,7 +47,8 @@ def op_struct(plugin_name,
         'max_retries': max_retries,
         'retry_interval': retry_interval,
         'timeout': timeout,
-        'timeout_recoverable': timeout_recoverable
+        'timeout_recoverable': timeout_recoverable,
+        'timeout_error': timeout_error
     }
     return result
 

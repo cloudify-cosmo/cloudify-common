@@ -169,7 +169,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None)
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -196,7 +197,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None)
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -218,7 +220,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None)
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -238,7 +241,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -262,7 +266,9 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None
+        )
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -282,7 +288,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None)
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -306,7 +313,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None)
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -340,7 +348,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None)
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -368,7 +377,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None)
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -395,7 +405,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -425,7 +436,9 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None
+        )
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -453,7 +466,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None)
 
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -495,7 +509,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -517,7 +532,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -553,7 +569,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -574,7 +591,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -599,7 +617,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -626,7 +645,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -652,7 +672,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -676,7 +697,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -703,7 +725,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -727,7 +750,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -749,7 +773,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -778,7 +803,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -803,7 +829,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -826,7 +853,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -852,7 +880,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -875,7 +904,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -896,7 +926,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -921,7 +952,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -945,7 +977,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -967,7 +1000,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -992,7 +1026,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -1014,7 +1049,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -1038,7 +1074,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=1,
             retry_interval=2,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -1063,7 +1100,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=3,
             retry_interval=4,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -1088,7 +1126,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=0,
             retry_interval=0,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -1113,7 +1152,8 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             node_template_operation=node_template_operation,
@@ -1252,7 +1292,9 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None
+        )
 
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1290,7 +1332,9 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None
+        )
 
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1323,7 +1367,9 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None
+        )
 
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1354,7 +1400,9 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None
+        )
 
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1388,7 +1436,9 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None
+        )
 
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1419,7 +1469,9 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None)
+            timeout_recoverable=None,
+            timeout_error=None
+        )
 
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1455,7 +1507,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -1478,7 +1531,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -1515,7 +1569,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -1536,7 +1591,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
 
         self._assert_operations(
@@ -1559,7 +1615,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1588,7 +1645,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1612,7 +1670,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1634,7 +1693,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1659,7 +1719,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1681,7 +1742,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1704,7 +1766,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1727,7 +1790,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1753,7 +1817,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1778,7 +1843,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1804,7 +1870,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1827,7 +1894,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1847,7 +1915,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1867,7 +1936,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1890,7 +1960,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1912,7 +1983,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1935,7 +2007,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1955,7 +2028,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -1979,7 +2053,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=None,
             retry_interval=None,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,
@@ -2005,7 +2080,8 @@ class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
             max_retries=3,
             retry_interval=4,
             timeout=None,
-            timeout_recoverable=None
+            timeout_recoverable=None,
+            timeout_error=None
         )
         self._assert_operations(
             overriding_node_type_operation=overriding_node_type_operation,

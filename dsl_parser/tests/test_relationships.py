@@ -79,7 +79,8 @@ relationships:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             result_test_interface_4['test_interface4_op1'])
 
     def test_top_level_relationships_recursive_imports(self):
@@ -137,7 +138,8 @@ imports:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             test_relationship['source_interfaces'][
                 'test_interface2']['install'])
         self.assertEqual(
@@ -147,7 +149,8 @@ imports:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             test_relationship['source_interfaces'][
                 'test_interface2']['terminate'])
         self.assertEquals(
@@ -165,7 +168,8 @@ imports:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             test_relationship2['target_interfaces'][
                 'test_interface2']['install'])
         self.assertEqual(
@@ -175,7 +179,8 @@ imports:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             test_relationship2['target_interfaces'][
                 'test_interface2']['terminate'])
         self.assertEquals(
@@ -192,7 +197,8 @@ imports:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             test_relationship3['target_interfaces'][
                 'test_interface2']['install'])
         self.assertEqual(
@@ -202,7 +208,8 @@ imports:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             test_relationship3['target_interfaces'][
                 'test_interface2']['terminate'])
         self.assertEquals(
@@ -367,7 +374,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['source_interfaces']['test_interface1']['install'])
         relationship_source_operations = relationship['source_operations']
         self.assertEqual(op_struct('test_plugin', 'install',
@@ -457,7 +465,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['source_interfaces']['interface1']['op1'])
         self.assertEqual(
             operation_mapping(implementation='test_plugin.task_name2',
@@ -465,7 +474,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['target_interfaces']['interface2']['op2'])
 
         rel_source_ops = relationship['source_operations']
@@ -575,7 +585,7 @@ plugins:
         self.assertEquals(
             {'implementation': '', 'inputs': {}, 'executor': None,
              'max_retries': None, 'retry_interval': None, 'timeout': None,
-             'timeout_recoverable': None},
+             'timeout_recoverable': None, 'timeout_error': None},
             parent_relationship['target_interfaces'][
                 'test_interface3']['install'])
 
@@ -596,7 +606,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['source_interfaces']['test_interface2']['install'])
         self.assertEqual(
             operation_mapping(implementation='test_plugin.terminate',
@@ -605,7 +616,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['source_interfaces'][
                 'test_interface2']['terminate'])
 
@@ -626,7 +638,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             node_relationship['target_interfaces'][
                 'test_interface1']['install'])
         self.assertEquals(2, len(node_relationship['source_interfaces']))
@@ -638,7 +651,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             node_relationship['source_interfaces'][
                 'test_interface2']['install'])
         self.assertEquals(2, len(node_relationship['source_interfaces']
@@ -649,7 +663,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             node_relationship['source_interfaces'][
                 'test_interface2']['install'])
         self.assertEquals(
@@ -659,7 +674,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             node_relationship['source_interfaces'][
                 'test_interface2']['terminate'])
 
@@ -769,7 +785,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['target_interfaces']['test_interface']['install'])
         self.assertEqual(
             operation_mapping(implementation='test_plugin.terminate',
@@ -777,7 +794,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['target_interfaces'][
                 'test_interface']['terminate'])
         self.assertEquals(1, len(relationship['source_interfaces']))
@@ -789,7 +807,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['source_interfaces']['test_interface']['install2'])
         self.assertEqual(
             operation_mapping(implementation='test_plugin.terminate',
@@ -798,7 +817,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['source_interfaces'][
                 'test_interface']['terminate2'])
 
@@ -814,7 +834,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             node_relationship['target_interfaces'][
                 'test_interface']['install'])
         self.assertEqual(
@@ -824,7 +845,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['target_interfaces'][
                 'test_interface']['terminate'])
         self.assertEqual(
@@ -834,7 +856,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             node_relationship['target_interfaces'][
                 'test_interface']['destroy'])
         self.assertEquals(1, len(node_relationship['source_interfaces']))
@@ -848,7 +871,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             node_relationship['source_interfaces'][
                 'test_interface']['install2'])
         self.assertEqual(
@@ -858,7 +882,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             relationship['source_interfaces']['test_interface']['terminate2'])
         self.assertEquals(
             operation_mapping(implementation='test_plugin.destroy2',
@@ -867,7 +892,8 @@ plugins:
                               max_retries=None,
                               retry_interval=None,
                               timeout=None,
-                              timeout_recoverable=None),
+                              timeout_recoverable=None,
+                              timeout_error=None),
             node_relationship['source_interfaces'][
                 'test_interface']['destroy2'])
 

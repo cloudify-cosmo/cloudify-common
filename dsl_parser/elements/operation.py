@@ -130,6 +130,10 @@ class OperationTimeoutRecoverable(Element):
     schema = Leaf(type=bool)
 
 
+class OperationTimeoutError(Element):
+    schema = Leaf(type=bool)
+
+
 class Operation(Element):
 
     def parse(self):
@@ -141,7 +145,8 @@ class Operation(Element):
                 'max_retries': None,
                 'retry_interval': None,
                 'timeout': None,
-                'timeout_recoverable': None
+                'timeout_recoverable': None,
+                'timeout_error': None
             }
         else:
             return self.build_dict_result()
@@ -158,7 +163,8 @@ class NodeTypeOperation(Operation):
             'max_retries': OperationMaxRetries,
             'retry_interval': OperationRetryInterval,
             'timeout': OperationTimeout,
-            'timeout_recoverable': OperationTimeoutRecoverable
+            'timeout_recoverable': OperationTimeoutRecoverable,
+            'timeout_error': OperationTimeoutError
         }
     ]
 
@@ -174,7 +180,8 @@ class NodeTemplateOperation(Operation):
             'max_retries': OperationMaxRetries,
             'retry_interval': OperationRetryInterval,
             'timeout': OperationTimeout,
-            'timeout_recoverable': OperationTimeoutRecoverable
+            'timeout_recoverable': OperationTimeoutRecoverable,
+            'timeout_error': OperationTimeoutError
         }
     ]
 
@@ -282,6 +289,8 @@ def process_operation(
     operation_timeout = operation_content.get('timeout', None)
     operation_timeout_recoverable = operation_content.get(
         'timeout_recoverable', None)
+    operation_timeout_error = operation_content.get(
+        'timeout_error', None)
 
     if not operation_mapping:
         if is_workflows:
@@ -317,7 +326,8 @@ def process_operation(
                 max_retries=operation_max_retries,
                 retry_interval=operation_retry_interval,
                 timeout=operation_timeout,
-                timeout_recoverable=operation_timeout_recoverable)
+                timeout_recoverable=operation_timeout_recoverable,
+                timeout_error=operation_timeout_error)
     elif (utils.is_valid_url(operation_mapping) or
           _is_local_script_resource_exists(resource_bases,
                                            operation_mapping) or
@@ -382,7 +392,8 @@ def process_operation(
                 max_retries=operation_max_retries,
                 retry_interval=operation_retry_interval,
                 timeout=operation_timeout,
-                timeout_recoverable=operation_timeout_recoverable)
+                timeout_recoverable=operation_timeout_recoverable,
+                timeout_error=operation_timeout_error)
     else:
         base_error_message = (
             "Could not extract plugin or a script resource is not found from "

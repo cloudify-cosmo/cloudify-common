@@ -145,6 +145,8 @@ class TimeoutWrapper(object):
         self.timeout = cloudify_context.get('timeout')
         self.timeout_recoverable = cloudify_context.get(
             'timeout_recoverable', False)
+        self.timeout_error = cloudify_context.get(
+            'timeout_error', True)
         self.timeout_encountered = False
         self.process = process
         self.timer = None
@@ -220,10 +222,11 @@ class TaskHandler(object):
             if p.poll() is None:
                 message += ', however it has not stopped yet; please check ' \
                            'process ID {0} manually'.format(p.pid)
-            exception_class = exceptions.RecoverableError if \
-                timeout_wrapper.timeout_recoverable else \
-                exceptions.NonRecoverableError
-            raise exception_class(message)
+            if timeout_wrapper.timeout_error:
+                exception_class = exceptions.RecoverableError if \
+                    timeout_wrapper.timeout_recoverable else \
+                    exceptions.NonRecoverableError
+                raise exception_class(message)
         if p.returncode in (-15, -9):  # SIGTERM, SIGKILL
             raise exceptions.NonRecoverableError('Process terminated (rc=%d)'
                                                  % p.returncode)

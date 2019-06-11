@@ -592,6 +592,7 @@ class _WorkflowContextBase(object):
         operation_timeout = op_struct.get('timeout', None)
         operation_timeout_recoverable = op_struct.get('timeout_recoverable',
                                                       None)
+        operation_timeout_error = op_struct.get('timeout_error', None)
         task_name = operation_mapping
         if operation_total_retries is None:
             total_retries = self.internal.get_task_configuration()[
@@ -656,7 +657,8 @@ class _WorkflowContextBase(object):
             total_retries=total_retries,
             retry_interval=operation_retry_interval,
             timeout=operation_timeout,
-            timeout_recoverable=operation_timeout_recoverable)
+            timeout_recoverable=operation_timeout_recoverable,
+            timeout_error=operation_timeout_error)
 
     @staticmethod
     def _merge_dicts(merged_from, merged_into, allow_override=False):
@@ -688,7 +690,8 @@ class _WorkflowContextBase(object):
                                 task_name,
                                 node_context,
                                 timeout,
-                                timeout_recoverable):
+                                timeout_recoverable,
+                                timeout_error):
         node_context = node_context or {}
         context = {
             '__cloudify_context': '0.3',
@@ -699,7 +702,8 @@ class _WorkflowContextBase(object):
             'workflow_id': self.workflow_id,
             'tenant': self.tenant,
             'timeout': timeout,
-            'timeout_recoverable': timeout_recoverable
+            'timeout_recoverable': timeout_recoverable,
+            'timeout_error': timeout_error
         }
         context.update(node_context)
         context.update(self.internal.handler.operation_cloudify_context)
@@ -716,7 +720,8 @@ class _WorkflowContextBase(object):
                      total_retries=None,
                      retry_interval=None,
                      timeout=None,
-                     timeout_recoverable=None):
+                     timeout_recoverable=None,
+                     timeout_error=None):
         """
         Execute a task
 
@@ -733,7 +738,8 @@ class _WorkflowContextBase(object):
             task_name,
             node_context,
             timeout,
-            timeout_recoverable)
+            timeout_recoverable,
+            timeout_error)
         kwargs['__cloudify_context'] = cloudify_context
 
         if self.dry_run:

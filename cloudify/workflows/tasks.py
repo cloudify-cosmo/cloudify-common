@@ -70,6 +70,7 @@ class WorkflowTask(object):
                  retry_interval=DEFAULT_RETRY_INTERVAL,
                  timeout=None,
                  timeout_recoverable=None,
+                 timeout_error=None,
                  send_task_events=DEFAULT_SEND_TASK_EVENTS):
         """
         :param task_id: The id of this task (generated if none is provided)
@@ -104,6 +105,7 @@ class WorkflowTask(object):
         self.retry_interval = retry_interval
         self.timeout = timeout
         self.timeout_recoverable = timeout_recoverable
+        self.timeout_error = timeout_error
         self.terminated = Queue.Queue(maxsize=1)
         self.is_terminated = False
         self.workflow_context = workflow_context
@@ -406,6 +408,7 @@ class RemoteWorkflowTask(WorkflowTask):
             retry_interval=retry_interval,
             timeout=cloudify_context.get('timeout'),
             timeout_recoverable=cloudify_context.get('timeout_recoverable'),
+            timeout_error=cloudify_context.get('timeout_error'),
             send_task_events=send_task_events)
         self._task_target = task_target
         self._task_queue = task_queue
