@@ -142,6 +142,43 @@ class CloudifyContextTest(testtools.TestCase):
                           self.context.get_resource,
                           'non_existing.log')
 
+    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
+    def test_download_resource_tried_urls(self, _):
+        # check that download_resource tries the urls:
+        # - http://...//resources/deployments/default_tenant/dep/file.txt
+        #   (deployment resource)
+        # - http://.../resources/blueprints/default_tenant/bp/file.txt
+        #   (blueprint resource)
+        # - http://.../resources/file.txt'
+        #   (global resource)
+
+        self.context._context['blueprint_id'] = 'bp'
+        self.context._context['deployment_id'] = 'dep'
+        filename = 'file.txt'
+
+        not_found_err = exceptions.HttpException('', 404, 'Not found')
+        with mock.patch('requests.get', side_effect=not_found_err) as mock_get:
+            self.assertRaises(
+                exceptions.HttpException, self.context.get_resource, filename)
+        self.assertEqual(len(mock_get.mock_calls), 3)
+
+        # base is constructed from the constants in setUpClass
+        base_url = 'http://localhost:53229'
+
+        self.assertEqual([args[0] for _c, args, _k in mock_get.mock_calls], [
+            '{0}/resources/deployments/{1}/{2}/{3}'.format(
+                base_url,
+                self.context.tenant_name,
+                self.context.deployment.id,
+                filename),
+            '{0}/resources/blueprints/{1}/{2}/{3}'.format(
+                base_url,
+                self.context.tenant_name,
+                self.context.blueprint.id,
+                filename),
+            '{0}/resources/{1}'.format(base_url, filename)
+        ])
+
     def test_ctx_instance_in_relationship(self):
         ctx = context.CloudifyContext({
             'node_id': 'node-instance-id',

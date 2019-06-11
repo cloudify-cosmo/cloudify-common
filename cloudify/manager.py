@@ -15,7 +15,6 @@
 
 import os
 import requests
-from urlparse import urljoin
 
 from cloudify_rest_client.constants import VisibilityState
 
@@ -275,7 +274,7 @@ def get_resource_from_manager(resource_path,
             workflow_ctx.rest_token
 
     for next_url in base_urls:
-        url = urljoin(next_url, resource_path)
+        url = '{0}/{1}'.format(next_url.rstrip('/'), resource_path.lstrip('/'))
         try:
             response = requests.get(
                 url, verify=verify, headers=headers, timeout=timeout)
@@ -301,7 +300,6 @@ def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path):
     """
     if deployment_id:
         yield os.path.join(
-            constants.FILE_SERVER_RESOURCES_FOLDER,
             constants.FILE_SERVER_DEPLOYMENTS_FOLDER,
             tenant_name,
             deployment_id,
@@ -314,7 +312,6 @@ def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path):
         tenant_name = blueprint['tenant_name']
 
     yield os.path.join(
-        constants.FILE_SERVER_RESOURCES_FOLDER,
         constants.FILE_SERVER_BLUEPRINTS_FOLDER,
         tenant_name,
         blueprint_id,
