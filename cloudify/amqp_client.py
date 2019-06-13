@@ -538,9 +538,15 @@ class _RequestResponseHandlerBase(TaskConsumer):
                                  auto_delete=False,
                                  durable=True,
                                  exchange_type=self.exchange_type)
-        channel.queue_declare(queue=self.queue, exclusive=True, durable=True)
-        channel.queue_bind(queue=self.queue, exchange=self.exchange)
-        channel.basic_consume(self.process, self.queue)
+
+    def _declare_queue(self, queue_name):
+        self._connection.channel_method(
+            'queue_declare', queue=queue_name, durable=True,
+            exclusive=self.queue_exclusive)
+        self._connection.channel_method(
+            'queue_bind', queue=queue_name, exchange=self.exchange)
+        self._connection.channel_method(
+            'basic_consume', queue=queue_name, consumer_callback=self.process)
 
     def publish(self, message, correlation_id, routing_key='',
                 expiration=None):
@@ -572,6 +578,8 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
         if correlation_id is None:
             correlation_id = uuid.uuid4().hex
         self._response_queues[correlation_id] = Queue.Queue()
+
+        self._declare_queue(correlation_id)
         super(BlockingRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
         try:
@@ -604,8 +612,10 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
         correlation_id = kwargs.pop('correlation_id', None)
         if correlation_id is None:
             correlation_id = uuid.uuid4().hex
+
         if callback:
             self.wait_for_response(correlation_id, callback)
+        self._declare_queue(correlation_id)
         super(CallbackRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
 
