@@ -527,6 +527,7 @@ class NoWaitSendHandler(SendHandler):
 
 
 class _RequestResponseHandlerBase(TaskConsumer):
+    queue_exclusive = False
 
     def register(self, connection, channel):
         self._connection = connection
@@ -564,6 +565,10 @@ class _RequestResponseHandlerBase(TaskConsumer):
 
 
 class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
+    # when the process closes, a blockin handler's queues can be deleted,
+    # because there's no way to resume waiting on those
+    queue_exclusive = True
+
     def __init__(self, *args, **kwargs):
         super(BlockingRequestResponseHandler, self).__init__(*args, **kwargs)
         self._response_queues = {}
