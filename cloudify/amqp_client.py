@@ -436,9 +436,9 @@ class TaskConsumer(object):
     def handle_task(self, full_task):
         raise NotImplementedError()
 
-    def delete_queue(self, queue):
+    def delete_queue(self, queue, wait=True):
         self._connection.channel_method(
-            'queue_delete', queue=queue, if_empty=True)
+            'queue_delete', queue=queue, if_empty=True, wait=wait)
 
     def delete_exchange(self, exchange):
         self._connection.channel_method('exchange_delete', exchange=exchange)
@@ -582,6 +582,7 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
         self._declare_queue(correlation_id)
         super(BlockingRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
+
         try:
             return json.loads(self._response.get(timeout=timeout))
         except Queue.Empty:
@@ -593,7 +594,7 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
-        self.delete_queue(properties.correlation_id)
+        self.delete_queue(properties.correlation_id, wait=False)
         self._response.put(body)
 
 
@@ -619,7 +620,7 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
-        self.delete_queue(properties.correlation_id)
+        self.delete_queue(properties.correlation_id, wait=False)
         if properties.correlation_id not in self._callbacks:
             return
         try:
