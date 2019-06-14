@@ -436,9 +436,9 @@ class TaskConsumer(object):
     def handle_task(self, full_task):
         raise NotImplementedError()
 
-    def delete_queue(self, queue):
+    def delete_queue(self, queue, if_empty=True, wait=True):
         self._connection.channel_method(
-            'queue_delete', queue=queue, if_empty=True)
+            'queue_delete', queue=queue, if_empty=if_empty, wait=wait)
 
     def delete_exchange(self, exchange):
         self._connection.channel_method('exchange_delete', exchange=exchange)
@@ -527,10 +527,7 @@ class NoWaitSendHandler(SendHandler):
 
 
 class _RequestResponseHandlerBase(TaskConsumer):
-    def __init__(self, exchange, queue=None):
-        super(_RequestResponseHandlerBase, self).__init__(exchange)
-        self.queue = queue or '{0}_response_{1}'.format(
-            self.exchange, uuid.uuid4().hex)
+    queue_exclusive = False
 
     def register(self, connection, channel):
         self._connection = connection
@@ -538,9 +535,15 @@ class _RequestResponseHandlerBase(TaskConsumer):
                                  auto_delete=False,
                                  durable=True,
                                  exchange_type=self.exchange_type)
-        channel.queue_declare(queue=self.queue, exclusive=True, durable=True)
-        channel.queue_bind(queue=self.queue, exchange=self.exchange)
-        channel.basic_consume(self.process, self.queue)
+
+    def _declare_queue(self, queue_name):
+        self._connection.channel_method(
+            'queue_declare', queue=queue_name, durable=True,
+            exclusive=self.queue_exclusive)
+        self._connection.channel_method(
+            'queue_bind', queue=queue_name, exchange=self.exchange)
+        self._connection.channel_method(
+            'basic_consume', queue=queue_name, consumer_callback=self.process)
 
     def publish(self, message, correlation_id, routing_key='',
                 expiration=None):
@@ -551,7 +554,7 @@ class _RequestResponseHandlerBase(TaskConsumer):
             'exchange': self.exchange,
             'body': json.dumps(message),
             'properties': pika.BasicProperties(
-                reply_to=self.queue,
+                reply_to=correlation_id,
                 correlation_id=correlation_id,
                 expiration=expiration),
             'routing_key': routing_key
@@ -562,36 +565,38 @@ class _RequestResponseHandlerBase(TaskConsumer):
 
 
 class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
+    # when the process closes, a blockin handler's queues can be deleted,
+    # because there's no way to resume waiting on those
+    queue_exclusive = True
+
     def __init__(self, *args, **kwargs):
         super(BlockingRequestResponseHandler, self).__init__(*args, **kwargs)
-        self._response_queues = {}
+        self._response = Queue.Queue()
 
     def publish(self, message, *args, **kwargs):
         timeout = kwargs.pop('timeout', None)
         correlation_id = kwargs.pop('correlation_id', None)
         if correlation_id is None:
             correlation_id = uuid.uuid4().hex
-        self._response_queues[correlation_id] = Queue.Queue()
+
+        self._declare_queue(correlation_id)
         super(BlockingRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
+
         try:
-            resp = self._response_queues[correlation_id].get(timeout=timeout)
-            return resp
+            return json.loads(self._response.get(timeout=timeout))
         except Queue.Empty:
             raise RuntimeError('No response received for task {0}'
                                .format(correlation_id))
-        finally:
-            del self._response_queues[correlation_id]
+        except ValueError:
+            logger.error('Error parsing response for task {0}'
+                         .format(correlation_id))
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
-        try:
-            response = json.loads(body)
-        except ValueError:
-            logger.error('Error parsing response: {0}'.format(body))
-            return
-        if properties.correlation_id in self._response_queues:
-            self._response_queues[properties.correlation_id].put(response)
+        self.delete_queue(
+            properties.correlation_id, wait=False, if_empty=False)
+        self._response.put(body)
 
 
 class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
@@ -604,8 +609,10 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
         correlation_id = kwargs.pop('correlation_id', None)
         if correlation_id is None:
             correlation_id = uuid.uuid4().hex
+
         if callback:
             self.wait_for_response(correlation_id, callback)
+        self._declare_queue(correlation_id)
         super(CallbackRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
 
@@ -614,13 +621,15 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
+        self.delete_queue(
+            properties.correlation_id, wait=False, if_empty=False)
+        if properties.correlation_id not in self._callbacks:
+            return
         try:
             response = json.loads(body)
+            self._callbacks[properties.correlation_id](response)
         except ValueError:
             logger.error('Error parsing response: {0}'.format(body))
-            return
-        if properties.correlation_id in self._callbacks:
-            self._callbacks[properties.correlation_id](response)
 
 
 def get_client(amqp_host=None,
