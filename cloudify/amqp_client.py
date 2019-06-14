@@ -593,6 +593,7 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
+        self.delete_queue(properties.correlation_id)
         self._response.put(body)
 
 
@@ -618,6 +619,7 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
+        self.delete_queue(properties.correlation_id)
         if properties.correlation_id not in self._callbacks:
             return
         try:
