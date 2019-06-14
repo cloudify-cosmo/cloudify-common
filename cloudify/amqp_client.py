@@ -571,36 +571,29 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
 
     def __init__(self, *args, **kwargs):
         super(BlockingRequestResponseHandler, self).__init__(*args, **kwargs)
-        self._response_queues = {}
+        self._response = Queue.Queue()
 
     def publish(self, message, *args, **kwargs):
         timeout = kwargs.pop('timeout', None)
         correlation_id = kwargs.pop('correlation_id', None)
         if correlation_id is None:
             correlation_id = uuid.uuid4().hex
-        self._response_queues[correlation_id] = Queue.Queue()
 
         self._declare_queue(correlation_id)
         super(BlockingRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
         try:
-            resp = self._response_queues[correlation_id].get(timeout=timeout)
-            return resp
+            return json.loads(self._response.get(timeout=timeout))
         except Queue.Empty:
             raise RuntimeError('No response received for task {0}'
                                .format(correlation_id))
-        finally:
-            del self._response_queues[correlation_id]
+        except ValueError:
+            logger.error('Error parsing response for task {0}'
+                         .format(correlation_id))
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
-        try:
-            response = json.loads(body)
-        except ValueError:
-            logger.error('Error parsing response: {0}'.format(body))
-            return
-        if properties.correlation_id in self._response_queues:
-            self._response_queues[properties.correlation_id].put(response)
+        self._response.put(body)
 
 
 class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
