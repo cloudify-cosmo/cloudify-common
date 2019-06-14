@@ -618,13 +618,13 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
 
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
+        if properties.correlation_id not in self._callbacks:
+            return
         try:
             response = json.loads(body)
+            self._callbacks[properties.correlation_id](response)
         except ValueError:
             logger.error('Error parsing response: {0}'.format(body))
-            return
-        if properties.correlation_id in self._callbacks:
-            self._callbacks[properties.correlation_id](response)
 
 
 def get_client(amqp_host=None,
