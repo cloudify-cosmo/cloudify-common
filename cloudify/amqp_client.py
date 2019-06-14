@@ -527,10 +527,6 @@ class NoWaitSendHandler(SendHandler):
 
 
 class _RequestResponseHandlerBase(TaskConsumer):
-    def __init__(self, exchange, queue=None):
-        super(_RequestResponseHandlerBase, self).__init__(exchange)
-        self.queue = queue or '{0}_response_{1}'.format(
-            self.exchange, uuid.uuid4().hex)
 
     def register(self, connection, channel):
         self._connection = connection
@@ -557,7 +553,7 @@ class _RequestResponseHandlerBase(TaskConsumer):
             'exchange': self.exchange,
             'body': json.dumps(message),
             'properties': pika.BasicProperties(
-                reply_to=self.queue,
+                reply_to=correlation_id,
                 correlation_id=correlation_id,
                 expiration=expiration),
             'routing_key': routing_key

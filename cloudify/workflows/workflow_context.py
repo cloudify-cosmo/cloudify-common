@@ -1263,8 +1263,7 @@ class _TaskDispatcher(object):
                 'cloudify_task': {'kwargs': kwargs},
             }
         }
-        handler = amqp_client.CallbackRequestResponseHandler(
-            exchange=task['target'], queue=task['id'])
+        handler = amqp_client.CallbackRequestResponseHandler(task['target'])
         ping_handler = amqp_client.BlockingRequestResponseHandler(
             exchange=task['target'])
         client = self._get_client(task)
