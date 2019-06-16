@@ -147,10 +147,15 @@ class SecretsClient(object):
     def import_secrets(self, secrets_list, tenant_map_dict=None,
                        passphrase=None, override_collisions=False):
         """
-        Creats the imported secrets on the Manager
 
-        :param kwargs: The parameters given by the user
-        :return:
+        :param secrets_list: The secrets list to import.
+        :param tenant_map_dict: Tenant map - origin_tenant:destination_tenant.
+        :param passphrase: The passphrase to decrypt the secrets.
+        :param override_collisions: True if the existing secrets should be
+                                    overridden by the imported ones.
+        :return: A dictionary containing the secrets that were overridden,
+                 the secrets that were collided and the secrets that were not
+                 created due to errors.
         """
         data = {
             'secrets_list': secrets_list,
