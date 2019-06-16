@@ -545,8 +545,13 @@ class _RequestResponseHandlerBase(TaskConsumer):
         self._connection.channel_method(
             'basic_consume', queue=queue_name, consumer_callback=self.process)
 
+    def _queue_name(self, correlation_id):
+        """Make the queue name for this handler based on the correlation id"""
+        return '{0}_response_{1}'.format(self.exchange, correlation_id)
+
     def publish(self, message, correlation_id, routing_key='',
                 expiration=None):
+        self._declare_queue(self._queue_name(correlation_id))
         if expiration is not None:
             # rabbitmq wants it to be a string
             expiration = '{0}'.format(expiration)
@@ -554,7 +559,7 @@ class _RequestResponseHandlerBase(TaskConsumer):
             'exchange': self.exchange,
             'body': json.dumps(message),
             'properties': pika.BasicProperties(
-                reply_to=correlation_id,
+                reply_to=self._queue_name(correlation_id),
                 correlation_id=correlation_id,
                 expiration=expiration),
             'routing_key': routing_key
@@ -578,8 +583,6 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
         correlation_id = kwargs.pop('correlation_id', None)
         if correlation_id is None:
             correlation_id = uuid.uuid4().hex
-
-        self._declare_queue(correlation_id)
         super(BlockingRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
 
@@ -595,7 +598,8 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
         self.delete_queue(
-            properties.correlation_id, wait=False, if_empty=False)
+            self._queue_name(properties.correlation_id),
+            wait=False, if_empty=False)
         self._response.put(body)
 
 
@@ -612,7 +616,6 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
 
         if callback:
             self.wait_for_response(correlation_id, callback)
-        self._declare_queue(correlation_id)
         super(CallbackRequestResponseHandler, self).publish(
             message, correlation_id, *args, **kwargs)
 
@@ -622,7 +625,8 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
     def process(self, channel, method, properties, body):
         channel.basic_ack(method.delivery_tag)
         self.delete_queue(
-            properties.correlation_id, wait=False, if_empty=False)
+            self._queue_name(properties.correlation_id),
+            wait=False, if_empty=False)
         if properties.correlation_id not in self._callbacks:
             return
         try:
