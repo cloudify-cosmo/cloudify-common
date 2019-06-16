@@ -294,3 +294,13 @@ class PluginsClient(object):
             '/plugins/{0}/set-visibility'.format(plugin_id),
             data=data
         )
+
+    def finish_installation(self, plugin_id):
+        """
+        For internal use - updates the plugin's installation status.
+        :param plugin_id: The id of the plugin to be updated.
+        :return: Updated plugin by its ID.
+        """
+        assert plugin_id
+        response = self.api.put('/plugins/{0}'.format(plugin_id))
+        return Plugin(response)
