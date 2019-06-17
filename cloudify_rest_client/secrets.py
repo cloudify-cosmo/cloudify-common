@@ -69,6 +69,13 @@ class Secret(dict):
         """
         return self.get('is_hidden_value')
 
+    @property
+    def tenant_name(self):
+        """
+        :return: the secret's tenant name
+        """
+        return self.get('tenant_name')
+
 
 class SecretsClient(object):
 
@@ -125,6 +132,40 @@ class SecretsClient(object):
     def get(self, key):
         response = self.api.get('/secrets/{0}'.format(key))
         return Secret(response)
+
+    def export(self, **kwargs):
+        """
+        Returns a list of secrets to be exported
+
+        :param kwargs: The parameters given from the user
+        :return: Secrets' list
+        """
+        params = kwargs
+        response = self.api.get('/secrets/share/export', params=params)
+        return response
+
+    def import_secrets(self, secrets_list, tenant_map_dict=None,
+                       passphrase=None, override_collisions=False):
+        """
+
+        :param secrets_list: The secrets list to import.
+        :param tenant_map_dict: Tenant map - origin_tenant:destination_tenant.
+        :param passphrase: The passphrase to decrypt the secrets.
+        :param override_collisions: True if the existing secrets should be
+                                    overridden by the imported ones.
+        :return: A dictionary containing the secrets that were overridden,
+                 the secrets that were collided and the secrets that were not
+                 created due to errors.
+        """
+        data = {
+            'secrets_list': secrets_list,
+            'tenant_map_dict': tenant_map_dict,
+            'passphrase': passphrase,
+            'override_collisions': override_collisions
+        }
+        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        response = self.api.post('/secrets/share/import', data=data)
+        return response
 
     def list(self, sort=None, is_descending=False, **kwargs):
         """
