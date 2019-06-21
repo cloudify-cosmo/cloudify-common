@@ -34,6 +34,7 @@ Contents:
    clients
    deployments
    deployment_modifications
+   deployment_updates
    events
    exceptions
    executions
@@ -43,6 +44,7 @@ Contents:
    searching
    evaluate
    tokens
+   plugins_update
 
 
 Indices and tables
