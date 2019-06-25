@@ -71,7 +71,7 @@ class TestInstallUninstallWorkflows(testtools.TestCase):
         instance = instances[0]
         invocations = instance.runtime_properties['invocations']
         invoked_operations = [x['operation'] for x in invocations]
-        self.assertEquals(invoked_operations, expected_ops)
+        self.assertEqual(invoked_operations, expected_ops)
 
 
 class TestExecuteOperationWorkflow(testtools.TestCase):
@@ -144,8 +144,8 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
             self.assertIn('op_kwargs', instance.runtime_properties)
             op_kwargs = instance.runtime_properties['op_kwargs']
             self.assertIn(operation_param_key, op_kwargs)
-            self.assertEquals(operation_param_value,
-                              op_kwargs[operation_param_key])
+            self.assertEqual(operation_param_value,
+                             op_kwargs[operation_param_key])
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_by_nodes(self, cfy_local):
@@ -307,8 +307,8 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
                 self.assertIsNone(test_op_visited)
 
         # this is actually an assertion to ensure the tests themselves are ok
-        self.assertEquals(expected_num_of_visited_instances,
-                          num_of_visited_instances)
+        self.assertEqual(expected_num_of_visited_instances,
+                         num_of_visited_instances)
 
     def _dep_order_tests_helper(self, cfy_local, node_ids_param,
                                 ordered_node_ids_of_instances,

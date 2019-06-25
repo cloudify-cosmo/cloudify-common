@@ -749,7 +749,7 @@ class TestNodeTemplateDefaultScalableProperties(AbstractTestParser):
 
     def assert_scalable_properties(self, blueprint, expected_default=1):
         plan = self.parse_1_3(blueprint)
-        self.assertEquals({
+        self.assertEqual({
             'default_instances': expected_default,
             'min_instances': 0,
             'max_instances': constants.UNBOUNDED,

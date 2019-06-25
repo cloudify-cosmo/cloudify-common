@@ -81,7 +81,7 @@ class OperationTest(testtools.TestCase):
         kwargs = {'__cloudify_context': ctx}
         ctx = acquire_context(0, 0, **kwargs)
         self.assertIsInstance(ctx, context.CloudifyContext)
-        self.assertEquals('1234', ctx.instance.id)
+        self.assertEqual('1234', ctx.instance.id)
 
     def test_proxied_ctx(self):
 
@@ -112,7 +112,7 @@ class OperationTest(testtools.TestCase):
         kwargs = {'__cloudify_context': ctx}
         ctx = acquire_context(0, 0, **kwargs)
         self.assertIn('k', ctx.capabilities)
-        self.assertEquals('v', ctx.capabilities['k'])
+        self.assertEqual('v', ctx.capabilities['k'])
 
     def test_capabilities_clash(self):
         ctx = {

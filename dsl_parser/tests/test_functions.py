@@ -1269,7 +1269,7 @@ node_templates:
                             - some_node
                             - dummy_prop
     """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionValidationError,
                 'Runtime function .+ cannot be nested within a non-runtime '
                 'function \\(found in .+\\)'):
@@ -1293,7 +1293,7 @@ node_templates:
                                 - some_node
                                 - dummy_prop
     """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionValidationError,
                 'Runtime function .+ cannot be nested within a non-runtime '
                 'function \\(found in .+\\)'):
@@ -1323,7 +1323,7 @@ node_templates:
                             - get_attribute: [ some_node, dummy_prop ]
                             - get_input: dummy_input
     """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionValidationError,
                 'Runtime function .+ cannot be nested within a non-runtime '
                 'function \\(found in .+\\)'):
@@ -1348,7 +1348,7 @@ node_templates:
                             - dummy_prop
                     - shouldn't matter
     """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionValidationError,
                 'Runtime function .+ cannot be nested within a non-runtime '
                 'function \\(found in .+\\)'):
@@ -1373,7 +1373,7 @@ node_templates:
                                 - dummy_prop
                     - shouldn't matter
     """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionValidationError,
                 'Runtime function .+ cannot be nested within a non-runtime '
                 'function \\(found in .+\\)'):
@@ -1395,7 +1395,7 @@ node_templates:
                         - some_node
                         - prop
     """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
                 "evaluating the deployment\\..+get_input\\..+"):
@@ -1418,7 +1418,7 @@ node_templates:
                             - prop
                     - shouldn't matter
         """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
                 "evaluating the deployment\\..+get_property\\[0\\].+"):
@@ -1442,7 +1442,7 @@ node_templates:
                                 - prop
                         - shouldn't matter
             """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
                 "evaluating the deployment\\..+get_property\\[0\\].+"):
@@ -1465,7 +1465,7 @@ node_templates:
                             - prop
                     - shouldn't matter
             """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
                 "evaluating the deployment\\..+get_property\\[0\\].+"):

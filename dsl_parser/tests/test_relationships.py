@@ -26,7 +26,7 @@ relationships: {}
         """
         result = self.parse(yaml)
         self._assert_minimal_blueprint(result)
-        self.assertEquals(0, len(result['relationships']))
+        self.assertEqual(0, len(result['relationships']))
 
     def test_empty_top_level_relationships_empty_relationship(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -63,16 +63,16 @@ relationships:
                           'type_hierarchy': ['empty_rel']},
                          result['relationships']['empty_rel'])
         test_relationship = result['relationships']['test_relationship']
-        self.assertEquals('test_relationship', test_relationship['name'])
-        self.assertEquals(test_relationship['type_hierarchy'],
-                          ['empty_rel', 'test_relationship'])
+        self.assertEqual('test_relationship', test_relationship['name'])
+        self.assertEqual(test_relationship['type_hierarchy'],
+                         ['empty_rel', 'test_relationship'])
         result_test_interface_3 = \
             test_relationship['source_interfaces']['test_interface3']
-        self.assertEquals(NO_OP,
-                          result_test_interface_3['test_interface3_op1'])
+        self.assertEqual(NO_OP,
+                         result_test_interface_3['test_interface3_op1'])
         result_test_interface_4 = \
             test_relationship['target_interfaces']['test_interface4']
-        self.assertEquals(
+        self.assertEqual(
             operation_mapping(implementation='test_plugin.task_name',
                               inputs={},
                               executor=None,
@@ -128,8 +128,8 @@ imports:
                           'type_hierarchy': ['empty_rel']},
                          result['relationships']['empty_rel'])
         test_relationship = result['relationships']['test_relationship']
-        self.assertEquals('test_relationship',
-                          test_relationship['name'])
+        self.assertEqual('test_relationship',
+                         test_relationship['name'])
         self.assertEqual(
             operation_mapping(implementation='test_plugin.install',
                               inputs={},
@@ -150,14 +150,12 @@ imports:
                               timeout_recoverable=None),
             test_relationship['source_interfaces'][
                 'test_interface2']['terminate'])
-        self.assertEquals(
-            2, len(test_relationship['source_interfaces'][
-                       'test_interface2']))
-        self.assertEquals(6, len(test_relationship))
+        self.assertEqual(
+            2, len(test_relationship['source_interfaces']['test_interface2']))
+        self.assertEqual(6, len(test_relationship))
 
         test_relationship2 = result['relationships']['test_relationship2']
-        self.assertEquals('test_relationship2',
-                          test_relationship2['name'])
+        self.assertEqual('test_relationship2', test_relationship2['name'])
         self.assertEqual(
             operation_mapping(implementation='test_plugin.install',
                               inputs={},
@@ -178,13 +176,12 @@ imports:
                               timeout_recoverable=None),
             test_relationship2['target_interfaces'][
                 'test_interface2']['terminate'])
-        self.assertEquals(
-            2, len(test_relationship2['target_interfaces'][
-                       'test_interface2']))
-        self.assertEquals(6, len(test_relationship2))
+        self.assertEqual(
+            2, len(test_relationship2['target_interfaces']['test_interface2']))
+        self.assertEqual(6, len(test_relationship2))
 
         test_relationship3 = result['relationships']['test_relationship3']
-        self.assertEquals('test_relationship3', test_relationship3['name'])
+        self.assertEqual('test_relationship3', test_relationship3['name'])
         self.assertEqual(
             operation_mapping(implementation='test_plugin.install',
                               inputs={},
@@ -205,10 +202,9 @@ imports:
                               timeout_recoverable=None),
             test_relationship3['target_interfaces'][
                 'test_interface2']['terminate'])
-        self.assertEquals(
-            2, len(test_relationship3['target_interfaces'][
-                       'test_interface2']))
-        self.assertEquals(5, len(test_relationship3))
+        self.assertEqual(
+            2, len(test_relationship3['target_interfaces']['test_interface2']))
+        self.assertEqual(5, len(test_relationship3))
 
     def test_top_level_relationship_properties(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -226,14 +222,14 @@ relationships:
         result = self.parse(yaml)
         self._assert_minimal_blueprint(result)
         relationships = result['relationships']
-        self.assertEquals(1, len(relationships))
+        self.assertEqual(1, len(relationships))
         test_relationship = relationships['test_relationship']
         properties = test_relationship['properties']
         self.assertIn('without_default_value', properties)
         self.assertIn('with_simple_default_value', properties)
-        self.assertEquals({'default': 1}, properties[
+        self.assertEqual({'default': 1}, properties[
             'with_simple_default_value'])
-        self.assertEquals({'default': {'comp1': 1, 'comp2': 2}}, properties[
+        self.assertEqual({'default': {'comp1': 1, 'comp2': 2}}, properties[
             'with_object_default_value'])
 
     def test_top_level_relationship_properties_inheritance(self):
@@ -272,19 +268,19 @@ relationships:
         result = self.parse(yaml)
         self._assert_minimal_blueprint(result)
         relationships = result['relationships']
-        self.assertEquals(3, len(relationships))
+        self.assertEqual(3, len(relationships))
         r1_properties = relationships['test_relationship1']['properties']
         r2_properties = relationships['test_relationship2']['properties']
         r3_properties = relationships['test_relationship3']['properties']
-        self.assertEquals(4, len(r1_properties))
+        self.assertEqual(4, len(r1_properties))
         self.assertIn('prop1', r1_properties)
         self.assertIn('prop2', r1_properties)
         self.assertIn('prop3', r1_properties)
         self.assertIn('derived1', r1_properties)
-        self.assertEquals({'default': 'prop3_value_1'}, r1_properties['prop3'])
-        self.assertEquals({'default': 'derived1_value'}, r1_properties[
+        self.assertEqual({'default': 'prop3_value_1'}, r1_properties['prop3'])
+        self.assertEqual({'default': 'derived1_value'}, r1_properties[
             'derived1'])
-        self.assertEquals(8, len(r2_properties))
+        self.assertEqual(8, len(r2_properties))
         self.assertIn('prop1', r2_properties)
         self.assertIn('prop2', r2_properties)
         self.assertIn('prop3', r2_properties)
@@ -293,17 +289,17 @@ relationships:
         self.assertIn('prop6', r2_properties)
         self.assertIn('derived1', r2_properties)
         self.assertIn('derived2', r2_properties)
-        self.assertEquals({'default': 'prop2_value_2'}, r2_properties[
+        self.assertEqual({'default': 'prop2_value_2'}, r2_properties[
             'prop2'])
-        self.assertEquals({'default': 'prop3_value_2'}, r2_properties[
+        self.assertEqual({'default': 'prop3_value_2'}, r2_properties[
             'prop3'])
-        self.assertEquals({'default': 'prop6_value_2'}, r2_properties[
+        self.assertEqual({'default': 'prop6_value_2'}, r2_properties[
             'prop6'])
-        self.assertEquals({'default': 'derived1_value'}, r2_properties[
+        self.assertEqual({'default': 'derived1_value'}, r2_properties[
             'derived1'])
-        self.assertEquals({'default': 'derived2_value'}, r2_properties[
+        self.assertEqual({'default': 'derived2_value'}, r2_properties[
             'derived2'])
-        self.assertEquals(9, len(r3_properties))
+        self.assertEqual(9, len(r3_properties))
         self.assertIn('prop1', r3_properties)
         self.assertIn('prop2', r3_properties)
         self.assertIn('prop3', r3_properties)
@@ -313,17 +309,17 @@ relationships:
         self.assertIn('prop7', r3_properties)
         self.assertIn('derived1', r3_properties)
         self.assertIn('derived2', r3_properties)
-        self.assertEquals({'default': 'prop2_value_2'}, r3_properties[
+        self.assertEqual({'default': 'prop2_value_2'}, r3_properties[
             'prop2'])
-        self.assertEquals({'default': 'prop3_value_2'}, r3_properties[
+        self.assertEqual({'default': 'prop3_value_2'}, r3_properties[
             'prop3'])
-        self.assertEquals({'default': 'prop5_value_3'}, r3_properties[
+        self.assertEqual({'default': 'prop5_value_3'}, r3_properties[
             'prop5'])
-        self.assertEquals({'default': 'prop6_value_3'}, r3_properties[
+        self.assertEqual({'default': 'prop6_value_3'}, r3_properties[
             'prop6'])
-        self.assertEquals({'default': 'derived1_value'}, r3_properties[
+        self.assertEqual({'default': 'derived1_value'}, r3_properties[
             'derived1'])
-        self.assertEquals({'default': 'derived2_value'}, r3_properties[
+        self.assertEqual({'default': 'derived2_value'}, r3_properties[
             'derived2'])
 
     def test_instance_relationships_empty_relationships_section(self):
@@ -353,14 +349,14 @@ plugins:
         source: dummy
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
-        self.assertEquals('test_node2', nodes[1]['id'])
-        self.assertEquals(1, len(nodes[1]['relationships']))
+        self.assertEqual('test_node2', nodes[1]['id'])
+        self.assertEqual(1, len(nodes[1]['relationships']))
         relationship = nodes[1]['relationships'][0]
-        self.assertEquals('test_relationship', relationship['type'])
-        self.assertEquals('test_node', relationship['target_id'])
+        self.assertEqual('test_relationship', relationship['type'])
+        self.assertEqual('test_node', relationship['target_id'])
         self.assertEqual(
             operation_mapping(implementation='test_plugin.install', inputs={},
                               executor=None,
@@ -379,9 +375,9 @@ plugins:
             relationship_source_operations['test_interface1.install'])
         self.assertEqual(2, len(relationship_source_operations))
 
-        self.assertEquals(8, len(relationship))
+        self.assertEqual(8, len(relationship))
         plugin_def = nodes[1]['plugins'][0]
-        self.assertEquals('test_plugin', plugin_def['name'])
+        self.assertEqual('test_plugin', plugin_def['name'])
 
     def test_instance_relationships_duplicate_relationship(self):
         # right now, having two relationships with the same (type,target)
@@ -398,21 +394,21 @@ relationships:
     test_relationship: {}
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
-        self.assertEquals('test_node2', nodes[1]['id'])
-        self.assertEquals(2, len(nodes[1]['relationships']))
-        self.assertEquals('test_relationship',
-                          nodes[1]['relationships'][0]['type'])
-        self.assertEquals('test_relationship',
-                          nodes[1]['relationships'][1]['type'])
-        self.assertEquals('test_node',
-                          nodes[1]['relationships'][0]['target_id'])
-        self.assertEquals('test_node',
-                          nodes[1]['relationships'][1]['target_id'])
-        self.assertEquals(8, len(nodes[1]['relationships'][0]))
-        self.assertEquals(8, len(nodes[1]['relationships'][1]))
+        self.assertEqual('test_node2', nodes[1]['id'])
+        self.assertEqual(2, len(nodes[1]['relationships']))
+        self.assertEqual(
+            'test_relationship', nodes[1]['relationships'][0]['type'])
+        self.assertEqual(
+            'test_relationship', nodes[1]['relationships'][1]['type'])
+        self.assertEqual(
+            'test_node', nodes[1]['relationships'][0]['target_id'])
+        self.assertEqual(
+            'test_node', nodes[1]['relationships'][1]['target_id'])
+        self.assertEqual(8, len(nodes[1]['relationships'][0]))
+        self.assertEqual(8, len(nodes[1]['relationships'][1]))
 
     def test_instance_relationships_relationship_inheritance(self):
         # possibly 'inheritance' is the wrong term to use here,
@@ -445,12 +441,12 @@ plugins:
         source: dummy
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         relationship = nodes[1]['relationships'][0]
-        self.assertEquals('test_relationship', relationship['type'])
-        self.assertEquals('test_node', relationship['target_id'])
+        self.assertEqual('test_relationship', relationship['type'])
+        self.assertEqual('test_node', relationship['target_id'])
         self.assertEqual(
             operation_mapping(implementation='test_plugin.task_name1',
                               inputs={}, executor=None,
@@ -476,7 +472,7 @@ plugins:
         self.assertEqual(op_struct('test_plugin', 'task_name1',
                                    executor='central_deployment_agent'),
                          rel_source_ops['interface1.op1'])
-        self.assertEquals(2, len(rel_source_ops))
+        self.assertEqual(2, len(rel_source_ops))
 
         rel_target_ops = relationship['target_operations']
         self.assertEqual(op_struct('test_plugin', 'task_name2',
@@ -485,9 +481,9 @@ plugins:
         self.assertEqual(op_struct('test_plugin', 'task_name2',
                                    executor='central_deployment_agent'),
                          rel_target_ops['interface2.op2'])
-        self.assertEquals(2, len(rel_target_ops))
+        self.assertEqual(2, len(rel_target_ops))
 
-        self.assertEquals(8, len(relationship))
+        self.assertEqual(8, len(relationship))
 
     def test_instance_relationship_properties_inheritance(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -510,16 +506,16 @@ relationships:
             prop7: {}
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         relationships = result['relationships']
-        self.assertEquals(1, len(relationships))
+        self.assertEqual(1, len(relationships))
         i_properties = nodes[1]['relationships'][0]['properties']
-        self.assertEquals(3, len(i_properties))
-        self.assertEquals('prop1_value_new', i_properties['prop1'])
-        self.assertEquals('prop2_value_new', i_properties['prop2'])
-        self.assertEquals('prop7_value_new_instance', i_properties['prop7'])
+        self.assertEqual(3, len(i_properties))
+        self.assertEqual('prop1_value_new', i_properties['prop1'])
+        self.assertEqual('prop2_value_new', i_properties['prop2'])
+        self.assertEqual('prop7_value_new_instance', i_properties['prop7'])
 
     def test_relationships_and_node_recursive_inheritance(self):
         # testing for a complete inheritance path for relationships
@@ -557,39 +553,40 @@ plugins:
         source: dummy
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         node_relationship = nodes[1]['relationships'][0]
         relationship = result['relationships']['relationship']
         parent_relationship = result['relationships']['parent_relationship']
-        self.assertEquals(2, len(result['relationships']))
-        self.assertEquals(5, len(parent_relationship))
-        self.assertEquals(6, len(relationship))
-        self.assertEquals(8, len(node_relationship))
+        self.assertEqual(2, len(result['relationships']))
+        self.assertEqual(5, len(parent_relationship))
+        self.assertEqual(6, len(relationship))
+        self.assertEqual(8, len(node_relationship))
 
-        self.assertEquals('parent_relationship', parent_relationship['name'])
-        self.assertEquals(1, len(parent_relationship['target_interfaces']))
-        self.assertEquals(1, len(parent_relationship['target_interfaces']
-                                 ['test_interface3']))
-        self.assertEquals(
+        self.assertEqual('parent_relationship', parent_relationship['name'])
+        self.assertEqual(1, len(parent_relationship['target_interfaces']))
+        self.assertEqual(
+            1,
+            len(parent_relationship['target_interfaces']['test_interface3']))
+        self.assertEqual(
             {'implementation': '', 'inputs': {}, 'executor': None,
              'max_retries': None, 'retry_interval': None, 'timeout': None,
              'timeout_recoverable': None},
             parent_relationship['target_interfaces'][
                 'test_interface3']['install'])
 
-        self.assertEquals('relationship', relationship['name'])
-        self.assertEquals('parent_relationship', relationship['derived_from'])
-        self.assertEquals(1, len(relationship['target_interfaces']))
-        self.assertEquals(1, len(relationship['target_interfaces']
-                                 ['test_interface3']))
-        self.assertEquals(
+        self.assertEqual('relationship', relationship['name'])
+        self.assertEqual('parent_relationship', relationship['derived_from'])
+        self.assertEqual(1, len(relationship['target_interfaces']))
+        self.assertEqual(
+            1, len(relationship['target_interfaces']['test_interface3']))
+        self.assertEqual(
             NO_OP,
             relationship['target_interfaces']['test_interface3']['install'])
-        self.assertEquals(1, len(relationship['source_interfaces']))
-        self.assertEquals(2, len(relationship['source_interfaces']
-                                 ['test_interface2']))
+        self.assertEqual(1, len(relationship['source_interfaces']))
+        self.assertEqual(
+            2, len(relationship['source_interfaces']['test_interface2']))
         self.assertEqual(
             operation_mapping(implementation='test_plugin.install', inputs={},
                               executor=None,
@@ -609,17 +606,17 @@ plugins:
             relationship['source_interfaces'][
                 'test_interface2']['terminate'])
 
-        self.assertEquals('relationship', node_relationship['type'])
-        self.assertEquals('test_node', node_relationship['target_id'])
-        self.assertEquals(2, len(node_relationship['target_interfaces']))
-        self.assertEquals(1, len(node_relationship['target_interfaces']
-                                 ['test_interface3']))
-        self.assertEquals(
+        self.assertEqual('relationship', node_relationship['type'])
+        self.assertEqual('test_node', node_relationship['target_id'])
+        self.assertEqual(2, len(node_relationship['target_interfaces']))
+        self.assertEqual(
+            1, len(node_relationship['target_interfaces']['test_interface3']))
+        self.assertEqual(
             NO_OP,
             node_relationship['target_interfaces'][
                 'test_interface3']['install'])
-        self.assertEquals(1, len(node_relationship['target_interfaces']
-                                 ['test_interface1']))
+        self.assertEqual(
+            1, len(node_relationship['target_interfaces']['test_interface1']))
         self.assertEqual(
             operation_mapping(implementation='test_plugin.install', inputs={},
                               executor=None,
@@ -629,10 +626,10 @@ plugins:
                               timeout_recoverable=None),
             node_relationship['target_interfaces'][
                 'test_interface1']['install'])
-        self.assertEquals(2, len(node_relationship['source_interfaces']))
-        self.assertEquals(1, len(node_relationship['source_interfaces']
-                                 ['test_interface3']))
-        self.assertEquals(
+        self.assertEqual(2, len(node_relationship['source_interfaces']))
+        self.assertEqual(
+            1, len(node_relationship['source_interfaces']['test_interface3']))
+        self.assertEqual(
             operation_mapping(implementation='test_plugin.install', inputs={},
                               executor=None,
                               max_retries=None,
@@ -641,9 +638,9 @@ plugins:
                               timeout_recoverable=None),
             node_relationship['source_interfaces'][
                 'test_interface2']['install'])
-        self.assertEquals(2, len(node_relationship['source_interfaces']
-                                 ['test_interface2']))
-        self.assertEquals(
+        self.assertEqual(
+            2, len(node_relationship['source_interfaces']['test_interface2']))
+        self.assertEqual(
             operation_mapping(implementation='test_plugin.install', inputs={},
                               executor=None,
                               max_retries=None,
@@ -652,7 +649,7 @@ plugins:
                               timeout_recoverable=None),
             node_relationship['source_interfaces'][
                 'test_interface2']['install'])
-        self.assertEquals(
+        self.assertEqual(
             operation_mapping(implementation='test_plugin.terminate',
                               inputs={},
                               executor=None,
@@ -664,7 +661,7 @@ plugins:
                 'test_interface2']['terminate'])
 
         rel_source_ops = node_relationship['source_operations']
-        self.assertEquals(4, len(rel_source_ops))
+        self.assertEqual(4, len(rel_source_ops))
         self.assertEqual(op_struct('test_plugin', 'install',
                                    executor='central_deployment_agent'),
                          rel_source_ops['test_interface2.install'])
@@ -679,7 +676,7 @@ plugins:
                          rel_source_ops['test_interface2.terminate'])
 
         rel_target_ops = node_relationship['target_operations']
-        self.assertEquals(2, len(rel_target_ops))
+        self.assertEqual(2, len(rel_target_ops))
         self.assertEqual(op_struct('', '', {}),
                          rel_target_ops['test_interface3.install'])
         self.assertEqual(op_struct('test_plugin', 'install',
@@ -735,34 +732,34 @@ plugins:
         source: dummy
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         node_relationship = nodes[1]['relationships'][0]
         relationship = result['relationships']['relationship']
         parent_relationship = result['relationships']['parent_relationship']
-        self.assertEquals(2, len(result['relationships']))
-        self.assertEquals(5, len(parent_relationship))
-        self.assertEquals(6, len(relationship))
-        self.assertEquals(8, len(node_relationship))
+        self.assertEqual(2, len(result['relationships']))
+        self.assertEqual(5, len(parent_relationship))
+        self.assertEqual(6, len(relationship))
+        self.assertEqual(8, len(node_relationship))
 
-        self.assertEquals('parent_relationship', parent_relationship['name'])
-        self.assertEquals(1, len(parent_relationship['target_interfaces']))
-        self.assertEquals(1, len(parent_relationship['target_interfaces']
-                                 ['test_interface']))
+        self.assertEqual('parent_relationship', parent_relationship['name'])
+        self.assertEqual(1, len(parent_relationship['target_interfaces']))
+        self.assertEqual(
+            1, len(parent_relationship['target_interfaces']['test_interface']))
         self.assertIn('install', parent_relationship['target_interfaces']
                       ['test_interface'])
-        self.assertEquals(1, len(parent_relationship['source_interfaces']))
-        self.assertEquals(1, len(parent_relationship['source_interfaces']
-                                 ['test_interface']))
+        self.assertEqual(1, len(parent_relationship['source_interfaces']))
+        self.assertEqual(
+            1, len(parent_relationship['source_interfaces']['test_interface']))
         self.assertIn('install2', parent_relationship[
             'source_interfaces']['test_interface'])
 
-        self.assertEquals('relationship', relationship['name'])
-        self.assertEquals('parent_relationship', relationship['derived_from'])
-        self.assertEquals(1, len(relationship['target_interfaces']))
-        self.assertEquals(2, len(relationship['target_interfaces']
-                                 ['test_interface']))
+        self.assertEqual('relationship', relationship['name'])
+        self.assertEqual('parent_relationship', relationship['derived_from'])
+        self.assertEqual(1, len(relationship['target_interfaces']))
+        self.assertEqual(
+            2, len(relationship['target_interfaces']['test_interface']))
         self.assertEqual(
             operation_mapping(implementation='test_plugin.install', inputs={},
                               executor=None,
@@ -780,8 +777,8 @@ plugins:
                               timeout_recoverable=None),
             relationship['target_interfaces'][
                 'test_interface']['terminate'])
-        self.assertEquals(1, len(relationship['source_interfaces']))
-        self.assertEquals(
+        self.assertEqual(1, len(relationship['source_interfaces']))
+        self.assertEqual(
             2, len(relationship['source_interfaces']['test_interface']))
         self.assertEqual(
             operation_mapping(implementation='test_plugin.install', inputs={},
@@ -802,10 +799,10 @@ plugins:
             relationship['source_interfaces'][
                 'test_interface']['terminate2'])
 
-        self.assertEquals('relationship', node_relationship['type'])
-        self.assertEquals('test_node', node_relationship['target_id'])
-        self.assertEquals(1, len(node_relationship['target_interfaces']))
-        self.assertEquals(
+        self.assertEqual('relationship', node_relationship['type'])
+        self.assertEqual('test_node', node_relationship['target_id'])
+        self.assertEqual(1, len(node_relationship['target_interfaces']))
+        self.assertEqual(
             3, len(node_relationship['target_interfaces']['test_interface']))
         self.assertEqual(
             operation_mapping(implementation='test_plugin.install',
@@ -837,11 +834,10 @@ plugins:
                               timeout_recoverable=None),
             node_relationship['target_interfaces'][
                 'test_interface']['destroy'])
-        self.assertEquals(1, len(node_relationship['source_interfaces']))
-        self.assertEquals(
-            3, len(node_relationship['source_interfaces'][
-                       'test_interface']))
-        self.assertEquals(
+        self.assertEqual(1, len(node_relationship['source_interfaces']))
+        self.assertEqual(
+            3, len(node_relationship['source_interfaces']['test_interface']))
+        self.assertEqual(
             operation_mapping(implementation='test_plugin.install2',
                               inputs={},
                               executor=None,
@@ -860,7 +856,7 @@ plugins:
                               timeout=None,
                               timeout_recoverable=None),
             relationship['source_interfaces']['test_interface']['terminate2'])
-        self.assertEquals(
+        self.assertEqual(
             operation_mapping(implementation='test_plugin.destroy2',
                               inputs={},
                               executor=None,
@@ -890,7 +886,7 @@ plugins:
         self.assertEqual(op_struct('test_plugin', 'destroy2',
                                    executor='central_deployment_agent'),
                          rel_source_ops['test_interface.destroy2'])
-        self.assertEquals(6, len(rel_source_ops))
+        self.assertEqual(6, len(rel_source_ops))
 
         rel_target_ops = node_relationship['target_operations']
         self.assertEqual(op_struct('test_plugin', 'install',
@@ -911,7 +907,7 @@ plugins:
         self.assertEqual(op_struct('test_plugin', 'destroy1',
                                    executor='central_deployment_agent'),
                          rel_target_ops['test_interface.destroy'])
-        self.assertEquals(6, len(rel_source_ops))
+        self.assertEqual(6, len(rel_source_ops))
 
     def test_relationship_no_type_hierarchy(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -924,7 +920,7 @@ relationships:
     relationship: {}
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         relationship = nodes[1]['relationships'][0]
@@ -946,7 +942,7 @@ relationships:
         derived_from: relationship
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         relationship = nodes[1]['relationships'][0]
@@ -971,7 +967,7 @@ relationships:
         derived_from: rel2
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         relationship = nodes[1]['relationships'][0]
@@ -996,12 +992,12 @@ relationships:
         properties: {}
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_type', node['type'])
         relationship = result['relationships']['test_relationship']
-        self.assertEquals({}, relationship['properties'])
+        self.assertEqual({}, relationship['properties'])
 
     def test_relationship_type_properties_empty_property(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -1011,12 +1007,12 @@ relationships:
             key: {}
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_type', node['type'])
         relationship = result['relationships']['test_relationship']
-        self.assertEquals({'key': {}}, relationship['properties'])
+        self.assertEqual({'key': {}}, relationship['properties'])
 
     def test_relationship_type_properties_property_with_description_only(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -1027,13 +1023,14 @@ relationships:
                 description: property_desc
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_type', node['type'])
         relationship = result['relationships']['test_relationship']
-        self.assertEquals({'key': {'description': 'property_desc'}},
-                          relationship['properties'])
+        self.assertEqual(
+            {'key': {'description': 'property_desc'}},
+            relationship['properties'])
 
     def test_relationship_type_properties_standard_property(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -1046,12 +1043,12 @@ relationships:
                 type: string
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_type', node['type'])
         relationship = result['relationships']['test_relationship']
-        self.assertEquals(
+        self.assertEqual(
             {'key': {'default': 'val', 'description': 'property_desc',
                      'type': 'string'}},
             relationship['properties'])
@@ -1104,7 +1101,7 @@ node_templates:
         relationships = parsed['relationships']
         relationship = relationships[
             'cloudify.relationships.depends_on_lifecycle_operation']
-        self.assertEquals(
+        self.assertEqual(
             {'operation':
                 {'default': 'precreate',
                  'type': 'string'}},
@@ -1192,7 +1189,7 @@ relationships:
         """
         parsed = self.parse(yaml)
         relationships = parsed['relationships']
-        self.assertEquals(1, len(relationships))
+        self.assertEqual(1, len(relationships))
         test_relationship = relationships['test_relationship']
         properties = test_relationship['properties']
         self.assertEqual(1, properties['integer']['default'])

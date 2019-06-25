@@ -642,8 +642,8 @@ imports:
         parsed = self.parse(third_layer, resolver=resolver)
         ip = parsed[constants.NODES][0]
         self.assertEqual(ip['id'], 'ns2--ns--ip')
-        self.assertEquals(ip['properties']['port'],
-                          {'get_property': ['ns2--ns--node', 'port']})
+        self.assertEqual(ip['properties']['port'],
+                         {'get_property': ['ns2--ns--node', 'port']})
 
 
 class TestGetAttribute(AbstractTestParser):
@@ -818,8 +818,8 @@ imports:
         parsed = self.parse(third_layer, resolver=resolver)
         ip = parsed[constants.NODES][0]
         self.assertEqual(ip['id'], 'ns2--ns--ip')
-        self.assertEquals(ip['properties']['port'],
-                          {'get_attribute': ['ns2--ns--node', 'port']})
+        self.assertEqual(ip['properties']['port'],
+                         {'get_attribute': ['ns2--ns--node', 'port']})
 
     def test_node_type_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -900,9 +900,9 @@ imports:
         parsed = self.parse(third_layer, resolver=resolver)
         ip = parsed[constants.NODES][0]
         self.assertEqual(ip['id'], 'ns2--ns--ip')
-        self.assertEquals(ip['properties']['port'],
-                          {'concat':
-                            ['one', {'get_input': 'ns2--ns--port'}, 'three']})
+        self.assertEqual(ip['properties']['port'],
+                         {'concat':
+                           ['one', {'get_input': 'ns2--ns--port'}, 'three']})
 
     def test_node_type_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """

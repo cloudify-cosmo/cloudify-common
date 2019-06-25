@@ -177,19 +177,19 @@ node_templates:
                            r"don't exist in this tenant"
 
         get_secret_not_found = MagicMock(side_effect=NotFoundException)
-        self.assertRaisesRegexp(exceptions.UnknownSecretError,
-                                expected_message,
-                                prepare_deployment_plan,
-                                self.parse_1_3(self.secrets_yaml),
-                                get_secret_not_found)
+        self.assertRaisesRegex(exceptions.UnknownSecretError,
+                               expected_message,
+                               prepare_deployment_plan,
+                               self.parse_1_3(self.secrets_yaml),
+                               get_secret_not_found)
 
     def test_validate_secrets_unexpected_exception(self):
         get_secret_exception = MagicMock(side_effect=TypeError)
-        self.assertRaisesRegexp(TypeError,
-                                '',
-                                prepare_deployment_plan,
-                                self.parse_1_3(self.secrets_yaml),
-                                get_secret_exception)
+        self.assertRaisesRegex(TypeError,
+                               '',
+                               prepare_deployment_plan,
+                               self.parse_1_3(self.secrets_yaml),
+                               get_secret_exception)
 
     def test_validate_secrets_some_invalid(self):
         expected_message = r"Required secrets \['ip', " \
@@ -200,11 +200,11 @@ node_templates:
         get_secret_not_found.side_effect = [None, None, NotFoundException,
                                             None, None, None,
                                             NotFoundException]
-        self.assertRaisesRegexp(exceptions.UnknownSecretError,
-                                expected_message,
-                                prepare_deployment_plan,
-                                self.parse_1_3(self.secrets_yaml),
-                                get_secret_not_found)
+        self.assertRaisesRegex(exceptions.UnknownSecretError,
+                               expected_message,
+                               prepare_deployment_plan,
+                               self.parse_1_3(self.secrets_yaml),
+                               get_secret_not_found)
 
     def test_validate_secrets_without_secrets(self):
         no_secrets_yaml = """
