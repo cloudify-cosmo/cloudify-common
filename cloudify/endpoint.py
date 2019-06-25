@@ -212,7 +212,10 @@ class ManagerEndpoint(Endpoint):
         return manager.get_provider_context()
 
     def get_bootstrap_context(self):
-        return manager.get_bootstrap_context()
+        context = {}
+        context.update(manager.get_bootstrap_context())
+        context.update(self.get_config(scope='workflow'))
+        return context
 
     def get_logging_handler(self):
         return CloudifyPluginLoggingHandler(self.ctx,
