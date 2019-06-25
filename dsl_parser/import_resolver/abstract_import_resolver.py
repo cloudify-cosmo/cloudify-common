@@ -61,7 +61,7 @@ def read_import(import_url):
             request = urllib2.Request(import_url)
             with contextlib.closing(urllib2.urlopen(request)) as f:
                 return f.read()
-        except Exception, ex:
+        except Exception as ex:
             ex = exceptions.DSLParsingLogicException(
                 13, '{0} {1}; {2}'.format(error_str, import_url, ex))
             raise ex

@@ -50,7 +50,7 @@ class CtxProxy(object):
                 'type': result_type,
                 'payload': payload
             })
-        except Exception, e:
+        except Exception as e:
             tb = StringIO()
             traceback.print_exc(file=tb)
             payload = {

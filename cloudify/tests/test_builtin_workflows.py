@@ -124,7 +124,7 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
                                                         'lifecycle.configure',
                                                         kw_over_val)
             self.fail('expected kwargs override to be disallowed')
-        except RuntimeError, e:
+        except RuntimeError as e:
             self.assertIn(
                 'To allow redefinition, pass "allow_kwargs_override"', str(e))
 
