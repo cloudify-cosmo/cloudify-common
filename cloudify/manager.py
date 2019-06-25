@@ -428,7 +428,11 @@ def get_bootstrap_context():
     """Read the manager bootstrap context."""
     client = get_rest_client()
     context = client.manager.get_context()['context']
-    return context.get('cloudify', {})
+    context = context.get('cloudify', {})
+    context.setdefault('workflows', {}).update(
+        (c.name, c.value) for c in client.manager.get_config(scope='workflow')
+    )
+    return context
 
 
 def get_provider_context():
