@@ -44,7 +44,7 @@ Contents:
    searching
    evaluate
    tokens
-   plugins_update
+   plugins_updates
 
 
 Indices and tables
