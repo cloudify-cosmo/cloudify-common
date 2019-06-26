@@ -25,7 +25,7 @@ from cloudify_rest_client.exceptions import CloudifyClientError
 
 
 class ClusterHTTPClient(HTTPClient):
-    default_timeout_sec = 5
+    default_timeout_sec = (5, None)
     retries = 30
     retry_interval = 3
 
