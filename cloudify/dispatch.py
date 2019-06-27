@@ -743,7 +743,8 @@ class WorkflowHandler(TaskHandler):
         is_system_workflow = self.cloudify_context.get('is_system_workflow')
         hook_params = {
             'message_type': 'hook',
-            'is_system_workflow': is_system_workflow
+            'is_system_workflow': is_system_workflow,
+            'rest_token': self.cloudify_context.get('rest_token')
         }
 
         if not is_system_workflow:
