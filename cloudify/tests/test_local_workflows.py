@@ -24,7 +24,6 @@ import threading
 import Queue
 
 import testtools
-from testtools.matchers import ContainsAll
 
 import cloudify.logs
 from cloudify.decorators import workflow, operation
@@ -615,10 +614,8 @@ class LocalWorkflowTest(BaseWorkflowTest):
             self.assertEqual(['type'], node1.type_hierarchy)
             self.assertEqual(['type', 'cloudify.nodes.Compute'],
                              node2.type_hierarchy)
-            self.assertThat(node1.properties.items(),
-                            ContainsAll({'property': 'value'}.items()))
-            self.assertThat(node2.properties.items(),
-                            ContainsAll({'property': 'default'}.items()))
+            self.assertEqual(node1.properties.get('property'), 'value')
+            self.assertEqual(node2.properties.get('property'), 'default')
             self.assertEqual(sorted_ops, sorted(node1.operations.keys()))
             self.assertEqual(sorted_ops, sorted(node2.operations.keys()))
             self.assertIs(relationship, node1.get_relationship('node2'))
@@ -660,7 +657,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
         def op1(ctx, **_):
             caps = ctx.capabilities.get_all()
             self.assertEqual(1, len(caps))
-            key, value = next(caps.iteritems())
+            key, value = caps.copy().popitem()
             self.assertIn('node2_', key)
             self.assertEqual(value, {'key': 'value'})
 
@@ -684,26 +681,26 @@ class LocalWorkflowTest(BaseWorkflowTest):
     def test_operation_related_properties(self):
         def the_workflow(ctx, **_):
             instance = _instance(ctx, 'node')
-            relationship = next(instance.relationships)
+            relationship = next(iter(instance.relationships))
             relationship.execute_source_operation('test.op0')
             relationship.execute_target_operation('test.op0')
 
         def op(ctx, **_):
             if 'node2_' in ctx.target.instance.id:
-                self.assertThat(ctx.target.node.properties.items(),
-                                ContainsAll({'property': 'default'}.items()))
+                expected = 'default'
             elif 'node_' in ctx.target.instance.id:
-                self.assertThat(ctx.target.node.properties.items(),
-                                ContainsAll({'property': 'value'}.items()))
+                expected = 'value'
             else:
                 self.fail('unexpected: {0}'.format(ctx.target.instance.id))
+            self.assertEqual(
+                ctx.target.node.properties.get('property'), expected)
         self._execute_workflow(the_workflow, operation_methods=[op])
 
     def test_operation_related_runtime_properties(self):
         def related_runtime_properties(ctx, **_):
             instance = _instance(ctx, 'node')
             instance2 = _instance(ctx, 'node2')
-            relationship = next(instance.relationships)
+            relationship = next(iter(instance.relationships))
             instance.execute_operation('test.op0',
                                        kwargs={'value': 'instance1'}).get()
             instance2.execute_operation('test.op0',
@@ -760,8 +757,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
                              ctx.plugin.package_version)
             self.assertEqual(sys.prefix, ctx.plugin.prefix)
             self.assertEqual('test.op0', ctx.operation.name)
-            self.assertThat(ctx.node.properties.items(),
-                            ContainsAll({'property': 'value'}.items()))
+            self.assertEqual(ctx.node.properties.get('property'), 'value')
             self.assertEqual('content', ctx.get_resource('resource'))
             target_path = ctx.download_resource('resource')
             with open(target_path) as f:
@@ -1459,7 +1455,7 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
             self._execute_workflow(workflow_name='does_not_exist')
             self.fail()
         except ValueError as e:
-            self.assertIn("['workflow0']", e.message)
+            self.assertIn("workflow0", e.message)
 
     def test_getting_contained_elements(self):
         def check_subgraph(ctx, **_):

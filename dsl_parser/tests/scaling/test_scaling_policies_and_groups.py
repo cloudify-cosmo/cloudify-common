@@ -807,7 +807,7 @@ def base_blueprint(groups=None,
         blueprint_groups[group] = group_obj
     if policies is None:
         policies = {'policy': {'type': constants.SCALING_POLICY,
-                               'targets': groups.keys()}}
+                               'targets': list(groups.keys())}}
     blueprint = {
         'tosca_definitions_version': version,
         'node_types': {'type': {}},

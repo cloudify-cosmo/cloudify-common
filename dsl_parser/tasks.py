@@ -50,7 +50,7 @@ def _set_plan_inputs(plan, inputs=None):
     inputs = inputs if inputs else {}
     # Verify inputs satisfied
     missing_inputs = []
-    for input_name, input_def in plan[INPUTS].iteritems():
+    for input_name, input_def in plan[INPUTS].items():
         input_is_missing = False
         if input_name in inputs:
             try:
@@ -94,17 +94,15 @@ def _set_plan_inputs(plan, inputs=None):
 
     if missing_inputs:
         raise exceptions.MissingRequiredInputError(
-            "Required inputs {0} were not specified - expected "
-            "inputs: {1}".format(missing_inputs, plan[INPUTS].keys())
-        )
+            "Required inputs {0} were not specified - expected inputs: {1}"
+            .format(missing_inputs, ', '.join(plan[INPUTS])))
     # Verify all inputs appear in plan
-    not_expected = [input_name for input_name in inputs.keys()
+    not_expected = [input_name for input_name in inputs
                     if input_name not in plan[INPUTS]]
     if not_expected:
         raise exceptions.UnknownInputError(
-            "Unknown inputs {0} specified - "
-            "expected inputs: {1}".format(not_expected,
-                                          plan[INPUTS].keys()))
+            "Unknown inputs {0} specified - expected inputs: {1}"
+            .format(not_expected, ', '.join(plan[INPUTS])))
 
     plan[INPUTS] = inputs
 

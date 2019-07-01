@@ -40,7 +40,7 @@ def unicode_to_string(text):
         return [unicode_to_string(a) for a in text]
     if isinstance(text, dict):
         return dict((unicode_to_string(key), unicode_to_string(
-                    value)) for key, value in text.iteritems())
+                    value)) for key, value in text.items())
     return text
 
 

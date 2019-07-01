@@ -202,8 +202,8 @@ class MockCloudifyContext(CloudifyContext):
         if resource_path not in self._resources:
             raise RuntimeError(
                 "Resource '{0}' was not found. "
-                "Available resources: {1}".format(resource_path,
-                                                  self._resources.keys()))
+                "Available resources: {1}"
+                .format(resource_path, ', '.join(self._resources.keys())))
         return self._resources[resource_path]
 
     def get_resource(self, resource_path):

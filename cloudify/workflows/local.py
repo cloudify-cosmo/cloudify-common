@@ -122,8 +122,7 @@ class _Environment(object):
         if workflow_name not in workflows:
             raise ValueError("'{0}' workflow does not exist. "
                              "existing workflows are: {1}"
-                             .format(workflow_name,
-                                     workflows.keys()))
+                             .format(workflow_name, ', '.join(workflows)))
 
         workflow = workflows[workflow_name]
         execution_id = str(uuid.uuid4())
@@ -306,7 +305,7 @@ def _merge_and_validate_execution_parameters(
     }
     wrong_types = {}
 
-    for name, param in workflow_parameters.iteritems():
+    for name, param in workflow_parameters.items():
 
         if 'type' in param and name in execution_parameters:
 
@@ -340,13 +339,13 @@ def _merge_and_validate_execution_parameters(
 
     if wrong_types:
         error_message = StringIO()
-        for param_name, param_type in wrong_types.iteritems():
+        for param_name, param_type in wrong_types.items():
             error_message.write('Parameter "{0}" must be of type {1}\n'.
                                 format(param_name, param_type))
         raise ValueError(error_message.getvalue())
 
     custom_parameters = dict(
-        (k, v) for (k, v) in execution_parameters.iteritems()
+        (k, v) for (k, v) in execution_parameters.items()
         if k not in workflow_parameters)
 
     if not allow_custom_parameters and custom_parameters:
@@ -354,7 +353,7 @@ def _merge_and_validate_execution_parameters(
             'Workflow "{0}" does not have the following parameters '
             'declared: {1}. Remove these parameters or use '
             'the flag for allowing custom parameters'
-            .format(workflow_name, ','.join(custom_parameters.keys())))
+            .format(workflow_name, ','.join(custom_parameters)))
 
     merged_parameters.update(custom_parameters)
     return merged_parameters
@@ -439,7 +438,7 @@ class _Storage(object):
         return copy.deepcopy(node)
 
     def get_nodes(self):
-        return copy.deepcopy(self._nodes.values())
+        return copy.deepcopy(list(self._nodes.values()))
 
     def get_node_instance(self, node_instance_id):
         return copy.deepcopy(self._get_node_instance(node_instance_id))
@@ -546,13 +545,14 @@ class InMemoryStorage(_Storage):
         pass
 
     def get_node_instances(self, node_id=None):
-        instances = self._node_instances.values()
-        if node_id:
-            instances = [i for i in instances if i.node_id == node_id]
+        instances = [
+            i for i in self._node_instances.values()
+            if not node_id or i.node_id == node_id
+        ]
         return copy.deepcopy(instances)
 
     def _instance_ids(self):
-        return self._node_instances.keys()
+        return list(self._node_instances.keys())
 
     def get_workdir(self):
         raise NotImplementedError('get_workdir is not implemented by memory '

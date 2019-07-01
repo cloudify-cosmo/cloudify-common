@@ -685,7 +685,7 @@ def update(ctx,
     for instance in ctx.node_instances:
         instance_holders = [instance_holder
                             for _, (changed_ids, instance_holder)
-                            in instances_by_change.iteritems()
+                            in instances_by_change.items()
                             if instance.id in changed_ids]
         for instance_holder in instance_holders:
             instance_holder.append(instance)
