@@ -880,7 +880,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
                             runtime_properties=p_instance.runtime_properties,
                             state=p_instance.state,
                             version=p_instance.version)
-                    except local.StorageConflictError, e:
+                    except local.StorageConflictError as e:
                         exception.put(e)
                         done.put(True)
                         return
@@ -1254,7 +1254,7 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
         try:
             local._merge_and_validate_execution_parameters(
                 workflow, 'workflow', parameters)
-        except ValueError, e:
+        except ValueError as e:
             # check which parameters are mentioned in the error message
             self.assertIn('mandatory_int2', str(e))
             self.assertIn('mandatory_float2', str(e))
@@ -1295,7 +1295,7 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
         try:
             local._merge_and_validate_execution_parameters(
                 workflow, 'workflow', parameters)
-        except ValueError, e:
+        except ValueError as e:
             # check which parameters are mentioned in the error message
             self.assertIn('mandatory_int2', str(e))
             self.assertIn('mandatory_float2', str(e))
@@ -1348,7 +1348,7 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
         try:
             local._merge_and_validate_execution_parameters(
                 workflow, 'workflow', parameters, True)
-        except ValueError, e:
+        except ValueError as e:
             # check which parameters are mentioned in the error message
             self.assertNotIn('mandatory_int2', str(e))
             self.assertNotIn('mandatory_float2', str(e))
@@ -1458,7 +1458,7 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
         try:
             self._execute_workflow(workflow_name='does_not_exist')
             self.fail()
-        except ValueError, e:
+        except ValueError as e:
             self.assertIn("['workflow0']", e.message)
 
     def test_getting_contained_elements(self):

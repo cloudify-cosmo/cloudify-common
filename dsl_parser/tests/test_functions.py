@@ -104,7 +104,7 @@ node_templates:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError, e:
+        except KeyError as e:
             self.assertIn('Node template property', str(e))
             self.assertIn("doesn't exist", str(e))
             self.assertIn('vm.properties.notfound', str(e))
@@ -202,7 +202,7 @@ node_templates:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError, e:
+        except KeyError as e:
             self.assertIn('Node template property', str(e))
             self.assertIn("doesn't exist", str(e))
             self.assertIn('vm.properties.notfound', str(e))
@@ -345,7 +345,7 @@ outputs:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError, e:
+        except KeyError as e:
             self.assertIn('Node template property', str(e))
             self.assertIn("doesn't exist", str(e))
             self.assertIn('vm.properties.a', str(e))
@@ -553,7 +553,7 @@ node_templates:
         try:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
-        except KeyError, e:
+        except KeyError as e:
             self.assertIn(
                 "Node template property 'vm.properties.a.notfound' "
                 "referenced from 'vm.properties.a.a0' doesn't exist.", str(e))
@@ -575,7 +575,7 @@ node_templates:
         try:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
-        except TypeError, e:
+        except TypeError as e:
             self.assertIn('is expected b to be an int but it is a str', str(e))
 
     def test_invalid_nested_property3(self):
@@ -595,7 +595,7 @@ node_templates:
         try:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
-        except IndexError, e:
+        except IndexError as e:
             self.assertIn('index is out of range. Got 10 but list size is 3',
                           str(e))
 
@@ -737,7 +737,7 @@ outputs:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError, e:
+        except KeyError as e:
             self.assertIn("get_attribute function node reference "
                           "'i_do_not_exist' does not exist.", str(e))
 
@@ -765,7 +765,7 @@ node_templates:
             try:
                 self.parse(yaml)
                 self.fail()
-            except ValueError, e:
+            except ValueError as e:
                 self.assertIn('{0} cannot be used with get_attribute function '
                               'in vm.operations.test.op.inputs.a'
                               .format(ref), str(e))
@@ -804,7 +804,7 @@ node_templates:
             try:
                 self.parse(yaml)
                 self.fail()
-            except ValueError, e:
+            except ValueError as e:
                 self.assertIn('{0} cannot be used with get_attribute function '
                               'in vm.relationship.test.op.inputs.a'
                               .format(ref), str(e))
@@ -827,7 +827,7 @@ outputs:
             try:
                 self.parse(yaml)
                 self.fail()
-            except ValueError, e:
+            except ValueError as e:
                 self.assertIn('{0} cannot be used with get_attribute '
                               'function in outputs.a.value'
                               .format(ref), str(e))
