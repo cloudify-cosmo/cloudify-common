@@ -89,14 +89,14 @@ class CloudifyContextTest(testtools.TestCase):
     def test_get_resource(self, _):
         resource = self.context.get_resource(
             resource_path='for_test_bp_resource.txt')
-        self.assertEquals(resource, 'Hello from test')
+        self.assertEqual(resource, 'Hello from test')
 
     def test_get_deployment_resource_priority_over_blueprint_resource(self):
         deployment_context_mock = MagicMock()
         deployment_context_mock.id = 'dep1'
         self.context.deployment = deployment_context_mock
         resource = self.context.get_resource(resource_path='for_test.txt')
-        self.assertEquals(resource, 'belongs to dep1')
+        self.assertEqual(resource, 'belongs to dep1')
 
     def test_get_deployment_resource_no_blueprint_resource(self):
         deployment_context_mock = MagicMock()
@@ -104,7 +104,7 @@ class CloudifyContextTest(testtools.TestCase):
         self.context.deployment = deployment_context_mock
         resource = self.context.get_resource(
             resource_path='for_test_only_dep.txt')
-        self.assertEquals(resource, 'belongs to dep1')
+        self.assertEqual(resource, 'belongs to dep1')
 
     @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
     def test_download_resource(self, _):

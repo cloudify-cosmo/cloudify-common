@@ -238,7 +238,7 @@ imports:"""
             parsing_method(dsl)
             self.fail()
         except exception_type as ex:
-            self.assertEquals(expected_error_code, ex.err_code)
+            self.assertEqual(expected_error_code, ex.err_code)
             return ex
 
     def get_node_by_name(self, plan, name):

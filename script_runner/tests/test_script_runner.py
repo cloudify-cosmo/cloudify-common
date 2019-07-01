@@ -141,7 +141,7 @@ class BaseScriptRunner(object):
                           **{'script_path': script_path,
                              'task_retries': 2})
         with open(log_path, 'r') as log_file:
-            self.assertEquals(retry_message, log_file.read().strip())
+            self.assertEqual(retry_message, log_file.read().strip())
 
     def test_imported_ctx_abort_operation(self):
         log_path = self._get_temp_path()
@@ -162,7 +162,7 @@ class BaseScriptRunner(object):
                           **{'script_path': script_path,
                              'task_retries': 2})
         with open(log_path, 'r') as log_file:
-            self.assertEquals(abort_message, log_file.read().strip())
+            self.assertEqual(abort_message, log_file.read().strip())
 
     def test_imported_ctx_crash_abort_after_return(self):
 
@@ -180,7 +180,7 @@ class BaseScriptRunner(object):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError as e:
-            self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
+            self.assertEqual(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception as e:
             self.fail()
 
@@ -260,7 +260,7 @@ class BaseScriptRunner(object):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError as e:
-            self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
+            self.assertEqual(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
 
@@ -278,7 +278,7 @@ class BaseScriptRunner(object):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError as e:
-            self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
+            self.assertEqual(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
 
@@ -299,7 +299,7 @@ class BaseScriptRunner(object):
                           self._run,
                           **{'script_path': script_path})
         with open(log_path, 'r') as log_file:
-            self.assertEquals(abort_message, log_file.read().strip())
+            self.assertEqual(abort_message, log_file.read().strip())
 
     def test_abort_returns_a_nonzero_exit_code(self):
         log_path = self._get_temp_path()
@@ -318,7 +318,7 @@ class BaseScriptRunner(object):
                           self._run,
                           **{'script_path': script_path})
         with open(log_path, 'r') as log_file:
-            self.assertEquals(abort_message, log_file.read().strip())
+            self.assertEqual(abort_message, log_file.read().strip())
 
     def test_process_env(self):
         script_path = self._create_script(
@@ -380,7 +380,7 @@ subprocess.Popen(
             process={
                 'env': {'TEST_KEY': 'value'},
                 'command_prefix': command_prefix
-             })
+            })
         p_map = props['map']
         self.assertEqual(p_map['key'], 'value')
 

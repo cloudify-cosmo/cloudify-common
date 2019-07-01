@@ -562,7 +562,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
             instance = _instance(ctx, 'node')
             self.assertIsNone(instance.get_state().get())
             instance.set_state('state').get()
-            self.assertEquals('state', instance.get_state().get())
+            self.assertEqual('state', instance.get_state().get())
         self._execute_workflow(get_set_node_instance_state)
 
     def test_workflow_ctx_properties(self):
@@ -1031,7 +1031,7 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
         content = 'CONTENT'
 
         def op0(ctx, **_):
-            self.assertEquals(
+            self.assertEqual(
                 ctx.plugin.workdir,
                 os.path.join(self.storage_dir, self._testMethodName,
                              'workdir', 'plugins', 'p'))

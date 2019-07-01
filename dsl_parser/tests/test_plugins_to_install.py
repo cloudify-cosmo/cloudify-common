@@ -61,8 +61,8 @@ relationships:
         result = self.parse(yaml)
         node = [n for n in result['nodes'] if n['name'] == 'test_node1'][0]
         plugin = node['plugins_to_install'][0]
-        self.assertEquals('test_plugin', plugin['name'])
-        self.assertEquals(1, len(node['plugins_to_install']))
+        self.assertEqual('test_plugin', plugin['name'])
+        self.assertEqual(1, len(node['plugins_to_install']))
 
     def test_node_plugins_to_install_field_from_relationship(self):  # NOQA
         yaml = """
@@ -94,8 +94,8 @@ relationships:
         result = self.parse(yaml)
         node = [n for n in result['nodes'] if n['name'] == 'test_node1'][0]
         plugin = node['plugins_to_install'][0]
-        self.assertEquals('test_plugin', plugin['name'])
-        self.assertEquals(1, len(node['plugins_to_install']))
+        self.assertEqual('test_plugin', plugin['name'])
+        self.assertEqual(1, len(node['plugins_to_install']))
 
     def test_node_plugins_to_install_field(self):
         yaml = """
@@ -116,8 +116,8 @@ plugins:
 """
         result = self.parse(yaml)
         plugin = result['nodes'][0]['plugins_to_install'][0]
-        self.assertEquals('test_plugin', plugin['name'])
-        self.assertEquals(1, len(result['nodes'][0]['plugins_to_install']))
+        self.assertEqual('test_plugin', plugin['name'])
+        self.assertEqual(1, len(result['nodes'][0]['plugins_to_install']))
 
     def test_node_plugins_to_install_field_plugins_from_contained_nodes(self):
         # testing to ensure plugins from nodes with contained_in relationships
@@ -172,7 +172,7 @@ plugins:
 """
         result = self.parse(yaml)
 
-        self.assertEquals(4, len(result['nodes']))
+        self.assertEqual(4, len(result['nodes']))
         nodes = self._sort_result_nodes(
             result['nodes'],
             ['test_node1', 'test_node2', 'test_node3', 'test_node4'])
@@ -185,9 +185,9 @@ plugins:
             node, 'test_plugin')
         test_plugin2 = self._get_plugin_to_install_from_node(
             node, 'test_plugin2')
-        self.assertEquals('test_plugin', test_plugin['name'])
-        self.assertEquals('test_plugin2', test_plugin2['name'])
-        self.assertEquals(2, len(nodes[0]['plugins_to_install']))
+        self.assertEqual('test_plugin', test_plugin['name'])
+        self.assertEqual('test_plugin2', test_plugin2['name'])
+        self.assertEqual(2, len(nodes[0]['plugins_to_install']))
 
     def test_instance_relationships_target_node_plugins(self):
         # tests that plugins defined on instance relationships as
@@ -218,15 +218,15 @@ plugins:
         source: dummy
 """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
-        self.assertEquals('test_node2', nodes[1]['id'])
-        self.assertEquals(2, len(nodes[1]['relationships']))
+        self.assertEqual('test_node2', nodes[1]['id'])
+        self.assertEqual(2, len(nodes[1]['relationships']))
 
         relationship1 = nodes[1]['relationships'][0]
-        self.assertEquals('test_relationship', relationship1['type'])
-        self.assertEquals('test_node', relationship1['target_id'])
+        self.assertEqual('test_relationship', relationship1['type'])
+        self.assertEqual('test_node', relationship1['target_id'])
         rel1_source_ops = relationship1['source_operations']
         self.assertEqual(op_struct('test_plugin1', 'install',
                                    executor='central_deployment_agent'),
@@ -234,14 +234,14 @@ plugins:
         self.assertEqual(op_struct('test_plugin1', 'install',
                                    executor='central_deployment_agent'),
                          rel1_source_ops['test_interface1.install'])
-        self.assertEquals(2, len(rel1_source_ops))
-        self.assertEquals(8, len(relationship1))
+        self.assertEqual(2, len(rel1_source_ops))
+        self.assertEqual(8, len(relationship1))
         plugin1_def = nodes[1]['plugins'][0]
-        self.assertEquals('test_plugin1', plugin1_def['name'])
+        self.assertEqual('test_plugin1', plugin1_def['name'])
 
         relationship2 = nodes[1]['relationships'][1]
-        self.assertEquals('test_relationship', relationship2['type'])
-        self.assertEquals('test_node', relationship2['target_id'])
+        self.assertEqual('test_relationship', relationship2['type'])
+        self.assertEqual('test_node', relationship2['target_id'])
         rel2_source_ops = relationship2['target_operations']
         self.assertEqual(op_struct('test_plugin2', 'install',
                                    executor='central_deployment_agent'),
@@ -249,13 +249,13 @@ plugins:
         self.assertEqual(op_struct('test_plugin2', 'install',
                                    executor='central_deployment_agent'),
                          rel2_source_ops['test_interface1.install'])
-        self.assertEquals(2, len(rel2_source_ops))
-        self.assertEquals(8, len(relationship2))
+        self.assertEqual(2, len(rel2_source_ops))
+        self.assertEqual(8, len(relationship2))
 
         # expecting the other plugin to be under test_node rather than
         # test_node2:
         plugin2_def = nodes[0]['plugins'][0]
-        self.assertEquals('test_plugin2', plugin2_def['name'])
+        self.assertEqual('test_plugin2', plugin2_def['name'])
 
 
 class DeploymentPluginsToInstallTest(AbstractTestParser):
@@ -286,14 +286,14 @@ plugins:
         result = self.parse(yaml)
         deployment_plugins_to_install_for_node = \
             result['nodes'][0][constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(1, len(deployment_plugins_to_install_for_node))
+        self.assertEqual(1, len(deployment_plugins_to_install_for_node))
         plugin = deployment_plugins_to_install_for_node[0]
-        self.assertEquals('test_management_plugin', plugin['name'])
+        self.assertEqual('test_management_plugin', plugin['name'])
 
         # check the property on the plan is correct
         deployment_plugins_to_install_for_plan = \
             result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(1, len(deployment_plugins_to_install_for_plan))
+        self.assertEqual(1, len(deployment_plugins_to_install_for_plan))
 
     def test_one_central_overrides_host_plugin(self):
         yaml = """
@@ -316,16 +316,16 @@ plugins:
         node = result['nodes'][0]
         deployment_plugins_to_install_for_node = \
             node[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(1, len(deployment_plugins_to_install_for_node))
+        self.assertEqual(1, len(deployment_plugins_to_install_for_node))
         plugin = deployment_plugins_to_install_for_node[0]
-        self.assertEquals('test_plugin', plugin['name'])
+        self.assertEqual('test_plugin', plugin['name'])
         self.assertIsNone(node.get('plugins_to_install'))
         # check the property on the plan is correct
         deployment_plugins_to_install_for_plan = \
             result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(1, len(deployment_plugins_to_install_for_plan))
+        self.assertEqual(1, len(deployment_plugins_to_install_for_plan))
         plugin = deployment_plugins_to_install_for_plan[0]
-        self.assertEquals('test_plugin', plugin['name'])
+        self.assertEqual('test_plugin', plugin['name'])
 
     def test_node_plugins_to_install_no_host(self):
         yaml = """
@@ -345,8 +345,8 @@ plugins:
         source: dummy
 """
         result = self.parse(yaml)
-        self.assertEquals(1,
-                          len(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]))
+        self.assertEqual(1,
+                         len(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]))
 
     def test_same_plugin_one_two_nodes(self):
         yaml = """
@@ -373,14 +373,14 @@ plugins:
         for node in result['nodes']:
             deployment_plugins_to_install_for_node = \
                 node[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-            self.assertEquals(1, len(deployment_plugins_to_install_for_node))
+            self.assertEqual(1, len(deployment_plugins_to_install_for_node))
             plugin = deployment_plugins_to_install_for_node[0]
-            self.assertEquals('test_management_plugin', plugin['name'])
+            self.assertEqual('test_management_plugin', plugin['name'])
 
         # check the property on the plan is correct
         deployment_plugins_to_install_for_plan = \
             result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(1, len(deployment_plugins_to_install_for_plan))
+        self.assertEqual(1, len(deployment_plugins_to_install_for_plan))
 
     def test_two_plugins_on_one_node(self):
         yaml = """
@@ -410,12 +410,12 @@ plugins:
         result = self.parse(yaml)
         deployment_plugins_to_install_for_node = \
             result['nodes'][0][constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(2, len(deployment_plugins_to_install_for_node))
+        self.assertEqual(2, len(deployment_plugins_to_install_for_node))
 
         # check the property on the plan is correct
         deployment_plugins_to_install_for_plan = \
             result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(2, len(deployment_plugins_to_install_for_plan))
+        self.assertEqual(2, len(deployment_plugins_to_install_for_plan))
 
     def test_no_operation_mapping_no_plugin(self):
         yaml = """
@@ -442,12 +442,12 @@ plugins:
         result = self.parse(yaml)
         deployment_plugins_to_install_for_node = \
             result['nodes'][0][constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(0, len(deployment_plugins_to_install_for_node))
+        self.assertEqual(0, len(deployment_plugins_to_install_for_node))
 
         # check the property on the plan is correct
         deployment_plugins_to_install_for_plan = \
             result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(0, len(deployment_plugins_to_install_for_plan))
+        self.assertEqual(0, len(deployment_plugins_to_install_for_plan))
 
     def test_two_identical_plugins_on_node(self):
         yaml = """
@@ -474,9 +474,9 @@ plugins:
         result = self.parse(yaml)
         deployment_plugins_to_install_for_node = \
             result['nodes'][0][constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(1, len(deployment_plugins_to_install_for_node))
+        self.assertEqual(1, len(deployment_plugins_to_install_for_node))
 
         # check the property on the plan is correct
         deployment_plugins_to_install_for_plan = \
             result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
-        self.assertEquals(1, len(deployment_plugins_to_install_for_plan))
+        self.assertEqual(1, len(deployment_plugins_to_install_for_plan))

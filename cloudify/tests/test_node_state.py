@@ -72,14 +72,14 @@ class NodeStateTest(testtools.TestCase):
     def test_delete_property(self):
         node = NodeInstance('instance_id', 'node_id')
         node.put('key', 'value')
-        self.assertEquals('value', node.get('key'))
+        self.assertEqual('value', node.get('key'))
         node.delete('key')
         self.assertNotIn('key', node)
 
     def test_delete_property_sugared_syntax(self):
         node = NodeInstance('instance_id', 'node_id')
         node.put('key', 'value')
-        self.assertEquals('value', node.get('key'))
+        self.assertEqual('value', node.get('key'))
         del(node['key'])
         self.assertNotIn('key', node)
 

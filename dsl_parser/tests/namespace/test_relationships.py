@@ -51,18 +51,18 @@ imports:
         parsed_yaml = self.parse_1_3(main_yaml)
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
                              ['test--test_relationship'])
-        self.assertEquals('test--test_relationship', test_relationship['name'])
-        self.assertEquals(test_relationship[constants.TYPE_HIERARCHY],
-                          ['test--empty_rel', 'test--test_relationship'])
+        self.assertEqual('test--test_relationship', test_relationship['name'])
+        self.assertEqual(test_relationship[constants.TYPE_HIERARCHY],
+                         ['test--empty_rel', 'test--test_relationship'])
         result_test_interface_3 = \
             (test_relationship[interfaces_const.SOURCE_INTERFACES]
              ['test_interface3'])
-        self.assertEquals(interfaces_const.NO_OP,
-                          result_test_interface_3['test_interface3_op1'])
+        self.assertEqual(interfaces_const.NO_OP,
+                         result_test_interface_3['test_interface3_op1'])
         result_test_interface_4 = \
             (test_relationship[interfaces_const.TARGET_INTERFACES]
              ['test_interface4'])
-        self.assertEquals(
+        self.assertEqual(
             operation_mapping(implementation='test--test_plugin.task_name',
                               inputs={'key':
                                       {'default': 'value',
@@ -73,7 +73,7 @@ imports:
                               timeout=None,
                               timeout_recoverable=None),
             result_test_interface_4['test_interface4_op1'])
-        self.assertEquals(
+        self.assertEqual(
             operation_mapping(implementation='test--test_plugin.task_name',
                               inputs={},
                               executor=None,
@@ -114,18 +114,18 @@ imports:
         parsed_yaml = self.parse_1_3(main_yaml)
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
                              ['test--test_relationship'])
-        self.assertEquals('test--test_relationship', test_relationship['name'])
-        self.assertEquals(test_relationship[constants.TYPE_HIERARCHY],
-                          ['test--empty_rel', 'test--test_relationship'])
+        self.assertEqual('test--test_relationship', test_relationship['name'])
+        self.assertEqual(test_relationship[constants.TYPE_HIERARCHY],
+                         ['test--empty_rel', 'test--test_relationship'])
         result_test_interface_3 = \
             (test_relationship[interfaces_const.SOURCE_INTERFACES]
              ['test_interface3'])
-        self.assertEquals(interfaces_const.NO_OP,
-                          result_test_interface_3['test_interface3_op1'])
+        self.assertEqual(interfaces_const.NO_OP,
+                         result_test_interface_3['test_interface3_op1'])
         result_test_interface_4 = \
             (test_relationship[interfaces_const.TARGET_INTERFACES]
              ['test_interface4'])
-        self.assertEquals(
+        self.assertEqual(
             operation_mapping(implementation='test--test_plugin.task_name',
                               inputs={'key':
                                       {'default': 'value',
@@ -138,20 +138,20 @@ imports:
             result_test_interface_4['test_interface4_op1'])
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
                              ['other_test--test_relationship'])
-        self.assertEquals('other_test--test_relationship',
-                          test_relationship['name'])
-        self.assertEquals(test_relationship[constants.TYPE_HIERARCHY],
-                          ['other_test--empty_rel',
-                           'other_test--test_relationship'])
+        self.assertEqual('other_test--test_relationship',
+                         test_relationship['name'])
+        self.assertEqual(test_relationship[constants.TYPE_HIERARCHY],
+                         ['other_test--empty_rel',
+                         'other_test--test_relationship'])
         result_test_interface_3 = \
             (test_relationship[interfaces_const.SOURCE_INTERFACES]
                 ['test_interface3'])
-        self.assertEquals(interfaces_const.NO_OP,
-                          result_test_interface_3['test_interface3_op1'])
+        self.assertEqual(interfaces_const.NO_OP,
+                         result_test_interface_3['test_interface3_op1'])
         result_test_interface_4 = \
             (test_relationship[interfaces_const.TARGET_INTERFACES]
                 ['test_interface4'])
-        self.assertEquals(
+        self.assertEqual(
             operation_mapping(
                 implementation='other_test--test_plugin.task_name',
                 inputs={'key':
@@ -184,14 +184,14 @@ relationships:
 """.format('test', import_file_name)
         parsed = self.parse(main_yaml)
         relationships = parsed[constants.RELATIONSHIPS]
-        self.assertEquals(2, len(relationships))
+        self.assertEqual(2, len(relationships))
         test_relationship = relationships['test_relationship']
         properties = test_relationship[constants.PROPERTIES]
-        self.assertEquals({'default': 2}, properties[
+        self.assertEqual({'default': 2}, properties[
             'prop'])
         test_relationship = relationships['test--test_relationship']
         properties = test_relationship[constants.PROPERTIES]
-        self.assertEquals({'default': 1}, properties[
+        self.assertEqual({'default': 1}, properties[
             'prop'])
 
     def test_relationships_merging_with_no_collision(self):
@@ -214,14 +214,14 @@ relationships:
 """.format('test', import_file_name)
         parsed = self.parse(main_yaml)
         relationships = parsed[constants.RELATIONSHIPS]
-        self.assertEquals(2, len(relationships))
+        self.assertEqual(2, len(relationships))
         test_relationship = relationships['test_relationship2']
         properties = test_relationship[constants.PROPERTIES]
-        self.assertEquals({'default': 2}, properties[
+        self.assertEqual({'default': 2}, properties[
             'prop'])
         test_relationship = relationships['test--test_relationship1']
         properties = test_relationship[constants.PROPERTIES]
-        self.assertEquals({'default': 1}, properties[
+        self.assertEqual({'default': 1}, properties[
             'prop'])
 
     def test_namespaced_script_plugin_use(self):
