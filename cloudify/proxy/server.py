@@ -214,7 +214,7 @@ def process_ctx_request(ctx, args):
             else:
                 raise RuntimeError('Illegal argument while accessing dict')
             break
-        elif callable(current):
+        elif isinstance(current, collections.Callable):
             kwargs = {}
             remaining_args = args[index:]
             if isinstance(remaining_args[-1], collections.MutableMapping):
@@ -227,7 +227,7 @@ def process_ctx_request(ctx, args):
                                .format(arg, args))
         index += 1
 
-    if callable(current):
+    if isinstance(current, collections.Callable):
         current = current()
 
     return current

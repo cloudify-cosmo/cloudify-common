@@ -40,6 +40,7 @@ from cloudify.state import workflow_ctx, ctx
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
+import collections
 
 ENV_CFY_EXEC_TEMPDIR = 'CFY_EXEC_TEMP'
 ENV_AGENT_LOG_LEVEL = 'AGENT_LOG_LEVEL'
@@ -338,7 +339,7 @@ def get_func(task_name):
         raise NonRecoverableError(
             "{0} has no function named '{1}' ".format(module_name,
                                                       function_name))
-    if not callable(func):
+    if not isinstance(func, collections.Callable):
         raise NonRecoverableError(
             "{0}.{1} is not callable".format(module_name, function_name))
     return func
