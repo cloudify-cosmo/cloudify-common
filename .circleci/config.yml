@@ -13,58 +13,50 @@ attach_workspace: &attach_workspace
   attach_workspace:
     at: /home/circleci/project
 
-defaults:
-  - &py36_env
+executors:
+  py36:
     docker:
       - image: circleci/python:3.6
       - image: rabbitmq:3.7.4
-    steps:
-      - checkout
-      - run:
-          name: Install tox
-          command: sudo pip install tox==3.13.2
-      - run:
-          name: Run tox of specfic environment
-          command: tox -e $DO_ENV --hashseed noset
-
-  - &py27_env
+  py27:
     docker:
       - image: circleci/python:2.7
       - image: rabbitmq:3.7.4
+
+
+commands:
+  add_local_bin:
     steps:
-      - checkout
+      - run:
+          name: Add .local/bin to PATH
+          command: echo 'export PATH="~/.local/bin:$PATH"' >> $BASH_ENV
+
+  install_tox:
+    parameters:
+      version:
+        type: string
+        default: "3.13.2"
+    steps:
       - run:
           name: Install tox
-          command: sudo pip install tox==3.13.2
-      - run:
-          name: Run tox of specfic environment
-          command: tox -e $DO_ENV --hashseed noset
-
-  - &py26_env
-    docker:
-      - image: circleci/python:2.7
-      - image: rabbitmq:3.7.4
+          command: pip install --user tox==<< parameters.version >>
+  setup_py26:
     steps:
-      - checkout
       - run:
           name: Install and set python version with pyenv
           command: |
+                   set -eux
                    git clone https://github.com/yyuu/pyenv.git ~/.pyenv
                    export PYENV_ROOT="$HOME/.pyenv"
                    export PATH="$PYENV_ROOT/bin:$PATH"
                    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> $BASH_ENV
                    echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> $BASH_ENV
                    sudo apt-get install -y build-essential libssl1.0-dev zlib1g-dev xz-utils
+                   echo -e 'if [ $SHLVL = 1 ]; then eval "$(pyenv init -)"; fi' >> $BASH_ENV
                    pyenv install 2.6.9
-                   pyenv local 2.6.9
-      - run:
-          name: Install tox
-          # 2.9.1 is the last tox version that supported python 2.6
-          command: sudo ~/.pyenv/versions/2.6.9/bin/pip install tox==2.9.1 tox-pyenv
-      - run:
-          name: Run tox of specfic environment
-          command: ~/.pyenv/versions/2.6.9/bin/tox -e $DO_ENV --hashseed noset
+                   pyenv global 2.6.9
 
+defaults:
   - &docs_defaults
     docker:
       - image: circleci/python:2.7
@@ -96,59 +88,54 @@ defaults:
 
 jobs:
   flake8_py27:
-    <<: *py27_env
-    environment:
-      DO_ENV: py27-flake8
+    docker:
+      - image: circleci/python:2.7
+    steps:
+      - checkout
+      - add_local_bin
+      - install_tox
+      - run: tox -e py27-flake8
 
   flake8_py36:
-    <<: *py36_env
-    environment:
-      DO_ENV: py36-flake8
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - add_local_bin
+      - install_tox
+      - run: tox -e py36-flake8
 
-  test_py27_dsl_parser:
-    <<: *py27_env
-    environment:
-      DO_ENV: py27-dsl_parser
+  test_py26:
+    executor: py27
+    steps:
+      - checkout
+      - add_local_bin
+      - setup_py26
+      - install_tox:
+          version: "2.9.1"
+      - run: tox --hashseed noset -e py26-dsl_parser
+      - run: tox --hashseed noset -e py26-script_plugin
+      - run: tox --hashseed noset -e py26-plugins_common
 
-  test_py27_script_plugin:
-    <<: *py27_env
-    environment:
-      DO_ENV: py27-script_plugin
+  test_py27:
+    executor: py27
+    steps:
+      - checkout
+      - add_local_bin
+      - install_tox
+      - run: tox --hashseed noset -e py27-dsl_parser
+      - run: tox --hashseed noset -e py27-script_plugin
+      - run: tox --hashseed noset -e py27-plugins_common
 
-  test_py27_plugins_common:
-    <<: *py27_env
-    environment:
-      DO_ENV: py27-plugins_common
-
-  test_py26_dsl_parser:
-    <<: *py26_env
-    environment:
-      DO_ENV: py26-dsl_parser
-
-  test_py26_script_plugin:
-    <<: *py26_env
-    environment:
-      DO_ENV: py26-script_plugin
-
-  test_py26_plugins_common:
-    <<: *py26_env
-    environment:
-      DO_ENV: py26-plugins_common
-
-  test_py36_dsl_parser:
-    <<: *py36_env
-    environment:
-      DO_ENV: py36-dsl_parser
-
-  test_py36_script_plugin:
-    <<: *py36_env
-    environment:
-      DO_ENV: py36-script_plugin
-
-  test_py36_plugins_common:
-    <<: *py36_env
-    environment:
-      DO_ENV: py36-plugins_common
+  test_py36:
+    executor: py36
+    steps:
+      - checkout
+      - add_local_bin
+      - install_tox
+      - run: tox --hashseed noset -e py36-dsl_parser
+      - run: tox --hashseed noset -e py36-script_plugin
+      - run: tox --hashseed noset -e py36-plugins_common
 
   docs_plugins_common:
     <<: *docs_defaults
@@ -179,31 +166,13 @@ workflows:
     jobs:
       - flake8_py27
       - flake8_py36
-      - test_py27_dsl_parser:
+      - test_py26:
           requires:
             - flake8_py27
-      - test_py27_script_plugin:
+      - test_py27:
           requires:
             - flake8_py27
-      - test_py27_plugins_common:
-          requires:
-            - flake8_py27
-      - test_py26_dsl_parser:
-          requires:
-            - flake8_py27
-      - test_py26_script_plugin:
-          requires:
-            - flake8_py27
-      - test_py26_plugins_common:
-          requires:
-            - flake8_py27
-      - test_py36_dsl_parser:
-          requires:
-            - flake8_py36
-      - test_py36_script_plugin:
-          requires:
-            - flake8_py36
-      - test_py36_plugins_common:
+      - test_py36:
           requires:
             - flake8_py36
       - docs_plugins_common
