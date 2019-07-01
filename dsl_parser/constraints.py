@@ -272,7 +272,14 @@ def parse(definition):
     with a single key-value pair, i.e. { constraint_operator_name: argument/s }
     :return: an instantiated Constraint.
     """
-    name, args = definition.keys()[0], definition.values()[0]
+    if len(definition) > 1:
+        raise exceptions.DSLParsingLogicException(
+            exceptions.ERROR_INVALID_CONSTRAINT_ARGUMENT,
+            'Invalid constraint definition - expected a dictionary with a '
+            'single key-value pair, found "{0}"'
+            .format(definition))
+
+    name, args = definition.copy().popitem()
     constraint_cls = CONSTRAINTS[name]
     return constraint_cls(args)
 
@@ -294,7 +301,7 @@ def validate_input_value(input_name, input_constraints, input_value):
 def validate_input_defaults(plan):
     if INPUTS not in plan:
         return
-    for input_name, input_def in plan[INPUTS].iteritems():
+    for input_name, input_def in plan[INPUTS].items():
         if DEFAULT not in input_def:
             continue
         input_default_value = input_def[DEFAULT]

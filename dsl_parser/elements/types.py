@@ -35,7 +35,7 @@ class Type(Element):
 
     @staticmethod
     def fix_properties(value):
-        for key, value in value['properties'].iteritems():
+        for key, value in value['properties'].items():
             value.pop('initial_default', None)
 
 

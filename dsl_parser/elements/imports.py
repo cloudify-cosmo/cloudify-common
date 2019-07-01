@@ -472,8 +472,7 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
     merge_no_override = MERGE_NO_OVERRIDE.copy()
     if version['definitions_version'] > (1, 2):
         merge_no_override.update(MERGEABLE_FROM_DSL_VERSION_1_3)
-    for key_holder, value_holder in parsed_imported_dsl_holder.value.\
-            items():
+    for key_holder, value_holder in parsed_imported_dsl_holder.value.items():
         if is_cloudify_types and isinstance(value_holder.value, dict):
             _mark_key_value_holder_items(value_holder,
                                          'is_cloudify_type',

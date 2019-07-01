@@ -125,7 +125,7 @@ class SecretsClient(object):
         }
 
         # Remove the keys with value None
-        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        data = dict((k, v) for k, v in data.items() if v is not None)
         response = self.api.patch('/secrets/{0}'.format(key), data=data)
         return Secret(response)
 
@@ -163,7 +163,7 @@ class SecretsClient(object):
             'passphrase': passphrase,
             'override_collisions': override_collisions
         }
-        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        data = dict((k, v) for k, v in data.items() if v is not None)
         response = self.api.post('/secrets/share/import', data=data)
         return response
 

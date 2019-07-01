@@ -47,8 +47,7 @@ class NodeTemplateType(Element):
         if self.initial_value not in node_types:
             err_message = ("Could not locate node type: '{0}'; "
                            "existing types: {1}"
-                           .format(self.initial_value,
-                                   node_types.keys()))
+                           .format(self.initial_value, ', '.join(node_types)))
             raise exceptions.DSLParsingLogicException(7, err_message)
 
 
@@ -493,7 +492,7 @@ def _process_operations(partial_error_message,
                                         operation_name)] = operation
 
     return dict((operation_name, operation) for operation_name, operation in
-                operations.iteritems() if operation is not None)
+                operations.items() if operation is not None)
 
 
 def _process_node_relationships_operations(relationship,
@@ -537,7 +536,7 @@ class NodeTemplates(Element):
             processed_nodes=processed_nodes,
             host_types=host_types,
             plugins=plugins)
-        return processed_nodes.values()
+        return list(processed_nodes.values())
 
     def calculate_provided(self, **kwargs):
         return {
@@ -552,7 +551,7 @@ class NodeTemplates(Element):
                     node[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]:
                 plugin_name = deployment_plugin[constants.PLUGIN_NAME_KEY]
                 deployment_plugins[plugin_name] = deployment_plugin
-        return deployment_plugins.values()
+        return list(deployment_plugins.values())
 
 
 def _process_nodes_plugins(processed_nodes,
@@ -560,23 +559,23 @@ def _process_nodes_plugins(processed_nodes,
                            plugins):
     # extract node plugins based on node operations
     # do we really need node.plugins?
-    nodes_operations = dict((name, []) for name in processed_nodes.iterkeys())
-    for node_name, node in processed_nodes.iteritems():
+    nodes_operations = dict((name, []) for name in processed_nodes.keys())
+    for node_name, node in processed_nodes.items():
         node_operations = nodes_operations[node_name]
         node_operations.append(node['operations'])
         for rel in node['relationships']:
             node_operations.append(rel['source_operations'])
             nodes_operations[rel['target_id']].append(rel['target_operations'])
-    for node_name, node in processed_nodes.iteritems():
+    for node_name, node in processed_nodes.items():
         node[constants.PLUGINS] = _get_plugins_from_operations(
             operations_lists=nodes_operations[node_name],
             processed_plugins=plugins)
 
-    for node in processed_nodes.itervalues():
+    for node in processed_nodes.values():
         # set plugins_to_install property for nodes
         if node['type'] in host_types:
             plugins_to_install = {}
-            for another_node in processed_nodes.itervalues():
+            for another_node in processed_nodes.values():
                 # going over all other nodes, to accumulate plugins
                 # from different nodes whose host is the current node
                 if another_node.get('host_id') == node['id']:
@@ -585,7 +584,8 @@ def _process_nodes_plugins(processed_nodes,
                         if plugin[constants.PLUGIN_EXECUTOR_KEY] \
                                 == constants.HOST_AGENT:
                             plugins_to_install[plugin['name']] = plugin
-            node[constants.PLUGINS_TO_INSTALL] = plugins_to_install.values()
+            node[constants.PLUGINS_TO_INSTALL] = \
+                list(plugins_to_install.values())
 
         # set deployment_plugins_to_install property for nodes
         deployment_plugins_to_install = {}
@@ -594,7 +594,7 @@ def _process_nodes_plugins(processed_nodes,
                     == constants.CENTRAL_DEPLOYMENT_AGENT:
                 deployment_plugins_to_install[plugin['name']] = plugin
         node[constants.DEPLOYMENT_PLUGINS_TO_INSTALL] = \
-            deployment_plugins_to_install.values()
+            list(deployment_plugins_to_install.values())
 
     _validate_agent_plugins_on_host_nodes(processed_nodes)
 
@@ -615,11 +615,11 @@ def _get_plugins_from_operations(operations_lists,
                 plugin = copy.deepcopy(plugin)
                 plugin['executor'] = operation_executor
                 plugins[plugin_key] = plugin
-    return plugins.values()
+    return list(plugins.values())
 
 
 def _validate_agent_plugins_on_host_nodes(processed_nodes):
-    for node in processed_nodes.itervalues():
+    for node in processed_nodes.values():
         if 'host_id' not in node:
             for plugin in node[constants.PLUGINS]:
                 if plugin[constants.PLUGIN_EXECUTOR_KEY] \

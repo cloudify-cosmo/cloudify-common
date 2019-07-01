@@ -169,7 +169,7 @@ class WorkflowTestDecorator(object):
             }
 
         # set the inputs (if set)
-        if inputs and 'inputs' in self.init_args.keys():
+        if inputs and 'inputs' in self.init_args:
             raise ValueError("You've supplied 'inputs' inside init_args and as"
                              " a keyword. You cannot have more than "
                              "1 'inputs' source is needed.")
@@ -223,7 +223,7 @@ class WorkflowTestDecorator(object):
             self.init_args['name'] = test_method_name
 
         # Expand inputs dictionary
-        if 'inputs' in self.init_args.keys():
+        if 'inputs' in self.init_args:
             self.input_func_kwargs['decorator_kwargs'] = vars(self)
             self.init_args['inputs'] = \
                 _expand_dictionary(self.init_args['inputs'],

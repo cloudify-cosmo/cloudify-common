@@ -504,7 +504,7 @@ class Parser(object):
                 if not isinstance(value, dict):
                     raise exceptions.DSLParsingFormatException(
                         1, _expected_type_message(value, dict))
-                for key in value.keys():
+                for key in value:
                     if not isinstance(key, basestring):
                         raise exceptions.DSLParsingFormatException(
                             1, "Dict keys must be strings but"
@@ -517,7 +517,7 @@ class Parser(object):
                         ex = exceptions.DSLParsingFormatException(
                             1, "'{0}' is not in schema. "
                                "Valid schema values: {1}"
-                               .format(key, schema.keys()))
+                               .format(key, ', '.join(schema)))
                         for child_element in element.children():
                             if child_element.name == key:
                                 ex.element = child_element
@@ -575,8 +575,8 @@ class Parser(object):
                     if input.name not in context.inputs and input.required:
                         raise exceptions.DSLParsingFormatException(
                             1, "Missing required input '{0}'. "
-                               "Existing inputs: "
-                               .format(input.name, context.inputs.keys()))
+                               "Existing inputs: {1}"
+                               .format(input.name, ', '.join(context.inputs)))
                     required_args[input.name] = context.inputs.get(input.name)
             else:
                 if required_type == 'self':
@@ -594,7 +594,7 @@ class Parser(object):
                         else:
                             if (requirement.name not in
                                     required_element.provided):
-                                provided = required_element.provided.keys()
+                                provided = required_element.provided
                                 if requirement.required:
                                     raise exceptions.DSLParsingFormatException(
                                         1,
@@ -603,7 +603,7 @@ class Parser(object):
                                         "are: {2}"
                                         .format(requirement.name,
                                                 required_element.name,
-                                                provided))
+                                                ', '.join(provided)))
                                 else:
                                     continue
                             result.append(required_element.provided[

@@ -477,7 +477,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     )]
 
     def set_ignore_handlers(_subgraph):
-        for task in _subgraph.tasks.itervalues():
+        for task in _subgraph.tasks.values():
             if task.is_subgraph:
                 set_ignore_handlers(task)
             else:
@@ -551,7 +551,7 @@ def get_subgraph_on_failure_handler(
         instance, retried_task=reinstall_node_instance_subgraph):
     def subgraph_on_failure_handler(subgraph):
         graph = subgraph.graph
-        for task in subgraph.tasks.itervalues():
+        for task in subgraph.tasks.values():
             subgraph.remove_task(task)
         if not subgraph.containing_subgraph:
             result = workflow_tasks.HandlerResult.retry()
@@ -571,7 +571,7 @@ def _relationships_operations(graph,
                               reverse=False,
                               modified_relationship_ids=None):
     def on_failure(subgraph):
-        for task in subgraph.tasks.itervalues():
+        for task in subgraph.tasks.values():
             subgraph.remove_task(task)
         handler_result = workflow_tasks.HandlerResult.ignore()
         subgraph.containing_subgraph.failed_task = subgraph.failed_task

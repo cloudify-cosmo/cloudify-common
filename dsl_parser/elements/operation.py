@@ -214,15 +214,17 @@ def process_interface_operations(
         partial_error_message,
         resource_bases,
         remote_resources_namespaces):
-    return [process_operation(
-        plugins=plugins,
-        operation_name=operation_name,
-        operation_content=operation_content,
-        error_code=error_code,
-        partial_error_message=partial_error_message,
-        resource_bases=resource_bases,
-        remote_resources_namespaces=remote_resources_namespaces)
-            for operation_name, operation_content in interface.items()]
+    return [
+        process_operation(
+            plugins=plugins,
+            operation_name=operation_name,
+            operation_content=operation_content,
+            error_code=error_code,
+            partial_error_message=partial_error_message,
+            resource_bases=resource_bases,
+            remote_resources_namespaces=remote_resources_namespaces
+        )
+        for operation_name, operation_content in interface.items()]
 
 
 def _is_local_script_resource_exists(resource_bases, resource_path):
@@ -290,7 +292,7 @@ def process_operation(
         else:
             return no_op_operation(operation_name=operation_name)
 
-    candidate_plugins = [p for p in plugins.keys()
+    candidate_plugins = [p for p in plugins
                          if operation_mapping.startswith('{0}.'.format(p))]
     if candidate_plugins:
         if len(candidate_plugins) > 1:

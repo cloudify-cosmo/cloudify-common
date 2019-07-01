@@ -20,8 +20,7 @@ from string import ascii_lowercase, digits
 
 import networkx as nx
 
-from dsl_parser import (constants,
-                        exceptions)
+from dsl_parser import constants, exceptions, utils
 
 NODES = 'nodes'
 RELATIONSHIPS = 'relationships'
@@ -742,8 +741,10 @@ def _partition_source_and_target_instances(
         ctx=ctx,
         node_instance_ids=target_node_instance_ids,
         group=group)
-    assert (set(source_scaling_groups_map.keys()) ==
-            set(target_scaling_groups_map.keys()))
+    if set(source_scaling_groups_map) != set(target_scaling_groups_map):
+        raise RuntimeError(
+            'Source/target scaling group maps have different keys: {0} != {1}'
+            .format(source_scaling_groups_map, target_scaling_groups_map))
     for key, value in source_scaling_groups_map.items():
         partitioned_node_instance_ids.append((value,
                                               target_scaling_groups_map[key]))
@@ -903,8 +904,7 @@ class Context(object):
         while True:
             succ = graph.succ[node_id]
             if succ:
-                assert len(succ) == 1
-                node_id = succ.keys()[0]
+                node_id = utils.only_dict_key(succ)
                 if not graph.node[node_id]['node'].get('group'):
                     continue
                 result.append(node_id)
@@ -917,8 +917,7 @@ class Context(object):
         while True:
             succ = graph.succ[node_instance_id]
             if succ:
-                assert len(succ) == 1
-                node_instance_id = succ.keys()[0]
+                node_instance_id = utils.only_dict_key(succ)
                 node = graph.node[node_instance_id]['node']
                 if not node.get('group'):
                     continue
@@ -934,8 +933,7 @@ class Context(object):
         while True:
             succ = contained_graph.succ[instance_id]
             if succ:
-                assert len(succ) == 1
-                node_instance_id = succ.keys()[0]
+                node_instance_id = utils.only_dict_key(succ)
                 node = contained_graph.node[node_instance_id]['node']
                 instance_id = node['id']
                 result.append({
