@@ -20,6 +20,7 @@ from os import path, listdir, makedirs
 from functools import wraps
 
 from cloudify.workflows import local
+import collections
 
 PLUGIN_YAML_NAME = 'plugin.yaml'
 
@@ -67,7 +68,7 @@ def _assure_path_exists(dest_path):
 
 def _expand_dictionary(inputs, func_self, func_args, func_kwargs):
     func_to_call = None
-    if callable(inputs):
+    if isinstance(inputs, collections.Callable):
         func_to_call = inputs
     elif isinstance(inputs, basestring):
         if func_self is None:

@@ -32,6 +32,7 @@ import pika.exceptions
 from cloudify import exceptions
 from cloudify import broker_config
 from cloudify.constants import EVENTS_EXCHANGE_NAME, LOGS_EXCHANGE_NAME
+import collections
 
 
 logger = logging.getLogger(__name__)
@@ -256,7 +257,7 @@ class AMQPConnection(object):
             err_queue = envelope.get('err_queue')
 
             try:
-                if callable(method):
+                if isinstance(method, collections.Callable):
                     method(self, channel, **message)
                 else:
                     getattr(target_channel, method)(**message)
