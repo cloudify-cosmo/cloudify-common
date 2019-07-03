@@ -13,9 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import StringIO
 import traceback
 
+from cloudify._compat import StringIO
 from cloudify.utils import format_exception
 from cloudify import exceptions
 
@@ -26,7 +26,7 @@ def serialize_known_exception(e):
     :param e: A cloudify exception
     :return: A JSON serializable payload dict
     """
-    tb = StringIO.StringIO()
+    tb = StringIO()
     traceback.print_exc(file=tb)
     trace_out = tb.getvalue()
 

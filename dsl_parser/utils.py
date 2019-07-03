@@ -17,16 +17,8 @@ import copy
 import contextlib
 import importlib
 import numbers
-import urllib2
 import sys
 import re
-
-try:
-    # Python 3.x
-    from urllib.parse import urlparse
-except ImportError:
-    # Python 2.7
-    from urlparse import urlparse
 
 import yaml.parser
 
@@ -268,18 +260,18 @@ def load_yaml(raw_yaml, error_message, filename=None):
 
 
 def url_exists(url):
-    request = urllib2.Request(url)
+    request = _compat.Request(url)
     try:
-        with contextlib.closing(urllib2.urlopen(request)):
+        with contextlib.closing(_compat.urlopen(request)):
             return True
-    except urllib2.URLError:
+    except _compat.URLError:
         return False
 
 
 def is_valid_url(url):
     # Checks whether a given string represents a valid
     # URL (syntax-wise).
-    return urlparse(url).scheme != ''
+    return _compat.urlparse(url).scheme != ''
 
 
 def create_import_resolver(resolver_configuration):

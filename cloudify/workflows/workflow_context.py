@@ -17,13 +17,13 @@ import functools
 import copy
 import uuid
 import threading
-import Queue
 import time
 import logging
 
 from proxy_tools import proxy
 
 from cloudify import amqp_client, context
+from cloudify._compat import queue
 from cloudify.manager import (get_bootstrap_context,
                               get_rest_client,
                               download_resource)
@@ -1119,7 +1119,7 @@ class CloudifyWorkflowContextInternal(object):
 class LocalTasksProcessing(object):
 
     def __init__(self, workflow_ctx, thread_pool_size=1):
-        self._local_tasks_queue = Queue.Queue()
+        self._local_tasks_queue = queue.Queue()
         self._local_task_processing_pool = []
         self._is_local_context = workflow_ctx.local
         for i in range(thread_pool_size):

@@ -39,3 +39,24 @@ if PY2:
 def reraise(exception_type, value, traceback):
     raise exception_type, value, traceback
 """)
+
+
+if PY2:
+    from urllib import quote as urlquote, pathname2url
+    from urllib2 import Request, urlopen, URLError
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
+    from urlparse import urljoin, urlparse
+else:
+    from urllib.parse import quote as urlquote, urljoin, urlparse
+    from urllib.request import pathname2url, Request, urlopen
+    from urllib.error import URLError
+    from io import StringIO
+
+
+__all__ = [
+    'PY2', 'ABC', 'urlquote', 'reraise', 'pathname2url', 'Request', 'urlopen',
+    'URLError', 'StringIO', 'urljoin', 'urlparse'
+]

@@ -23,13 +23,13 @@ import json
 import time
 import threading
 from datetime import datetime
-from StringIO import StringIO
 from contextlib import contextmanager
 
 from cloudify_rest_client.nodes import Node
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.node_instances import NodeInstance
 
+from cloudify._compat import StringIO
 from cloudify import dispatch, utils
 from cloudify.workflows.workflow_context import (
     DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE)

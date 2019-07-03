@@ -24,6 +24,7 @@ from multiprocessing import Process
 import testtools
 from mock import MagicMock
 
+from dsl_parser._compat import pathname2url, urljoin
 from dsl_parser.exceptions import DSLParsingException
 from dsl_parser.parser import parse as dsl_parse
 from dsl_parser.parser import parse_from_path as dsl_parse_from_path
@@ -160,8 +161,6 @@ node_types:
         return filename_path if not as_uri else self._path2url(filename_path)
 
     def _path2url(self, path):
-        from urllib import pathname2url
-        from urlparse import urljoin
         return urljoin('file:', pathname2url(path))
 
     def create_yaml_with_imports(self, contents, as_uri=False):

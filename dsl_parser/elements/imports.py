@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 import os
-import urllib
 
 import networkx as nx
 
@@ -23,6 +22,7 @@ from dsl_parser import (exceptions,
                         version as _version,
                         utils)
 from dsl_parser.holder import Holder
+from dsl_parser._compat import pathname2url
 from dsl_parser.import_resolver.abstract_import_resolver import\
     is_remote_resource
 from dsl_parser.framework.elements import (Element,
@@ -152,7 +152,7 @@ def _get_resource_location(resource_name,
 
     if os.path.exists(resource_name):
         return 'file:{0}'.format(
-            urllib.pathname2url(os.path.abspath(resource_name)))
+            pathname2url(os.path.abspath(resource_name)))
 
     if current_resource_context:
         candidate_url = current_resource_context[
@@ -163,7 +163,7 @@ def _get_resource_location(resource_name,
     if resources_base_path:
         full_path = os.path.join(resources_base_path, resource_name)
         return 'file:{0}'.format(
-            urllib.pathname2url(os.path.abspath(full_path)))
+            pathname2url(os.path.abspath(full_path)))
 
     return None
 

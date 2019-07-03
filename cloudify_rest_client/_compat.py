@@ -13,35 +13,19 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+
 """Python 2 + 3 compatibility utils"""
 
 import sys
 PY2 = sys.version_info[0] == 2
 
 
-def reraise(exception_type, value, traceback):
-    raise value.with_traceback(traceback)
-
-
 if PY2:
-    # py2's syntax doesn't exist in later pythons, so we can only
-    # _create_ the function on py2
-    exec("""
-def reraise(exception_type, value, traceback):
-    raise exception_type, value, traceback
-""")
-
-if PY2:
-    from urllib import quote as urlquote
-    import Queue as queue
-    try:
-        from cStringIO import StringIO
-    except ImportError:
-        from StringIO import StringIO
+    from urllib import quote as urlquote, pathname2url
+    from urlparse import urlparse
 else:
-    from urllib.parse import quote as urlquote
-    import queue
-    from io import StringIO
+    from urllib.parse import quote as urlquote, urlparse
+    from urllib.request import pathname2url
 
 
-__all__ = ['PY2', 'urlquote', 'reraise', 'queue', 'StringIO']
+__all__ = ['PY2', 'urlquote', 'pathname2url', 'urlparse']

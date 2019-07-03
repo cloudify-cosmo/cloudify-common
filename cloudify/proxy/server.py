@@ -20,13 +20,12 @@ import collections
 import json
 import threading
 import socket
-from Queue import Queue
-from StringIO import StringIO
 from wsgiref.simple_server import WSGIServer, WSGIRequestHandler
 from wsgiref.simple_server import make_server as make_wsgi_server
 
 import bottle
 
+from cloudify._compat import queue, StringIO
 from cloudify.proxy.client import ScriptException
 from cloudify.state import current_ctx
 
@@ -75,7 +74,7 @@ class HTTPCtxProxy(CtxProxy):
         socket_url = 'http://localhost:{0}'.format(port)
         super(HTTPCtxProxy, self).__init__(ctx, socket_url)
         self.port = port
-        self._started = Queue(1)
+        self._started = queue.Queue(1)
         self.thread = self._start_server()
         self._started.get(timeout=5)
 

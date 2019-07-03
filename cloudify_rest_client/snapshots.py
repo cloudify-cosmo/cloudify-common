@@ -14,10 +14,10 @@
 #    * limitations under the License.
 
 import os
-import urlparse
 import contextlib
 
 from cloudify_rest_client import bytes_stream_utils
+from cloudify_rest_client._compat import urlparse
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.responses import ListResponse
 
@@ -199,7 +199,7 @@ class SnapshotsClient(object):
         uri = '/snapshots/{0}/archive'.format(snapshot_id)
         query_params = {}
 
-        if urlparse.urlparse(snapshot_path).scheme and \
+        if urlparse(snapshot_path).scheme and \
                 not os.path.exists(snapshot_path):
             query_params['snapshot_archive_url'] = snapshot_path
             data = None
