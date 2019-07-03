@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import numbers
 import networkx as nx
 
 from dsl_parser.framework import elements
@@ -660,7 +661,7 @@ def _py_type_to_user_type(_type):
         return 'string'
     elif issubclass(_type, bool):
         return 'boolean'
-    elif issubclass(_type, int) or issubclass(_type, long):
+    elif issubclass(_type, numbers.Integral):
         return 'integer'
     elif issubclass(_type, float):
         return 'float'

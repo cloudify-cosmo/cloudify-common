@@ -13,6 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import pytest
+
+from dsl_parser import _compat
 from dsl_parser import constants as consts
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.exceptions import (UnknownInputError,
@@ -1189,6 +1192,10 @@ inputs:
     def test_validate_integer_value_successful(self):
         self._test_validate_value_successful(
             'integer', 123, 456, self.assertEqual)
+
+    @pytest.mark.skipif(not _compat.PY2,
+                        reason="long() only exists on python 2")
+    def test_validate_integer_value_successful_long(self):
         self._test_validate_value_successful(
             'integer', long('123'), long('456'), self.assertEqual)
 
@@ -1207,6 +1214,10 @@ inputs:
             'float', 123, 456, self.assertEqual)
         self._test_validate_value_successful(
             'float', 123.1, 456.1, self.assertEqual)
+
+    @pytest.mark.skipif(not _compat.PY2,
+                        reason="long() only exists on python 2")
+    def test_validate_float_value_successful_long(self):
         self._test_validate_value_successful(
             'float', long('123'), long('456'), self.assertEqual)
 
