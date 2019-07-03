@@ -527,7 +527,7 @@ class NodeTemplates(Element):
     }
     provides = [
         'node_template_names',
-        'plugins'
+        'plugins_to_install'
     ]
 
     def parse(self, host_types, plugins):
@@ -542,7 +542,7 @@ class NodeTemplates(Element):
     def calculate_provided(self, **kwargs):
         return {
             'node_template_names': set(c.name for c in self.children()),
-            'plugins':
+            'plugins_to_install':
                 {
                      constants.DEPLOYMENT_PLUGINS_TO_INSTALL:
                      self._fetch_node_plugins(
