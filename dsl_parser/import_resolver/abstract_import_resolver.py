@@ -20,7 +20,7 @@ import urllib2
 import requests
 from retrying import retry
 
-from dsl_parser import exceptions
+from dsl_parser import _compat, exceptions
 
 
 DEFAULT_RETRY_DELAY = 1
@@ -34,15 +34,13 @@ def is_remote_resource(resource_url):
         return True
 
 
-class AbstractImportResolver(object):
+class AbstractImportResolver(_compat.ABC):
     """
     This class is abstract and should be inherited by concrete
     implementations of import resolver.
     The only mandatory implementation is of resolve, which is expected
     to open the import url and return its data.
     """
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def resolve(self, import_url):

@@ -18,7 +18,8 @@ import pkg_resources
 
 from functools import wraps
 
-from dsl_parser import (constants,
+from dsl_parser import (_compat,
+                        constants,
                         exceptions,
                         scan)
 
@@ -154,9 +155,8 @@ class RuntimeEvaluationStorage(object):
         return self._capabilities[capability_id]
 
 
-class Function(object):
+class Function(_compat.ABC):
 
-    __metaclass__ = abc.ABCMeta
     name = 'function'
     func_eval_type = None
 

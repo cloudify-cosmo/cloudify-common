@@ -18,3 +18,11 @@
 
 import sys
 PY2 = sys.version_info[0] == 2
+
+try:
+    from abc import ABC
+except ImportError:
+    from abc import ABCMeta
+
+    class ABC(object):
+        __metaclass__ = ABCMeta
