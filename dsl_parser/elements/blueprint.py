@@ -91,14 +91,14 @@ class Blueprint(Element):
     }
 
     requires = {
-        node_templates.NodeTemplates: ['deployment_plugins_to_install'],
-        workflows.Workflows: ['workflow_plugins_to_install'],
+        node_templates.NodeTemplates: ['plugins'],
+        workflows.Workflows: [constants.WORKFLOW_PLUGINS_TO_INSTALL],
         policies.Policies: ['scaling_groups']
     }
 
     def parse(self,
               workflow_plugins_to_install,
-              deployment_plugins_to_install,
+              plugins,
               scaling_groups):
         return models.Plan({
             constants.DESCRIPTION: self.child(misc.Description).value,
@@ -117,8 +117,10 @@ class Blueprint(Element):
             constants.INPUTS: self.child(inputs.Inputs).value,
             constants.OUTPUTS: self.child(misc.Outputs).value,
             constants.DEPLOYMENT_PLUGINS_TO_INSTALL:
-                deployment_plugins_to_install,
+                plugins[constants.DEPLOYMENT_PLUGINS_TO_INSTALL],
             constants.WORKFLOW_PLUGINS_TO_INSTALL: workflow_plugins_to_install,
+            constants.HOST_AGENT_PLUGINS_TO_INSTALL:
+                plugins[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
             constants.VERSION: self.child(
                 _version.ToscaDefinitionsVersion).value,
             constants.CAPABILITIES: self.child(misc.Capabilities).value,

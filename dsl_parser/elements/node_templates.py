@@ -527,7 +527,7 @@ class NodeTemplates(Element):
     }
     provides = [
         'node_template_names',
-        'deployment_plugins_to_install'
+        'plugins'
     ]
 
     def parse(self, host_types, plugins):
@@ -542,17 +542,23 @@ class NodeTemplates(Element):
     def calculate_provided(self, **kwargs):
         return {
             'node_template_names': set(c.name for c in self.children()),
-            'deployment_plugins_to_install': self._deployment_plugins()
+            'plugins':
+                 { constants.DEPLOYMENT_PLUGINS_TO_INSTALL:
+                     self._fetch_node_plugins(
+                         constants.DEPLOYMENT_PLUGINS_TO_INSTALL),
+                     constants.HOST_AGENT_PLUGINS_TO_INSTALL:
+                         self._fetch_node_plugins(constants.PLUGINS_TO_INSTALL)
+                 }
         }
 
-    def _deployment_plugins(self):
-        deployment_plugins = {}
+    def _fetch_node_plugins(self, plugin_kind):
+        used_plugins = {}
         for node in self.value:
-            for deployment_plugin in \
-                    node[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]:
-                plugin_name = deployment_plugin[constants.PLUGIN_NAME_KEY]
-                deployment_plugins[plugin_name] = deployment_plugin
-        return deployment_plugins.values()
+            plugins = node.get(plugin_kind, [])
+            for plugin in plugins:
+                plugin_name = plugin[constants.PLUGIN_NAME_KEY]
+                used_plugins[plugin_name] = plugin
+        return used_plugins.values()
 
 
 def _process_nodes_plugins(processed_nodes,
