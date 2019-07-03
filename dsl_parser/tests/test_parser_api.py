@@ -15,8 +15,8 @@
 
 import os
 import yaml as yml
-from urllib import pathname2url
 
+from dsl_parser._compat import pathname2url
 from dsl_parser.constants import TYPE_HIERARCHY
 from dsl_parser.parser import (parse as dsl_parse,
                                parse_from_path)

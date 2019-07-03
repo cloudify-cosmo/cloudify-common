@@ -16,10 +16,9 @@
 import sys
 import time
 import uuid
-import Queue
 
 from cloudify import exceptions, logs
-from cloudify._compat import reraise
+from cloudify._compat import queue, reraise
 from cloudify.workflows import api
 from cloudify.manager import (
     get_rest_client,
@@ -105,7 +104,7 @@ class WorkflowTask(object):
         self.retry_interval = retry_interval
         self.timeout = timeout
         self.timeout_recoverable = timeout_recoverable
-        self.terminated = Queue.Queue(maxsize=1)
+        self.terminated = queue.Queue(maxsize=1)
         self.is_terminated = False
         self.workflow_context = workflow_context
         self.send_task_events = send_task_events
@@ -859,7 +858,7 @@ class WorkflowTaskResult(object):
             try:
                 self.task.wait_for_terminated(timeout=1)
                 break
-            except Queue.Empty:
+            except queue.Empty:
                 continue
 
     def _sleep(self, seconds):

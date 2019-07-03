@@ -1,9 +1,9 @@
 
 import threading
 import unittest
-from Queue import Queue
 
 
+from cloudify._compat import queue
 from cloudify.state import ctx, current_ctx
 
 from cloudify.mocks import MockCloudifyContext
@@ -26,9 +26,9 @@ class TestCurrentContextAndCtxLocalProxy(unittest.TestCase):
         num_iterations = 1000
         num_threads = 10
         for _ in range(num_iterations):
-            queues = [Queue() for _ in range(num_threads)]
+            queues = [queue.Queue() for _ in range(num_threads)]
 
-            def run(queue, value):
+            def run(response_queue, value):
                 try:
                     self.assertRaises(RuntimeError, current_ctx.get_ctx)
                     self.assertRaises(RuntimeError, lambda: ctx.instance.id)
@@ -39,18 +39,18 @@ class TestCurrentContextAndCtxLocalProxy(unittest.TestCase):
                     self.assertRaises(RuntimeError, current_ctx.get_ctx)
                     self.assertRaises(RuntimeError, lambda: ctx.instance.id)
                 except Exception as e:
-                    queue.put(e)
+                    response_queue.put(e)
                 else:
-                    queue.put('ok')
+                    response_queue.put('ok')
 
             threads = []
-            for index, queue in enumerate(queues):
+            for index, thread_queue in enumerate(queues):
                 value = MockCloudifyContext(node_id=str(index))
                 threads.append(threading.Thread(target=run,
-                                                args=(queue, value)))
+                                                args=(thread_queue, value)))
 
             for thread in threads:
                 thread.start()
 
-            for queue in queues:
-                self.assertEqual('ok', queue.get())
+            for thread_queue in queues:
+                self.assertEqual('ok', thread_queue.get())

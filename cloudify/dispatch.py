@@ -25,8 +25,6 @@ import tempfile
 import threading
 from time import sleep
 import traceback
-import StringIO
-import Queue
 
 from contextlib import contextmanager
 
@@ -44,6 +42,7 @@ from cloudify import context
 from cloudify import utils
 from cloudify import amqp_client_utils
 from cloudify import constants
+from cloudify._compat import queue, StringIO
 from cloudify.amqp_client_utils import AMQPWrappedThread
 from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.workflows import workflow_context
@@ -588,9 +587,9 @@ class WorkflowHandler(TaskHandler):
                 self._workflow_cancelled()
                 return api.EXECUTION_CANCELLED_RESULT
 
-            queue = Queue.Queue()
+            result_queue = queue.Queue()
             t = AMQPWrappedThread(target=self._remote_workflow_child_thread,
-                                  args=(queue,),
+                                  args=(result_queue,),
                                   name='Workflow-Child')
             t.start()
 
@@ -601,7 +600,7 @@ class WorkflowHandler(TaskHandler):
             while True:
                 # check if child thread sent a message
                 try:
-                    data = queue.get(timeout=5)
+                    data = result_queue.get(timeout=5)
                     if 'result' in data:
                         # child thread has terminated
                         result = data['result']
@@ -613,7 +612,7 @@ class WorkflowHandler(TaskHandler):
                             error['message'],
                             error['type'],
                             error['traceback'])
-                except Queue.Empty:
+                except queue.Empty:
                     pass
 
                 # A very hacky way to solve an edge case when trying to poll
@@ -676,7 +675,7 @@ class WorkflowHandler(TaskHandler):
             except api.ExecutionCancelled:
                 queue.put({'result': api.EXECUTION_CANCELLED_RESULT})
             except BaseException as workflow_ex:
-                tb = StringIO.StringIO()
+                tb = StringIO()
                 traceback.print_exc(file=tb)
                 err = {
                     'type': type(workflow_ex).__name__,
@@ -692,7 +691,7 @@ class WorkflowHandler(TaskHandler):
             self._workflow_succeeded()
             return result
         except Exception as e:
-            error = StringIO.StringIO()
+            error = StringIO()
             traceback.print_exc(file=error)
             self._workflow_failed(e, error.getvalue())
             raise

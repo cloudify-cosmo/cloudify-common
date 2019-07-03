@@ -16,12 +16,12 @@
 import os
 import tempfile
 import shutil
-import urllib
 import contextlib
 
 from cloudify_rest_client import utils
 from cloudify_rest_client import bytes_stream_utils
-from cloudify_rest_client._compat import urlparse
+from cloudify_rest_client._compat import urlquote, urlparse
+
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -94,7 +94,7 @@ class BlueprintsClient(object):
         query_params = {'visibility': visibility}
         if application_file_name is not None:
             query_params['application_file_name'] = \
-                urllib.quote(application_file_name)
+                urlquote(application_file_name)
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present

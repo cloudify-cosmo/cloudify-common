@@ -21,10 +21,10 @@ import tempfile
 import shutil
 import os
 import threading
-import Queue
 
 import testtools
 
+from cloudify._compat import queue
 import cloudify.logs
 from cloudify.decorators import workflow, operation
 from cloudify.exceptions import NonRecoverableError
@@ -854,14 +854,14 @@ class LocalWorkflowTest(BaseWorkflowTest):
             state=instance.state,
             version=instance.version)
         instance_id = instance.id
-        exception = Queue.Queue()
-        done = Queue.Queue()
+        exception = queue.Queue()
+        done = queue.Queue()
 
         def proceed():
             try:
                 done.get_nowait()
                 return False
-            except Queue.Empty:
+            except queue.Empty:
                 return True
 
         def publisher(key, value):

@@ -14,11 +14,12 @@
 #    * limitations under the License.
 
 import copy
-from StringIO import StringIO
 
 from dsl_parser import exceptions
 from dsl_parser import holder
 from dsl_parser import version as _version
+
+from dsl_parser._compat import StringIO
 
 
 class Unparsed(object):

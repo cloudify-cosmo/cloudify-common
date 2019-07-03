@@ -15,14 +15,13 @@
 
 
 import subprocess
-import SimpleHTTPServer
-import SocketServer
 import os
 import sys
 import socket
 import time
 from multiprocessing import Process
 
+from cloudify.tests._compat import TCPServer, SimpleHTTPRequestHandler
 from cloudify.utils import setup_logger
 from cloudify import exceptions
 
@@ -81,10 +80,10 @@ class FileServer(object):
                     self.root_path)
         os.chdir(self.root_path)
 
-        class TCPServer(SocketServer.TCPServer):
+        class _ReuseAddressTCPServer(TCPServer):
             allow_reuse_address = True
-        httpd = TCPServer(('0.0.0.0', PORT),
-                          SimpleHTTPServer.SimpleHTTPRequestHandler)
+        httpd = _ReuseAddressTCPServer(
+            ('0.0.0.0', PORT), SimpleHTTPRequestHandler)
         httpd.serve_forever()
 
     @staticmethod
