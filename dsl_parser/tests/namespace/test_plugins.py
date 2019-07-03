@@ -165,20 +165,22 @@ node_templates:
      interface:
        op: plugin1.op
 """.format('test', import_file_name)
-        parsed_yaml = self.parse(main_yaml)
+        parsed = self.parse(main_yaml)
         expected_plugin1 = self._expected_plugin('plugin1',
                                                  deployment_plugin_def)
         expected_plugin2 = self._expected_plugin('test--plugin2',
                                                  host_plugin_def)
         expected_test_plugin1 = self._expected_plugin('test--plugin1',
                                                       deployment_plugin_def)
-        plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
-        node2 = self.get_node_by_name(parsed_yaml, 'test--node2')
+        plugin1 = parsed[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
+        node2 = self.get_node_by_name(parsed, 'test--node2')
         plugin2 = node2[constants.PLUGINS_TO_INSTALL][0]
-        test_plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
+        test_plugin1 = parsed[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
         self.assertEqual(expected_plugin1, plugin1)
         self.assertEqual(expected_plugin2, plugin2)
         self.assertEqual(expected_test_plugin1, test_plugin1)
+        self.assertEquals(parsed[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
+                          [plugin2])
 
     def test_plugins_merging_with_no_collision(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
