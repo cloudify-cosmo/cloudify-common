@@ -14,18 +14,8 @@
 #    * limitations under the License.
 
 
-"""Python 2 + 3 compatibility utils"""
-
 import sys
 PY2 = sys.version_info[0] == 2
-
-try:
-    from abc import ABC
-except ImportError:
-    from abc import ABCMeta
-
-    class ABC(object):
-        __metaclass__ = ABCMeta
 
 
 def reraise(exception_type, value, traceback):

@@ -35,7 +35,8 @@ from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
     NAMESPACE_DELIMITER
 from dsl_parser.import_resolver.default_import_resolver import \
     DefaultImportResolver
-from dsl_parser import (yaml_loader,
+from dsl_parser import (_compat,
+                        yaml_loader,
                         functions,
                         constants,
                         exceptions)
@@ -317,8 +318,9 @@ def get_class_instance(class_path, properties):
         instance = cls(**properties)
     except Exception as e:
         exc_type, exc, traceback = sys.exc_info()
-        raise RuntimeError('Failed to instantiate {0}, error: {1}'
-                           .format(class_path, e)), None, traceback
+        runtime_exc = RuntimeError('Failed to instantiate {0}, error: {1}'
+                                   .format(class_path, e))
+        _compat.reraise(RuntimeError, runtime_exc, traceback)
 
     return instance
 
