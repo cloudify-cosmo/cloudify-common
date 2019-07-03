@@ -160,7 +160,7 @@ node_templates:
         type: test--test1--test_type
 """.format('test', layer2_import_path)
         parsed = self.parse_1_3(main_yaml)
-        for i in xrange(0, 3):
+        for i in range(0, 3):
             test_node = parsed[constants.NODES][i]
             self.assertEqual(
                 'value{0}'.format(i+1),

@@ -36,7 +36,10 @@ _NO_LENGTH_ERROR_MSG = "Value's length could not be computed. Value " \
 #                scalars
 # - sequence: ( 1, 0, 'something', False ) or it could
 #             be [ 1, 0, 'something', False ]
-_SCALAR, _DUAL_SCALAR, _SEQUENCE, _REGEX = range(4)
+_SCALAR = 0
+_DUAL_SCALAR = 1
+_SEQUENCE = 2
+_REGEX = 3
 
 CONSTRAINTS = {}
 VALIDATION_FUNCTIONS = {}

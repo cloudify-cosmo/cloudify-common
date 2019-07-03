@@ -104,8 +104,8 @@ class Context(object):
         which is leftover after applying namespace on intrinsic functions.
         """
         if isinstance(element, list):
-            for i in xrange(len(element)):
-                self._remove_skip_namespace_flag(element[i].value)
+            for item in element:
+                self._remove_skip_namespace_flag(item.value)
             return
         elif not isinstance(element, dict):
             return
@@ -269,9 +269,8 @@ class Context(object):
             values only for the relevant intrinsic functions.
             """
             def traverse_list(holder_item, item):
-                for i in xrange(len(item)):
-                    handle_intrinsic_function_namespace(
-                        holder_item.value[i], item[i])
+                for holder_part, part in zip(holder_item.value, item):
+                    handle_intrinsic_function_namespace(holder_part, part)
 
             if isinstance(element, list):
                 traverse_list(holder_element, element)

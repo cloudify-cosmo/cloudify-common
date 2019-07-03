@@ -775,7 +775,7 @@ def _node_instance_id(node_id, ctx):
 
 
 def _generate_id(id_len=6):
-    return ''.join(choice(digits + ascii_lowercase) for _ in xrange(id_len))
+    return ''.join(choice(digits + ascii_lowercase) for _ in range(id_len))
 
 
 def _node_instance_copy(node, node_instance_id):
