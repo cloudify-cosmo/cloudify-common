@@ -67,9 +67,9 @@ class HolderConstructor(SafeConstructor):
         return self._holder(obj, node)
 
     def construct_yaml_str(self, node):
-        obj = SafeConstructor.construct_yaml_str(self, node)
+        obj = self.construct_scalar(node)
         try:
-            obj = str(obj)
+            obj.encode('ascii')
         except UnicodeEncodeError:
             raise DSLParsingInputTypeException(
                 ERROR_INVALID_CHARS,
