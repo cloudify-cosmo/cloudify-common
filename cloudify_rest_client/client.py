@@ -242,7 +242,7 @@ class HTTPClient(object):
         body = json.dumps(data) if is_dict_data else data
         if self.logger.isEnabledFor(logging.DEBUG):
             log_message = 'Sending request: {0} {1}'.format(
-                requests_method.func_name.upper(),
+                requests_method.__name__.upper(),
                 request_url)
             if is_dict_data:
                 log_message += '; body: {0}'.format(body)
