@@ -73,13 +73,13 @@ import pkg_resources
 try:
     release = pkg_resources.get_distribution(project).version
 except pkg_resources.DistributionNotFound:
-    print 'To build the documentation, The distribution information of packm'
-    print 'Has to be available.  Either install the package into your'
-    print 'development environment or run "setup.py develop" to setup the'
-    print 'metadata.  A virtualenv is recommended!'
-    sys.exit(1)
-except Exception as e:
-    print e
+    raise RuntimeError("""
+To build the documentation, The distribution information of packm
+Has to be available.  Either install the package into your
+development environment or run "setup.py develop" to setup the
+metadata.  A virtualenv is recommended!
+""")
+
 del pkg_resources
 # release = '0.1.0'
 version = '.'.join(release.split('.')[:2])
