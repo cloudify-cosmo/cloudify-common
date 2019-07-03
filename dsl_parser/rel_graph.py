@@ -291,7 +291,7 @@ def extract_node_instances(node_instances_graph,
             if not group_rel:
                 indexed_relationship_instances.append(
                     (relationship_index, relationship_instance))
-        indexed_relationship_instances.sort(key=lambda (index, _): index)
+        indexed_relationship_instances.sort(key=lambda ix: ix[0])
         relationship_instances = [r for _, r in indexed_relationship_instances]
         node_instance[RELATIONSHIPS] = relationship_instances
         node_instances.append(node_instance)
