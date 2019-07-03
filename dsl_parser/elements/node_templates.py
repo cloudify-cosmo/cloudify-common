@@ -543,11 +543,13 @@ class NodeTemplates(Element):
         return {
             'node_template_names': set(c.name for c in self.children()),
             'plugins':
-                 { constants.DEPLOYMENT_PLUGINS_TO_INSTALL:
+                {
+                     constants.DEPLOYMENT_PLUGINS_TO_INSTALL:
                      self._fetch_node_plugins(
                          constants.DEPLOYMENT_PLUGINS_TO_INSTALL),
                      constants.HOST_AGENT_PLUGINS_TO_INSTALL:
-                         self._fetch_node_plugins(constants.PLUGINS_TO_INSTALL)
+                     self._fetch_node_plugins(
+                         constants.PLUGINS_TO_INSTALL)
                  }
         }
 
