@@ -182,7 +182,7 @@ class BaseScriptRunner(object):
             self.fail()
         except NonRecoverableError as e:
             self.assertEqual(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
-        except Exception as e:
+        except Exception:
             self.fail()
 
     def test_crash_abort_after_return(self):

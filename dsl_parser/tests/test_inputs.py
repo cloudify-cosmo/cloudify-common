@@ -1197,7 +1197,7 @@ inputs:
                         reason="long() only exists on python 2")
     def test_validate_integer_value_successful_long(self):
         self._test_validate_value_successful(
-            'integer', long('123'), long('456'), self.assertEqual)
+            'integer', long('123'), long('456'), self.assertEqual)  # NOQA
 
     def test_validate_integer_value_mismatch(self):
         self._test_validate_value_type_mismatch('integer', [])
@@ -1219,7 +1219,7 @@ inputs:
                         reason="long() only exists on python 2")
     def test_validate_float_value_successful_long(self):
         self._test_validate_value_successful(
-            'float', long('123'), long('456'), self.assertEqual)
+            'float', long('123'), long('456'), self.assertEqual)  # NOQA
 
     def test_validate_float_value_mismatch(self):
         self._test_validate_value_type_mismatch('float', [])

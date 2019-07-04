@@ -44,8 +44,8 @@ else:
     from io import StringIO
 
 if PY2:
-    string_types = (str, unicode)
-    text_type = unicode
+    string_types = (str, unicode)  # NOQA
+    text_type = unicode  # NOQA
 else:
     string_types = (str, )
     text_type = str

@@ -41,7 +41,7 @@ def check_output(*popenargs, **kwargs):
 # native strings.
 if PY2:
     def unicode_to_string(text):
-        if isinstance(text, unicode):
+        if isinstance(text, unicode):  # NOQA
             return text.encode('ascii', 'ignore')
         if isinstance(text, list):
             return [unicode_to_string(a) for a in text]
