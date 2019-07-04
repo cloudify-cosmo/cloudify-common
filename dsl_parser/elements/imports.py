@@ -63,7 +63,7 @@ IGNORE = set([
 
 class Import(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
 
 
 class Imports(Element):
@@ -73,7 +73,7 @@ class Imports(Element):
 
 class ImportLoader(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
 
 
 class ImportsLoader(Element):

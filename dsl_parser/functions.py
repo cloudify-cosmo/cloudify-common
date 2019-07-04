@@ -21,7 +21,7 @@ from functools import wraps
 from dsl_parser import (constants,
                         exceptions,
                         scan)
-from dsl_parser._compat import ABC, text_type
+from dsl_parser._compat import ABC, string_types
 
 
 SELF = 'SELF'
@@ -92,7 +92,7 @@ _register_entry_point_functions()
 
 
 def _contains_legal_nested_attribute_path_items(l):
-    return all(is_function(x) or isinstance(x, (text_type, int)) for x in l)
+    return all(is_function(x) or isinstance(x, (string_types, int)) for x in l)
 
 
 def _is_legal_nested_attribute_path(l):
@@ -211,7 +211,7 @@ class GetInput(Function):
                 and len(l) >= 1 \
                 and _contains_legal_nested_attribute_path_items(l)
 
-        if not isinstance(args, text_type) \
+        if not isinstance(args, string_types) \
                 and not is_function(args) \
                 and not _is_valid_args_list(args):
             raise ValueError(
@@ -601,7 +601,7 @@ class GetSecret(Function):
         super(GetSecret, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, text_type) and not is_function(args):
+        if not isinstance(args, string_types) and not is_function(args):
             raise ValueError(
                 "`get_secret` function argument should be a string\\dict "
                 "(a function). Instead it is a {0} with the "
@@ -639,7 +639,7 @@ class GetCapability(Function):
                 "[{0}]".format(', '.join('{0}'.format(a) for a in args))
             )
         for arg_index in range(len(args)):
-            if not isinstance(args[arg_index], (text_type, int)) \
+            if not isinstance(args[arg_index], (string_types, int)) \
                     and not is_function(args[arg_index]):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "

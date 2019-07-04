@@ -16,7 +16,7 @@
 import numbers
 import networkx as nx
 
-from dsl_parser._compat import text_type
+from dsl_parser._compat import string_types
 from dsl_parser.framework import elements
 from dsl_parser import (exceptions,
                         constants,
@@ -47,7 +47,7 @@ class SchemaAPIValidator(object):
     def _traverse_schema(self, schema, list_nesting=0):
         if isinstance(schema, dict):
             for key, value in schema.items():
-                if not isinstance(key, text_type):
+                if not isinstance(key, string_types):
                     raise exceptions.DSLParsingSchemaAPIException(1)
                 self._traverse_element_cls(value)
         elif isinstance(schema, list):
@@ -405,7 +405,7 @@ class Context(object):
             requires = element_type.requires
             for requirement, requirement_values in requires.items():
                 requirement_values = [
-                    Requirement(r) if isinstance(r, text_type)
+                    Requirement(r) if isinstance(r, string_types)
                     else r for r in requirement_values]
                 if requirement == 'inputs':
                     continue
@@ -506,7 +506,7 @@ class Parser(object):
                     raise exceptions.DSLParsingFormatException(
                         1, _expected_type_message(value, dict))
                 for key in value:
-                    if not isinstance(key, text_type):
+                    if not isinstance(key, string_types):
                         raise exceptions.DSLParsingFormatException(
                             1, "Dict keys must be strings but"
                                " found '{0}' of type '{1}'"
@@ -566,7 +566,7 @@ class Parser(object):
         context = element.context
         required_args = {}
         for required_type, requirements in element.requires.items():
-            requirements = [Requirement(r) if isinstance(r, text_type)
+            requirements = [Requirement(r) if isinstance(r, string_types)
                             else r for r in requirements]
             if not requirements:
                 # only set required type as a logical dependency
@@ -658,7 +658,7 @@ def _expected_type_message(value, expected_type):
 def _py_type_to_user_type(_type):
     if isinstance(_type, tuple):
         return list(set(_py_type_to_user_type(t) for t in _type))
-    elif issubclass(_type, text_type):
+    elif issubclass(_type, string_types):
         return 'string'
     elif issubclass(_type, bool):
         return 'boolean'

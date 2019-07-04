@@ -26,7 +26,7 @@ from dsl_parser.framework.elements import (DictElement,
 
 class OutputDescription(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
     add_namespace_to_schema_elements = False
 
 
@@ -51,7 +51,7 @@ class Outputs(DictElement):
 
 class CapabilityDescription(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
     add_namespace_to_schema_elements = False
 
 
@@ -89,7 +89,7 @@ class DSLDefinitions(Element):
 
 class Description(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
 
     requires = {
         element_version.ToscaDefinitionsVersion: ['version'],

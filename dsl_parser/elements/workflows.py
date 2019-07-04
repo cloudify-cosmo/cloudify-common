@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 from dsl_parser import constants
+from dsl_parser._compat import text_type
 from dsl_parser.elements import (data_types,
                                  plugins as _plugins,
                                  operation,
@@ -28,7 +29,7 @@ from dsl_parser.framework.elements import (DictElement,
 class WorkflowMapping(Element):
 
     required = True
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
 
 
 class WorkflowParameters(data_types.Schema):
@@ -46,7 +47,7 @@ class Workflow(Element):
 
     required = True
     schema = [
-        Leaf(type=str),
+        Leaf(type=text_type),
         {
             'mapping': WorkflowMapping,
             'parameters': WorkflowParameters,
@@ -60,7 +61,7 @@ class Workflow(Element):
     }
 
     def parse(self, plugins, resource_base, namespaces_mapping):
-        if isinstance(self.initial_value, str):
+        if isinstance(self.initial_value, text_type):
             operation_content = {'mapping': self.initial_value,
                                  'parameters': {}}
             is_cascading = True

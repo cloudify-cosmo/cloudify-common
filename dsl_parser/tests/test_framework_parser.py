@@ -16,7 +16,6 @@
 import testtools
 
 from dsl_parser import exceptions
-
 from dsl_parser.framework import (parser,
                                   elements,
                                   requirements)
