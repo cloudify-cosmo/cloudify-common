@@ -113,9 +113,15 @@ jobs:
       - setup_py26
       - install_tox:
           version: "2.9.1"
-      - run: tox --hashseed noset -e py26-dsl_parser
-      - run: tox --hashseed noset -e py26-script_plugin
-      - run: tox --hashseed noset -e py26-plugins_common
+      - run:
+          command: tox --hashseed noset -e py26-dsl_parser
+          when: always
+      - run:
+          command: tox --hashseed noset -e py26-script_plugin
+          when: always
+      - run:
+          command: tox --hashseed noset -e py26-plugins_common
+          when: always
 
   test_py27:
     executor: py27
@@ -123,9 +129,15 @@ jobs:
       - checkout
       - add_local_bin
       - install_tox
-      - run: tox --hashseed noset -e py27-dsl_parser
-      - run: tox --hashseed noset -e py27-script_plugin
-      - run: tox --hashseed noset -e py27-plugins_common
+      - run:
+          command: tox --hashseed noset -e py27-dsl_parser
+          when: always
+      - run:
+          command: tox --hashseed noset -e py27-script_plugin
+          when: always
+      - run:
+          command: tox --hashseed noset -e py27-plugins_common
+          when: always
 
   test_py36:
     executor: py36
@@ -133,9 +145,15 @@ jobs:
       - checkout
       - add_local_bin
       - install_tox
-      - run: tox --hashseed noset -e py36-dsl_parser
-      - run: tox --hashseed noset -e py36-script_plugin
-      - run: tox --hashseed noset -e py36-plugins_common
+      - run:
+          command: tox --hashseed noset -e py36-dsl_parser
+          when: always
+      - run:
+          command: tox --hashseed noset -e py36-script_plugin
+          when: always
+      - run:
+          command: tox --hashseed noset -e py36-plugins_common
+          when: always
 
   docs_plugins_common:
     <<: *docs_defaults
