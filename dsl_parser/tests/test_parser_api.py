@@ -972,6 +972,92 @@ plugins:
         start_operation = result['nodes'][0]['operations']['start']
         self.assertEqual('overriding_start', start_operation['operation'])
 
+    def test_host_agent_plugins_to_install_in_plan(self):
+        yaml = """
+node_templates:
+    test_node1:
+        type: cloudify.nodes.Compute
+    test_node2:
+        type: cloudify.nodes.OtherCompute
+node_types:
+    cloudify.nodes.Compute:
+        interfaces:
+            test_interface:
+                start:
+                    implementation: test_plugin.start
+                    inputs: {}
+
+    cloudify.nodes.OtherCompute:
+        derived_from: cloudify.nodes.Compute
+        interfaces:
+            test_interface:
+                start:
+                    implementation: other_plugin.start
+                    inputs: {}
+
+plugins:
+    test_plugin:
+        executor: host_agent
+        source: dummy
+    other_plugin:
+        executor: host_agent
+        source: dummy
+"""
+        result = self.parse(yaml)
+        plugin1 = result['nodes'][1]['plugins_to_install'][0]
+        plugin2 = result['nodes'][0]['plugins_to_install'][0]
+        self.assertEquals('test_plugin', plugin1['name'])
+        self.assertEquals(1, len(result['nodes'][0]['plugins_to_install']))
+        self.assertEquals(1, len(result['nodes'][1]['plugins_to_install']))
+        self.assertItemsEqual(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
+                              [plugin1, plugin2])
+        self.assertEquals(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL],
+                          [])
+        self.assertEquals(result[constants.WORKFLOW_PLUGINS_TO_INSTALL],
+                          [])
+
+    def test_deployment_plugins_to_install_in_plan(self):
+        yaml = """
+node_templates:
+    test_node1:
+        type: cloudify.nodes.Compute
+node_types:
+    cloudify.nodes.Compute:
+        interfaces:
+            test_interface:
+                start:
+                    implementation: test_plugin.start
+                    inputs: {}
+
+plugins:
+    test_plugin:
+        executor: central_deployment_agent
+        source: dummy
+"""
+        result = self.parse(yaml)
+        plugin = result['nodes'][0]['deployment_plugins_to_install'][0]
+        self.assertEquals('test_plugin', plugin['name'])
+        self.assertEquals(1, len(result['nodes'][0][
+                                     'deployment_plugins_to_install']))
+        self.assertEquals(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
+                          [])
+        self.assertEquals(result[constants.WORKFLOW_PLUGINS_TO_INSTALL],
+                          [])
+
+    def test_workflow_plugins_to_install_in_plan(self):
+        yaml = self.BASIC_PLUGIN + """
+workflows:
+    workflow1: test_plugin.workflow1
+"""
+        result = self.parse(yaml)
+        workflow_plugins_to_install = result['workflow_plugins_to_install']
+        self.assertEqual(1, len(workflow_plugins_to_install))
+        self.assertEqual('test_plugin', workflow_plugins_to_install[0]['name'])
+        self.assertEquals(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
+                          [])
+        self.assertEquals(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL],
+                          [])
+
     def test_executor_override_node_types(self):
         yaml = """
 node_templates:

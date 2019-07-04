@@ -67,6 +67,7 @@ PLUGIN_DISTRIBUTION_RELEASE = 'distribution_release'
 PLUGINS_TO_INSTALL = 'plugins_to_install'
 DEPLOYMENT_PLUGINS_TO_INSTALL = 'deployment_plugins_to_install'
 WORKFLOW_PLUGINS_TO_INSTALL = 'workflow_plugins_to_install'
+HOST_AGENT_PLUGINS_TO_INSTALL = 'host_agent_plugins_to_install'
 VERSION = 'version'
 CLOUDIFY = 'cloudify'
 
