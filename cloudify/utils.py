@@ -155,21 +155,18 @@ def setup_logger(logger_name,
 
 
 def format_exception(e):
-    """Human-readable representation of an exception, as a bytestring.
+    """Human-readable representation of an exception, as unicode.
 
     The canonical way to print an exception, str(e), also made to handle
-    unicode exception messages in python 2.
-    Additionally, if the exception message is incompatible with utf-8,
-    (which should only happen in extreme cases, such as NUL bytes),
-    fallback to repr().
+    bytestrings exception messages.
     """
     try:
-        return str(e)
-    except UnicodeEncodeError:
+        return u'{0}'.format(e)
+    except UnicodeDecodeError:
         try:
-            return unicode(e).encode('utf-8')
-        except UnicodeEncodeError:
-            return repr(e)
+            return b'{0}'.format(e).decode('utf-8')
+        except UnicodeDecodeError:
+            return b'{0!r}'.format(e)
 
 
 def get_manager_name():

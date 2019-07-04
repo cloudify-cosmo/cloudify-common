@@ -29,7 +29,7 @@ class RabbitMQClient(object):
     def __init__(self, hosts, username, password,
                  port=RABBITMQ_MANAGEMENT_PORT, scheme='https',
                  logger=None, **request_kwargs):
-        if isinstance(hosts, basestring):
+        if not isinstance(hosts, list):
             # Single host
             hosts = [hosts]
         else:

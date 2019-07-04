@@ -222,11 +222,12 @@ class Pattern(Constraint):
     # E.g. if self.args = 'abc' then calling `predicate` will only return True
     # when value = "abc".
     def predicate(self, value):
-        if not isinstance(value, basestring):
+        try:
+            return bool(re.match(self.args, value))
+        except TypeError as e:
             raise exceptions.ConstraintException(
-                "Value must be of type string, got type "
-                "'{0}'".format(type(value).__name__))
-        return bool(re.match(self.args, value))
+                'Could not match value: {0} of type {1}: {2}'
+                .format(value, type(value).__name__, e))
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
@@ -248,11 +249,11 @@ def is_valid_sequence(args):
 
 @register_validation_func(constraint_data_type=_REGEX)
 def is_valid_regex(arg):
-    if not isinstance(arg, basestring):
-        return False
     try:
         re.compile(arg)
         return True
+    except TypeError:
+        return False
     except re.error:
         return False
 

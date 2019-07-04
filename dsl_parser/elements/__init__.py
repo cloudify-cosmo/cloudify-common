@@ -15,5 +15,7 @@
 
 import numbers
 
+from dsl_parser._compat import string_types
 
-PRIMITIVE_TYPES = (list, bool, numbers.Real, basestring, dict)
+
+PRIMITIVE_TYPES = (list, bool, numbers.Real, dict) + string_types

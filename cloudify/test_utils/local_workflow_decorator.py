@@ -70,7 +70,7 @@ def _expand_dictionary(inputs, func_self, func_args, func_kwargs):
     func_to_call = None
     if isinstance(inputs, collections.Callable):
         func_to_call = inputs
-    elif isinstance(inputs, basestring):
+    elif isinstance(inputs, str):
         if func_self is None:
             raise ValueError("You cannot supply 'string' "
                              "references to 'self' object in "

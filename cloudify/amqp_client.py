@@ -146,10 +146,9 @@ class AMQPConnection(object):
     def _get_connection_params(self):
         params = self._amqp_params.as_pika_params()
         hosts = copy.copy(self._amqp_params.raw_host)
-        if isinstance(hosts, basestring):
+        if not isinstance(hosts, list):
             hosts = [hosts]
-        else:
-            random.shuffle(hosts)
+        random.shuffle(hosts)
         while True:
             for host in hosts:
                 params.host = host

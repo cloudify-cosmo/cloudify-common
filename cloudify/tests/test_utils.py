@@ -1,3 +1,5 @@
+# coding: utf-8
+
 ########
 # Copyright (c) 2013 GigaSpaces Technologies Ltd. All rights reserved
 #
@@ -68,6 +70,40 @@ class TempdirTest(TestCase):
     @mock.patch.dict(os.environ, {'CFY_EXEC_TEMP': '/fake/temp'})
     def test_executable_override(self):
         self.assertEqual('/fake/temp', get_exec_tempdir())
+
+
+class TestFormatException(TestCase):
+    def test_unicode(self):
+        self.assertEqual(
+            utils.format_exception(ValueError(u'abc')),
+            u'abc',
+        )
+        self.assertEqual(
+            utils.format_exception(ValueError(u'ł')),
+            u'ł',
+        )
+
+    def test_bytes(self):
+        self.assertEqual(
+            utils.format_exception(ValueError(b'abc')),
+            u'abc',
+        )
+
+    def test_null(self):
+        self.assertEqual(
+            utils.format_exception(ValueError(u'abc\u0000def')),
+            u'abc\u0000def',
+        )
+        self.assertEqual(
+            utils.format_exception(ValueError(b'abc\x00def')),
+            b'abc\x00def'
+        )
+
+    def test_non_utf8(self):
+        self.assertIn(
+            utils.format_exception(ValueError(b'abc\xc5def')),
+            u'abc\\xc5def',
+        )
 
 
 class TestPluginFunctions(TestCase):

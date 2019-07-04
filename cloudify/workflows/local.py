@@ -29,7 +29,7 @@ from cloudify_rest_client.nodes import Node
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.node_instances import NodeInstance
 
-from cloudify._compat import StringIO
+from cloudify._compat import StringIO, string_types
 from cloudify import dispatch, utils
 from cloudify.workflows.workflow_context import (
     DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE)
@@ -273,7 +273,7 @@ def _get_module_method(module_method_path, tpe, node_name,
 
 
 def _try_convert_from_str(string, target_type):
-    if target_type == basestring:
+    if target_type == string_types:
         return string
     if target_type == bool:
         if string.lower() == 'true':
@@ -300,7 +300,7 @@ def _merge_and_validate_execution_parameters(
     allowed_types = {
         'integer': int,
         'float': float,
-        'string': basestring,
+        'string': string_types,
         'boolean': bool
     }
     wrong_types = {}
@@ -310,7 +310,7 @@ def _merge_and_validate_execution_parameters(
         if 'type' in param and name in execution_parameters:
 
             # check if need to convert from string
-            if (isinstance(execution_parameters[name], basestring) and
+            if (isinstance(execution_parameters[name], string_types) and
                     param['type'] in allowed_types):
                 execution_parameters[name] = \
                     _try_convert_from_str(

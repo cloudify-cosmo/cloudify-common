@@ -43,5 +43,15 @@ else:
     import queue
     from io import StringIO
 
+if PY2:
+    string_types = (str, unicode)
+    text_type = unicode
+else:
+    string_types = (str, )
+    text_type = str
 
-__all__ = ['PY2', 'urlquote', 'reraise', 'queue', 'StringIO']
+
+__all__ = [
+    'PY2', 'urlquote', 'reraise', 'queue', 'StringIO', 'string_types',
+    'text_type'
+]

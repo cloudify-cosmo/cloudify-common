@@ -314,14 +314,14 @@ def scale_entity(ctx,
     """
     include_instances = include_instances or []
     exclude_instances = exclude_instances or []
-    if isinstance(include_instances, basestring):
+    if not isinstance(include_instances, list):
         include_instances = [include_instances]
-    if isinstance(exclude_instances, basestring):
+    if not isinstance(exclude_instances, list):
         exclude_instances = [exclude_instances]
     include_instances = [str(inst) for inst in include_instances]
     exclude_instances = [str(inst) for inst in exclude_instances]
 
-    if isinstance(delta, basestring):
+    if not isinstance(delta, int):
         try:
             delta = int(delta)
         except ValueError:

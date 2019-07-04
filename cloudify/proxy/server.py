@@ -233,10 +233,11 @@ def process_ctx_request(ctx, args):
 
 
 def _desugar_attr(obj, attr):
-    if not isinstance(attr, basestring):
+    try:
+        if hasattr(obj, attr):
+            return attr
+    except TypeError:
         return None
-    if hasattr(obj, attr):
-        return attr
     attr = attr.replace('-', '_')
     if hasattr(obj, attr):
         return attr

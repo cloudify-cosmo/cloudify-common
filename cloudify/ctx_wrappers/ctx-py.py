@@ -7,6 +7,9 @@ import subprocess
 from collections import MutableMapping, Mapping
 
 
+PY2 = sys.version_info[0] == 2
+
+
 def check_output(*popenargs, **kwargs):
     """Run command with arguments and return its output as a byte string.
 
@@ -33,15 +36,22 @@ def check_output(*popenargs, **kwargs):
     return output
 
 
-def unicode_to_string(text):
-    if isinstance(text, unicode):
-        return text.encode('ascii', 'ignore')
-    if isinstance(text, list):
-        return [unicode_to_string(a) for a in text]
-    if isinstance(text, dict):
-        return dict((unicode_to_string(key), unicode_to_string(
-                    value)) for key, value in text.items())
-    return text
+# for backwards compatibility, keeping the old behaviour of returning
+# bytes on py2. Py3 will return unicode, and so both will work with
+# native strings.
+if PY2:
+    def unicode_to_string(text):
+        if isinstance(text, unicode):
+            return text.encode('ascii', 'ignore')
+        if isinstance(text, list):
+            return [unicode_to_string(a) for a in text]
+        if isinstance(text, dict):
+            return dict((unicode_to_string(key), unicode_to_string(
+                        value)) for key, value in text.items())
+        return text
+else:
+    def unicode_to_string(text):
+        return text
 
 
 class CtxLogger(object):

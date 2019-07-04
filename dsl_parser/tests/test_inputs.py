@@ -1268,14 +1268,6 @@ inputs:
         plan = prepare_deployment_plan(
             parsed, inputs={'some_input': input_value})
         value_assert_equal_func(plan['inputs']['some_input'], input_value)
-        if not isinstance(input_value, basestring):
-            return
-        # Testing Unicode case
-        unicode_input_value = unicode(input_value, encoding='utf-8')
-        plan = prepare_deployment_plan(
-            parsed, inputs={'some_input': unicode_input_value})
-        value_assert_equal_func(
-            plan['inputs']['some_input'], unicode_input_value)
 
     def _test_validate_value_type_mismatch(self, type_name, default_value):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """

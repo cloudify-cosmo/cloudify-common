@@ -55,8 +55,15 @@ else:
     from urllib.error import URLError
     from io import StringIO
 
+if PY2:
+    string_types = (str, unicode)
+    text_type = unicode
+else:
+    string_types = (str, )
+    text_type = str
+
 
 __all__ = [
     'PY2', 'ABC', 'urlquote', 'reraise', 'pathname2url', 'Request', 'urlopen',
-    'URLError', 'StringIO', 'urljoin', 'urlparse'
+    'URLError', 'StringIO', 'urljoin', 'urlparse', 'string_types', 'text_type'
 ]

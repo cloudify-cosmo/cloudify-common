@@ -197,12 +197,13 @@ def parse_value(
     elif type_name == 'string':
         return value
     elif type_name == 'regex':
-        if isinstance(value, basestring):
-            try:
-                re.compile(value)
-                return value
-            except re.error:
-                pass
+        try:
+            re.compile(value)
+            return value
+        except TypeError:
+            pass
+        except re.error:
+            pass
     elif type_name == 'list':
         if isinstance(value, (list, tuple)):
             return value
@@ -322,7 +323,7 @@ def get_class(class_path):
     if not class_path:
         raise ValueError('class path is missing or empty')
 
-    if not isinstance(class_path, basestring):
+    if not isinstance(class_path, _compat.string_types):
         raise ValueError('class path is not a string')
 
     class_path = class_path.strip()
