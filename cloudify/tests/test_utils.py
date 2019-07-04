@@ -101,8 +101,8 @@ class TestFormatException(TestCase):
 
     def test_non_utf8(self):
         self.assertIn(
-            utils.format_exception(ValueError(b'abc\xc5def')),
             u'abc\\xc5def',
+            utils.format_exception(ValueError(b'abc\xc5def')),
         )
 
 

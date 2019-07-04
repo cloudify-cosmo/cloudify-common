@@ -52,8 +52,8 @@ class ExecutionState(object):
     WAITING_STATES = [SCHEDULED, QUEUED]
     QUEUED_STATE = [QUEUED]
     END_STATES = [TERMINATED, FAILED, CANCELLED]
-    ACTIVE_STATES = [state for state in STATES if state not in END_STATES and
-                     state not in WAITING_STATES]
+    ACTIVE_STATES = [PENDING, STARTED, CANCELLING, FORCE_CANCELLING,
+                     KILL_CANCELLING]
 
 
 class VisibilityState(object):
