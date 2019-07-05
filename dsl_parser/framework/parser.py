@@ -306,7 +306,7 @@ class Context(object):
                     traverse_list(holder_element.value[holder_key], v)
 
         def should_add_namespace_to_string_leaf(element):
-            if not isinstance(element._initial_value, str):
+            if not isinstance(element._initial_value, string_types):
                 return False
             is_premitive_type = (element._initial_value in
                                  constants.USER_PRIMITIVE_TYPES)

@@ -22,7 +22,7 @@ from dsl_parser import (exceptions,
                         version as _version,
                         utils)
 from dsl_parser.holder import Holder
-from dsl_parser._compat import pathname2url, text_type
+from dsl_parser._compat import pathname2url, text_type, string_types
 from dsl_parser.import_resolver.abstract_import_resolver import\
     is_remote_resource
 from dsl_parser.framework.elements import (Element,
@@ -571,7 +571,7 @@ def _merge_node_templates_relationships(
 def _extend_node_template(from_dict_holder, to_dict_holder):
     for key_holder, value_holder in from_dict_holder.value.items():
         if (isinstance(value_holder.value, dict) or
-                isinstance(value_holder.value, str)):
+                isinstance(value_holder.value, string_types)):
             to_dict_holder.value[key_holder] = value_holder
         elif (isinstance(value_holder.value, list) and
               key_holder.value == constants.RELATIONSHIPS):
