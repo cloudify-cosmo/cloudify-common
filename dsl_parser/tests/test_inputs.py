@@ -737,7 +737,7 @@ plugins:
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
-        self.assertIn('some_input', ex.message)
+        self.assertIn('some_input', str(ex))
 
     def test_missing_inputs_both_reported(self):
         yaml = """
@@ -762,8 +762,8 @@ plugins:
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
-        self.assertIn('some_input', ex.message)
-        self.assertIn('another_input', ex.message)
+        self.assertIn('some_input', str(ex))
+        self.assertIn('another_input', str(ex))
 
     def test_invalid_index_obj_type(self):
         yaml = """
@@ -1011,7 +1011,7 @@ data_types:
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml,
             ERROR_VALUE_DOES_NOT_MATCH_TYPE)
-        self.assertIn('b.c.d', ex.message)
+        self.assertIn('b.c.d', str(ex))
 
     def test_input_value_data_type_validation_raises(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
@@ -1039,7 +1039,7 @@ data_types:
             self.parse_1_2(yaml),
             inputs={'some_input': {'b': {'c': {'d': 'should_be_int'}}}})
         self.assertEqual(ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA, e.err_code)
-        self.assertIn('b.c.d', e.message)
+        self.assertIn('b.c.d', str(e))
 
     def test_input_default_value_data_type_validation_raises_undefined(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
@@ -1068,7 +1068,7 @@ data_types:
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml,
             ERROR_UNDEFINED_PROPERTY)
-        self.assertIn('Undefined property e', ex.message)
+        self.assertIn('Undefined property e', str(ex))
 
     def test_input_value_data_type_validation_raises_undefined(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
@@ -1096,7 +1096,7 @@ data_types:
             self.parse_1_2(yaml),
             inputs={'some_input': {'e': {'c': {'d': 'should_be_int'}}}})
         self.assertEqual(ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA, e.err_code)
-        self.assertIn('Undefined property e', e.message)
+        self.assertIn('Undefined property e', str(e))
 
     def test_input_value_data_type_validation_raises_with_derived(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
@@ -1120,7 +1120,7 @@ data_types:
             self.parse_1_2(yaml),
             inputs={'some_input': {'c': 123}})
         self.assertEqual(ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA, e.err_code)
-        self.assertIn('is missing property b', e.message)
+        self.assertIn('is missing property b', str(e))
 
     def test_input_default_value_type_validation_raises_with_derived(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
@@ -1143,7 +1143,7 @@ data_types:
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml,
             ERROR_MISSING_PROPERTY)
-        self.assertIn('is missing property b', ex.message)
+        self.assertIn('is missing property b', str(ex))
 
     def test_input_validate_non_existing_type(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
@@ -1154,7 +1154,7 @@ inputs:
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml,
             ERROR_UNKNOWN_TYPE)
-        self.assertIn('Illegal type name', ex.message)
+        self.assertIn('Illegal type name', str(ex))
 
     def test_validate_regex_value_successful(self):
         self._test_validate_value_successful(
@@ -1279,8 +1279,8 @@ inputs:
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml,
             ERROR_VALUE_DOES_NOT_MATCH_TYPE)
-        self.assertIn('Property type validation failed in', ex.message)
-        self.assertIn("type is '{0}'".format(type_name), ex.message)
+        self.assertIn('Property type validation failed in', str(ex))
+        self.assertIn("type is '{0}'".format(type_name), str(ex))
 
     def _test_validate_value_type_mismatch_with_deployment_plan(
             self, type_name, value):
@@ -1294,5 +1294,5 @@ inputs:
             prepare_deployment_plan,
             self.parse(yaml),
             inputs={'some_input': value})
-        self.assertIn('Property type validation failed in', ex.message)
-        self.assertIn("type is '{0}'".format(type_name), ex.message)
+        self.assertIn('Property type validation failed in', str(ex))
+        self.assertIn("type is '{0}'".format(type_name), str(ex))

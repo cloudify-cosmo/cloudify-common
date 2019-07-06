@@ -697,7 +697,7 @@ node_templates:
                 self.parse(yaml), inputs={'dict_input': {'other_key': 42}})
             self.fail()
         except KeyError as e:
-            self.assertIn('vm1.properties.a.key', e.message)
+            self.assertIn('vm1.properties.a.key', str(e))
 
     @timeout(seconds=10)
     def get_property_from_get_property(self):
