@@ -239,11 +239,11 @@ node_templates:
         properties:
             property: { get_capability: i_should_be_a_list }
 """
-        self._assert_parsing_fails(
-            yaml,
-            message="`get_capability` function argument should be a list. "
-            "Instead it is a <type 'str'> with the value: i_should_be_a_list."
-        )
+        item = u"i_should_be_a_list"
+        message = ("`get_capability` function argument should be a list. "
+                   "Instead it is a {0} with the value: {1}."
+                   .format(type(item), item))
+        self._assert_parsing_fails(yaml, message=message)
 
     def test_get_capability_short_list(self):
         yaml = """
@@ -257,13 +257,12 @@ node_templates:
         properties:
             property: { get_capability: [ only_one_item ] }
 """
-        self._assert_parsing_fails(
-            yaml,
-            message="`get_capability` function argument should be a list "
-                    "with 2 elements at least - [ deployment ID, capability "
-                    "ID [, key/index[, key/index [...]]] ]. Instead it is: "
-                    "[only_one_item]"
-        )
+        item = [u"only_one_item"]
+        message = ("`get_capability` function argument should be a list "
+                   "with 2 elements at least - [ deployment ID, capability "
+                   "ID [, key/index[, key/index [...]]] ]. Instead it is: "
+                   "{0}".format(item))
+        self._assert_parsing_fails(yaml, message=message)
 
     def test_get_capability_first_complex(self):
         yaml = """
@@ -277,10 +276,9 @@ node_templates:
         properties:
             property: { get_capability: [ [list] , value ] }
 """
-        self._assert_parsing_fails(
-            yaml,
-            message="`get_capability` function arguments can't be complex "
-                    "values; only strings/ints/functions are accepted. "
-                    "Instead, the item with index 0 is ['list'] of "
-                    "type <type 'list'>"
-        )
+        item = [u"list"]
+        message = ("`get_capability` function arguments can't be complex "
+                   "values; only strings/ints/functions are accepted. "
+                   "Instead, the item with index 0 is {0} of "
+                   "type {1}".format(item, type(item)))
+        self._assert_parsing_fails(yaml, message=message)

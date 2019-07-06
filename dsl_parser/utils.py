@@ -29,7 +29,6 @@ from dsl_parser.import_resolver.default_import_resolver import \
     DefaultImportResolver
 from dsl_parser import (_compat,
                         yaml_loader,
-                        functions,
                         constants,
                         exceptions)
 
@@ -181,7 +180,7 @@ def parse_value(
         raise_on_missing_property=True):
     if type_name is None:
         return value
-    elif functions.is_function(value):
+    elif is_function(value):
         # intrinsic function - not validated at the moment
         return value
     elif type_name == 'integer':
@@ -348,7 +347,7 @@ def get_class(class_path):
 
 
 def generate_namespaced_value(namespace, value):
-    return "{0}{1}{2}".format(namespace, NAMESPACE_DELIMITER, value)
+    return u"{0}{1}{2}".format(namespace, NAMESPACE_DELIMITER, value)
 
 
 def find_namespace_location(value):
@@ -387,3 +386,34 @@ def only_dict_key(d):
                          .format(d))
     for k in d:
         return k
+
+
+def py_type_to_user_type(_type):
+    if isinstance(_type, tuple):
+        return '({0})'.format(
+            ', '.join(py_type_to_user_type(t) for t in _type))
+    elif issubclass(_type, _compat.string_types):
+        return 'string'
+    elif issubclass(_type, bool):
+        return 'boolean'
+    elif issubclass(_type, numbers.Integral):
+        return 'integer'
+    elif issubclass(_type, float):
+        return 'float'
+    elif issubclass(_type, dict):
+        return 'dict'
+    elif issubclass(_type, list):
+        return 'list'
+    else:
+        raise ValueError('Unexpected type: {0}'.format(_type))
+
+
+TEMPLATE_FUNCTIONS = {}
+
+
+def is_function(value):
+    """Does the value represent a template function call?"""
+    # functions use the syntax {function_name: args}, so let's look for
+    # dicts of length 1 where the only key was registered as a function
+    return isinstance(value, dict) and len(value) == 1 \
+        and list(value.keys())[0] in TEMPLATE_FUNCTIONS

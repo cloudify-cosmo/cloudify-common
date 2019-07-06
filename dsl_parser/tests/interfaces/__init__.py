@@ -26,12 +26,12 @@ def validate(obj, element_cls):
             'data_types': data_types.DataTypes
         }
     obj = {
-        'tosca_definitions_version': 'cloudify_dsl_1_1',
-        'test': obj
+        u'tosca_definitions_version': u'cloudify_dsl_1_1',
+        u'test': obj
     }
     parser.parse(obj,
                  element_cls=TestElement,
                  inputs={
-                     'validate_version': True
+                     u'validate_version': True
                  },
                  strict=True)

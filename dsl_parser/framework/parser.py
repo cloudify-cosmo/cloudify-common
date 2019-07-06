@@ -13,7 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import numbers
 import networkx as nx
 
 from dsl_parser._compat import string_types
@@ -328,7 +327,7 @@ class Context(object):
             """
             if should_add_namespace_to_string_leaf(element):
                 namespaced_value = utils.generate_namespaced_value(
-                        namespace, element._initial_value)
+                    namespace, element._initial_value)
                 element._initial_value = namespaced_value
                 element.initial_value_holder.value = namespaced_value
             elif isinstance(element._initial_value, dict):
@@ -510,7 +509,8 @@ class Parser(object):
                         raise exceptions.DSLParsingFormatException(
                             1, "Dict keys must be strings but"
                                " found '{0}' of type '{1}'"
-                               .format(key, _py_type_to_user_type(type(key))))
+                               .format(key,
+                                       utils.py_type_to_user_type(type(key))))
 
             if strict and isinstance(schema, dict):
                 for key in value.keys():
@@ -651,24 +651,5 @@ def parse(value,
 
 def _expected_type_message(value, expected_type):
     return ("Expected '{0}' type but found '{1}' type"
-            .format(_py_type_to_user_type(expected_type),
-                    _py_type_to_user_type(type(value))))
-
-
-def _py_type_to_user_type(_type):
-    if isinstance(_type, tuple):
-        return list(set(_py_type_to_user_type(t) for t in _type))
-    elif issubclass(_type, string_types):
-        return 'string'
-    elif issubclass(_type, bool):
-        return 'boolean'
-    elif issubclass(_type, numbers.Integral):
-        return 'integer'
-    elif issubclass(_type, float):
-        return 'float'
-    elif issubclass(_type, dict):
-        return 'dict'
-    elif issubclass(_type, list):
-        return 'list'
-    else:
-        raise ValueError('Unexpected type: {0}'.format(_type))
+            .format(utils.py_type_to_user_type(expected_type),
+                    utils.py_type_to_user_type(type(value))))

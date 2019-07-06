@@ -22,6 +22,11 @@ from dsl_parser import (constants,
                         exceptions,
                         scan)
 from dsl_parser._compat import ABC, string_types
+from dsl_parser.utils import (
+    TEMPLATE_FUNCTIONS,
+    is_function,
+    py_type_to_user_type
+)
 
 
 SELF = 'SELF'
@@ -36,7 +41,8 @@ STATIC_FUNC = 0
 HYBRID_FUNC = 1
 RUNTIME_FUNC = 2
 
-TEMPLATE_FUNCTIONS = {}
+
+TEMPLATE_FUNCTIONS = TEMPLATE_FUNCTIONS
 
 
 def register(fn=None, name=None, func_eval_type=HYBRID_FUNC):
@@ -59,14 +65,6 @@ def _register_entry_point_functions():
     for entry_point in pkg_resources.iter_entry_points(
             group='cloudify.tosca.ext.functions'):
         register(fn=entry_point.load(), name=entry_point.name)
-
-
-def is_function(value):
-    """Does the value represent a template function call?"""
-    # functions use the syntax {function_name: args}, so let's look for
-    # dicts of length 1 where the only key was registered as a function
-    return isinstance(value, dict) and len(value) == 1 \
-        and list(value.keys())[0] in TEMPLATE_FUNCTIONS
 
 
 def _convert_attribute_list_to_python_syntax_string(attr_list):
@@ -635,9 +633,8 @@ class GetCapability(Function):
             raise ValueError(
                 "`get_capability` function argument should be a list with 2 "
                 "elements at least - [ deployment ID, capability ID "
-                "[, key/index[, key/index [...]]] ]. Instead it is: "
-                "[{0}]".format(', '.join('{0}'.format(a) for a in args))
-            )
+                "[, key/index[, key/index [...]]] ]. Instead it is: {0}"
+                .format(args))
         for arg_index in range(len(args)):
             if not isinstance(args[arg_index], (string_types, int)) \
                     and not is_function(args[arg_index]):
@@ -748,7 +745,7 @@ def _get_property_value(node_name,
                     "but it is a {4}.".format(
                         node_name, '.'.join(str_list(property_path)),
                         context_path,
-                        p, type(p).__name__))
+                        p, py_type_to_user_type(type(p))))
             except IndexError:
                 if raise_if_not_found:
                     raise IndexError(

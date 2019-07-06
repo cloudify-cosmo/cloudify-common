@@ -172,7 +172,6 @@ node_templates:
         import_file_name = self.make_yaml_file(node_blueprint)
 
         main_yaml = """
-
 node_templates:
     test--test_node:
         relationships:

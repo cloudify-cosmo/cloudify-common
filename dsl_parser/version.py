@@ -1,14 +1,14 @@
 import collections
 
-from dsl_parser._compat import text_type
+from dsl_parser._compat import string_types
 from dsl_parser.exceptions import DSLParsingLogicException
 
-VERSION = 'tosca_definitions_version'
-DSL_VERSION_PREFIX = 'cloudify_dsl_'
-DSL_VERSION_1_0 = DSL_VERSION_PREFIX + '1_0'
-DSL_VERSION_1_1 = DSL_VERSION_PREFIX + '1_1'
-DSL_VERSION_1_2 = DSL_VERSION_PREFIX + '1_2'
-DSL_VERSION_1_3 = DSL_VERSION_PREFIX + '1_3'
+VERSION = u'tosca_definitions_version'
+DSL_VERSION_PREFIX = u'cloudify_dsl_'
+DSL_VERSION_1_0 = DSL_VERSION_PREFIX + u'1_0'
+DSL_VERSION_1_1 = DSL_VERSION_PREFIX + u'1_1'
+DSL_VERSION_1_2 = DSL_VERSION_PREFIX + u'1_2'
+DSL_VERSION_1_3 = DSL_VERSION_PREFIX + u'1_3'
 SUPPORTED_VERSIONS = [
     DSL_VERSION_1_0,
     DSL_VERSION_1_1,
@@ -31,7 +31,7 @@ def parse_dsl_version(dsl_version):
         raise DSLParsingLogicException(71, '{0} is missing or empty'
                                        .format(VERSION))
 
-    if not isinstance(dsl_version, text_type):
+    if not isinstance(dsl_version, string_types):
         raise DSLParsingLogicException(72, 'Invalid {0}: {1} is not a string'
                                        .format(VERSION, dsl_version))
 
@@ -102,4 +102,4 @@ def version_description(dsl_version_tuple):
         else:
             version.append(0)
     major, minor = version
-    return '{0}{1}_{2}'.format(DSL_VERSION_PREFIX, major, minor)
+    return u'{0}{1}_{2}'.format(DSL_VERSION_PREFIX, major, minor)
