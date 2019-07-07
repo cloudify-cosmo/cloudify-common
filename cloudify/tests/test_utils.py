@@ -96,13 +96,32 @@ class TestFormatException(TestCase):
         )
         self.assertEqual(
             utils.format_exception(ValueError(b'abc\x00def')),
-            b'abc\x00def'
+            u'abc\x00def'
         )
 
     def test_non_utf8(self):
         self.assertIn(
             u'abc\\xc5def',
             utils.format_exception(ValueError(b'abc\xc5def')),
+        )
+
+    def test_nonstandard_exception_class(self):
+        class Nonstandard1(Exception):
+            pass
+
+        self.assertIn(
+            u'abc',
+            utils.format_exception(Nonstandard1(u'abc')),
+        )
+
+    def test_nonstandard_exception_class_with_str(self):
+        class Nonstandard2(Exception):
+            def __str__(self):
+                return u'abc'
+
+        self.assertIn(
+            u'abc',
+            utils.format_exception(Nonstandard2()),
         )
 
 

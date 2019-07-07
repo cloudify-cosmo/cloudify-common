@@ -155,18 +155,16 @@ def setup_logger(logger_name,
 
 
 def format_exception(e):
-    """Human-readable representation of an exception, as unicode.
-
-    The canonical way to print an exception, str(e), also made to handle
-    bytestrings exception messages.
-    """
+    """Human-readable representation of an exception, as unicode."""
     try:
+        message = e.args[0]
+        if isinstance(message, bytes):
+            message = message.decode('utf-8')
+        return u'{0}'.format(message)
+    except (AttributeError, IndexError):
         return u'{0}'.format(e)
     except UnicodeDecodeError:
-        try:
-            return b'{0}'.format(e).decode('utf-8')
-        except UnicodeDecodeError:
-            return b'{0!r}'.format(e)
+        return u'{0!r}'.format(message)
 
 
 def get_manager_name():
