@@ -20,11 +20,9 @@ import sys
 import tempfile
 import shutil
 import os
-import threading
 
 import testtools
 
-from cloudify._compat import queue
 import cloudify.logs
 from cloudify.decorators import workflow, operation
 from cloudify.exceptions import NonRecoverableError
@@ -853,53 +851,18 @@ class LocalWorkflowTest(BaseWorkflowTest):
             runtime_properties={},
             state=instance.state,
             version=instance.version)
-        instance_id = instance.id
-        exception = queue.Queue()
-        done = queue.Queue()
 
-        def proceed():
-            try:
-                done.get_nowait()
-                return False
-            except queue.Empty:
-                return True
-
-        def publisher(key, value):
-            def func():
-                timeout = time.time() + 5
-                while time.time() < timeout and proceed():
-                    p_instance = storage.get_node_instance(instance_id)
-                    p_instance.runtime_properties[key] = value
-                    try:
-                        storage.update_node_instance(
-                            p_instance.id,
-                            runtime_properties=p_instance.runtime_properties,
-                            state=p_instance.state,
-                            version=p_instance.version)
-                    except local.StorageConflictError as e:
-                        exception.put(e)
-                        done.put(True)
-                        return
-            return func
-
-        publisher1 = publisher('publisher1', 'value1')
-        publisher2 = publisher('publisher2', 'value2')
-
-        publisher1_thread = threading.Thread(target=publisher1)
-        publisher2_thread = threading.Thread(target=publisher2)
-
-        publisher1_thread.daemon = True
-        publisher2_thread.daemon = True
-
-        publisher1_thread.start()
-        publisher2_thread.start()
-
-        publisher1_thread.join()
-        publisher2_thread.join()
-
-        conflict_error = exception.get_nowait()
-
-        self.assertIn('does not match current', str(conflict_error))
+        # storing with the same version number - which is now outdated
+        try:
+            storage.update_node_instance(
+                instance.id,
+                runtime_properties={},
+                state=instance.state,
+                version=instance.version)
+        except local.StorageConflictError as e:
+            self.assertIn('does not match current', str(e))
+        else:
+            self.fail("local.StorageConflictError not thrown")
 
     def test_get_node(self):
         def flow(ctx, **_):
