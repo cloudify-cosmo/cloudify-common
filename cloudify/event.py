@@ -23,7 +23,7 @@ NO_VERBOSE = 0
 
 class Event(object):
 
-    def __init__(self, event, verbosity_level=None):
+    def __init__(self, event, verbosity_level=NO_VERBOSE):
         self._event = event
         self._verbosity_level = verbosity_level
 
@@ -75,7 +75,7 @@ class Event(object):
 
     @property
     def text(self):
-        message = self._event['message']['text'].encode('utf-8')
+        message = self._event['message']['text']
         if self.is_log_message:
             message = '{0}: {1}'.format(self.log_level, message)
         elif (self.event_type in ('task_rescheduled', 'task_failed')):

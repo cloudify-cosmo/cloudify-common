@@ -389,7 +389,7 @@ class _Storage(object):
         raise NotImplementedError()
 
     def get_resource(self, resource_path):
-        with open(os.path.join(self.resources_root, resource_path)) as f:
+        with open(os.path.join(self.resources_root, resource_path), 'rb') as f:
             return f.read()
 
     def download_resource(self, resource_path, target_path=None):

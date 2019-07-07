@@ -85,6 +85,7 @@ class TestTasksGraphExecute(testtools.TestCase):
 
         task1 = FailedTask(mock.Mock())
         task2 = mock.Mock()
+        task2.execute_after = 0
 
         g = TaskDependencyGraph(MockWorkflowContext())
         seq = g.sequence()
@@ -94,7 +95,7 @@ class TestTasksGraphExecute(testtools.TestCase):
             try:
                 g.execute()
             except RuntimeError as e:
-                self.assertIn('Workflow failed', e.message)
+                self.assertIn('Workflow failed', str(e))
             else:
                 self.fail('Expected task to fail')
 
@@ -135,7 +136,7 @@ class TestTasksGraphExecute(testtools.TestCase):
             try:
                 g.execute()
             except RuntimeError as e:
-                self.assertIn('Workflow failed', e.message)
+                self.assertIn('Workflow failed', str(e))
             else:
                 self.fail('Expected task to fail')
 

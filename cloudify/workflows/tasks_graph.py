@@ -250,14 +250,14 @@ class TaskDependencyGraph(object):
         :return: An iterator for executable tasks
         """
         now = time.time()
-        return (task for task in self.tasks_iter()
+        return [task for task in self.tasks_iter()
                 if (task.get_state() == tasks.TASK_PENDING or
                     task._should_resume()) and
                 task.execute_after <= now and
                 not (task.containing_subgraph and
                      task.containing_subgraph.get_state() ==
                      tasks.TASK_FAILED) and
-                not self._task_has_dependencies(task))
+                not self._task_has_dependencies(task)]
 
     def _terminated_tasks(self):
         """
@@ -265,13 +265,13 @@ class TaskDependencyGraph(object):
 
         :return: An iterator for terminated tasks
         """
-        return (task for task in self.tasks_iter()
-                if task.get_state() in tasks.TERMINATED_STATES)
+        return [task for task in self.tasks_iter()
+                if task.get_state() in tasks.TERMINATED_STATES]
 
     def _sent_tasks(self):
         """Tasks that are in the 'sent' state"""
-        return (task for task in self.tasks_iter()
-                if task.get_state() == tasks.TASK_SENT)
+        return [task for task in self.tasks_iter()
+                if task.get_state() == tasks.TASK_SENT]
 
     def _task_has_dependencies(self, task):
         """

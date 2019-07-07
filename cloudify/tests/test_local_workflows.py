@@ -735,8 +735,8 @@ class LocalWorkflowTest(BaseWorkflowTest):
             instance.execute_operation('test.op0').get()
             target_path = ctx.internal.handler.download_deployment_resource(
                 'resource')
-            with open(target_path) as f:
-                self.assertEqual('content', f.read())
+            with open(target_path, 'rb') as f:
+                self.assertEqual(b'content', f.read())
 
         def ctx_properties(ctx, **_):
             self.assertEqual('node', ctx.node.name)
@@ -758,16 +758,16 @@ class LocalWorkflowTest(BaseWorkflowTest):
             self.assertEqual(sys.prefix, ctx.plugin.prefix)
             self.assertEqual('test.op0', ctx.operation.name)
             self.assertEqual(ctx.node.properties.get('property'), 'value')
-            self.assertEqual('content', ctx.get_resource('resource'))
+            self.assertEqual(b'content', ctx.get_resource('resource'))
             target_path = ctx.download_resource('resource')
-            with open(target_path) as f:
-                self.assertEqual('content', f.read())
+            with open(target_path, 'rb') as f:
+                self.assertEqual(b'content', f.read())
             expected_target_path = os.path.join(self.work_dir, 'resource')
             target_path = ctx.download_resource(
                 'resource', target_path=expected_target_path)
             self.assertEqual(target_path, expected_target_path)
-            with open(target_path) as f:
-                self.assertEqual('content', f.read())
+            with open(target_path, 'rb') as f:
+                self.assertEqual(b'content', f.read())
         self._execute_workflow(flow, operation_methods=[ctx_properties])
 
     def test_ctx_host_ip(self):
@@ -899,7 +899,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
 
         conflict_error = exception.get_nowait()
 
-        self.assertIn('does not match current', conflict_error.message)
+        self.assertIn('does not match current', str(conflict_error))
 
     def test_get_node(self):
         def flow(ctx, **_):
@@ -981,7 +981,7 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
 
         def op(ctx, **_):
             self.assertEqual('new_input', ctx.node.properties['from_input'])
-            self.assertEqual('content', ctx.get_resource('resource'))
+            self.assertEqual(b'content', ctx.get_resource('resource'))
             self.assertEqual(bootstrap_context,
                              ctx.bootstrap_context._bootstrap_context)
             self.assertEqual(provider_context, ctx.provider_context)
@@ -1005,7 +1005,7 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
 
         def op(ctx, **_):
             self.assertEqual('new_input', ctx.node.properties['from_input'])
-            self.assertEqual('content', ctx.get_resource('resource'))
+            self.assertEqual(b'content', ctx.get_resource('resource'))
 
         self._setup_env(workflow_methods=[persistency],
                         operation_methods=[op],
@@ -1454,7 +1454,7 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
             self._execute_workflow(workflow_name='does_not_exist')
             self.fail()
         except ValueError as e:
-            self.assertIn("workflow0", e.message)
+            self.assertIn("workflow0", str(e))
 
     def test_getting_contained_elements(self):
         def check_subgraph(ctx, **_):
@@ -1513,9 +1513,9 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
             self.fail()
         except (ImportError, AttributeError, NonRecoverableError) as e:
             if is_missing_module:
-                self.assertIn('No module named zzz', e.message)
+                self.assertIn('No module named zzz', str(e))
                 if test_type != 'workflow':
-                    self.assertIn(test_type, e.message)
+                    self.assertIn(test_type, str(e))
                     self.assertTrue(isinstance(e, ImportError))
             else:
                 if test_type == 'workflow':
@@ -1524,11 +1524,11 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
                 else:
                     thing1 = 'attribute'
                     thing2 = ''
-                self.assertIn("has no {0}{1} 'does_not_exist'".format(thing1,
-                                                                      thing2),
-                              e.message)
+                self.assertIn(
+                    "has no {0}{1} 'does_not_exist'".format(thing1, thing2),
+                    str(e))
                 if test_type != 'workflow':
-                    self.assertIn(test_type, e.message)
+                    self.assertIn(test_type, str(e))
                     self.assertTrue(isinstance(e, AttributeError))
 
     def _blueprint_2(self,

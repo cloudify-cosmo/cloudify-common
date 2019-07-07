@@ -115,7 +115,7 @@ class TestDispatchTaskHandler(testtools.TestCase):
                 self.assertIsNotNone(cause.get('traceback'))
                 for arg in args:
                     if arg == 'message':
-                        self.assertIn('message', getattr(e, arg))
+                        self.assertIn('message', str(e))
                     else:
                         self.assertEqual(arg, getattr(e, arg))
 
