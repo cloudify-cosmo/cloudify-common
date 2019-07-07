@@ -48,7 +48,7 @@ class CtxProxy(object):
             result = json.dumps({
                 'type': result_type,
                 'payload': payload
-            })
+            }, ensure_ascii=True)
         except Exception as e:
             tb = StringIO()
             traceback.print_exc(file=tb)
@@ -60,7 +60,7 @@ class CtxProxy(object):
             result = json.dumps({
                 'type': 'error',
                 'payload': payload
-            })
+            }, ensure_ascii=True)
         return result
 
     def close(self):
@@ -130,11 +130,12 @@ class HTTPCtxProxy(CtxProxy):
         self.server.server_close()
 
     def _request_handler(self):
-        request = bottle.request.body.read()
+        request = bottle.request.body.read().decode('ascii')
         with current_ctx.push(self.ctx):
             response = self.process(request)
             return bottle.LocalResponse(
                 body=response,
+                encoding='ascii',
                 status=200,
                 headers={'content-type': 'application/json'})
 
@@ -155,9 +156,9 @@ class ZMQCtxProxy(CtxProxy):
         state = dict(self.poller.poll(1000 * timeout)).get(self.sock)
         if not state == zmq.POLLIN:
             return False
-        request = self.sock.recv()
+        request = self.sock.recv_string()
         response = self.process(request)
-        self.sock.send(response)
+        self.sock.send_string(response)
         return True
 
     def close(self):

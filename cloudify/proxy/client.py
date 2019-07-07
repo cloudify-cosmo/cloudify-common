@@ -66,10 +66,11 @@ def zmq_client_req(socket_url, request, timeout):
 
 
 def http_client_req(socket_url, request, timeout):
-    response = urlopen(socket_url, data=json.dumps(request), timeout=timeout)
+    data = json.dumps(request, ensure_ascii=True).encode('ascii')
+    response = urlopen(socket_url, data=data, timeout=timeout)
     if response.code != 200:
         raise RuntimeError('Request failed: {0}'.format(response))
-    return json.loads(response.read())
+    return json.loads(response.read().decode('ascii'))
 
 
 def client_req(socket_url, args, timeout=5):

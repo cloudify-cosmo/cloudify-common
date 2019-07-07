@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import json
 import shlex
@@ -29,11 +30,20 @@ def check_output(*popenargs, **kwargs):
             cmd = popenargs[0]
         error = subprocess.CalledProcessError(retcode, cmd)
         if not suppress_err_output:
-            sys.stderr.write(stderr)
+            if PY2:
+                sys.stderr.write(stderr)
+            else:
+                with os.fdopen(sys.stderr.fileno(), 'wb', closefd=False) as f:
+                    f.write(stderr)
         error.stderr = stderr
         error.output = output
         raise error
     return output
+
+
+def load_json(data):
+    """Decode the binary data, and parse it as json"""
+    return json.loads(data.decode('utf-8'))
 
 
 # for backwards compatibility, keeping the old behaviour of returning
@@ -87,9 +97,9 @@ class CtxNodeProperties(Mapping):
         try:
             # suppressing key error output that is displayed even if
             # the error is not raised
-            result = json.loads(check_output(cmd, suppress_err_output=True))
+            result = load_json(check_output(cmd, suppress_err_output=True))
         except subprocess.CalledProcessError as ex:
-            if 'illegal path:' in ex.stderr:
+            if b'illegal path:' in ex.stderr:
                 raise KeyError(property_name)
             else:
                 raise
@@ -97,7 +107,7 @@ class CtxNodeProperties(Mapping):
 
     def get_all(self):
         cmd = ['ctx', '-j', 'node', 'properties']
-        result = json.loads(check_output(cmd))
+        result = load_json(check_output(cmd))
         return unicode_to_string(result)
 
     def __len__(self):
@@ -116,7 +126,7 @@ class CtxNode(object):
 
     def _node(self, prop):
         cmd = ['ctx', '-j', 'node', prop]
-        result = json.loads(check_output(cmd))
+        result = load_json(check_output(cmd))
         return unicode_to_string(result)
 
     @property
@@ -145,9 +155,9 @@ class CtxInstanceRuntimeProperties(MutableMapping):
         if self.relationship:
             cmd.insert(2, self.relationship)
         try:
-            result = json.loads(check_output(cmd, suppress_err_output=True))
+            result = load_json(check_output(cmd, suppress_err_output=True))
         except subprocess.CalledProcessError as e:
-            if 'illegal path:' in e.stderr:
+            if b'illegal path:' in e.stderr:
                 raise KeyError(property_name)
             else:
                 raise
@@ -165,7 +175,7 @@ class CtxInstanceRuntimeProperties(MutableMapping):
 
     def get_all(self):
         cmd = ['ctx', '-j', 'instance', 'runtime_properties']
-        result = json.loads(check_output(cmd))
+        result = load_json(check_output(cmd))
         return unicode_to_string(result)
 
     def __len__(self):
@@ -186,7 +196,7 @@ class CtxNodeInstance(object):
         cmd = ['ctx', '-j', 'instance', prop]
         if self.relationship:
             cmd.insert(2, self.relationship)
-        result = json.loads(check_output(cmd))
+        result = load_json(check_output(cmd))
         return unicode_to_string(result)
 
     @property
@@ -233,8 +243,8 @@ class Ctx(object):
         return check_output(ctx_command)
 
     def returns(self, data):
-        cmd = ['ctx', '-j', 'returns', str(data)]
-        return json.loads(check_output(cmd))
+        cmd = ['ctx', '-j', 'returns', u'{0}'.format(data)]
+        return load_json(check_output(cmd))
 
     def abort_operation(self, message=''):
         cmd = ['ctx', 'abort_operation']
@@ -250,14 +260,14 @@ class Ctx(object):
 
     # TODO: support kwargs for both download_resource and ..render
     def download_resource(self, source, destination=''):
-        cmd = ['ctx', 'download-resource', source]
+        cmd = ['ctx', '-j', 'download-resource', source]
         if destination:
             cmd.append(destination)
-        return check_output(cmd)
+        return load_json(check_output(cmd))
 
     def download_resource_and_render(self, source, destination='',
                                      params=None):
-        cmd = ['ctx', 'download-resource-and-render', source]
+        cmd = ['ctx', '-j', 'download-resource-and-render', source]
         if destination:
             cmd.append(destination)
         if params:
@@ -266,7 +276,7 @@ class Ctx(object):
                 self.abort_operation('Expecting params to be in the form of '
                                      'dict.')
             cmd.append('@{0}'.format(json.dumps(kwargs)))
-        return check_output(cmd)
+        return load_json(check_output(cmd))
 
 
 ctx = Ctx()
