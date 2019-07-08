@@ -141,26 +141,22 @@ class AgentsClient(object):
         self._uri_prefix = 'agents'
         self._wrapper_cls = Agent
 
-    def list(self, deployment_id=None, node_ids=None, node_instance_ids=None,
-             install_methods=None):
+    def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """List the agents installed from the manager.
-
-        :param deployment_id: Deployment id to filter by
-        :param node_ids: List of node ids to filter by
-        :param node_instance_ids: List of node instance ids to filter by
-        :return: A ListResponse containing the agents details
+        :param _include: List of fields to include in response.
+        :param sort: Key for sorting the list.
+        :param is_descending: True for descending order, False for ascending.
+        :param kwargs: Optional filter fields. For a list of available fields
+               see the REST service's models.Agent.fields
+        :return: A ListResponse containing the agents' details
         """
-        params = {}
-        if deployment_id:
-            params['deployment_id'] = deployment_id
-        if node_ids:
-            params['node_ids'] = node_ids
-        if node_instance_ids:
-            params['node_instance_ids'] = node_instance_ids
-        if install_methods:
-            params['install_methods'] = install_methods
+        if sort:
+            kwargs['_sort'] = '-' + sort if is_descending else sort
+
+        kwargs.setdefault('state', [AgentState.STARTED])
         response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                params=params)
+                                _include=_include,
+                                params=kwargs)
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata']
