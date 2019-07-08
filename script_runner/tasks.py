@@ -16,10 +16,11 @@
 
 import os
 import re
-import shutil
 import sys
 import time
 import json
+import shutil
+import numbers
 import tempfile
 import subprocess
 import threading
@@ -99,17 +100,15 @@ def create_process_config(process, operation_kwargs):
     env_vars.update(process.get('env', {}))
     output_env_vars = {}
     for k, v in env_vars.items():
-        k = str(k)
-        if isinstance(v, (dict, list, set, bool)):
+        if isinstance(v, (dict, list, set, bool, numbers.Number)):
             envvar_value = json.dumps(v)
             if IS_WINDOWS:
                 # the windows shell removes all double quotes - escape them
                 # to still be able to pass JSON in env vars to the shell
                 envvar_value = envvar_value.replace('"', '\\"')
-
-            output_env_vars[k] = envvar_value
         else:
-            output_env_vars[k] = str(v)
+            envvar_value = v
+        output_env_vars[k.encode('utf-8')] = envvar_value.encode('utf-8')
     process['env'] = output_env_vars
     return process
 
@@ -424,6 +423,7 @@ class OutputConsumer(object):
 
     def consume_output(self):
         for line in self.out:
+            line = line.decode('utf-8', 'replace')
             self.logger.info("%s%s", self.prefix, line.rstrip('\n'))
         self.out.close()
 

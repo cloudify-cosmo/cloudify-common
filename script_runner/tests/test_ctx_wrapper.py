@@ -14,9 +14,9 @@
 #  * limitations under the License.
 
 import os
+import ast
 import shutil
 import tempfile
-import ast
 
 import testtools
 from testfixtures import log_capture
@@ -62,14 +62,14 @@ class PythonWrapperTests(testtools.TestCase):
 
     def _prescript(self):
         return (
-            '#!/usr/bin/env python\n'
-            'from ctxwrapper import ctx\n'.format(self.tempdir)
+            b'#!/usr/bin/env python\n'
+            b'from ctxwrapper import ctx\n'
         )
 
     def _create_script(self, script):
         script_path = tempfile.mktemp()
-        with open(script_path, 'w') as f:
-            f.write(self._prescript() + script)
+        with open(script_path, 'wb') as f:
+            f.write(self._prescript() + script.encode('utf-8'))
         return script_path
 
     def _run(self, script,
@@ -104,15 +104,15 @@ class PythonWrapperTests(testtools.TestCase):
                                   parameters=parameters,
                                   task_retries=task_retries,
                                   task_retry_interval=0)
-        if not result:
-            result = self.env.storage.get_node_instances()[0][
-                'runtime_properties']
         return result
 
+    @property
+    def runtime_properties(self):
+        return self.env.storage.get_node_instances()[0]['runtime_properties']
+
     def test_direct_ctx_call(self):
-        script = ('ctx("instance runtime-properties key value")')
-        result = self._run(script)
-        self.assertEqual(result['key'], 'value')
+        self._run('ctx("instance runtime-properties key value")')
+        self.assertEqual(self.runtime_properties['key'], 'value')
 
     @log_capture('ctx')
     def test_direct_bad_ctx_call(self, capture):
@@ -181,9 +181,9 @@ class PythonWrapperTests(testtools.TestCase):
 
     def test_get_node_properties_get_function_missing_key_no_default(self):
         script = ('value = ctx.node.properties.get("key1")\n'
-                  'ctx.returns(type(value))')
+                  'ctx.returns(value)')
         result = self._run(script)
-        self.assertEqual("<type 'NoneType'>", str(result))
+        self.assertEqual('None', result)
 
     def test_get_node_properties_get_function_missing_key_with_default(self):
         script = ('value = ctx.node.properties.get("key1", "b")\n'
@@ -219,7 +219,7 @@ class PythonWrapperTests(testtools.TestCase):
         script = ('value = ctx.instance.relationships\n'
                   'ctx.returns(value)')
         result = self._run(script)
-        self.assertEqual([], eval(result))
+        self.assertEqual('[]', result)
 
     def test_set_get_instance_runtime_properties(self):
         script = ('ctx.instance.runtime_properties["key"] = "value"\n'
@@ -230,15 +230,15 @@ class PythonWrapperTests(testtools.TestCase):
 
     def test_get_instance_runtime_properties_non_string(self):
         script = ('value = ctx.instance.runtime_properties["key"] = 1\n'
-                  'ctx.returns(type(value))')
+                  'ctx.returns(object())')
         result = self._run(script)
-        self.assertEqual("<type 'int'>", result)
+        self.assertIn("<object object", result)
 
     def test_get_instance_runtime_properties_missing_key_no_default(self):
         script = ('value = ctx.instance.runtime_properties.get("key1")\n'
-                  'ctx.returns(type(value))')
+                  'ctx.returns(value)')
         result = self._run(script)
-        self.assertEqual("<type 'NoneType'>", str(result))
+        self.assertEqual('None', result)
 
     def test_get_instance_runtime_properties_missing_key_with_default(self):
         script = ('value = ctx.instance.runtime_properties.get("key1", "b")\n'
@@ -303,7 +303,7 @@ class PythonWrapperTests(testtools.TestCase):
                   'ctx.returns(path)')
         self.assertRaises(ProcessException, self._run, script)
         self.assertTrue(string_in_log(
-            'IOError: [Errno 2] No such file or directory:',
+            '[Errno 2] No such file or directory:',
             capture))
 
     def test_abort_operation(self):

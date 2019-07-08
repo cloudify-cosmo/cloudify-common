@@ -181,7 +181,7 @@ class BaseScriptRunner(object):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError as e:
-            self.assertEqual(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
+            self.assertEqual(str(e), str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
 
@@ -261,7 +261,7 @@ class BaseScriptRunner(object):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError as e:
-            self.assertEqual(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
+            self.assertEqual(str(e), str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
 
@@ -279,7 +279,7 @@ class BaseScriptRunner(object):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError as e:
-            self.assertEqual(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
+            self.assertEqual(str(e), str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
 
