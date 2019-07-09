@@ -1276,8 +1276,7 @@ class _TaskDispatcher(object):
         if task['queue'] == MGMTWORKER_QUEUE:
             client = amqp_client.get_client()
         else:
-            rest_client = get_rest_client()
-            tenant = rest_client.tenants.get(task['tenant']['name'])
+            tenant = utils.get_tenant()
             client = amqp_client.get_client(
                 amqp_user=tenant.rabbitmq_username,
                 amqp_pass=tenant.rabbitmq_password,
