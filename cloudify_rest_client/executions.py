@@ -227,12 +227,12 @@ class ExecutionsClient(object):
          workflow in a case where there's an already running execution for\
          this deployment.
         :param dry_run: If set to true, no actual actions will be performed.\
-        This is a dry run of the execution
+            This is a dry run of the execution
         :param queue: If set, blocked executions will be queued and
-        automatically run when possible
+            automatically run when possible
         :param schedule: A string representing the date and time this
-        workflow should be executed at. If not passed this workflow will be
-        executed immediately.
+            workflow should be executed at. If not passed this workflow will be
+            executed immediately.
 
         :raises: IllegalExecutionParametersError
         :return: The created execution.
