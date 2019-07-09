@@ -41,7 +41,6 @@ Contents:
    manager
    node_instances
    nodes
-   searching
    evaluate
    tokens
    plugins_updates
