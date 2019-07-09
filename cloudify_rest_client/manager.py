@@ -310,7 +310,7 @@ class ManagerClient(object):
         :param hostname: hostname of the manager to update
         :param fs_sync_node_id: Syncthing node ID
         :param bootstrap_cluster: Whether it is the 1st manager in the cluster
-        or not
+            or not
         """
         response = self.api.put('/managers/{0}'.format(hostname), data={
             'fs_sync_node_id': fs_sync_node_id,
@@ -346,8 +346,9 @@ class ManagerClient(object):
         :param address: The broker's address.
         :param port: The broker's port, if not default (5671).
         :param networks: The broker's networks. This will default to having a
-        default network with the address parameter. If this is supplied, the
-        address in the address parameter must belong to one of the networks.
+            default network with the address parameter. If this is supplied,
+            the address in the address parameter must belong to one of the
+            networks.
 
         :return: The broker that was created.
         """

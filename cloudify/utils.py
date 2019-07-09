@@ -671,7 +671,7 @@ def extract_plugins_to_install(plugin_list, filter_func):
     """
     :param plugin_list: list of plugins.
     :return: a list of plugins that are marked for installation (that
-    potentially need installation) and pass the given filter function.
+             potentially need installation) and pass the given filter function.
     """
     return [p for p in plugin_list if p[PLUGIN_INSTALL_KEY] and filter_func(p)]
 

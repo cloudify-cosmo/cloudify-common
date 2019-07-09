@@ -87,6 +87,7 @@ class PluginsUpdateClient(object):
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
         Returns a list of available plugins updates.
+
         :param _include: List of fields to include in response.
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
