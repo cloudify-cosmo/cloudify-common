@@ -350,6 +350,11 @@ class AMQPConnection(object):
                             channel=channel, delivery_tag=delivery_tag)
 
 
+# return this result from .handle_task to not send a response.
+# If a response is not sent, the reply queue will also be deleted
+NO_RESPONSE = object()
+
+
 class TaskConsumer(object):
     routing_key = ''
     late_ack = False
@@ -406,13 +411,17 @@ class TaskConsumer(object):
         if self.late_ack:
             self._connection.ack(channel, delivery_tag)
         if properties.reply_to:
-            self._connection.publish({
-                'exchange': self.exchange,
-                'routing_key': properties.reply_to,
-                'properties': pika.BasicProperties(
-                    correlation_id=properties.correlation_id),
-                'body': json.dumps(result)
-            })
+            if result is NO_RESPONSE:
+                self.delete_queue(properties.reply_to)
+            else:
+                self._connection.publish({
+                    'exchange': self.exchange,
+                    'routing_key': properties.reply_to,
+                    'properties': pika.BasicProperties(
+                        correlation_id=properties.correlation_id),
+                    'body': json.dumps(result)
+                })
+
         if not self._maybe_run_next_task():
             self._sem.release()
 
