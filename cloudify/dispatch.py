@@ -212,8 +212,11 @@ class TaskHandler(object):
                     if p.poll() is not None:
                         break
 
+        cancelled = False
         if self._process_registry:
+            cancelled = self._process_registry.is_cancelled(self)
             self._process_registry.unregister(self, p)
+
         if timeout_wrapper.timeout_encountered:
             message = 'Process killed due to timeout of %d seconds' % \
                       timeout_wrapper.timeout
@@ -224,13 +227,16 @@ class TaskHandler(object):
                 timeout_wrapper.timeout_recoverable else \
                 exceptions.NonRecoverableError
             raise exception_class(message)
+
         if p.returncode in (-15, -9):  # SIGTERM, SIGKILL
-            raise exceptions.NonRecoverableError('Process terminated (rc=%d)'
-                                                 % p.returncode)
+            if cancelled:
+                raise exceptions.ProcessKillCancelled()
+            raise exceptions.NonRecoverableError('Process terminated (rc={0})'
+                                                 .format(p.returncode))
         if p.returncode != 0:
             raise exceptions.NonRecoverableError(
-                'Unhandled exception occurred in operation dispatch (rc=%d)'
-                % p.returncode)
+                'Unhandled exception occurred in operation dispatch (rc={0})'
+                .format(p.returncode))
 
     def logfile(self):
         try:

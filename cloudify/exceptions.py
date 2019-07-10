@@ -132,6 +132,14 @@ class TimeoutException(Exception):
     pass
 
 
+class ProcessKillCancelled(NonRecoverableError):
+    """The execution subprocess was kill-cancelled.
+
+    This exception should never be shown to the user, but instead it's
+    used to notify the taskhandler to not send a response.
+    """
+
+
 class ProcessExecutionError(RuntimeError):
     """Raised by the workflow engine when workflow execution fails."""
 
