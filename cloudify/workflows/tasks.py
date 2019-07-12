@@ -293,9 +293,24 @@ class WorkflowTask(object):
 
         if not self.is_subgraph:
             causes = []
-            if isinstance(exception, (exceptions.RecoverableError,
-                                      exceptions.NonRecoverableError)):
+            if isinstance(exception, exceptions.RecoverableError):
                 causes = exception.causes or []
+                if self.current_retries == self.total_retries:
+                    causes.append({
+                        'type': exceptions.NonRecoverableError.__name__,
+                        'message': 'RecoverableError has occurred '
+                        'at last retry. Causes {}'
+                            .format([c['message'] for c in causes]),
+                        'traceback': ''
+                    })
+            if isinstance(exception, exceptions.NonRecoverableError):
+                causes = exception.causes or []
+                causes.append({
+                    'type': exceptions.NonRecoverableError.__name__,
+                    'message': 'NonRecoverableError has occurred. Causes: {}'
+                        .format([c['message'] for c in causes]),
+                    'traceback': ''
+                })
             if isinstance(self, LocalWorkflowTask):
                 tb = self.async_result._holder.error[1]
                 causes.append(exception_to_error_cause(exception, tb))
