@@ -299,16 +299,16 @@ class WorkflowTask(object):
                     causes.append({
                         'type': exceptions.NonRecoverableError.__name__,
                         'message': 'RecoverableError has occurred '
-                        'at last retry'
-                            .format([c['message'] for c in causes]),
+                        'at last retry'.format(
+                            [c['message'] for c in causes]),
                         'traceback': ''
                     })
             if isinstance(exception, exceptions.NonRecoverableError):
                 causes = exception.causes or []
                 causes.append({
                     'type': exceptions.NonRecoverableError.__name__,
-                    'message': 'NonRecoverableError has occurred'
-                        .format([c['message'] for c in causes]),
+                    'message': 'NonRecoverableError has occurred'.format(
+                        [c['message'] for c in causes]),
                     'traceback': ''
                 })
             if isinstance(self, LocalWorkflowTask):
