@@ -299,7 +299,7 @@ class WorkflowTask(object):
                     causes.append({
                         'type': exceptions.NonRecoverableError.__name__,
                         'message': 'RecoverableError has occurred '
-                        'at last retry. Causes {}'
+                        'at last retry'
                             .format([c['message'] for c in causes]),
                         'traceback': ''
                     })
@@ -307,7 +307,7 @@ class WorkflowTask(object):
                 causes = exception.causes or []
                 causes.append({
                     'type': exceptions.NonRecoverableError.__name__,
-                    'message': 'NonRecoverableError has occurred. Causes: {}'
+                    'message': 'NonRecoverableError has occurred'
                         .format([c['message'] for c in causes]),
                     'traceback': ''
                 })
