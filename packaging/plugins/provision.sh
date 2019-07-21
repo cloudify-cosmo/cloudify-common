@@ -28,6 +28,7 @@ function install_dependencies(){
         return
     fi
     sudo pip install -U virtualenv
+    sudo pip install -U awscli==1.16.199
 }
 
 function install_wagon(){
