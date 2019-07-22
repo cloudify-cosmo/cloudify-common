@@ -39,7 +39,7 @@ class GlobalCounter(object):
 global_counter = GlobalCounter()
 
 
-class TestInstallUninstallWorkflows(testtools.TestCase):
+class TestWorkflowLifecycleOperations(testtools.TestCase):
     lifecycle_blueprint_path = path.join('resources', 'blueprints',
                                          'test-lifecycle.yaml')
 
@@ -65,6 +65,14 @@ class TestInstallUninstallWorkflows(testtools.TestCase):
              'cloudify.interfaces.lifecycle.stop',
              'cloudify.interfaces.lifecycle.delete',
              'cloudify.interfaces.lifecycle.postdelete'])
+
+    @workflow_test(lifecycle_blueprint_path)
+    def test_restart(self, cfy_local):
+        cfy_local.execute('restart')
+        self._make_assertions(
+            cfy_local,
+            ['cloudify.interfaces.lifecycle.stop',
+             'cloudify.interfaces.lifecycle.start'])
 
     def _make_assertions(self, cfy_local, expected_ops):
         instances = cfy_local.storage.get_node_instances()
