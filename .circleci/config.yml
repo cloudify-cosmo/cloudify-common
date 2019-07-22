@@ -29,7 +29,9 @@ defaults:
 
   - &test_defaults_for_python26
     docker:
-      - image: circleci/python:2.7
+        # staying on old debian image, because buster dropped libssl1.0-dev, which
+        # is required to compile py2.6 via pyenv
+      - image: circleci/python:2.7-stretch
       - image: rabbitmq:3.7.4
     steps:
       - checkout
