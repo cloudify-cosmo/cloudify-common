@@ -144,12 +144,12 @@ class SecretsClient(object):
         response = self.api.get('/secrets/share/export', params=params)
         return response
 
-    def import_secrets(self, secrets_list, tenant_map_dict=None,
+    def import_secrets(self, secrets_list, tenant_map=None,
                        passphrase=None, override_collisions=False):
         """
 
         :param secrets_list: The secrets list to import.
-        :param tenant_map_dict: Tenant map - origin_tenant:destination_tenant.
+        :param tenant_map: Tenant map - origin_tenant:destination_tenant.
         :param passphrase: The passphrase to decrypt the secrets.
         :param override_collisions: True if the existing secrets should be
                                     overridden by the imported ones.
@@ -159,7 +159,7 @@ class SecretsClient(object):
         """
         data = {
             'secrets_list': secrets_list,
-            'tenant_map_dict': tenant_map_dict,
+            'tenant_map': tenant_map,
             'passphrase': passphrase,
             'override_collisions': override_collisions
         }
