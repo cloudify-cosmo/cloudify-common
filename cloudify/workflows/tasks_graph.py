@@ -68,7 +68,11 @@ class TaskDependencyGraph(object):
             if op.containing_subgraph:
                 subgraph_id = op.containing_subgraph
                 op.containing_subgraph = None
-                subgraph = ops[subgraph_id]
+                # subgraph can be missing if the operation was failed but
+                # the subgraph was suceeded (which happens only if an
+                # operation runs twice at the same time, which shouldn't
+                # happen, but let's not break in that case)
+                subgraph = ops.get(subgraph_id, graph)
                 subgraph.add_task(op)
             else:
                 graph.add_task(op)
