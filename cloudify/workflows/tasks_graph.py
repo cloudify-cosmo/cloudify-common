@@ -23,6 +23,7 @@ import networkx as nx
 from cloudify.workflows import api
 from cloudify.workflows import tasks
 from cloudify.state import workflow_ctx
+from cloudify.exceptions import NonRecoverableError
 
 
 def make_or_get_graph(f):
@@ -68,6 +69,12 @@ class TaskDependencyGraph(object):
             if op.containing_subgraph:
                 subgraph_id = op.containing_subgraph
                 op.containing_subgraph = None
+                if subgraph_id not in ops:
+                    raise NonRecoverableError(
+                        'Cannot resume task {0} - containing subgraph {1} is '
+                        'already finished. The execution might have not been '
+                        'cancelled properly (some tasks are still running?)'
+                        .format(op.id, subgraph_id))
                 subgraph = ops[subgraph_id]
                 subgraph.add_task(op)
             else:

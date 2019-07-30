@@ -643,11 +643,11 @@ def _make_execute_operation_graph(ctx, operation, operation_kwargs,
 
 
 @workflow(resumable=True)
-def execute_operation(ctx, *args, **kwargs):
+def execute_operation(ctx, operation, *args, **kwargs):
     """ A generic workflow for executing arbitrary operations on nodes """
-
+    name = 'execute_operation_{0}'.format(operation)
     graph = _make_execute_operation_graph(
-        ctx, name='execute_operation', *args, **kwargs)
+        ctx, operation, name=name, *args, **kwargs)
     graph.execute()
 
 
