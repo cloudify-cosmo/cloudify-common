@@ -554,6 +554,7 @@ def install_new_agents(ctx, **kwargs):
     graph.execute()
 
 
+@workflow(resumable=True)
 def start(ctx, operation_parms, run_by_dependency_order, type_names, node_ids,
           node_instance_ids, **kwargs):
     execute_operation(ctx, 'cloudify.interfaces.lifecycle.start',
@@ -561,6 +562,7 @@ def start(ctx, operation_parms, run_by_dependency_order, type_names, node_ids,
                       type_names, node_ids, node_instance_ids, **kwargs)
 
 
+@workflow(resumable=True)
 def stop(ctx, operation_parms, run_by_dependency_order, type_names, node_ids,
          node_instance_ids, **kwargs):
     execute_operation(ctx, 'cloudify.interfaces.lifecycle.stop',
@@ -568,6 +570,7 @@ def stop(ctx, operation_parms, run_by_dependency_order, type_names, node_ids,
                       type_names, node_ids, node_instance_ids, **kwargs)
 
 
+@workflow(resumable=True)
 def restart(ctx, stop_parms, start_parms, run_by_dependency_order, type_names,
             node_ids, node_instance_ids, **kwargs):
     stop(ctx, stop_parms, run_by_dependency_order, type_names,
