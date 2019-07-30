@@ -46,6 +46,8 @@ capabilities:
 
     def test_capability_is_scanned(self):
         yaml = """
+tosca_definitions_version: cloudify_dsl_1_3
+
 inputs:
     a:
         default: some_value
@@ -55,14 +57,17 @@ node_templates:
     node1:
         type: some_type
 capabilities:
-    cap1:
+    concat:
+        value: { concat: ['a', 'b'] }
+    get_input:
         value: { get_input: a }
-    cap2:
-        value: { get_attribute: [ node1, really_shouldnt_matter ] }
+    get_attribute:
+        value: { get_attribute: [ node1, test ] }
 """
         plan = prepare_deployment_plan(self.parse(yaml))
         capabilities = plan[constants.CAPABILITIES]
-        self.assertEqual('some_value', capabilities['cap1']['value'])
+        self.assertEqual('some_value', capabilities['get_input']['value'])
+        self.assertEqual('ab', capabilities['concat']['value'])
         self.assertDictEqual(
-            {'get_attribute': ['node1', 'really_shouldnt_matter']},
-            capabilities['cap2']['value'])
+            {'get_attribute': ['node1', 'test']},
+            capabilities['get_attribute']['value'])
