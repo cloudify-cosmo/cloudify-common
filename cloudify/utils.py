@@ -28,6 +28,7 @@ import tempfile
 import StringIO
 import importlib
 import traceback
+import threading
 import subprocess
 
 from distutils.version import StrictVersion
@@ -758,3 +759,21 @@ def wait_for(callable_obj,
         if test_condition(getattr(value, value_attr)):
             return value
         time.sleep(3)
+
+
+class OutputConsumer(object):
+    def __init__(self, out, logger, prefix):
+        self.out = out
+        self.logger = logger
+        self.prefix = prefix
+        self.consumer = threading.Thread(target=self.consume_output)
+        self.consumer.daemon = True
+        self.consumer.start()
+
+    def consume_output(self):
+        for line in self.out:
+            self.logger.info("%s%s", self.prefix, line.rstrip('\n'))
+        self.out.close()
+
+    def join(self):
+        self.consumer.join()
