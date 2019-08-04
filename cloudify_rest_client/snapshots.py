@@ -245,3 +245,10 @@ class SnapshotsClient(object):
         if error:
             params['error'] = error
         self.api.patch(uri, data=params)
+
+    def get_snapshot_status(self):
+        """
+        :return: Whether or not the `restore_snapshot` workflow is currently
+        in progress
+        """
+        return self.api.get('/snapshot-status')
