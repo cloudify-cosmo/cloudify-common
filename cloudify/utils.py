@@ -267,10 +267,13 @@ def get_execution_token():
 
 
 def get_tenant():
-    """
-    Returns a dict with the details of the current tenant
-    """
-    return _get_current_context().tenant
+    """Returns a dict with the details of the current tenant"""
+    # this now gets the tenant from REST, however it needs to stay here to
+    # not break backwards compat for users of this function (mainly in
+    # agent), so we have to import from manager into here
+    from cloudify.manager import get_rest_client
+    rest_client = get_rest_client()
+    return rest_client.tenants.get(get_tenant_name())
 
 
 def get_tenant_name():

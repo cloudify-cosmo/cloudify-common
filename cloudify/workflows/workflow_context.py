@@ -1273,14 +1273,14 @@ class _TaskDispatcher(object):
         return task
 
     def _get_client(self, task):
-        tenant = task['tenant']
         if task['queue'] == MGMTWORKER_QUEUE:
             client = amqp_client.get_client()
         else:
+            tenant = utils.get_tenant()
             client = amqp_client.get_client(
-                amqp_user=tenant['rabbitmq_username'],
-                amqp_pass=tenant['rabbitmq_password'],
-                amqp_vhost=tenant['rabbitmq_vhost']
+                amqp_user=tenant.rabbitmq_username,
+                amqp_pass=tenant.rabbitmq_password,
+                amqp_vhost=tenant.rabbitmq_vhost
             )
         return client
 

@@ -61,6 +61,27 @@ class Tenant(dict):
         """
         return self.get('groups')
 
+    @property
+    def rabbitmq_username(self):
+        """
+        :return: Rabbitmq username for this tenant's executions and agents
+        """
+        return self.get('rabbitmq_username')
+
+    @property
+    def rabbitmq_password(self):
+        """
+        :return: Rabbitmq password for this tenant's executions and agents
+        """
+        return self.get('rabbitmq_password')
+
+    @property
+    def rabbitmq_vhost(self):
+        """
+        :return: Rabbitmq vhost for this tenant's executions and agents
+        """
+        return self.get('rabbitmq_vhost')
+
 
 class TenantsClient(object):
 
