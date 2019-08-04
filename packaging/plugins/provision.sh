@@ -49,8 +49,8 @@ function install_wagon(){
 function wagon_create_package(){
 
     echo "## wagon create package"
-    echo "git clone https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git"
-    git clone https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git
+    echo "git clone https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git"
+    git clone https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git
     pushd $PLUGIN_NAME
         if [ "$PLUGIN_TAG_NAME" == "master" ];then
             git checkout master
