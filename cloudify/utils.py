@@ -51,6 +51,8 @@ ENV_AGENT_LOG_MAX_HISTORY = 'AGENT_LOG_MAX_HISTORY'
 INSPECT_TIMEOUT = 30
 ADMIN_API_TOKEN_PATH = '/opt/mgmtworker/work/admin_token'
 
+string_types = (basestring,) if sys.version_info[0] == 2 else (str, unicode)
+
 
 class ManagerVersion(object):
     """Cloudify manager version helper class."""
