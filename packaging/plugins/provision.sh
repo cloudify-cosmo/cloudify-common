@@ -18,10 +18,10 @@ function install_dependencies(){
     echo "## Installing necessary dependencies"
 
     if  which yum; then
-        sudo yum -y install python-devel gcc openssl git libxslt-devel libxml2-devel openldap-devel libffi-devel openssl-devel libvirt-devel
+        sudo yum -y install python-devel gcc openssl git libxslt-devel libxml2-devel openldap-devel libffi-devel openssl-devel libvirt-devel postgresql-devel
     elif which apt-get; then
         sudo apt-get update &&
-        sudo apt-get -y install build-essential python-dev gcc openssl libffi-dev libssl-dev libvirt-dev
+        sudo apt-get -y install build-essential python-dev gcc openssl libffi-dev libssl-dev libvirt-dev libpq-dev
     else
         echo 'probably windows machine'
         pip install virtualenv
