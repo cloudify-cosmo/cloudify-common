@@ -51,6 +51,8 @@ from cloudify_rest_client.deployment_updates import DeploymentUpdatesClient
 from cloudify_rest_client.operations import OperationsClient, TasksGraphClient
 from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
+from cloudify_rest_client.inter_deployment_dependencies import (
+    InterDeploymentDependencyClient)
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -437,3 +439,5 @@ class CloudifyClient(object):
         self.license = LicenseClient(self._client)
         self.sites = SitesClient(self._client)
         self.cluster_status = ClusterStatusClient(self._client)
+        self.inter_deployment_dependencies = InterDeploymentDependencyClient(
+            self._client)

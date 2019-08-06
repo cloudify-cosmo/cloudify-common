@@ -68,6 +68,7 @@ PLUGINS_TO_INSTALL = 'plugins_to_install'
 DEPLOYMENT_PLUGINS_TO_INSTALL = 'deployment_plugins_to_install'
 WORKFLOW_PLUGINS_TO_INSTALL = 'workflow_plugins_to_install'
 HOST_AGENT_PLUGINS_TO_INSTALL = 'host_agent_plugins_to_install'
+INTER_DEPLOYMENT_FUNCTIONS = 'inter_deployment_functions'
 VERSION = 'version'
 CLOUDIFY = 'cloudify'
 
@@ -79,6 +80,7 @@ SCRIPT_PATH_PROPERTY = 'script_path'
 FUNCTION_NAME_PATH_SEPARATOR = '__sep__'
 
 NODES = 'nodes'
+OPERATIONS = 'operations'
 NODE_INSTANCES = 'node_instances'
 
 IMPORT_RESOLVER_KEY = 'import_resolver'
@@ -102,3 +104,6 @@ ADDED_AND_RELATED = 'added_and_related'
 REMOVED_AND_RELATED = 'removed_and_related'
 EXTENDED_AND_RELATED = 'extended_and_related'
 REDUCED_AND_RELATED = 'reduced_and_related'
+
+EVAL_FUNCS_PATH_PREFIX_KEY = '_path_prefix'
+EVAL_FUNCS_PATH_DEFAULT_PREFIX = 'payload'
