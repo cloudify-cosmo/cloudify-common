@@ -559,7 +559,8 @@ node_templates:
         except KeyError as e:
             self.assertIn(
                 "Node template property 'vm.properties.a.notfound' "
-                "referenced from 'vm.properties.a.a0' doesn't exist.", str(e))
+                "referenced from 'nodes.vm.properties.a.a0' doesn't exist.",
+                str(e))
 
     def test_invalid_nested_property2(self):
         yaml = """
