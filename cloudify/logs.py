@@ -49,7 +49,7 @@ def message_context_from_cloudify_context(ctx):
         'task_target': ctx.task_target,
         'operation': ctx.operation.name,
         'plugin': ctx.plugin,
-        'tenant': ctx.tenant,
+        'tenant': {'name': ctx.tenant_name},
     }
     if ctx.type == constants.NODE_INSTANCE:
         context['node_id'] = ctx.instance.id
@@ -70,7 +70,7 @@ def message_context_from_workflow_context(ctx):
         'deployment_id': ctx.deployment.id,
         'execution_id': ctx.execution_id,
         'workflow_id': ctx.workflow_id,
-        'tenant': ctx.tenant,
+        'tenant': {'name': ctx.tenant_name},
     }
 
 
@@ -81,7 +81,7 @@ def message_context_from_sys_wide_wf_context(ctx):
         'deployment_id': None,
         'execution_id': ctx.execution_id,
         'workflow_id': ctx.workflow_id,
-        'tenant': ctx.tenant,
+        'tenant': {'name': ctx.tenant_name},
     }
 
 
