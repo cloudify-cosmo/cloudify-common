@@ -714,8 +714,14 @@ class CloudifyContext(CommonContext):
 
     @property
     def tenant(self):
-        """Cloudify tenant"""
-        return self._context.get('tenant', {})
+        """Full Cloudify tenant.
+
+        This will go out to the REST API and fetch all the tenant details
+        that the current user is allowed to obtain.
+        """
+        tenant = self._context.get('tenant', {}).copy()
+        tenant.update(utils.get_tenant())
+        return tenant
 
     @property
     def task_id(self):
