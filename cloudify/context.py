@@ -555,6 +555,7 @@ class CloudifyContext(CommonContext):
         self._target = None
         self._operation = OperationContext(self._context.get('operation', {}))
         self._agent = CloudifyAgentContext(self)
+        self._tenant = None
 
         capabilities_node_instance = None
         if 'related' in self._context:
@@ -719,9 +720,10 @@ class CloudifyContext(CommonContext):
         This will go out to the REST API and fetch all the tenant details
         that the current user is allowed to obtain.
         """
-        tenant = self._context.get('tenant', {}).copy()
-        tenant.update(utils.get_tenant())
-        return tenant
+        if self._tenant is None:
+            self._tenant = self._context.get('tenant', {}).copy()
+            self._tenant.update(utils.get_tenant())
+        return self._tenant
 
     @property
     def task_id(self):
