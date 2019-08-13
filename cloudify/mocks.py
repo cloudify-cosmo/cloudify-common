@@ -140,6 +140,7 @@ class MockCloudifyContext(CloudifyContext):
         self._resources = resources or {}
         self._source = source
         self._target = target
+        self._tenant = tenant
         if capabilities and not isinstance(capabilities, ContextCapabilities):
             raise ValueError(
                 "MockCloudifyContext(capabilities=?) must be "
