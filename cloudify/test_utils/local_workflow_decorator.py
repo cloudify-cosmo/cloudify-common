@@ -209,8 +209,8 @@ class WorkflowTestDecorator(object):
             self.resources_to_copy.append(
                 _find_plugin_yaml(path.dirname(local_file_path)))
         elif self.copy_plugin_yaml:
-            raise StandardError("You cannot use copy_plugin_yaml in "
-                                "contextmanager mode.")
+            raise Exception("You cannot use copy_plugin_yaml in "
+                            "contextmanager mode.")
 
         # Copying resources
         _copy_resources(path.dirname(local_file_path)
