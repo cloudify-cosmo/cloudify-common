@@ -52,8 +52,15 @@ class ExecutionState(object):
     WAITING_STATES = [SCHEDULED, QUEUED]
     QUEUED_STATE = [QUEUED]
     END_STATES = [TERMINATED, FAILED, CANCELLED]
-    ACTIVE_STATES = [state for state in STATES if state not in END_STATES and
-                     state not in WAITING_STATES]
+
+
+# needs to be separate because python3 doesn't allow `if` in listcomps
+# using names from class scope
+ExecutionState.ACTIVE_STATES = [
+    state for state in ExecutionState.STATES
+    if state not in ExecutionState.END_STATES and
+    state not in ExecutionState.WAITING_STATES
+]
 
 
 class VisibilityState(object):
