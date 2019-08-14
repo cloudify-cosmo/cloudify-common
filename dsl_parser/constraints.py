@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ########
 # Copyright (c) 2019 Cloudify Platform Ltd. All rights reserved
 #
@@ -16,7 +17,7 @@
 import re
 
 from dsl_parser import functions, exceptions
-from constants import INPUTS, DEFAULT, CONSTRAINTS as CONSTRAINT_CONST
+from .constants import INPUTS, DEFAULT, CONSTRAINTS as CONSTRAINT_CONST
 
 _NOT_COMPARABLE_ERROR_MSG = "Value is not comparable, the Constraint " \
                             "argument type  is '{0}' but value type is '{1}'."

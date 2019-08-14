@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ########
 # Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
 #
@@ -24,7 +25,7 @@ from cloudify.logs import init_cloudify_logger
 from cloudify import constants
 from cloudify import exceptions
 from cloudify import utils
-from constants import DEPLOYMENT, NODE_INSTANCE, RELATIONSHIP_INSTANCE
+from .constants import DEPLOYMENT, NODE_INSTANCE, RELATIONSHIP_INSTANCE
 
 
 class ContextCapabilities(object):
