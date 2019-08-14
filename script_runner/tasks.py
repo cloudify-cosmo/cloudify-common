@@ -75,7 +75,7 @@ def run(script_path, process=None, ssl_cert_content=None, **kwargs):
     process = create_process_config(process or {}, kwargs)
     script_path = download_resource(ctx.download_resource, script_path,
                                     ssl_cert_content)
-    os.chmod(script_path, 0755)
+    os.chmod(script_path, 0o755)
     script_func = get_run_script_func(script_path, process)
     script_result = process_execution(script_func, script_path, ctx, process)
     os.remove(script_path)
