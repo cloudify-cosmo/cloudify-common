@@ -1044,7 +1044,6 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
         def op1(ctx, **_):
             work_file = os.path.join(ctx.plugin.workdir, 'work_file')
             with open(work_file) as f:
-                print work_file
                 self.assertEqual(content, f.read())
 
         def workflow1(ctx, **_):
