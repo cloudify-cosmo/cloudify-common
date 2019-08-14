@@ -255,7 +255,7 @@ class TestDefaultResolver(testtools.TestCase):
                                 '{0} with error message that contains: {1}'\
                                 .format(err_msg, partial_err_msg)
                         raise AssertionError(err_msg)
-                except DSLParsingLogicException, ex:
+                except DSLParsingLogicException as ex:
                     if not expected_failure:
                         raise ex
                     if partial_err_msg:
@@ -280,7 +280,7 @@ class TestDefaultResolverValidations(testtools.TestCase):
         }
         try:
             DefaultImportResolver(**params)
-        except DefaultResolverValidationException, ex:
+        except DefaultResolverValidationException as ex:
             self.assertIn(
                 'The `rules` parameter must be a list but it is of type str',
                 str(ex))
@@ -294,7 +294,7 @@ class TestDefaultResolverValidations(testtools.TestCase):
         }
         try:
             DefaultImportResolver(**params)
-        except DefaultResolverValidationException, ex:
+        except DefaultResolverValidationException as ex:
             self.assertIn(
                 'Each rule must be a dictionary but the rule '
                 '[{0}] is of type {1}'.format(rule, type(rule).__name__),
@@ -308,7 +308,7 @@ class TestDefaultResolverValidations(testtools.TestCase):
         }
         try:
             DefaultImportResolver(**params)
-        except DefaultResolverValidationException, ex:
+        except DefaultResolverValidationException as ex:
             self.assertIn(
                 'Each rule must be a dictionary with one (key,value) '
                 'pair but the rule {0} has 2 keys'
@@ -321,7 +321,7 @@ class TestDefaultResolverValidations(testtools.TestCase):
         }
         try:
             DefaultImportResolver(**params)
-        except TypeError, ex:
+        except TypeError as ex:
             self.assertIn(
                 'got an unexpected keyword argument \'wrong_param_name\'',
                 str(ex))

@@ -106,7 +106,7 @@ outputs:
         try:
             self.parse(yaml)
             self.fail('Expected exception.')
-        except KeyError, e:
+        except KeyError as e:
             self.assertTrue('does not exist' in str(e))
         yaml = """
 node_templates: {}
@@ -118,7 +118,7 @@ outputs:
         try:
             self.parse(yaml)
             self.fail('Expected exception.')
-        except ValueError, e:
+        except ValueError as e:
             self.assertTrue('Illegal arguments passed' in str(e))
 
     def test_valid_get_secret(self):
@@ -159,7 +159,7 @@ outputs:
         try:
             self.parse(yaml)
             self.fail('Expected exception.')
-        except KeyError, e:
+        except KeyError as e:
             self.assertTrue('does not exist' in str(e))
 
     def test_valid_evaluation(self):

@@ -259,7 +259,7 @@ def parse_value(
 def load_yaml(raw_yaml, error_message, filename=None):
     try:
         return yaml_loader.load(raw_yaml, filename)
-    except yaml.parser.ParserError, ex:
+    except yaml.parser.ParserError as ex:
         raise exceptions.DSLParsingFormatException(-1,
                                                    '{0}: Illegal yaml; {1}'
                                                    .format(error_message, ex))
@@ -298,7 +298,7 @@ def create_import_resolver(resolver_configuration):
             else:
                 # default import resolver
                 return DefaultImportResolver(**parameters)
-        except Exception, ex:
+        except Exception as ex:
             raise ResolverInstantiationError(
                 'Failed to instantiate resolver ({0}). {1}'
                 .format(resolver_class_path or 'DefaultImportResolver',
