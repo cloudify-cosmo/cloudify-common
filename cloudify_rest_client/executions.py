@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014-2019 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,6 +50,14 @@ class Execution(dict):
         :return: The deployment's id this execution is related to.
         """
         return self.get('deployment_id')
+
+    @property
+    def blueprint_id(self):
+        """
+        :return: The deployment's main blueprint id this execution is
+                 related to.
+        """
+        return self.get('blueprint_id')
 
     @property
     def status(self):
