@@ -69,7 +69,8 @@ class RecursionLimit(object):
             msg = "The recursion limit ({0}) has been reached while " \
                   "evaluating the deployment. ".format(self.limit)
             if self.args_to_str_func and (self.last_args or self.last_kwargs):
-                msg += self.args_to_str_func(self.last_args, self.last_kwargs)
+                msg += self.args_to_str_func(
+                    *self.last_args, **self.last_kwargs)
             raise exceptions.EvaluationRecursionLimitReached(msg)
 
     def __exit__(self, tp, value, tb):
@@ -819,20 +820,13 @@ def evaluate_outputs(outputs_def, storage):
         storage=storage)
 
 
-def _args_to_str_func(args, kwargs):
+def _args_to_str_func(handler, v, scope, context, path):
     """Used to display extra information when recursion limit is reached.
+    This is the message-creating function used with an _EvaluationHandler,
+    so it takes the same arguments as that.
 
-    :param args: arguments that the function has been called with lastly.
-    :param kwargs: keyword arguments that the function has been called with
-        lastly.
-    :return: relevant string containing information about the arguments.
     """
-    msg = "Limit was reached with the following path - {0}"
-    if args and len(args) == 5:
-        return msg.format(args[4])
-    if kwargs and 'path' in kwargs:
-        return msg.format(kwargs['path'])
-    return ""
+    return "Limit was reached with the following path - {0}".format(path)
 
 
 class _EvaluationHandler(object):
