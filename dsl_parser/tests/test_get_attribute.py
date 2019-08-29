@@ -13,8 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import collections
-
 import testtools.testcase
 
 from dsl_parser import constants
@@ -97,32 +95,21 @@ node_templates:
 class TestEvaluateFunctions(AbstractTestParser):
 
     def test_evaluate_functions(self):
-
-        def get_node_instances(node_id=None):
-            return [get_node_instance(node_id)]
-
-        def get_node_instance(node_instance_id):
-            result = NodeInstance({
-                'id': node_instance_id,
-                'node_id': 'webserver',
-                'runtime_properties': {
-                }
-            })
-            if node_instance_id == 'node1':
-                result.runtime_properties['a'] = 'a_val'
-            elif node_instance_id == 'node2':
-                result.runtime_properties['b'] = 'b_val'
-            elif node_instance_id == 'node3':
-                result.runtime_properties['c'] = 'c_val'
-            elif node_instance_id == 'node4':
-                result.runtime_properties['d'] = 'd_val'
-            return result
-
-        def get_node(node_id):
-            return Node({
+        def _node_instance(node_id, runtime_proerties):
+            return {
                 'id': node_id,
-            })
+                'node_id': node_id,
+                'runtime_properties': runtime_proerties
+            }
 
+        node_instances = [
+            _node_instance('node1', {'a': 'a_val'}),
+            _node_instance('node2', {'b': 'b_val'}),
+            _node_instance('node3', {'c': 'c_val'}),
+            _node_instance('node4', {'d': 'd_val'}),
+        ]
+
+        storage = self._mock_evaluation_storage(node_instances=node_instances)
         payload = {
             'a': {'get_attribute': ['SELF', 'a']},
             'b': {'get_attribute': ['node2', 'b']},
@@ -142,13 +129,7 @@ class TestEvaluateFunctions(AbstractTestParser):
             'target': 'node4'
         }
 
-        functions.evaluate_functions(payload,
-                                     context,
-                                     get_node_instances,
-                                     get_node_instance,
-                                     get_node,
-                                     None,
-                                     None)
+        functions.evaluate_functions(payload, context, storage)
 
         self.assertEqual(payload['a'], 'a_val')
         self.assertEqual(payload['b'], 'b_val')
@@ -158,66 +139,47 @@ class TestEvaluateFunctions(AbstractTestParser):
 
     def test_process_attribute_relationship_ambiguity_resolution(self):
 
-        node_instances = {
-            'node1_1': {
+        node_instances = [
+            {
+                'id': 'node1_1',
                 'node_id': 'node1',
                 'relationships': [
                     {'target_name': 'node2', 'target_id': 'node2_1'}
                 ]
             },
-            'node2_1': {
+            {
+                'id': 'node2_1',
                 'node_id': 'node2',
                 'runtime_properties': {
                     'key': 'value1'
                 }
             },
-            'node2_2': {
+            {
+                'id': 'node2_2',
                 'node_id': 'node2',
                 'runtime_properties': {
                     'key': 'value2'
                 }
             }
-        }
+        ]
 
-        node_instances = dict(
-            (node_instance_id, NodeInstance(node_instance))
-            for node_instance_id, node_instance in node_instances.items())
+        nodes = [{'id': 'node1'}, {'id': 'node2'}]
+        storage = self._mock_evaluation_storage(
+            node_instances=node_instances, nodes=nodes)
 
-        nodes = {}
+        payload = {'a': {'get_attribute': ['node2', 'key']}}
+        context = {'self': 'node1_1'}
 
-        node_to_node_instances = collections.defaultdict(list)
-        for node_instance_id, node_instance in node_instances.items():
-            nodes[node_instance.node_id] = Node({})
-            node_instance['id'] = node_instance_id
-            node_to_node_instances[node_instance.node_id].append(node_instance)
-
-        def get_node_instances(node_id):
-            return node_to_node_instances[node_id]
-
-        def get_node_instance(node_instance_id):
-            return node_instances[node_instance_id]
-
-        def get_node(node_id):
-            return nodes[node_id]
-
-        def evaluate():
-            payload = {'a': {'get_attribute': ['node2', 'key']}}
-            context = {'self': 'node1_1'}
-            functions.evaluate_functions(payload,
-                                         context,
-                                         get_node_instances,
-                                         get_node_instance,
-                                         get_node,
-                                         None,
-                                         None)
-            return payload
-
-        payload = evaluate()
-        self.assertEqual(payload['a'], 'value1')
+        result = functions.evaluate_functions(payload.copy(), context, storage)
+        self.assertEqual(result['a'], 'value1')
 
         # sanity
-        node_instances['node1_1']['relationships'] = []
-        self.assertRaises(exceptions.FunctionEvaluationError, evaluate)
+        node_instances[0]['relationships'] = []
+        storage = self._mock_evaluation_storage(
+            node_instances=node_instances, nodes=nodes)
+        self.assertRaises(
+            exceptions.FunctionEvaluationError,
+            functions.evaluate_functions, payload.copy(), context, storage)
 
     def test_process_attribute_scaling_group_ambiguity_resolution_node_operation(self):  # noqa
         for index in [1, 2]:
@@ -242,43 +204,43 @@ class TestEvaluateFunctions(AbstractTestParser):
 
     def _test_process_attribute_scaling_group_ambiguity_resolution(
             self, context, index):
-
-        node_instances = {
-            'node1_1': {
+        node_instances = [
+            {
+                'id': 'node1_1',
                 'node_id': 'node1',
                 'scaling_groups': [{'name': 'g1', 'id': 'g1_1'}]
             },
-
-            'node2_1': {
+            {
+                'id': 'node2_1',
                 'node_id': 'node2',
                 'scaling_groups': [{'name': 'g2', 'id': 'g2_1'}],
                 'relationships': [{
                     'target_name': 'node1',
                     'target_id': 'node1_1'}]
             },
-
-            'node3_1': {
+            {
+                'id': 'node3_1',
                 'node_id': 'node3',
                 'scaling_groups': [{'name': 'g3', 'id': 'g3_1'}],
                 'relationships': [{
                     'target_name': 'node2',
                     'target_id': 'node2_1'}]
             },
-
-            'node4_1': {
+            {
+                'id': 'node4_1',
                 'node_id': 'node4',
                 'scaling_groups': [{'name': 'g1', 'id': 'g1_1'}]
             },
-
-            'node5_1': {
+            {
+                'id': 'node5_1',
                 'node_id': 'node5',
                 'scaling_groups': [{'name': 'g5', 'id': 'g5_1'}],
                 'relationships': [{
                     'target_name': 'node4',
                     'target_id': 'node4_1'}]
             },
-
-            'node6_1': {
+            {
+                'id': 'node6_1',
                 'node_id': 'node6',
                 'scaling_groups': [{'name': 'g6', 'id': 'g6_1'}],
                 'relationships': [{
@@ -288,42 +250,42 @@ class TestEvaluateFunctions(AbstractTestParser):
                     'key': 'value6_1'
                 }
             },
-
-            'node1_2': {
+            {
+                'id': 'node1_2',
                 'node_id': 'node1',
                 'scaling_groups': [{'name': 'g1', 'id': 'g1_2'}]
             },
-
-            'node2_2': {
+            {
+                'id': 'node2_2',
                 'node_id': 'node2',
                 'scaling_groups': [{'name': 'g2', 'id': 'g2_2'}],
                 'relationships': [{
                     'target_name': 'node1',
                     'target_id': 'node1_2'}]
             },
-
-            'node3_2': {
+            {
+                'id': 'node3_2',
                 'node_id': 'node3',
                 'scaling_groups': [{'name': 'g3', 'id': 'g3_2'}],
                 'relationships': [{
                     'target_name': 'node2',
                     'target_id': 'node2_2'}],
             },
-
-            'node4_2': {
+            {
+                'id': 'node4_2',
                 'node_id': 'node4',
                 'scaling_groups': [{'name': 'g1', 'id': 'g1_2'}]
             },
-
-            'node5_2': {
+            {
+                'id': 'node5_2',
                 'node_id': 'node5',
                 'scaling_groups': [{'name': 'g5', 'id': 'g5_2'}],
                 'relationships': [{
                     'target_name': 'node4',
                     'target_id': 'node4_2'}]
             },
-
-            'node6_2': {
+            {
+                'id': 'node6_2',
                 'node_id': 'node6',
                 'scaling_groups': [{'name': 'g6', 'id': 'g6_2'}],
                 'relationships': [{
@@ -333,73 +295,45 @@ class TestEvaluateFunctions(AbstractTestParser):
                     'key': 'value6_2'
                 }
             },
-            'stub': {'node_id': 'stub'}
-        }
+            {'id': 'stub', 'node_id': 'stub'}
+        ]
 
-        node_instances = dict(
-            (node_instance_id, NodeInstance(node_instance))
-            for node_instance_id, node_instance in node_instances.items())
-
-        node_to_node_instances = collections.defaultdict(list)
-        for node_instance_id, node_instance in node_instances.items():
-            node_instance['id'] = node_instance_id
-            node_to_node_instances[node_instance.node_id].append(node_instance)
-
-        nodes = {}
-        for node_instance in node_instances.values():
-            nodes[node_instance.node_id] = Node({
+        nodes_by_id = {}
+        for node_instance in node_instances:
+            nodes_by_id[node_instance['node_id']] = {
+                'id': node_instance['node_id'],
                 'relationships': [
                     {'target_id': r['target_name'],
                      'type_hierarchy': [constants.CONTAINED_IN_REL_TYPE]}
                     for r in node_instance.get('relationships', [])],
-            })
 
-        def get_node_instances(node_id):
-            return node_to_node_instances[node_id]
-
-        def get_node_instance(node_instance_id):
-            return node_instances[node_instance_id]
-
-        def get_node(node_id):
-            return nodes[node_id]
-
+            }
+        storage = self._mock_evaluation_storage(
+            node_instances=node_instances, nodes=list(nodes_by_id.values()))
         payload = {'a': {'get_attribute': ['node6', 'key']}}
-        functions.evaluate_functions(payload,
-                                     context,
-                                     get_node_instances,
-                                     get_node_instance,
-                                     get_node,
-                                     None,
-                                     None)
+        functions.evaluate_functions(payload, context, storage)
 
         self.assertEqual(payload['a'], 'value6_{0}'.format(index))
 
     def test_process_attributes_properties_fallback(self):
-
-        def get_node_instances(node_id=None):
-            return [get_node_instance(node_id)]
-
-        def get_node_instance(node_instance_id):
-            return NodeInstance({
-                'id': node_instance_id,
-                'node_id': 'webserver',
-                'runtime_properties': {}
-            })
-
-        def get_node(node_id):
-            return Node({
-                'id': node_id,
-                'properties': {
-                    'a': 'a_val',
-                    'b': 'b_val',
-                    'c': 'c_val',
-                    'd': 'd_val',
-                }
-            })
-
+        node_instances = [{
+            'id': 'node',
+            'node_id': 'webserver',
+            'runtime_properties': {}
+        }]
+        nodes = [{
+            'id': 'webserver',
+            'properties': {
+                'a': 'a_val',
+                'b': 'b_val',
+                'c': 'c_val',
+                'd': 'd_val',
+            }
+        }]
+        storage = self._mock_evaluation_storage(node_instances, nodes)
         payload = {
             'a': {'get_attribute': ['SELF', 'a']},
-            'b': {'get_attribute': ['node', 'b']},
+            'b': {'get_attribute': ['webserver', 'b']},
             'c': {'get_attribute': ['SOURCE', 'c']},
             'd': {'get_attribute': ['TARGET', 'd']},
         }
@@ -410,13 +344,7 @@ class TestEvaluateFunctions(AbstractTestParser):
             'target': 'node'
         }
 
-        functions.evaluate_functions(payload,
-                                     context,
-                                     get_node_instances,
-                                     get_node_instance,
-                                     get_node,
-                                     None,
-                                     None)
+        functions.evaluate_functions(payload, context, storage)
 
         self.assertEqual(payload['a'], 'a_val')
         self.assertEqual(payload['b'], 'b_val')
@@ -424,34 +352,15 @@ class TestEvaluateFunctions(AbstractTestParser):
         self.assertEqual(payload['d'], 'd_val')
 
     def test_process_attributes_no_value(self):
-
-        def get_node_instances(node_id=None):
-            return [get_node_instance(node_id)]
-
-        def get_node_instance(node_instance_id):
-            return NodeInstance({
-                'id': node_instance_id,
-                'node_id': 'webserver',
-                'runtime_properties': {}
-            })
-
-        def get_node(node_id):
-            return Node({
-                'id': node_id,
-            })
-
-        payload = {
-            'a': {'get_attribute': ['node', 'a']},
-        }
-
-        functions.evaluate_functions(payload,
-                                     {},
-                                     get_node_instances,
-                                     get_node_instance,
-                                     get_node,
-                                     None,
-                                     None)
-
+        node_instances = [{
+            'id': 'node_1',
+            'node_id': 'node',
+            'runtime_properties': {}
+        }]
+        nodes = [{'id': 'node'}]
+        storage = self._mock_evaluation_storage(node_instances, nodes)
+        payload = {'a': {'get_attribute': ['node', 'a']}}
+        functions.evaluate_functions(payload, {}, storage)
         self.assertIsNone(payload['a'])
 
     def test_missing_self_ref(self):
@@ -459,95 +368,41 @@ class TestEvaluateFunctions(AbstractTestParser):
         with testtools.testcase.ExpectedException(
                 exceptions.FunctionEvaluationError,
                 '.*SELF is missing.*'):
-            functions.evaluate_functions(payload, {}, None, None, None, None,
-                                         None)
+            functions.evaluate_functions(
+                payload, {}, self._mock_evaluation_storage())
 
     def test_missing_source_ref(self):
         payload = {'a': {'get_attribute': ['SOURCE', 'a']}}
         with testtools.testcase.ExpectedException(
                 exceptions.FunctionEvaluationError,
                 '.*SOURCE is missing.*'):
-            functions.evaluate_functions(payload, {}, None, None, None, None,
-                                         None)
+            functions.evaluate_functions(
+                payload, {}, self._mock_evaluation_storage())
 
     def test_missing_target_ref(self):
         payload = {'a': {'get_attribute': ['TARGET', 'a']}}
         with testtools.testcase.ExpectedException(
                 exceptions.FunctionEvaluationError,
                 '.*TARGET is missing.*'):
-            functions.evaluate_functions(payload, {}, None, None, None, None,
-                                         None)
+            functions.evaluate_functions(
+                payload, {}, self._mock_evaluation_storage())
 
     def test_no_instances(self):
-        def get_node_instances(node_id):
-            return []
         payload = {'a': {'get_attribute': ['node', 'a']}}
         with testtools.testcase.ExpectedException(
                 exceptions.FunctionEvaluationError,
                 '.*has no instances.*'):
-            functions.evaluate_functions(payload, {}, get_node_instances, None,
-                                         None, None, None)
+            functions.evaluate_functions(
+                payload, {}, self._mock_evaluation_storage())
 
     def test_too_many_instances(self):
-        instances = [NodeInstance({'id': '1'}), NodeInstance({'id': '2'})]
-
-        def get_node_instances(node_id):
-            return instances
-
-        def get_node_instance(node_instance_id):
-            return instances[0]
-
+        instances = [
+            {'id': '1', 'node_id': 'node'},
+            {'id': '2', 'node_id': 'node'}
+        ]
+        storage = self._mock_evaluation_storage(instances)
         payload = {'a': {'get_attribute': ['node', 'a']}}
         with testtools.testcase.ExpectedException(
                 exceptions.FunctionEvaluationError,
                 '.*unambiguously.*'):
-            functions.evaluate_functions(payload, {},
-                                         get_node_instances,
-                                         get_node_instance,
-                                         None,
-                                         None,
-                                         None)
-
-
-class NodeInstance(dict):
-
-    def __init__(self, values):
-        self.update(values)
-
-    @property
-    def id(self):
-        return self.get('id')
-
-    @property
-    def node_id(self):
-        return self.get('node_id')
-
-    @property
-    def runtime_properties(self):
-        return self.get('runtime_properties')
-
-    @property
-    def relationships(self):
-        return self.get('relationships')
-
-    @property
-    def scaling_groups(self):
-        return self.get('scaling_groups')
-
-
-class Node(dict):
-
-    def __init__(self, values):
-        self.update(values)
-
-    @property
-    def id(self):
-        return self.get('id')
-
-    @property
-    def properties(self):
-        return self.get('properties', {})
-
-    @property
-    def relationships(self):
-        return self.get('relationships')
+            functions.evaluate_functions(payload, {}, storage)

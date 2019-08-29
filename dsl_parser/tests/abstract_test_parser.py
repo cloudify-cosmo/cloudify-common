@@ -22,7 +22,7 @@ from functools import wraps
 from multiprocessing import Process
 
 import testtools
-from mock import MagicMock
+from mock import Mock
 
 from dsl_parser.exceptions import DSLParsingException
 from dsl_parser.parser import parse as dsl_parse
@@ -256,14 +256,42 @@ imports:"""
 
         return ordered_nodes
 
-    @staticmethod
-    def _get_secret_mock(secret_id):
-        secret_mock = MagicMock()
-        secret_mock.value = secret_id + '_value'
-        return secret_mock
+    def _mock_evaluation_storage(self, node_instances=None, nodes=None):
+        return _MockRuntimeEvaluationStorage(node_instances or [], nodes or [])
 
-    @staticmethod
-    def _get_capability_mock(capability_path):
+    def get_secret(self, secret_name):
+        return self._mock_evaluation_storage().get_secret(secret_name)
+
+
+class _MockRuntimeEvaluationStorage(object):
+    def __init__(self, node_instances, nodes):
+        self._node_instances = [NodeInstance(ni) for ni in node_instances]
+        self._nodes = [Node(n) for n in nodes]
+
+    def get_node_instances(self, node_id=None):
+        if not node_id:
+            return self._node_instances()
+        return [ni for ni in self._node_instances
+                if ni.node_id == node_id]
+
+    def get_node_instance(self, node_instance_id):
+        for node_instance in self._node_instances:
+            if node_instance.id == node_instance_id:
+                return node_instance
+        else:
+            raise KeyError('Instance not found: {0}'.format(node_instance_id))
+
+    def get_node(self, node_name):
+        for node in self._nodes:
+            if node.id == node_name:
+                return node
+        else:
+            raise KeyError('Node not found: {0}'.format(node_name))
+
+    def get_secret(self, secret_id):
+        return Mock(value=secret_id + '_value')
+
+    def get_capability(self, capability_path):
         mock_deployments = {
             'dep_1': {
                 'capabilities': {
@@ -282,3 +310,47 @@ imports:"""
         dep_id, cap_id = capability_path[0], capability_path[1]
 
         return mock_deployments[dep_id]['capabilities'][cap_id]
+
+
+class NodeInstance(dict):
+
+    def __init__(self, values):
+        self.update(values)
+
+    @property
+    def id(self):
+        return self.get('id')
+
+    @property
+    def node_id(self):
+        return self.get('node_id')
+
+    @property
+    def runtime_properties(self):
+        return self.get('runtime_properties')
+
+    @property
+    def relationships(self):
+        return self.get('relationships')
+
+    @property
+    def scaling_groups(self):
+        return self.get('scaling_groups')
+
+
+class Node(dict):
+
+    def __init__(self, values):
+        self.update(values)
+
+    @property
+    def id(self):
+        return self.get('id')
+
+    @property
+    def properties(self):
+        return self.get('properties', {})
+
+    @property
+    def relationships(self):
+        return self.get('relationships')

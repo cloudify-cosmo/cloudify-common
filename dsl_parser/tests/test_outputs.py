@@ -138,7 +138,8 @@ outputs:
         func = functions.parse(outputs['port']['value'])
         self.assertTrue(isinstance(func, functions.GetSecret))
         self.assertEqual('secret_key', func.secret_id)
-        prepared = prepare_deployment_plan(parsed, self._get_secret_mock)
+        storage = self._mock_evaluation_storage()
+        prepared = prepare_deployment_plan(parsed, storage.get_secret)
         self.assertEqual(parsed['outputs'], prepared['outputs'])
 
     def test_invalid_nested_get_attribute(self):
@@ -201,40 +202,28 @@ outputs:
             self.assertEqual({'get_capability': ['dep_1', 'cap_a']}, tested[5])
             self.assertEqual('six', tested[6])
 
+        instances = [{
+            'id': 'webserver1',
+            'node_id': 'webserver',
+            'runtime_properties': {
+                'port': 8080,
+                'attribute': 'attribute_value'
+            }
+        }]
+        nodes = [{'id': 'webserver'}]
+        storage = self._mock_evaluation_storage(instances, nodes)
+
         parsed = prepare_deployment_plan(self.parse_1_1(yaml),
-                                         self._get_secret_mock)
+                                         storage.get_secret)
         concatenated = parsed['outputs']['concatenated']['value']['concat']
         assertion(concatenated)
 
-        def get_node_instances(node_id=None):
-            return [
-                NodeInstance({
-                    'id': 'webserver1',
-                    'node_id': 'webserver',
-                    'runtime_properties': {
-                        'port': 8080,
-                        'attribute': 'attribute_value'
-                    }
-                })
-            ]
-
-        def get_node_instance(node_instance_id):
-            return get_node_instances()[0]
-
-        def get_node(node_id):
-            return Node({'id': node_id})
-
-        o = functions.evaluate_outputs(parsed['outputs'],
-                                       get_node_instances,
-                                       get_node_instance,
-                                       get_node,
-                                       self._get_secret_mock,
-                                       self._get_capability_mock)
-        self.assertEqual(8080, o['port'])
-        self.assertEqual(8080, o['endpoint']['port'])
+        outputs = functions.evaluate_outputs(parsed['outputs'], storage)
+        self.assertEqual(8080, outputs['port'])
+        self.assertEqual(8080, outputs['endpoint']['port'])
         self.assertEqual('oneproperty_valueattribute_'
                          'valueinput_valuesecret_valuevalue_a_1six',
-                         o['concatenated'])
+                         outputs['concatenated'])
 
     def test_unknown_node_instance_evaluation(self):
         yaml = """
@@ -250,12 +239,8 @@ outputs:
 """
         parsed = self.parse(yaml)
 
-        def get_node_instances(node_id=None):
-            return []
-
-        outputs = functions.evaluate_outputs(parsed['outputs'],
-                                             get_node_instances,
-                                             None, None, None, None)
+        outputs = functions.evaluate_outputs(
+            parsed['outputs'], self._mock_evaluation_storage())
         self.assertIn('Node webserver has no instances', outputs['port'])
         self.assertIn('webserver', outputs['port'])
 
@@ -273,27 +258,15 @@ outputs:
 """
         parsed = self.parse(yaml)
 
-        def get_node_instances(node_id=None):
-            node_instance = NodeInstance({
-                'id': 'webserver1',
-                'node_id': 'webserver',
-                'runtime_properties': {
-                    'port': 8080
-                }
-            })
-            return [node_instance, node_instance]
-
-        def get_node_instance(node_instance_id):
-            return get_node_instances()[0]
-
-        def get_node(node_id):
-            return Node({'id': node_id})
-
-        outputs = functions.evaluate_outputs(parsed['outputs'],
-                                             get_node_instances,
-                                             get_node_instance,
-                                             get_node,
-                                             None, None)
+        instance = {
+            'id': 'webserver1',
+            'node_id': 'webserver',
+            'runtime_properties': {'port': 8080}
+        }
+        storage = self._mock_evaluation_storage(
+            node_instances=[instance, instance],
+            nodes=[{'id': 'webserver'}])
+        outputs = functions.evaluate_outputs(parsed['outputs'], storage)
         self.assertIn('unambiguously', outputs['port'])
         self.assertIn('webserver', outputs['port'])
 
@@ -314,32 +287,21 @@ outputs:
 """
         parsed = self.parse(yaml)
 
-        def get_node_instances(node_id=None):
-            node_instance = NodeInstance({
-                'id': 'webserver1',
-                'node_id': 'webserver',
-                'runtime_properties': {
-                    'endpoint': {
-                        'url': {
-                            'protocol': 'http'
-                        },
-                        'port': 8080
-                    }
+        node_instance = {
+            'id': 'webserver1',
+            'node_id': 'webserver',
+            'runtime_properties': {
+                'endpoint': {
+                    'url': {
+                        'protocol': 'http'
+                    },
+                    'port': 8080
                 }
-            })
-            return [node_instance]
-
-        def get_node_instance(node_instance_id):
-            return get_node_instances()[0]
-
-        def get_node(node_id):
-            return Node({'id': node_id})
-
-        outputs = functions.evaluate_outputs(parsed['outputs'],
-                                             get_node_instances,
-                                             get_node_instance,
-                                             get_node,
-                                             None, None)
+            }
+        }
+        storage = self._mock_evaluation_storage(
+            node_instances=[node_instance], nodes=[{'id': 'webserver'}])
+        outputs = functions.evaluate_outputs(parsed['outputs'], storage)
         self.assertEqual(8080, outputs['port'])
         self.assertEqual('http', outputs['protocol'])
         self.assertIsNone(outputs['none'])
@@ -366,59 +328,22 @@ outputs:
 """
         parsed = self.parse(yaml)
 
-        def get_node_instances(node_id=None):
-            if node_id == 'webserver':
-                node_instance = NodeInstance({
-                   'id': 'webserver1',
-                   'node_id': 'webserver',
-                   'runtime_properties': {
-                       'endpoint': {
-                           'url': {
-                               'protocol': 'http'
-                            },
-                           'port': 8080
-                       }
-                   }
-                })
-                return [node_instance]
-            return []
-
-        def get_node_instance(node_instance_id):
-            return get_node_instances()[0]
-
-        def get_node(node_id):
-            return Node({'id': node_id})
-
-        outputs = functions.evaluate_outputs(parsed['outputs'],
-                                             get_node_instances,
-                                             get_node_instance,
-                                             get_node,
-                                             None, None)
+        node_instance = {
+            'id': 'webserver1',
+            'node_id': 'webserver',
+            'runtime_properties': {
+                'endpoint': {
+                    'url': {
+                       'protocol': 'http'
+                    },
+                    'port': 8080
+                }
+            }
+        }
+        storage = self._mock_evaluation_storage(
+            node_instances=[node_instance], nodes=[{'id': 'webserver'}])
+        outputs = functions.evaluate_outputs(parsed['outputs'], storage)
 
         self.assertEqual(8080, outputs['port'])
         self.assertEqual('http', outputs['protocol'])
         self.assertIn('Node unknown has no instances', outputs['unknown'])
-
-
-class NodeInstance(dict):
-    @property
-    def id(self):
-        return self.get('id')
-
-    @property
-    def node_id(self):
-        return self.get('node_id')
-
-    @property
-    def runtime_properties(self):
-        return self.get('runtime_properties')
-
-
-class Node(dict):
-    @property
-    def id(self):
-        return self.get('id')
-
-    @property
-    def properties(self):
-        return self.get('properties', {})
