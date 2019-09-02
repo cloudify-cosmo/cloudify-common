@@ -44,8 +44,8 @@ class RecursionLimit(object):
 
         :param limit: recursion limit (inclusive).
         :param args_to_str_func: function that returns a string containing
-            information about the last arguments used. It's signature should
-            be func(args, kwargs).
+            information about the last arguments used. Its signature should
+            be the same as the signature of the limited function.
         """
         self.limit = limit
         self.args_to_str_func = args_to_str_func
