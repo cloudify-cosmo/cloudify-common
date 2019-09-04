@@ -208,7 +208,7 @@ class DeploymentUpdatesClient(object):
             params['skip_install'] = skip_install
         if skip_uninstall:
             params['skip_uninstall'] = skip_uninstall
-        if skip_reinstall:
+        if skip_reinstall is not None:
             params['skip_reinstall'] = skip_reinstall
         if force:
             params['force'] = force
@@ -216,7 +216,6 @@ class DeploymentUpdatesClient(object):
             params['ignore_failure'] = ignore_failure
         if install_first:
             params['install_first'] = install_first
-
         data_and_headers = {}
 
         if data_form:
@@ -242,7 +241,8 @@ class DeploymentUpdatesClient(object):
                                        install_first=False,
                                        reinstall_list=None,
                                        preview=False,
-                                       update_plugins=True):
+                                       update_plugins=True,
+                                       update_executions=False):
         data = {
             'workflow_id': workflow_id,
             'skip_install': skip_install,
@@ -253,7 +253,8 @@ class DeploymentUpdatesClient(object):
             'install_first': install_first,
             'preview': preview,
             'blueprint_id': blueprint_id,
-            'update_plugins': update_plugins
+            'update_plugins': update_plugins,
+            'update_executions': update_executions
         }
         if inputs:
             data['inputs'] = inputs
