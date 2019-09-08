@@ -189,11 +189,7 @@ class Function(object):
         pass
 
     @abc.abstractmethod
-    def evaluate(self, plan):
-        pass
-
-    @abc.abstractmethod
-    def evaluate_runtime(self, storage):
+    def evaluate(self, handler):
         pass
 
 
@@ -207,8 +203,8 @@ class GetInput(Function):
     def parse_args(self, args):
         def _is_valid_args_list(l):
             return isinstance(l, list) \
-                   and len(l) >= 1 \
-                   and _contains_legal_nested_attribute_path_items(l)
+                and len(l) >= 1 \
+                and _contains_legal_nested_attribute_path_items(l)
 
         if not isinstance(args, basestring) \
                 and not is_function(args) \
@@ -230,14 +226,11 @@ class GetInput(Function):
                 "get_input function references an "
                 "unknown input '{0}'.".format(input_value))
 
-    def evaluate(self, plan):
+    def evaluate(self, handler):
         if isinstance(self.input_value, list):
-            return self._get_input_attribute(plan.inputs[self.input_value[0]])
-        if self.input_value not in plan.inputs:
-            raise exceptions.UnknownInputError(
-                "get_input function references an "
-                "unknown input '{0}'.".format(self.input_value))
-        return plan.inputs[self.input_value]
+            return self._get_input_attribute(
+                handler.get_input(self.input_value[0]))
+        return handler.get_input(self.input_value)
 
     def _get_input_attribute(self, root):
         value = root
@@ -276,10 +269,6 @@ class GetInput(Function):
                             self.input_value[:index + 1]), attr))
         return value
 
-    def evaluate_runtime(self, storage):
-        raise RuntimeError('runtime evaluation for {0} is not supported'
-                           .format(self.name))
-
 
 @register(name='get_property', func_eval_type=STATIC_FUNC)
 class GetProperty(Function):
@@ -304,9 +293,10 @@ class GetProperty(Function):
         args = [self.node_name] + self.property_path
         if any(is_function(x) for x in args):
             return
-        self.evaluate(plan)
+        handler = _PlanEvaluationHandler(plan)
+        self.evaluate(handler)
 
-    def get_node_template(self, plan):
+    def get_node_template(self, handler):
         if self.node_name == SELF:
             if self.scope != scan.NODE_TEMPLATE_SCOPE:
                 raise ValueError(
@@ -322,17 +312,9 @@ class GetProperty(Function):
                 node = self.context['node_template']
             else:
                 target_node = self.context['relationship']['target_id']
-                node = [
-                    x for x in plan.node_templates
-                    if x['name'] == target_node][0]
+                node = handler.get_node(target_node)
         else:
-            found = [
-                x for x in plan.node_templates if self.node_name == x['id']]
-            if len(found) == 0:
-                raise KeyError(
-                    "{0} function node reference '{1}' does not exist.".format(
-                        self.name, self.node_name))
-            node = found[0]
+            node = handler.get_node(self.node_name)
         self._get_property_value(node)
         return node
 
@@ -342,12 +324,8 @@ class GetProperty(Function):
                                    self.property_path,
                                    self.path)
 
-    def evaluate(self, plan):
-        return self._get_property_value(self.get_node_template(plan))
-
-    def evaluate_runtime(self, storage):
-        raise RuntimeError('runtime evaluation for {0} is not supported'
-                           .format(self.name))
+    def evaluate(self, handler):
+        return self._get_property_value(self.get_node_template(handler))
 
 
 @register(name='get_attribute', func_eval_type=RUNTIME_FUNC)
@@ -400,27 +378,22 @@ class GetAttribute(Function):
                     "{0} function node reference '{1}' does not exist.".format(
                         self.name, self.node_name))
 
-    def evaluate(self, plan):
-        if 'operation' in self.context:
-            self.context['operation']['has_intrinsic_functions'] = True
-        return self.raw
-
-    def evaluate_runtime(self, storage):
+    def evaluate(self, handler):
         if self.node_name == SELF:
             node_instance_id = self.context.get('self')
             self._validate_ref(node_instance_id, SELF)
-            node_instance = storage.get_node_instance(node_instance_id)
+            node_instance = handler.get_node_instance(node_instance_id)
         elif self.node_name == SOURCE:
             node_instance_id = self.context.get('source')
             self._validate_ref(node_instance_id, SOURCE)
-            node_instance = storage.get_node_instance(node_instance_id)
+            node_instance = handler.get_node_instance(node_instance_id)
         elif self.node_name == TARGET:
             node_instance_id = self.context.get('target')
             self._validate_ref(node_instance_id, TARGET)
-            node_instance = storage.get_node_instance(node_instance_id)
+            node_instance = handler.get_node_instance(node_instance_id)
         else:
             try:
-                node_instance = self._resolve_node_instance_by_name(storage)
+                node_instance = self._resolve_node_instance_by_name(handler)
                 node_instance_id = node_instance.id
             except exceptions.FunctionEvaluationError as e:
                 # Only in outputs scope we allow to continue when an error
@@ -443,7 +416,7 @@ class GetAttribute(Function):
                 value = node_instance_id
         # still nothing? look in node properties
         if value is None:
-            node = storage.get_node(node_instance.node_id)
+            node = handler.get_node(node_instance.node_id)
             value = _get_property_value(node.id,
                                         node.properties,
                                         self.attribute_path,
@@ -451,9 +424,9 @@ class GetAttribute(Function):
                                         raise_if_not_found=False)
         return value
 
-    def _resolve_node_instance_by_name(self, storage):
+    def _resolve_node_instance_by_name(self, handler):
         node_id = self.node_name
-        node_instances = storage.get_node_instances(node_id)
+        node_instances = handler.get_node_instances(node_id)
 
         if len(node_instances) == 0:
             raise exceptions.FunctionEvaluationError(
@@ -465,13 +438,13 @@ class GetAttribute(Function):
             return node_instances[0]
 
         node_instance = self._try_resolve_node_instance_by_relationship(
-            storage=storage,
+            handler=handler,
             node_instances=node_instances)
         if node_instance:
             return node_instance
 
         node_instance = self._try_resolve_node_instance_by_scaling_group(
-            storage=storage,
+            handler=handler,
             node_instances=node_instances)
         if node_instance:
             return node_instance
@@ -483,13 +456,11 @@ class GetAttribute(Function):
             .format(self.node_name))
 
     def _try_resolve_node_instance_by_relationship(
-            self,
-            storage,
-            node_instances):
+            self, handler, node_instances):
         self_instance_id = self.context.get('self')
         if not self_instance_id:
             return None
-        self_instance = storage.get_node_instance(self_instance_id)
+        self_instance = handler.get_node_instance(self_instance_id)
         self_instance_relationships = self_instance.relationships or []
         node_instances_target_ids = set()
         for relationship in self_instance_relationships:
@@ -505,12 +476,10 @@ class GetAttribute(Function):
             raise RuntimeError('Illegal state')
 
     def _try_resolve_node_instance_by_scaling_group(
-            self,
-            storage,
-            node_instances):
+            self, handler, node_instances):
 
         def _parent_instance(_instance):
-            _node = storage.get_node(_instance.node_id)
+            _node = handler.get_node(_instance.node_id)
             for relationship in _node.relationships or []:
                 if (constants.CONTAINED_IN_REL_TYPE in
                         relationship['type_hierarchy']):
@@ -518,7 +487,7 @@ class GetAttribute(Function):
                     target_id = [
                         r['target_id'] for r in _instance.relationships
                         if r['target_name'] == target_name][0]
-                    return storage.get_node_instance(target_id)
+                    return handler.get_node_instance(target_id)
             return None
 
         def _containing_groups(_instance):
@@ -550,7 +519,7 @@ class GetAttribute(Function):
             return _group_instance(parent_instance, group_name)
 
         def _resolve_node_instance(context_instance_id):
-            context_instance = storage.get_node_instance(context_instance_id)
+            context_instance = handler.get_node_instance(context_instance_id)
             minimal_shared_group = _minimal_shared_group(context_instance,
                                                          node_instances[0])
             if not minimal_shared_group:
@@ -610,13 +579,8 @@ class GetSecret(Function):
     def validate(self, plan):
         pass
 
-    def evaluate(self, plan):
-        if 'operation' in self.context:
-            self.context['operation']['has_intrinsic_functions'] = True
-        return self.raw
-
-    def evaluate_runtime(self, storage):
-        return storage.get_secret(self.secret_id)
+    def evaluate(self, handler):
+        return handler.get_secret(self.secret_id)
 
 
 @register(name='get_capability', func_eval_type=RUNTIME_FUNC)
@@ -654,13 +618,8 @@ class GetCapability(Function):
     def validate(self, plan):
         pass
 
-    def evaluate(self, plan):
-        if 'operation' in self.context:
-            self.context['operation']['has_intrinsic_functions'] = True
-        return self.raw
-
-    def evaluate_runtime(self, storage):
-        return storage.get_capability(self.capability_path)
+    def evaluate(self, handler):
+        return handler.get_capability(self.capability_path)
 
 
 @register(name='concat', func_eval_type=HYBRID_FUNC)
@@ -685,14 +644,11 @@ class Concat(Function):
                 'greater, but found: {1} in {2}.'
                 .format(self.name, plan.version, self.path))
 
-    def evaluate(self, plan):
+    def evaluate(self, handler):
         for joined_value in self.joined:
             if parse(joined_value) != joined_value:
                 return self.raw
         return self.join()
-
-    def evaluate_runtime(self, storage):
-        return self.evaluate(plan=None)
 
     def join(self):
         str_join = [str(elem) for elem in self.joined]
@@ -894,6 +850,12 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         self._node_instances_cache = {}
         self._secrets_cache = {}
         self._capabilities_cache = {}
+
+    def evaluate_function(self, func):
+        if func.func_eval_type == STATIC_FUNC:
+            raise RuntimeError('runtime evaluation for {0} is not supported'
+                               .format(func.name))
+        return super(_RuntimeEvaluationHandler, self).evaluate_function(func)
 
     def get_input(self, input_name):
         return self._storage.get_input(input_name)
