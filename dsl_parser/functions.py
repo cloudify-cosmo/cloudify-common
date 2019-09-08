@@ -35,6 +35,62 @@ STATIC_FUNC, HYBRID_FUNC, RUNTIME_FUNC = range(3)
 TEMPLATE_FUNCTIONS = {}
 
 
+class RecursionLimit(object):
+    def __init__(self, limit, args_to_str_func=None):
+        """Initializes the recursion limit context manager. This context
+        manager limits the recursion only for this specific function, unlike
+        the sys.setrecursionlimit(limit) function, which sets the call stack
+        depth.
+
+        :param limit: recursion limit (inclusive).
+        :param args_to_str_func: function that returns a string containing
+            information about the last arguments used. It's signature should
+            be func(args, kwargs).
+        """
+        self.limit = limit
+        self.args_to_str_func = args_to_str_func
+        self.last_args = None
+        self.last_kwargs = None
+        self.calls_cnt = 0
+
+    def set_last_args(self, last_args, last_kwargs):
+        """Sets the last arguments that were used to call the function wrapped
+        in this context manager.
+
+        :param last_args: last arguments to set.
+        :param last_kwargs: last keyword arguments to set.
+        """
+        self.last_args = last_args
+        self.last_kwargs = last_kwargs
+
+    def __enter__(self):
+        self.calls_cnt += 1
+        if self.calls_cnt > self.limit:
+            msg = "The recursion limit ({0}) has been reached while " \
+                  "evaluating the deployment. ".format(self.limit)
+            if self.args_to_str_func and (self.last_args or self.last_kwargs):
+                msg += self.args_to_str_func(self.last_args, self.last_kwargs)
+            raise exceptions.EvaluationRecursionLimitReached(msg)
+
+    def __exit__(self, tp, value, tb):
+        self.calls_cnt -= 1
+
+
+def limit_recursion(limit, args_to_str_func=None):
+    _recursion_limit_ctx = RecursionLimit(limit, args_to_str_func)
+
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            _recursion_limit_ctx.set_last_args(args, kwargs)
+            with _recursion_limit_ctx:
+                return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 def register(fn=None, name=None, func_eval_type=HYBRID_FUNC):
     if fn is None:
         def partial(_fn):
@@ -93,63 +149,8 @@ def _contains_legal_nested_attribute_path_items(l):
 
 def _is_legal_nested_attribute_path(l):
     return isinstance(l, list) \
-           and len(l) >= 2 \
-           and _contains_legal_nested_attribute_path_items(l)
-
-
-class RuntimeEvaluationStorage(object):
-
-    def __init__(self,
-                 get_node_instances_method,
-                 get_node_instance_method,
-                 get_node_method,
-                 get_secret_method,
-                 get_capability_method):
-        self._get_node_instances_method = get_node_instances_method
-        self._get_node_instance_method = get_node_instance_method
-        self._get_node_method = get_node_method
-        self._get_secret_method = get_secret_method
-        self._get_capability_method = get_capability_method
-
-        self._node_to_node_instances = {}
-        self._node_instances = {}
-        self._nodes = {}
-        self._secrets = {}
-        self._capabilities = {}
-
-    def get_node_instances(self, node_id):
-        if node_id not in self._node_to_node_instances:
-            node_instances = self._get_node_instances_method(node_id)
-            self._node_to_node_instances[node_id] = node_instances
-            for node_instance in node_instances:
-                self._node_instances[node_instance.id] = node_instance
-        return self._node_to_node_instances[node_id]
-
-    def get_node_instance(self, node_instance_id):
-        if node_instance_id not in self._node_instances:
-            node_instance = self._get_node_instance_method(node_instance_id)
-            self._node_instances[node_instance_id] = node_instance
-        return self._node_instances[node_instance_id]
-
-    def get_node(self, node_id):
-        if node_id not in self._nodes:
-            node = self._get_node_method(node_id)
-            self._nodes[node_id] = node
-        return self._nodes[node_id]
-
-    def get_secret(self, secret_key):
-        if secret_key not in self._secrets:
-            secret = self._get_secret_method(secret_key)
-            self._secrets[secret_key] = secret.value
-        return self._secrets[secret_key]
-
-    def get_capability(self, capability_path):
-        capability_id = _convert_attribute_list_to_python_syntax_string(
-            capability_path)
-        if capability_id not in self._capabilities:
-            capability = self._get_capability_method(capability_path)
-            self._capabilities[capability_id] = capability
-        return self._capabilities[capability_id]
+        and len(l) >= 2 \
+        and _contains_legal_nested_attribute_path_items(l)
 
 
 class Function(object):
@@ -818,30 +819,31 @@ def evaluate_outputs(outputs_def, storage):
         storage=storage)
 
 
-def _handler(evaluator, **evaluator_kwargs):
-    def _args_to_str_func(args, kwargs):
-        """Used to display extra information when recursion limit is reached.
+def _args_to_str_func(args, kwargs):
+    """Used to display extra information when recursion limit is reached.
 
-        :param args: arguments that the function has been called with lastly.
-        :param kwargs: keyword arguments that the function has been called with
-            lastly.
-        :return: relevant string containing information about the arguments.
-        """
-        msg = "Limit was reached with the following path - {0}"
-        if args and len(args) == 4:
-            return msg.format(args[3])
-        if kwargs and 'path' in kwargs:
-            return msg.format(kwargs['path'])
-        return ""
+    :param args: arguments that the function has been called with lastly.
+    :param kwargs: keyword arguments that the function has been called with
+        lastly.
+    :return: relevant string containing information about the arguments.
+    """
+    msg = "Limit was reached with the following path - {0}"
+    if args and len(args) == 5:
+        return msg.format(args[4])
+    if kwargs and 'path' in kwargs:
+        return msg.format(kwargs['path'])
+    return ""
 
+
+class _EvaluationHandler(object):
     @limit_recursion(50, args_to_str_func=_args_to_str_func)
-    def handler(v, scope, context, path):
+    def __call__(self, v, scope, context, path):
         evaluated_value = v
         scanned = False
         while True:
             scan.scan_properties(
                 evaluated_value,
-                handler,
+                self,
                 scope=scope,
                 context=context,
                 path=path,
@@ -853,30 +855,96 @@ def _handler(evaluator, **evaluator_kwargs):
             if not isinstance(func, Function):
                 break
             previous_evaluated_value = evaluated_value
-            evaluated_value = getattr(func, evaluator)(**evaluator_kwargs)
+            evaluated_value = self.evaluate_function(func)
             if scanned and previous_evaluated_value == evaluated_value:
                 break
             scanned = True
         return evaluated_value
-    return handler
+
+    def evaluate_function(self, func):
+        return func.evaluate(self)
+
+
+class _PlanEvaluationHandler(_EvaluationHandler):
+    def __init__(self, plan):
+        self._plan = plan
+
+    def evaluate_function(self, func):
+        if func.func_eval_type in (STATIC_FUNC, HYBRID_FUNC):
+            return super(_PlanEvaluationHandler, self).evaluate_function(func)
+        if 'operation' in func.context:
+            func.context['operation']['has_intrinsic_functions'] = True
+        return func.raw
+
+    def get_input(self, input_name):
+        try:
+            return self._plan.inputs[input_name]
+        except KeyError:
+            raise exceptions.UnknownInputError(
+                "get_input function references an "
+                "unknown input '{0}'.".format(input_name))
+
+    def get_node(self, node_name):
+        for n in self._plan.node_templates:
+            if n['name'] == node_name:
+                return n
+        else:
+            raise KeyError('Node {0} does not exist'.format(node_name))
+
+
+class _RuntimeEvaluationHandler(_EvaluationHandler):
+    def __init__(self, storage):
+        self._storage = storage
+        self._nodes_cache = {}
+        self._node_to_node_instances = {}
+        self._node_instances_cache = {}
+        self._secrets_cache = {}
+        self._capabilities_cache = {}
+
+    def get_input(self, input_name):
+        return self._storage.get_input(input_name)
+
+    def get_node(self, node_id):
+        if node_id not in self._nodes_cache:
+            node = self._storage.get_node(node_id)
+            self._nodes_cache[node_id] = node
+        return self._nodes_cache[node_id]
+
+    def get_node_instances(self, node_id):
+        if node_id not in self._node_to_node_instances:
+            node_instances = self._storage.get_node_instances(node_id)
+            self._node_to_node_instances[node_id] = node_instances
+            for node_instance in node_instances:
+                self._node_instances_cache[node_instance.id] = node_instance
+        return self._node_to_node_instances[node_id]
+
+    def get_node_instance(self, node_instance_id):
+        if node_instance_id not in self._node_instances_cache:
+            node_instance = self._storage.get_node_instance(node_instance_id)
+            self._node_instances_cache[node_instance_id] = node_instance
+        return self._node_instances_cache[node_instance_id]
+
+    def get_secret(self, secret_key):
+        if secret_key not in self._secrets_cache:
+            secret = self._storage.get_secret(secret_key)
+            self._secrets_cache[secret_key] = secret.value
+        return self._secrets_cache[secret_key]
+
+    def get_capability(self, capability_path):
+        capability_id = _convert_attribute_list_to_python_syntax_string(
+            capability_path)
+        if capability_id not in self._capabilities_cache:
+            capability = self._storage.get_capability(capability_path)
+            self._capabilities_cache[capability_id] = capability
+        return self._capabilities_cache[capability_id]
 
 
 def plan_evaluation_handler(plan):
-    return _handler('evaluate', plan=plan)
+    return _PlanEvaluationHandler(plan)
 
 
-def runtime_evaluation_handler(get_node_instances_method,
-                               get_node_instance_method,
-                               get_node_method,
-                               get_secret_method,
-                               get_capability_method):
-    return _handler('evaluate_runtime',
-                    storage=RuntimeEvaluationStorage(
-                        get_node_instances_method=get_node_instances_method,
-                        get_node_instance_method=get_node_instance_method,
-                        get_node_method=get_node_method,
-                        get_secret_method=get_secret_method,
-                        get_capability_method=get_capability_method))
+def runtime_evaluation_handler(storage):
+    return _RuntimeEvaluationHandler(storage)
 
 
 def validate_functions(plan):
@@ -967,59 +1035,3 @@ def get_nested_attribute_value_of_capability(root, path):
                     path[0],
                     attr))
     return {'value': value}
-
-
-class RecursionLimit(object):
-    def __init__(self, limit, args_to_str_func=None):
-        """Initializes the recursion limit context manager. This context
-        manager limits the recursion only for this specific function, unlike
-        the sys.setrecursionlimit(limit) function, which sets the call stack
-        depth.
-
-        :param limit: recursion limit (inclusive).
-        :param args_to_str_func: function that returns a string containing
-            information about the last arguments used. It's signature should
-            be func(args, kwargs).
-        """
-        self.limit = limit
-        self.args_to_str_func = args_to_str_func
-        self.last_args = None
-        self.last_kwargs = None
-        self.calls_cnt = 0
-
-    def set_last_args(self, last_args, last_kwargs):
-        """Sets the last arguments that were used to call the function wrapped
-        in this context manager.
-
-        :param last_args: last arguments to set.
-        :param last_kwargs: last keyword arguments to set.
-        """
-        self.last_args = last_args
-        self.last_kwargs = last_kwargs
-
-    def __enter__(self):
-        self.calls_cnt += 1
-        if self.calls_cnt > self.limit:
-            msg = "The recursion limit ({0}) has been reached while " \
-                  "evaluating the deployment. ".format(self.limit)
-            if self.args_to_str_func and (self.last_args or self.last_kwargs):
-                msg += self.args_to_str_func(self.last_args, self.last_kwargs)
-            raise exceptions.EvaluationRecursionLimitReached(msg)
-
-    def __exit__(self, tp, value, tb):
-        self.calls_cnt -= 1
-
-
-def limit_recursion(limit, args_to_str_func=None):
-    _recursion_limit_ctx = RecursionLimit(limit, args_to_str_func)
-
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            _recursion_limit_ctx.set_last_args(args, kwargs)
-            with _recursion_limit_ctx:
-                return f(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
