@@ -772,28 +772,15 @@ def parse(raw_function, scope=None, context=None, path=None):
     return raw_function
 
 
-def evaluate_functions(payload, context,
-                       get_node_instances_method,
-                       get_node_instance_method,
-                       get_node_method,
-                       get_secret_method,
-                       get_capability_method):
+def evaluate_functions(payload, context, storage):
     """Evaluate functions in payload.
 
     :param payload: The payload to evaluate.
     :param context: Context used during evaluation.
-    :param get_node_instances_method: A method for getting node instances.
-    :param get_node_instance_method: A method for getting a node instance.
-    :param get_node_method: A method for getting a node.
-    :param get_secret_method: A method for getting a secret.
-    :param get_capability_method: A method for getting a capability.
+    :param storage: Storage backend for runtime function evaluation
     :return: payload.
     """
-    handler = runtime_evaluation_handler(get_node_instances_method,
-                                         get_node_instance_method,
-                                         get_node_method,
-                                         get_secret_method,
-                                         get_capability_method)
+    handler = runtime_evaluation_handler(storage)
     scan.scan_properties(payload,
                          handler,
                          scope=None,
@@ -803,58 +790,32 @@ def evaluate_functions(payload, context,
     return payload
 
 
-def evaluate_capabilities(capabilities,
-                          get_node_instances_method,
-                          get_node_instance_method,
-                          get_node_method,
-                          get_secret_method,
-                          get_capability_method):
+def evaluate_capabilities(capabilities, storage):
     """Evaluates capabilities definition containing intrinsic functions.
 
     :param capabilities: The dict of capabilities to evaluate
-    :param get_node_instances_method: A method for getting node instances.
-    :param get_node_instance_method: A method for getting a node instance.
-    :param get_node_method: A method for getting a node.
-    :param get_secret_method: A method for getting a secret.
-    :param get_capability_method: A method for getting a capability.
+    :param storage: Storage backend for runtime function evaluation
     :return: Capabilities dict.
     """
     capabilities = dict((k, v['value']) for k, v in capabilities.items())
     return evaluate_functions(
         payload=capabilities,
         context={},
-        get_node_instances_method=get_node_instances_method,
-        get_node_instance_method=get_node_instance_method,
-        get_node_method=get_node_method,
-        get_secret_method=get_secret_method,
-        get_capability_method=get_capability_method)
+        storage=storage)
 
 
-def evaluate_outputs(outputs_def,
-                     get_node_instances_method,
-                     get_node_instance_method,
-                     get_node_method,
-                     get_secret_method,
-                     get_capability_method):
+def evaluate_outputs(outputs_def, storage):
     """Evaluates an outputs definition containing intrinsic functions.
 
     :param outputs_def: Outputs definition.
-    :param get_node_instances_method: A method for getting node instances.
-    :param get_node_instance_method: A method for getting a node instance.
-    :param get_node_method: A method for getting a node.
-    :param get_secret_method: A method for getting a secret.
-    :param get_capability_method: A method for getting a capability.
+    :param storage: Storage backend for runtime function evaluation
     :return: Outputs dict.
     """
     outputs = dict((k, v['value']) for k, v in outputs_def.iteritems())
     return evaluate_functions(
         payload=outputs,
         context={'evaluate_outputs': True},
-        get_node_instances_method=get_node_instances_method,
-        get_node_instance_method=get_node_instance_method,
-        get_node_method=get_node_method,
-        get_secret_method=get_secret_method,
-        get_capability_method=get_capability_method)
+        storage=storage)
 
 
 def _handler(evaluator, **evaluator_kwargs):

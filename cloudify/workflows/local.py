@@ -74,6 +74,7 @@ class _Environment(object):
                 name=name,
                 plan=plan,
                 nodes=nodes,
+                inputs=plan.inputs,
                 node_instances=node_instances,
                 blueprint_path=blueprint_path,
                 provider_context=provider_context)
@@ -92,22 +93,11 @@ class _Environment(object):
 
     def outputs(self):
         return dsl_functions.evaluate_outputs(
-            outputs_def=self.plan['outputs'],
-            get_node_instances_method=self.storage.get_node_instances,
-            get_node_instance_method=self.storage.get_node_instance,
-            get_node_method=self.storage.get_node,
-            get_secret_method=self.storage.get_secret,
-            get_capability_method=self.storage.get_capability)
+            outputs_def=self.plan['outputs'], storage=self.storage)
 
     def evaluate_functions(self, payload, context):
         return dsl_functions.evaluate_functions(
-            payload=payload,
-            context=context,
-            get_node_instances_method=self.storage.get_node_instances,
-            get_node_instance_method=self.storage.get_node_instance,
-            get_node_method=self.storage.get_node,
-            get_secret_method=self.storage.get_secret,
-            get_capability_method=self.storage.get_capability)
+            payload=payload, context=context, storage=self.storage)
 
     def execute(self,
                 workflow,
@@ -371,13 +361,15 @@ class _Storage(object):
         self.env = None
         self._provider_context = None
         self.created_at = None
+        self.inputs = {}
 
-    def init(self, name, plan, nodes, node_instances, blueprint_path,
+    def init(self, name, plan, nodes, inputs, node_instances, blueprint_path,
              provider_context):
         self.name = name
         self.created_at = datetime.now()
         self.resources_root = os.path.dirname(os.path.abspath(blueprint_path))
         self.plan = plan
+        self.inputs = inputs or {}
         self._provider_context = provider_context or {}
         self._init_locks_and_nodes(nodes)
 
@@ -453,6 +445,9 @@ class _Storage(object):
     def _store_instance(self, node_instance):
         raise NotImplementedError()
 
+    def get_input(self, input_name):
+        return self.inputs[input_name]
+
     def get_node_instances(self, node_id=None):
         raise NotImplementedError()
 
@@ -527,14 +522,15 @@ class InMemoryStorage(_Storage):
         self._node_instances = None
         self._executions = []
 
-    def init(self, name, plan, nodes, node_instances, blueprint_path,
+    def init(self, name, plan, nodes, inputs, node_instances, blueprint_path,
              provider_context):
         self.plan = plan
         self._executions = []
         self._node_instances = dict((instance.id, instance)
                                     for instance in node_instances)
-        super(InMemoryStorage, self).init(name, plan, nodes, node_instances,
-                                          blueprint_path, provider_context)
+        super(InMemoryStorage, self).init(
+            name, plan, nodes, inputs, node_instances, blueprint_path,
+            provider_context)
 
     def load(self, name):
         raise NotImplementedError('load is not implemented by memory storage')
@@ -582,7 +578,7 @@ class FileStorage(_Storage):
         self._blueprint_path = None
         self._executions_path = None
 
-    def init(self, name, plan, nodes, node_instances, blueprint_path,
+    def init(self, name, plan, nodes, inputs, node_instances, blueprint_path,
              provider_context):
         self.created_at = datetime.now()
         storage_dir = os.path.join(self._root_storage_dir, name)
@@ -605,6 +601,7 @@ class FileStorage(_Storage):
                 'plan': plan,
                 'blueprint_filename': blueprint_filename,
                 'nodes': nodes,
+                'inputs': inputs,
                 'provider_context': provider_context or {},
                 'created_at': self.created_at
             }, cls=JSONEncoderWithDatetime))
@@ -636,6 +633,7 @@ class FileStorage(_Storage):
                                             data['blueprint_filename'])
         self._provider_context = data.get('provider_context', {})
         self.created_at = data.get('created_at')
+        self.inputs = data.get('inputs', {})
         nodes = [Node(node) for node in data['nodes']]
         self._init_locks_and_nodes(nodes)
 
