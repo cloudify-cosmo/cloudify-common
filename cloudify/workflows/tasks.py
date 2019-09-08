@@ -414,12 +414,17 @@ class RemoteWorkflowTask(WorkflowTask):
         self._cloudify_context = cloudify_context
         self._cloudify_agent = None
 
+    @classmethod
+    def restore(cls, ctx, graph, task_descr):
+        params = task_descr.parameters
+        context = params['task_kwargs']['kwargs']['__cloudify_context']
+        # RemoteWorkflowTask requires the context dict to be passed in
+        params['task_kwargs']['cloudify_context'] = context
+        return super(RemoteWorkflowTask, cls).restore(ctx, graph, task_descr)
+
     def dump(self):
         task = super(RemoteWorkflowTask, self).dump()
-        task['parameters']['task_kwargs'] = {
-            'cloudify_context': self.cloudify_context,
-            'kwargs': self._kwargs
-        }
+        task['parameters']['task_kwargs'] = {'kwargs': self._kwargs}
         return task
 
     def _update_stored_state(self, state):
