@@ -21,9 +21,11 @@ from cloudify_rest_client.operations import Operation, TasksGraph
 
 
 def _make_remote_task(kwargs=None):
+    kwargs = kwargs or {'a': 1}
+    kwargs['__cloudify_context'] = {'task_name': 'x'}
     return tasks.RemoteWorkflowTask(
-        kwargs=kwargs or {'a': 1},
-        cloudify_context={'task_name': 'x'},
+        kwargs=kwargs,
+        cloudify_context=kwargs['__cloudify_context'],
         workflow_context=None,
         info={'info': 'info'}
     )
