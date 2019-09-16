@@ -13,6 +13,7 @@
 
 from cloudify_rest_client.agents import Agent
 from cloudify_rest_client import CloudifyClient
+from cloudify_rest_client.evaluate import EvaluatedFunctions
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.node_instances import NodeInstance
 
@@ -61,6 +62,18 @@ class MockRestclient(CloudifyClient):
     @property
     def operations(self):
         return MockOperationsClient()
+
+    @property
+    def evaluate(self):
+        return MockEvaluateClient()
+
+
+class MockEvaluateClient(object):
+    def functions(self, deployment_id, context, payload):
+        return EvaluatedFunctions({
+            'payload': payload,
+            'deployment_id': deployment_id
+        })
 
 
 class MockNodesClient(object):
