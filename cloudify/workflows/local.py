@@ -400,7 +400,7 @@ class _Storage(object):
                              runtime_properties=None,
                              state=None):
         with self._lock(node_instance_id):
-            instance = self._get_node_instance(node_instance_id)
+            instance = self.get_node_instance(node_instance_id)
             if state is None and version != instance['version']:
                 raise StorageConflictError('version {0} does not match '
                                            'current version of '
@@ -416,25 +416,33 @@ class _Storage(object):
                 instance['state'] = state
             self._store_instance(instance)
 
-    def _get_node_instance(self, node_instance_id):
+    def get_node_instance(self, node_instance_id, evaluate_functions=False):
         instance = self._load_instance(node_instance_id)
         if instance is None:
-            raise RuntimeError('Instance {0} does not exist'
-                               .format(node_instance_id))
+            raise KeyError('Instance {0} does not exist'
+                           .format(node_instance_id))
+        instance = copy.deepcopy(instance)
+        if evaluate_functions:
+            dsl_functions.evaluate_node_instance_functions(
+                instance, self)
         return instance
 
-    def get_node(self, node_id):
+    def get_node(self, node_id, evaluate_functions=False):
         node = self._nodes.get(node_id)
         if node is None:
-            raise RuntimeError('Node {0} does not exist'
-                               .format(node_id))
-        return copy.deepcopy(node)
+            raise KeyError('Node {0} does not exist'.format(node_id))
+        node = copy.deepcopy(node)
+        if evaluate_functions:
+            dsl_functions.evaluate_node_functions(node, self)
+        return node
 
-    def get_nodes(self):
-        return copy.deepcopy(self._nodes.values())
-
-    def get_node_instance(self, node_instance_id):
-        return copy.deepcopy(self._get_node_instance(node_instance_id))
+    def get_nodes(self, evaluate_functions=False):
+        nodes = copy.deepcopy(self._nodes.values())
+        if not evaluate_functions:
+            return nodes
+        for node in nodes:
+            dsl_functions.evaluate_node_functions(node, self)
+        return nodes
 
     def get_provider_context(self):
         return copy.deepcopy(self._provider_context)
@@ -539,13 +547,18 @@ class InMemoryStorage(_Storage):
         return self._node_instances.get(node_instance_id)
 
     def _store_instance(self, node_instance):
-        pass
+        self._node_instances[node_instance.id] = node_instance
 
-    def get_node_instances(self, node_id=None):
+    def get_node_instances(self, node_id=None, evaluate_functions=False):
         instances = self._node_instances.values()
         if node_id:
             instances = [i for i in instances if i.node_id == node_id]
-        return copy.deepcopy(instances)
+        instances = copy.deepcopy(instances)
+        if evaluate_functions:
+            for instance in instances:
+                dsl_functions.evaluate_node_instance_functions(
+                    instance, self)
+        return instances
 
     def _instance_ids(self):
         return self._node_instances.keys()
@@ -649,9 +662,6 @@ class FileStorage(_Storage):
     def get_blueprint_path(self):
         return self._blueprint_path
 
-    def get_node_instance(self, node_instance_id):
-        return self._get_node_instance(node_instance_id)
-
     def _load_instance(self, node_instance_id):
         with self._lock(node_instance_id):
             with open(self._instance_path(node_instance_id)) as f:
@@ -673,11 +683,15 @@ class FileStorage(_Storage):
     def _instance_path(self, node_instance_id):
         return os.path.join(self._instances_dir, node_instance_id)
 
-    def get_node_instances(self, node_id=None):
-        instances = [self._get_node_instance(instance_id)
+    def get_node_instances(self, node_id=None, evaluate_functions=False):
+        instances = [self.get_node_instance(instance_id)
                      for instance_id in self._instance_ids()]
         if node_id:
             instances = [i for i in instances if i.node_id == node_id]
+        if evaluate_functions:
+            for instance in instances:
+                dsl_functions.evaluate_node_instance_functions(
+                    instance, self)
         return instances
 
     def _instance_ids(self):
