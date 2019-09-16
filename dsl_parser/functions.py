@@ -293,7 +293,7 @@ class GetProperty(Function):
         args = [self.node_name] + self.property_path
         if any(is_function(x) for x in args):
             return
-        handler = _PlanEvaluationHandler(plan)
+        handler = _PlanEvaluationHandler(plan, runtime_only_evaluation=False)
         self.evaluate(handler)
 
     def get_node_template(self, handler):
@@ -816,8 +816,9 @@ class _EvaluationHandler(object):
 
 
 class _PlanEvaluationHandler(_EvaluationHandler):
-    def __init__(self, plan):
+    def __init__(self, plan, runtime_only_evaluation):
         self._plan = plan
+        self._runtime_only_evaluation = runtime_only_evaluation
 
     def evaluate_function(self, func):
         if func.func_eval_type in (STATIC_FUNC, HYBRID_FUNC):
@@ -895,8 +896,8 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         return self._capabilities_cache[capability_id]
 
 
-def plan_evaluation_handler(plan):
-    return _PlanEvaluationHandler(plan)
+def plan_evaluation_handler(plan, runtime_only_evaluation=False):
+    return _PlanEvaluationHandler(plan, runtime_only_evaluation)
 
 
 def runtime_evaluation_handler(storage):

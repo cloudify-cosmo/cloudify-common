@@ -109,8 +109,8 @@ def _set_plan_inputs(plan, inputs=None):
     plan[INPUTS] = inputs
 
 
-def _process_functions(plan):
-    handler = functions.plan_evaluation_handler(plan)
+def _process_functions(plan, runtime_only_evaluation=False):
+    handler = functions.plan_evaluation_handler(plan, runtime_only_evaluation)
     scan.scan_service_template(
         plan, handler, replace=True, search_secrets=True)
 
@@ -144,12 +144,13 @@ def _validate_secrets(plan, get_secret_method):
         )
 
 
-def prepare_deployment_plan(plan, get_secret_method=None, inputs=None, **_):
+def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
+                            runtime_only_evaluation=False, **_):
     """
     Prepare a plan for deployment
     """
     plan = models.Plan(copy.deepcopy(plan))
     _set_plan_inputs(plan, inputs)
-    _process_functions(plan)
+    _process_functions(plan, runtime_only_evaluation)
     _validate_secrets(plan, get_secret_method)
     return multi_instance.create_deployment_plan(plan)
