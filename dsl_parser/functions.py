@@ -193,7 +193,7 @@ class Function(object):
         pass
 
 
-@register(name='get_input', func_eval_type=STATIC_FUNC)
+@register(name='get_input', func_eval_type=HYBRID_FUNC)
 class GetInput(Function):
 
     def __init__(self, args, **kwargs):
@@ -270,7 +270,7 @@ class GetInput(Function):
         return value
 
 
-@register(name='get_property', func_eval_type=STATIC_FUNC)
+@register(name='get_property', func_eval_type=HYBRID_FUNC)
 class GetProperty(Function):
 
     def __init__(self, args, **kwargs):
@@ -821,11 +821,13 @@ class _PlanEvaluationHandler(_EvaluationHandler):
         self._runtime_only_evaluation = runtime_only_evaluation
 
     def evaluate_function(self, func):
-        if func.func_eval_type in (STATIC_FUNC, HYBRID_FUNC):
-            return super(_PlanEvaluationHandler, self).evaluate_function(func)
-        if 'operation' in func.context:
-            func.context['operation']['has_intrinsic_functions'] = True
-        return func.raw
+        if not self._runtime_only_evaluation and \
+                func.func_eval_type in (HYBRID_FUNC, STATIC_FUNC):
+            return func.evaluate(self)
+        else:
+            if 'operation' in func.context:
+                func.context['operation']['has_intrinsic_functions'] = True
+            return func.raw
 
     def get_input(self, input_name):
         try:
@@ -851,12 +853,6 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         self._node_instances_cache = {}
         self._secrets_cache = {}
         self._capabilities_cache = {}
-
-    def evaluate_function(self, func):
-        if func.func_eval_type == STATIC_FUNC:
-            raise RuntimeError('runtime evaluation for {0} is not supported'
-                               .format(func.name))
-        return super(_RuntimeEvaluationHandler, self).evaluate_function(func)
 
     def get_input(self, input_name):
         return self._storage.get_input(input_name)

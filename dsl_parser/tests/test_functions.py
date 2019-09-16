@@ -15,14 +15,13 @@
 
 from testtools import ExpectedException
 
-from dsl_parser import exceptions
+from dsl_parser import exceptions, functions
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import timeout
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestGetProperty(AbstractTestParser):
-
     def test_node_template_properties(self):
         yaml = """
 node_types:
@@ -718,6 +717,55 @@ node_templates:
 """
         plan = prepare_deployment_plan(self.parse(yaml))
         self.assertEqual('secret', plan['nodes'][0]['properties']['b'])
+
+    def test_get_property_runtime(self):
+        yaml = """
+node_types:
+    vm_type:
+        properties:
+            a: { type: string }
+            c: { type: string }
+node_templates:
+    vm1:
+        type: vm_type
+        properties:
+            a: {get_property: [SELF, c]}
+            c: secret
+"""
+        plan = prepare_deployment_plan(
+            self.parse(yaml), runtime_only_evaluation=True)
+        self.assertEqual(plan['nodes'][0]['properties']['a'],
+                         {'get_property': ['SELF', 'c']})
+        node = functions.evaluate_node_functions(plan['nodes'][0], None)
+        self.assertEqual(node['properties']['a'], 'secret')
+
+    def test_get_property_another_node_runtime(self):
+        yaml = """
+node_types:
+    vm_type:
+        properties:
+            a: { type: string }
+            c: { type: string }
+node_templates:
+    vm1:
+        type: vm_type
+        properties:
+            a: {get_property: [vm2, c]}
+            c: secret1
+    vm2:
+        type: vm_type
+        properties:
+            a: xxx
+            c: secret2
+"""
+        plan = prepare_deployment_plan(
+            self.parse(yaml), runtime_only_evaluation=True)
+        plan_node = next(n for n in plan['nodes'] if n['name'] == 'vm1')
+        self.assertEqual(plan_node['properties']['a'],
+                         {'get_property': ['vm2', 'c']})
+        node = functions.evaluate_node_functions(
+            plan_node, self._mock_evaluation_storage(nodes=plan['nodes']))
+        self.assertEqual(node['properties']['a'], 'secret2')
 
 
 class TestGetAttribute(AbstractTestParser):
