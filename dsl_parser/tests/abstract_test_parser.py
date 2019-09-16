@@ -256,17 +256,25 @@ imports:"""
 
         return ordered_nodes
 
-    def _mock_evaluation_storage(self, node_instances=None, nodes=None):
-        return _MockRuntimeEvaluationStorage(node_instances or [], nodes or [])
+    def _mock_evaluation_storage(self, node_instances=None, nodes=None,
+                                 inputs=None):
+        return _MockRuntimeEvaluationStorage(
+            node_instances or [],
+            nodes or [],
+            inputs or {})
 
     def get_secret(self, secret_name):
         return self._mock_evaluation_storage().get_secret(secret_name)
 
 
 class _MockRuntimeEvaluationStorage(object):
-    def __init__(self, node_instances, nodes):
+    def __init__(self, node_instances, nodes, inputs):
         self._node_instances = [NodeInstance(ni) for ni in node_instances]
         self._nodes = [Node(n) for n in nodes]
+        self._inputs = inputs or {}
+
+    def get_input(self, input_name):
+        return self._inputs[input_name]
 
     def get_node_instances(self, node_id=None):
         if not node_id:

@@ -644,6 +644,70 @@ node_templates:
             self.parse(yaml), inputs={'dict_input': {'key': 'secret'}})
         self.assertEqual('secret', plan['nodes'][0]['properties']['b'])
 
+    def test_get_property_from_get_input_runtime(self):
+        yaml = """
+inputs:
+    dict_input: {}
+
+node_types:
+    vm_type:
+        properties:
+            a: { type: string }
+            b: { type: string }
+node_templates:
+    vm1:
+        type: vm_type
+        properties:
+            a: {get_input: dict_input}
+            b: {get_property: [SELF, a, key]}
+"""
+        inputs = {'dict_input': {'key': 'secret'}}
+        plan = prepare_deployment_plan(
+            self.parse(yaml),
+            inputs=inputs,
+            runtime_only_evaluation=True)
+        # with runtime-only-evaluation, the property isn't evaluated at
+        # prepare_deployment_plan time
+        self.assertEqual(
+            {'get_property': ['SELF', 'a', 'key']},
+            plan['nodes'][0]['properties']['b'])
+
+        evaluated = functions.evaluate_node_functions(
+            plan['nodes'][0],
+            self._mock_evaluation_storage(inputs=inputs)
+        )
+        self.assertEqual('secret', evaluated['properties']['b'])
+
+    def test_get_property_from_get_secret_runtime(self):
+        yaml = """
+
+node_types:
+    vm_type:
+        properties:
+            secret1_value: { type: string }
+            b: { type: string }
+node_templates:
+    vm1:
+        type: vm_type
+        properties:
+            secret1_value: secret
+            b: {get_property: [SELF, {get_secret: secret1} ]}
+"""
+        storage = self._mock_evaluation_storage()
+        plan = prepare_deployment_plan(
+            self.parse(yaml),
+            get_secret_method=storage.get_secret,
+            runtime_only_evaluation=True)
+        self.assertEqual(
+            {'get_property': ['SELF', {'get_secret': 'secret1'}]},
+            plan['nodes'][0]['properties']['b'])
+
+        evaluated = functions.evaluate_node_functions(
+            plan['nodes'][0],
+            storage
+        )
+        self.assertEqual('secret', evaluated['properties']['b'])
+
     @timeout(seconds=10)
     def test_get_property_from_get_input_data_type(self):
         yaml = """
