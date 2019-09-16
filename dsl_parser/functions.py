@@ -88,7 +88,6 @@ def limit_recursion(limit, args_to_str_func=None):
                 return f(*args, **kwargs)
 
         return wrapper
-
     return decorator
 
 

@@ -967,7 +967,8 @@ class CloudifyWorkflowContext(
             else:
                 rest = get_rest_client()
                 raw_nodes = rest.nodes.list(
-                    deployment_id=self.deployment.id, _get_all_results=True,
+                    deployment_id=self.deployment.id,
+                    _get_all_results=True,
                     evaluate_functions=self.deployment.runtime_only_evaluation)
                 raw_node_instances = rest.node_instances.list(
                     deployment_id=self.deployment.id,

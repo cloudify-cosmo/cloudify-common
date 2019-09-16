@@ -264,9 +264,9 @@ class DeploymentsClient(object):
             is skipped, plugins containing source URL will be installed
             from source.
         :param site_name: The name of the site for the deployment.
-        :param runtime_only_evaluation: If set, all functions will only be
-            evaluated at runtime, and no functions will be evaluated at parse
-            time.
+        :param runtime_only_evaluation: If set, all intrinsic functions
+            will only be evaluated at runtime, and no functions will be
+            evaluated at parse time.
         :return: The created deployment.
         """
         assert blueprint_id
