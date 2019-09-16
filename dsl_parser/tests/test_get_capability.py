@@ -106,13 +106,8 @@ node_templates:
             ]}
         }
 
-        functions.evaluate_functions(payload,
-                                     {},
-                                     None,
-                                     None,
-                                     None,
-                                     None,
-                                     self._get_capability_mock)
+        functions.evaluate_functions(
+            payload, {}, self._mock_evaluation_storage())
 
         self.assertEqual(payload['a'], 'value_a_1')
         self.assertEqual(payload['b'], 'value_a_2')
@@ -136,14 +131,7 @@ node_templates:
                          node['properties']['property'])
 
         functions.evaluate_functions(
-            parsed,
-            {},
-            None,
-            None,
-            None,
-            None,
-            self._get_capability_mock,
-        )
+            parsed, {}, self._mock_evaluation_storage())
         self.assertEqual(node['properties']['property'], 'value_a_1')
 
     def test_capabilities_in_outputs(self):
@@ -163,14 +151,7 @@ outputs:
                          outputs['output']['value'])
 
         functions.evaluate_functions(
-            parsed,
-            {},
-            None,
-            None,
-            None,
-            None,
-            self._get_capability_mock,
-        )
+            parsed, {}, self._mock_evaluation_storage())
         self.assertEqual(outputs['output']['value'], 'value_a_1')
 
     def test_capabilities_in_inputs(self):
@@ -196,14 +177,7 @@ outputs:
                          outputs['output']['value'])
 
         functions.evaluate_functions(
-            parsed,
-            {},
-            None,
-            None,
-            None,
-            None,
-            self._get_capability_mock,
-        )
+            parsed, {}, self._mock_evaluation_storage())
         self.assertEqual(outputs['output']['value'], 'value_a_1')
 
     def _assert_raises_with_message(self,

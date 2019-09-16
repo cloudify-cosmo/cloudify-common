@@ -144,7 +144,7 @@ node_templates:
                                 a: { get_secret: target_op_secret_id }
 """
         parsed = prepare_deployment_plan(self.parse(yaml),
-                                         self._get_secret_mock)
+                                         self.get_secret)
         webserver_node = None
         for node in parsed.node_templates:
             if node['id'] == 'webserver':
@@ -255,7 +255,6 @@ class NotFoundException(Exception):
 
 
 class TestEvaluateFunctions(AbstractTestParser):
-
     def test_evaluate_functions(self):
 
         payload = {
@@ -271,13 +270,8 @@ class TestEvaluateFunctions(AbstractTestParser):
             ]}
         }
 
-        functions.evaluate_functions(payload,
-                                     {},
-                                     None,
-                                     None,
-                                     None,
-                                     self._get_secret_mock,
-                                     None)
+        functions.evaluate_functions(
+            payload, {}, self._mock_evaluation_storage())
 
         self.assertEqual(payload['a'], 'id_a_value')
         self.assertEqual(payload['b'], 'id_b_value')
@@ -299,18 +293,11 @@ node_templates:
             property: { get_secret: secret }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml),
-                                         self._get_secret_mock)
+                                         self.get_secret)
         node = self.get_node_by_name(parsed, 'node')
         self.assertEqual({'get_secret': 'secret'},
                          node['properties']['property'])
 
         functions.evaluate_functions(
-            parsed,
-            {},
-            None,
-            None,
-            None,
-            self._get_secret_mock,
-            None
-        )
+            parsed, {}, self._mock_evaluation_storage())
         self.assertEqual(node['properties']['property'], 'secret_value')
