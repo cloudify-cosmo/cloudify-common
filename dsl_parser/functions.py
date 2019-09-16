@@ -749,6 +749,25 @@ def parse(raw_function, scope=None, context=None, path=None):
     return raw_function
 
 
+def evaluate_node_functions(node, storage):
+    handler = runtime_evaluation_handler(storage)
+    scan.scan_node_template(node, handler, replace=True)
+    return node
+
+
+def evaluate_node_instance_functions(instance, storage):
+    handler = runtime_evaluation_handler(storage)
+    scan.scan_properties(
+        instance.get('runtime_properties', {}),
+        handler,
+        scope=scan.NODE_TEMPLATE_SCOPE,
+        context=instance,
+        path='{0}.runtime_properties'.format(
+            instance['id']),
+        replace=True)
+    return instance
+
+
 def evaluate_functions(payload, context, storage):
     """Evaluate functions in payload.
 
@@ -804,7 +823,6 @@ def _args_to_str_func(handler, v, scope, context, path):
     """Used to display extra information when recursion limit is reached.
     This is the message-creating function used with an _EvaluationHandler,
     so it takes the same arguments as that.
-
     """
     return "Limit was reached with the following path - {0}".format(path)
 

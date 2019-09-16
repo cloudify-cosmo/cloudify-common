@@ -123,22 +123,7 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
     collect_secrets = search_secrets
 
     for node_template in plan.node_templates:
-        scan_properties(node_template['properties'],
-                        handler,
-                        scope=NODE_TEMPLATE_SCOPE,
-                        context=node_template,
-                        path='{0}.properties'.format(
-                            node_template['name']),
-                        replace=replace)
-        for name, capability in node_template.get('capabilities', {}).items():
-            scan_properties(capability.get('properties', {}),
-                            handler,
-                            scope=NODE_TEMPLATE_SCOPE,
-                            context=node_template,
-                            path='{0}.capabilities.{1}'.format(
-                                node_template['name'],
-                                name),
-                            replace=replace)
+        scan_node_template(node_template, handler, replace=replace)
         scan_node_operation_properties(node_template, handler, replace=replace)
     for output_name, output in plan.outputs.iteritems():
         scan_properties(output,
@@ -173,3 +158,22 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
     if collect_secrets and len(secrets) > 0:
         plan['secrets'] = list(secrets)
         secrets.clear()
+
+
+def scan_node_template(node_template, handler, replace=False):
+    scan_properties(node_template['properties'],
+                    handler,
+                    scope=NODE_TEMPLATE_SCOPE,
+                    context=node_template,
+                    path='{0}.properties'.format(
+                        node_template['name']),
+                    replace=replace)
+    for name, capability in node_template.get('capabilities', {}).items():
+        scan_properties(capability.get('properties', {}),
+                        handler,
+                        scope=NODE_TEMPLATE_SCOPE,
+                        context=node_template,
+                        path='{0}.capabilities.{1}'.format(
+                            node_template['name'],
+                            name),
+                        replace=replace)
