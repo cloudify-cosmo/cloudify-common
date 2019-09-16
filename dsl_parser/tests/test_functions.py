@@ -1317,11 +1317,10 @@ node_templates:
                             - some_node
                             - dummy_prop
     """
+        plan = self.parse(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
         yaml = """
 node_types:
@@ -1341,11 +1340,10 @@ node_templates:
                                 - some_node
                                 - dummy_prop
     """
+        plan = self.parse_1_1(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse_1_1(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
         yaml = """
 inputs:
@@ -1371,11 +1369,10 @@ node_templates:
                             - get_attribute: [ some_node, dummy_prop ]
                             - get_input: dummy_input
     """
+        plan = self.parse_1_1(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse_1_1(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
     def test_get_property_doesnt_accept_runtime_func_as_args(self):
         yaml = """
@@ -1396,11 +1393,10 @@ node_templates:
                             - dummy_prop
                     - shouldn't matter
     """
+        plan = self.parse(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
         yaml = """
 node_types:
@@ -1421,11 +1417,10 @@ node_templates:
                                 - dummy_prop
                     - shouldn't matter
     """
+        plan = self.parse_1_1(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse_1_1(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
     def test_circular_with_dict_argument(self):
         yaml = """

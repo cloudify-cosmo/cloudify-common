@@ -228,8 +228,18 @@ class GetInput(Function):
 
     def evaluate(self, handler):
         if isinstance(self.input_value, list):
+            if any(is_function(x) for x in self.input_value):
+                raise exceptions.FunctionEvaluationError(
+                    '{0}: found an unresolved argument: {1}'
+                    .format(self.name, self.input_value))
+
             return self._get_input_attribute(
                 handler.get_input(self.input_value[0]))
+
+        if is_function(self.input_value):
+            raise exceptions.FunctionEvaluationError(
+                '{0}: found an unresolved argument: {1}'
+                .format(self.name, self.input_value))
         return handler.get_input(self.input_value)
 
     def _get_input_attribute(self, root):
@@ -329,6 +339,11 @@ class GetProperty(Function):
                                    self.path)
 
     def evaluate(self, handler):
+        if is_function(self.node_name) or \
+                any(is_function(x) for x in self.property_path):
+            raise exceptions.FunctionEvaluationError(
+                '{0}: found an unresolved argument in path: {1}, {2}'
+                .format(self.name, self.node_name, self.property_path))
         return self._get_property_value(self.get_node_template(handler))
 
 
@@ -910,19 +925,10 @@ def runtime_evaluation_handler(storage):
 
 
 def validate_functions(plan):
-    # Represents a level in the tree of function calls. A value in index i
-    # represents that a Runtime Function has been seen in levels
-    # with depth >= i+1.
-    # Level with index 0 is the root of the tree, before entering any function
-    # nodes.
-    levels = [False]
-
     def handler(v, scope, context, path):
         func = parse(v, scope=scope, context=context, path=path)
         if isinstance(func, Function):
             func.validate(plan)
-            # Add a value to the stack for this level.
-            levels.append(False)
         scan.scan_properties(
             v,
             handler,
@@ -930,23 +936,6 @@ def validate_functions(plan):
             context=context,
             path=path,
             replace=False)
-        if isinstance(func, Function):
-            # If a Runtime Function has been seen below this level and this is
-            # a Static Function, raise an exception.
-            if levels[-1] and func.func_eval_type == STATIC_FUNC:
-                raise exceptions.FunctionValidationError(
-                    func.name,
-                    'Runtime function {0} cannot be nested within '
-                    'a non-runtime function (found in {1})'.format(
-                        func.raw, path))
-            # Update the parent level value, whether a Runtime Function has
-            # been seen on this level or below.
-            levels[-2] = \
-                levels[-2] \
-                or func.func_eval_type == RUNTIME_FUNC \
-                or levels[-1]
-            # Remove the value of the stack for this level.
-            levels.pop(-1)
         return v
 
     scan.scan_service_template(plan, handler, replace=False)
