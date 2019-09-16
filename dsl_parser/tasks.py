@@ -39,11 +39,11 @@ def parse_dsl(dsl_location,
               validate_version=True,
               additional_resources=()):
     return parser.parse_from_path(
-            dsl_file_path=dsl_location,
-            resources_base_path=resources_base_path,
-            resolver=resolver,
-            validate_version=validate_version,
-            additional_resource_sources=additional_resources)
+        dsl_file_path=dsl_location,
+        resources_base_path=resources_base_path,
+        resolver=resolver,
+        validate_version=validate_version,
+        additional_resource_sources=additional_resources)
 
 
 def _set_plan_inputs(plan, inputs=None):

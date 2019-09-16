@@ -148,10 +148,6 @@ class Endpoint(object):
 
 
 class ManagerEndpoint(Endpoint):
-
-    def __init__(self, ctx):
-        super(ManagerEndpoint, self).__init__(ctx)
-
     def get_node(self, node_id):
         client = manager.get_rest_client()
         return client.nodes.get(self.ctx.deployment.id, node_id,

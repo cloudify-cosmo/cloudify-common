@@ -24,11 +24,11 @@ class BaseDeploymentUpdateTest(AbstractTestParser):
     @staticmethod
     def modify_multi(plan, modified_nodes):
         return modify_deployment(
-                nodes=modified_nodes,
-                previous_nodes=plan['nodes'],
-                previous_node_instances=plan['node_instances'],
-                modified_nodes=(),
-                scaling_groups={})
+            nodes=modified_nodes,
+            previous_nodes=plan['nodes'],
+            previous_node_instances=plan['node_instances'],
+            modified_nodes=(),
+            scaling_groups={})
 
 
 class TestDeploymentUpdate(BaseDeploymentUpdateTest):
@@ -112,7 +112,7 @@ node_templates:
         plan = self.parse_multi(blueprint)
         nodes = \
             copy.deepcopy(
-                    [n for n in plan['nodes'] if n['id'] != 'without_rel'])
+                [n for n in plan['nodes'] if n['id'] != 'without_rel'])
         with_rel_node = nodes[0]
         with_rel_node['relationships'] = [r for r in
                                           with_rel_node['relationships']

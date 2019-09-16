@@ -202,7 +202,7 @@ node_templates:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError, e:
+        except KeyError as e:
             self.assertIn('Node template property', str(e))
             self.assertIn("doesn't exist", str(e))
             self.assertIn('vm.properties.notfound', str(e))
