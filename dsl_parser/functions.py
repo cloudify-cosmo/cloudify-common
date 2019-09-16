@@ -309,9 +309,13 @@ class GetProperty(Function):
                     '{0} can only be used within a relationship but is used '
                     'in {1}'.format(self.node_name, self.path))
             if self.node_name == SOURCE:
-                node = self.context['node_template']
+                # this is messy, see CY-1676 to fix it
+                node = self.context.get('node_template') or \
+                    handler.get_node(self.context['source_node'])
             else:
-                target_node = self.context['relationship']['target_id']
+                target_node = self.context\
+                    .get('relationship', {}).get('target_id')
+                target_node = target_node or self.context['target_node']
                 node = handler.get_node(target_node)
         else:
             node = handler.get_node(self.node_name)
@@ -738,10 +742,15 @@ def evaluate_functions(payload, context, storage):
     :param storage: Storage backend for runtime function evaluation
     :return: payload.
     """
+    scope = None
+    if 'source' in context and 'target' in context:
+        scope = scan.NODE_TEMPLATE_RELATIONSHIP_SCOPE
+    elif 'self' in context:
+        scope = scan.NODE_TEMPLATE_SCOPE
     handler = runtime_evaluation_handler(storage)
     scan.scan_properties(payload,
                          handler,
-                         scope=None,
+                         scope=scope,
                          context=context,
                          path='payload',
                          replace=True)
