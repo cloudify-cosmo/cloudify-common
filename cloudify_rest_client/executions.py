@@ -110,6 +110,13 @@ class Execution(dict):
         return self.get('created_at')
 
     @property
+    def started_at(self):
+        """
+        :return: The execution start time.
+        """
+        return self.get('started_at')
+
+    @property
     def ended_at(self):
         """
         :return: The execution end time.
