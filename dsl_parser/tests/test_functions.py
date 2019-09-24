@@ -15,14 +15,13 @@
 
 from testtools import ExpectedException
 
-from dsl_parser import exceptions
+from dsl_parser import exceptions, functions
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import timeout
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestGetProperty(AbstractTestParser):
-
     def test_node_template_properties(self):
         yaml = """
 node_types:
@@ -202,7 +201,7 @@ node_templates:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError, e:
+        except KeyError as e:
             self.assertIn('Node template property', str(e))
             self.assertIn("doesn't exist", str(e))
             self.assertIn('vm.properties.notfound', str(e))
@@ -645,6 +644,70 @@ node_templates:
             self.parse(yaml), inputs={'dict_input': {'key': 'secret'}})
         self.assertEqual('secret', plan['nodes'][0]['properties']['b'])
 
+    def test_get_property_from_get_input_runtime(self):
+        yaml = """
+inputs:
+    dict_input: {}
+
+node_types:
+    vm_type:
+        properties:
+            a: { type: string }
+            b: { type: string }
+node_templates:
+    vm1:
+        type: vm_type
+        properties:
+            a: {get_input: dict_input}
+            b: {get_property: [SELF, a, key]}
+"""
+        inputs = {'dict_input': {'key': 'secret'}}
+        plan = prepare_deployment_plan(
+            self.parse(yaml),
+            inputs=inputs,
+            runtime_only_evaluation=True)
+        # with runtime-only-evaluation, the property isn't evaluated at
+        # prepare_deployment_plan time
+        self.assertEqual(
+            {'get_property': ['SELF', 'a', 'key']},
+            plan['nodes'][0]['properties']['b'])
+
+        evaluated = functions.evaluate_node_functions(
+            plan['nodes'][0],
+            self._mock_evaluation_storage(inputs=inputs)
+        )
+        self.assertEqual('secret', evaluated['properties']['b'])
+
+    def test_get_property_from_get_secret_runtime(self):
+        yaml = """
+
+node_types:
+    vm_type:
+        properties:
+            secret1_value: { type: string }
+            b: { type: string }
+node_templates:
+    vm1:
+        type: vm_type
+        properties:
+            secret1_value: secret
+            b: {get_property: [SELF, {get_secret: secret1} ]}
+"""
+        storage = self._mock_evaluation_storage()
+        plan = prepare_deployment_plan(
+            self.parse(yaml),
+            get_secret_method=storage.get_secret,
+            runtime_only_evaluation=True)
+        self.assertEqual(
+            {'get_property': ['SELF', {'get_secret': 'secret1'}]},
+            plan['nodes'][0]['properties']['b'])
+
+        evaluated = functions.evaluate_node_functions(
+            plan['nodes'][0],
+            storage
+        )
+        self.assertEqual('secret', evaluated['properties']['b'])
+
     @timeout(seconds=10)
     def test_get_property_from_get_input_data_type(self):
         yaml = """
@@ -718,6 +781,55 @@ node_templates:
 """
         plan = prepare_deployment_plan(self.parse(yaml))
         self.assertEqual('secret', plan['nodes'][0]['properties']['b'])
+
+    def test_get_property_runtime(self):
+        yaml = """
+node_types:
+    vm_type:
+        properties:
+            a: { type: string }
+            c: { type: string }
+node_templates:
+    vm1:
+        type: vm_type
+        properties:
+            a: {get_property: [SELF, c]}
+            c: secret
+"""
+        plan = prepare_deployment_plan(
+            self.parse(yaml), runtime_only_evaluation=True)
+        self.assertEqual(plan['nodes'][0]['properties']['a'],
+                         {'get_property': ['SELF', 'c']})
+        node = functions.evaluate_node_functions(plan['nodes'][0], None)
+        self.assertEqual(node['properties']['a'], 'secret')
+
+    def test_get_property_another_node_runtime(self):
+        yaml = """
+node_types:
+    vm_type:
+        properties:
+            a: { type: string }
+            c: { type: string }
+node_templates:
+    vm1:
+        type: vm_type
+        properties:
+            a: {get_property: [vm2, c]}
+            c: secret1
+    vm2:
+        type: vm_type
+        properties:
+            a: xxx
+            c: secret2
+"""
+        plan = prepare_deployment_plan(
+            self.parse(yaml), runtime_only_evaluation=True)
+        plan_node = next(n for n in plan['nodes'] if n['name'] == 'vm1')
+        self.assertEqual(plan_node['properties']['a'],
+                         {'get_property': ['vm2', 'c']})
+        node = functions.evaluate_node_functions(
+            plan_node, self._mock_evaluation_storage(nodes=plan['nodes']))
+        self.assertEqual(node['properties']['a'], 'secret2')
 
 
 class TestGetAttribute(AbstractTestParser):
@@ -1269,11 +1381,10 @@ node_templates:
                             - some_node
                             - dummy_prop
     """
+        plan = self.parse(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
         yaml = """
 node_types:
@@ -1293,11 +1404,10 @@ node_templates:
                                 - some_node
                                 - dummy_prop
     """
+        plan = self.parse_1_1(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse_1_1(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
         yaml = """
 inputs:
@@ -1323,11 +1433,10 @@ node_templates:
                             - get_attribute: [ some_node, dummy_prop ]
                             - get_input: dummy_input
     """
+        plan = self.parse_1_1(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse_1_1(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
     def test_get_property_doesnt_accept_runtime_func_as_args(self):
         yaml = """
@@ -1348,11 +1457,10 @@ node_templates:
                             - dummy_prop
                     - shouldn't matter
     """
+        plan = self.parse(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
         yaml = """
 node_types:
@@ -1373,11 +1481,10 @@ node_templates:
                                 - dummy_prop
                     - shouldn't matter
     """
+        plan = self.parse_1_1(yaml)
         with self.assertRaisesRegexp(
-                exceptions.FunctionValidationError,
-                'Runtime function .+ cannot be nested within a non-runtime '
-                'function \\(found in .+\\)'):
-            prepare_deployment_plan(self.parse_1_1(yaml))
+                exceptions.FunctionEvaluationError, 'unresolved argument'):
+            prepare_deployment_plan(plan)
 
     def test_circular_with_dict_argument(self):
         yaml = """

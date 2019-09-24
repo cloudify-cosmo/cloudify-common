@@ -279,6 +279,10 @@ class DeploymentContext(EntityContext):
         """The deployment id the plugin invocation belongs to."""
         return self._context.get('deployment_id')
 
+    @property
+    def runtime_only_evaluation(self):
+        return self._context.get('runtime_only_evaluation')
+
 
 class NodeContext(EntityContext):
 

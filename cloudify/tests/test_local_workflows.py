@@ -920,7 +920,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
         # stub to get a properly initialized storage instance
         self._execute_workflow(flow)
         storage = self.env.storage
-        self.assertRaises(RuntimeError,
+        self.assertRaises(KeyError,
                           storage.get_node, 'node_that_does_not_exist')
 
     def test_execute_non_existent_operation(self):

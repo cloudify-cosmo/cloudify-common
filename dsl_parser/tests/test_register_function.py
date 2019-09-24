@@ -39,10 +39,7 @@ class TestFunctionRegistration(AbstractTestParser):
             def parse_args(self, args):
                 self.arg = args
 
-            def evaluate_runtime(self, storage):
-                return self.evaluate(plan=None)
-
-            def evaluate(self, plan):
+            def evaluate(self, handler):
                 if functions.parse(self.arg) != self.arg:
                     return self.raw
                 return str(self.arg).upper()

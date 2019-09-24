@@ -88,7 +88,6 @@ def limit_recursion(limit, args_to_str_func=None):
                 return f(*args, **kwargs)
 
         return wrapper
-
     return decorator
 
 
@@ -193,7 +192,7 @@ class Function(object):
         pass
 
 
-@register(name='get_input', func_eval_type=STATIC_FUNC)
+@register(name='get_input', func_eval_type=HYBRID_FUNC)
 class GetInput(Function):
 
     def __init__(self, args, **kwargs):
@@ -228,8 +227,18 @@ class GetInput(Function):
 
     def evaluate(self, handler):
         if isinstance(self.input_value, list):
+            if any(is_function(x) for x in self.input_value):
+                raise exceptions.FunctionEvaluationError(
+                    '{0}: found an unresolved argument: {1}'
+                    .format(self.name, self.input_value))
+
             return self._get_input_attribute(
                 handler.get_input(self.input_value[0]))
+
+        if is_function(self.input_value):
+            raise exceptions.FunctionEvaluationError(
+                '{0}: found an unresolved argument: {1}'
+                .format(self.name, self.input_value))
         return handler.get_input(self.input_value)
 
     def _get_input_attribute(self, root):
@@ -270,7 +279,7 @@ class GetInput(Function):
         return value
 
 
-@register(name='get_property', func_eval_type=STATIC_FUNC)
+@register(name='get_property', func_eval_type=HYBRID_FUNC)
 class GetProperty(Function):
 
     def __init__(self, args, **kwargs):
@@ -293,7 +302,7 @@ class GetProperty(Function):
         args = [self.node_name] + self.property_path
         if any(is_function(x) for x in args):
             return
-        handler = _PlanEvaluationHandler(plan)
+        handler = _PlanEvaluationHandler(plan, runtime_only_evaluation=False)
         self.evaluate(handler)
 
     def get_node_template(self, handler):
@@ -309,9 +318,13 @@ class GetProperty(Function):
                     '{0} can only be used within a relationship but is used '
                     'in {1}'.format(self.node_name, self.path))
             if self.node_name == SOURCE:
-                node = self.context['node_template']
+                # this is messy, see CY-1676 to fix it
+                node = self.context.get('node_template') or \
+                    handler.get_node(self.context['source_node'])
             else:
-                target_node = self.context['relationship']['target_id']
+                target_node = self.context\
+                    .get('relationship', {}).get('target_id')
+                target_node = target_node or self.context['target_node']
                 node = handler.get_node(target_node)
         else:
             node = handler.get_node(self.node_name)
@@ -325,6 +338,11 @@ class GetProperty(Function):
                                    self.path)
 
     def evaluate(self, handler):
+        if is_function(self.node_name) or \
+                any(is_function(x) for x in self.property_path):
+            raise exceptions.FunctionEvaluationError(
+                '{0}: found an unresolved argument in path: {1}, {2}'
+                .format(self.name, self.node_name, self.property_path))
         return self._get_property_value(self.get_node_template(handler))
 
 
@@ -730,6 +748,25 @@ def parse(raw_function, scope=None, context=None, path=None):
     return raw_function
 
 
+def evaluate_node_functions(node, storage):
+    handler = runtime_evaluation_handler(storage)
+    scan.scan_node_template(node, handler, replace=True)
+    return node
+
+
+def evaluate_node_instance_functions(instance, storage):
+    handler = runtime_evaluation_handler(storage)
+    scan.scan_properties(
+        instance.get('runtime_properties', {}),
+        handler,
+        scope=scan.NODE_TEMPLATE_SCOPE,
+        context=instance,
+        path='{0}.runtime_properties'.format(
+            instance['id']),
+        replace=True)
+    return instance
+
+
 def evaluate_functions(payload, context, storage):
     """Evaluate functions in payload.
 
@@ -738,10 +775,15 @@ def evaluate_functions(payload, context, storage):
     :param storage: Storage backend for runtime function evaluation
     :return: payload.
     """
+    scope = None
+    if 'source' in context and 'target' in context:
+        scope = scan.NODE_TEMPLATE_RELATIONSHIP_SCOPE
+    elif 'self' in context:
+        scope = scan.NODE_TEMPLATE_SCOPE
     handler = runtime_evaluation_handler(storage)
     scan.scan_properties(payload,
                          handler,
-                         scope=None,
+                         scope=scope,
                          context=context,
                          path='payload',
                          replace=True)
@@ -780,7 +822,6 @@ def _args_to_str_func(handler, v, scope, context, path):
     """Used to display extra information when recursion limit is reached.
     This is the message-creating function used with an _EvaluationHandler,
     so it takes the same arguments as that.
-
     """
     return "Limit was reached with the following path - {0}".format(path)
 
@@ -816,15 +857,18 @@ class _EvaluationHandler(object):
 
 
 class _PlanEvaluationHandler(_EvaluationHandler):
-    def __init__(self, plan):
+    def __init__(self, plan, runtime_only_evaluation):
         self._plan = plan
+        self._runtime_only_evaluation = runtime_only_evaluation
 
     def evaluate_function(self, func):
-        if func.func_eval_type in (STATIC_FUNC, HYBRID_FUNC):
-            return super(_PlanEvaluationHandler, self).evaluate_function(func)
-        if 'operation' in func.context:
-            func.context['operation']['has_intrinsic_functions'] = True
-        return func.raw
+        if not self._runtime_only_evaluation and \
+                func.func_eval_type in (HYBRID_FUNC, STATIC_FUNC):
+            return func.evaluate(self)
+        else:
+            if 'operation' in func.context:
+                func.context['operation']['has_intrinsic_functions'] = True
+            return func.raw
 
     def get_input(self, input_name):
         try:
@@ -850,12 +894,6 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         self._node_instances_cache = {}
         self._secrets_cache = {}
         self._capabilities_cache = {}
-
-    def evaluate_function(self, func):
-        if func.func_eval_type == STATIC_FUNC:
-            raise RuntimeError('runtime evaluation for {0} is not supported'
-                               .format(func.name))
-        return super(_RuntimeEvaluationHandler, self).evaluate_function(func)
 
     def get_input(self, input_name):
         return self._storage.get_input(input_name)
@@ -895,8 +933,8 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         return self._capabilities_cache[capability_id]
 
 
-def plan_evaluation_handler(plan):
-    return _PlanEvaluationHandler(plan)
+def plan_evaluation_handler(plan, runtime_only_evaluation=False):
+    return _PlanEvaluationHandler(plan, runtime_only_evaluation)
 
 
 def runtime_evaluation_handler(storage):
@@ -904,19 +942,10 @@ def runtime_evaluation_handler(storage):
 
 
 def validate_functions(plan):
-    # Represents a level in the tree of function calls. A value in index i
-    # represents that a Runtime Function has been seen in levels
-    # with depth >= i+1.
-    # Level with index 0 is the root of the tree, before entering any function
-    # nodes.
-    levels = [False]
-
     def handler(v, scope, context, path):
         func = parse(v, scope=scope, context=context, path=path)
         if isinstance(func, Function):
             func.validate(plan)
-            # Add a value to the stack for this level.
-            levels.append(False)
         scan.scan_properties(
             v,
             handler,
@@ -924,23 +953,6 @@ def validate_functions(plan):
             context=context,
             path=path,
             replace=False)
-        if isinstance(func, Function):
-            # If a Runtime Function has been seen below this level and this is
-            # a Static Function, raise an exception.
-            if levels[-1] and func.func_eval_type == STATIC_FUNC:
-                raise exceptions.FunctionValidationError(
-                    func.name,
-                    'Runtime function {0} cannot be nested within '
-                    'a non-runtime function (found in {1})'.format(
-                        func.raw, path))
-            # Update the parent level value, whether a Runtime Function has
-            # been seen on this level or below.
-            levels[-2] = \
-                levels[-2] \
-                or func.func_eval_type == RUNTIME_FUNC \
-                or levels[-1]
-            # Remove the value of the stack for this level.
-            levels.pop(-1)
         return v
 
     scan.scan_service_template(plan, handler, replace=False)

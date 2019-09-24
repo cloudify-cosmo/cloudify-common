@@ -13,8 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from mock import Mock
+
 from dsl_parser import functions
-from mock import MagicMock
 from dsl_parser import exceptions
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
@@ -163,7 +164,7 @@ node_templates:
         assertion(webserver_node['relationships'][0]['target_operations'])
 
     def test_validate_secrets_all_valid(self):
-        get_secret_mock = MagicMock(return_value='secret_value')
+        get_secret_mock = Mock(return_value='secret_value')
         parsed = prepare_deployment_plan(self.parse_1_3(self.secrets_yaml),
                                          get_secret_mock)
         self.assertTrue(get_secret_mock.called)
@@ -176,7 +177,7 @@ node_templates:
                            r"'source_op_secret_id'\] " \
                            r"don't exist in this tenant"
 
-        get_secret_not_found = MagicMock(side_effect=NotFoundException)
+        get_secret_not_found = Mock(side_effect=NotFoundException)
         self.assertRaisesRegexp(exceptions.UnknownSecretError,
                                 expected_message,
                                 prepare_deployment_plan,
@@ -184,7 +185,7 @@ node_templates:
                                 get_secret_not_found)
 
     def test_validate_secrets_unexpected_exception(self):
-        get_secret_exception = MagicMock(side_effect=TypeError)
+        get_secret_exception = Mock(side_effect=TypeError)
         self.assertRaisesRegexp(TypeError,
                                 '',
                                 prepare_deployment_plan,
@@ -196,7 +197,7 @@ node_templates:
                            r"'source_op_secret_id'\] don't exist in " \
                            r"this tenant"
 
-        get_secret_not_found = MagicMock()
+        get_secret_not_found = Mock()
         get_secret_not_found.side_effect = [None, None, NotFoundException,
                                             None, None, None,
                                             NotFoundException]
@@ -243,7 +244,7 @@ node_templates:
                             inputs:
                                 a: 1
 """
-        get_secret_mock = MagicMock(return_value='secret_value')
+        get_secret_mock = Mock(return_value='secret_value')
         parsed = prepare_deployment_plan(self.parse_1_3(no_secrets_yaml),
                                          get_secret_mock)
         self.assertFalse(get_secret_mock.called)
