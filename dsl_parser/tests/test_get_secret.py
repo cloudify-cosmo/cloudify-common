@@ -13,8 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import functions
 from mock import Mock
+
+from dsl_parser import functions
 from dsl_parser import exceptions
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
