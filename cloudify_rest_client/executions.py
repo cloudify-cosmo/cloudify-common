@@ -131,6 +131,13 @@ class Execution(dict):
         return self.get('created_by')
 
     @property
+    def scheduled_for(self):
+        """
+        :return: The time this execution is scheduled for (if any)
+        """
+        return self.get('scheduled_for')
+
+    @property
     def is_dry_run(self):
         """
         :return: True if the execution was performed as a dry run
