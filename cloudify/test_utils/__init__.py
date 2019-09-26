@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ########
 # Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
 #
@@ -13,4 +14,4 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from local_workflow_decorator import WorkflowTestDecorator as workflow_test     # NOQA
+from .local_workflow_decorator import WorkflowTestDecorator as workflow_test     # NOQA

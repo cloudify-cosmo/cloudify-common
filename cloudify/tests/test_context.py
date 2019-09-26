@@ -668,7 +668,6 @@ def get_template(ctx, testing, **_):
                 rendering_tests_demo_conf,
                 template_variables={'ctx': ctx})
         except exceptions.NonRecoverableError:
-            print 'caught expected exception'
             resource = 'failed'
 
     if testing == 'get_resource_no_template':
@@ -698,7 +697,6 @@ def download_template(ctx, testing, **_):
                 rendering_tests_demo_conf,
                 template_variables={'ctx': ctx})
         except exceptions.NonRecoverableError:
-            print 'caught expected exception'
             resource = 'failed'
 
     if testing == 'download_resource_no_template':
