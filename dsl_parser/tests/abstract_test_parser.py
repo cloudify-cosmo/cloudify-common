@@ -269,8 +269,8 @@ imports:"""
 
 class _MockRuntimeEvaluationStorage(object):
     def __init__(self, node_instances, nodes, inputs):
-        self._node_instances = [NodeInstance(ni) for ni in node_instances]
-        self._nodes = [Node(n) for n in nodes]
+        self._node_instances = node_instances
+        self._nodes = nodes
         self._inputs = inputs or {}
 
     def get_input(self, input_name):
@@ -280,18 +280,18 @@ class _MockRuntimeEvaluationStorage(object):
         if not node_id:
             return self._node_instances()
         return [ni for ni in self._node_instances
-                if ni.node_id == node_id]
+                if ni.get('node_id') == node_id]
 
     def get_node_instance(self, node_instance_id):
         for node_instance in self._node_instances:
-            if node_instance.id == node_instance_id:
+            if node_instance['id'] == node_instance_id:
                 return node_instance
         else:
             raise KeyError('Instance not found: {0}'.format(node_instance_id))
 
     def get_node(self, node_name):
         for node in self._nodes:
-            if node.id == node_name:
+            if node['id'] == node_name:
                 return node
         else:
             raise KeyError('Node not found: {0}'.format(node_name))
@@ -318,47 +318,3 @@ class _MockRuntimeEvaluationStorage(object):
         dep_id, cap_id = capability_path[0], capability_path[1]
 
         return mock_deployments[dep_id]['capabilities'][cap_id]
-
-
-class NodeInstance(dict):
-
-    def __init__(self, values):
-        self.update(values)
-
-    @property
-    def id(self):
-        return self.get('id')
-
-    @property
-    def node_id(self):
-        return self.get('node_id')
-
-    @property
-    def runtime_properties(self):
-        return self.get('runtime_properties')
-
-    @property
-    def relationships(self):
-        return self.get('relationships')
-
-    @property
-    def scaling_groups(self):
-        return self.get('scaling_groups')
-
-
-class Node(dict):
-
-    def __init__(self, values):
-        self.update(values)
-
-    @property
-    def id(self):
-        return self.get('id')
-
-    @property
-    def properties(self):
-        return self.get('properties', {})
-
-    @property
-    def relationships(self):
-        return self.get('relationships')

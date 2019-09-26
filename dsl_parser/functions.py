@@ -333,7 +333,7 @@ class GetProperty(Function):
 
     def _get_property_value(self, node_template):
         return _get_property_value(node_template['name'],
-                                   node_template['properties'],
+                                   node_template.get('properties', {}),
                                    self.property_path,
                                    self.path)
 
@@ -412,7 +412,7 @@ class GetAttribute(Function):
         else:
             try:
                 node_instance = self._resolve_node_instance_by_name(handler)
-                node_instance_id = node_instance.id
+                node_instance_id = node_instance['id']
             except exceptions.FunctionEvaluationError as e:
                 # Only in outputs scope we allow to continue when an error
                 # occurred
@@ -420,8 +420,8 @@ class GetAttribute(Function):
                     raise
                 return '<ERROR: {0}>'.format(e.message)
 
-        value = _get_property_value(node_instance.node_id,
-                                    node_instance.runtime_properties,
+        value = _get_property_value(node_instance['node_id'],
+                                    node_instance['runtime_properties'],
                                     self.attribute_path,
                                     self.path,
                                     raise_if_not_found=False)
@@ -434,9 +434,9 @@ class GetAttribute(Function):
                 value = node_instance_id
         # still nothing? look in node properties
         if value is None:
-            node = handler.get_node(node_instance.node_id)
-            value = _get_property_value(node.id,
-                                        node.properties,
+            node = handler.get_node(node_instance['node_id'])
+            value = _get_property_value(node['id'],
+                                        node.get('properties', {}),
                                         self.attribute_path,
                                         self.path,
                                         raise_if_not_found=False)
@@ -479,7 +479,7 @@ class GetAttribute(Function):
         if not self_instance_id:
             return None
         self_instance = handler.get_node_instance(self_instance_id)
-        self_instance_relationships = self_instance.relationships or []
+        self_instance_relationships = self_instance.get('relationships') or []
         node_instances_target_ids = set()
         for relationship in self_instance_relationships:
             if relationship['target_name'] == self.node_name:
@@ -488,7 +488,7 @@ class GetAttribute(Function):
             return None
         node_instance_target_id = node_instances_target_ids.pop()
         for node_instance in node_instances:
-            if node_instance.id == node_instance_target_id:
+            if node_instance['id'] == node_instance_target_id:
                 return node_instance
         else:
             raise RuntimeError('Illegal state')
@@ -497,19 +497,20 @@ class GetAttribute(Function):
             self, handler, node_instances):
 
         def _parent_instance(_instance):
-            _node = handler.get_node(_instance.node_id)
-            for relationship in _node.relationships or []:
+            _node = handler.get_node(_instance['node_id'])
+            for relationship in _node.get('relationships') or []:
                 if (constants.CONTAINED_IN_REL_TYPE in
                         relationship['type_hierarchy']):
                     target_name = relationship['target_id']
                     target_id = [
-                        r['target_id'] for r in _instance.relationships
+                        r['target_id'] for r in
+                        _instance.get('relationships') or []
                         if r['target_name'] == target_name][0]
                     return handler.get_node_instance(target_id)
             return None
 
         def _containing_groups(_instance):
-            result = [g['name'] for g in _instance.scaling_groups or []]
+            result = [g['name'] for g in _instance.get('scaling_groups') or []]
             parent_instance = _parent_instance(_instance)
             if parent_instance:
                 result += _containing_groups(parent_instance)
@@ -528,7 +529,7 @@ class GetAttribute(Function):
                 raise RuntimeError('Illegal state')
 
         def _group_instance(node_instance, group_name):
-            for scaling_group in (node_instance.scaling_groups or []):
+            for scaling_group in (node_instance['scaling_groups'] or []):
                 if scaling_group['name'] == group_name:
                     return scaling_group['id']
             parent_instance = _parent_instance(node_instance)
@@ -909,7 +910,7 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             node_instances = self._storage.get_node_instances(node_id)
             self._node_to_node_instances[node_id] = node_instances
             for node_instance in node_instances:
-                self._node_instances_cache[node_instance.id] = node_instance
+                self._node_instances_cache[node_instance['id']] = node_instance
         return self._node_to_node_instances[node_id]
 
     def get_node_instance(self, node_instance_id):
