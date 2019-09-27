@@ -17,7 +17,6 @@ import os
 import json
 import urllib
 import shutil
-import urlparse
 import tempfile
 
 from mimetypes import MimeTypes
@@ -25,6 +24,7 @@ from mimetypes import MimeTypes
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from cloudify_rest_client import utils
+from cloudify_rest_client._compat import urlparse
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -153,7 +153,7 @@ class DeploymentUpdatesClient(object):
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
-        if all([urlparse.urlparse(archive_path).scheme,
+        if all([urlparse(archive_path).scheme,
                 not os.path.exists(archive_path)]):
             # archive location is URL
             params['blueprint_archive_url'] = archive_path

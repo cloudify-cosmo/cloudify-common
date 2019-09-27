@@ -25,7 +25,6 @@ import tarfile
 import zipfile
 import logging
 import tempfile
-import StringIO
 import importlib
 import traceback
 import threading
@@ -37,6 +36,7 @@ from contextlib import contextmanager, closing
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
 from cloudify import constants
+from cloudify._compat import StringIO
 from cloudify.state import workflow_ctx, ctx
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.amqp_client import BlockingRequestResponseHandler
@@ -317,7 +317,7 @@ def create_temp_folder():
 
 
 def exception_to_error_cause(exception, tb):
-    error = StringIO.StringIO()
+    error = StringIO()
     etype = type(exception)
     traceback.print_exception(etype, exception, tb, file=error)
     return {
