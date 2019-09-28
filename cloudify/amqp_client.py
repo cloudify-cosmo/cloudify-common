@@ -18,7 +18,6 @@ import copy
 import json
 import logging
 import os
-import Queue
 import random
 import ssl
 import sys
@@ -31,6 +30,7 @@ import pika.exceptions
 
 from cloudify import exceptions
 from cloudify import broker_config
+from cloudify._compat import queue
 from cloudify.constants import EVENTS_EXCHANGE_NAME, LOGS_EXCHANGE_NAME
 
 
@@ -140,7 +140,7 @@ class AMQPConnection(object):
         # from the connection thread - for sending data to rabbitmq, eg.
         # publishing messages or sending ACKs, which needs to be done from
         # the connection thread
-        self._connection_tasks_queue = Queue.Queue()
+        self._connection_tasks_queue = queue.Queue()
 
     def _get_connection_params(self):
         params = self._amqp_params.as_pika_params()
@@ -245,7 +245,7 @@ class AMQPConnection(object):
         while True:
             try:
                 envelope = self._connection_tasks_queue.get_nowait()
-            except Queue.Empty:
+            except queue.Empty:
                 return
 
             target_channel = envelope['channel'] or channel
@@ -311,7 +311,7 @@ class AMQPConnection(object):
         # thread). If an error happens there, we must have a way to get it
         # back out, so we pass a Queue together with the message, that will
         # contain either an exception instance, or None
-        err_queue = Queue.Queue() if wait else None
+        err_queue = queue.Queue() if wait else None
         envelope = {
             'method': method,
             'message': kwargs,
@@ -585,7 +585,7 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
 
     def __init__(self, *args, **kwargs):
         super(BlockingRequestResponseHandler, self).__init__(*args, **kwargs)
-        self._response = Queue.Queue()
+        self._response = queue.Queue()
 
     def publish(self, message, *args, **kwargs):
         timeout = kwargs.pop('timeout', None)
@@ -597,7 +597,7 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
 
         try:
             return json.loads(self._response.get(timeout=timeout))
-        except Queue.Empty:
+        except queue.Empty:
             raise RuntimeError('No response received for task {0}'
                                .format(correlation_id))
         except ValueError:

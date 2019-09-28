@@ -14,9 +14,9 @@
 #    * limitations under the License.
 
 from threading import Thread, RLock, Event
-from Queue import Queue
 
 from cloudify import amqp_client
+from cloudify._compat import queue
 from cloudify.exceptions import ClosedAMQPClientException
 
 
@@ -48,7 +48,7 @@ class _GlobalEventsPublisher(object):
         self._connect_lock = RLock()
         self._callers = 0
         self._thread = None
-        self._queue = Queue()
+        self._queue = queue.Queue()
         self._client_args = client_args
         self._client_kwargs = client_kwargs
 

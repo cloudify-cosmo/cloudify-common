@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from StringIO import StringIO
+from cloudify._compat import StringIO
 
 HIGH_VERBOSE = 3
 MEDIUM_VERBOSE = 2
