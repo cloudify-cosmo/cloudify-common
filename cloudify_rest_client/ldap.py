@@ -54,6 +54,11 @@ class LdapResponse(dict):
         """
         return self.get('ldap_dn_extra')
 
+    @property
+    def ldap_ca_path(self):
+        """:return: Ldap CA path."""
+        return self.get('ldap_ca_path')
+
 
 class LdapClient(object):
     def __init__(self, api):
@@ -65,7 +70,8 @@ class LdapClient(object):
             ldap_password=None,
             ldap_is_active_directory=False,
             ldap_domain='',
-            ldap_dn_extra=''):
+            ldap_dn_extra='',
+            ldap_ca_path=''):
         """
         Sets the Cloudify manager to work with the LDAP authentication against
         the specified LDAP server.
@@ -74,8 +80,11 @@ class LdapClient(object):
             'ldap_server': ldap_server,
             'ldap_is_active_directory': ldap_is_active_directory,
             'ldap_domain': ldap_domain,
-            'ldap_dn_extra': ldap_dn_extra
+            'ldap_dn_extra': ldap_dn_extra,
         }
+        if ldap_ca_path:
+            with open(ldap_ca_path) as cert_handle:
+                params['ldap_ca_cert'] = cert_handle.read()
         if ldap_username:
             params['ldap_username'] = ldap_username
         if ldap_password:
