@@ -23,11 +23,12 @@ class CloudifyClientError(Exception):
         self.error_code = error_code
         self.server_traceback = server_traceback
         self.response = response
+        self._message = message
 
     def __str__(self):
         if self.status_code != -1:
-            return '{0}: {1}'.format(self.status_code, self.message)
-        return self.message
+            return '{0}: {1}'.format(self.status_code, self._message)
+        return self._message
 
 
 class DeploymentEnvironmentCreationInProgressError(CloudifyClientError):
@@ -181,7 +182,7 @@ class MaintenanceModeActiveError(CloudifyClientError):
     ERROR_CODE = 'maintenance_mode_active'
 
     def __str__(self):
-        return self.message
+        return self._message
 
 
 class MaintenanceModeActivatingError(CloudifyClientError):
@@ -191,7 +192,7 @@ class MaintenanceModeActivatingError(CloudifyClientError):
     ERROR_CODE = 'entering_maintenance_mode'
 
     def __str__(self):
-        return self.message
+        return self._message
 
 
 class NotModifiedError(CloudifyClientError):
@@ -201,7 +202,7 @@ class NotModifiedError(CloudifyClientError):
     ERROR_CODE = 'not_modified'
 
     def __str__(self):
-        return self.message
+        return self._message
 
 
 class InvalidExecutionUpdateStatus(CloudifyClientError):
