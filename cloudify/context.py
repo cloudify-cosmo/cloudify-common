@@ -471,6 +471,11 @@ class NodeInstanceContext(EntityContext):
                 for relationship in self._node_instance.relationships]
         return self._relationships
 
+    @property
+    def index(self):
+        self._get_node_instance_if_needed()
+        return self._node_instance.get('index')
+
 
 class RelationshipContext(EntityContext):
     """Holds relationship instance data"""

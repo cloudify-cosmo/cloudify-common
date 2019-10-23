@@ -22,15 +22,19 @@ node_instances = {}
 
 
 def put_node_instance(node_instance_id,
+                      node_id=None,
                       state='started',
                       runtime_properties=None,
-                      relationships=None):
+                      relationships=None,
+                      index=None):
     node_instances[node_instance_id] = NodeInstance({
         'id': node_instance_id,
+        'node_id': node_id or node_instance_id,
         'state': state,
         'version': 0,
         'runtime_properties': runtime_properties,
-        'relationships': relationships
+        'relationships': relationships,
+        'index': index or 0,
     })
 
 
@@ -90,7 +94,7 @@ class MockNodeInstancesClient(object):
                 'No info for node with id {0}'.format(node_instance_id))
         return node_instances[node_instance_id]
 
-    def list(self, deployment_id):
+    def list(self, deployment_id, node_id):
         return []
 
 

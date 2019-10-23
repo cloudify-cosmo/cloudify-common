@@ -35,12 +35,14 @@ class MockRelationshipContext(object):
 
 class MockNodeInstanceContext(object):
 
-    def __init__(self, id=None, runtime_properties=None, relationships=None):
+    def __init__(self, id=None, runtime_properties=None, relationships=None,
+                 index=None):
         self._id = id
         self._runtime_properties = runtime_properties
         if relationships is None:
             relationships = []
         self._relationships = relationships
+        self._index = index or 0
 
     @property
     def id(self):
@@ -53,6 +55,10 @@ class MockNodeInstanceContext(object):
     @property
     def relationships(self):
         return self._relationships
+
+    @property
+    def index(self):
+        return self._index
 
     def update(self):
         pass
@@ -118,7 +124,8 @@ class MockCloudifyContext(CloudifyContext):
                  bootstrap_context=None,
                  config=None,
                  brokers=None,
-                 managers=None):
+                 managers=None,
+                 index=None):
         tenant = tenant or {}
         super(MockCloudifyContext, self).__init__({
             'blueprint_id': blueprint_id,
@@ -154,7 +161,8 @@ class MockCloudifyContext(CloudifyContext):
             self._instance = MockNodeInstanceContext(
                 id=node_id,
                 runtime_properties=self._runtime_properties,
-                relationships=relationships)
+                relationships=relationships,
+                index=index)
             self._capabilities = capabilities or ContextCapabilities(
                 self._endpoint, self._instance)
             self._node = MockNodeContext(node_name, properties, node_type)

@@ -266,6 +266,21 @@ def get_execution_token():
         return None
 
 
+def get_instances_of_node(rest_client,
+                          deployment_id=None,
+                          node_id=None,
+                          _ctx=None):
+    """
+    Get node instances of a node from a deployment.
+    """
+    _ctx = _ctx or _get_current_context()
+    deployment_id = deployment_id or _ctx.deployment.id
+    node_id = node_id or _ctx.node.id
+    return rest_client.node_instances.list(deployment_id=deployment_id,
+                                           node_id=node_id,
+                                           sort='index')
+
+
 def get_tenant():
     """Returns a dict with the details of the current tenant"""
     # this now gets the tenant from REST, however it needs to stay here to

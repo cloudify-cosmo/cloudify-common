@@ -93,6 +93,14 @@ class NodeInstance(dict):
         """
         return self.get('scaling_groups', [])
 
+    @property
+    def index(self):
+        """
+        :return: The index of this node instance in
+         relation to other node instances of the same node.
+        """
+        return self.get('index')
+
 
 class NodeInstancesClient(object):
 
