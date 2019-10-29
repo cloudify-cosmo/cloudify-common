@@ -109,7 +109,6 @@ class SnapshotsClient(object):
 
     def create(self,
                snapshot_id,
-               include_metrics,
                include_credentials,
                include_logs=True,
                include_events=True,
@@ -123,7 +122,6 @@ class SnapshotsClient(object):
         assert snapshot_id
         uri = '/snapshots/{0}'.format(snapshot_id)
         params = {
-            'include_metrics': include_metrics,
             'include_credentials': include_credentials,
             'include_logs': include_logs,
             'include_events': include_events,
