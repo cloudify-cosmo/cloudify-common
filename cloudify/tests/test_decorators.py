@@ -16,13 +16,17 @@
 
 import testtools
 
-from mock import patch
+from mock import patch, Mock
 
 from cloudify import ctx as ctx_proxy
 from cloudify import manager
 from cloudify import context
-from cloudify.decorators import operation, workflow
-from cloudify.exceptions import NonRecoverableError
+from cloudify.state import current_ctx
+from cloudify.decorators import (
+    operation, workflow, serial_operation)
+from cloudify.mocks import MockCloudifyContext
+from cloudify.exceptions import (
+    NonRecoverableError, CloudifySerializationRetry)
 
 from cloudify.test_utils.dispatch_helper import run
 import cloudify.tests.mocks.mock_rest_client as rest_client_mock
@@ -184,3 +188,215 @@ class OperationTest(testtools.TestCase):
         self.assertEqual(o2(), 'o2')
         self.assertEqual(w1(), 'w1')
         self.assertEqual(w2(), 'w2')
+
+    @patch('cloudify.tests.mocks.mock_rest_client.'
+           'MockNodeInstancesClient.list')
+    @patch('cloudify.decorators.get_rest_client')
+    def test_serial_operation_install(self, _mock, list_fn):
+
+        _ctx = MockCloudifyContext(
+            node_id='test_node',
+            deployment_id='test_deployment',
+            index=7
+        )
+
+        # Check that we raise if the preceder is not 'started'.
+        _ctx._context['workflow_id'] = 'install'
+        current_ctx.set(_ctx)
+        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
+        _caller = Mock()
+
+        @serial_operation()
+        def run_op_install_only(ctx=_ctx, **kwargs):
+            _caller()
+
+        list_fn.return_value = [
+            Mock(id='test_node{x}'.format(x=n),
+                 index=n,
+                 state='uninitialized') for n in range(0, 6)
+        ]
+        self.assertRaises(CloudifySerializationRetry,
+                          run_op_install_only)
+        self.assertFalse(_caller.called)
+        list_fn.return_value = [
+            Mock(id='test_node{x}'.format(x=n),
+                 index=n,
+                 state='started' if n < 7 else 'uninitialized')
+            for n in range(3, 10) if n != 7
+        ]
+        run_op_install_only()
+        self.assertTrue(_caller.called)
+        current_ctx.clear()
+
+    @patch('cloudify.tests.mocks.mock_rest_client.'
+           'MockNodeInstancesClient.list')
+    @patch('cloudify.decorators.get_rest_client')
+    def test_serial_operation_install_wait_for_1(self, _mock, list_fn):
+
+        _ctx = MockCloudifyContext(
+            node_id='test_node',
+            deployment_id='test_deployment',
+            index=7
+        )
+
+        # Check that we raise if the preceder is not 'started'.
+        _ctx._context['workflow_id'] = 'install'
+        current_ctx.set(_ctx)
+        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
+        _caller = Mock()
+
+        @serial_operation(threshold=1)
+        def run_op_wait_for_1(ctx=_ctx, **kwargs):
+            _caller()
+
+        list_fn.return_value = [
+            Mock(id='test_node{x}'.format(x=n),
+                 index=n,
+                 state='started' if n == 6 else 'uninitialized')
+            for n in range(0, 6)]
+        run_op_wait_for_1()
+        self.assertTrue(_caller.called)
+        current_ctx.clear()
+
+    @patch('cloudify.tests.mocks.mock_rest_client.'
+           'MockNodeInstancesClient.list')
+    @patch('cloudify.decorators.get_rest_client')
+    def test_serial_operation_install_states(self, _mock, list_fn):
+
+        _ctx = MockCloudifyContext(
+            node_id='test_node',
+            deployment_id='test_deployment',
+            index=7
+        )
+
+        # Check that we raise if the preceder is not 'started'.
+        _ctx._context['workflow_id'] = 'install'
+        current_ctx.set(_ctx)
+        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
+        _caller = Mock()
+
+        @serial_operation(states=['uninitialized'])
+        def run_op_uninitialized_states(ctx=_ctx, **kwargs):
+            _caller()
+
+        list_fn.return_value = [
+            Mock(id='test_node{x}'.format(x=n),
+                 index=n,
+                 state='started' if n == 6 else 'uninitialized')
+            for n in range(0, 6)]
+        run_op_uninitialized_states()
+        self.assertTrue(_caller.called)
+        current_ctx.clear()
+
+    @patch('cloudify.tests.mocks.mock_rest_client.'
+           'MockNodeInstancesClient.list')
+    @patch('cloudify.decorators.get_rest_client')
+    def test_serial_operation_install_workflow(self, _mock, list_fn):
+
+        _ctx = MockCloudifyContext(
+            node_id='test_node',
+            deployment_id='test_deployment',
+            index=7
+        )
+
+        # Check that we raise if the preceder is not 'started'.
+        _ctx._context['workflow_id'] = 'install'
+        current_ctx.set(_ctx)
+        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
+        _caller = Mock()
+
+        @serial_operation(workflows=['scale'])
+        def run_op_neither(ctx=_ctx, **kwargs):
+            _caller()
+
+        list_fn.return_value = [
+            Mock(id='test_node{x}'.format(x=n),
+                 index=n,
+                 state='started' if n == 6 else 'uninitialized')
+            for n in range(0, 6)]
+        run_op_neither()
+        self.assertTrue(_caller.called)
+        current_ctx.clear()
+
+    @patch('cloudify.tests.mocks.mock_rest_client.'
+           'MockNodeInstancesClient.list')
+    @patch('cloudify.decorators.get_rest_client')
+    def test_serial_operation_uninstall(self, _mock, list_fn):
+
+        _ctx = MockCloudifyContext(
+            node_id='test_node',
+            deployment_id='test_deployment',
+            index=7
+        )
+
+        # Check that we raise if the preceder is not 'started'.
+        _ctx._context['workflow_id'] = 'uninstall'
+        current_ctx.set(_ctx)
+        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
+        _caller = Mock()
+
+        @serial_operation(workflows=['uninstall'])
+        def run_op_uninstall_only(ctx=_ctx, **kwargs):
+            _caller()
+
+        list_fn.return_value = [
+            Mock(id='test_node{x}'.format(x=n),
+                 index=n,
+                 state='uninitialized') for n in range(1, 8) if n != 7
+        ]
+        self.assertRaises(CloudifySerializationRetry,
+                          run_op_uninstall_only)
+        self.assertFalse(_caller.called)
+        current_ctx.clear()
+
+    @patch('cloudify.tests.mocks.mock_rest_client.'
+           'MockNodeInstancesClient.list')
+    @patch('cloudify.decorators.get_rest_client')
+    def test_serial_operation_uninstall_wait_3(self, _mock, list_fn):
+
+        _ctx = MockCloudifyContext(
+            node_id='test_node',
+            deployment_id='test_deployment',
+            index=7
+        )
+
+        # Check that we raise if the preceder is not 'started'.
+        _ctx._context['workflow_id'] = 'uninstall'
+        current_ctx.set(_ctx)
+        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
+        _caller = Mock()
+
+        @serial_operation(threshold=3,
+                          workflows=['uninstall'])
+        def run_op_wait_for_3(ctx=_ctx, **kwargs):
+            _caller()
+
+        finished3 = []
+        for n in range(1, 8):
+            if n == 7:
+                continue
+            elif n in [1, 2, 3]:
+                state = 'started'
+            else:
+                state = 'uninitialized'
+            finished3.append(
+                Mock(
+                     id='test_node{x}'.format(x=n),
+                     index=n,
+                     state=state))
+        list_fn.return_value = finished3
+        self.assertRaises(CloudifySerializationRetry,
+                          run_op_wait_for_3)
+        self.assertFalse(_caller.called)
+
+        # Check if we cross the serialization_type threshold,
+        # then we do not trigger the retry.
+        list_fn.return_value = [
+            Mock(id='test_node{x}'.format(x=n),
+                 index=n,
+                 state='started' if n < 7 else 'uninitialized')
+            for n in range(3, 10) if n != 7
+        ]
+        run_op_wait_for_3()
+        self.assertTrue(_caller.called)
+        current_ctx.clear()

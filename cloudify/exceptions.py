@@ -56,6 +56,14 @@ class OperationRetry(RecoverableError):
     pass
 
 
+class CloudifySerializationRetry(RecoverableError):
+    """
+    An error raised internally when an operation is blocking other node
+    instances from installing.
+    """
+    pass
+
+
 class HttpException(NonRecoverableError):
     """
     Wraps HTTP based exceptions that may be raised.
