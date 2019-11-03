@@ -285,6 +285,7 @@ def scale_entity(ctx,
                  ignore_failure=False,
                  include_instances=None,
                  exclude_instances=None,
+                 rollback_if_failed=True,
                  **kwargs):
     """Scales in/out the subgraph of node_or_group_name.
 
@@ -311,6 +312,7 @@ def scale_entity(ctx,
     :param ignore_failure: ignore operations failures in uninstall workflow
     :param include_instances: Instances to include when scaling down
     :param exclude_instances: Instances to exclude when scaling down
+    :param rollback_if_failed: when False, no rollback will be triggered.
     """
     include_instances = include_instances or []
     exclude_instances = exclude_instances or []
@@ -425,6 +427,10 @@ def scale_entity(ctx,
                     node_instances=added,
                     related_nodes=related)
             except Exception:
+                if not rollback_if_failed:
+                    ctx.logger.error('Scale out failed.')
+                    raise
+
                 ctx.logger.error('Scale out failed, scaling back in.')
                 for task in graph.tasks_iter():
                     graph.remove_task(task)
@@ -445,6 +451,9 @@ def scale_entity(ctx,
                 ignore_failure=ignore_failure,
                 related_nodes=related)
     except Exception:
+        if not rollback_if_failed:
+            raise
+
         ctx.logger.warn('Rolling back deployment modification. '
                         '[modification_id={0}]'.format(modification.id))
         try:
