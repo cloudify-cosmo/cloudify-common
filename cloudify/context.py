@@ -474,7 +474,7 @@ class NodeInstanceContext(EntityContext):
     @property
     def index(self):
         self._get_node_instance_if_needed()
-        return self._node_instance.get('index')
+        return self._node_instance.index
 
 
 class RelationshipContext(EntityContext):
