@@ -38,6 +38,7 @@ from cloudify_rest_client.tenants import TenantsClient
 from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.summary import SummariesClient
 from cloudify_rest_client.snapshots import SnapshotsClient
+from cloudify_rest_client.cluster import ClusterStatusClient
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.executions import ExecutionsClient
 from cloudify_rest_client.user_groups import UserGroupsClient
@@ -435,3 +436,4 @@ class CloudifyClient(object):
         self.tasks_graphs = TasksGraphClient(self._client)
         self.license = LicenseClient(self._client)
         self.sites = SitesClient(self._client)
+        self.cluster_status = ClusterStatusClient(self._client)
