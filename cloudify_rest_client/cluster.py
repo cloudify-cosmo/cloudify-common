@@ -15,9 +15,17 @@
 
 import json
 
-class ClusterClient(object):
+
+class CloudifyNodeType(object):
+    DB = 'db'
+    BROKER = 'broker'
+    MANAGER = 'manager'
+    type_list = [DB, BROKER, MANAGER]
+
+
+class ClusterStatusClient(object):
     """
-    Cloudify's cluster management client.
+    Cloudify's cluster status client.
     """
 
     def __init__(self, api):
@@ -31,7 +39,10 @@ class ClusterClient(object):
         response = self.api.get('/cluster_status')
         return response
 
-    def _report(self, node_type, node_id, status_report):
+    def report_node_status(self, node_type, node_id, status_report):
+        if node_type not in CloudifyNodeType:
+            raise Exception('Tried to send a status report for not '
+                            'Cloudify\'s node type \"{}\"'.format(node_type))
         if not isinstance(status_report, dict):
             raise Exception('Tried to send malformed cluster node\'s '
                             'status report of type {0}'.format(
@@ -39,12 +50,3 @@ class ClusterClient(object):
         data = json.dumps(status_report)
         uri = self._uri_prefix.format(node_type, node_id)
         return self.api.put(uri, data, expected_status_code=201)
-
-    def report_manager_status(self, node_id, status_report):
-        return self._report('manager', node_id, status_report)
-
-    def report_broker_node_status(self, node_id, status_report):
-        return self._report('broker', node_id, status_report)
-
-    def report_db_node_status(self, node_id, status_report):
-        return self._report('db', node_id, status_report)
