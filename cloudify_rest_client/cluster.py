@@ -15,12 +15,7 @@
 
 import json
 
-
-class CloudifyNodeType(object):
-    DB = 'db'
-    BROKER = 'broker'
-    MANAGER = 'manager'
-    TYPE_LIST = [DB, BROKER, MANAGER]
+from cloudify.cluster import CloudifyNodeType
 
 
 class ClusterStatusClient(object):

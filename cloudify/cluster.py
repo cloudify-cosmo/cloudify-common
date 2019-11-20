@@ -24,6 +24,13 @@ from cloudify_rest_client.client import HTTPClient
 from cloudify_rest_client.exceptions import CloudifyClientError
 
 
+class CloudifyNodeType(object):
+    DB = 'db'
+    BROKER = 'broker'
+    MANAGER = 'manager'
+    TYPE_LIST = [DB, BROKER, MANAGER]
+
+
 class ClusterHTTPClient(HTTPClient):
     default_timeout_sec = (5, None)
     retries = 30
