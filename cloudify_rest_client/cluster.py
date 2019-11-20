@@ -20,7 +20,7 @@ class CloudifyNodeType(object):
     DB = 'db'
     BROKER = 'broker'
     MANAGER = 'manager'
-    type_list = [DB, BROKER, MANAGER]
+    TYPE_LIST = [DB, BROKER, MANAGER]
 
 
 class ClusterStatusClient(object):
@@ -30,7 +30,7 @@ class ClusterStatusClient(object):
 
     def __init__(self, api):
         self.api = api
-        self._uri_prefix = '/cluster_status/{0}/{1}'
+        self._uri_prefix = '/cluster-status/{0}/{1}'
 
     def get_status(self):
         """
@@ -40,7 +40,7 @@ class ClusterStatusClient(object):
         return response
 
     def report_node_status(self, node_type, node_id, status_report):
-        if node_type not in CloudifyNodeType:
+        if node_type not in CloudifyNodeType.TYPE_LIST:
             raise Exception('Tried to send a status report for not '
                             'Cloudify\'s node type \"{}\"'.format(node_type))
         if not isinstance(status_report, dict):
