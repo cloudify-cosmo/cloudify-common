@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2017 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2017-2019 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,13 +22,6 @@ import itertools
 from cloudify_rest_client import CloudifyClient
 from cloudify_rest_client.client import HTTPClient
 from cloudify_rest_client.exceptions import CloudifyClientError
-
-
-class CloudifyNodeType(object):
-    DB = 'db'
-    BROKER = 'broker'
-    MANAGER = 'manager'
-    TYPE_LIST = [DB, BROKER, MANAGER]
 
 
 class ClusterHTTPClient(HTTPClient):

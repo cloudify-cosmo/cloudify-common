@@ -15,7 +15,7 @@
 
 import json
 
-from cloudify.cluster import CloudifyNodeType
+from cloudify.cluster_status import CloudifyNodeType
 
 
 class ClusterStatusClient(object):
@@ -31,7 +31,7 @@ class ClusterStatusClient(object):
         """
         :return: Cloudify cluster's status.
         """
-        response = self.api.get('/cluster_status')
+        response = self.api.get('/cluster-status')
         return response
 
     def report_node_status(self, node_type, node_id, status_report):
