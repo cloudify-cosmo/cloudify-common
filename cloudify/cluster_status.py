@@ -19,3 +19,14 @@ class CloudifyNodeType(object):
     BROKER = 'broker'
     MANAGER = 'manager'
     TYPE_LIST = [DB, BROKER, MANAGER]
+
+
+class ServiceStatus(object):
+    HEALTHY = 'OK'
+    DEGRADED = 'Degraded'
+    FAIL = 'Fail'
+
+
+class NodeServiceStatus(object):
+    ACTIVE = 'Active'
+    INACTIVE = 'Inactive'
