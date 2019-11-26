@@ -13,9 +13,12 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from packaging.specifiers import InvalidSpecifier
+
 from dsl_parser import (constants,
                         exceptions)
 from dsl_parser.elements import version as element_version
+from dsl_parser.utils import get_specifier_set
 from dsl_parser.framework.elements import (DictElement,
                                            Element,
                                            Leaf,
@@ -103,6 +106,26 @@ class PluginDistributionRelease(PluginVersionValidatedElement):
     min_version = (1, 2)
 
 
+class PluginSupportedCloudify(Element):
+
+    schema = Leaf(type=str)
+    add_namespace_to_schema_elements = False
+
+    def validate(self):
+        if self.initial_value:
+            try:
+                versions = self.initial_value.split(',')
+                get_specifier_set(versions)
+            except InvalidSpecifier:
+                raise exceptions.DSLParsingFormatException(
+                    1, "Plugin '{0}' has an invalid "
+                       "'{1}' value '{2}'; value "
+                       "must follow PEP 440 format".format(
+                        self.ancestor(Plugin).name,
+                        self.name,
+                        self.initial_value))
+
+
 class Plugin(DictElement):
 
     schema = {
@@ -113,6 +136,7 @@ class Plugin(DictElement):
         'package_name': PluginPackageName,
         'package_version': PluginPackageVersion,
         'supported_platform': PluginSupportedPlatform,
+        'supported_cloudify': PluginSupportedCloudify,
         'distribution': PluginDistribution,
         'distribution_version': PluginDistributionVersion,
         'distribution_release': PluginDistributionRelease

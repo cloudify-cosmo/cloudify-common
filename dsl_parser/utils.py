@@ -28,6 +28,7 @@ except ImportError:
     from urlparse import urlparse
 
 import yaml.parser
+from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
 from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
     RESLOVER_PARAMETERS_KEY,\
@@ -383,3 +384,21 @@ def remove_blueprint_import_prefix(import_url):
 
 def find_suffix_matches_in_list(sub_str, items):
     return [item for item in items if item.endswith(sub_str)]
+
+
+def get_specifier_set(versions):
+    # Flat out the versions, in case one of them contains a few
+    # operators/specific versions
+    _versions = (v for vs in versions for v in vs.split(','))
+    specs = SpecifierSet()
+    for spec in _versions:
+        if not spec:
+            raise InvalidSpecifier()
+        try:
+            specs &= SpecifierSet(spec)
+        except InvalidSpecifier:
+            # If the code below doesn't raise any exception then it's
+            # the case where a version has been provided with no
+            # operator to prefix it.
+            specs &= SpecifierSet('==={}'.format(spec))
+    return specs
