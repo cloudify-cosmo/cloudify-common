@@ -44,4 +44,4 @@ class ClusterStatusClient(object):
                              type(status_report)))
         data = json.dumps(status_report)
         uri = self._uri_prefix.format(node_type, node_id)
-        return self.api.put(uri, data, expected_status_code=201)
+        return self.api.put(uri, data)
