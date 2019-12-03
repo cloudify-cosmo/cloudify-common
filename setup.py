@@ -25,7 +25,8 @@ install_requires = [
     'bottle==0.12.7',
     'jinja2==2.10',
     'requests_toolbelt==0.8.0',
-    'pysnmp==4.4.5'
+    'pysnmp==4.4.5',
+    'dbus-python==1.2.4'
 ]
 
 try:
