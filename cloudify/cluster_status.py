@@ -14,6 +14,14 @@
 #    * limitations under the License.
 
 
+MANAGER_STATUS_REPORTER = 'manager_status_reporter'
+DB_STATUS_REPORTER = 'db_status_reporter'
+BROKER_STATUS_REPORTER = 'broker_status_reporter'
+STATUS_REPORTER_USERS = [DB_STATUS_REPORTER,
+                         BROKER_STATUS_REPORTER,
+                         MANAGER_STATUS_REPORTER]
+
+
 class CloudifyNodeType(object):
     DB = 'db'
     BROKER = 'broker'
