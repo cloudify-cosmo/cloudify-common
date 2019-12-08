@@ -27,12 +27,12 @@ class ClusterStatusClient(object):
         self.api = api
         self._uri_prefix = '/cluster-status/{0}/{1}'
 
-    def get_status(self):
+    def get_status(self, summary_format=False):
         """
         :return: Cloudify cluster's status.
         """
-        response = self.api.get('/cluster-status')
-        return response
+        return self.api.get('/cluster-status',
+                            params={'summary': summary_format})
 
     def report_node_status(self, node_type, node_id, status_report):
         if node_type not in CloudifyNodeType.TYPE_LIST:
