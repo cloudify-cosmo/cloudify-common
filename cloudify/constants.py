@@ -95,3 +95,5 @@ CLOUDIFY_AUTHENTICATION_HEADER = 'Authorization'
 CLOUDIFY_TOKEN_AUTHENTICATION_HEADER = 'Authentication-Token'
 
 NAMESPACE_BLUEPRINT_IMPORT_DELIMITER = '--'
+SNAPSHOT_RESTORE_MARKER_FILE_PATH = ('/opt/cloudify/snapshot_status'
+                                     '/snapshot_restoring')
