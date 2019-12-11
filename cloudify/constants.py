@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
+# Copyright (c) 2019 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -95,5 +95,3 @@ CLOUDIFY_AUTHENTICATION_HEADER = 'Authorization'
 CLOUDIFY_TOKEN_AUTHENTICATION_HEADER = 'Authentication-Token'
 
 NAMESPACE_BLUEPRINT_IMPORT_DELIMITER = '--'
-SNAPSHOT_RESTORE_MARKER_FILE_PATH = ('/opt/cloudify/snapshot_status'
-                                     '/snapshot_restoring')
