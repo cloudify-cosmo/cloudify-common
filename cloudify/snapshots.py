@@ -13,13 +13,10 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from collections import namedtuple
-
-SNAPSHOT_RESTORE_FLAG_FILE = ('/opt/cloudify/snapshot_status'
+SNAPSHOT_RESTORE_FLAG_FILE = ('/opt/manager/snapshot_status'
                               '/snapshot_restoring')
 
-SnapshotRestoreStates = namedtuple('SnapshotRestoreStates',
-                                   ['RUNNING',
-                                    'NOT_RUNNING'])
-STATES = SnapshotRestoreStates(RUNNING='running',
-                               NOT_RUNNING='not-running')
+
+class STATES:
+    RUNNING = 'running'
+    NOT_RUNNING = 'not-running'
