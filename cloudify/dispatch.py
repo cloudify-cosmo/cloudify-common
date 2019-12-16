@@ -267,6 +267,8 @@ class TaskHandler(object):
                     'args': self.args,
                     'kwargs': self.kwargs
                 }, f)
+            if self.cloudify_context.get('bypass_maintenance'):
+                os.environ[constants.BYPASS_MAINTENANCE] = 'True'
             env = self._build_subprocess_env()
             command_args = [sys.executable, '-u', '-m', 'cloudify.dispatch',
                             dispatch_dir]
