@@ -171,21 +171,10 @@ class AMQPConnection(object):
             deadline = time.time() + self._connect_timeout
 
         try:
-            retries_left = 50
             while self._pika_connection is None:
-                if retries_left == 0:
-                    raise pika.exceptions.AMQPConnectionError(
-                        'No rabbit hosts could be found')
-                try:
-                    params = next(self._connection_params)
-                    self._pika_connection = self._get_pika_connection(
-                        params, deadline)
-                except pika.exceptions.ConnectionClosed:
-                    logger.warning('Failed to connect with params: {}'.format(
-                        self._connection_params))
-                    retries_left -= 1
-                    continue
-
+                params = next(self._connection_params)
+                self._pika_connection = self._get_pika_connection(
+                    params, deadline)
         # unfortunately DaemonNotFoundError is a BaseException subclass :(
         except BaseException as e:
             self._error = e
