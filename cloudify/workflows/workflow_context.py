@@ -1395,8 +1395,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def operation_cloudify_context(self):
         return {'local': False,
                 'bypass_maintenance': utils.get_is_bypass_maintenance(),
-                'rest_token': utils.get_rest_token(),
-                'execution_token': utils.get_execution_token()}
+                'rest_token': utils.get_rest_token()}
 
     def download_deployment_resource(self,
                                      blueprint_id,
