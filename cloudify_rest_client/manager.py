@@ -167,6 +167,32 @@ class ManagerItem(dict):
         return self.get('node_id')
 
 
+class DBNodeItem(dict):
+    def __init__(self, db_node):
+        super(DBNodeItem, self).__init__()
+        self.update(db_node)
+
+    @property
+    def name(self):
+        """ Name of this DB node"""
+        return self.get('name')
+
+    @property
+    def node_id(self):
+        """Cloudify's auto-generated node id"""
+        return self.get('node_id')
+
+    @property
+    def host(self):
+        """IP address of this DB node"""
+        return self.get('host')
+
+    @property
+    def is_external(self):
+        """Is the DB external"""
+        return self.get('is_external')
+
+
 class RabbitMQBrokerItem(dict):
     def __init__(self, broker):
         super(RabbitMQBrokerItem, self).__init__()
@@ -230,6 +256,11 @@ class RabbitMQBrokerItem(dict):
     def node_id(self):
         """Cloudify's auto-generated node id"""
         return self.get('node_id')
+
+    @property
+    def is_external(self):
+        """Is the broker external"""
+        return self.get('is_external')
 
 
 class ManagerClient(object):
@@ -411,6 +442,13 @@ class ManagerClient(object):
         response = self.api.get('/brokers',)
         return ListResponse(
             [RabbitMQBrokerItem(item) for item in response['items']],
+            response['metadata']
+        )
+
+    def get_db_nodes(self):
+        response = self.api.get('/db-nodes')
+        return ListResponse(
+            [DBNodeItem(item) for item in response['items']],
             response['metadata']
         )
 
