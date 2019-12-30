@@ -114,10 +114,7 @@ class TestGraphSerialize(TestCase):
         self.assertEqual(graph.id, deserialized.id)
 
         deserialized_task1 = deserialized.get_task(task1.id)
-        self.assertEqual(task1._kwargs, deserialized_task1._kwargs)
-
         deserialized_task2 = deserialized.get_task(task2.id)
-        self.assertEqual(task2._kwargs, deserialized_task2._kwargs)
 
         deserialized_subgraph = deserialized.get_task(subgraph.id)
         self.assertEqual(deserialized_task1.containing_subgraph.id,
