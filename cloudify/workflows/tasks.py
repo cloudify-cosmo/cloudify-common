@@ -429,18 +429,14 @@ class RemoteWorkflowTask(WorkflowTask):
     def dump(self):
         task = super(RemoteWorkflowTask, self).dump()
 
-        # store a copy of kwargs but without __cloudify_context
-        task['parameters']['task_kwargs'] = {
-            'kwargs': dict((k, v) for k, v in self._kwargs.items()
-                           if k != '__cloudify_context')
-        }
-
-        # in __cloudify_context, a few fields are skipped - the ones
-        # containing rest credentials/tokens
-        ctx = self._kwargs['__cloudify_context']
-        skipped_fields = ['execution_token', 'rest_token']
+        # make a copy of kwargs.__cloudify_context, to remove the token
+        # fields from the dumped representation, without mutating self._kwargs
+        task['parameters']['task_kwargs'] = {'kwargs': self._kwargs.copy()}
         task['parameters']['task_kwargs']['kwargs']['__cloudify_context'] = \
-            dict((k, v) for k, v in ctx.items() if k not in skipped_fields)
+            self._kwargs['__cloudify_context'].copy()
+        for skipped_field in ['execution_token', 'rest_token']:
+            task['parameters']['task_kwargs']['kwargs'][
+                '__cloudify_context'].pop(skipped_field, None)
         return task
 
     def _update_stored_state(self, state):
