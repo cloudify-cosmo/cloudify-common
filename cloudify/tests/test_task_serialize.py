@@ -59,11 +59,17 @@ class TestSerialize(TestCase):
             graph=None,
             task_descr=serialized)
 
-        for attr_name in ['id', '_cloudify_context', '_kwargs', 'info',
-                          'total_retries', 'retry_interval', '_state',
-                          'current_retries']:
+        for attr_name in ['id', 'info', 'total_retries', 'retry_interval',
+                          '_state', 'current_retries']:
             self.assertEqual(getattr(task, attr_name),
                              getattr(deserialized, attr_name))
+        task_ctx = task._cloudify_context
+        deserialized_task_ctx = deserialized._cloudify_context
+        # when deserializing, execution_token is added from the workflow ctx
+        self.assertEqual(deserialized_task_ctx, {
+            'task_name': task_ctx['task_name'],
+            'execution_token': 'mock_token'
+        })
 
     def test_marks_as_stored(self):
         task = _make_remote_task()
