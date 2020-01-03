@@ -378,7 +378,8 @@ class TaskConsumer(object):
                                  exchange_type=self.exchange_type)
         channel.queue_declare(queue=self.queue,
                               durable=True,
-                              auto_delete=False)
+                              auto_delete=False,
+                              arguments={"x-ha-policy": "all"})
         channel.queue_bind(queue=self.queue,
                            exchange=self.exchange,
                            routing_key=self.routing_key)
@@ -522,6 +523,7 @@ class ScheduledExecutionHandler(SendHandler):
                 'x-dead-letter-routing-key': (
                     self.target_routing_key
                 ),
+                'x-ha-policy': 'all'
             },
             durable=True)
         channel.queue_bind(exchange=self.exchange, queue=self.routing_key)
@@ -548,7 +550,8 @@ class _RequestResponseHandlerBase(TaskConsumer):
     def _declare_queue(self, queue_name):
         self._connection.channel_method(
             'queue_declare', queue=queue_name, durable=True,
-            exclusive=self.queue_exclusive)
+            exclusive=self.queue_exclusive,
+            arguments={'x-ha-policy': 'all'})
         self._connection.channel_method(
             'queue_bind', queue=queue_name, exchange=self.exchange)
         self._connection.channel_method(
