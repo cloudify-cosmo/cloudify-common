@@ -49,8 +49,8 @@ function install_wagon(){
 function wagon_create_package(){
 
     echo "## wagon create package"
-    echo "git clone https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git"
-    git clone https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git
+    echo "git clone https://github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git"
+    git clone https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git
     pushd $PLUGIN_NAME
         if [ "$PLUGIN_TAG_NAME" == "master" ];then
             git checkout master
@@ -79,7 +79,7 @@ source common-provision.sh
 
 
 GITHUB_USERNAME=$1
-GITHUB_PASSWORD=$2
+GITHUB_TOKEN=$2
 AWS_ACCESS_KEY_ID=$3
 AWS_ACCESS_KEY=$4
 PLUGIN_NAME=$5
