@@ -14,38 +14,6 @@ function print_plugins_params() {
     done
 }
 
-function install_dependencies(){
-    echo "## Installing necessary dependencies"
-
-    if  which yum; then
-        sudo yum -y install python-devel gcc openssl git libxslt-devel libxml2-devel openldap-devel libffi-devel openssl-devel libvirt-devel
-    elif which apt-get; then
-        sudo apt-get update &&
-        sudo apt-get -y install build-essential python-dev gcc openssl libffi-dev libssl-dev libvirt-dev
-    else
-        echo 'probably windows machine'
-        pip install virtualenv
-        return
-    fi
-    sudo pip install -U virtualenv
-}
-
-function install_wagon(){
-    echo "## installing wagon"
-    virtualenv env
-    source env/bin/activate
-    curl https://bootstrap.pypa.io/get-pip.py | python
-    if  which yum; then
-        echo 'redaht/centos machine'
-    elif which apt-get; then
-        echo 'ubuntu/debian machine'
-    else
-        echo 'probably windows machine'
-    fi
-    pip install --upgrade pip==9.0.1 setuptools
-    pip install wagon==0.3.2
-}
-
 function wagon_create_package(){
 
     echo "## wagon create package"
@@ -58,15 +26,11 @@ function wagon_create_package(){
             git checkout -b $PLUGIN_TAG_NAME origin/$PLUGIN_TAG_NAME
         fi
     popd
-    echo "manylinux1_compatible = False" > "env/bin/_manylinux.py"
-    mkdir create_wagon ; cd create_wagon
-    if [ ! -z "$CONSTRAINTS_FILE" ] && [ -f "/packaging/$CONSTRAINTS_FILE" ];then
-        echo "## /packaging/$CONSTRAINTS_FILE exist"
-        wagon create -s ../$PLUGIN_NAME/ -r -v -f -a '--no-cache-dir -c /packaging/'$CONSTRAINTS_FILE''
-    else
-        echo "## /packaging/$CONSTRAINTS_FILE doesn't exist"
-        wagon create -s ../$PLUGIN_NAME/ -r -v -f
-    fi
+    # This will generate a wagon file and dump it to the current plugin name
+    # directory, this should work for all linux image but for Redhat we need
+    # to build it locally since it needs subscription account
+    #TODO need to handle Redhat
+    docker run -v $PLUGIN_NAME:/packaging $DOCKER_IMAGE
 }
 
 
@@ -87,15 +51,14 @@ PLUGIN_TAG_NAME=$6
 PLUGIN_S3_FOLDER=$7
 GITHUB_ORGANIZATION=$8
 CONSTRAINTS_FILE=$9
+DOCKER_IMAGE=${10}
 
 export AWS_S3_BUCKET="cloudify-release-eu"
 export AWS_S3_PATH="cloudify/wagons/$PLUGIN_NAME/$PLUGIN_S3_FOLDER"
 
-install_common_prereqs &&
 print_plugins_params
-install_dependencies &&
-install_wagon &&
 wagon_create_package &&
+cd $PLUGIN_NAME &&
 create_md5 "wgn" &&
 [ -z ${AWS_ACCESS_KEY} ] || upload_to_s3 "wgn" && upload_to_s3 "md5"
 
