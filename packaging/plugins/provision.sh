@@ -20,6 +20,7 @@ function wagon_create_package(){
     echo "git clone https://github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git"
     git clone https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git
     pushd $PLUGIN_NAME
+        PLUGIN_PATH=$(PWD)
         if [ "$PLUGIN_TAG_NAME" == "master" ];then
             git checkout master
         else
@@ -29,8 +30,23 @@ function wagon_create_package(){
     # This will generate a wagon file and dump it to the current plugin name
     # directory, this should work for all linux image but for Redhat we need
     # to build it locally since it needs subscription account
-    #TODO need to handle Redhat
-    docker run -v $PLUGIN_NAME:/packaging $DOCKER_IMAGE
+    echo "## echo build wagon package using docker"
+    echo "git clone https://github.com/$GITHUB_ORGANIZATION/$PLUGIN_NAME.git"
+    git clone https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/$GITHUB_ORGANIZATION/$WAGON_BUILDLER_REPO.git
+    IMAGE_NAME="cloudify-$PLUGIN_PLATFORM-wagon-builder"
+    pushd $WAGON_BUILDLER_REPO
+         git checkout $WAGON_BUILDLER_BRANCH
+         pushd $PLUGIN_PLATFORM
+             if [$PLUGIN_PLATFORM == redhat*]; then
+                  docker build -t $IMAGE_NAME --build-arg USERNAME=$REL_SUB_USERNAME --build-arg PASSWORD=$REL_SUB_PASSWORD .
+             else
+                 docker build -t $IMAGE_NAME .
+             fi
+         popd
+    popd
+
+    # This will generate/dump the wagon file inside the Plugin directory
+    docker run -v $PLUGIN_PATH:/packaging $IMAGE_NAME
 }
 
 
@@ -41,7 +57,8 @@ export CORE_BRANCH="master"
 curl https://raw.githubusercontent.com/cloudify-cosmo/cloudify-common/$CORE_BRANCH/packaging/common/provision.sh -o ./common-provision.sh &&
 source common-provision.sh
 
-
+# These are common inputs for both building wagon using docker for (Linux)
+# And for building wagong in windows using vagrant
 GITHUB_USERNAME=$1
 GITHUB_TOKEN=$2
 AWS_ACCESS_KEY_ID=$3
@@ -50,8 +67,19 @@ PLUGIN_NAME=$5
 PLUGIN_TAG_NAME=$6
 PLUGIN_S3_FOLDER=$7
 GITHUB_ORGANIZATION=$8
-CONSTRAINTS_FILE=$9
-DOCKER_IMAGE=${10}
+
+if [ "$#" -eq 9 ]; then
+  CONSTRAINTS_FILE=$9
+  echo "There are 9 params"
+
+else
+  echo "There are 13 params"
+  PLUGIN_PLATFORM=$9
+  WAGON_BUILDLER_REPO=${10}
+  WAGON_BUILDLER_BRANCH=${11}
+  REL_SUB_USERNAME=${12}
+  REL_SUB_PASSWORD=${13}
+fi
 
 export AWS_S3_BUCKET="cloudify-release-eu"
 export AWS_S3_PATH="cloudify/wagons/$PLUGIN_NAME/$PLUGIN_S3_FOLDER"
