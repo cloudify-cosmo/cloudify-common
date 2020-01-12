@@ -65,7 +65,7 @@ function upload_to_s3() {
         echo "awscli already installed!"
     else
         echo "Installing awscli ..."
-        $SUDO pip install awscli
+        $SUDO pip install awscli==1.16.314
     fi
     echo "## uploading https://$AWS_S3_BUCKET.s3.amazonaws.com/$AWS_S3_PATH/$file"
     export AWS_SECRET_ACCESS_KEY=${AWS_ACCESS_KEY} &&
