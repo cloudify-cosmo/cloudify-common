@@ -20,6 +20,23 @@ from cloudify.workflows import tasks, tasks_graph
 from cloudify_rest_client.operations import Operation, TasksGraph
 
 
+class _MockCtx(object):
+    def __init__(self, storage):
+        self._storage = storage
+        self.execution_token = 'mock_token'
+
+    def _get_current_object(self):
+        return self
+
+    def store_tasks_graph(self, name, operations):
+        self._storage['name'] = name
+        self._storage['operations'] = [Operation(op) for op in operations]
+        return {'id': 'abc'}
+
+    def get_operations(self, graph_id):
+        return self._storage['operations']
+
+
 def _make_remote_task(kwargs=None):
     kwargs = kwargs or {'a': 1}
     kwargs['__cloudify_context'] = {'task_name': 'x'}
@@ -38,37 +55,27 @@ class TestSerialize(TestCase):
         task._state = tasks.TASK_SENT
         serialized = Operation(task.dump())
         deserialized = tasks.RemoteWorkflowTask.restore(
-            ctx=None,
+            ctx=_MockCtx({}),
             graph=None,
             task_descr=serialized)
 
-        for attr_name in ['id', '_cloudify_context', '_kwargs', 'info',
-                          'total_retries', 'retry_interval', '_state',
-                          'current_retries']:
+        for attr_name in ['id', 'info', 'total_retries', 'retry_interval',
+                          '_state', 'current_retries']:
             self.assertEqual(getattr(task, attr_name),
                              getattr(deserialized, attr_name))
+        task_ctx = task._cloudify_context
+        deserialized_task_ctx = deserialized._cloudify_context
+        # when deserializing, execution_token is added from the workflow ctx
+        self.assertEqual(deserialized_task_ctx, {
+            'task_name': task_ctx['task_name'],
+            'execution_token': 'mock_token'
+        })
 
     def test_marks_as_stored(self):
         task = _make_remote_task()
         self.assertFalse(task.stored)
         task.dump()
         self.assertTrue(task.stored)
-
-
-class _MockCtx(object):
-    def __init__(self, storage):
-        self._storage = storage
-
-    def _get_current_object(self):
-        return self
-
-    def store_tasks_graph(self, name, operations):
-        self._storage['name'] = name
-        self._storage['operations'] = [Operation(op) for op in operations]
-        return {'id': 'abc'}
-
-    def get_operations(self, graph_id):
-        return self._storage['operations']
 
 
 class TestGraphSerialize(TestCase):
@@ -107,10 +114,7 @@ class TestGraphSerialize(TestCase):
         self.assertEqual(graph.id, deserialized.id)
 
         deserialized_task1 = deserialized.get_task(task1.id)
-        self.assertEqual(task1._kwargs, deserialized_task1._kwargs)
-
         deserialized_task2 = deserialized.get_task(task2.id)
-        self.assertEqual(task2._kwargs, deserialized_task2._kwargs)
 
         deserialized_subgraph = deserialized.get_task(subgraph.id)
         self.assertEqual(deserialized_task1.containing_subgraph.id,

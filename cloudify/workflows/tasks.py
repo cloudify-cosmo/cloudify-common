@@ -420,11 +420,23 @@ class RemoteWorkflowTask(WorkflowTask):
         context = params['task_kwargs']['kwargs']['__cloudify_context']
         # RemoteWorkflowTask requires the context dict to be passed in
         params['task_kwargs']['cloudify_context'] = context
+
+        # rest credentials for the operations are not stored, so can't be
+        # resumed, but we'll use the up-to-date token from workflow ctx
+        context['execution_token'] = ctx.execution_token
         return super(RemoteWorkflowTask, cls).restore(ctx, graph, task_descr)
 
     def dump(self):
         task = super(RemoteWorkflowTask, self).dump()
-        task['parameters']['task_kwargs'] = {'kwargs': self._kwargs}
+
+        # make a copy of kwargs.__cloudify_context, to remove the token
+        # fields from the dumped representation, without mutating self._kwargs
+        task['parameters']['task_kwargs'] = {'kwargs': self._kwargs.copy()}
+        task['parameters']['task_kwargs']['kwargs']['__cloudify_context'] = \
+            self._kwargs['__cloudify_context'].copy()
+        for skipped_field in ['execution_token', 'rest_token']:
+            task['parameters']['task_kwargs']['kwargs'][
+                '__cloudify_context'].pop(skipped_field, None)
         return task
 
     def _update_stored_state(self, state):
