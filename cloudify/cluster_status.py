@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2019 Cloudify Platform Ltd. All rights reserved
+# Copyright (c) 2019-2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ BROKER_STATUS_REPORTER = 'broker_status_reporter'
 STATUS_REPORTER_USERS = [DB_STATUS_REPORTER,
                          BROKER_STATUS_REPORTER,
                          MANAGER_STATUS_REPORTER]
+MANAGER_STATUS_REPORTER_ID = 90000
+DB_STATUS_REPORTER_ID = 90001
+BROKER_STATUS_REPORTER_ID = 90002
 
 
 class CloudifyNodeType(object):
