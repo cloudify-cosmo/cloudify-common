@@ -70,11 +70,21 @@ function generate_windows_plugin() {
     create_windows_wagon_package
 }
 
+function override_constraints_file() {
+    if [ ! -z "$CONSTRAINTS_FILE" ];then
+        cp -rf $CONSTRAINTS_FILE $PLUGIN_PATH/
+    fi
+}
+
 function wagon_create_package(){
 
     echo "## wagon create package"
     # Checkout to the plugin
     checkout_plugin
+
+    # Check if constraint file is provided or not
+    override_constraints_file
+
     # This will generate a wagon file and dump it to the current plugin name
     # directory, this should work for all linux image but for Redhat we need
     # to build it locally since it needs subscription account
@@ -85,7 +95,7 @@ function wagon_create_package(){
     pushd $WAGON_BUILDLER_REPO
          git checkout $WAGON_BUILDLER_BRANCH
          pushd $PLUGIN_PLATFORM
-             if [$PLUGIN_PLATFORM == redhat*]; then
+             if [[ $PLUGIN_PLATFORM == "redhat"* ]]; then
                   docker build -t $IMAGE_NAME --build-arg USERNAME=$REL_SUB_USERNAME --build-arg PASSWORD=$REL_SUB_PASSWORD .
              else
                   docker build -t $IMAGE_NAME .
@@ -94,13 +104,9 @@ function wagon_create_package(){
     popd
 
     # This will generate/dump the wagon file inside the Plugin directory
-    docker run -v $PLUGIN_PATH:/packaging $IMAGE_NAME
-}
-
-function override_constraints_file() {
-    if [! -z "$CONSTRAINTS_FILE"];then
-        cp -rf $CONSTRAINTS_FILE $PLUGIN_NAME/
-    if
+    if [[ $? == 0 ]]; then
+        docker run -v $PLUGIN_PATH:/packaging $IMAGE_NAME
+    fi
 }
 
 # VERSION/PRERELEASE/BUILD must be exported as they is being read as an env var by the cloudify-agent-packager
@@ -124,12 +130,15 @@ CONSTRAINTS_FILE=$9
 DOCKER_BUILDER=false
 
 if [ "$#" -gt 9 ]; then
+    echo "# Docker Builder is running....."
     PLUGIN_PLATFORM=${10}
     WAGON_BUILDLER_REPO=${11}
     WAGON_BUILDLER_BRANCH=${12}
     REL_SUB_USERNAME=${13}
     REL_SUB_PASSWORD=${14}
     DOCKER_BUILDER=true
+else
+  echo "# Vagrant Builder is running....."
 fi
 
 export AWS_S3_BUCKET="cloudify-release-eu"
@@ -137,14 +146,12 @@ export AWS_S3_PATH="cloudify/wagons/$PLUGIN_NAME/$PLUGIN_S3_FOLDER"
 
 if $DOCKER_BUILDER; then
   print_plugins_params &&
-  override_constraints_file &&
   wagon_create_package &&
   cd $PLUGIN_NAME &&
   create_md5 "wgn" &&
   [ -z ${AWS_ACCESS_KEY} ] || upload_to_s3 "wgn" && upload_to_s3 "md5"
 else
    generate_windows_plugin &&
-   cd $PLUGIN_NAME &&
    create_md5 "wgn" &&
    [ -z ${AWS_ACCESS_KEY} ] || upload_to_s3 "wgn" && upload_to_s3 "md5"
 fi
