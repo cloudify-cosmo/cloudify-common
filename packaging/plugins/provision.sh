@@ -76,6 +76,15 @@ function override_constraints_file() {
     fi
 }
 
+function clean_docker_resources() {
+  # This will clean all exited docker containers
+  docker rm $(docker ps -a -f status=exited -q)
+
+  # Remove Docker image
+  docker rmi $IMAGE_NAME --force
+
+}
+
 function wagon_create_package(){
 
     echo "## wagon create package"
@@ -98,15 +107,12 @@ function wagon_create_package(){
              if [[ $PLUGIN_PLATFORM == "redhat"* ]]; then
                   docker build -t $IMAGE_NAME --build-arg USERNAME=$REL_SUB_USERNAME --build-arg PASSWORD=$REL_SUB_PASSWORD .
              else
-                  docker build -t $IMAGE_NAME .
+                  IMAGE_NAME=$DOCKER_ACCOUNT/$IMAGE_NAME
              fi
          popd
     popd
 
-    # This will generate/dump the wagon file inside the Plugin directory
-    if [[ $? == 0 ]]; then
-        docker run -v $PLUGIN_PATH:/packaging $IMAGE_NAME
-    fi
+    docker run -v $PLUGIN_PATH:/packaging $IMAGE_NAME
 }
 
 # VERSION/PRERELEASE/BUILD must be exported as they is being read as an env var by the cloudify-agent-packager
@@ -134,8 +140,9 @@ if [ "$#" -gt 9 ]; then
     PLUGIN_PLATFORM=${10}
     WAGON_BUILDLER_REPO=${11}
     WAGON_BUILDLER_BRANCH=${12}
-    REL_SUB_USERNAME=${13}
-    REL_SUB_PASSWORD=${14}
+    DOCKER_ACCOUNT=${13}
+    REL_SUB_USERNAME=${14}
+    REL_SUB_PASSWORD=${15}
     DOCKER_BUILDER=true
 else
   echo "# Vagrant Builder is running....."
@@ -149,7 +156,8 @@ if $DOCKER_BUILDER; then
   wagon_create_package &&
   cd $PLUGIN_NAME &&
   create_md5 "wgn" &&
-  [ -z ${AWS_ACCESS_KEY} ] || upload_to_s3 "wgn" && upload_to_s3 "md5"
+  [ -z ${AWS_ACCESS_KEY} ] || upload_to_s3 "wgn" && upload_to_s3 "md5" &&
+  clean_docker_resources
 else
    generate_windows_plugin &&
    create_md5 "wgn" &&
