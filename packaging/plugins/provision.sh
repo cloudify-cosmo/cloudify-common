@@ -84,7 +84,11 @@ function clean_docker_resources() {
 
   # Remove Docker image
   docker rmi $IMAGE_NAME --force
+}
 
+function get_wagon_builder_name() {
+	echo "## get wagon builder name"
+	WAGON_BUILDLER=$(basename $WAGON_BUILDLER_REPO | cut -f1 -d".")
 }
 
 function wagon_create_package(){
@@ -100,9 +104,12 @@ function wagon_create_package(){
     # directory, this should work for all linux image but for Redhat we need
     # to build it locally since it needs subscription account
     echo "## echo build wagon package using docker"
-    echo "clone https://@github.com/$GITHUB_ORGANIZATION/$WAGON_BUILDLER_REPO.git"
-    git clone https://@github.com/$GITHUB_ORGANIZATION/$WAGON_BUILDLER_REPO.git
-    pushd $WAGON_BUILDLER_REPO
+    echo "clone $WAGON_BUILDLER_REPO"
+    git clone $WAGON_BUILDLER_REPO
+    # Get the name of the wagon builder project to navigate inside it
+    get_wagon_builder_name
+    # Start building docker image inside WAGON_BUILDLER
+    pushd $WAGON_BUILDLER
          git checkout $WAGON_BUILDLER_BRANCH
          pushd $PLUGIN_PLATFORM
              # Replace "_" with "-" in order to generate name for the
