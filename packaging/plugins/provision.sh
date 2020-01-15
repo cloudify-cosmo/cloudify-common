@@ -1,4 +1,6 @@
-#!/bin/bash -xe
+#!/bin/bash
+
+set -xe
 
 SUDO=""
 
@@ -100,10 +102,13 @@ function wagon_create_package(){
     echo "## echo build wagon package using docker"
     echo "clone https://@github.com/$GITHUB_ORGANIZATION/$WAGON_BUILDLER_REPO.git"
     git clone https://@github.com/$GITHUB_ORGANIZATION/$WAGON_BUILDLER_REPO.git
-    IMAGE_NAME="cloudify-$PLUGIN_PLATFORM-wagon-builder"
     pushd $WAGON_BUILDLER_REPO
          git checkout $WAGON_BUILDLER_BRANCH
          pushd $PLUGIN_PLATFORM
+             # Replace "_" with "-" in order to generate name for the
+             # docker image contains "-" instead of "_"
+             PLUGIN_PLATFORM=$(sed "s/_/-/g" <<< $PLUGIN_PLATFORM)
+             IMAGE_NAME="cloudify-$PLUGIN_PLATFORM-wagon-builder"
              if [[ $PLUGIN_PLATFORM == "redhat"* ]]; then
                   docker build -t $IMAGE_NAME --build-arg USERNAME=$REL_SUB_USERNAME --build-arg PASSWORD=$REL_SUB_PASSWORD .
              else
@@ -138,11 +143,6 @@ DOCKER_BUILDER=false
 if [ "$#" -gt 9 ]; then
     echo "# Docker Builder is running....."
     PLUGIN_PLATFORM=${10}
-    if [ ! -z "$PLUGIN_PLATFORM" ];then
-        # Replace "_" with "-" in order to generate name for the docker image
-        # contains "-" instead of "_"
-        PLUGIN_PLATFORM=$(sed "s/_/-/g" <<< $PLUGIN_PLATFORM)
-    fi
     WAGON_BUILDLER_REPO=${11}
     WAGON_BUILDLER_BRANCH=${12}
     DOCKER_ACCOUNT=${13}
