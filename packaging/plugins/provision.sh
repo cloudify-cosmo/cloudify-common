@@ -138,6 +138,11 @@ DOCKER_BUILDER=false
 if [ "$#" -gt 9 ]; then
     echo "# Docker Builder is running....."
     PLUGIN_PLATFORM=${10}
+    if [ ! -z "$PLUGIN_PLATFORM" ];then
+        # Replace "_" with "-" in order to generate name for the docker image
+        # contains "-" instead of "_"
+        PLUGIN_PLATFORM=$(sed "s/_/-/g" <<< $PLUGIN_PLATFORM)
+    fi
     WAGON_BUILDLER_REPO=${11}
     WAGON_BUILDLER_BRANCH=${12}
     DOCKER_ACCOUNT=${13}
