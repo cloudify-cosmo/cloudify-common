@@ -56,6 +56,11 @@ class OperationsClient(object):
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata'])
 
+    def get(self, operation_id):
+        response = self.api.get('/{self._uri_prefix}/{id}'
+                                .format(self=self, id=operation_id))
+        return Operation(response)
+
     def create(self, operation_id, graph_id, name, type, parameters,
                dependencies):
         data = {
