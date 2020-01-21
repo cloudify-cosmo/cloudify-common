@@ -835,6 +835,10 @@ class CloudifyContext(CommonContext):
             self._provider_context = self._endpoint.get_provider_context()
         return self._provider_context
 
+    def get_operation(self):
+        """Get the operation object for the currently-executed task."""
+        return self._endpoint.get_operation(self.task_id)
+
     def update_operation(self, state):
         """Update current operation state.
 

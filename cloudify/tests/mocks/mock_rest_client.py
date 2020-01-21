@@ -15,6 +15,7 @@ from cloudify_rest_client.agents import Agent
 from cloudify_rest_client import CloudifyClient
 from cloudify_rest_client.evaluate import EvaluatedFunctions
 from cloudify_rest_client.executions import Execution
+from cloudify_rest_client.operations import Operation
 from cloudify_rest_client.node_instances import NodeInstance
 
 
@@ -144,5 +145,8 @@ class MockAgentsClient(object):
 
 
 class MockOperationsClient(object):
+    def get(self, operation_id):
+        return Operation({'id': operation_id})
+
     def update(self, operation_id, state):
         pass

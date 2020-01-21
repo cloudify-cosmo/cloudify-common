@@ -254,6 +254,10 @@ class ManagerEndpoint(Endpoint):
         client = manager.get_rest_client()
         return client.manager.get_config(name=name, scope=scope)
 
+    def get_operation(self, operation_id):
+        client = manager.get_rest_client()
+        return client.operations.get(operation_id)
+
     def update_operation(self, operation_id, state):
         client = manager.get_rest_client()
         client.operations.update(operation_id, state=state)
@@ -370,4 +374,7 @@ class LocalEndpoint(Endpoint):
 
     def update_operation(self, operation_id, state):
         # operation storage is not supported for local
+        return None
+
+    def get_operation(self, operation_id):
         return None
