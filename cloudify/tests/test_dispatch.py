@@ -26,6 +26,7 @@ from cloudify import amqp_client
 from cloudify import dispatch
 from cloudify import exceptions
 from cloudify import utils
+from cloudify.workflows import tasks
 from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
 
 
@@ -53,7 +54,21 @@ class TestDispatchTaskHandler(testtools.TestCase):
         register_calls = process_registry.register.mock_calls
         self.assertEqual(len(register_calls), 1)
 
-    def test_dispatch_to_subprocess_args_and_kwargs(self):
+    def test_dispatch_update_operation_resume(self):
+        """When the operation was already started, we set resume=true
+
+        (and the function fails because it's not resumable)
+        """
+        args = [1]
+        op_handler = self._operation(
+            func1, task_target='stub', args=args)
+        with patch('cloudify.context.CloudifyContext.get_operation',
+                   return_value=Mock(state=tasks.TASK_STARTED)):
+            exc = self.assertRaises(exceptions.NonRecoverableError,
+                                    op_handler.handle)
+        self.assertIn('not resumable', str(exc))
+
+    def test_dispatch_resume(self):
         args = [1, 2]
         kwargs = {'one': 1, 'two': 2}
         op_handler = self._operation(
