@@ -816,6 +816,10 @@ class CloudifyContext(CommonContext):
         """This run of the operation is a resume of an interrupted run"""
         return self._context.get('resume', False)
 
+    @resume.setter
+    def resume(self, value):
+        self._context['resume'] = value
+
     def get_config(self, name=None, scope=None):
         """Get a subset of the stored configuration"""
         return self._endpoint.get_config(name=name, scope=scope)
