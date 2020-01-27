@@ -258,6 +258,10 @@ class ManagerEndpoint(Endpoint):
         client = manager.get_rest_client()
         return client.operations.get(operation_id)
 
+    def get_execution(self, execution_id):
+        client = manager.get_rest_client()
+        return client.executions.get(execution_id)
+
     def update_operation(self, operation_id, state):
         client = manager.get_rest_client()
         client.operations.update(operation_id, state=state)
