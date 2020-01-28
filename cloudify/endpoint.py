@@ -148,6 +148,9 @@ class Endpoint(object):
     def get_workdir(self):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_execution(self, execution_id):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class ManagerEndpoint(Endpoint):
     def get_node(self, node_id):
@@ -381,4 +384,7 @@ class LocalEndpoint(Endpoint):
         return None
 
     def get_operation(self, operation_id):
+        return None
+
+    def get_execution(self, execution_id):
         return None

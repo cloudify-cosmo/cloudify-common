@@ -874,6 +874,16 @@ class _WorkflowContextBase(object):
     def remove_operation(self, operation_id):
         return self.internal.handler.remove_operation(operation_id)
 
+    def get_execution(self, execution_id=None):
+        """
+        Ge the execution object for the current execution
+        :param execution_id: The Id of the execution object
+        :return: Instance of `Execution` object which holds all the needed info
+        """
+        if not execution_id:
+            execution_id = self.execution_id
+        return self.internal.handler.get_execution(execution_id)
+
 
 class WorkflowNodesAndInstancesContainer(object):
 
@@ -1231,6 +1241,9 @@ class CloudifyWorkflowContextHandler(object):
     def remove_operation(self, operation_id):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_execution(self, execution_id):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class _AsyncResult(object):
     NOTSET = object()
@@ -1446,6 +1459,10 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         client = get_rest_client()
         client.operations.delete(operation_id)
 
+    def get_execution(self, execution_id):
+        client = get_rest_client()
+        return client.executions.get(execution_id)
+
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
 
@@ -1593,6 +1610,9 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
         pass
 
     def remove_operation(self, operation_id):
+        pass
+
+    def get_execution(self, execution_id):
         pass
 
 
