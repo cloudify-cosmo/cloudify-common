@@ -273,11 +273,11 @@ def get_resource_from_manager(resource_path,
     verify = utils.get_local_rest_certificate()
     headers = {}
     try:
-        headers[constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER] = \
-            ctx.rest_token
+        headers[constants.CLOUDIFY_EXECUTION_TOKEN_HEADER] = \
+            ctx.execution_token
     except NotInContext:
-        headers[constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER] = \
-            workflow_ctx.rest_token
+        headers[constants.CLOUDIFY_EXECUTION_TOKEN_HEADER] = \
+            workflow_ctx.execution_token
 
     for next_url in base_urls:
         url = '{0}/{1}'.format(next_url.rstrip('/'), resource_path.lstrip('/'))
