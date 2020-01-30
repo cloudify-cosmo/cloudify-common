@@ -24,6 +24,7 @@ from cloudify.logs import CloudifyPluginLoggingHandler
 from cloudify.exceptions import NonRecoverableError
 
 from cloudify_rest_client.manager import RabbitMQBrokerItem, ManagerItem
+from cloudify_rest_client.executions import Execution
 
 
 class Endpoint(object):
@@ -388,4 +389,4 @@ class LocalEndpoint(Endpoint):
 
     def get_execution(self, execution_id):
         # same issue as get_brokers
-        return {'id': execution_id, 'status': 'started'}
+        return Execution({'id': execution_id, 'status': 'started'})
