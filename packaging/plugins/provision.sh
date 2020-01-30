@@ -19,7 +19,7 @@ function print_plugins_params() {
 function install_windows_dependencies(){
     # Prepare virtualenv in windows machine
     echo "## Installing necessary dependencies"
-    pip install virtualenv
+    pip install virtualenv==15.1.0
 
     # Prepare pip & wagon in windows machine
     echo "## installing wagon"
@@ -80,21 +80,16 @@ function override_constraints_file() {
 
 function clean_docker_resources() {
   # This will clean all exited docker containers
-  docker rm $(docker ps -a -f status=exited -q)
+  docker rm $CONTAINER_NAME
 
   # Remove Docker image
   docker rmi $IMAGE_NAME --force
 }
 
-function get_wagon_builder_name() {
-	echo "## get wagon builder name"
-	WAGON_BUILDLER=$(basename $WAGON_BUILDLER_REPO | cut -f1 -d".")
-}
-
 function wagon_create_package(){
 
     echo "## wagon create package"
-    # Checkout to the plugin
+
     checkout_plugin
 
     # Check if constraint file is provided or not
@@ -104,10 +99,9 @@ function wagon_create_package(){
     # directory, this should work for all linux image but for Redhat we need
     # to build it locally since it needs subscription account
     echo "## echo build wagon package using docker"
-    echo "clone $WAGON_BUILDLER_REPO"
     git clone $WAGON_BUILDLER_REPO
     # Get the name of the wagon builder project to navigate inside it
-    get_wagon_builder_name
+    WAGON_BUILDLER=$(basename $WAGON_BUILDLER_REPO | cut -f1 -d".")
     # Start building docker image inside WAGON_BUILDLER
     pushd $WAGON_BUILDLER
          git checkout $WAGON_BUILDLER_BRANCH
@@ -116,6 +110,7 @@ function wagon_create_package(){
              # docker image contains "-" instead of "_"
              PLUGIN_PLATFORM=$(sed "s/_/-/g" <<< $PLUGIN_PLATFORM)
              IMAGE_NAME="cloudify-$PLUGIN_PLATFORM-wagon-builder"
+             CONTAINER_NAME=$IMAGE_NAME
              if [[ $PLUGIN_PLATFORM == "redhat"* ]]; then
                   docker build -t $IMAGE_NAME --build-arg USERNAME=$REL_SUB_USERNAME --build-arg PASSWORD=$REL_SUB_PASSWORD .
              else
@@ -124,7 +119,8 @@ function wagon_create_package(){
          popd
     popd
 
-    docker run -v $PLUGIN_PATH:/packaging $IMAGE_NAME
+    docker run --name $CONTAINER_NAME -v $PLUGIN_PATH:/packaging $IMAGE_NAME
+    echo "## echo build wagon package created successfully"
 }
 
 # VERSION/PRERELEASE/BUILD must be exported as they is being read as an env var by the cloudify-agent-packager
@@ -156,8 +152,6 @@ if [ "$#" -gt 9 ]; then
     REL_SUB_USERNAME=${14}
     REL_SUB_PASSWORD=${15}
     DOCKER_BUILDER=true
-else
-  echo "# Vagrant Builder is running....."
 fi
 
 export AWS_S3_BUCKET="cloudify-release-eu"
