@@ -387,4 +387,4 @@ class LocalEndpoint(Endpoint):
         return None
 
     def get_execution(self, execution_id):
-        return None
+        return self.storage.get_execution(execution_id)

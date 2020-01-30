@@ -1613,7 +1613,7 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
         pass
 
     def get_execution(self, execution_id):
-        pass
+        return self.storage.get_execution(execution_id)
 
 
 class Modification(object):
