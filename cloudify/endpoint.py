@@ -387,4 +387,5 @@ class LocalEndpoint(Endpoint):
         return None
 
     def get_execution(self, execution_id):
-        return self.storage.get_execution(execution_id)
+        # same issue as get_brokers
+        return {'id': execution_id, 'status': 'started'}
