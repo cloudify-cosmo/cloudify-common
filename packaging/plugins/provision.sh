@@ -98,7 +98,7 @@ function wagon_create_package(){
     # This will generate a wagon file and dump it to the current plugin name
     # directory, this should work for all linux image but for Redhat we need
     # to build it locally since it needs subscription account
-    echo "## echo build wagon package using docker"
+    echo "## build wagon package using docker"
     git clone $WAGON_BUILDLER_REPO
     # Get the name of the wagon builder project to navigate inside it
     WAGON_BUILDLER=$(basename $WAGON_BUILDLER_REPO | cut -f1 -d".")
@@ -120,7 +120,7 @@ function wagon_create_package(){
     popd
 
     docker run --name $CONTAINER_NAME -v $PLUGIN_PATH:/packaging $IMAGE_NAME
-    echo "## echo build wagon package created successfully"
+    echo "## build wagon package created successfully"
 }
 
 # VERSION/PRERELEASE/BUILD must be exported as they is being read as an env var by the cloudify-agent-packager
