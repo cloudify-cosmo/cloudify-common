@@ -32,6 +32,7 @@ from cloudify.constants import (
     TASK_SENDING,
     TASK_SENT,
     TASK_STARTED,
+    TASK_RESPONSE_SENT,
     TASK_RESCHEDULED,
     TASK_SUCCEEDED,
     TASK_FAILED,
@@ -343,8 +344,10 @@ class WorkflowTask(object):
 
     def _should_resume(self):
         """Has this task already been sent and should be resumed?"""
-        return (self._state in (TASK_SENT, TASK_STARTED) and
-                self.async_result is None)
+        return (
+            self._state in (TASK_SENT, TASK_STARTED, TASK_RESPONSE_SENT) and
+            self.async_result is None
+        )
 
     def _can_resend(self):
         return False
@@ -618,7 +621,7 @@ class RemoteWorkflowTask(WorkflowTask):
                     self._cloudify_agent['rest_host'])
         else:
             return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None, \
-                   self.workflow_context.rest_host
+                self.workflow_context.rest_host
 
     def _can_resend(self):
         return (self.cloudify_context['executor'] != 'host_agent' and
