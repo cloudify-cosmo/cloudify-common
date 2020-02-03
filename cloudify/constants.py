@@ -111,6 +111,7 @@ TASK_SENDING = 'sending'
 TASK_SENT = 'sent'
 TASK_STARTED = 'started'
 TASK_RESCHEDULED = 'rescheduled'
+TASK_RESPONSE_SENT = 'response-sent'
 TASK_SUCCEEDED = 'succeeded'
 TASK_FAILED = 'failed'
 

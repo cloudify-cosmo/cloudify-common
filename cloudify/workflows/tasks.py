@@ -443,12 +443,6 @@ class RemoteWorkflowTask(WorkflowTask):
         # can safely be rerun
         if state == TASK_SENDING:
             return
-        # final states are set by the agent side
-        if state in TERMINATED_STATES:
-            # Unless we failed sending the task
-            if not (state == TASK_FAILED and self._state in (TASK_SENDING,
-                                                             TASK_SENT)):
-                return
         return super(RemoteWorkflowTask, self)._update_stored_state(state)
 
     def apply_async(self):
