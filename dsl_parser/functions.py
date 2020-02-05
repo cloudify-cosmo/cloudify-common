@@ -19,12 +19,12 @@ import json
 
 from functools import wraps
 
-from cloudify.utils import string_types
 from dsl_parser import exceptions, scan, constants
 from dsl_parser._compat import ABC, text_type
 from dsl_parser.constants import (OUTPUTS,
                                   CAPABILITIES,
                                   NODE_INSTANCES,
+                                  CONTAINED_IN_REL_TYPE,
                                   INTER_DEPLOYMENT_FUNCTIONS,
                                   EVAL_FUNCS_PATH_PREFIX_KEY,
                                   EVAL_FUNCS_PATH_DEFAULT_PREFIX)
@@ -774,7 +774,7 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
                 "{0}".format("[" + ','.join([str(a) for a in args]) + "]")
             )
         for arg_index in range(len(args)):
-            if not isinstance(args[arg_index], string_types + (int,)) \
+            if not isinstance(args[arg_index], text_type + (int,)) \
                     and not is_function(args[arg_index]):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
