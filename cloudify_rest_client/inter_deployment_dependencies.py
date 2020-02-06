@@ -81,8 +81,7 @@ class InterDeploymentDependencyClient(object):
     def delete(self,
                dependency_creator,
                source_deployment,
-               target_deployment,
-               doesnt_exist_ok=False):
+               target_deployment):
         """Deletes an inter-deployment dependency.
 
         :param dependency_creator: a string representing the entity that
@@ -92,15 +91,12 @@ class InterDeploymentDependencyClient(object):
          deployment.
         :param target_deployment: the deployment that the source deployment
          depends on.
-        :param doesnt_exist_ok: if it's False then no error will be raised if
-         the dependency doesn't exist. Defaults to False.
         :return: an InterDeploymentDependency object.
         """
         data = {
             'dependency_creator': dependency_creator,
             'source_deployment': source_deployment,
-            'target_deployment': target_deployment,
-            'doesnt_exist_ok': doesnt_exist_ok
+            'target_deployment': target_deployment
         }
         response = self.api.delete(
             '/{self._uri_prefix}'.format(self=self), data=data)
