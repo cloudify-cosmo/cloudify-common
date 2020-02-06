@@ -27,3 +27,7 @@ def create_deployment_dependency(dependency_creator, source_deployment, target_d
     if target_deployment:
         dependency[TARGET_DEPLOYMENT] = target_deployment
     return dependency
+
+
+def dependency_creator_generator(connection_type, to_deployment):
+    return '{0}.{1}'.format(connection_type, to_deployment)
