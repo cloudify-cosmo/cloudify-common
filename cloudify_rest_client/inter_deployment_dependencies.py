@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from cloudify.deployment_dependencies import (create_deployment_dependency,
+                                              DEPENDENCY_CREATOR)
+
+
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -26,7 +30,7 @@ class InterDeploymentDependency(dict):
 
     @property
     def dependency_creator(self):
-        return self['dependency_creator']
+        return self[DEPENDENCY_CREATOR]
 
     @property
     def source_deployment_id(self):
@@ -69,11 +73,9 @@ class InterDeploymentDependencyClient(object):
          depends on.
         :return: an InterDeploymentDependency object.
         """
-        data = {
-            'dependency_creator': dependency_creator,
-            'source_deployment': source_deployment,
-            'target_deployment': target_deployment
-        }
+        data = create_deployment_dependency(dependency_creator,
+                                            source_deployment,
+                                            target_deployment)
         response = self.api.put(
             '/{self._uri_prefix}'.format(self=self), data=data)
         return self._wrapper_cls(response)
@@ -93,11 +95,9 @@ class InterDeploymentDependencyClient(object):
          depends on.
         :return: an InterDeploymentDependency object.
         """
-        data = {
-            'dependency_creator': dependency_creator,
-            'source_deployment': source_deployment,
-            'target_deployment': target_deployment
-        }
+        data = create_deployment_dependency(dependency_creator,
+                                            source_deployment,
+                                            target_deployment)
         response = self.api.delete(
             '/{self._uri_prefix}'.format(self=self), data=data)
         return self._wrapper_cls(response)
@@ -111,19 +111,18 @@ class InterDeploymentDependencyClient(object):
         """
         Gets an inter-deployment dependency by its id.
 
-        :param dependency_id: InterDeploymentDependency's id to get.
+        :param dependency_creator: a string representing the entity that
+        :param source_deployment: source deployment that depends on the target
+         deployment.
+        :param target_deployment: the deployment that the source deployment
+         depends on.
         :param _include: List of fields to include in response.
         :return: The inter-deployment dependency details.
         """
-        assert dependency_creator
-        assert source_deployment
-        assert target_deployment
-        params = {
-            'dependency_creator': dependency_creator,
-            'source_deployment': source_deployment,
-            'target_deployment': target_deployment,
-        }
-        kwargs.update(params)
+        data = create_deployment_dependency(dependency_creator,
+                                            source_deployment,
+                                            target_deployment)
+        kwargs.update(data)
         uri = '/{self._uri_prefix}/id'.format(self=self)
         response = self.api.get(uri, _include=_include, params=kwargs)
         return self._wrapper_cls(response)
