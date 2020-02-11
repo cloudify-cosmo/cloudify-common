@@ -157,10 +157,10 @@ workflows:
               - docs_plugins_common
           filters:
             branches:
-              only: master
+              only: 5.0.5-build
       - deploy_docs_rest_client:
           requires:
               - docs_rest_client
           filters:
             branches:
-              only: master
+              only: 5.0.5-build
