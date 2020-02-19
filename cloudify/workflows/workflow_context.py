@@ -1292,7 +1292,6 @@ class _TaskDispatcher(object):
             'client': client,
             'handler': handler
         })
-        client.consume_in_thread()
         return task
 
     def _get_client(self, task):
@@ -1320,14 +1319,14 @@ class _TaskDispatcher(object):
         self._logger.debug('Task [{0}] sent'.format(task['id']))
 
     def wait_for_result(self, workflow_task, task):
+        result = _AsyncResult(task)
         client, handler = task['client'], task['handler']
         callback = functools.partial(self._received, task['id'], client)
-        handler.wait_for_response(task['id'], callback)
-        result = _AsyncResult(task)
-        self._logger.debug('Sending task [{0}] - {1}'.format(task['id'], task))
-
+        handler.callbacks[task['id']] = callback
         self._tasks.setdefault(client, {})[task['id']] = \
             (workflow_task, task, result)
+        client.consume_in_thread()
+        handler.make_response_queue(task['id'])
         return result
 
     def _set_task_state(self, workflow_task, state, event=None):
