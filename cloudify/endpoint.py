@@ -24,6 +24,7 @@ from cloudify.logs import CloudifyPluginLoggingHandler
 from cloudify.exceptions import NonRecoverableError
 
 from cloudify_rest_client.manager import RabbitMQBrokerItem, ManagerItem
+from cloudify_rest_client.executions import Execution
 
 
 class Endpoint(object):
@@ -148,6 +149,9 @@ class Endpoint(object):
     def get_workdir(self):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_execution(self, execution_id):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class ManagerEndpoint(Endpoint):
     def get_node(self, node_id):
@@ -257,6 +261,10 @@ class ManagerEndpoint(Endpoint):
     def get_operation(self, operation_id):
         client = manager.get_rest_client()
         return client.operations.get(operation_id)
+
+    def get_execution(self, execution_id):
+        client = manager.get_rest_client()
+        return client.executions.get(execution_id)
 
     def update_operation(self, operation_id, state):
         client = manager.get_rest_client()
@@ -378,3 +386,7 @@ class LocalEndpoint(Endpoint):
 
     def get_operation(self, operation_id):
         return None
+
+    def get_execution(self, execution_id):
+        # same issue as get_brokers
+        return Execution({'id': execution_id, 'status': 'started'})

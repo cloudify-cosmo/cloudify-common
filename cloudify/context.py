@@ -843,6 +843,16 @@ class CloudifyContext(CommonContext):
         """Get the operation object for the currently-executed task."""
         return self._endpoint.get_operation(self.task_id)
 
+    def get_execution(self, execution_id=None):
+        """
+        Ge the execution object for the current execution
+        :param execution_id: The Id of the execution object
+        :return: Instance of `Execution` object which holds all the needed info
+        """
+        if not execution_id:
+            execution_id = self.execution_id
+        return self._endpoint.get_execution(execution_id)
+
     def update_operation(self, state):
         """Update current operation state.
 
