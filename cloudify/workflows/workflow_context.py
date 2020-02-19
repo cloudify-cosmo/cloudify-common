@@ -1310,7 +1310,7 @@ class _TaskDispatcher(object):
     def send_task(self, workflow_task, task):
         agent = task['target']
         handler = task['handler']
-        if task['queue'] != MGMTWORKER_QUEUE \
+        if task['target'] != MGMTWORKER_QUEUE \
                 and not is_agent_alive(agent, task['client'], connect=False):
             raise exceptions.RecoverableError(
                 'Timed out waiting for agent: {0}'.format(agent))
