@@ -459,7 +459,7 @@ class RemoteWorkflowTask(WorkflowTask):
         # 1) this is the first execution of this task (state=pending)
         # 2) this is a resume (state=sent|started) and the task is a central
         #    deployment agent task
-        should_send = self._state == TASK_PENDING or self._should_resume()
+        should_send = self._state == TASK_PENDING
         if self._state == TASK_PENDING:
             self.set_state(TASK_SENDING)
         try:
