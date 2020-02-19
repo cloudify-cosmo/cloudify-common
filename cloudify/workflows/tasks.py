@@ -464,8 +464,6 @@ class RemoteWorkflowTask(WorkflowTask):
             self.set_state(TASK_SENDING)
         try:
             self._set_queue_kwargs()
-            if self._can_resend():
-                self.kwargs['__cloudify_context']['resume'] = True
             task = self.workflow_context.internal.handler.get_task(
                 self, queue=self._task_queue, target=self._task_target,
                 tenant=self._task_tenant)
