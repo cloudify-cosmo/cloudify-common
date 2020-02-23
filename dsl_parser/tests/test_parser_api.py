@@ -54,7 +54,7 @@ def op_struct(plugin_name,
 def workflow_op_struct(plugin_name,
                        mapping,
                        parameters=None,
-                       is_cascading=True):
+                       is_cascading=False):
 
     if not parameters:
         parameters = {}
