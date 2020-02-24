@@ -138,12 +138,38 @@ jobs:
       DOCS_PATH: docs/cloudify_rest_client/_build/html
       DOCS_PATH_IN_S3: docs.cloudify.co/cloudify-rest-client/
 
+  py3_compat:
+    docker:
+      - image: circleci/python:2.7
+    steps:
+      - checkout
+      - run:
+          name: install futurize
+          command: pip install future --user
+      - run:
+          name: find python3-incompatible code
+          command: |
+            FUTURIZE="futurize ."
+            while read line; do
+              FUTURIZE="${FUTURIZE} -f ${line}"
+            done<.circleci/py3fixers
+            $FUTURIZE>futurize_diffs
+      - run:
+          name: check that there is no python3-incompatible code
+          command: |
+            if [[ -s futurize_diffs ]]; then
+              echo "Python-3-incompatible code found"
+              cat futurize_diffs
+              exit 1
+            fi
+
 workflows:
   version: 2
 
   build_and_test:
     jobs:
       - flake8
+      - py3_compat
       - test_py27_dsl_parser
       - test_py27_script_plugin
       - test_py27_plugins_common
