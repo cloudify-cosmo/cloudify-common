@@ -1151,7 +1151,7 @@ class _SendWorkflowEventTask(_LocalTask):
             'task': self.__name__,
             'kwargs': {
                 'event': self._event,
-                'event_type': self.event_type,
+                'event_type': self._event_type,
                 'args': self._args,
                 'additional_context': self._additional_context
             }
