@@ -320,7 +320,7 @@ def process_ctx_request(proxy):
 
 def eval_script(script_path, ctx, process=None):
     eval_globals = eval_env.setup_env_and_globals(script_path)
-    execfile(script_path, eval_globals)
+    exec(compile(open(script_path).read(), script_path, 'exec'), eval_globals)
 
 
 def _get_target_path(source):
