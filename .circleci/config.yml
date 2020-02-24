@@ -170,23 +170,23 @@ workflows:
     jobs:
       - flake8
       - py3_compat
-      - test_py27_dsl_parser
-      - test_py27_script_plugin
-      - test_py27_plugins_common
-      - test_py26_dsl_parser
-      - test_py26_script_plugin
-      - test_py26_plugins_common
-      - docs_plugins_common
-      - docs_rest_client
-      - deploy_docs_plugins_common:
-          requires:
-              - docs_plugins_common
-          filters:
-            branches:
-              only: 5.0.5-build
-      - deploy_docs_rest_client:
-          requires:
-              - docs_rest_client
-          filters:
-            branches:
-              only: 5.0.5-build
+#      - test_py27_dsl_parser
+#      - test_py27_script_plugin
+#      - test_py27_plugins_common
+#      - test_py26_dsl_parser
+#      - test_py26_script_plugin
+#      - test_py26_plugins_common
+#      - docs_plugins_common
+#      - docs_rest_client
+#      - deploy_docs_plugins_common:
+#          requires:
+#              - docs_plugins_common
+#          filters:
+#            branches:
+#              only: 5.0.5-build
+#      - deploy_docs_rest_client:
+#          requires:
+#              - docs_rest_client
+#          filters:
+#            branches:
+#              only: 5.0.5-build

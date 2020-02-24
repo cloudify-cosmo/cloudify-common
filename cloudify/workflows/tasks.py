@@ -119,6 +119,7 @@ class WorkflowTask(object):
 
         # ID of the task that is being retried by this task
         self.retried_task = None
+        x = {1: 2}.has_key(1)
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
