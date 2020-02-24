@@ -25,3 +25,4 @@ libfuturize.fixes.fix_next_call
 libfuturize.fixes.fix_print_with_import
 lib2to3.fixes.fix_long
 libfuturize.fixes.fix_execfile
+libpasteurize.fixes.fix_newstyle
