@@ -271,7 +271,7 @@ class PathDictAccess(object):
                 property_name = match.group(1)
                 if property_name not in current:
                     self._raise_illegal(prop_path)
-                if type(current[property_name]) != list:
+                if not isinstance(current[property_name], list):
                     self._raise_illegal(prop_path)
                 current = current[property_name][index]
             else:
