@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 import copy
+import numbers
 
 from dsl_parser import (constants,
                         exceptions,
@@ -97,7 +98,7 @@ class OperationMaxRetries(Element):
 
 class OperationRetryInterval(Element):
 
-    schema = Leaf(type=(int, float, long))
+    schema = Leaf(type=numbers.Number)
     requires = {
         _version.ToscaDefinitionsVersion: ['version'],
         'inputs': ['validate_version']
@@ -115,7 +116,7 @@ class OperationRetryInterval(Element):
 
 
 class OperationTimeout(Element):
-    schema = Leaf(type=(int, float, long))
+    schema = Leaf(type=numbers.Number)
 
     def validate(self):
         value = self.initial_value

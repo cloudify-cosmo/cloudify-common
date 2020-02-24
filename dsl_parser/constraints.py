@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 import re
+import numbers
 
 from dsl_parser import functions, exceptions
 from dsl_parser.constants import (
@@ -226,7 +227,7 @@ class Pattern(Constraint):
 
 @register_validation_func(constraint_data_type=_SCALAR)
 def is_valid_scalar(arg):
-    return isinstance(arg, (int, float, long)) and not isinstance(arg, bool)
+    return isinstance(arg, numbers.Number) and not isinstance(arg, bool)
 
 
 @register_validation_func(constraint_data_type=_DUAL_SCALAR)
