@@ -1025,7 +1025,8 @@ class _LocalTask(object):
                 (subcls.__name__, subcls) for subcls in cls.__subclasses__()
             )
         task_class = cls._subclass_cache[task_descr['task']]
-        return task_class(**task_descr.get('kwargs') or {})
+        kwargs = task_descr.get('kwargs') or {}
+        return task_class(**kwargs)
 
     # split local/remote on this level. This allows us to reuse implementation,
     # avoiding the need for separate local/remote subclasses.
