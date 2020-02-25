@@ -21,7 +21,7 @@ from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 def workflow_op_struct(plugin_name,
                        mapping,
                        parameters=None,
-                       is_cascading=True):
+                       is_cascading=False):
     if not parameters:
         parameters = {}
     return {
@@ -180,7 +180,7 @@ imports:
         self.assertEqual(workflow2['parameters']['key']['default'], 'value')
         self.assertEqual(workflow['plugin'], namespaced_script_plugin)
         self.assertEqual(True, workflow2['is_cascading'])
-        self.assertEqual(True, workflow['is_cascading'])
+        self.assertEqual(False, workflow['is_cascading'])
 
     def test_workflow_blueprint_import_namespaced_operation(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
@@ -236,7 +236,7 @@ imports:
         self.assertEqual(workflow2['parameters']['key']['default'], 'value')
         self.assertEqual(workflow['plugin'], namespaced_script_plugin)
         self.assertEqual(False, workflow2['is_cascading'])
-        self.assertEqual(True, workflow['is_cascading'])
+        self.assertEqual(False, workflow['is_cascading'])
 
     def test_workflow_advanced_mapping(self):
         imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
