@@ -16,6 +16,7 @@
 import copy
 import contextlib
 import importlib
+import numbers
 import urllib2
 import sys
 import re
@@ -191,10 +192,10 @@ def parse_value(
         # intrinsic function - not validated at the moment
         return value
     elif type_name == 'integer':
-        if isinstance(value, (int, long)) and not isinstance(value, bool):
+        if isinstance(value, numbers.Integral) and not isinstance(value, bool):
             return value
     elif type_name == 'float':
-        if isinstance(value, (int, float, long)) and not isinstance(
+        if isinstance(value, numbers.Number) and not isinstance(
                 value, bool):
             return value
     elif type_name == 'boolean':

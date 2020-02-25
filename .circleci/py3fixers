@@ -23,3 +23,14 @@ lib2to3.fixes.fix_xreadlines
 libfuturize.fixes.fix_absolute_import
 libfuturize.fixes.fix_next_call
 libfuturize.fixes.fix_print_with_import
+lib2to3.fixes.fix_long
+libfuturize.fixes.fix_execfile
+libpasteurize.fixes.fix_newstyle
+lib2to3.fixes.fix_getcwdu
+lib2to3.fixes.fix_nonzero
+lib2to3.fixes.fix_input
+lib2to3.fixes.fix_raw_input
+lib2to3.fixes.fix_itertools
+lib2to3.fixes.fix_itertools_imports
+lib2to3.fixes.fix_exec
+lib2to3.fixes.fix_operator

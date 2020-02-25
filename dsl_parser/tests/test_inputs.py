@@ -1189,8 +1189,6 @@ inputs:
     def test_validate_integer_value_successful(self):
         self._test_validate_value_successful(
             'integer', 123, 456, self.assertEqual)
-        self._test_validate_value_successful(
-            'integer', long('123'), long('456'), self.assertEqual)
 
     def test_validate_integer_value_mismatch(self):
         self._test_validate_value_type_mismatch('integer', [])
@@ -1207,8 +1205,6 @@ inputs:
             'float', 123, 456, self.assertEqual)
         self._test_validate_value_successful(
             'float', 123.1, 456.1, self.assertEqual)
-        self._test_validate_value_successful(
-            'float', long('123'), long('456'), self.assertEqual)
 
     def test_validate_float_value_mismatch(self):
         self._test_validate_value_type_mismatch('float', [])
