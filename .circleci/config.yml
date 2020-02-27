@@ -115,7 +115,8 @@ commands:
               -n 4 \
               --cov-report term-missing \
               --cov=<< parameters.target >> \
-              << parameters.target >>/tests
+              << parameters.target >>/tests \
+              --junitxml=test-results/<< parameters.target >>.xml
 
 jobs:
   flake8_py27:
@@ -141,6 +142,8 @@ jobs:
           target: script_runner
       - pytest:
           target: cloudify
+      - store_test_results:
+          path: test-results
 
   test_py27:
     executor: py27
@@ -153,6 +156,8 @@ jobs:
           target: script_runner
       - pytest:
           target: cloudify
+      - store_test_results:
+          path: test-results
 
   build_all_project_docs:
     executor: docs_builder
