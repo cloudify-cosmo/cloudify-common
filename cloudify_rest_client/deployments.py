@@ -103,6 +103,10 @@ class Deployment(dict):
     def runtime_only_evaluation(self):
         return self.get('runtime_only_evaluation')
 
+    @property
+    def creation_execution_id(self):
+        return self.get('creation_execution_id')
+
 
 class Workflow(dict):
 
