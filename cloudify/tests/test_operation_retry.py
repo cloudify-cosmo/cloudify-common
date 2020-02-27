@@ -59,7 +59,8 @@ class OperationRetryTests(testtools.TestCase):
         ctx = context.CloudifyContext({})
         e = self.assertRaises(exceptions.OperationRetry,
                               retry_operation,
-                              ctx)
+                              ctx,
+                              __cloudify_context={'local': True})
         self.assertEqual(RETRY_AFTER, e.retry_after)
         self.assertIn(RETRY_MESSAGE, str(e))
 
