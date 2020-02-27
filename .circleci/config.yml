@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 
 checkout:
   post:
@@ -9,134 +9,209 @@ checkout:
         git checkout -qf FETCH_HEAD
       fi
 
-attach_workspace: &attach_workspace
-  attach_workspace:
-    at: /home/circleci/project
 
-defaults:
-  - &test_defaults
-    docker:
-      - image: circleci/python:2.7
-      - image: rabbitmq:3.7.4
-    steps:
-      - checkout
-      - run:
-          name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
-          command: sudo pip install tox==1.6.1
-      - run:
-          name: Run tox of specfic environment
-          command: tox -e $DO_ENV
-
-  - &test_defaults_for_python26
+executors:
+  py26:
     docker:
         # staying on old debian image, because buster dropped libssl1.0-dev, which
         # is required to compile py2.6 via pyenv
       - image: circleci/python:2.7-stretch
       - image: rabbitmq:3.7.4
+  py27:
+    docker:
+      - image: circleci/python:2.7
+      - image: rabbitmq:3.7.4
+  docs_builder:
+    docker:
+      - image: circleci/python:2.7
+
+
+commands:
+  build_docs:
+    parameters:
+      project:
+        type: enum
+        enum:
+          - cloudify_rest_client
+          - cloudify_dsl_parser
+          - cloudify_plugins_common
+          - cloudify_script_plugin
+        description: which project to build docs for
     steps:
-      - checkout
+      - run:
+          name: Build docs for << parameters.project >>
+          command: |
+            sphinx-build \
+              -d _build/doctrees \
+              -D version=$(python setup.py --version) \
+              docs/<< parameters.project >> \
+              docs/<< parameters.project >>/_build/html
+  deploy_docs:
+    parameters:
+      project:
+        type: enum
+        enum:
+          - cloudify_rest_client
+          - cloudify_dsl_parser
+          - cloudify_plugins_common
+          - cloudify_script_plugin
+      s3_path:
+        type: string
+    steps:
+      - run:
+          name: Deploy docs for << parameters.project >> to S3
+          command: |
+            aws s3 sync \
+              docs/<< parameters.project >>/_build/html \
+              << parameters.s3_path >> \
+              --delete \
+              --acl public-read
+
+  setup_py26:
+    steps:
       - run:
           name: Install and set python version with pyenv
           command: |
+                   set -eux
                    git clone https://github.com/yyuu/pyenv.git ~/.pyenv
                    export PYENV_ROOT="$HOME/.pyenv"
                    export PATH="$PYENV_ROOT/bin:$PATH"
+                   echo 'export PYENV_ROOT="$HOME/.pyenv"' >> $BASH_ENV
+                   echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> $BASH_ENV
                    sudo apt-get install -y build-essential libssl1.0-dev zlib1g-dev xz-utils
+                   echo -e 'if [ $SHLVL = 1 ]; then eval "$(pyenv init -)"; fi' >> $BASH_ENV
                    pyenv install 2.6.9
-                   pyenv local 2.6.9
-      - run:
-          name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
-          command: sudo ~/.pyenv/versions/2.6.9/bin/pip install tox==1.6.1 tox-pyenv
-      - run:
-          name: Run tox of specfic environment
-          command: ~/.pyenv/versions/2.6.9/bin/tox -e $DO_ENV
+                   pyenv global 2.6.9
 
-  - &docs_defaults
+  install_test_dependencies:
+    parameters:
+      cache_prefix:
+        type: string
+        default: py27
+    steps:
+      - restore_cache:
+          keys: 
+            - << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }}
+            - << parameters.cache_prefix >>-dependencies-
+      - run: pip install -r dev-requirements.txt --user
+      - run: pip install -r test-requirements.txt --user
+      - run: pip install -e . --user
+      - save_cache:
+          paths:
+            - /home/circleci/.cache/pip
+            - /home/circleci/.local/bin
+            - /home/circleci/.local/lib
+          key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }}
+
+  pytest:
+    parameters:
+      target:
+        type: string
+    steps:
+      - run:
+          when: always
+          name: pytest << parameters.target >>
+          command: |
+            pytest \
+              -n 4 \
+              --cov-report term-missing \
+              --cov=<< parameters.target >> \
+              << parameters.target >>/tests \
+              --junitxml=test-results/<< parameters.target >>.xml
+
+jobs:
+  flake8_py27:
     docker:
       - image: circleci/python:2.7
     steps:
       - checkout
+      - run: pip install flake8 --user
       - run:
-          name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
-          command: sudo pip install tox==1.6.1
-      - run:
-          name: Run tox of specfic environment
-          command: tox -e $DO_ENV
-      - persist_to_workspace:
-              root: /home/circleci/project
-              paths: #circleci can only handle fixed paths currently
-                - docs
+          name: Run flake8
+          command: flake8 dsl_parser script_runner cloudify cloudify_rest_client
 
-  - &deploy_defaults
+  test_py26:
+    executor: py26
+    steps:
+      - checkout
+      - setup_py26
+      - install_test_dependencies:
+          cache_prefix: py26
+      - pytest:
+          target: dsl_parser
+      - pytest:
+          target: script_runner
+      - pytest:
+          target: cloudify
+      - store_test_results:
+          path: test-results
+
+  test_py27:
+    executor: py27
+    steps:
+      - checkout
+      - install_test_dependencies
+      - pytest:
+          target: dsl_parser
+      - pytest:
+          target: script_runner
+      - pytest:
+          target: cloudify
+      - store_test_results:
+          path: test-results
+
+  build_all_project_docs:
+    executor: docs_builder
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - common-pip-{{ checksum "setup.py" }}
+            - common-pip-
+      - run:
+          name: Install sphinx
+          command: pip install sphinx sphinx-rtd-theme
+      - run:
+          name: Install cloudify-common
+          command: pip install .
+      - save_cache:
+          key: common-pip-{{ checksum "setup.py" }}
+          paths:
+            - /home/circleci/.cache/pip
+      - build_docs:
+          project: cloudify_plugins_common
+      - build_docs:
+          project: cloudify_rest_client
+      - build_docs:
+          project: cloudify_script_plugin
+      - build_docs:
+          project: cloudify_dsl_parser
+      - persist_to_workspace:
+          root: /home/circleci/project
+          paths:
+            - docs
+
+  deploy_all_project_docs:
     docker:
       - image: circleci/python:2.7
     steps:
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
-          name: Install awscli
-          command: sudo pip install awscli
-      - *attach_workspace
-      - run:
-          name: Deploy to S3
-          command: |
-                    aws s3 sync $DOCS_PATH s3://$DOCS_PATH_IN_S3 --delete --acl public-read
-
-jobs:
-  flake8:
-    <<: *test_defaults
-    environment:
-      DO_ENV: flake8
-
-  test_py27_dsl_parser:
-    <<: *test_defaults
-    environment:
-      DO_ENV: py27_dsl_parser
-
-  test_py27_script_plugin:
-    <<: *test_defaults
-    environment:
-      DO_ENV: py27_script_plugin
-
-  test_py27_plugins_common:
-    <<: *test_defaults
-    environment:
-      DO_ENV: py27_plugins_common
-
-  test_py26_dsl_parser:
-    <<: *test_defaults_for_python26
-    environment:
-      DO_ENV: py26_dsl_parser
-
-  test_py26_script_plugin:
-    <<: *test_defaults_for_python26
-    environment:
-      DO_ENV: py26_script_plugin
-
-  test_py26_plugins_common:
-    <<: *test_defaults_for_python26
-    environment:
-      DO_ENV: py26_plugins_common
-
-  docs_plugins_common:
-    <<: *docs_defaults
-    environment:
-      DO_ENV: docs_plugins_common
-
-  docs_rest_client:
-    <<: *docs_defaults
-    environment:
-      DO_ENV: docs_rest_client
-
-  deploy_docs_plugins_common:
-    <<: *deploy_defaults
-    environment:
-      DOCS_PATH: docs/cloudify_plugins_common/_build/html
-      DOCS_PATH_IN_S3: docs.cloudify.co/cloudify-plugins-common/
-
-  deploy_docs_rest_client:
-    <<: *deploy_defaults
-    environment:
-      DOCS_PATH: docs/cloudify_rest_client/_build/html
-      DOCS_PATH_IN_S3: docs.cloudify.co/cloudify-rest-client/
+          name: insstall awscli
+          command: pip install awscli --user
+      - deploy_docs:
+          project: cloudify_plugins_common
+          s3_path: s3://docs.cloudify.co/cloudify-plugins-common/
+      - deploy_docs:
+          project: cloudify_rest_client
+          s3_path: s3://docs.cloudify.co/cloudify-rest-client/
+      - deploy_docs:
+          project: cloudify_script_plugin
+          s3_path: s3://docs.cloudify.co/cloudify-script-plugin/
+      - deploy_docs:
+          project: cloudify_dsl_parser
+          s3_path: s3://docs.cloudify.co/cloudify-dsl-parser/
 
   py3_compat:
     docker:
@@ -166,27 +241,23 @@ jobs:
 workflows:
   version: 2
 
+  docs:
+    jobs:
+      - build_all_project_docs
+      - deploy_all_project_docs:
+          requires:
+            - build_all_project_docs
+          filters:
+            branches:
+              only: 5.0.5-build
+    
   build_and_test:
     jobs:
-      - flake8
       - py3_compat
-      - test_py27_dsl_parser
-      - test_py27_script_plugin
-      - test_py27_plugins_common
-      - test_py26_dsl_parser
-      - test_py26_script_plugin
-      - test_py26_plugins_common
-      - docs_plugins_common
-      - docs_rest_client
-      - deploy_docs_plugins_common:
+      - flake8_py27
+      - test_py26:
           requires:
-              - docs_plugins_common
-          filters:
-            branches:
-              only: 5.0.5-build
-      - deploy_docs_rest_client:
+            - flake8_py27
+      - test_py27:
           requires:
-              - docs_rest_client
-          filters:
-            branches:
-              only: 5.0.5-build
+            - flake8_py27
