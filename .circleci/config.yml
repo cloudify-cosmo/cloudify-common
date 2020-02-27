@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 
 checkout:
   post:
@@ -18,14 +18,56 @@ defaults:
     docker:
       - image: circleci/python:2.7
       - image: rabbitmq:3.7.4
+  docs_builder:
+    docker:
+      - image: circleci/python:2.7
+
+
+commands:
+  build_docs:
+    parameters:
+      project:
+        type: enum
+        enum:
+          - cloudify_rest_client
+          - cloudify_dsl_parser
+          - cloudify_plugins_common
+          - cloudify_script_plugin
+        description: which project to build docs for
     steps:
       - checkout
       - run:
           name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
           command: sudo pip install tox==1.6.1
+          name: Build docs for << parameters.project >>
+          command: |
+            sphinx-build \
+              -d _build/doctrees \
+              -D version=$(python setup.py --version) \
+              docs/<< parameters.project >> \
+              docs/<< parameters.project >>/_build/html
+  deploy_docs:
+    parameters:
+      project:
+        type: enum
+        enum:
+          - cloudify_rest_client
+          - cloudify_dsl_parser
+          - cloudify_plugins_common
+          - cloudify_script_plugin
+      s3_path:
+        type: string
+    steps:
       - run:
           name: Run tox of specfic environment
           command: tox -e $DO_ENV
+          name: Deploy docs for << parameters.project >> to S3
+          command: |
+            aws s3 sync \
+              docs/<< parameters.project >>/_build/html \
+              << parameters.s3_path >> \
+              --delete \
+              --acl public-read
 
   - &test_defaults_for_python26
     docker:
@@ -56,30 +98,45 @@ defaults:
       - image: circleci/python:2.7
     steps:
       - checkout
-      - run:
-          name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
-          command: sudo pip install tox==1.6.1
-      - run:
-          name: Run tox of specfic environment
-          command: tox -e $DO_ENV
-      - persist_to_workspace:
-              root: /home/circleci/project
-              paths: #circleci can only handle fixed paths currently
-                - docs
 
-  - &deploy_defaults
+  build_all_project_docs:
+    executor: docs_builder
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - common-pip-{{ checksum "setup.py" }}
+            - common-pip-
+      - run:
+          name: Install sphinx
+          command: pip install sphinx sphinx-rtd-theme
+      - run:
+          name: Install cloudify-common
+          command: pip install .
+      - save_cache:
+          key: common-pip-{{ checksum "setup.py" }}
+          paths:
+            - /home/circleci/.cache/pip
+      - build_docs:
+          project: cloudify_plugins_common
+      - build_docs:
+          project: cloudify_rest_client
+      - build_docs:
+          project: cloudify_script_plugin
+      - build_docs:
+          project: cloudify_dsl_parser
+      - persist_to_workspace:
+          root: /home/circleci/project
+          paths:
+            - docs
+
+  deploy_all_project_docs:
     docker:
       - image: circleci/python:2.7
     steps:
+      - attach_workspace:
+          at: /home/circleci/project
       - run:
-          name: Install awscli
-          command: sudo pip install awscli
-      - *attach_workspace
-      - run:
-          name: Deploy to S3
-          command: |
-                    aws s3 sync $DOCS_PATH s3://$DOCS_PATH_IN_S3 --delete --acl public-read
-
 jobs:
   flake8:
     <<: *test_defaults
@@ -115,28 +172,20 @@ jobs:
     <<: *test_defaults_for_python26
     environment:
       DO_ENV: py26_plugins_common
-
-  docs_plugins_common:
-    <<: *docs_defaults
-    environment:
-      DO_ENV: docs_plugins_common
-
-  docs_rest_client:
-    <<: *docs_defaults
-    environment:
-      DO_ENV: docs_rest_client
-
-  deploy_docs_plugins_common:
-    <<: *deploy_defaults
-    environment:
-      DOCS_PATH: docs/cloudify_plugins_common/_build/html
-      DOCS_PATH_IN_S3: docs.cloudify.co/cloudify-plugins-common/
-
-  deploy_docs_rest_client:
-    <<: *deploy_defaults
-    environment:
-      DOCS_PATH: docs/cloudify_rest_client/_build/html
-      DOCS_PATH_IN_S3: docs.cloudify.co/cloudify-rest-client/
+          name: insstall awscli
+          command: pip install awscli --user
+      - deploy_docs:
+          project: cloudify_plugins_common
+          s3_path: s3://docs.cloudify.co/cloudify-plugins-common/
+      - deploy_docs:
+          project: cloudify_rest_client
+          s3_path: s3://docs.cloudify.co/cloudify-rest-client/
+      - deploy_docs:
+          project: cloudify_script_plugin
+          s3_path: s3://docs.cloudify.co/cloudify-script-plugin/
+      - deploy_docs:
+          project: cloudify_dsl_parser
+          s3_path: s3://docs.cloudify.co/cloudify-dsl-parser/
 
   py3_compat:
     docker:
