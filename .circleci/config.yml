@@ -109,6 +109,7 @@ commands:
         type: string
     steps:
       - run:
+          when: always
           name: pytest << parameters.target >>
           command: |
             pytest \
