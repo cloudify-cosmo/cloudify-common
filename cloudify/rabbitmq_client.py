@@ -28,12 +28,9 @@ class RabbitMQClient(object):
     def __init__(self, hosts, username, password,
                  port=RABBITMQ_MANAGEMENT_PORT, scheme='https',
                  logger=None, **request_kwargs):
-        if isinstance(hosts, basestring):
-            # Single host
+        if not isinstance(hosts, list):
             hosts = [hosts]
-        else:
-            # Multiple hosts, roughly balance the load across them
-            random.shuffle(hosts)
+        random.shuffle(hosts)
         self._hosts = hosts
         self._target_host = self._hosts.pop()
         self._port = port

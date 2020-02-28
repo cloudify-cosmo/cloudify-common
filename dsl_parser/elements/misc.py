@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 from dsl_parser import elements
+from dsl_parser._compat import text_type
 from dsl_parser.elements import version as element_version
 from dsl_parser.framework.elements import (DictElement,
                                            DictNoDefaultElement,
@@ -25,7 +26,7 @@ from dsl_parser.framework.elements import (DictElement,
 
 class OutputDescription(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
     add_namespace_to_schema_elements = False
 
 
@@ -50,7 +51,7 @@ class Outputs(DictElement):
 
 class CapabilityDescription(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
     add_namespace_to_schema_elements = False
 
 
@@ -88,7 +89,7 @@ class DSLDefinitions(Element):
 
 class Description(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
 
     requires = {
         element_version.ToscaDefinitionsVersion: ['version'],
@@ -107,7 +108,7 @@ class Metadata(Element):
 
 class Imported(Element):
 
-    schema = Leaf(type=basestring)
+    schema = Leaf(type=text_type)
 
 
 class ImportedBlueprints(Element):
@@ -121,7 +122,7 @@ class ImportedBlueprints(Element):
 
 class NamespaceMapping(Element):
 
-    schema = Leaf(type=basestring)
+    schema = Leaf(type=text_type)
     add_namespace_to_schema_elements = False
 
 

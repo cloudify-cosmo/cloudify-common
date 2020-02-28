@@ -15,6 +15,7 @@
 
 import testtools
 
+from dsl_parser._compat import text_type
 from dsl_parser import exceptions
 
 from dsl_parser.framework import (parser,
@@ -36,7 +37,7 @@ class TestSchemaSchemaValidation(testtools.TestCase):
 
     def test_invalid_element_type_schema(self):
         class TestElement(elements.Element):
-            schema = elements.ElementType(type=str)
+            schema = elements.ElementType(type=text_type)
         self.assert_invalid(TestElement)
 
     def test_invalid_leaf_element_type_schema1(self):
@@ -56,7 +57,7 @@ class TestSchemaSchemaValidation(testtools.TestCase):
 
     def test_invalid_dict_element_type_schema1(self):
         class TestElement(elements.Element):
-            schema = elements.Dict(type=str)
+            schema = elements.Dict(type=text_type)
         self.assert_invalid(TestElement)
 
     def test_invalid_dict_element_type_schema2(self):
@@ -71,7 +72,7 @@ class TestSchemaSchemaValidation(testtools.TestCase):
 
     def test_invalid_list_element_type_schema1(self):
         class TestElement(elements.Element):
-            schema = elements.List(type=str)
+            schema = elements.List(type=text_type)
         self.assert_invalid(TestElement)
 
     def test_invalid_list_element_type_schema2(self):
@@ -91,10 +92,10 @@ class TestSchemaSchemaValidation(testtools.TestCase):
             self.assert_invalid(test_element)
 
         class TestLeaf(elements.Element):
-            schema = elements.Leaf(type=str)
+            schema = elements.Leaf(type=text_type)
 
         assertion({1: TestLeaf})
-        assertion({'key': elements.Leaf(type=str)})
+        assertion({'key': elements.Leaf(type=text_type)})
         assertion({'key': None})
         assertion({'key': 'str'})
         assertion({'key': elements.Element})
@@ -107,7 +108,7 @@ class TestSchemaSchemaValidation(testtools.TestCase):
     def test_invalid_list_schema2(self):
         class TestList(elements.Element):
             schema = [
-                elements.Leaf(type=str),
+                elements.Leaf(type=text_type),
                 [elements.Leaf(type=int)]
             ]
         self.assert_invalid(TestList)
@@ -137,7 +138,7 @@ class TestSchemaValidation(testtools.TestCase):
 
     def test_primitive_leaf_element_type_schema_validation(self):
         class TestStrLeaf(elements.Element):
-            schema = elements.Leaf(type=str)
+            schema = elements.Leaf(type=text_type)
 
         self.assert_valid('some_string', TestStrLeaf)
         self.assert_valid(None, TestStrLeaf)
@@ -186,7 +187,7 @@ class TestSchemaValidation(testtools.TestCase):
 
     def test_dict_element_type_schema_validation(self):
         class TestDictValue(elements.Element):
-            schema = elements.Leaf(type=str)
+            schema = elements.Leaf(type=text_type)
 
         class TestDict(elements.Element):
             schema = elements.Dict(type=TestDictValue)
@@ -201,7 +202,7 @@ class TestSchemaValidation(testtools.TestCase):
 
     def test_list_element_type_schema_validation(self):
         class TestLeaf(elements.Element):
-            schema = elements.Leaf(type=str)
+            schema = elements.Leaf(type=text_type)
 
         class TestList(elements.Element):
             schema = elements.List(type=TestLeaf)
@@ -214,7 +215,7 @@ class TestSchemaValidation(testtools.TestCase):
 
     def test_dict_schema_validation(self):
         class TestChildElement(elements.Element):
-            schema = elements.Leaf(type=str)
+            schema = elements.Leaf(type=text_type)
 
         class TestSchemaDict(elements.Element):
             schema = {
@@ -244,7 +245,7 @@ class TestSchemaValidation(testtools.TestCase):
 
         class TestElement(elements.Element):
             schema = [
-                elements.Leaf(type=str),
+                elements.Leaf(type=text_type),
                 {
                     'test': TestChild
                 }
@@ -257,7 +258,7 @@ class TestSchemaValidation(testtools.TestCase):
     def test_required_value(self):
         class TestElement(elements.Element):
             required = True
-            schema = elements.Leaf(type=str)
+            schema = elements.Leaf(type=text_type)
         self.assert_valid('1', TestElement)
         self.assert_invalid(None, TestElement)
 
@@ -266,7 +267,7 @@ class TestSchemaValidation(testtools.TestCase):
             return source.name != target.name
 
         class TestChild(elements.Element):
-            schema = elements.Leaf(type=str)
+            schema = elements.Leaf(type=text_type)
             requires = {
                 'self': [requirements.Value(
                     'req',
@@ -282,7 +283,7 @@ class TestSchemaValidation(testtools.TestCase):
 
     def test_strict_validation(self):
         class TestLeaf(elements.Element):
-            schema = elements.Leaf(type=str)
+            schema = elements.Leaf(type=text_type)
 
         class TestElement(elements.Element):
             schema = {
@@ -299,7 +300,7 @@ class TestSchemaValidation(testtools.TestCase):
 
     def test_illegal_value_access(self):
         class ChildElement(elements.Element):
-            schema = elements.Leaf(type=str)
+            schema = elements.Leaf(type=text_type)
 
             def parse(self):
                 return self.ancestor(TestElement).value

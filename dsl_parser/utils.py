@@ -21,15 +21,9 @@ import urllib2
 import sys
 import re
 
-try:
-    # Python 3.x
-    from urllib.parse import urlparse
-except ImportError:
-    # Python 2.7
-    from urlparse import urlparse
-
 import yaml.parser
 
+from dsl_parser._compat import urlparse, text_type
 from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
     RESLOVER_PARAMETERS_KEY,\
     NAMESPACE_DELIMITER
@@ -205,7 +199,7 @@ def parse_value(
     elif type_name == 'string':
         return value
     elif type_name == 'regex':
-        if isinstance(value, basestring):
+        if isinstance(value, text_type):
             try:
                 re.compile(value)
                 return value
@@ -329,7 +323,7 @@ def get_class(class_path):
     if not class_path:
         raise ValueError('class path is missing or empty')
 
-    if not isinstance(class_path, basestring):
+    if not isinstance(class_path, text_type):
         raise ValueError('class path is not a string')
 
     class_path = class_path.strip()

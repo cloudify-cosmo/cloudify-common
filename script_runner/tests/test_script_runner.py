@@ -27,6 +27,7 @@ from pytest import mark
 
 from . import string_in_log
 
+from cloudify._compat import text_type
 from cloudify.state import current_ctx
 from cloudify.decorators import workflow
 from cloudify.workflows import local
@@ -486,7 +487,7 @@ if __name__ == '__main__':
             props = self._run(script_path=script_path,
                               env_var=value)
             self.assertEqual(
-                props['key'] if isinstance(value, basestring)
+                props['key'] if isinstance(value, text_type)
                 else json.loads(props['key']), value)
 
         test('string-value')
@@ -524,7 +525,7 @@ if __name__ == '__main__':
                                   }
                               })
             self.assertEqual(
-                props['key'] if isinstance(value, basestring)
+                props['key'] if isinstance(value, text_type)
                 else json.loads(props['key']), value)
 
         test('override')

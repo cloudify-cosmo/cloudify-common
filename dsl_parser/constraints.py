@@ -16,6 +16,7 @@
 import re
 import numbers
 
+from dsl_parser._compat import text_type
 from dsl_parser import functions, exceptions
 from dsl_parser.constants import (
     INPUTS,
@@ -218,7 +219,7 @@ class Pattern(Constraint):
     # E.g. if self.args = 'abc' then calling `predicate` will only return True
     # when value = "abc".
     def predicate(self, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, text_type):
             raise exceptions.ConstraintException(
                 "Value must be of type string, got type "
                 "'{0}'".format(type(value).__name__))
@@ -244,7 +245,7 @@ def is_valid_sequence(args):
 
 @register_validation_func(constraint_data_type=_REGEX)
 def is_valid_regex(arg):
-    if not isinstance(arg, basestring):
+    if not isinstance(arg, text_type):
         return False
     try:
         re.compile(arg)

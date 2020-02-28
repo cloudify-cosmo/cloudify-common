@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from dsl_parser._compat import text_type
 from dsl_parser.interfaces.constants import NO_OP
 from dsl_parser.interfaces.utils import (operation_mapping,
                                          merge_schema_and_instance_inputs)
@@ -24,7 +25,7 @@ class OperationMerger(object):
     def _create_operation(raw_operation):
         if raw_operation is None:
             return None
-        if isinstance(raw_operation, str):
+        if isinstance(raw_operation, text_type):
             return operation_mapping(
                 implementation=raw_operation,
                 inputs={},

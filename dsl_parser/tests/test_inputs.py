@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 from dsl_parser import constants as consts
+from dsl_parser._compat import text_type
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.exceptions import (UnknownInputError,
                                    ERROR_UNKNOWN_TYPE,
@@ -1253,7 +1254,7 @@ inputs:
         plan = prepare_deployment_plan(
             parsed, inputs={'some_input': input_value})
         value_assert_equal_func(plan['inputs']['some_input'], input_value)
-        if not isinstance(input_value, basestring):
+        if not isinstance(input_value, text_type):
             return
         # Testing Unicode case
         unicode_input_value = unicode(input_value, encoding='utf-8')

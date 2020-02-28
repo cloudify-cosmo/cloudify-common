@@ -22,6 +22,7 @@ from dsl_parser import (exceptions,
                         constants,
                         version as _version,
                         utils)
+from dsl_parser._compat import text_type
 from dsl_parser.holder import Holder
 from dsl_parser.import_resolver.abstract_import_resolver import\
     is_remote_resource
@@ -63,7 +64,7 @@ IGNORE = set([
 
 class Import(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
 
 
 class Imports(Element):
@@ -73,7 +74,7 @@ class Imports(Element):
 
 class ImportLoader(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
 
 
 class ImportsLoader(Element):
@@ -517,7 +518,7 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
 def _prepare_namespaced_elements(key_holder, namespace, value_holder):
     if isinstance(value_holder.value, dict):
         _mark_key_value_holder_items(value_holder, 'namespace', namespace)
-    elif isinstance(value_holder.value, basestring):
+    elif isinstance(value_holder.value, text_type):
         # In case of primitive type we a need a different way to mark
         # the sub elements with the namespace, but leaving the option
         # for the DSL element to not receive the namespace.
@@ -571,7 +572,7 @@ def _merge_node_templates_relationships(
 def _extend_node_template(from_dict_holder, to_dict_holder):
     for key_holder, value_holder in from_dict_holder.value.items():
         if (isinstance(value_holder.value, dict) or
-                isinstance(value_holder.value, str)):
+                isinstance(value_holder.value, text_type)):
             to_dict_holder.value[key_holder] = value_holder
         elif (isinstance(value_holder.value, list) and
               key_holder.value == constants.RELATIONSHIPS):

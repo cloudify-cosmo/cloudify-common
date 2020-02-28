@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 from dsl_parser import exceptions
+from dsl_parser._compat import text_type
 from dsl_parser.framework.elements import (DictElement,
                                            Element,
                                            Leaf)
@@ -41,7 +42,7 @@ class Type(Element):
 
 class DerivedFrom(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
     descriptor = ''
 
     def validate(self):

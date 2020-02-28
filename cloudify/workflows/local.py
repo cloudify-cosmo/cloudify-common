@@ -34,7 +34,7 @@ from cloudify_rest_client.node_instances import NodeInstance
 from cloudify import dispatch, utils
 from cloudify.workflows.workflow_context import (
     DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE)
-from cloudify._compat import reraise
+from cloudify._compat import reraise, text_type
 
 try:
     from dsl_parser.constants import HOST_TYPE
@@ -266,7 +266,7 @@ def _get_module_method(module_method_path, tpe, node_name,
 
 
 def _try_convert_from_str(string, target_type):
-    if target_type == basestring:
+    if target_type == text_type:
         return string
     if target_type == bool:
         if string.lower() == 'true':
@@ -293,7 +293,7 @@ def _merge_and_validate_execution_parameters(
     allowed_types = {
         'integer': int,
         'float': float,
-        'string': basestring,
+        'string': text_type,
         'boolean': bool
     }
     wrong_types = {}
@@ -303,7 +303,7 @@ def _merge_and_validate_execution_parameters(
         if 'type' in param and name in execution_parameters:
 
             # check if need to convert from string
-            if (isinstance(execution_parameters[name], basestring) and
+            if (isinstance(execution_parameters[name], text_type) and
                     param['type'] in allowed_types):
                 execution_parameters[name] = \
                     _try_convert_from_str(

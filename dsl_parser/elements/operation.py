@@ -19,6 +19,7 @@ import numbers
 from dsl_parser import (constants,
                         exceptions,
                         utils)
+from dsl_parser._compat import text_type
 from dsl_parser.elements import (data_types,
                                  version as _version)
 from dsl_parser.framework.elements import (DictElement,
@@ -31,7 +32,7 @@ from dsl_parser.interfaces.utils import (operation,
 
 class OperationImplementation(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
 
     def parse(self):
         return self.initial_value if self.initial_value is not None else ''
@@ -39,7 +40,7 @@ class OperationImplementation(Element):
 
 class OperationExecutor(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
 
     add_namespace_to_schema_elements = False
 
@@ -134,7 +135,7 @@ class OperationTimeoutRecoverable(Element):
 class Operation(Element):
 
     def parse(self):
-        if isinstance(self.initial_value, basestring):
+        if isinstance(self.initial_value, text_type):
             return {
                 'implementation': self.initial_value,
                 'executor': None,
@@ -151,7 +152,7 @@ class Operation(Element):
 class NodeTypeOperation(Operation):
 
     schema = [
-        Leaf(type=str),
+        Leaf(type=text_type),
         {
             'implementation': OperationImplementation,
             'inputs': NodeTypeOperationInputs,
@@ -167,7 +168,7 @@ class NodeTypeOperation(Operation):
 class NodeTemplateOperation(Operation):
 
     schema = [
-        Leaf(type=str),
+        Leaf(type=text_type),
         {
             'implementation': OperationImplementation,
             'inputs': NodeTemplateOperationInputs,

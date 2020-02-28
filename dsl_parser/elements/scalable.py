@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from dsl_parser._compat import text_type
 from dsl_parser import (exceptions,
                         constants,
                         functions)
@@ -66,7 +67,7 @@ class MinInstances(NonNegativeInstances):
 
 class MaxInstances(Instances):
 
-    schema = Leaf(type=(int, basestring, dict))
+    schema = Leaf(type=(int, text_type, dict))
     default_value = constants.UNBOUNDED
 
     def validate(self):
@@ -75,7 +76,7 @@ class MaxInstances(Instances):
         value = self.initial_value
         if value is None:
             return
-        if isinstance(value, basestring):
+        if isinstance(value, text_type):
             if value != constants.UNBOUNDED_LITERAL:
                 raise exceptions.DSLParsingLogicException(
                     exceptions.ERROR_INVALID_LITERAL_INSTANCES,

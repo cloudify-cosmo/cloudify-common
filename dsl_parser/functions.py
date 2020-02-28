@@ -18,6 +18,7 @@ import pkg_resources
 
 from functools import wraps
 
+from dsl_parser._compat import text_type
 from dsl_parser import (constants,
                         exceptions,
                         scan)
@@ -144,7 +145,7 @@ _register_entry_point_functions()
 
 
 def _contains_legal_nested_attribute_path_items(l):
-    return all(is_function(x) or isinstance(x, (basestring, int)) for x in l)
+    return all(is_function(x) or isinstance(x, (text_type, int)) for x in l)
 
 
 def _is_legal_nested_attribute_path(l):
@@ -205,7 +206,7 @@ class GetInput(Function):
                 and len(l) >= 1 \
                 and _contains_legal_nested_attribute_path_items(l)
 
-        if not isinstance(args, basestring) \
+        if not isinstance(args, text_type) \
                 and not is_function(args) \
                 and not _is_valid_args_list(args):
             raise ValueError(
@@ -588,7 +589,7 @@ class GetSecret(Function):
         super(GetSecret, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, basestring) and not is_function(args):
+        if not isinstance(args, text_type) and not is_function(args):
             raise ValueError(
                 "`get_secret` function argument should be a string\\dict "
                 "(a function). Instead it is a {0} with the "
@@ -617,11 +618,11 @@ class GetCapability(Function):
             raise ValueError(
                 "`get_capability` function argument should be a list with 2 "
                 "elements at least - [ deployment ID, capability ID "
-                "[, key/index[, key/index [...]]] ]. Instead it is: "
-                "{0}".format("[" + ','.join([str(a) for a in args]) + "]")
+                "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
+                .format(','.join('{0}'.format(a) for a in args))
             )
         for arg_index in range(len(args)):
-            if not isinstance(args[arg_index], (basestring, int)) \
+            if not isinstance(args[arg_index], (text_type, int)) \
                     and not is_function(args[arg_index]):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
