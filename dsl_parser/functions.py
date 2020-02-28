@@ -30,7 +30,7 @@ AVAILABLE_NODE_TARGETS = [SELF, SOURCE, TARGET]
 # Function eval types: Static cannot be evaluated at runtime,
 # Hybrid can be evaluated both at runtime and statically,
 # Runtime can be evaluated only at runtime.
-STATIC_FUNC, HYBRID_FUNC, RUNTIME_FUNC = range(3)
+STATIC_FUNC, HYBRID_FUNC, RUNTIME_FUNC = [0, 1, 2]
 
 TEMPLATE_FUNCTIONS = {}
 
