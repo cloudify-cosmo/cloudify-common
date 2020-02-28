@@ -22,6 +22,7 @@ import uuid
 import json
 import time
 import threading
+import sys
 from datetime import datetime
 from StringIO import StringIO
 from contextlib import contextmanager
@@ -33,6 +34,7 @@ from cloudify_rest_client.node_instances import NodeInstance
 from cloudify import dispatch, utils
 from cloudify.workflows.workflow_context import (
     DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE)
+from cloudify._compat import reraise
 
 try:
     from dsl_parser.constants import HOST_TYPE
@@ -142,7 +144,7 @@ class _Environment(object):
             return rv
         except Exception as e:
             self.storage.execution_ended(execution_id, e)
-            raise e
+            reraise(e.__class__, e, sys.exc_info()[2])
 
 
 def init_env(blueprint_path,

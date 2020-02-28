@@ -25,8 +25,16 @@ if PY2:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
+    exec("""
+def reraise(exception_type, value, traceback):
+    raise exception_type, value, traceback
+""")
+
 else:
     import queue
     from io import StringIO
 
-__all__ = ['PY2', 'queue', 'StringIO']
+    def reraise(exception_type, value, traceback):
+        raise value.with_traceback(traceback)
+
+__all__ = ['PY2', 'queue', 'StringIO', 'reraise']
