@@ -34,3 +34,4 @@ lib2to3.fixes.fix_itertools
 lib2to3.fixes.fix_itertools_imports
 lib2to3.fixes.fix_exec
 lib2to3.fixes.fix_operator
+lib2to3.fixes.fix_filter

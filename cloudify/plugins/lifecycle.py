@@ -640,8 +640,10 @@ def _wait_for_host_to_start(host_node_instance):
 
 def prepare_running_agent(host_node_instance):
     tasks = []
-    plugins_to_install = filter(lambda plugin: plugin['install'],
-                                host_node_instance.node.plugins_to_install)
+    plugins_to_install = [
+        plugin for plugin in host_node_instance.node.plugins_to_install
+        if plugin['install']
+    ]
 
     _plugins_install_task = plugins_install_task(host_node_instance,
                                                  plugins_to_install)
