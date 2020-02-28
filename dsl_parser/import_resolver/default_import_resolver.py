@@ -89,7 +89,7 @@ class DefaultImportResolver(AbstractImportResolver):
         matched_any_rule = False
         for rule in self.rules:
             # the validate method checks that the dict has exactly 1 element
-            prefix, value = list(rule.items())[0]
+            prefix, value = dict(rule).popitem()
             prefix_len = len(prefix)
             if prefix == import_url[:prefix_len]:
                 matched_any_rule = True
@@ -148,10 +148,9 @@ class DefaultImportResolver(AbstractImportResolver):
                     'Each rule must be a dictionary but the rule '
                     '[{0}] is of type {1}.'
                     .format(rule, type(rule).__name__))
-            keys = rule.keys()
-            if not len(keys) == 1:
+            if not len(rule) == 1:
                 raise DefaultResolverValidationException(
                     'Invalid parameters supplied for the default resolver: '
                     'Each rule must be a dictionary with one (key,value) pair '
                     'but the rule [{0}] has {1} keys.'
-                    .format(rule, len(keys)))
+                    .format(rule, len(rule)))

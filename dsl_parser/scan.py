@@ -55,7 +55,7 @@ def scan_properties(value,
     :param replace: whether to do an in-place replacement or not.
     """
     if isinstance(value, dict):
-        for k, v in value.iteritems():
+        for k, v in value.items():
             current_path = '{0}.{1}'.format(path, k)
             result = handler(v, scope, context, current_path)
             _collect_secret(result)
@@ -81,7 +81,7 @@ def _scan_operations(operations,
                      context=None,
                      path='',
                      replace=False):
-    for name, definition in operations.iteritems():
+    for name, definition in operations.items():
         if isinstance(definition, dict) and 'inputs' in definition:
             context = context.copy() if context else {}
             context['operation'] = definition
@@ -125,7 +125,7 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
     for node_template in plan.node_templates:
         scan_node_template(node_template, handler, replace=replace)
         scan_node_operation_properties(node_template, handler, replace=replace)
-    for output_name, output in plan.outputs.iteritems():
+    for output_name, output in plan.outputs.items():
         scan_properties(output,
                         handler,
                         scope=OUTPUTS_SCOPE,

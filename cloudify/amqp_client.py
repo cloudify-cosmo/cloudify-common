@@ -696,7 +696,7 @@ class CloudifyEventsPublisher(object):
         }
 
         self._connection = AMQPConnection(
-            handlers=self.handlers.values(),
+            handlers=list(self.handlers.values()),
             amqp_params=amqp_params,
             name=os.environ.get('AGENT_NAME')
         )

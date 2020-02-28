@@ -30,7 +30,7 @@ class Constraint(Element):
     add_namespace_to_schema_elements = False
 
     def validate(self, **kwargs):
-        constraint_op_keys = self.initial_value.keys()
+        constraint_op_keys = list(self.initial_value)
         if not constraint_op_keys:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,

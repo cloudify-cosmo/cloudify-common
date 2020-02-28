@@ -672,7 +672,7 @@ def generate_user_password(password_length=32):
 
     password = ''.join(
         system_random.choice(allowed_characters)
-        for _ in xrange(password_length)
+        for _ in range(password_length)
     )
     return password
 

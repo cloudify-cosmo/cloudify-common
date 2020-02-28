@@ -303,9 +303,10 @@ class PolicyInstanceTargets(Element):
         assignment.
         """
         if self.namespace:
-            for i in xrange(len(self._initial_value)):
-                self._initial_value[i] = utils.generate_namespaced_value(
-                    self.namespace, self.initial_value[i])
+            self._initial_value = [
+                utils.generate_namespaced_value(self.namespace, v)
+                for v in self._initial_value
+            ]
         return self.initial_value
 
     def validate(self):

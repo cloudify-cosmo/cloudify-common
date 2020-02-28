@@ -226,6 +226,7 @@ jobs:
           command: |
             FUTURIZE="futurize ."
             while read line; do
+              [[ "$line" =~ ^#.* ]] && continue
               FUTURIZE="${FUTURIZE} -f ${line}"
             done<.circleci/py3fixers
             $FUTURIZE>futurize_diffs

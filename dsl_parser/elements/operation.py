@@ -291,7 +291,7 @@ def process_operation(
         else:
             return no_op_operation(operation_name=operation_name)
 
-    candidate_plugins = [p for p in plugins.keys()
+    candidate_plugins = [p for p in plugins
                          if operation_mapping.startswith('{0}.'.format(p))]
     if candidate_plugins:
         if len(candidate_plugins) > 1:

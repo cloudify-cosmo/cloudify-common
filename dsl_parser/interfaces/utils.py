@@ -39,9 +39,8 @@ def merge_schema_and_instance_inputs(schema_inputs,
                                      instance_inputs):
 
     flattened_schema_inputs = utils.flatten_schema(schema_inputs)
-    merged_inputs = dict(
-            flattened_schema_inputs.items() +
-            instance_inputs.items())
+    merged_inputs = dict(flattened_schema_inputs)
+    merged_inputs.update(instance_inputs)
 
     validate_missing_inputs(merged_inputs, schema_inputs)
     return merged_inputs

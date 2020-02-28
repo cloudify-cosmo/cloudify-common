@@ -105,8 +105,8 @@ class Context(object):
         which is leftover after applying namespace on intrinsic functions.
         """
         if isinstance(element, list):
-            for i in xrange(len(element)):
-                self._remove_skip_namespace_flag(element[i].value)
+            for item in element:
+                self._remove_skip_namespace_flag(item.value)
             return
         elif not isinstance(element, dict):
             return
@@ -270,9 +270,8 @@ class Context(object):
             values only for the relevant intrinsic functions.
             """
             def traverse_list(holder_item, item):
-                for i in xrange(len(item)):
-                    handle_intrinsic_function_namespace(
-                        holder_item.value[i], item[i])
+                for holder_value, value in zip(holder_item.value, item):
+                    handle_intrinsic_function_namespace(holder_value, value)
 
             if isinstance(element, list):
                 traverse_list(holder_element, element)
@@ -505,7 +504,7 @@ class Parser(object):
                 if not isinstance(value, dict):
                     raise exceptions.DSLParsingFormatException(
                         1, _expected_type_message(value, dict))
-                for key in value.keys():
+                for key in value:
                     if not isinstance(key, basestring):
                         raise exceptions.DSLParsingFormatException(
                             1, "Dict keys must be strings but"
@@ -513,12 +512,12 @@ class Parser(object):
                                .format(key, _py_type_to_user_type(type(key))))
 
             if strict and isinstance(schema, dict):
-                for key in value.keys():
+                for key in value:
                     if key not in schema:
                         ex = exceptions.DSLParsingFormatException(
                             1, "'{0}' is not in schema. "
                                "Valid schema values: {1}"
-                               .format(key, schema.keys()))
+                               .format(key, list(schema)))
                         for child_element in element.children():
                             if child_element.name == key:
                                 ex.element = child_element
@@ -577,7 +576,7 @@ class Parser(object):
                         raise exceptions.DSLParsingFormatException(
                             1, "Missing required input '{0}'. "
                                "Existing inputs: "
-                               .format(input.name, context.inputs.keys()))
+                               .format(input.name, list(context.inputs)))
                     required_args[input.name] = context.inputs.get(input.name)
             else:
                 if required_type == 'self':
@@ -595,7 +594,7 @@ class Parser(object):
                         else:
                             if (requirement.name not in
                                     required_element.provided):
-                                provided = required_element.provided.keys()
+                                provided = list(required_element.provided)
                                 if requirement.required:
                                     raise exceptions.DSLParsingFormatException(
                                         1,

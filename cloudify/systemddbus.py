@@ -47,7 +47,7 @@ class DBusClient(object):
 def get_services(units):
     out = []
     client = DBusClient()
-    for unit_id, display_name in units.iteritems():
+    for unit_id, display_name in units.items():
         service = {}
         service['display_name'] = display_name
         service['unit_id'] = unit_id

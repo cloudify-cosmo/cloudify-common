@@ -36,7 +36,7 @@ _NO_LENGTH_ERROR_MSG = "Value's length could not be computed. Value " \
 #                scalars
 # - sequence: ( 1, 0, 'something', False ) or it could
 #             be [ 1, 0, 'something', False ]
-_SCALAR, _DUAL_SCALAR, _SEQUENCE, _REGEX = range(4)
+_SCALAR, _DUAL_SCALAR, _SEQUENCE, _REGEX = [0, 1, 2, 3]
 
 CONSTRAINTS = {}
 VALIDATION_FUNCTIONS = {}
@@ -277,7 +277,7 @@ def parse(definition):
     with a single key-value pair, i.e. { constraint_operator_name: argument/s }
     :return: an instantiated Constraint.
     """
-    name, args = definition.keys()[0], definition.values()[0]
+    name, args = dict(definition).popitem()
     constraint_cls = CONSTRAINTS[name]
     return constraint_cls(args)
 
@@ -299,7 +299,7 @@ def validate_input_value(input_name, input_constraints, input_value):
 def validate_input_defaults(plan):
     if INPUTS not in plan:
         return
-    for input_name, input_def in plan[INPUTS].iteritems():
+    for input_name, input_def in plan[INPUTS].items():
         if DEFAULT not in input_def:
             continue
         input_default_value = input_def[DEFAULT]

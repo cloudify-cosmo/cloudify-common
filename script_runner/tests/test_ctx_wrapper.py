@@ -168,9 +168,9 @@ class PythonWrapperTests(testtools.TestCase):
                   'ctx.returns(value)')
         result = self._run(script)
         res_dict = ast.literal_eval(result)
-        self.assertIn('ip', res_dict.keys())
+        self.assertIn('ip', res_dict)
         self.assertEquals(res_dict['ip'], '1.1.1.1')
-        self.assertIn('key', res_dict.keys())
+        self.assertIn('key', res_dict)
         self.assertEquals(res_dict['key'], 'value')
 
     def test_get_node_properties_get_function(self):

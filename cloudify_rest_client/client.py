@@ -178,13 +178,13 @@ class HTTPClient(object):
                                    timeout=timeout or self.default_timeout_sec,
                                    auth=auth)
         if self.logger.isEnabledFor(logging.DEBUG):
-            for hdr, hdr_content in response.request.headers.iteritems():
+            for hdr, hdr_content in response.request.headers.items():
                 self.logger.debug('request header:  %s: %s'
                                   % (hdr, hdr_content))
             self.logger.debug('reply:  "%s %s" %s'
                               % (response.status_code,
                                  response.reason, response.content))
-            for hdr, hdr_content in response.headers.iteritems():
+            for hdr, hdr_content in response.headers.items():
                 self.logger.debug('response header:  %s: %s'
                                   % (hdr, hdr_content))
 
