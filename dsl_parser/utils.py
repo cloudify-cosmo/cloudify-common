@@ -83,7 +83,7 @@ def merge_schemas(overridden_schema,
 
 def flatten_schema(schema):
     flattened_schema_props = {}
-    for prop_key, prop in schema.iteritems():
+    for prop_key, prop in schema.items():
         if 'default' in prop:
             flattened_schema_props[prop_key] = prop['default']
     return flattened_schema_props
@@ -135,7 +135,7 @@ def _merge_flattened_schema_and_instance_properties(
     # validate instance properties don't
     # contain properties that are not defined
     # in the schema.
-    for key in instance_properties.iterkeys():
+    for key in instance_properties:
         if key not in schema_properties:
             ex = exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNDEFINED_PROPERTY,
@@ -145,10 +145,11 @@ def _merge_flattened_schema_and_instance_properties(
             ex.property = key
             raise ex
 
-    merged_properties = dict(flattened_schema_properties.items() +
-                             instance_properties.items())
+    merged_properties = dict(flattened_schema_properties)
+    merged_properties.update(instance_properties)
+
     result = {}
-    for key, property_schema in schema_properties.iteritems():
+    for key, property_schema in schema_properties.items():
         if key not in merged_properties:
             required = property_schema.get('required', True)
             if required and raise_on_missing_property:

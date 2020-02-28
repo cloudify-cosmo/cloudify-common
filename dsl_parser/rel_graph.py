@@ -904,7 +904,7 @@ class Context(object):
             succ = graph.succ[node_id]
             if succ:
                 assert len(succ) == 1
-                node_id = succ.keys()[0]
+                node_id = list(succ.keys())[0]
                 if not graph.node[node_id]['node'].get('group'):
                     continue
                 result.append(node_id)
@@ -918,7 +918,7 @@ class Context(object):
             succ = graph.succ[node_instance_id]
             if succ:
                 assert len(succ) == 1
-                node_instance_id = succ.keys()[0]
+                node_instance_id = list(succ.keys())[0]
                 node = graph.node[node_instance_id]['node']
                 if not node.get('group'):
                     continue
@@ -935,7 +935,7 @@ class Context(object):
             succ = contained_graph.succ[instance_id]
             if succ:
                 assert len(succ) == 1
-                node_instance_id = succ.keys()[0]
+                node_instance_id = list(succ.keys())[0]
                 node = contained_graph.node[node_instance_id]['node']
                 instance_id = node['id']
                 result.append({

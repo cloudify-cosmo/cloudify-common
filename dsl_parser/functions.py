@@ -740,7 +740,7 @@ def _get_property_value(node_name,
 
 def parse(raw_function, scope=None, context=None, path=None):
     if is_function(raw_function):
-        func_name, func_args = raw_function.items()[0]
+        func_name, func_args = dict(raw_function).popitem()
         return TEMPLATE_FUNCTIONS[func_name](func_args,
                                              scope=scope,
                                              context=context,
@@ -812,7 +812,7 @@ def evaluate_outputs(outputs_def, storage):
     :param storage: Storage backend for runtime function evaluation
     :return: Outputs dict.
     """
-    outputs = dict((k, v['value']) for k, v in outputs_def.iteritems())
+    outputs = dict((k, v['value']) for k, v in outputs_def.items())
     return evaluate_functions(
         payload=outputs,
         context={'evaluate_outputs': True},

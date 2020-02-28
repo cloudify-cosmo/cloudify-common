@@ -96,7 +96,7 @@ class SitesClient(object):
             'new_name': new_name
         }
         # Remove the keys with value None
-        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        data = dict((k, v) for k, v in data.items() if v is not None)
         response = self.api.post(
             '/{self._uri_prefix}/{name}'.format(self=self, name=name),
             data=data

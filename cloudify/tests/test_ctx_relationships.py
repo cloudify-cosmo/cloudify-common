@@ -325,7 +325,7 @@ def assert_capabilities(rel=None, **_):
     if len(caps) != 1:
         raise RuntimeError('unexpected count {0}'.format(caps))
 
-    node_id, runtime_properties = next(caps.iteritems())
+    node_id, runtime_properties = dict(caps).popitem()
     instance.runtime_properties[rel] = {
         'id': node_id,
         'prop': runtime_properties['prop']

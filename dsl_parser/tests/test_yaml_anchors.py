@@ -57,7 +57,7 @@ node_templates:
             'node3': {'prop1': 1, 'prop2': 3}
         }
 
-        for node, expected_value in expected_node_properties.iteritems():
+        for node, expected_value in expected_node_properties.items():
             self.assertEquals(expected_value,
                               self._get_node_properties(parsed_plan, node))
 
@@ -96,6 +96,6 @@ node_templates:
             'node3': {'prop1': 1, 'prop2': 3}
         }
 
-        for node_id, expected_value in expected_node_properties.iteritems():
+        for node_id, expected_value in expected_node_properties.items():
             self.assertEquals(expected_value,
                               self._get_node_properties(parsed_plan, node_id))

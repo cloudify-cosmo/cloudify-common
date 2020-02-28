@@ -344,9 +344,9 @@ def scale_entity(ctx,
         groups_members = get_groups_with_members(ctx)
         # Available instances for checking inclusions/exclusions needs to
         # include all groups and their members
-        available_instances = set(chain.from_iterable(
-            groups_members.values())
-        ).union(groups_members.keys())
+        available_instances = set(
+            chain.from_iterable(groups_members.values())
+        ).union(groups_members)
         validate_inclusions_and_exclusions(
             include_instances,
             exclude_instances,
@@ -697,7 +697,7 @@ def update(ctx,
     for instance in ctx.node_instances:
         instance_holders = [instance_holder
                             for _, (changed_ids, instance_holder)
-                            in instances_by_change.iteritems()
+                            in instances_by_change.items()
                             if instance.id in changed_ids]
         for instance_holder in instance_holders:
             instance_holder.append(instance)

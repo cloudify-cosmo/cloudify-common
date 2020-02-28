@@ -306,7 +306,7 @@ class CloudifyWorkflowNodeInstance(object):
     @property
     def relationships(self):
         """The node relationships"""
-        return self._relationship_instances.itervalues()
+        return iter(self._relationship_instances.values())
 
     @property
     def node(self):
@@ -423,7 +423,7 @@ class CloudifyWorkflowNode(object):
     @property
     def relationships(self):
         """The node relationships"""
-        return self._relationships.itervalues()
+        return iter(self._relationships.values())
 
     @property
     def operations(self):
@@ -433,7 +433,7 @@ class CloudifyWorkflowNode(object):
     @property
     def instances(self):
         """The node instances"""
-        return self._node_instances.itervalues()
+        return iter(self._node_instances.values())
 
     def get_relationship(self, target_id):
         """Get a node relationship by its target id"""
@@ -660,7 +660,7 @@ class _WorkflowContextBase(object):
     @staticmethod
     def _merge_dicts(merged_from, merged_into, allow_override=False):
         result = copy.copy(merged_into)
-        for key, value in merged_from.iteritems():
+        for key, value in merged_from.items():
             if not allow_override and key in merged_into:
                 raise RuntimeError('Duplicate definition of {0} in operation'
                                    ' properties and in kwargs. To allow '
@@ -898,7 +898,7 @@ class WorkflowNodesAndInstancesContainer(object):
                 self))
             for instance in raw_node_instances)
 
-        for inst in self._node_instances.itervalues():
+        for inst in self._node_instances.values():
             for rel in inst.relationships:
                 if rel.relationship.is_derived_from(
                         "cloudify.relationships.contained_in"):
@@ -906,11 +906,11 @@ class WorkflowNodesAndInstancesContainer(object):
 
     @property
     def nodes(self):
-        return self._nodes.itervalues()
+        return iter(self._nodes.values())
 
     @property
     def node_instances(self):
-        return self._node_instances.itervalues()
+        return iter(self._node_instances.values())
 
     def get_node(self, node_id):
         """
@@ -1622,17 +1622,27 @@ class Modification(object):
         self._raw_modification = modification
         self.workflow_ctx = workflow_ctx
         node_instances = modification.node_instances
-        added_raw_nodes = dict(
-            (instance.node_id, workflow_ctx.get_node(instance.node_id)._node)
-            for instance in node_instances.added_and_related).values()
+        added_raw_nodes = []
+        seen_ids = set()
+        for instance in node_instances.added_and_related:
+            if instance.node_id not in seen_ids:
+                added_raw_nodes.append(
+                    workflow_ctx.get_node(instance.node_id)._node)
+                seen_ids.add(instance.node_id)
+
         added_raw_node_instances = node_instances.added_and_related
         self._added = ModificationNodes(self,
                                         added_raw_nodes,
                                         added_raw_node_instances)
 
-        removed_raw_nodes = dict(
-            (instance.node_id, workflow_ctx.get_node(instance.node_id)._node)
-            for instance in node_instances.removed_and_related).values()
+        removed_raw_nodes = []
+        seen_ids = set()
+        for instance in node_instances.removed_and_related:
+            if instance.node_id not in seen_ids:
+                removed_raw_nodes.append(
+                    workflow_ctx.get_node(instance.node_id)._node)
+                seen_ids.add(instance.node_id)
+
         removed_raw_node_instances = node_instances.removed_and_related
         self._removed = ModificationNodes(self,
                                           removed_raw_nodes,

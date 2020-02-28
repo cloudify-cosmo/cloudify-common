@@ -24,7 +24,6 @@ import threading
 import Queue
 
 import testtools
-from testtools.matchers import ContainsAll
 
 import cloudify.logs
 from cloudify.decorators import workflow, operation
@@ -615,10 +614,8 @@ class LocalWorkflowTest(BaseWorkflowTest):
             self.assertEqual(['type'], node1.type_hierarchy)
             self.assertEqual(['type', 'cloudify.nodes.Compute'],
                              node2.type_hierarchy)
-            self.assertThat(node1.properties.items(),
-                            ContainsAll({'property': 'value'}.items()))
-            self.assertThat(node2.properties.items(),
-                            ContainsAll({'property': 'default'}.items()))
+            self.assertEqual(node1.properties.get('property'), 'value')
+            self.assertEqual(node2.properties.get('property'), 'default')
             self.assertEqual(sorted_ops, sorted(node1.operations.keys()))
             self.assertEqual(sorted_ops, sorted(node2.operations.keys()))
             self.assertIs(relationship, node1.get_relationship('node2'))
@@ -660,7 +657,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
         def op1(ctx, **_):
             caps = ctx.capabilities.get_all()
             self.assertEqual(1, len(caps))
-            key, value = next(caps.iteritems())
+            key, value = dict(caps).popitem()
             self.assertIn('node2_', key)
             self.assertEqual(value, {'key': 'value'})
 
@@ -690,11 +687,11 @@ class LocalWorkflowTest(BaseWorkflowTest):
 
         def op(ctx, **_):
             if 'node2_' in ctx.target.instance.id:
-                self.assertThat(ctx.target.node.properties.items(),
-                                ContainsAll({'property': 'default'}.items()))
+                self.assertEqual(
+                    ctx.target.node.properties.get('property'), 'default')
             elif 'node_' in ctx.target.instance.id:
-                self.assertThat(ctx.target.node.properties.items(),
-                                ContainsAll({'property': 'value'}.items()))
+                self.assertEqual(
+                    ctx.target.node.properties.get('property'), 'value')
             else:
                 self.fail('unexpected: {0}'.format(ctx.target.instance.id))
         self._execute_workflow(the_workflow, operation_methods=[op])
@@ -760,8 +757,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
                              ctx.plugin.package_version)
             self.assertEqual(sys.prefix, ctx.plugin.prefix)
             self.assertEqual('test.op0', ctx.operation.name)
-            self.assertThat(ctx.node.properties.items(),
-                            ContainsAll({'property': 'value'}.items()))
+            self.assertEqual(ctx.node.properties.get('property'), 'value'),
             self.assertEqual('content', ctx.get_resource('resource'))
             target_path = ctx.download_resource('resource')
             with open(target_path) as f:
