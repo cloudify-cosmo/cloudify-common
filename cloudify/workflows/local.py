@@ -293,7 +293,7 @@ def _merge_and_validate_execution_parameters(
     allowed_types = {
         'integer': int,
         'float': float,
-        'string': text_type,
+        'string': (text_type, bytes),
         'boolean': bool
     }
     wrong_types = {}
@@ -303,8 +303,9 @@ def _merge_and_validate_execution_parameters(
         if 'type' in param and name in execution_parameters:
 
             # check if need to convert from string
-            if (isinstance(execution_parameters[name], text_type) and
-                    param['type'] in allowed_types):
+            if (isinstance(execution_parameters[name], (text_type, bytes)) and
+                    param['type'] in allowed_types and
+                    param['type'] != 'string'):
                 execution_parameters[name] = \
                     _try_convert_from_str(
                         execution_parameters[name],
