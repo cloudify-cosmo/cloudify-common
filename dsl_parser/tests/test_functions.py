@@ -575,7 +575,7 @@ node_templates:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
         except TypeError as e:
-            self.assertIn('is expected b to be an int but it is a str', str(e))
+            self.assertIn('is expected b to be an int but it is a', str(e))
 
     def test_invalid_nested_property3(self):
         yaml = """

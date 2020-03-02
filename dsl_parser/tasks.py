@@ -139,8 +139,8 @@ def _validate_secrets(plan, get_secret_method):
 
     if invalid_secrets:
         raise exceptions.UnknownSecretError(
-            "Required secrets {0} don't exist in this tenant"
-            .format(invalid_secrets)
+            "Required secrets: [{0}] don't exist in this tenant"
+            .format(', '.join(s for s in invalid_secrets))
         )
 
 

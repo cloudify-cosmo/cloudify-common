@@ -171,10 +171,10 @@ node_templates:
         self.assertFalse(hasattr(parsed, 'secrets'))
 
     def test_validate_secrets_all_invalid(self):
-        expected_message = r"Required secrets \['target_op_secret_id', " \
-                           r"'node_template_secret_id', 'ip', 'agent_key', " \
-                           r"'user', 'webserver_port', " \
-                           r"'source_op_secret_id'\] " \
+        expected_message = r"Required secrets: \[target_op_secret_id, " \
+                           r"node_template_secret_id, ip, agent_key, " \
+                           r"user, webserver_port, " \
+                           r"source_op_secret_id\] " \
                            r"don't exist in this tenant"
 
         get_secret_not_found = Mock(side_effect=NotFoundException)
@@ -193,8 +193,8 @@ node_templates:
                                 get_secret_exception)
 
     def test_validate_secrets_some_invalid(self):
-        expected_message = r"Required secrets \['ip', " \
-                           r"'source_op_secret_id'\] don't exist in " \
+        expected_message = r"Required secrets: \[ip, " \
+                           r"source_op_secret_id\] don't exist in " \
                            r"this tenant"
 
         get_secret_not_found = Mock()
