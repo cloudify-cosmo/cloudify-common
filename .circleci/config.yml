@@ -21,6 +21,12 @@ executors:
     docker:
       - image: circleci/python:2.7
       - image: rabbitmq:3.7.4
+  py36:
+    docker:
+      - image: circleci/python:3.6
+      - image: rabbitmq:3.7.4
+
+
   docs_builder:
     docker:
       - image: circleci/python:2.7
@@ -123,6 +129,16 @@ jobs:
   flake8_py27:
     docker:
       - image: circleci/python:2.7
+    steps:
+      - checkout
+      - run: pip install flake8 --user
+      - run:
+          name: Run flake8
+          command: flake8 dsl_parser script_runner cloudify cloudify_rest_client
+
+  flake8_py36:
+    docker:
+      - image: circleci/python:3.6
     steps:
       - checkout
       - run: pip install flake8 --user
@@ -266,6 +282,7 @@ workflows:
     jobs:
       - py3_compat
       - flake8_py27
+      - flake8_py36
       - test_py26:
           requires:
             - flake8_py27
