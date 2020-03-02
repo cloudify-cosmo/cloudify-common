@@ -59,12 +59,7 @@ class SchemaAPIValidator(object):
                 self._traverse_schema(value, list_nesting + 1)
         elif isinstance(schema, elements.ElementType):
             if isinstance(schema, elements.Leaf):
-                if not isinstance(schema.type, (type, list, tuple)):
-                    raise exceptions.DSLParsingSchemaAPIException(1)
-                if (isinstance(schema.type, (list, tuple)) and
-                    (not schema.type or
-                     not all([isinstance(i, type) for i in schema.type]))):
-                    raise exceptions.DSLParsingSchemaAPIException(1)
+                self._validate_leaf_type(schema.type)
             elif isinstance(schema, elements.Dict):
                 self._traverse_element_cls(schema.type)
             elif isinstance(schema, elements.List):
@@ -72,6 +67,22 @@ class SchemaAPIValidator(object):
             else:
                 raise exceptions.DSLParsingSchemaAPIException(1)
         else:
+            raise exceptions.DSLParsingSchemaAPIException(1)
+
+    def _validate_leaf_type(self, schema_type):
+        """Check that schema_type is valid for typechecking
+
+        schema_type needs to be something that can go into
+        isinstance() checks, ie. a class, type, or tuple of classes
+        and types.
+
+        Additionally, an empty schema is not allowed.
+        """
+        if not schema_type:
+            raise exceptions.DSLParsingSchemaAPIException(1)
+        try:
+            isinstance(None, schema_type)
+        except TypeError:
             raise exceptions.DSLParsingSchemaAPIException(1)
 
 
