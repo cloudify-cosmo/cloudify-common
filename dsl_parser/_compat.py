@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 """Python 2 + 3 compatibility utils"""
+# flake8: noqa
 
 import sys
 PY2 = sys.version_info[0] == 2
