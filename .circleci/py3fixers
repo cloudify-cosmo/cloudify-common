@@ -44,7 +44,5 @@ lib2to3.fixes.fix_zip
 lib2to3.fixes.fix_basestring
 libfuturize.fixes.fix_division
 lib2to3.fixes.fix_metaclass
-# fix_unicode_keep_u is not checked because it would attempt to
-# fix the compat modules themselves
-# libfuturize.fixes.fix_unicode_keep_u
+libfuturize.fixes.fix_unicode_keep_u
 libfuturize.fixes.fix_cmp
