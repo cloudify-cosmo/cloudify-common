@@ -1257,7 +1257,7 @@ inputs:
         if not isinstance(input_value, text_type):
             return
         # Testing Unicode case
-        unicode_input_value = unicode(input_value, encoding='utf-8')
+        unicode_input_value = input_value.decode('utf-8')
         plan = prepare_deployment_plan(
             parsed, inputs={'some_input': unicode_input_value})
         value_assert_equal_func(
