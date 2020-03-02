@@ -222,6 +222,16 @@ jobs:
           name: install futurize
           command: pip install future --user
       - run:
+          # those modules contain code that futurize would want to change,
+          # so let's just remove them so that it doesn't report on them
+          # (there's no "exclude" functionality in futurize)
+          name: remove compat modules
+          command: |
+            rm cloudify/_compat.py
+            rm dsl_parser/_compat.py
+            rm cloudify_rest_client/_compat.py
+            rm cloudify/ctx_wrappers/ctx-py.py
+      - run:
           name: find python3-incompatible code
           command: |
             FUTURIZE="futurize ."

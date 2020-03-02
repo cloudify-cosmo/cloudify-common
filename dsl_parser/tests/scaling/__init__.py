@@ -76,7 +76,7 @@ node_templates:
             return n['host_id']
 
         for _, g in itertools.groupby(sorted(nodes, key=key_fun), key=key_fun):
-            self.assertEqual(len(list(g)), len(node_ids) / len(host_ids))
+            self.assertEqual(len(list(g)), len(node_ids) // len(host_ids))
 
     def _assert_contained(self, source_relationships, node_ids, target_name):
         relationships = self._relationships_by_target_name(

@@ -18,7 +18,7 @@ import pkg_resources
 
 from functools import wraps
 
-from dsl_parser._compat import text_type
+from dsl_parser._compat import ABC, text_type
 from dsl_parser import (constants,
                         exceptions,
                         scan)
@@ -154,9 +154,7 @@ def _is_legal_nested_attribute_path(l):
         and _contains_legal_nested_attribute_path_items(l)
 
 
-class Function(object):
-
-    __metaclass__ = abc.ABCMeta
+class Function(ABC):
     name = 'function'
     func_eval_type = None
 

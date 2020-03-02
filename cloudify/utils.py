@@ -167,7 +167,7 @@ def format_exception(e):
         return str(e)
     except UnicodeEncodeError:
         try:
-            return unicode(e).encode('utf-8')
+            return u'{0}'.format(e).encode('utf-8')
         except UnicodeEncodeError:
             return repr(e)
 

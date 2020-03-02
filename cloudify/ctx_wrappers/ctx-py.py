@@ -6,6 +6,13 @@ import shlex
 import subprocess
 from collections import MutableMapping, Mapping
 
+PY2 = sys.version_info[0] == 2
+
+if PY2:
+    text_type = unicode
+else:
+    text_type = str
+
 
 def check_output(*popenargs, **kwargs):
     """Run command with arguments and return its output as a byte string.
@@ -34,7 +41,7 @@ def check_output(*popenargs, **kwargs):
 
 
 def unicode_to_string(text):
-    if isinstance(text, unicode):
+    if isinstance(text, text_type):
         return text.encode('ascii', 'ignore')
     if isinstance(text, list):
         return [unicode_to_string(a) for a in text]

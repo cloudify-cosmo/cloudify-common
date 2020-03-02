@@ -20,11 +20,16 @@ PY2 = sys.version_info[0] == 2
 
 
 if PY2:
+    from abc import ABCMeta
     from urlparse import urlparse
     text_type = (str, unicode)
+
+    class ABC(object):
+        __metaclass__ = ABCMeta
 else:
+    from abc import ABC
     from urllib.parse import urlparse
     text_type = str
 
 
-__all__ = ['PY2', 'text_type', 'urlparse']
+__all__ = ['PY2', 'text_type', 'urlparse', 'ABC']
