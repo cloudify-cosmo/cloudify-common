@@ -9,7 +9,7 @@ from collections import MutableMapping, Mapping
 PY2 = sys.version_info[0] == 2
 
 if PY2:
-    text_type = unicode
+    text_type = unicode  # NOQA
 else:
     text_type = str
 

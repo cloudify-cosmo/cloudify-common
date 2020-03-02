@@ -19,6 +19,7 @@ import uuid
 import Queue
 
 from cloudify import exceptions, logs
+from cloudify._compat import reraise
 from cloudify.workflows import api
 from cloudify.manager import (
     get_rest_client,
@@ -933,7 +934,7 @@ class LocalWorkflowTaskResult(WorkflowTaskResult):
     def _get(self):
         if self._holder.error is not None:
             exception, traceback = self._holder.error
-            raise exception, None, traceback
+            reraise(type(exception), exception, traceback)
         return self._holder.result
 
     def _refresh_state(self):

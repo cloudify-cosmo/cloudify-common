@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 """Python 2 + 3 compatibility utils"""
+# flake8: noqa
 
 import sys
 PY2 = sys.version_info[0] == 2
@@ -26,10 +27,19 @@ if PY2:
 
     class ABC(object):
         __metaclass__ = ABCMeta
+
+    exec("""
+def reraise(exception_type, value, traceback):
+    raise exception_type, value, traceback
+""")
+
 else:
     from abc import ABC
     from urllib.parse import urlparse
     text_type = str
 
+    def reraise(exception_type, value, traceback):
+        raise value.with_traceback(traceback)
 
-__all__ = ['PY2', 'text_type', 'urlparse', 'ABC']
+
+__all__ = ['PY2', 'text_type', 'urlparse', 'ABC', 'reraise']
