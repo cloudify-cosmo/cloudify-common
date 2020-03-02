@@ -86,18 +86,15 @@ class BlueprintsClient(object):
         self._uri_prefix = 'blueprints'
         self._wrapper_cls = Blueprint
 
-    def _upload(self,
-                archive_location,
-                blueprint_id,
-                application_file_name=None,
-                visibility=VisibilityState.TENANT,
-                progress_callback=None):
+    def _prepare_put_request(self,
+                             archive_location,
+                             application_file_name,
+                             visibility,
+                             progress_callback):
         query_params = {'visibility': visibility}
         if application_file_name is not None:
             query_params['application_file_name'] = \
                 urllib.quote(application_file_name)
-
-        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
@@ -113,8 +110,48 @@ class BlueprintsClient(object):
                 progress_callback=progress_callback,
                 client=self.api)
 
-        return self.api.put(uri, params=query_params, data=data,
-                            expected_status_code=201)
+        return query_params, data
+
+    def _upload(self,
+                archive_location,
+                blueprint_id,
+                application_file_name=None,
+                visibility=VisibilityState.TENANT,
+                progress_callback=None):
+        query_params, data = self._prepare_put_request(
+            archive_location,
+            application_file_name,
+            visibility,
+            progress_callback
+        )
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
+        return self.api.put(
+            uri,
+            params=query_params,
+            data=data,
+            expected_status_code=201
+        )
+
+    def _validate(self,
+                  archive_location,
+                  blueprint_id,
+                  application_file_name=None,
+                  visibility=VisibilityState.TENANT,
+                  progress_callback=None):
+        query_params, data = self._prepare_put_request(
+            archive_location,
+            application_file_name,
+            visibility,
+            progress_callback
+        )
+        uri = '/{self._uri_prefix}/{id}/validate'.format(self=self,
+                                                         id=blueprint_id)
+        self.api.put(
+            uri,
+            params=query_params,
+            data=data,
+            expected_status_code=204
+        )
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
@@ -222,6 +259,48 @@ class BlueprintsClient(object):
                 visibility=visibility,
                 progress_callback=progress_callback)
             return self._wrapper_cls(blueprint)
+        finally:
+            shutil.rmtree(tempdir)
+
+    def validate(self,
+                 path,
+                 entity_id,
+                 visibility=VisibilityState.TENANT,
+                 progress_callback=None,
+                 skip_size_limit=True):
+        """
+        Validates a blueprint with Cloudify's manager.
+
+        :param path: Main blueprint yaml file path.
+        :param entity_id: Id of the uploaded blueprint.
+        :param visibility: The visibility of the blueprint, can be 'private',
+                           'tenant' or 'global'.
+        :param progress_callback: Progress bar callback method
+        :param skip_size_limit: Indicator whether to check size limit on
+                           blueprint folder
+        :return: Created response.
+
+        Blueprint path should point to the main yaml file of the response
+        to be uploaded. Its containing folder will be packed to an archive
+        and get uploaded to the manager.
+        Validation is basically an upload without storage part being done.
+        """
+        tempdir = tempfile.mkdtemp()
+        try:
+            tar_path = utils.tar_blueprint(path, tempdir)
+            if not skip_size_limit and os.path.getsize(tar_path) > 30000000:
+                raise Exception('Blueprint folder exceeds 30 MB, '
+                                'move some resources from the blueprint '
+                                'folder to an external location or upload'
+                                ' the blueprint folder as a zip file.')
+            application_file = os.path.basename(path)
+
+            self._validate(
+                tar_path,
+                blueprint_id=entity_id,
+                application_file_name=application_file,
+                visibility=visibility,
+                progress_callback=progress_callback)
         finally:
             shutil.rmtree(tempdir)
 
