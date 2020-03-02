@@ -27,6 +27,7 @@ from pytest import mark
 
 from . import string_in_log
 
+from cloudify._compat import text_type
 from cloudify.state import current_ctx
 from cloudify.decorators import workflow
 from cloudify.workflows import local
@@ -260,7 +261,7 @@ class BaseScriptRunner(object):
             self._run(script_path=script_path, task_retries=2)
             self.fail()
         except NonRecoverableError as e:
-            self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
+            self.assertEquals(str(e), str(ILLEGAL_CTX_OPERATION_ERROR))
         except Exception:
             self.fail()
 
@@ -486,10 +487,10 @@ if __name__ == '__main__':
             props = self._run(script_path=script_path,
                               env_var=value)
             self.assertEqual(
-                props['key'] if isinstance(value, basestring)
+                props['key'] if isinstance(value, text_type)
                 else json.loads(props['key']), value)
 
-        test('string-value')
+        test(u'string-value')
         test([1, 2, 3])
         test(999)
         test(3.14)
@@ -524,11 +525,11 @@ if __name__ == '__main__':
                                   }
                               })
             self.assertEqual(
-                props['key'] if isinstance(value, basestring)
+                props['key'] if isinstance(value, text_type)
                 else json.loads(props['key']), value)
 
-        test('override')
-        test({'key': 'value'})
+        test(u'override')
+        test({u'key': u'value'})
 
     @log_capture('ctx')
     def test_get_nonexistent_runtime_property(self, capture):

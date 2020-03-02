@@ -15,12 +15,13 @@
 from dsl_parser import (version as _version,
                         exceptions,
                         models)
+from dsl_parser._compat import text_type
 from dsl_parser.framework.elements import Element, Leaf
 
 
 class ToscaDefinitionsVersion(Element):
 
-    schema = Leaf(type=str)
+    schema = Leaf(type=text_type)
     add_namespace_to_schema_elements = False
     provides = ['version']
 

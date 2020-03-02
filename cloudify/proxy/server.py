@@ -27,6 +27,7 @@ from wsgiref.simple_server import make_server as make_wsgi_server
 
 import bottle
 
+from cloudify._compat import text_type
 from cloudify.proxy.client import ScriptException
 from cloudify.state import current_ctx
 
@@ -234,7 +235,7 @@ def process_ctx_request(ctx, args):
 
 
 def _desugar_attr(obj, attr):
-    if not isinstance(attr, basestring):
+    if not isinstance(attr, text_type):
         return None
     if hasattr(obj, attr):
         return attr

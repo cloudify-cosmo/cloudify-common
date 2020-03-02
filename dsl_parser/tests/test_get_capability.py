@@ -216,7 +216,6 @@ node_templates:
         self._assert_parsing_fails(
             yaml,
             message="`get_capability` function argument should be a list. "
-            "Instead it is a <type 'str'> with the value: i_should_be_a_list."
         )
 
     def test_get_capability_short_list(self):
@@ -255,6 +254,4 @@ node_templates:
             yaml,
             message="`get_capability` function arguments can't be complex "
                     "values; only strings/ints/functions are accepted. "
-                    "Instead, the item with index 0 is ['list'] of "
-                    "type <type 'list'>"
         )

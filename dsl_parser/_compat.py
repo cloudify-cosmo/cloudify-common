@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
+# Copyright (c) 2020 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,18 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import numbers
-from dsl_parser._compat import text_type
+"""Python 2 + 3 compatibility utils"""
 
-PRIMITIVE_TYPES = (list, bool, numbers.Number, text_type, dict)
+import sys
+PY2 = sys.version_info[0] == 2
+
+
+if PY2:
+    from urlparse import urlparse
+    text_type = (str, unicode)
+else:
+    from urllib.parse import urlparse
+    text_type = str
+
+
+__all__ = ['PY2', 'text_type', 'urlparse']

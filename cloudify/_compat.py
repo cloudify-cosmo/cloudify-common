@@ -29,6 +29,7 @@ if PY2:
 def reraise(exception_type, value, traceback):
     raise exception_type, value, traceback
 """)
+    text_type = unicode
 
 else:
     import queue
@@ -37,4 +38,7 @@ else:
     def reraise(exception_type, value, traceback):
         raise value.with_traceback(traceback)
 
-__all__ = ['PY2', 'queue', 'StringIO', 'reraise']
+    text_type = str
+
+
+__all__ = ['PY2', 'queue', 'StringIO', 'reraise', 'text_type']
