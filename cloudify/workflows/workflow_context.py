@@ -503,6 +503,10 @@ class _WorkflowContextBase(object):
         return self._context.get('rest_token')
 
     @property
+    def rest_host(self):
+        return self._context.get('rest_host')
+
+    @property
     def execution_token(self):
         """The token of the current execution"""
         return self._context.get('execution_token')
@@ -1409,7 +1413,8 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         return {'local': False,
                 'bypass_maintenance': utils.get_is_bypass_maintenance(),
                 'rest_token': utils.get_rest_token(),
-                'execution_token': utils.get_execution_token()}
+                'execution_token': utils.get_execution_token(),
+                'rest_host': self.workflow_ctx.rest_host}
 
     def download_deployment_resource(self,
                                      blueprint_id,

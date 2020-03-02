@@ -211,7 +211,15 @@ def get_manager_rest_service_host():
     """
     Returns the host the manager REST service is running on.
     """
-    return os.environ[constants.REST_HOST_KEY].split(',')
+    host_ip = None
+    try:
+        # Context could be not available sometimes
+        host_ip = _get_current_context().rest_host
+    except RuntimeError:
+        pass
+    # In case host_ip was None or a RuntimeError raise, then fallback from
+    # environment variable
+    return host_ip or os.environ[constants.REST_HOST_KEY].split(',')
 
 
 def get_broker_ssl_cert_path():

@@ -557,7 +557,7 @@ class CloudifyContext(CommonContext):
         self._logger = None
         self._provider_context = None
         self._bootstrap_context = None
-        self._host_ip = None
+        self._rest_host = self._context.get('rest_host')
         self._node = None
         self._instance = None
         self._source = None
@@ -711,6 +711,10 @@ class CloudifyContext(CommonContext):
          ``install``, ``uninstall`` etc...
         """
         return self._context.get('workflow_id')
+
+    @property
+    def rest_host(self):
+        return self._rest_host
 
     @property
     def rest_token(self):
