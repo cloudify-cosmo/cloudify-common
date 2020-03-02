@@ -23,7 +23,7 @@ import re
 
 import yaml.parser
 
-from dsl_parser._compat import urlparse, text_type
+from dsl_parser._compat import urlparse, text_type, reraise
 from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
     RESLOVER_PARAMETERS_KEY,\
     NAMESPACE_DELIMITER
@@ -312,8 +312,11 @@ def get_class_instance(class_path, properties):
         instance = cls(**properties)
     except Exception as e:
         exc_type, exc, traceback = sys.exc_info()
-        raise RuntimeError('Failed to instantiate {0}, error: {1}'
-                           .format(class_path, e)), None, traceback
+        reraise(
+            RuntimeError,
+            RuntimeError('Failed to instantiate {0}, error: {1}'
+                         .format(class_path, e)),
+            traceback)
 
     return instance
 
