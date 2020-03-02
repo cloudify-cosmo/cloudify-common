@@ -1454,7 +1454,7 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
             self._execute_workflow(workflow_name='does_not_exist')
             self.fail()
         except ValueError as e:
-            self.assertIn("['workflow0']", e.message)
+            self.assertIn("[workflow0]", str(e))
 
     def test_getting_contained_elements(self):
         def check_subgraph(ctx, **_):
@@ -1513,9 +1513,9 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
             self.fail()
         except (ImportError, AttributeError, NonRecoverableError) as e:
             if is_missing_module:
-                self.assertIn('No module named zzz', e.message)
+                self.assertIn('No module named zzz', str(e))
                 if test_type != 'workflow':
-                    self.assertIn(test_type, e.message)
+                    self.assertIn(test_type, str(e))
                     self.assertTrue(isinstance(e, ImportError))
             else:
                 if test_type == 'workflow':
@@ -1526,9 +1526,9 @@ class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
                     thing2 = ''
                 self.assertIn("has no {0}{1} 'does_not_exist'".format(thing1,
                                                                       thing2),
-                              e.message)
+                              str(e))
                 if test_type != 'workflow':
-                    self.assertIn(test_type, e.message)
+                    self.assertIn(test_type, str(e))
                     self.assertTrue(isinstance(e, AttributeError))
 
     def _blueprint_2(self,

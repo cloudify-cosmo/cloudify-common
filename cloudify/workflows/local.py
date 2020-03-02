@@ -113,9 +113,9 @@ class _Environment(object):
         workflow_name = workflow
         if workflow_name not in workflows:
             raise ValueError("'{0}' workflow does not exist. "
-                             "existing workflows are: {1}"
+                             "existing workflows are: [{1}]"
                              .format(workflow_name,
-                                     list(workflows)))
+                                     ', '.join(workflows)))
 
         workflow = workflows[workflow_name]
         execution_id = str(uuid.uuid4())
