@@ -153,6 +153,15 @@ class BlueprintsClient(object):
             expected_status_code=204
         )
 
+    def _validate_blueprint_size(self, path, tempdir, skip_size_limit):
+        tar_path = utils.tar_blueprint(path, tempdir)
+        if not skip_size_limit and os.path.getsize(tar_path) > 30000000:
+            raise Exception('Blueprint folder exceeds 30 MB, '
+                            'move some resources from the blueprint '
+                            'folder to an external location or upload'
+                            ' the blueprint folder as a zip file.')
+        return tar_path, os.path.basename(path)
+
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
         Returns a list of currently stored blueprints.
@@ -244,13 +253,8 @@ class BlueprintsClient(object):
         """
         tempdir = tempfile.mkdtemp()
         try:
-            tar_path = utils.tar_blueprint(path, tempdir)
-            if not skip_size_limit and os.path.getsize(tar_path) > 30000000:
-                raise Exception('Blueprint folder exceeds 30 MB, '
-                                'move some resources from the blueprint '
-                                'folder to an external location or upload'
-                                ' the blueprint folder as a zip file.')
-            application_file = os.path.basename(path)
+            tar_path, application_file = self._validate_blueprint_size(
+                path, tempdir, skip_size_limit)
 
             blueprint = self._upload(
                 tar_path,
@@ -278,22 +282,16 @@ class BlueprintsClient(object):
         :param progress_callback: Progress bar callback method
         :param skip_size_limit: Indicator whether to check size limit on
                            blueprint folder
-        :return: Created response.
 
         Blueprint path should point to the main yaml file of the response
         to be uploaded. Its containing folder will be packed to an archive
         and get uploaded to the manager.
-        Validation is basically an upload without storage part being done.
+        Validation is basically an upload without the storage part being done.
         """
         tempdir = tempfile.mkdtemp()
         try:
-            tar_path = utils.tar_blueprint(path, tempdir)
-            if not skip_size_limit and os.path.getsize(tar_path) > 30000000:
-                raise Exception('Blueprint folder exceeds 30 MB, '
-                                'move some resources from the blueprint '
-                                'folder to an external location or upload'
-                                ' the blueprint folder as a zip file.')
-            application_file = os.path.basename(path)
+            tar_path, application_file = self._validate_blueprint_size(
+                path, tempdir, skip_size_limit)
 
             self._validate(
                 tar_path,
