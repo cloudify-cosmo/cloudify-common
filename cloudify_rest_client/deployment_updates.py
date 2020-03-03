@@ -15,7 +15,6 @@
 
 import os
 import json
-import urllib
 import shutil
 import tempfile
 
@@ -24,7 +23,7 @@ from mimetypes import MimeTypes
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from cloudify_rest_client import utils
-from cloudify_rest_client._compat import urlparse
+from cloudify_rest_client._compat import urlquote, pathname2url, urlparse
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -148,8 +147,7 @@ class DeploymentUpdatesClient(object):
             data_form['inputs'] = ('inputs', inputs_file, 'text/plain')
 
         if application_file_name:
-            params['application_file_name'] = \
-                urllib.quote(application_file_name)
+            params['application_file_name'] = urlquote(application_file_name)
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
@@ -162,7 +160,7 @@ class DeploymentUpdatesClient(object):
                 os.path.basename(archive_path),
                 open(archive_path, 'rb'),
                 # Guess the archive mime type
-                mime_types.guess_type(urllib.pathname2url(archive_path)))
+                mime_types.guess_type(pathname2url(archive_path)))
 
         return data_form, params
 

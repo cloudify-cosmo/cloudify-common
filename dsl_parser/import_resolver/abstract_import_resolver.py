@@ -14,8 +14,6 @@
 #  * limitations under the License.
 
 import abc
-import contextlib
-import urllib2
 
 import requests
 from retrying import retry
@@ -57,8 +55,8 @@ def read_import(import_url):
     error_str = 'Import failed: Unable to open import url'
     if import_url.startswith('file:'):
         try:
-            request = urllib2.Request(import_url)
-            with contextlib.closing(urllib2.urlopen(request)) as f:
+            filename = import_url[len('file:'):]
+            with open(filename) as f:
                 return f.read()
         except Exception as ex:
             ex = exceptions.DSLParsingLogicException(

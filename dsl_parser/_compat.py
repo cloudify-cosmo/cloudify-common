@@ -22,7 +22,14 @@ PY2 = sys.version_info[0] == 2
 
 if PY2:
     from abc import ABCMeta
-    from urlparse import urlparse
+    from urllib import quote as urlquote, pathname2url
+    from urllib2 import Request, urlopen, URLError
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
+    from urlparse import urljoin, urlparse
+
     text_type = (str, unicode)
 
     class ABC(object):
@@ -35,7 +42,10 @@ def reraise(exception_type, value, traceback):
 
 else:
     from abc import ABC
-    from urllib.parse import urlparse
+    from urllib.parse import quote as urlquote, urljoin, urlparse
+    from urllib.request import pathname2url, Request, urlopen
+    from urllib.error import URLError
+    from io import StringIO
     text_type = str
 
     def reraise(exception_type, value, traceback):
@@ -43,3 +53,7 @@ else:
 
 
 __all__ = ['PY2', 'text_type', 'urlparse', 'ABC', 'reraise']
+__all__ = [
+    'PY2', 'ABC', 'urlquote', 'reraise', 'pathname2url', 'Request', 'urlopen',
+    'URLError', 'StringIO', 'urljoin', 'urlparse'
+]

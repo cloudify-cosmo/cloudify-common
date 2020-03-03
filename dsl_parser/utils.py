@@ -17,18 +17,21 @@ import copy
 import contextlib
 import importlib
 import numbers
-import urllib2
 import sys
 import re
 
 import yaml.parser
 
-from dsl_parser._compat import urlparse, text_type, reraise
-from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
-    RESLOVER_PARAMETERS_KEY,\
+from dsl_parser._compat import (
+    urlparse, text_type, reraise, Request, urlopen, URLError)
+from dsl_parser.constants import (
+    RESOLVER_IMPLEMENTATION_KEY,
+    RESLOVER_PARAMETERS_KEY,
     NAMESPACE_DELIMITER
-from dsl_parser.import_resolver.default_import_resolver import \
+)
+from dsl_parser.import_resolver.default_import_resolver import (
     DefaultImportResolver
+)
 from dsl_parser import (yaml_loader,
                         functions,
                         constants,
@@ -262,11 +265,11 @@ def load_yaml(raw_yaml, error_message, filename=None):
 
 
 def url_exists(url):
-    request = urllib2.Request(url)
+    request = Request(url)
     try:
-        with contextlib.closing(urllib2.urlopen(request)):
+        with contextlib.closing(urlopen(request)):
             return True
-    except urllib2.URLError:
+    except URLError:
         return False
 
 

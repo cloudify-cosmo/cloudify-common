@@ -15,10 +15,16 @@
 #  * limitations under the License.
 
 import os
-import urllib2
 import json
 import argparse
 import sys
+
+
+try:
+    from urllib.request import urlopen
+except ImportError:
+    # py2
+    from urllib2 import urlopen
 
 
 # Environment variable for the socket url
@@ -60,9 +66,7 @@ def zmq_client_req(socket_url, request, timeout):
 
 
 def http_client_req(socket_url, request, timeout):
-    response = urllib2.urlopen(socket_url,
-                               data=json.dumps(request),
-                               timeout=timeout)
+    response = urlopen(socket_url, data=json.dumps(request), timeout=timeout)
     if response.code != 200:
         raise RuntimeError('Request failed: {0}'.format(response))
     return json.loads(response.read())

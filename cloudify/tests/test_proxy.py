@@ -19,11 +19,11 @@ import threading
 import time
 import sys
 import subprocess
-from StringIO import StringIO
 
 import testtools
 from pytest import mark
 
+from cloudify._compat import StringIO
 from cloudify.mocks import MockCloudifyContext
 from cloudify.proxy import client
 from cloudify.proxy.server import (UnixCtxProxy,

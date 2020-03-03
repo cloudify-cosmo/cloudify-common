@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 
-from StringIO import StringIO
 from os import path
 
 import testtools
@@ -24,6 +23,7 @@ from cloudify import context
 from cloudify import decorators
 from cloudify import exceptions
 from cloudify import logs
+from cloudify._compat import StringIO
 from cloudify.workflows import tasks as workflow_tasks
 from cloudify.test_utils import workflow_test
 from cloudify.test_utils import dispatch_helper

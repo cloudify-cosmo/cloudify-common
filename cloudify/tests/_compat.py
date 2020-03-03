@@ -13,20 +13,18 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+"""Python 2 + 3 compatibility utils
 
-"""Python 2 + 3 compatibility utils"""
-# flake8: noqa
+Those are only related to tests, so that things that aren't used outside
+of tests, don't need to be imported in the main compat module."""
 
-import sys
-PY2 = sys.version_info[0] == 2
-
+from cloudify._compat import PY2
 
 if PY2:
-    from urllib import quote as urlquote, pathname2url
-    from urlparse import urlparse
+    from SocketServer import TCPServer
+    from SimpleHTTPServer import SimpleHTTPRequestHandler
 else:
-    from urllib.parse import quote as urlquote, urlparse
-    from urllib.request import pathname2url
+    from socketserver import TCPServer
+    from http.server import SimpleHTTPRequestHandler
 
-
-__all__ = ['PY2', 'urlquote', 'pathname2url', 'urlparse']
+__all__ = ['PY2', 'TCPServer', 'SimpleHTTPRequestHandler']
