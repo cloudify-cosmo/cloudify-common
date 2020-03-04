@@ -21,6 +21,7 @@ import tempfile
 import shutil
 import os
 import threading
+import warnings
 
 import testtools
 
@@ -661,7 +662,10 @@ class LocalWorkflowTest(BaseWorkflowTest):
             self.assertIn('node2_', key)
             self.assertEqual(value, {'key': 'value'})
 
-        self._execute_workflow(the_workflow, operation_methods=[op0, op1])
+        with warnings.catch_warnings(record=True) as warns:
+            self._execute_workflow(the_workflow, operation_methods=[op0, op1])
+        self.assertEqual(len(warns), 1)
+        self.assertIn('capabilities is deprecated', str(warns[0]))
 
     def test_operation_runtime_properties(self):
         def runtime_properties(ctx, **_):

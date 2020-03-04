@@ -14,6 +14,8 @@
 #    * limitations under the License.
 
 
+import warnings
+
 import testtools
 
 from mock import patch, Mock
@@ -115,8 +117,12 @@ class OperationTest(testtools.TestCase):
 
         kwargs = {'__cloudify_context': ctx}
         ctx = acquire_context(0, 0, **kwargs)
-        self.assertIn('k', ctx.capabilities)
-        self.assertEquals('v', ctx.capabilities['k'])
+        with warnings.catch_warnings(record=True) as warns:
+            self.assertIn('k', ctx.capabilities)
+            self.assertEquals('v', ctx.capabilities['k'])
+        self.assertEqual(len(warns), 2)
+        for w in warns:
+            self.assertIn('capabilities is deprecated', str(w))
 
     def test_capabilities_clash(self):
         ctx = {
@@ -141,8 +147,11 @@ class OperationTest(testtools.TestCase):
 
         kwargs = {'__cloudify_context': ctx}
         ctx = acquire_context(0, 0, **kwargs)
-        self.assertRaises(NonRecoverableError, ctx.capabilities.__contains__,
-                          'k')
+        with warnings.catch_warnings(record=True) as warns:
+            self.assertRaises(
+                NonRecoverableError, lambda: 'k' in ctx.capabilities)
+        self.assertEqual(len(warns), 1)
+        self.assertIn('capabilities is deprecated', str(warns[0]))
 
     def test_instance_update(self):
         with patch.object(context.NodeInstanceContext,

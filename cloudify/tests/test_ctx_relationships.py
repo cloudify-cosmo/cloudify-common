@@ -15,6 +15,7 @@
 
 
 import copy
+import warnings
 from os import path
 
 import testtools
@@ -119,7 +120,10 @@ class TestContextRelationship(testtools.TestCase):
         }
 
     def _assert_capabilities(self, cfy_local, rel):
-        self._run(cfy_local, 'assert_capabilities', rel)
+        with warnings.catch_warnings(record=True) as warns:
+            self._run(cfy_local, 'assert_capabilities', rel)
+        self.assertEqual(len(warns), 1)
+        self.assertIn('capabilities is deprecated', str(warns[0]))
 
         instances = cfy_local.storage.get_node_instances()
         instance1 = [i for i in instances if i.node_id == 'node1'][0]
