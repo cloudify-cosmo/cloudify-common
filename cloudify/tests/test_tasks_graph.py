@@ -84,7 +84,7 @@ class TestTasksGraphExecute(testtools.TestCase):
                 self.set_state(tasks.TASK_FAILED)
 
         task1 = FailedTask(mock.Mock())
-        task2 = mock.Mock()
+        task2 = mock.Mock(execute_after=0)
 
         g = TaskDependencyGraph(MockWorkflowContext())
         seq = g.sequence()
