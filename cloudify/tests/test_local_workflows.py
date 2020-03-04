@@ -469,7 +469,6 @@ class LocalWorkflowTest(BaseWorkflowTest):
             def task():
                 pass
             ctx.local_task(task)
-
         with self._mock_stdout_event_and_log() as (events, _):
             self._execute_workflow(flow1, use_existing_env=False)
             self.assertEqual(5, len(events))
@@ -761,7 +760,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
             self.assertEqual(sys.prefix, ctx.plugin.prefix)
             self.assertEqual('test.op0', ctx.operation.name)
             self.assertEqual(ctx.node.properties.get('property'), 'value'),
-            self.assertEqual('content', ctx.get_resource('resource'))
+            self.assertEqual(b'content', ctx.get_resource('resource'))
             target_path = ctx.download_resource('resource')
             with open(target_path) as f:
                 self.assertEqual('content', f.read())
@@ -984,7 +983,7 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
 
         def op(ctx, **_):
             self.assertEqual('new_input', ctx.node.properties['from_input'])
-            self.assertEqual('content', ctx.get_resource('resource'))
+            self.assertEqual(b'content', ctx.get_resource('resource'))
             self.assertEqual(bootstrap_context,
                              ctx.bootstrap_context._bootstrap_context)
             self.assertEqual(provider_context, ctx.provider_context)
@@ -1008,7 +1007,7 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
 
         def op(ctx, **_):
             self.assertEqual('new_input', ctx.node.properties['from_input'])
-            self.assertEqual('content', ctx.get_resource('resource'))
+            self.assertEqual(b'content', ctx.get_resource('resource'))
 
         self._setup_env(workflow_methods=[persistency],
                         operation_methods=[op],

@@ -73,8 +73,8 @@ class Endpoint(object):
             with open(resource_path, 'rb') as f:
                 resource = f.read()
 
-        template = jinja2.Template(resource)
-        rendered_resource = template.render(template_variables)
+        template = jinja2.Template(resource.decode('utf-8'))
+        rendered_resource = template.render(template_variables).encode('utf-8')
 
         if download:
             with open(resource_path, 'wb') as f:
