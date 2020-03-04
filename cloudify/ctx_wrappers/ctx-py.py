@@ -67,10 +67,10 @@ class CtxLogger(object):
         return self._logger(level='info', message=message)
 
     def warn(self, message):
-        return self._logger(level='warn', message=message)
+        return self._logger(level='warning', message=message)
 
     def warning(self, message):
-        return self._logger(level='warn', message=message)
+        return self._logger(level='warning', message=message)
 
     def error(self, message):
         return self._logger(level='error', message=message)
