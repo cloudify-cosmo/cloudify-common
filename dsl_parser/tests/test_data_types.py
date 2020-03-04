@@ -257,10 +257,10 @@ data_types:
                 type: integer
 
 """
-        ex = self._assert_dsl_parsing_exception_error_code(
+        self._assert_dsl_parsing_exception_error_code(
             yaml,
-            ERROR_VALUE_DOES_NOT_MATCH_TYPE)
-        self.assertIn('a.b.c.d', ex.message)
+            ERROR_VALUE_DOES_NOT_MATCH_TYPE,
+            message_regex=r'a\.b\.c\.d')
 
     def test_unknown_parent(self):
         yaml = self.MINIMAL_BLUEPRINT + """

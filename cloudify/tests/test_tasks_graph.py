@@ -91,13 +91,7 @@ class TestTasksGraphExecute(testtools.TestCase):
         seq.add(task1, task2)
 
         with limited_sleep_mock():
-            try:
-                g.execute()
-            except RuntimeError as e:
-                self.assertIn('Workflow failed', e.message)
-            else:
-                self.fail('Expected task to fail')
-
+            self.assertRaisesRegex(RuntimeError, 'Workflow failed', g.execute)
         self.assertTrue(task1.is_terminated)
         self.assertFalse(task2.apply_async.called)
 
@@ -132,12 +126,7 @@ class TestTasksGraphExecute(testtools.TestCase):
         seq.add(task1, task2)
         with limited_sleep_mock():
             start_time = time.time()
-            try:
-                g.execute()
-            except RuntimeError as e:
-                self.assertIn('Workflow failed', e.message)
-            else:
-                self.fail('Expected task to fail')
+            self.assertRaisesRegex(RuntimeError, 'Workflow failed', g.execute)
 
         # even though the workflow failed 1 second in, the other task was
         # still waited for and completed
@@ -180,11 +169,7 @@ class TestTasksGraphExecute(testtools.TestCase):
         task = mock.Mock()
         g.add_task(task)
         with mock.patch('cloudify.workflows.api.cancel_request', True):
-            try:
-                g.execute()
-            except api.ExecutionCancelled:
-                pass
-            else:
-                self.fail('Execution should have been cancelled')
+            self.assertRaises(api.ExecutionCancelled, g.execute)
+
         self.assertFalse(task.apply_async.called)
         self.assertFalse(task.cancel.called)

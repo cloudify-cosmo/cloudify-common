@@ -171,14 +171,16 @@ node_templates:
         self.assertFalse(hasattr(parsed, 'secrets'))
 
     def test_validate_secrets_all_invalid(self):
-        expected_message = r"Required secrets: \[target_op_secret_id, " \
-                           r"node_template_secret_id, ip, agent_key, " \
-                           r"user, webserver_port, " \
-                           r"source_op_secret_id\] " \
-                           r"don't exist in this tenant"
+        # regex-OR all the possible secret names and require {7} of them,
+        # because the ordering isn't guaranteed
+        expected_message = (
+            r"Required secrets: \[((target_op_secret_id|"
+            r"node_template_secret_id|ip|agent_key|user|webserver_port|"
+            r"source_op_secret_id),? ?){7}\] don't exist in this tenant"
+        )
 
         get_secret_not_found = Mock(side_effect=NotFoundException)
-        self.assertRaisesRegexp(exceptions.UnknownSecretError,
+        self.assertRaisesRegex(exceptions.UnknownSecretError,
                                 expected_message,
                                 prepare_deployment_plan,
                                 self.parse_1_3(self.secrets_yaml),
@@ -186,7 +188,7 @@ node_templates:
 
     def test_validate_secrets_unexpected_exception(self):
         get_secret_exception = Mock(side_effect=TypeError)
-        self.assertRaisesRegexp(TypeError,
+        self.assertRaisesRegex(TypeError,
                                 '',
                                 prepare_deployment_plan,
                                 self.parse_1_3(self.secrets_yaml),

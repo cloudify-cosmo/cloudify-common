@@ -82,7 +82,7 @@ class CreateImportResolverTests(testtools.TestCase):
                     resolver.__getattribute__(expected_params_name),
                     expected_resolver.__getattribute__(expected_params_name))
         else:
-            self.assertRaisesRegexp(utils.ResolverInstantiationError,
+            self.assertRaisesRegex(utils.ResolverInstantiationError,
                                     err_msg_regex,
                                     utils.create_import_resolver,
                                     resolver_configuration)

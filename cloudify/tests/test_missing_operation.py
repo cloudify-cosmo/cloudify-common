@@ -53,22 +53,20 @@ class TestExecuteNotExistOperationWorkflow(testtools.TestCase):
     @workflow_test(execute_blueprint_path)
     def test_execute_not_exist_operation(self, cfy_local):
         node_id = cfy_local.plan.get('node_instances')[0].get('id')
-        try:
-            cfy_local.execute('not_exist_op_workflow')
-            self.fail('Expected exception due to operation not exist')
-        except Exception as e:
-            self.assertTrue('operation of node instance {0} does not exist'
-                            .format(node_id) in e.message)
+        self.assertRaisesRegex(
+            RuntimeError,
+            'operation of node instance {0} does not exist'.format(node_id),
+            cfy_local.execute, 'not_exist_op_workflow'
+        )
 
     @workflow_test(execute_blueprint_path)
     def test_execute_not_exist_interface(self, cfy_local):
         node_id = cfy_local.plan.get('node_instances')[0].get('id')
-        try:
-            cfy_local.execute('not_exist_interface_workflow')
-            self.fail('Expected exception due to operation not exist')
-        except Exception as e:
-            self.assertTrue('operation of node instance {0} does not exist'
-                            .format(node_id) in e.message)
+        self.assertRaisesRegex(
+            RuntimeError,
+            'operation of node instance {0} does not exist'.format(node_id),
+            cfy_local.execute, 'not_exist_interface_workflow'
+        )
 
     @workflow_test(execute_blueprint_path)
     def test_execute_stop_operation(self, cfy_local):
