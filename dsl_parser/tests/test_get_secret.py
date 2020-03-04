@@ -195,19 +195,20 @@ node_templates:
                                 get_secret_exception)
 
     def test_validate_secrets_some_invalid(self):
-        expected_message = r"Required secrets: \[ip, " \
-                           r"source_op_secret_id\] don't exist in " \
-                           r"this tenant"
+        expected_message = (
+            r"Required secrets: \[((ip|source_op_secret_id),? ?){2}\] "
+            r"don't exist in this tenant"
+        )
 
-        get_secret_not_found = Mock()
-        get_secret_not_found.side_effect = [None, None, NotFoundException,
-                                            None, None, None,
-                                            NotFoundException]
-        self.assertRaisesRegexp(exceptions.UnknownSecretError,
+        def fake_get_secret(name):
+            if name in ['ip', 'source_op_secret_id']:
+                raise NotFoundException()
+
+        self.assertRaisesRegex(exceptions.UnknownSecretError,
                                 expected_message,
                                 prepare_deployment_plan,
                                 self.parse_1_3(self.secrets_yaml),
-                                get_secret_not_found)
+                                fake_get_secret)
 
     def test_validate_secrets_without_secrets(self):
         no_secrets_yaml = """
