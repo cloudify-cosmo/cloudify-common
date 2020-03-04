@@ -26,6 +26,8 @@ def check_output(*popenargs, **kwargs):
     process = subprocess.Popen(stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                *popenargs, **kwargs)
     output, stderr = process.communicate()
+    output = output.decode('utf-8', 'replace')
+    stderr = stderr.decode('utf-8', 'replace')
     retcode = process.poll()
     if retcode:
         cmd = kwargs.get("args")
@@ -42,7 +44,9 @@ def check_output(*popenargs, **kwargs):
 
 def unicode_to_string(text):
     if isinstance(text, text_type):
-        return text.encode('ascii', 'ignore')
+        return text
+    elif isinstance(text, bytes):
+        return text.decode('utf-8', 'ignore')
     if isinstance(text, list):
         return [unicode_to_string(a) for a in text]
     if isinstance(text, dict):
