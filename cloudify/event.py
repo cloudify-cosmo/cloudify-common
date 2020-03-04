@@ -23,7 +23,7 @@ NO_VERBOSE = 0
 
 class Event(object):
 
-    def __init__(self, event, verbosity_level=None):
+    def __init__(self, event, verbosity_level=NO_VERBOSE):
         self._event = event
         self._verbosity_level = verbosity_level
 

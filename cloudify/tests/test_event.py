@@ -93,7 +93,7 @@ class TestEvent(testtools.TestCase):
 
 
 def _event(type, event_type=None, level=None, message=None,
-           causes=None, verbosity_level=None):
+           causes=None, verbosity_level=event.NO_VERBOSE):
     result = {'type': type, 'context': {}}
     if event_type:
         result['event_type'] = event_type
