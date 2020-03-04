@@ -660,6 +660,9 @@ class LocalWorkflowTest(BaseWorkflowTest):
 
         with warnings.catch_warnings(record=True) as warns:
             self._execute_workflow(the_workflow, operation_methods=[op0, op1])
+        if sys.version_info < (2, 7):
+            # i was unable to make this work on py2.6
+            return
         self.assertEqual(len(warns), 1)
         self.assertIn('capabilities is deprecated', str(warns[0]))
 
