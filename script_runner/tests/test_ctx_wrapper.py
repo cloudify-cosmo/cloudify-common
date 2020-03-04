@@ -16,7 +16,6 @@
 import os
 import shutil
 import tempfile
-import ast
 
 import testtools
 from testfixtures import log_capture
@@ -166,8 +165,7 @@ class PythonWrapperTests(testtools.TestCase):
     def test_get_all_node_properties(self):
         script = ('value = ctx.node.properties.get_all()\n'
                   'ctx.returns(value)')
-        result = self._run(script)
-        res_dict = ast.literal_eval(result)
+        res_dict = self._run(script)
         self.assertIn('ip', res_dict)
         self.assertEquals(res_dict['ip'], '1.1.1.1')
         self.assertIn('key', res_dict)
@@ -181,9 +179,9 @@ class PythonWrapperTests(testtools.TestCase):
 
     def test_get_node_properties_get_function_missing_key_no_default(self):
         script = ('value = ctx.node.properties.get("key1")\n'
-                  'ctx.returns(type(value))')
+                  'ctx.returns({"value": value})')
         result = self._run(script)
-        self.assertEqual("<type 'NoneType'>", str(result))
+        self.assertEqual({"value": None}, result)
 
     def test_get_node_properties_get_function_missing_key_with_default(self):
         script = ('value = ctx.node.properties.get("key1", "b")\n'
@@ -217,9 +215,9 @@ class PythonWrapperTests(testtools.TestCase):
 
     def test_get_instance_relationships(self):
         script = ('value = ctx.instance.relationships\n'
-                  'ctx.returns(value)')
+                  'ctx.returns({"relationships": value})')
         result = self._run(script)
-        self.assertEqual([], eval(result))
+        self.assertEqual({"relationships": []}, result)
 
     def test_set_get_instance_runtime_properties(self):
         script = ('ctx.instance.runtime_properties["key"] = "value"\n'
@@ -230,15 +228,15 @@ class PythonWrapperTests(testtools.TestCase):
 
     def test_get_instance_runtime_properties_non_string(self):
         script = ('value = ctx.instance.runtime_properties["key"] = 1\n'
-                  'ctx.returns(type(value))')
+                  'ctx.returns(value)')
         result = self._run(script)
-        self.assertEqual("<type 'int'>", result)
+        self.assertEqual(1, result)
 
     def test_get_instance_runtime_properties_missing_key_no_default(self):
         script = ('value = ctx.instance.runtime_properties.get("key1")\n'
-                  'ctx.returns(type(value))')
+                  'ctx.returns({"value": value})')
         result = self._run(script)
-        self.assertEqual("<type 'NoneType'>", str(result))
+        self.assertEqual({'value': None}, result)
 
     def test_get_instance_runtime_properties_missing_key_with_default(self):
         script = ('value = ctx.instance.runtime_properties.get("key1", "b")\n'

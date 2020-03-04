@@ -116,11 +116,17 @@ def parse_args(args=None):
     return args
 
 
+def _catch_non_serializable(obj):
+    if '__non_json_serializable_repr__' in obj:
+        return obj['__non_json_serializable_repr__']
+    return obj
+
+
 def process_args(json_prefix, args):
     processed_args = []
     for arg in args:
         if arg.startswith(json_prefix):
-            arg = json.loads(arg[1:])
+            arg = json.loads(arg[1:], object_hook=_catch_non_serializable)
         processed_args.append(arg)
     return processed_args
 

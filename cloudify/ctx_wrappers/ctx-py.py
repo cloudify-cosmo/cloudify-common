@@ -234,7 +234,15 @@ class Ctx(object):
         return check_output(ctx_command)
 
     def returns(self, data):
-        cmd = ['ctx', '-j', 'returns', str(data)]
+        try:
+            data = json.dumps(data)
+        except (TypeError, ValueError):
+            data = json.dumps({
+                '__non_json_serializable_repr__': repr(data)
+            })
+        # also pass an empty dict to be used as **kwargs, because if data
+        # was a dict, then ctxproxy would attempt to use that as **kwargs
+        cmd = ['ctx', '-j', 'returns', '@' + data, '@{}']
         return json.loads(check_output(cmd))
 
     def abort_operation(self, message=''):
