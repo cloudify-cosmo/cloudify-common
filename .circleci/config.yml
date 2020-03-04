@@ -175,6 +175,21 @@ jobs:
       - store_test_results:
           path: test-results
 
+  test_py36:
+    executor: py36
+    steps:
+      - checkout
+      - install_test_dependencies:
+          cache_prefix: py36
+      - pytest:
+          target: dsl_parser
+      - pytest:
+          target: script_runner
+      - pytest:
+          target: cloudify
+      - store_test_results:
+          path: test-results
+
   build_all_project_docs:
     executor: docs_builder
     steps:
@@ -288,3 +303,6 @@ workflows:
       - test_py27:
           requires:
             - flake8_py27
+      - test_py36:
+          requires:
+            - flake8_py36
