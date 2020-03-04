@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 from dsl_parser import constants as consts
-from dsl_parser._compat import text_type
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.exceptions import (UnknownInputError,
                                    ERROR_UNKNOWN_TYPE,
@@ -25,7 +24,6 @@ from dsl_parser.exceptions import (UnknownInputError,
                                    ERROR_UNDEFINED_PROPERTY,
                                    DSLParsingLogicException,
                                    MissingRequiredInputError,
-                                   DSLParsingInputTypeException,
                                    ERROR_VALUE_DOES_NOT_MATCH_TYPE,
                                    ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA)
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
@@ -974,7 +972,8 @@ data_types:
 """
         plan = self.parse_1_2(yaml)
         with self.assertRaisesRegex(DSLParsingException, r'b\.c\.d') as cm:
-            prepare_deployment_plan(plan,
+            prepare_deployment_plan(
+                plan,
                 inputs={'some_input': {'b': {'c': {'d': 'should_be_int'}}}})
         self.assertEqual(
             ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA,
@@ -1032,7 +1031,8 @@ data_types:
         plan = self.parse_1_2(yaml)
         with self.assertRaisesRegex(
                 DSLParsingException, 'Undefined property e') as cm:
-            prepare_deployment_plan(plan,
+            prepare_deployment_plan(
+                plan,
                 inputs={'some_input': {'e': {'c': {'d': 'should_be_int'}}}})
         self.assertEqual(
             ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA,
@@ -1057,7 +1057,8 @@ data_types:
         plan = self.parse_1_2(yaml)
         with self.assertRaisesRegex(
                 DSLParsingException, 'is missing property b') as cm:
-            prepare_deployment_plan(plan,
+            prepare_deployment_plan(
+                plan,
                 inputs={'some_input': {'c': 123}})
         self.assertEqual(
             ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA,

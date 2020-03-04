@@ -181,18 +181,18 @@ node_templates:
 
         get_secret_not_found = Mock(side_effect=NotFoundException)
         self.assertRaisesRegex(exceptions.UnknownSecretError,
-                                expected_message,
-                                prepare_deployment_plan,
-                                self.parse_1_3(self.secrets_yaml),
-                                get_secret_not_found)
+                               expected_message,
+                               prepare_deployment_plan,
+                               self.parse_1_3(self.secrets_yaml),
+                               get_secret_not_found)
 
     def test_validate_secrets_unexpected_exception(self):
         get_secret_exception = Mock(side_effect=TypeError)
         self.assertRaisesRegex(TypeError,
-                                '',
-                                prepare_deployment_plan,
-                                self.parse_1_3(self.secrets_yaml),
-                                get_secret_exception)
+                               '',
+                               prepare_deployment_plan,
+                               self.parse_1_3(self.secrets_yaml),
+                               get_secret_exception)
 
     def test_validate_secrets_some_invalid(self):
         expected_message = (
@@ -205,10 +205,10 @@ node_templates:
                 raise NotFoundException()
 
         self.assertRaisesRegex(exceptions.UnknownSecretError,
-                                expected_message,
-                                prepare_deployment_plan,
-                                self.parse_1_3(self.secrets_yaml),
-                                fake_get_secret)
+                               expected_message,
+                               prepare_deployment_plan,
+                               self.parse_1_3(self.secrets_yaml),
+                               fake_get_secret)
 
     def test_validate_secrets_without_secrets(self):
         no_secrets_yaml = """

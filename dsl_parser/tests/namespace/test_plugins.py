@@ -176,9 +176,9 @@ node_templates:
                                                       deployment_plugin_def)
         plugins = parsed[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
         if plugins[0]['name'].startswith('test'):
-          test_plugin1, plugin1 = plugins
+            test_plugin1, plugin1 = plugins
         else:
-          plugin1, test_plugin1 = plugins
+            plugin1, test_plugin1 = plugins
         node2 = self.get_node_by_name(parsed, 'test--node2')
         plugin2 = node2[constants.PLUGINS_TO_INSTALL][0]
         self.assertEqual(expected_plugin1, plugin1)
