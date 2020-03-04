@@ -130,7 +130,7 @@ class HTTPCtxProxy(CtxProxy):
         self.server.server_close()
 
     def _request_handler(self):
-        request = bottle.request.body.read()
+        request = bottle.request.body.read().decode('utf-8')
         with current_ctx.push(self.ctx):
             response = self.process(request)
             return bottle.LocalResponse(
@@ -157,7 +157,7 @@ class ZMQCtxProxy(CtxProxy):
             return False
         request = self.sock.recv()
         response = self.process(request)
-        self.sock.send(response)
+        self.sock.send_string(response)
         return True
 
     def close(self):

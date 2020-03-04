@@ -26,6 +26,8 @@ def check_output(*popenargs, **kwargs):
     process = subprocess.Popen(stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                *popenargs, **kwargs)
     output, stderr = process.communicate()
+    output = output.decode('utf-8', 'replace')
+    stderr = stderr.decode('utf-8', 'replace')
     retcode = process.poll()
     if retcode:
         cmd = kwargs.get("args")
@@ -42,7 +44,9 @@ def check_output(*popenargs, **kwargs):
 
 def unicode_to_string(text):
     if isinstance(text, text_type):
-        return text.encode('ascii', 'ignore')
+        return text
+    elif isinstance(text, bytes):
+        return text.decode('utf-8', 'ignore')
     if isinstance(text, list):
         return [unicode_to_string(a) for a in text]
     if isinstance(text, dict):
@@ -63,10 +67,10 @@ class CtxLogger(object):
         return self._logger(level='info', message=message)
 
     def warn(self, message):
-        return self._logger(level='warn', message=message)
+        return self._logger(level='warning', message=message)
 
     def warning(self, message):
-        return self._logger(level='warn', message=message)
+        return self._logger(level='warning', message=message)
 
     def error(self, message):
         return self._logger(level='error', message=message)
@@ -230,7 +234,15 @@ class Ctx(object):
         return check_output(ctx_command)
 
     def returns(self, data):
-        cmd = ['ctx', '-j', 'returns', str(data)]
+        try:
+            data = json.dumps(data)
+        except (TypeError, ValueError):
+            data = json.dumps({
+                '__non_json_serializable_repr__': repr(data)
+            })
+        # also pass an empty dict to be used as **kwargs, because if data
+        # was a dict, then ctxproxy would attempt to use that as **kwargs
+        cmd = ['ctx', '-j', 'returns', '@' + data, '@{}']
         return json.loads(check_output(cmd))
 
     def abort_operation(self, message=''):

@@ -126,7 +126,7 @@ class LockedFile(object):
     def write(self, data):
         with self._lock:
             if self._f is None:
-                self._f = open(self._filename, 'a')
+                self._f = open(self._filename, 'ab')
             self._f.write(data)
             self._f.flush()
 

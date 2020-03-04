@@ -89,14 +89,14 @@ class CloudifyContextTest(testtools.TestCase):
     def test_get_resource(self, _):
         resource = self.context.get_resource(
             resource_path='for_test_bp_resource.txt')
-        self.assertEquals(resource, 'Hello from test')
+        self.assertEquals(resource, b'Hello from test')
 
     def test_get_deployment_resource_priority_over_blueprint_resource(self):
         deployment_context_mock = MagicMock()
         deployment_context_mock.id = 'dep1'
         self.context.deployment = deployment_context_mock
         resource = self.context.get_resource(resource_path='for_test.txt')
-        self.assertEquals(resource, 'belongs to dep1')
+        self.assertEquals(resource, b'belongs to dep1')
 
     def test_get_deployment_resource_no_blueprint_resource(self):
         deployment_context_mock = MagicMock()
@@ -104,7 +104,7 @@ class CloudifyContextTest(testtools.TestCase):
         self.context.deployment = deployment_context_mock
         resource = self.context.get_resource(
             resource_path='for_test_only_dep.txt')
-        self.assertEquals(resource, 'belongs to dep1')
+        self.assertEquals(resource, b'belongs to dep1')
 
     @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
     def test_download_resource(self, _):
@@ -329,7 +329,7 @@ class GetResourceTemplateTests(testtools.TestCase):
         resource = instance.runtime_properties['resource']
         if not should_fail_rendering:
             if download:
-                with open(resource, 'r') as f:
+                with open(resource, 'rb') as f:
                     rendered_resource = f.read()
             else:
                 rendered_resource = resource
@@ -347,7 +347,7 @@ class GetResourceTemplateTests(testtools.TestCase):
                     os.path.join(self.blueprint_resources_path,
                                  'for_template_rendering_tests.conf')
 
-            with open(expected_resource_path, 'r') as f:
+            with open(expected_resource_path, 'rb') as f:
                 expected = f.read()
             self.assertEqual(expected, rendered_resource)
         else:
