@@ -1004,11 +1004,15 @@ plugins:
         source: dummy
 """
         result = self.parse(yaml)
-        plugin1 = result['nodes'][1]['plugins_to_install'][0]
-        plugin2 = result['nodes'][0]['plugins_to_install'][0]
+        if result['nodes'][0]['type'] == 'cloudify.nodes.Compute':
+            compute, othercompute = result['nodes']
+        else:
+            othercompute, compute = result['nodes']
+        plugin1 = compute['plugins_to_install'][0]
+        plugin2 = othercompute['plugins_to_install'][0]
         self.assertEquals('test_plugin', plugin1['name'])
-        self.assertEquals(1, len(result['nodes'][0]['plugins_to_install']))
-        self.assertEquals(1, len(result['nodes'][1]['plugins_to_install']))
+        self.assertEquals(1, len(compute['plugins_to_install']))
+        self.assertEquals(1, len(othercompute['plugins_to_install']))
         self.assertItemsEqual(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
                               [plugin1, plugin2])
         self.assertEquals(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL],

@@ -270,10 +270,10 @@ class TaskDependencyGraph(object):
         """
         A task is terminated if it is in 'succeeded' or 'failed' state
 
-        :return: An iterator for terminated tasks
+        :return: An iterable of terminated tasks
         """
-        return (task for task in self.tasks_iter()
-                if task.get_state() in tasks.TERMINATED_STATES)
+        return [task for task in self.tasks_iter()
+                if task.get_state() in tasks.TERMINATED_STATES]
 
     def _sent_tasks(self):
         """Tasks that are in the 'sent' state"""

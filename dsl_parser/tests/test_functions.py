@@ -198,14 +198,18 @@ node_templates:
                     inputs:
                         x: { get_property: [vm, notfound] }
 """
-        try:
-            self.parse(yaml)
-            self.fail()
-        except KeyError as e:
-            self.assertIn('Node template property', str(e))
-            self.assertIn("doesn't exist", str(e))
-            self.assertIn('vm.properties.notfound', str(e))
-            self.assertIn('vm.operations.interface.op.inputs.x', str(e))
+        message_regex = (
+            r"Node template property.*"
+            r"vm\.properties\.notfound.*"
+            r"referenced from.*"
+            # there is both vm.operations.interface.op.inputs.x
+            # and also vm.operations.op.inputs.x, (for backwards-compat with
+            # something from 2014), and we cannot guarantee which one runs
+            # first, ie. which one will throw the error
+            r"vm\.operations\.(interface\.)?op\.inputs\.x.*"
+            r"doesn't exist.*"
+        )
+        self.assertRaisesRegex(KeyError, message_regex, self.parse, yaml)
 
     def test_node_template_capabilities(self):
         yaml = """
@@ -755,12 +759,9 @@ node_templates:
             a: {get_input: dict_input}
             b: {get_property: [SELF, a, key]}
 """
-        try:
+        with self.assertRaisesRegex(KeyError, r'vm1\.properties\.a\.key'):
             prepare_deployment_plan(
                 self.parse(yaml), inputs={'dict_input': {'other_key': 42}})
-            self.fail()
-        except KeyError as e:
-            self.assertIn('vm1.properties.a.key', e.message)
 
     @timeout(seconds=10)
     def get_property_from_get_property(self):
@@ -872,15 +873,12 @@ node_templates:
                     implementation: a.a
                     inputs:
                         a: { get_attribute: [""" + ref + """, aaa] }
-
 """
-            try:
-                self.parse(yaml)
-                self.fail()
-            except ValueError as e:
-                self.assertIn('{0} cannot be used with get_attribute function '
-                              'in vm.operations.test.op.inputs.a'
-                              .format(ref), str(e))
+            message_regex = ref + (
+                r'.*cannot be used.*in.*'
+                r'vm\.operations\.(test\.)?op\.inputs\.a'
+            )
+            self.assertRaisesRegex(ValueError, message_regex, self.parse, yaml)
 
         assert_with('SOURCE')
         assert_with('TARGET')
@@ -913,13 +911,11 @@ node_templates:
                             a: { get_attribute: [""" + ref + """, aaa] }
 
 """
-            try:
-                self.parse(yaml)
-                self.fail()
-            except ValueError as e:
-                self.assertIn('{0} cannot be used with get_attribute function '
-                              'in vm.relationship.test.op.inputs.a'
-                              .format(ref), str(e))
+            message_regex = ref + (
+                r'.*cannot be used.*in.*'
+                r'vm\.relationship\.(test\.)?op\.inputs\.a'
+            )
+            self.assertRaisesRegex(ValueError, message_regex, self.parse, yaml)
 
         assert_with('SELF')
 
@@ -1382,7 +1378,7 @@ node_templates:
                             - dummy_prop
     """
         plan = self.parse(yaml)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionEvaluationError, 'unresolved argument'):
             prepare_deployment_plan(plan)
 
@@ -1405,7 +1401,7 @@ node_templates:
                                 - dummy_prop
     """
         plan = self.parse_1_1(yaml)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionEvaluationError, 'unresolved argument'):
             prepare_deployment_plan(plan)
 
@@ -1434,7 +1430,7 @@ node_templates:
                             - get_input: dummy_input
     """
         plan = self.parse_1_1(yaml)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionEvaluationError, 'unresolved argument'):
             prepare_deployment_plan(plan)
 
@@ -1458,7 +1454,7 @@ node_templates:
                     - shouldn't matter
     """
         plan = self.parse(yaml)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionEvaluationError, 'unresolved argument'):
             prepare_deployment_plan(plan)
 
@@ -1482,7 +1478,7 @@ node_templates:
                     - shouldn't matter
     """
         plan = self.parse_1_1(yaml)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.FunctionEvaluationError, 'unresolved argument'):
             prepare_deployment_plan(plan)
 
@@ -1502,7 +1498,7 @@ node_templates:
                         - some_node
                         - prop
     """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
                 "evaluating the deployment\\..+get_input\\..+"):
@@ -1525,7 +1521,7 @@ node_templates:
                             - prop
                     - shouldn't matter
         """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
                 "evaluating the deployment\\..+get_property\\[0\\].+"):
@@ -1549,7 +1545,7 @@ node_templates:
                                 - prop
                         - shouldn't matter
             """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
                 "evaluating the deployment\\..+get_property\\[0\\].+"):
@@ -1572,7 +1568,7 @@ node_templates:
                             - prop
                     - shouldn't matter
             """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
                 "evaluating the deployment\\..+get_property\\[0\\].+"):

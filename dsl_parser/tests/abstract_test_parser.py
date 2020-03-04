@@ -230,15 +230,17 @@ imports:"""
     def _assert_dsl_parsing_exception_error_code(
             self, dsl,
             expected_error_code, exception_type=DSLParsingException,
-            parsing_method=None):
+            parsing_method=None, message_regex=None):
         if not parsing_method:
             parsing_method = self.parse
-        try:
-            parsing_method(dsl)
-            self.fail()
-        except exception_type as ex:
-            self.assertEquals(expected_error_code, ex.err_code)
-            return ex
+        if message_regex:
+            with self.assertRaisesRegex(exception_type, message_regex) as cm:
+                parsing_method(dsl)
+            ex = cm.exception
+        else:
+            ex = self.assertRaises(exception_type, parsing_method, dsl)
+        self.assertEqual(ex.err_code, expected_error_code)
+        return ex
 
     def get_node_by_name(self, plan, name):
         return [x for x in plan.node_templates if x['name'] == name][0]

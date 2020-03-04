@@ -154,13 +154,14 @@ class ProcessExecutionError(RuntimeError):
     def __init__(self, message, error_type=None, traceback=None, causes=None,
                  **kwargs):
         super(ProcessExecutionError, self).__init__(message, **kwargs)
+        self._message = message
         self.error_type = error_type
         self.traceback = traceback
         self.causes = causes
 
     def __str__(self):
         if self.error_type:
-            return '{0}: {1}'.format(self.error_type, self.message)
+            return '{0}: {1}'.format(self.error_type, self._message)
         return self.message
 
 

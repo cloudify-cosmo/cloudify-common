@@ -131,12 +131,6 @@ class CloudifyContextTest(testtools.TestCase):
         self.assertTrue(os.path.exists(resource_path))
 
     @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
-    def test_download_resource_to_non_writable_location(self, _):
-        self.assertRaises(IOError, self.context.download_resource,
-                          'for_test.txt',
-                          '/non-existing-folder')
-
-    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
     def test_get_non_existing_resource(self, _):
         self.assertRaises(exceptions.NonRecoverableError,
                           self.context.get_resource,

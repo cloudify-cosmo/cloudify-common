@@ -18,7 +18,6 @@ import os
 import threading
 import time
 import sys
-import subprocess
 
 import testtools
 from pytest import mark
@@ -338,12 +337,6 @@ class TestArgumentParsing(testtools.TestCase):
             run(['--json-output'], ex_json_output)
         finally:
             sys.stdout = current_stdout
-
-
-class TestCtxEntryPoint(testtools.TestCase):
-
-    def test_ctx_in_path(self):
-        subprocess.call(['ctx', '--help'])
 
 
 class TestPathDictAccess(testtools.TestCase):

@@ -308,8 +308,8 @@ class PythonWrapperTests(testtools.TestCase):
 
     def test_abort_operation(self):
         script = ('ctx.abort_operation("abort_message")')
-        ex = self.assertRaises(NonRecoverableError, self._run, script)
-        self.assertIn('abort_message', str(ex))
+        self.assertRaisesRegex(
+            NonRecoverableError, 'abort_message', self._run, script)
 
     def test_retry_operation(self):
         script = ('ctx.retry_operation("retry_message")')

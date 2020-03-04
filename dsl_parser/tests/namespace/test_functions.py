@@ -638,7 +638,12 @@ imports:
     - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
-        ip = parsed[constants.NODES][0]
+        for node in parsed[constants.NODES]:
+            if node['name'].endswith('ip'):
+                ip = node
+                break
+        else:
+            raise RuntimeError('No node "ip" found')
         self.assertEqual(ip['id'], 'ns2--ns--ip')
         self.assertEquals(ip['properties']['port'],
                           {'get_property': ['ns2--ns--node', 'port']})
@@ -813,6 +818,12 @@ imports:
 """
         parsed = self.parse(third_layer, resolver=resolver)
         ip = parsed[constants.NODES][0]
+        for node in parsed[constants.NODES]:
+            if node['name'].endswith('ip'):
+                ip = node
+                break
+        else:
+            raise RuntimeError('No node "ip" found')
         self.assertEqual(ip['id'], 'ns2--ns--ip')
         self.assertEquals(ip['properties']['port'],
                           {'get_attribute': ['ns2--ns--node', 'port']})
@@ -894,7 +905,12 @@ imports:
     - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
-        ip = parsed[constants.NODES][0]
+        for node in parsed[constants.NODES]:
+            if node['name'].endswith('ip'):
+                ip = node
+                break
+        else:
+            raise RuntimeError('No node "ip" found')
         self.assertEqual(ip['id'], 'ns2--ns--ip')
         self.assertEquals(ip['properties']['port'],
                           {'concat':

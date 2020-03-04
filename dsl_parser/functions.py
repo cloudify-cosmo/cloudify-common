@@ -417,7 +417,7 @@ class GetAttribute(Function):
                 # occurred
                 if not self.context.get('evaluate_outputs'):
                     raise
-                return '<ERROR: {0}>'.format(e.message)
+                return '<ERROR: {0}>'.format(e)
 
         value = _get_property_value(node_instance['node_id'],
                                     node_instance['runtime_properties'],

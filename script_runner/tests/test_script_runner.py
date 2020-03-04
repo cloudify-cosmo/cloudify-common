@@ -177,13 +177,10 @@ class BaseScriptRunner(object):
             ctx returns "@[""1"", 2, true]"
             ctx abort_operation "should raise a runtime error"
             ''')
-        try:
-            self._run(script_path=script_path, task_retries=2)
-            self.fail()
-        except NonRecoverableError as e:
-            self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
-        except Exception:
-            self.fail()
+        self.assertRaisesRegex(
+            NonRecoverableError, str(ILLEGAL_CTX_OPERATION_ERROR),
+            self._run, script_path=script_path, task_retries=2
+        )
 
     def test_crash_abort_after_return(self):
 
@@ -257,13 +254,10 @@ class BaseScriptRunner(object):
             ctx abort_operation "oops! we got an error"
             ctx returns "should_ignore_this_value"
             ''')
-        try:
-            self._run(script_path=script_path, task_retries=2)
-            self.fail()
-        except NonRecoverableError as e:
-            self.assertEquals(str(e), str(ILLEGAL_CTX_OPERATION_ERROR))
-        except Exception:
-            self.fail()
+        self.assertRaisesRegex(
+            NonRecoverableError, str(ILLEGAL_CTX_OPERATION_ERROR),
+            self._run, script_path=script_path, task_retries=2
+        )
 
     def test_crash_return_after_retry(self):
         script_path = self._create_script(
@@ -275,13 +269,10 @@ class BaseScriptRunner(object):
             ctx retry_operation "oops! we got an error"
             ctx returns "should_ignore_this_value"
             ''')
-        try:
-            self._run(script_path=script_path, task_retries=2)
-            self.fail()
-        except NonRecoverableError as e:
-            self.assertEquals(e.message, str(ILLEGAL_CTX_OPERATION_ERROR))
-        except Exception:
-            self.fail()
+        self.assertRaisesRegex(
+            NonRecoverableError, str(ILLEGAL_CTX_OPERATION_ERROR),
+            self._run, script_path=script_path, task_retries=2
+        )
 
     def test_retry_returns_a_nonzero_exit_code(self):
         log_path = self._get_temp_path()
@@ -381,7 +372,7 @@ subprocess.Popen(
             process={
                 'env': {'TEST_KEY': 'value'},
                 'command_prefix': command_prefix
-             })
+            })
         p_map = props['map']
         self.assertEqual(p_map['key'], 'value')
 

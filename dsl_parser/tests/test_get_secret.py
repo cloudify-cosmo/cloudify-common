@@ -171,41 +171,44 @@ node_templates:
         self.assertFalse(hasattr(parsed, 'secrets'))
 
     def test_validate_secrets_all_invalid(self):
-        expected_message = r"Required secrets: \[target_op_secret_id, " \
-                           r"node_template_secret_id, ip, agent_key, " \
-                           r"user, webserver_port, " \
-                           r"source_op_secret_id\] " \
-                           r"don't exist in this tenant"
+        # regex-OR all the possible secret names and require {7} of them,
+        # because the ordering isn't guaranteed
+        expected_message = (
+            r"Required secrets: \[((target_op_secret_id|"
+            r"node_template_secret_id|ip|agent_key|user|webserver_port|"
+            r"source_op_secret_id),? ?){7}\] don't exist in this tenant"
+        )
 
         get_secret_not_found = Mock(side_effect=NotFoundException)
-        self.assertRaisesRegexp(exceptions.UnknownSecretError,
-                                expected_message,
-                                prepare_deployment_plan,
-                                self.parse_1_3(self.secrets_yaml),
-                                get_secret_not_found)
+        self.assertRaisesRegex(exceptions.UnknownSecretError,
+                               expected_message,
+                               prepare_deployment_plan,
+                               self.parse_1_3(self.secrets_yaml),
+                               get_secret_not_found)
 
     def test_validate_secrets_unexpected_exception(self):
         get_secret_exception = Mock(side_effect=TypeError)
-        self.assertRaisesRegexp(TypeError,
-                                '',
-                                prepare_deployment_plan,
-                                self.parse_1_3(self.secrets_yaml),
-                                get_secret_exception)
+        self.assertRaisesRegex(TypeError,
+                               '',
+                               prepare_deployment_plan,
+                               self.parse_1_3(self.secrets_yaml),
+                               get_secret_exception)
 
     def test_validate_secrets_some_invalid(self):
-        expected_message = r"Required secrets: \[ip, " \
-                           r"source_op_secret_id\] don't exist in " \
-                           r"this tenant"
+        expected_message = (
+            r"Required secrets: \[((ip|source_op_secret_id),? ?){2}\] "
+            r"don't exist in this tenant"
+        )
 
-        get_secret_not_found = Mock()
-        get_secret_not_found.side_effect = [None, None, NotFoundException,
-                                            None, None, None,
-                                            NotFoundException]
-        self.assertRaisesRegexp(exceptions.UnknownSecretError,
-                                expected_message,
-                                prepare_deployment_plan,
-                                self.parse_1_3(self.secrets_yaml),
-                                get_secret_not_found)
+        def fake_get_secret(name):
+            if name in ['ip', 'source_op_secret_id']:
+                raise NotFoundException()
+
+        self.assertRaisesRegex(exceptions.UnknownSecretError,
+                               expected_message,
+                               prepare_deployment_plan,
+                               self.parse_1_3(self.secrets_yaml),
+                               fake_get_secret)
 
     def test_validate_secrets_without_secrets(self):
         no_secrets_yaml = """

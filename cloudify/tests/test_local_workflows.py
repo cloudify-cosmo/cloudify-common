@@ -21,6 +21,8 @@ import tempfile
 import shutil
 import os
 import threading
+import types
+import warnings
 
 import testtools
 
@@ -50,7 +52,6 @@ class BaseWorkflowTest(object):
 
     def cleanup(self):
         shutil.rmtree(self.work_dir)
-        self._remove_temp_module()
 
     def _init_env(self, blueprint_path,
                   inputs=None,
@@ -326,14 +327,10 @@ class BaseWorkflowTest(object):
         return blueprint
 
     def _create_temp_module(self):
-        import imp
-        temp_module = imp.new_module(self._testMethodName)
-        sys.modules[self._testMethodName] = temp_module
-        return temp_module
-
-    def _remove_temp_module(self):
-        if self._testMethodName in sys.modules:
-            del sys.modules[self._testMethodName]
+        sys.modules[self._testMethodName] = \
+            types.ModuleType(self._testMethodName)
+        self.addCleanup(sys.modules.pop, self._testMethodName, None)
+        return sys.modules[self._testMethodName]
 
     @contextlib.contextmanager
     def _mock_stdout_event_and_log(self):
@@ -661,7 +658,13 @@ class LocalWorkflowTest(BaseWorkflowTest):
             self.assertIn('node2_', key)
             self.assertEqual(value, {'key': 'value'})
 
-        self._execute_workflow(the_workflow, operation_methods=[op0, op1])
+        with warnings.catch_warnings(record=True) as warns:
+            self._execute_workflow(the_workflow, operation_methods=[op0, op1])
+        if sys.version_info < (2, 7):
+            # i was unable to make this work on py2.6
+            return
+        self.assertEqual(len(warns), 1)
+        self.assertIn('capabilities is deprecated', str(warns[0]))
 
     def test_operation_runtime_properties(self):
         def runtime_properties(ctx, **_):
@@ -899,7 +902,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
 
         conflict_error = exception.get_nowait()
 
-        self.assertIn('does not match current', conflict_error.message)
+        self.assertIn('does not match current', str(conflict_error))
 
     def test_get_node(self):
         def flow(ctx, **_):

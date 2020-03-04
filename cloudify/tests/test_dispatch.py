@@ -117,22 +117,19 @@ class TestDispatchTaskHandler(testtools.TestCase):
                 kwargs['known_exception'] = known_ex_type.__name__
             op_handler = self._operation(
                 func6, task_target='stub', kwargs=kwargs)
-            try:
-                op_handler.dispatch_to_subprocess()
-                self.fail()
-            except known_ex_type as e:
-                self.assertEqual(type(e), known_ex_type)
-                self.assertEqual(1, len(e.causes))
-                cause = e.causes[0]
-                self.assertIn('message', cause['message'])
-                self.assertEqual(raised_exception_type.__name__,
-                                 cause['type'])
-                self.assertIsNotNone(cause.get('traceback'))
-                for arg in args:
-                    if arg == 'message':
-                        self.assertIn('message', getattr(e, arg))
-                    else:
-                        self.assertEqual(arg, getattr(e, arg))
+            e = self.assertRaises(
+                known_ex_type, op_handler.dispatch_to_subprocess)
+            self.assertEqual(1, len(e.causes))
+            cause = e.causes[0]
+            self.assertIn('message', cause['message'])
+            self.assertEqual(raised_exception_type.__name__,
+                             cause['type'])
+            self.assertIsNotNone(cause.get('traceback'))
+            for arg in args:
+                if arg == 'message':
+                    self.assertIn('message', str(e))
+                else:
+                    self.assertEqual(arg, getattr(e, arg))
 
     def test_dispatch_no_such_handler(self):
         context = {'type': 'unknown_type'}
