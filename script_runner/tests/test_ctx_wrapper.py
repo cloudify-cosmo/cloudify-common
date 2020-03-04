@@ -301,7 +301,7 @@ class PythonWrapperTests(testtools.TestCase):
                   'ctx.returns(path)')
         self.assertRaises(ProcessException, self._run, script)
         self.assertTrue(string_in_log(
-            'IOError: [Errno 2] No such file or directory:',
+            '[Errno 2] No such file or directory:',
             capture))
 
     def test_abort_operation(self):
