@@ -96,9 +96,8 @@ commands:
         default: py27
     steps:
       - restore_cache:
-          keys: 
+          keys:
             - << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }}
-            - << parameters.cache_prefix >>-dependencies-
       - run: pip install -r dev-requirements.txt --user
       - run: pip install -r test-requirements.txt --user
       - run: pip install -e . --user
@@ -277,7 +276,7 @@ workflows:
           filters:
             branches:
               only: 5.0.5-build
-    
+
   build_and_test:
     jobs:
       - py3_compat
