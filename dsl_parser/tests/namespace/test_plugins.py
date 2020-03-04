@@ -116,13 +116,15 @@ imports:
                                                       host_plugin_def)
         expected_other_test_plugin2 = self._expected_plugin(
             'other_test--plugin2', host_plugin_def)
-        other_test_plugin1 =\
-            parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
-        test_plugin1 = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
+        plugins = parsed_yaml[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
+        if plugins[0]['name'].startswith('other'):
+            other_test_plugin1, test_plugin1 = plugins
+        else:
+            test_plugin1, other_test_plugin1 = plugins
         test_node2 = self.get_node_by_name(parsed_yaml, 'test--node2')
-        test_plugin2 = test_node2[constants.PLUGINS_TO_INSTALL][0]
         other_test_node2 =\
             self.get_node_by_name(parsed_yaml, 'other_test--node2')
+        test_plugin2 = test_node2[constants.PLUGINS_TO_INSTALL][0]
         other_test_plugin2 = other_test_node2[constants.PLUGINS_TO_INSTALL][0]
         self.assertEqual(expected_test_plugin1, test_plugin1)
         self.assertEqual(expected_other_test_plugin1, other_test_plugin1)
@@ -172,10 +174,13 @@ node_templates:
                                                  host_plugin_def)
         expected_test_plugin1 = self._expected_plugin('test--plugin1',
                                                       deployment_plugin_def)
-        plugin1 = parsed[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][1]
+        plugins = parsed[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]
+        if plugins[0]['name'].startswith('test'):
+          test_plugin1, plugin1 = plugins
+        else:
+          plugin1, test_plugin1 = plugins
         node2 = self.get_node_by_name(parsed, 'test--node2')
         plugin2 = node2[constants.PLUGINS_TO_INSTALL][0]
-        test_plugin1 = parsed[constants.DEPLOYMENT_PLUGINS_TO_INSTALL][0]
         self.assertEqual(expected_plugin1, plugin1)
         self.assertEqual(expected_plugin2, plugin2)
         self.assertEqual(expected_test_plugin1, test_plugin1)

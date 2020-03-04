@@ -60,10 +60,10 @@ imports:
         workflow_plugins_to_install =\
             parsed[constants.WORKFLOW_PLUGINS_TO_INSTALL]
         self.assertEqual(2, len(workflow_plugins_to_install))
-        self.assertEqual('test--test_plugin',
-                         workflow_plugins_to_install[1]['name'])
-        self.assertEqual('other_test--test_plugin',
-                         workflow_plugins_to_install[0]['name'])
+        self.assertEqual(
+            set(['test--test_plugin', 'other_test--test_plugin']),
+            set(plugin['name'] for plugin in workflow_plugins_to_install)
+        )
 
     def test_workflow_collision(self):
         imported_yaml = self.basic_blueprint()
@@ -111,10 +111,10 @@ workflows:
         workflow_plugins_to_install = \
             parsed[constants.WORKFLOW_PLUGINS_TO_INSTALL]
         self.assertEqual(2, len(workflow_plugins_to_install))
-        self.assertEqual('test--test_plugin',
-                         workflow_plugins_to_install[0]['name'])
-        self.assertEqual('test_plugin',
-                         workflow_plugins_to_install[1]['name'])
+        self.assertEqual(
+            set(['test--test_plugin', 'test_plugin']),
+            set(plugin['name'] for plugin in workflow_plugins_to_install)
+        )
 
     def test_workflow_basic_mapping(self):
         imported_yaml = self.basic_blueprint()
