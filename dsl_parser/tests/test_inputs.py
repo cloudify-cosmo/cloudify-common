@@ -216,67 +216,6 @@ node_templates:
         self.assertTrue('name_i' in msg)
         self.assertTrue('port' in msg)
 
-    def test_unicode_input(self):
-        yaml = """
-inputs:
-    port: {}
-    name_i: {}
-    name_j: {}
-node_types:
-    webserver_type:
-        properties:
-            port: {}
-            name: {}
-            name2: {}
-node_templates:
-    webserver:
-        type: webserver_type
-        properties:
-            port: { get_input: port }
-            name: { get_input: name_i }
-            name2: { get_input: [name_j, attr1, 0] }
-"""
-
-        u = u'M\xf6tley'
-
-        e = self.assertRaises(
-            DSLParsingInputTypeException,
-            prepare_deployment_plan,
-            self.parse(yaml),
-            inputs={'port': '8080', 'name_i': u}
-        )
-        msg = str(e).split('-')[0]  # get first part of message
-        self.assertTrue('name_i' in msg)
-
-        e = self.assertRaises(
-            DSLParsingInputTypeException,
-            prepare_deployment_plan,
-            self.parse(yaml),
-            inputs={'port': '8080', 'name_i': 'a', 'name_j': u}
-        )
-        msg = str(e).split('-')[0]  # get first part of message
-        self.assertTrue('name_j' in msg)
-
-        e = self.assertRaises(
-            DSLParsingInputTypeException,
-            prepare_deployment_plan,
-            self.parse(yaml),
-            inputs={'port': '8080', 'name_i': {'a': [{'a': [u]}]}}
-        )
-        msg = str(e).split('-')[0]  # get first part of message
-        self.assertTrue('name_i' in msg)
-
-        e = self.assertRaises(
-            DSLParsingInputTypeException,
-            prepare_deployment_plan,
-            self.parse(yaml),
-            inputs={'port': '8080',
-                    'name_i': 'a',
-                    'name_j': {'a': [{'a': [u]}]}}
-        )
-        msg = str(e).split('-')[0]  # get first part of message
-        self.assertTrue('name_j' in msg)
-
     def test_inputs_default_value(self):
         yaml = """
 inputs:
@@ -1258,14 +1197,6 @@ inputs:
         plan = prepare_deployment_plan(
             parsed, inputs={'some_input': input_value})
         value_assert_equal_func(plan['inputs']['some_input'], input_value)
-        if not isinstance(input_value, text_type):
-            return
-        # Testing Unicode case
-        unicode_input_value = input_value.decode('utf-8')
-        plan = prepare_deployment_plan(
-            parsed, inputs={'some_input': unicode_input_value})
-        value_assert_equal_func(
-            plan['inputs']['some_input'], unicode_input_value)
 
     def _test_validate_value_type_mismatch(self, type_name, default_value):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
