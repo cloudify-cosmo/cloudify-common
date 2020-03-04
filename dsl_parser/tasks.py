@@ -90,7 +90,7 @@ def _set_plan_inputs(plan, inputs=None):
             except exceptions.DSLParsingLogicException as e:
                 raise exceptions.DSLParsingException(
                     exceptions.ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA,
-                    e.message)
+                    str(e))
 
     if missing_inputs:
         raise exceptions.MissingRequiredInputError(

@@ -899,7 +899,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
 
         conflict_error = exception.get_nowait()
 
-        self.assertIn('does not match current', conflict_error.message)
+        self.assertIn('does not match current', str(conflict_error))
 
     def test_get_node(self):
         def flow(ctx, **_):
