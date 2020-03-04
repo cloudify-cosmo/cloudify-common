@@ -66,7 +66,8 @@ def zmq_client_req(socket_url, request, timeout):
 
 
 def http_client_req(socket_url, request, timeout):
-    response = urlopen(socket_url, data=json.dumps(request), timeout=timeout)
+    response = urlopen(
+        socket_url, data=json.dumps(request).encode('utf-8'), timeout=timeout)
     if response.code != 200:
         raise RuntimeError('Request failed: {0}'.format(response))
     return json.loads(response.read())
