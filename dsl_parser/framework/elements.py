@@ -102,7 +102,7 @@ class Element(object):
         message = StringIO()
         if self.filename:
             message.write('\n  in: {0}'.format(self.filename))
-        if self.name_start_line >= 0:
+        if self.name_start_line is not None and self.name_start_line >= 0:
             message.write('\n  in line: {0}, column: {1}'
                           .format(self.name_start_line + 1,
                                   self.name_start_column))
