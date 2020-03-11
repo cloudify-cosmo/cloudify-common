@@ -306,3 +306,16 @@ class ExecutionsClient(object):
                                  data={'action': action},
                                  expected_status_code=200)
         return self._wrapper_cls(response)
+
+    def requeue(self, execution_id):
+        """
+        Requeue an execution (e.g. after snapshot restore).
+
+        :param execution_id: Id of the execution to be requeued.
+        :return: Requeued execution.
+        """
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
+        response = self.api.post(uri,
+                                 data={'action': 'requeue'},
+                                 expected_status_code=200)
+        return self._wrapper_cls(response)
