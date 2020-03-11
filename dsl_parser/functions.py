@@ -259,8 +259,12 @@ class GetInput(Function):
                 except TypeError:
                     raise exceptions.InputEvaluationError(
                         "Item in index {0} in the get_input arguments list "
-                        "'{1}' is expected to be an int but got {2}.".format(
-                            index, self.input_value, type(attr).__name__))
+                        "[{1}] is expected to be an int but got {2}.".format(
+                            index,
+                            ', '.join('{0}'.format(item)
+                                      for item in self.input_value),
+                            type(attr).__name__)
+                    )
                 except IndexError:
                     raise exceptions.InputEvaluationError(
                         "List size of '{0}' is {1} but index {2} is "
@@ -979,10 +983,12 @@ def get_nested_attribute_value_of_capability(root, path):
                 value = value[attr]
             except TypeError:
                 raise exceptions.FunctionEvaluationError(
-                    "Item in index '{0}' in the get_capability arguments "
-                    "list '{1}' is expected to be an int "
+                    "Item in index {0} in the get_capability arguments "
+                    "list [{1}] is expected to be an int "
                     "but got {2}.".format(
-                        index + 2, path, type(attr).__name__))
+                        index + 2,
+                        ', '.join('{0}'.format(item) for item in path),
+                        type(attr).__name__))
             except IndexError:
                 raise exceptions.FunctionEvaluationError(
                     "List size of '{0}' is {1}, in "
