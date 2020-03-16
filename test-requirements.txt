@@ -1,5 +1,5 @@
 mock>=1.0.1
-testtools
+testtools==2.3.0
 pytest
 pytest-cov
 pytest-xdist
