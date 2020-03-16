@@ -20,6 +20,7 @@ defaults:
       - image: rabbitmq:3.7.4
     steps:
       - checkout
+      - run: sudo pip install virtualenv==15.1.0
       - run:
           name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
           command: sudo pip install tox==1.6.1
@@ -44,6 +45,7 @@ defaults:
                    sudo apt-get install -y build-essential libssl1.0-dev zlib1g-dev xz-utils
                    pyenv install 2.6.9
                    pyenv local 2.6.9
+      - run: sudo pip install virtualenv==15.1.0
       - run:
           name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
           command: sudo ~/.pyenv/versions/2.6.9/bin/pip install tox==1.6.1 tox-pyenv
@@ -56,6 +58,7 @@ defaults:
       - image: circleci/python:2.7
     steps:
       - checkout
+      - run: sudo pip install virtualenv==15.1.0
       - run:
           name: Install tox, NOTICE we use an old version of tox because of CFY-6398 (relying dict ordering)
           command: sudo pip install tox==1.6.1
