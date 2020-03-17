@@ -858,7 +858,7 @@ class CloudifyContext(CommonContext):
         if not instance:
             raise exceptions.NonRecoverableError(
                 'No node instance available for {0} context'
-                ''.format(self.node.type))
+                ''.format(self.type))
         return instance.id
 
     def get_config(self, name=None, scope=None):
