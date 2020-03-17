@@ -533,6 +533,10 @@ class RelationshipSubjectContext(object):
                                             node=self.node,
                                             modifiable=modifiable)
 
+    @property
+    def context(self):
+        return self._context
+
 
 class CloudifyContext(CommonContext):
 
@@ -643,6 +647,26 @@ class CloudifyContext(CommonContext):
         """
         self._verify_in_node_context()
         return self._instance
+
+    @property
+    def current_instance(self):
+        """
+        This will return the current node instance which could be fetched
+        from NodeInstanceContext
+        :return: Return instance of "NodeInstanceContext"
+        """
+        if self.type == NODE_INSTANCE:
+            return self.instance
+        elif self.type == RELATIONSHIP_INSTANCE:
+            node_id = self._context.get('node_id')
+            source_node_id = self.source.context.get('node_id')
+            target_node_id = self.target.context.get('node_id')
+            if node_id == source_node_id:
+                return self.source.instance
+            elif node_id == target_node_id:
+                return self.target.instance
+        else:
+            return None
 
     @property
     def node(self):
@@ -824,6 +848,19 @@ class CloudifyContext(CommonContext):
     def resume(self, value):
         self._context['resume'] = value
 
+    @property
+    def current_instance_id(self):
+        """
+        This method will return the id for current node instance
+        :return: Node instance id
+        """
+        instance = self.current_instance
+        if not instance:
+            raise exceptions.NonRecoverableError(
+                'No node instance available for {0} context'
+                ''.format(self.node.type))
+        return instance.id
+
     def get_config(self, name=None, scope=None):
         """Get a subset of the stored configuration"""
         return self._endpoint.get_config(name=name, scope=scope)
@@ -863,6 +900,25 @@ class CloudifyContext(CommonContext):
         :param state: New operation state
         """
         self._endpoint.update_operation(self.task_id, state)
+
+    def get_node_instance(self, node_instance_id):
+        """
+        Get node instance using passed node instance id
+        :param node_instance_id: Node instance id
+        :rtype: NodeInstance
+        """
+        return self._endpoint.get_node_instance(node_instance_id)
+
+    def update_node_instance_state(self, state, instance_id=None):
+        """
+        Update state of node instance state to the desired state
+        :param state: The desired state need to update
+        :param instance_id: The node instance id
+        """
+        instance_id = instance_id if instance_id else self.current_instance_id
+        node_instance = self.get_node_instance(instance_id)
+        node_instance.state = state
+        self._endpoint.update_node_instance(node_instance)
 
     def get_resource(self, resource_path):
         """

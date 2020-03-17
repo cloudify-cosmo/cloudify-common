@@ -498,6 +498,9 @@ class OperationHandler(TaskHandler):
                     state = tasks.TASK_RESCHEDULED
                 elif error:
                     state = tasks.TASK_FAILED
+                    # In case one of the task get failed then update the
+                    # state of node instance to failed as well
+                    ctx.update_node_instance_state(state)
                 else:
                     state = tasks.TASK_SUCCEEDED
                 ctx.update_operation(state)

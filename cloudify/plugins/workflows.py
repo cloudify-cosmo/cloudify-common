@@ -50,11 +50,9 @@ def auto_heal_reinstall_node_subgraph(
         ignore_failure=True,
         **kwargs):
     """Reinstalls the whole subgraph of the system topology
-
     The subgraph consists of all the nodes that are hosted in the
     failing node's compute and the compute itself.
     Additionally it unlinks and establishes appropriate relationships
-
     :param ctx: cloudify context
     :param node_instance_id: node_instances to reinstall
     :param diagnose_value: diagnosed reason of failure
@@ -84,11 +82,9 @@ def auto_heal_reinstall_node_subgraph(
 def get_groups_with_members(ctx):
     """
         Get group instance membership.
-
         :param ctx: cloudify context
         :return: A dict keyed on scaling group instances with lists of node
                  instances belonging to that group instance.
-
                  e.g.
                  {
                      "vmgroup_x8u01s": ["fakevm_lfog3x", "fakevm2_gmlwzu"],
@@ -110,7 +106,6 @@ def _check_for_too_many_exclusions(exclude_instances, available_instances,
     """
         Check whether the amount of exluded instances will make it possible to
         scale down by the given delta.
-
         :param exclude_instances: A list of node instance IDs to exclude.
         :param available_instances: A list of all available instance IDs. For
                                     groups this should include both the group
@@ -166,7 +161,6 @@ def _get_available_instances_list(available_instances, groups_members):
         This string will be formatted for providing helpful feedback to a
         user, e.g. regarding available instances when they have selected a
         non-existent instance.
-
         :param available_instances: A list of all available instance IDs. For
                                     groups this should include both the group
                                     instance IDs and the member node instance
@@ -201,7 +195,6 @@ def validate_inclusions_and_exclusions(include_instances, exclude_instances,
     """
         Validate provided lists of included or excluded node instances for
         scale down operations.
-
         :param include_instances: A list of node instance IDs to include.
         :param exclude_instances: A list of node instance IDs to exclude.
         :param available_instances: A list of all available instance IDs. For
@@ -289,7 +282,6 @@ def scale_entity(ctx,
                  rollback_if_failed=True,
                  **kwargs):
     """Scales in/out the subgraph of node_or_group_name.
-
     If a node name is passed, and `scale_compute` is set to false, the
     subgraph will consist of all the nodes that are contained in the node and
     the node itself.
@@ -298,13 +290,11 @@ def scale_entity(ctx,
     contains the node and the compute node itself.
     If a group name or a node that is not contained in a compute
     node, is passed, this property is ignored.
-
     `delta` is used to specify the scale factor.
     For `delta > 0`: If current number of instances is `N`, scale out to
     `N + delta`.
     For `delta < 0`: If current number of instances is `N`, scale in to
     `N - |delta|`.
-
     :param ctx: cloudify context
     :param scalable_entity_name: the node or group name to scale
     :param delta: scale in/out factor
