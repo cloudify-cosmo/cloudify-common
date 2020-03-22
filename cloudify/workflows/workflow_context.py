@@ -58,6 +58,7 @@ from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            send_workflow_event,
                            send_sys_wide_wf_event)
 
+from cloudify.exceptions import NonRecoverableError
 from cloudify.utils import is_agent_alive
 
 
@@ -1223,6 +1224,11 @@ class CloudifyWorkflowContextHandler(object):
     def rollback_deployment_modification(self, modification):
         raise NotImplementedError('Implemented by subclasses')
 
+    def partial_rollback_deployment_modification(self,
+                                                 modification_id,
+                                                 rollback_modification):
+        raise NotImplementedError('Implemented by subclasses')
+
     def scaling_groups(self):
         raise NotImplementedError('Implemented by subclasses')
 
@@ -1514,6 +1520,14 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
         client = get_rest_client()
         client.deployment_modifications.rollback(modification.id)
 
+    def partial_rollback_deployment_modification(self,
+                                                 modification_id,
+                                                 rollback_modification):
+        client = get_rest_client()
+        client.deployment_modifications.partial_rollback(
+            modification_id, **rollback_modification
+        )
+
     def send_workflow_event(self, event_type, message=None, args=None,
                             additional_context=None):
         send_workflow_event(self.workflow_ctx,
@@ -1626,6 +1640,8 @@ class Modification(object):
     def __init__(self, workflow_ctx, modification):
         self._raw_modification = modification
         self.workflow_ctx = workflow_ctx
+        # This dict required when applying partial rollback
+        self._rollback_modification = dict()
         node_instances = modification.node_instances
         added_raw_nodes = []
         seen_ids = set()
@@ -1654,6 +1670,23 @@ class Modification(object):
                                           removed_raw_node_instances)
 
     @property
+    def rollback_modification(self):
+        return self._rollback_modification
+
+    @rollback_modification.setter
+    def rollback_modification(self, value):
+        """
+        The rollback modification object contains the following values
+        {
+          "modification_action": "added" | "removed",
+          "rollback_instances": ["NODE_INSTANCE_ID_1", "NODE_INSTANCE_ID_2"],
+        }
+        :param value: Dict that contains the required values for applying
+        rollback modification
+        """
+        self._rollback_modification = value
+
+    @property
     def added(self):
         """
         :return: Added and related nodes
@@ -1673,6 +1706,23 @@ class Modification(object):
     def id(self):
         return self._raw_modification.id
 
+    def _validate_partial_rollback(self):
+        error_message = ''
+        if not self.rollback_modification:
+            error_message = 'Rollback modification object cannot be None'
+        else:
+            missing_keys = []
+            for key in ['modification_action', 'rollback_instances']:
+                if not self.rollback_modification.get('modification_action'):
+                    missing_keys.append(key)
+            if missing_keys:
+                error_message = '{0} keys are required ' \
+                                'to apply partial ' \
+                                'rollback modification'\
+                    .format(','.join(missing_keys))
+        if error_message:
+            raise NonRecoverableError(error_message)
+
     def finish(self):
         """Finish deployment modification process"""
         self.workflow_ctx.internal.handler.finish_deployment_modification(
@@ -1682,6 +1732,12 @@ class Modification(object):
         """Rollback deployment modification process"""
         self.workflow_ctx.internal.handler.rollback_deployment_modification(
             self._raw_modification)
+
+    def partial_rollback(self):
+        self._validate_partial_rollback()
+        self.workflow_ctx.internal.\
+            handler.partial_rollback_deployment_modification(
+            self.id, self.rollback_modification)
 
 
 class ModificationNodes(WorkflowNodesAndInstancesContainer):

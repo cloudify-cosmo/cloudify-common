@@ -23,6 +23,12 @@ from cloudify.manager import get_rest_client
 from cloudify.workflows.tasks_graph import make_or_get_graph
 from cloudify.utils import add_plugins_to_install, add_plugins_to_uninstall
 
+ROLLBACK_ALL = 'all'
+ROLLBACK_NONE = 'none'
+ROLLBACK_FAILED = 'failed'
+
+ROLLBACK_OPT = [ROLLBACK_ALL, ROLLBACK_NONE, ROLLBACK_FAILED]
+
 
 @workflow(resumable=True)
 def install(ctx, **kwargs):
@@ -278,6 +284,142 @@ def validate_inclusions_and_exclusions(include_instances, exclude_instances,
         raise RuntimeError(error_message)
 
 
+def rollback_modification_instances(ctx,
+                                    scaling_group,
+                                    graph,
+                                    modification,
+                                    scaled_instances,
+                                    related_instances,
+                                    delta,
+                                    rollback_behavior,
+                                    ignore_failure):
+    """
+    :param ctx:
+    :param scaling_group:
+    :param graph:
+    :param modification:
+    :param scaled_instances:
+    :param related_instances:
+    :param delta:
+    :param rollback_behavior:
+    :param ignore_failure:
+    """
+    modification_action = 'added' if delta > 0 else 'removed'
+    ready_state = 'started' if delta > 0 else 'deleted'
+    if rollback_behavior == ROLLBACK_NONE:
+        ctx.logger.error('Scale out failed.')
+        raise
+    # Update the related and added nodes only
+    # Avoid applying rollback when passing scaling group as scalable entity
+    elif rollback_behavior == ROLLBACK_FAILED and not scaling_group:
+        # Before getting the status of the failed node instances
+        # we need to refresh the current node instances from
+        # cloudify context
+        ctx.refresh_node_instances()
+        failed_nodes = get_failed_scaled_instances(
+            ctx, ready_state, scaled_instances, related_instances
+        )
+        if failed_nodes:
+            scaled_instances = failed_nodes['failed_instances']
+            related_instances = failed_nodes['intact_instances']
+
+    def _rollback_modification():
+        # do the actual rollback
+        rollback_action = modification.rollback
+        if rollback_behavior == ROLLBACK_NONE:
+            raise
+        elif rollback_behavior == ROLLBACK_FAILED and not scaling_group:
+            # Only rollback the failed instances not everything
+            rollback_modification = {
+                'modification_action': modification_action,
+                'rollback_instances': [
+                    instance.id for instance in scaled_instances
+                ],
+            }
+            modification.rollback_modification = rollback_modification
+            rollback_action = modification.partial_rollback
+
+        ctx.logger.warn('Rolling back deployment modification. '
+                        '[modification_id={0}]'.format(modification.id))
+        try:
+            rollback_action()
+        except Exception:
+            ctx.logger.warn('Deployment modification rollback failed. The '
+                            'deployment model is most likely in some corrupted'
+                            ' state.'
+                            '[modification_id={0}]'.format(modification.id))
+            raise
+
+    if delta > 0:
+        # get_failed_instances_from_scale_workflow(ctx, )
+        # At this point, the tasks still exist on task graph are the
+        # failed one, so no further actions required
+        ctx.logger.error('Scale out failed, scaling back in.')
+        try:
+            for task in graph.tasks_iter():
+                graph.remove_task(task)
+            lifecycle.uninstall_node_instances(
+                graph=graph,
+                node_instances=scaled_instances,
+                ignore_failure=ignore_failure,
+                related_nodes=related_instances)
+        except Exception:
+            _rollback_modification()
+            raise
+
+    # do the actual rollback
+    _rollback_modification()
+
+
+def get_failed_scaled_instances(ctx,
+                                ready_state,
+                                scaled_instances,
+                                related_instances):
+    """
+    This method will helps to get the failed scaled node instances when do
+    scale out/in
+    :param ctx: cloudify context
+    :param ready_state: A State used in order to tell if the node instances
+    failed or not. In Scale out if the node instance failed then it will not be
+    in "started" state. On the other hand, if the scale in failed in one of
+    the scaled instances then it will not be in "deleted" state. The two
+    possible values for ready_state is "started or deleted"
+    :param scaled_instances: Represent a list of all scaled in/out instances
+    :param related_instances: Represent a list of related instances
+    generated from scale in/out operation
+    :return: Dict contains both failed instances and related node instances
+    """
+    result = {}
+    failed_instances = set()
+    intact_instances = set()
+    for instance in ctx.node_instances:
+        if instance.state != ready_state:
+            for scaled_instance in scaled_instances:
+                if instance.id == scaled_instance.id:
+                    # Aggregate all failed instances
+                    failed_instances.add(scaled_instance)
+                    # Aggregate all related instances with failed instances
+                    if related_instances:
+                        intact_instances.update(
+                            set(rel.target_node_instance
+                                for rel in scaled_instance.relationships
+                                )
+                        )
+                    break
+
+    # Needed for the lifecycle uninstall when rollback the failure on scale out
+    intact_instances.update(set(
+        instance for instance in related_instances
+        for rel in instance.relationships
+        if rel.target_node_instance in failed_instances
+    ))
+
+    if failed_instances:
+        result['failed_instances'] = failed_instances
+        result['intact_instances'] = intact_instances
+    return result
+
+
 @workflow
 def scale_entity(ctx,
                  scalable_entity_name,
@@ -286,7 +428,7 @@ def scale_entity(ctx,
                  ignore_failure=False,
                  include_instances=None,
                  exclude_instances=None,
-                 rollback_if_failed=True,
+                 rollback_behavior=ROLLBACK_ALL,
                  **kwargs):
     """Scales in/out the subgraph of node_or_group_name.
 
@@ -313,8 +455,18 @@ def scale_entity(ctx,
     :param ignore_failure: ignore operations failures in uninstall workflow
     :param include_instances: Instances to include when scaling down
     :param exclude_instances: Instances to exclude when scaling down
-    :param rollback_if_failed: when False, no rollback will be triggered.
+    :param rollback_behavior: The rollback action to apply when failure
+    happened during scale workflow and it takes 3 options as the following:
+    - `all`: will roll back all newly-created instances.
+    - `none`: will completely skip rollback
+    - `failed`:  will only roll back node instances that failed during creation
     """
+    rollback_behavior = \
+        ROLLBACK_ALL if not rollback_behavior else rollback_behavior
+    if rollback_behavior not in ROLLBACK_OPT:
+        raise Exception('The provided rollback behavior is invalid')
+
+    ctx.logger.info("The value of rollback is {}".format(rollback_behavior))
     include_instances = include_instances or []
     exclude_instances = exclude_instances or []
     if not isinstance(include_instances, list):
@@ -338,6 +490,7 @@ def scale_entity(ctx,
             'Instances cannot be included or excluded when scaling up.'
         )
 
+    ctx.logger.info("This is the type of context here {}".format(type(ctx)))
     scaling_group = ctx.deployment.scaling_groups.get(scalable_entity_name)
     if scaling_group:
         groups_members = get_groups_with_members(ctx)
@@ -412,6 +565,8 @@ def scale_entity(ctx,
     # return the new node instance that were just created
     ctx.refresh_node_instances()
     graph = ctx.graph_mode()
+    scaled_instances = []
+    related_instances = []
     try:
         ctx.logger.info('Deployment modification started. '
                         '[modification_id={0}]'.format(modification.id))
@@ -420,49 +575,42 @@ def scale_entity(ctx,
             added = set(i for i in added_and_related
                         if i.modification == 'added')
             related = added_and_related - added
-            try:
-                lifecycle.install_node_instances(
-                    graph=graph,
-                    node_instances=added,
-                    related_nodes=related)
-            except Exception:
-                if not rollback_if_failed:
-                    ctx.logger.error('Scale out failed.')
-                    raise
 
-                ctx.logger.error('Scale out failed, scaling back in.')
-                for task in graph.tasks_iter():
-                    graph.remove_task(task)
-                lifecycle.uninstall_node_instances(
-                    graph=graph,
-                    node_instances=added,
-                    ignore_failure=ignore_failure,
-                    related_nodes=related)
-                raise
+            # Assign the added & related node instances to use them later on
+            # when there is a failure and rollback action required
+            scaled_instances = added
+            related_instances = related
+            # try:
+            lifecycle.install_node_instances(
+                graph=graph,
+                node_instances=added,
+                related_nodes=related)
         else:
             removed_and_related = set(modification.removed.node_instances)
             removed = set(i for i in removed_and_related
                           if i.modification == 'removed')
             related = removed_and_related - removed
+
+            # Assign the removed & related node instances to use them later on
+            # when there is a failure and rollback action required
+            scaled_instances = removed
+            related_instances = related
+
             lifecycle.uninstall_node_instances(
                 graph=graph,
                 node_instances=removed,
                 ignore_failure=ignore_failure,
                 related_nodes=related)
     except Exception:
-        if not rollback_if_failed:
-            raise
-
-        ctx.logger.warn('Rolling back deployment modification. '
-                        '[modification_id={0}]'.format(modification.id))
-        try:
-            modification.rollback()
-        except Exception:
-            ctx.logger.warn('Deployment modification rollback failed. The '
-                            'deployment model is most likely in some corrupted'
-                            ' state.'
-                            '[modification_id={0}]'.format(modification.id))
-            raise
+        rollback_modification_instances(ctx,
+                                        scaling_group,
+                                        graph,
+                                        modification,
+                                        scaled_instances,
+                                        related_instances,
+                                        delta,
+                                        rollback_behavior,
+                                        ignore_failure)
         raise
     else:
         try:

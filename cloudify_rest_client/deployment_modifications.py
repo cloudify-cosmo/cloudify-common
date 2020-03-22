@@ -187,3 +187,27 @@ class DeploymentModificationsClient(object):
         uri = '/deployment-modifications/{0}/rollback'.format(modification_id)
         response = self.api.post(uri)
         return DeploymentModification(response)
+
+    def partial_rollback(self,
+                         modification_id,
+                         modification_action,
+                         rollback_instances):
+        """
+        This will do a rollback partially for the node instances and their
+        relationships
+        :param modification_id: The modification id
+        :param modification_action: The modification action ("added/removed")
+        :param rollback_instances: The list of rollback instances ids
+        :return:
+        """
+        assert modification_id
+        assert modification_action
+        assert rollback_instances
+        modification = {
+            'modification_action': modification_action,
+            'rollback_instances': rollback_instances,
+        }
+        uri = '/deployment-modifications/{0}/partial-rollback'.format(
+            modification_id)
+        response = self.api.post(uri, data=modification)
+        return DeploymentModification(response)
