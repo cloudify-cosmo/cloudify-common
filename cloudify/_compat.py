@@ -33,8 +33,13 @@ def reraise(exception_type, value, traceback):
     raise exception_type, value, traceback
 """)
     text_type = unicode
+    exec("""
+def exec_(code, globs):
+    exec code in globs
+""")
 
 else:
+    import builtins
     import queue
     from io import StringIO
     from urllib.parse import quote as urlquote, urlparse
@@ -43,8 +48,10 @@ else:
         raise value.with_traceback(traceback)
 
     text_type = str
+    exec_ = getattr(builtins, 'exec')
 
 
 __all__ = [
-    'PY2', 'queue', 'StringIO', 'reraise', 'text_type', 'urlquote', 'urlparse'
+    'PY2', 'queue', 'StringIO', 'reraise', 'text_type', 'urlquote',
+    'urlparse', 'exec_'
 ]
