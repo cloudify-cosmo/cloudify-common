@@ -598,10 +598,10 @@ def _relationships_operations(graph,
                 ]
         if group_tasks:
             tasks.append(forkjoin(*group_tasks))
-    if reverse:
-        tasks = reversed(tasks)
     if not tasks:
         return
+    if reverse:
+        tasks = reversed(tasks)
     result = graph.subgraph('{0}_subgraph'.format(operation))
     result.on_failure = on_failure
     sequence = result.sequence()
