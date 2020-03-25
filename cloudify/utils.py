@@ -673,7 +673,7 @@ def generate_user_password(password_length=32):
     """Generate random string to use as user password."""
     system_random = random.SystemRandom()
     allowed_characters = (
-        string.letters +
+        string.ascii_letters +
         string.digits +
         '-_'
     )
