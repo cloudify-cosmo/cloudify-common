@@ -22,8 +22,8 @@ PY2 = sys.version_info[0] == 2
 
 if PY2:
     import Queue as queue
-    from urllib import quote as urlquote
-    from urlparse import urlparse
+    from urllib import quote as urlquote, pathname2url
+    from urlparse import urlparse, urljoin
     try:
         from cStringIO import StringIO
     except ImportError:
@@ -42,7 +42,8 @@ else:
     import builtins
     import queue
     from io import StringIO
-    from urllib.parse import quote as urlquote, urlparse
+    from urllib.parse import quote as urlquote, urlparse, urljoin
+    from urllib.request import pathname2url
 
     def reraise(exception_type, value, traceback):
         raise value.with_traceback(traceback)
@@ -53,5 +54,5 @@ else:
 
 __all__ = [
     'PY2', 'queue', 'StringIO', 'reraise', 'text_type', 'urlquote',
-    'urlparse', 'exec_'
+    'urlparse', 'exec_', 'urljoin', 'pathname2url'
 ]
