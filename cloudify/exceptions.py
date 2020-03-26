@@ -123,16 +123,16 @@ class CommandExecutionException(Exception):
         self.error = error
         self.code = code
         self.output = output
-        Exception.__init__(self, self.__str__())
-
-    def __str__(self):
-        return "Command '{0}' executed with an error." \
-               "\ncode: {1}" \
-               "\nerror: {2}" \
-               "\noutput: {3}" \
+        message = (
+            u"Command '{0}' executed with an error."
+            u"\ncode: {1}"
+            u"\nerror: {2}"
+            u"\noutput: {3}"
             .format(self.command, self.code,
                     self.error or None,
                     self.output or None)
+        )
+        super(CommandExecutionException, self).__init__(message)
 
 
 class TimeoutException(Exception):
