@@ -392,7 +392,7 @@ def download_resource(download_resource_func, script_path,
 def _prepare_ssl_cert(ssl_cert_content):
     cert_file = None
     if ssl_cert_content:
-        with tempfile.NamedTemporaryFile(delete=False) as f:
+        with tempfile.NamedTemporaryFile(delete=False, mode='w') as f:
             f.write(ssl_cert_content)
             cert_file = f.name
     try:

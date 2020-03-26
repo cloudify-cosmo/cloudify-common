@@ -424,10 +424,10 @@ class LocalCommandRunner(object):
         p = subprocess.Popen(args=popen_args, stdout=stdout,
                              stderr=stderr, cwd=cwd, env=command_env)
         out, err = p.communicate()
-        if out:
-            out = out.rstrip()
-        if err:
-            err = err.rstrip()
+        if out is not None:
+            out = out.rstrip().decode('utf-8', 'replace')
+        if err is not None:
+            err = err.rstrip().decode('utf-8', 'replace')
 
         if p.returncode != 0:
             error = CommandExecutionException(
@@ -673,7 +673,7 @@ def generate_user_password(password_length=32):
     """Generate random string to use as user password."""
     system_random = random.SystemRandom()
     allowed_characters = (
-        string.letters +
+        string.ascii_letters +
         string.digits +
         '-_'
     )

@@ -43,9 +43,9 @@ class LocalCommandRunnerTest(TestCase):
 
     def test_run_command_success(self):
         response = self.runner.run('echo Hello')
-        self.assertEqual(b'Hello', response.std_out)
+        self.assertEqual('Hello', response.std_out)
         self.assertEqual(0, response.return_code)
-        self.assertEqual(b'', response.std_err)
+        self.assertEqual('', response.std_err)
 
     def test_run_command_error(self):
         try:
@@ -57,7 +57,7 @@ class LocalCommandRunnerTest(TestCase):
     def test_run_command_with_env(self):
         response = self.runner.run('env',
                                    execution_env={'TEST_KEY': 'TEST_VALUE'})
-        self.assertIn(b'TEST_KEY=TEST_VALUE', response.std_out)
+        self.assertIn('TEST_KEY=TEST_VALUE', response.std_out)
 
 
 class TempdirTest(TestCase):
