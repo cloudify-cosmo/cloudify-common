@@ -646,7 +646,6 @@ class GetSecret(Function):
             return handler.get_secret(self.secret_id)
 
 
-
 @register(name='concat', func_eval_type=HYBRID_FUNC)
 class Concat(Function):
 
@@ -681,7 +680,6 @@ class Concat(Function):
 
 
 class InterDeploymentDependencyCreatingFunction(Function):
-    __metaclass__ = abc.ABCMeta
 
     def register_function_to_plan(self, plan):
         if not self.function_identifier:
