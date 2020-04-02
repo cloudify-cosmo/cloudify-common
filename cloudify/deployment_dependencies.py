@@ -18,7 +18,8 @@ SOURCE_DEPLOYMENT = 'source_deployment'
 TARGET_DEPLOYMENT = 'target_deployment'
 
 
-def create_deployment_dependency(dependency_creator, source_deployment, target_deployment=None):
+def create_deployment_dependency(dependency_creator, source_deployment,
+                                 target_deployment=None):
     dependency = {
         DEPENDENCY_CREATOR: dependency_creator,
         SOURCE_DEPLOYMENT: source_deployment,

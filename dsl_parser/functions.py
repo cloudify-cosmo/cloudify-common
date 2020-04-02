@@ -24,7 +24,6 @@ from dsl_parser._compat import ABC, text_type
 from dsl_parser.constants import (OUTPUTS,
                                   CAPABILITIES,
                                   NODE_INSTANCES,
-                                  CONTAINED_IN_REL_TYPE,
                                   INTER_DEPLOYMENT_FUNCTIONS,
                                   EVAL_FUNCS_PATH_PREFIX_KEY,
                                   EVAL_FUNCS_PATH_DEFAULT_PREFIX)
@@ -647,44 +646,6 @@ class GetSecret(Function):
             return handler.get_secret(self.secret_id)
 
 
-@register(name='get_capability', func_eval_type=RUNTIME_FUNC)
-class GetCapability(Function):
-    def __init__(self, args, **kwargs):
-        self.capability_path = None
-        super(GetCapability, self).__init__(args, **kwargs)
-
-    def parse_args(self, args):
-        if not isinstance(args, list):
-            raise ValueError(
-                "`get_capability` function argument should be a list. Instead "
-                "it is a {0} with the value: {1}.".format(type(args), args))
-        if len(args) < 2:
-            raise ValueError(
-                "`get_capability` function argument should be a list with 2 "
-                "elements at least - [ deployment ID, capability ID "
-                "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
-                .format(','.join('{0}'.format(a) for a in args))
-            )
-        for arg_index in range(len(args)):
-            if not isinstance(args[arg_index], (text_type, int)) \
-                    and not is_function(args[arg_index]):
-                raise ValueError(
-                    "`get_capability` function arguments can't be complex "
-                    "values; only strings/ints/functions are accepted. "
-                    "Instead, the item with "
-                    "index {0} is {1} of type {2}".format(
-                        arg_index, args[arg_index], type(args[arg_index])
-                    )
-                )
-
-        self.capability_path = args
-
-    def validate(self, plan):
-        pass
-
-    def evaluate(self, handler):
-        return handler.get_capability(self.capability_path)
-
 
 @register(name='concat', func_eval_type=HYBRID_FUNC)
 class Concat(Function):
@@ -770,11 +731,11 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
             raise ValueError(
                 "`get_capability` function argument should be a list with 2 "
                 "elements at least - [ deployment ID, capability ID "
-                "[, key/index[, key/index [...]]] ]. Instead it is: "
-                "{0}".format("[" + ','.join([str(a) for a in args]) + "]")
+                "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
+                .format(','.join('{0}'.format(a) for a in args))
             )
         for arg_index in range(len(args)):
-            if not isinstance(args[arg_index], text_type + (int,)) \
+            if not isinstance(args[arg_index], (text_type, int)) \
                     and not is_function(args[arg_index]):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
