@@ -749,6 +749,9 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
     def _evaluate(self, handler):
         return handler.get_capability(self.capability_path)
 
+    def validate(self, plan):
+        pass
+
     @property
     def target_deployment(self):
         first_arg = self.capability_path[0]
