@@ -73,4 +73,6 @@ class ListResponse(object):
         return len(self.items)
 
     def sort(self, cmp=None, key=None, reverse=False):
-        return self.items.sort(cmp, key, reverse)
+        if cmp is not None:
+            raise TypeError('cmp is not supported. Use key instead.')
+        return self.items.sort(key=key, reverse=reverse)
