@@ -15,6 +15,7 @@
 
 import abc
 import pkg_resources
+import json
 
 from functools import wraps
 
@@ -591,18 +592,51 @@ class GetSecret(Function):
         super(GetSecret, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, text_type) and not is_function(args):
-            raise ValueError(
-                "`get_secret` function argument should be a string\\dict "
-                "(a function). Instead it is a {0} with the "
-                "value: {1}.".format(type(args), args))
+        if (
+            not (
+                (isinstance(args, list) and len(args) > 1)
+                or isinstance(args, text_type)
+                or is_function(args)
+            )
+        ):
+            raise exceptions.FunctionValidationError(
+                "`get_secret` function argument should be a list with at "
+                "least 2 elements, a string, or a dict (a function). Instead "
+                "it is a {0} with the value: {1}.".format(type(args), args))
         self.secret_id = args
 
     def validate(self, plan):
         pass
 
     def evaluate(self, handler):
-        return handler.get_secret(self.secret_id)
+        if isinstance(self.secret_id, list):
+            secret = handler.get_secret(self.secret_id[0])
+            try:
+                value = json.loads(secret)
+            except ValueError as err:
+                raise exceptions.FunctionEvaluationError(
+                    'Could not parse secret "{secret_name}" as json. '
+                    'Error was: {err}'.format(
+                        secret_name=self.secret_id[0],
+                        err=err,
+                    )
+                )
+            if len(self.secret_id) > 1:
+                for i in self.secret_id[1:]:
+                    try:
+                        value = value[i]
+                    except (KeyError, TypeError, IndexError) as err:
+                        raise exceptions.FunctionEvaluationError(
+                            'Could not find "{key}" in nested lookup on '
+                            'secret "{secret}". Error was: {err}'.format(
+                                key=i,
+                                secret=self.secret_id[0],
+                                err=err,
+                            )
+                        )
+            return value
+        else:
+            return handler.get_secret(self.secret_id)
 
 
 @register(name='get_capability', func_eval_type=RUNTIME_FUNC)

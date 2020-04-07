@@ -72,7 +72,10 @@ def scan_properties(value,
 
 def _collect_secret(value):
     if collect_secrets and isinstance(value, dict) and 'get_secret' in value:
-        secrets.add(value['get_secret'])
+        secret_name = value['get_secret']
+        if isinstance(value['get_secret'], list):
+            secret_name = secret_name[0]
+        secrets.add(secret_name)
 
 
 def _scan_operations(operations,
