@@ -34,6 +34,7 @@ def reraise(exception_type, value, traceback):
     raise exception_type, value, traceback
 """)
     text_type = unicode
+    string_types = basestring,
     exec("""
 def exec_(code, globs):
     exec code in globs
@@ -50,10 +51,12 @@ else:
         raise value.with_traceback(traceback)
 
     text_type = str
+    string_types = str,
     exec_ = getattr(builtins, 'exec')
 
 
 __all__ = [
-    'PY2', 'queue', 'StringIO', 'reraise', 'text_type', 'urlquote',
-    'urlparse', 'exec_', 'urljoin', 'urlopen', 'pathname2url', 'parse_qs'
+    'PY2', 'queue', 'StringIO', 'reraise', 'text_type', 'string_types',
+    'urlquote', 'urlparse', 'exec_', 'urljoin', 'urlopen', 'pathname2url',
+    'parse_qs'
 ]
