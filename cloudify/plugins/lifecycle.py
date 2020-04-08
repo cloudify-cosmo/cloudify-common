@@ -267,97 +267,6 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     """
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
-    # Only exists in >= 5.0.
-    if 'cloudify.interfaces.validation.create' in instance.node.operations:
-        creation_validation = _skip_nop_operations(
-            pre=instance.send_event(
-                'Validating node instance before creation'),
-            task=instance.execute_operation(
-                'cloudify.interfaces.validation.create'
-            ),
-            post=instance.send_event('Node instance validated before creation')
-        )
-    else:
-        creation_validation = []
-
-    # Only exists in >= 5.0.
-    if 'cloudify.interfaces.lifecycle.precreate' in instance.node.operations:
-        precreate = _skip_nop_operations(
-            pre=instance.send_event('Precreating node instance'),
-            task=instance.execute_operation(
-                'cloudify.interfaces.lifecycle.precreate'),
-            post=instance.send_event('Node instance precreated'))
-    else:
-        precreate = []
-    create = _skip_nop_operations(
-        pre=forkjoin(instance.send_event('Creating node instance'),
-                     instance.set_state('creating')),
-        task=instance.execute_operation(
-            'cloudify.interfaces.lifecycle.create'),
-        post=forkjoin(instance.send_event('Node instance created'),
-                      instance.set_state('created')))
-    preconf = _skip_nop_operations(
-        pre=instance.send_event('Pre-configuring relationships'),
-        task=_relationships_operations(
-            subgraph,
-            instance,
-            'cloudify.interfaces.relationship_lifecycle.preconfigure'
-        ),
-        post=instance.send_event('Relationships pre-configured')
-    )
-    configure = _skip_nop_operations(
-        pre=forkjoin(instance.set_state('configuring'),
-                     instance.send_event('Configuring node instance')),
-        task=instance.execute_operation(
-            'cloudify.interfaces.lifecycle.configure'),
-        post=forkjoin(instance.set_state('configured'),
-                      instance.send_event('Node instance configured'))
-    )
-    postconf = _skip_nop_operations(
-        pre=instance.send_event('Post-configuring relationships'),
-        task=_relationships_operations(
-            subgraph,
-            instance,
-            'cloudify.interfaces.relationship_lifecycle.postconfigure'
-        ),
-        post=instance.send_event('Relationships post-configured')
-    )
-    start = _skip_nop_operations(
-        pre=forkjoin(instance.set_state('starting'),
-                     instance.send_event('Starting node instance')),
-        task=instance.execute_operation('cloudify.interfaces.lifecycle.start')
-    )
-    # If this is a host node, we need to add specific host start
-    # tasks such as waiting for it to start and installing the agent
-    # worker (if necessary)
-    if is_host_node(instance):
-        host_post_start = _host_post_start(instance)
-    else:
-        host_post_start = []
-
-    # Only exists in >= 5.0.
-    if 'cloudify.interfaces.lifecycle.poststart' in instance.node.operations:
-        poststart = _skip_nop_operations(
-            pre=instance.send_event('Poststarting node instance'),
-            task=instance.execute_operation(
-                'cloudify.interfaces.lifecycle.poststart'),
-            post=instance.send_event('Node instance poststarted'))
-    else:
-        poststart = []
-
-    monitoring_start = _skip_nop_operations(
-        instance.execute_operation('cloudify.interfaces.monitoring.start')
-    )
-    establish = _skip_nop_operations(
-        pre=instance.send_event('Establishing relationships'),
-        task=_relationships_operations(
-            subgraph,
-            instance,
-            'cloudify.interfaces.relationship_lifecycle.establish'
-        ),
-        post=instance.send_event('Relationships established')
-    )
-    # Remove unneeded operations
     instance_state = instance.state
     if instance_state in [
         'started', 'starting', 'created', 'creating',
@@ -365,12 +274,62 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     ]:
         creation_validation = []
         precreate = []
+    else:
+        # Only exists in >= 5.0.
+        if 'cloudify.interfaces.validation.create' in instance.node.operations:
+            creation_validation = _skip_nop_operations(
+                pre=instance.send_event(
+                    'Validating node instance before creation'),
+                task=instance.execute_operation(
+                    'cloudify.interfaces.validation.create'
+                ),
+                post=instance.send_event(
+                    'Node instance validated before creation')
+            )
+        else:
+            creation_validation = []
+        # Only exists in >= 5.0.
+        if 'cloudify.interfaces.lifecycle.precreate' \
+                in instance.node.operations:
+            precreate = _skip_nop_operations(
+                pre=instance.send_event('Precreating node instance'),
+                task=instance.execute_operation(
+                    'cloudify.interfaces.lifecycle.precreate'),
+                post=instance.send_event('Node instance precreated'))
+        else:
+            precreate = []
     if instance_state in ['started', 'starting', 'created',
                           'configuring', 'configured']:
         create = []
+    else:
+        create = _skip_nop_operations(
+            pre=forkjoin(instance.send_event('Creating node instance'),
+                         instance.set_state('creating')),
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.create'),
+            post=forkjoin(instance.send_event('Node instance created'),
+                          instance.set_state('created')))
     if instance_state in ['started', 'starting', 'configured']:
         preconf = []
         configure = []
+    else:
+        preconf = _skip_nop_operations(
+            pre=instance.send_event('Pre-configuring relationships'),
+            task=_relationships_operations(
+                subgraph,
+                instance,
+                'cloudify.interfaces.relationship_lifecycle.preconfigure'
+            ),
+            post=instance.send_event('Relationships pre-configured')
+        )
+        configure = _skip_nop_operations(
+            pre=forkjoin(instance.set_state('configuring'),
+                         instance.send_event('Configuring node instance')),
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.configure'),
+            post=forkjoin(instance.set_state('configured'),
+                          instance.send_event('Node instance configured'))
+        )
     if instance_state == 'started':
         postconf = []
         host_post_start = []
@@ -378,6 +337,55 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         monitoring_start = []
         establish = []
         start = []
+    else:
+        postconf = _skip_nop_operations(
+            pre=instance.send_event('Post-configuring relationships'),
+            task=_relationships_operations(
+                subgraph,
+                instance,
+                'cloudify.interfaces.relationship_lifecycle.postconfigure'
+            ),
+            post=instance.send_event('Relationships post-configured')
+        )
+
+        start = _skip_nop_operations(
+            pre=forkjoin(instance.set_state('starting'),
+                         instance.send_event('Starting node instance')),
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.start'
+            )
+        )
+        # If this is a host node, we need to add specific host start
+        # tasks such as waiting for it to start and installing the agent
+        # worker (if necessary)
+        if is_host_node(instance):
+            host_post_start = _host_post_start(instance)
+        else:
+            host_post_start = []
+
+        # Only exists in >= 5.0.
+        if 'cloudify.interfaces.lifecycle.poststart' \
+                in instance.node.operations:
+            poststart = _skip_nop_operations(
+                pre=instance.send_event('Poststarting node instance'),
+                task=instance.execute_operation(
+                    'cloudify.interfaces.lifecycle.poststart'),
+                post=instance.send_event('Node instance poststarted'))
+        else:
+            poststart = []
+
+        monitoring_start = _skip_nop_operations(
+            instance.execute_operation('cloudify.interfaces.monitoring.start')
+        )
+        establish = _skip_nop_operations(
+            pre=instance.send_event('Establishing relationships'),
+            task=_relationships_operations(
+                subgraph,
+                instance,
+                'cloudify.interfaces.relationship_lifecycle.establish'
+            ),
+            post=instance.send_event('Relationships established')
+        )
     if any([creation_validation, precreate, create, preconf, configure,
             postconf, start, host_post_start, poststart, monitoring_start,
             establish]):
@@ -423,80 +431,6 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
 def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     subgraph = graph.subgraph(instance.id)
     sequence = subgraph.sequence()
-    stop_message = [
-        forkjoin(
-            instance.set_state('stopping'),
-            instance.send_event('Stopping node instance')
-        )
-    ]
-    monitoring_stop = _skip_nop_operations(
-        instance.execute_operation('cloudify.interfaces.monitoring.stop')
-    )
-
-    # Only exists in >= 5.0.
-    if 'cloudify.interfaces.validation.delete' in instance.node.operations:
-        deletion_validation = _skip_nop_operations(
-            pre=instance.send_event(
-                'Validating node instance before deletion'),
-            task=instance.execute_operation(
-                'cloudify.interfaces.validation.delete'
-            ),
-            post=instance.send_event('Node instance validated before deletion')
-        )
-    else:
-        deletion_validation = []
-
-    # Only exists in >= 5.0.
-    if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
-        prestop = _skip_nop_operations(
-            pre=instance.send_event('Prestopping node instance'),
-            task=instance.execute_operation(
-                'cloudify.interfaces.lifecycle.prestop'),
-            post=instance.send_event('Node instance prestopped'))
-    else:
-        prestop = []
-
-    if is_host_node(instance):
-        host_pre_stop = _host_pre_stop(instance)
-    else:
-        host_pre_stop = []
-
-    stop = _skip_nop_operations(
-        task=instance.execute_operation('cloudify.interfaces.lifecycle.stop'),
-        post=instance.send_event('Stopped node instance'))
-    stopped_set_state = [instance.set_state('stopped')]
-
-    unlink = _skip_nop_operations(
-        pre=instance.send_event('Unlinking relationships'),
-        task=_relationships_operations(
-            subgraph,
-            instance,
-            'cloudify.interfaces.relationship_lifecycle.unlink',
-            reverse=True),
-        post=instance.send_event('Relationships unlinked')
-    )
-    delete = _skip_nop_operations(
-        pre=forkjoin(
-            instance.set_state('deleting'),
-            instance.send_event('Deleting node instance')),
-        task=instance.execute_operation(
-            'cloudify.interfaces.lifecycle.delete')
-    )
-    # Only exists in >= 5.0.
-    if 'cloudify.interfaces.lifecycle.postdelete' in instance.node.operations:
-        postdelete = _skip_nop_operations(
-            pre=instance.send_event('Postdeleting node instance'),
-            task=instance.execute_operation(
-                'cloudify.interfaces.lifecycle.postdelete'),
-            post=instance.send_event('Node instance postdeleted'))
-    else:
-        postdelete = []
-
-    finish_message = [forkjoin(
-        instance.set_state('deleted'),
-        instance.send_event('Deleted node instance')
-    )]
-
     def set_ignore_handlers(_subgraph):
         for task in _subgraph.tasks.values():
             if task.is_subgraph:
@@ -513,16 +447,95 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         prestop = []
         stop = [instance.send_event(
             'Stop: instance already {0}'.format(instance_state))]
+    else:
+        stop_message = [
+            forkjoin(
+                instance.set_state('stopping'),
+                instance.send_event('Stopping node instance')
+            )
+        ]
+        monitoring_stop = _skip_nop_operations(
+            instance.execute_operation('cloudify.interfaces.monitoring.stop')
+        )
+
+        # Only exists in >= 5.0.
+        if 'cloudify.interfaces.validation.delete' in instance.node.operations:
+            deletion_validation = _skip_nop_operations(
+                pre=instance.send_event(
+                    'Validating node instance before deletion'),
+                task=instance.execute_operation(
+                    'cloudify.interfaces.validation.delete'
+                ),
+                post=instance.send_event(
+                    'Node instance validated before deletion')
+            )
+        else:
+            deletion_validation = []
+
+        # Only exists in >= 5.0.
+        if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
+            prestop = _skip_nop_operations(
+                pre=instance.send_event('Prestopping node instance'),
+                task=instance.execute_operation(
+                    'cloudify.interfaces.lifecycle.prestop'),
+                post=instance.send_event('Node instance prestopped'))
+        else:
+            prestop = []
+
+        if is_host_node(instance):
+            host_pre_stop = _host_pre_stop(instance)
+        else:
+            host_pre_stop = []
+
+        stop = _skip_nop_operations(
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.stop'),
+            post=instance.send_event('Stopped node instance'))
     if instance_state in ['stopped', 'deleting', 'deleted']:
         stopped_set_state = []
+    else:
+        stopped_set_state = [instance.set_state('stopped')]
     if instance_state in ['deleted', 'uninitialized']:
         unlink = []
         postdelete = []
         deletion_validation = []
         delete = [instance.send_event(
             'Delete: instance already {0}'.format(instance_state))]
+    else:
+        unlink = _skip_nop_operations(
+            pre=instance.send_event('Unlinking relationships'),
+            task=_relationships_operations(
+                subgraph,
+                instance,
+                'cloudify.interfaces.relationship_lifecycle.unlink',
+                reverse=True),
+            post=instance.send_event('Relationships unlinked')
+        )
+        delete = _skip_nop_operations(
+            pre=forkjoin(
+                instance.set_state('deleting'),
+                instance.send_event('Deleting node instance')),
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.delete')
+        )
+        # Only exists in >= 5.0.
+        if 'cloudify.interfaces.lifecycle.postdelete'\
+                in instance.node.operations:
+            postdelete = _skip_nop_operations(
+                pre=instance.send_event('Postdeleting node instance'),
+                task=instance.execute_operation(
+                    'cloudify.interfaces.lifecycle.postdelete'),
+                post=instance.send_event('Node instance postdeleted'))
+        else:
+            postdelete = []
+
     if instance_state in ['deleted']:
         finish_message = []
+    else:
+        finish_message = [forkjoin(
+            instance.set_state('deleted'),
+            instance.send_event('Deleted node instance')
+        )]
 
     tasks = (
         stop_message +
