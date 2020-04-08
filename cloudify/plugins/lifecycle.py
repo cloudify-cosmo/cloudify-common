@@ -357,6 +357,27 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         ),
         post=instance.send_event('Relationships established')
     )
+    # Remove unneeded operations
+    instance_state = instance.state
+    if instance_state in [
+        'started', 'starting', 'created', 'creating',
+        'configured', 'configuring'
+    ]:
+        creation_validation = []
+        precreate = []
+    if instance_state in ['started', 'starting', 'created',
+                          'configuring', 'configured']:
+        create = []
+    if instance_state in ['started', 'starting', 'configured']:
+        preconf = []
+        configure = []
+    if instance_state == 'started':
+        postconf = []
+        host_post_start = []
+        poststart = []
+        monitoring_start = []
+        establish = []
+        start = []
     if any([creation_validation, precreate, create, preconf, configure,
             postconf, start, host_post_start, poststart, monitoring_start,
             establish]):
@@ -497,6 +518,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     if instance_state in ['deleted', 'uninitialized']:
         unlink = []
         postdelete = []
+        deletion_validation = []
         delete = [instance.send_event(
             'Delete: instance already {0}'.format(instance_state))]
     if instance_state in ['deleted']:
