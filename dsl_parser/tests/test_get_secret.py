@@ -305,3 +305,117 @@ node_templates:
         functions.evaluate_functions(
             parsed, {}, self._mock_evaluation_storage())
         self.assertEqual(node['properties']['property'], 'secret_value')
+
+
+class TestNestedGetSecret(AbstractTestParser):
+    def setUp(self):
+        super(TestNestedGetSecret, self).setUp()
+        self._mock_evaluation_storage(
+            secrets={
+                'no_parse_secret': '}',
+                'hello_secret': '{"hello": "test"}',
+                'soft_secret': '["say", "wave"]',
+                'big_secret': '{"something": [{"like": ["this", "that"]}]}',
+            },
+        )
+
+    def test_get_secret_empty_list(self):
+        yaml = """
+outputs:
+  secret:
+    value: { get_secret: [] }
+"""
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    ".*2 elements.*"):
+            self.parse_1_3(yaml)
+
+    def test_get_secret_list_with_1_element(self):
+        yaml = """
+outputs:
+  secret:
+    value: { get_secret: [my_secret] }
+"""
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    ".*2 elements.*"):
+            self.parse_1_3(yaml)
+
+    def test_get_secret_list_secret_does_not_exist(self):
+        yaml = """
+outputs:
+  secret:
+    value: { get_secret: [missing_secret, test] }
+"""
+        parsed = self.parse_1_3(yaml)
+        get_secret_not_found = Mock(side_effect=NotFoundException)
+        with self.assertRaisesRegex(exceptions.UnknownSecretError,
+                                    "Required secret.*missing_secret.*"):
+            prepare_deployment_plan(parsed, get_secret_not_found)
+
+    def test_get_secret_not_json_parseable(self):
+        payload = {
+            'a': {'get_secret': ['no_parse_secret', 'test']},
+        }
+        with self.assertRaisesRegex(exceptions.FunctionEvaluationError,
+                                    '.*not parse.*no_parse_secret.*'):
+            functions.evaluate_functions(
+                payload, {}, self._mock_storage)
+
+    def test_get_secret_wrong_key_name(self):
+        payload = {
+            'a': {'get_secret': ['hello_secret', 'test']},
+        }
+        with self.assertRaisesRegex(exceptions.FunctionEvaluationError,
+                                    '.*not find.*test.*hello_secret.*'):
+            functions.evaluate_functions(
+                payload, {}, self._mock_storage)
+
+    def test_get_secret_list_bad_index(self):
+        payload = {
+            'a': {'get_secret': ['soft_secret', 'somestring']},
+        }
+        with self.assertRaisesRegex(exceptions.FunctionEvaluationError,
+                                    '.*not find.*somestring.*soft_secret.*'):
+            functions.evaluate_functions(
+                payload, {}, self._mock_storage)
+
+    def test_get_secret_list_index_out_of_bounds(self):
+        payload = {
+            'a': {'get_secret': ['soft_secret', 3]},
+        }
+        with self.assertRaisesRegex(exceptions.FunctionEvaluationError,
+                                    '.*not find.*3.*soft_secret.*'):
+            functions.evaluate_functions(
+                payload, {}, self._mock_storage)
+
+    def test_get_secret_bad_key_mid_list(self):
+        payload = {
+            'a': {'get_secret': ['big_secret', 'something', 0, 'lkie', 1]},
+        }
+        with self.assertRaisesRegex(exceptions.FunctionEvaluationError,
+                                    '.*not find.*lkie.*big_secret.*'):
+            functions.evaluate_functions(
+                payload, {}, self._mock_storage)
+
+    def test_get_nested_secret_from_dict(self):
+        payload = {
+            'a': {'get_secret': ['hello_secret', 'hello']},
+        }
+        functions.evaluate_functions(
+            payload, {}, self._mock_storage)
+        self.assertEqual(payload['a'], 'test')
+
+    def test_get_nested_secret_from_list(self):
+        payload = {
+            'a': {'get_secret': ['soft_secret', 1]},
+        }
+        functions.evaluate_functions(
+            payload, {}, self._mock_storage)
+        self.assertEqual(payload['a'], 'wave')
+
+    def test_get_deeply_nested_secret(self):
+        payload = {
+            'a': {'get_secret': ['big_secret', 'something', 0, 'like', 1]},
+        }
+        functions.evaluate_functions(
+            payload, {}, self._mock_storage)
+        self.assertEqual(payload['a'], 'that')
