@@ -94,8 +94,6 @@ class LifecycleProcessor(object):
         self._name_prefix = name_prefix
 
     def install(self):
-        workflow_ctx.refresh_node_instances()
-        self.node_instances = set(workflow_ctx.node_instances)
         graph = self._process_node_instances(
             workflow_ctx,
             name=self._name_prefix + 'install',
@@ -267,9 +265,13 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
 
     :param instance: node instance to generate the installation tasks for
     """
+    workflow_ctx.refresh_node_instances()
+    instance_state = [
+        inst.state for inst in set(
+            workflow_ctx.node_instances) if inst.id == instance.id
+    ][0]
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
-    instance_state = instance.state
     if instance_state in [
         'started', 'starting', 'created', 'creating',
         'configured', 'configuring'
