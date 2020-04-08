@@ -104,8 +104,6 @@ class LifecycleProcessor(object):
         graph.execute()
 
     def uninstall(self):
-        workflow_ctx.refresh_node_instances()
-        self.node_instances = set(workflow_ctx.node_instances)
         graph = self._process_node_instances(
             workflow_ctx,
             name=self._name_prefix + 'uninstall',
