@@ -431,6 +431,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
 def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     subgraph = graph.subgraph(instance.id)
     sequence = subgraph.sequence()
+
     def set_ignore_handlers(_subgraph):
         for task in _subgraph.tasks.values():
             if task.is_subgraph:
@@ -445,6 +446,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         monitoring_stop = []
         host_pre_stop = []
         prestop = []
+        deletion_validation = []
         stop = [instance.send_event(
             'Stop: instance already {0}'.format(instance_state))]
     else:
@@ -498,7 +500,6 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     if instance_state in ['deleted', 'uninitialized']:
         unlink = []
         postdelete = []
-        deletion_validation = []
         delete = [instance.send_event(
             'Delete: instance already {0}'.format(instance_state))]
     else:
