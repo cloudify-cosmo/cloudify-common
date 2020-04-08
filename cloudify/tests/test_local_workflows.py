@@ -20,13 +20,11 @@ import sys
 import tempfile
 import shutil
 import os
-import threading
 import types
 import warnings
 
 import testtools
 
-from cloudify._compat import queue
 import cloudify.logs
 from cloudify.decorators import workflow, operation
 from cloudify.exceptions import NonRecoverableError
@@ -844,64 +842,30 @@ class LocalWorkflowTest(BaseWorkflowTest):
         self._execute_workflow(flow, operation_methods=[op0, op1, op2])
 
     def test_node_instance_version_conflict(self):
-        def flow(ctx, **_):
-            pass
-        # stub to get a properly initialized storage instance
-        self._execute_workflow(flow)
+        # run a workflow to create the storage and node instances
+        self._execute_workflow(lambda ctx, **_: None)
         storage = self.env.storage
         instance = storage.get_node_instances()[0]
+
+        instance_1 = storage.get_node_instance(instance.id)
+        instance_1.runtime_properties['key1'] = 'value1'
+
+        instance_2 = storage.get_node_instance(instance.id)
+        instance_2.runtime_properties['key2'] = 'value2'
+
         storage.update_node_instance(
-            instance.id,
-            runtime_properties={},
-            state=instance.state,
-            version=instance.version)
-        instance_id = instance.id
-        exception = queue.Queue()
-        done = queue.Queue()
+            instance_1.id,
+            runtime_properties=instance_1.runtime_properties,
+            state=instance_1.state,
+            version=instance_1.version)
 
-        def proceed():
-            try:
-                done.get_nowait()
-                return False
-            except queue.Empty:
-                return True
-
-        def publisher(key, value):
-            def func():
-                timeout = time.time() + 5
-                while time.time() < timeout and proceed():
-                    p_instance = storage.get_node_instance(instance_id)
-                    p_instance.runtime_properties[key] = value
-                    try:
-                        storage.update_node_instance(
-                            p_instance.id,
-                            runtime_properties=p_instance.runtime_properties,
-                            state=p_instance.state,
-                            version=p_instance.version)
-                    except local.StorageConflictError as e:
-                        exception.put(e)
-                        done.put(True)
-                        return
-            return func
-
-        publisher1 = publisher('publisher1', 'value1')
-        publisher2 = publisher('publisher2', 'value2')
-
-        publisher1_thread = threading.Thread(target=publisher1)
-        publisher2_thread = threading.Thread(target=publisher2)
-
-        publisher1_thread.daemon = True
-        publisher2_thread.daemon = True
-
-        publisher1_thread.start()
-        publisher2_thread.start()
-
-        publisher1_thread.join()
-        publisher2_thread.join()
-
-        conflict_error = exception.get_nowait()
-
-        self.assertIn('does not match current', str(conflict_error))
+        with self.assertRaisesRegex(
+                local.StorageConflictError, 'does not match current'):
+            storage.update_node_instance(
+                instance_2.id,
+                runtime_properties=instance_2.runtime_properties,
+                state=instance_2.state,
+                version=instance_2.version)
 
     def test_get_node(self):
         def flow(ctx, **_):
