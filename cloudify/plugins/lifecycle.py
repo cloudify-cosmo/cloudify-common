@@ -44,16 +44,16 @@ def reinstall_node_instances(graph,
                              node_instances,
                              ignore_failure,
                              related_nodes=None):
-    processor = LifecycleProcessor(graph=graph,
-                                   node_instances=node_instances,
-                                   ignore_failure=ignore_failure,
-                                   related_nodes=related_nodes,
-                                   name_prefix='reinstall')
-    processor.uninstall()
-    # Refresh node instances to reflect the final node states
+    uninstall_node_instances(graph, node_instances, ignore_failure,
+                             related_nodes)
+    # refresh the local node instance references, because they most likely
+    # changed their state & runtime props during the uninstall
     workflow_ctx.refresh_node_instances()
-    processor.node_instances = set(workflow_ctx.node_instances)
-    processor.install()
+    node_instances = set(workflow_ctx.get_node_instance(inst.id)
+                         for inst in node_instances)
+    related_nodes = set(workflow_ctx.get_node_instance(inst.id)
+                        for inst in related_nodes)
+    install_node_instances(graph, node_instances, related_nodes)
 
 
 def execute_establish_relationships(graph,
