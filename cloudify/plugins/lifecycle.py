@@ -50,6 +50,9 @@ def reinstall_node_instances(graph,
                                    related_nodes=related_nodes,
                                    name_prefix='reinstall')
     processor.uninstall()
+    # Refresh node instances to reflect the final node states
+    workflow_ctx.refresh_node_instances()
+    processor.node_instances = set(workflow_ctx.node_instances)
     processor.install()
 
 
@@ -265,13 +268,9 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
 
     :param instance: node instance to generate the installation tasks for
     """
-    workflow_ctx.refresh_node_instances()
-    instance_state = [
-        inst.state for inst in set(
-            workflow_ctx.node_instances) if inst.id == instance.id
-    ][0]
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
+    instance_state = instance.state
     if instance_state in [
         'started', 'starting', 'created', 'creating',
         'configured', 'configuring'
