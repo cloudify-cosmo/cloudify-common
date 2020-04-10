@@ -100,7 +100,7 @@ commands:
             - << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }}
       - run: pip install -r dev-requirements.txt --user
       - run: pip install -r test-requirements.txt --user
-      - run: pip install -e . --user
+      - run: pip install -e '.[dispatcher]' --user
       - save_cache:
           paths:
             - /home/circleci/.cache/pip
