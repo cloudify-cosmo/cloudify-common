@@ -1098,6 +1098,54 @@ inputs:
             ERROR_UNKNOWN_TYPE,
             message_regex='Illegal type name')
 
+    def test_input_type_default_value(self):
+        yaml = """
+inputs:
+  inp1:
+    type: dtype1
+
+data_types:
+  dtype1:
+    properties:
+      p1:
+        type: string
+        default: default_p1
+      p2:
+        type: string
+"""
+        parsed = self.parse_1_3(yaml)
+        self.assertEqual(1, len(parsed[consts.INPUTS]))
+        plan = prepare_deployment_plan(
+            parsed,
+            inputs={'inp1': {'p2': 'b'}})
+        self.assertEqual(2, len(plan[consts.INPUTS]['inp1']))
+        self.assertEqual('default_p1', plan[consts.INPUTS]['inp1']['p1'])
+        self.assertEqual('b', plan[consts.INPUTS]['inp1']['p2'])
+
+    def test_input_type_default_value_overwrite(self):
+        yaml = """
+inputs:
+  inp1:
+    type: dtype1
+
+data_types:
+  dtype1:
+    properties:
+      p1:
+        type: string
+        default: default_p1
+      p2:
+        type: string
+"""
+        parsed = self.parse_1_3(yaml)
+        self.assertEqual(1, len(parsed[consts.INPUTS]))
+        plan = prepare_deployment_plan(
+            parsed,
+            inputs={'inp1': {'p1': 'a', 'p2': 'b'}})
+        self.assertEqual(2, len(plan[consts.INPUTS]['inp1']))
+        self.assertEqual('a', plan[consts.INPUTS]['inp1']['p1'])
+        self.assertEqual('b', plan[consts.INPUTS]['inp1']['p2'])
+
     def test_validate_regex_value_successful(self):
         self._test_validate_value_successful(
             'regex', '^$', '^.$', self.assertEqual)
