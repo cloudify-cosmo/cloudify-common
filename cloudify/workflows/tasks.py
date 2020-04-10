@@ -26,7 +26,17 @@ from cloudify.manager import (
     update_execution_status,
     update_node_instance
 )
-from cloudify.constants import MGMTWORKER_QUEUE
+from cloudify.constants import (
+    MGMTWORKER_QUEUE,
+    TASK_PENDING,
+    TASK_SENDING,
+    TASK_SENT,
+    TASK_STARTED,
+    TASK_RESCHEDULED,
+    TASK_SUCCEEDED,
+    TASK_FAILED,
+    TERMINATED_STATES
+)
 from cloudify.state import workflow_ctx
 from cloudify.utils import exception_to_error_cause
 # imported for backwards compat:
@@ -38,17 +48,6 @@ DEFAULT_RETRY_INTERVAL = 30
 DEFAULT_SUBGRAPH_TOTAL_RETRIES = 0
 
 DEFAULT_SEND_TASK_EVENTS = True
-
-TASK_PENDING = 'pending'
-TASK_SENDING = 'sending'
-TASK_SENT = 'sent'
-TASK_STARTED = 'started'
-TASK_RESCHEDULED = 'rescheduled'
-TASK_SUCCEEDED = 'succeeded'
-TASK_FAILED = 'failed'
-
-TERMINATED_STATES = [TASK_RESCHEDULED, TASK_SUCCEEDED, TASK_FAILED]
-
 DISPATCH_TASK = 'cloudify.dispatch.dispatch'
 
 

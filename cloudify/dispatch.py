@@ -45,13 +45,18 @@ from cloudify import constants
 from cloudify._compat import queue, StringIO
 from cloudify.amqp_client_utils import AMQPWrappedThread
 from cloudify.manager import update_execution_status, get_rest_client
-from cloudify.workflows import workflow_context
-from cloudify.workflows import api, tasks
 from cloudify.constants import LOGGING_CONFIG_FILE
 from cloudify.error_handling import (
     serialize_known_exception,
     deserialize_known_exception
 )
+try:
+    from cloudify.workflows import api
+    from cloudify.workflows import workflow_context
+except ImportError:
+    workflow_context = None
+    api = None
+
 
 ENV_ENCODING = 'utf-8'  # encoding for env variables
 CLOUDIFY_DISPATCH = 'CLOUDIFY_DISPATCH'
@@ -479,12 +484,12 @@ class OperationHandler(TaskHandler):
                 store = False
             else:
                 raise
-        if op and op.state == tasks.TASK_STARTED:
+        if op and op.state == constants.TASK_STARTED:
             # this operation has been started before? that means we're
             # resuming a re-delivered operation
             ctx.resume = True
         if store:
-            ctx.update_operation(tasks.TASK_STARTED)
+            ctx.update_operation(constants.TASK_STARTED)
 
         try:
             yield
@@ -495,11 +500,11 @@ class OperationHandler(TaskHandler):
         finally:
             if store:
                 if ctx.operation._operation_retry:
-                    state = tasks.TASK_RESCHEDULED
+                    state = constants.TASK_RESCHEDULED
                 elif error:
-                    state = tasks.TASK_FAILED
+                    state = constants.TASK_FAILED
                 else:
-                    state = tasks.TASK_SUCCEEDED
+                    state = constants.TASK_SUCCEEDED
                 ctx.update_operation(state)
 
     @contextmanager
@@ -537,6 +542,8 @@ class OperationHandler(TaskHandler):
 class WorkflowHandler(TaskHandler):
 
     def __init__(self, *args, **kwargs):
+        if workflow_context is None or api is None:
+            raise RuntimeError('Dispatcher not installed')
         super(WorkflowHandler, self).__init__(*args, **kwargs)
         self.execution_parameters = copy.deepcopy(self.kwargs)
 
