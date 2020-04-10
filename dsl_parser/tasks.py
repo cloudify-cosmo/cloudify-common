@@ -73,8 +73,9 @@ def _set_plan_inputs(plan, inputs=None):
         if not input_is_missing:
             constraints.validate_input_value(
                 input_name, input_constraints, inputs[input_name])
+            inputs_complete = inputs[input_name]
             try:
-                utils.parse_value(
+                inputs_complete = utils.parse_value(
                     value=inputs[input_name],
                     type_name=input_def.get(TYPE, None),
                     data_types=plan.get(DATA_TYPES, {}),
@@ -91,6 +92,7 @@ def _set_plan_inputs(plan, inputs=None):
                 raise exceptions.DSLParsingException(
                     exceptions.ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA,
                     str(e))
+            inputs[input_name] = inputs_complete
 
     if missing_inputs:
         raise exceptions.MissingRequiredInputError(
