@@ -16,8 +16,6 @@
 from setuptools import setup, find_packages
 
 install_requires = [
-    'PyYAML==3.12',
-    'networkx==1.9.1',
     'requests>=2.7.0,<3.0.0',
     'retrying==1.3.3',
     'pika==0.11.2',
@@ -64,5 +62,13 @@ setup(
     package_data={'cloudify.ctx_wrappers': ['ctx.py']},
     scripts=[
         'ctx_wrappers/ctx-sh'
-    ]
+    ],
+    extras_require={
+        # for running workflows (in the mgmtworker and the cli), as opposed
+        # to eg. just executing operations (in the agent)
+        'dispatcher': [
+            'PyYAML==3.12',
+            'networkx==1.9.1',
+        ]
+    }
 )
