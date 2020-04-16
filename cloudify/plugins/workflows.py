@@ -287,6 +287,7 @@ def scale_entity(ctx,
                  include_instances=None,
                  exclude_instances=None,
                  rollback_if_failed=True,
+                 abort_started=False,
                  **kwargs):
     """Scales in/out the subgraph of node_or_group_name.
 
@@ -314,7 +315,12 @@ def scale_entity(ctx,
     :param include_instances: Instances to include when scaling down
     :param exclude_instances: Instances to exclude when scaling down
     :param rollback_if_failed: when False, no rollback will be triggered.
+    :param abort_started: Remove any started deployment modifications
+                          created prior to this scaling workflow
     """
+
+    import web_pdb; web_pdb.set_trace(port=3001)
+
     include_instances = include_instances or []
     exclude_instances = exclude_instances or []
     if not isinstance(include_instances, list):
@@ -337,6 +343,8 @@ def scale_entity(ctx,
         raise ValueError(
             'Instances cannot be included or excluded when scaling up.'
         )
+
+    raise Exception("MATEUSZ was here")
 
     scaling_group = ctx.deployment.scaling_groups.get(scalable_entity_name)
     if scaling_group:
@@ -381,6 +389,10 @@ def scale_entity(ctx,
                          .format(delta,
                                  scalable_entity_name,
                                  curr_num_instances))
+
+    if abort_started:
+        self._abort_started_modifications()
+
     modification = ctx.deployment.start_modification({
         scale_id: {
             'instances': planned_num_instances,
@@ -474,6 +486,9 @@ def scale_entity(ctx,
                             '[modification_id={0}]'.format(modification.id))
             raise
 
+
+def _abort_started_deployment_modifications():
+    pass
 
 # Kept for backward compatibility with older versions of types.yaml
 @workflow
