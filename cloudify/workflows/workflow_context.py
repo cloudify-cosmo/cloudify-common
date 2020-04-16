@@ -1183,7 +1183,7 @@ class CloudifyWorkflowContextHandler(object):
                                      target_path=None):
         raise NotImplementedError('Implemented by subclasses')
 
-    def start_deployment_modification(self, nodes):
+    def start_deployment_modification(self, nodes, abort_starting=False):
         raise NotImplementedError('Implemented by subclasses')
 
     def finish_deployment_modification(self, modification):
@@ -1494,7 +1494,7 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
                 resource_path=resource_path,
                 target_path=target_path)
 
-    def start_deployment_modification(self, nodes):
+    def start_deployment_modification(self, nodes, abort_starting=False):
         deployment_id = self.workflow_ctx.deployment.id
         client = get_rest_client()
         modification = client.deployment_modifications.start(
@@ -1505,6 +1505,7 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
                 'deployment_id': deployment_id,
                 'execution_id': self.workflow_ctx.execution_id,
                 'workflow_id': self.workflow_ctx.workflow_id,
+                'abort_starting': abort_starting,
             })
         return Modification(self.workflow_ctx, modification)
 
@@ -1746,15 +1747,17 @@ class WorkflowDeploymentContext(context.DeploymentContext):
         super(WorkflowDeploymentContext, self).__init__(cloudify_context)
         self.workflow_ctx = workflow_ctx
 
-    def start_modification(self, nodes):
+    def start_modification(self, nodes, abort_starting=False):
         """Start deployment modification process
 
         :param nodes: Modified nodes specification
+        :param abort_starting: Should starting (stalled?) modifications be
+                               cleaned up before starting new ones
         :return: Workflow modification wrapper
         :rtype: Modification
         """
         handler = self.workflow_ctx.internal.handler
-        return handler.start_deployment_modification(nodes)
+        return handler.start_deployment_modification(nodes, abort_starting)
 
     @property
     def scaling_groups(self):

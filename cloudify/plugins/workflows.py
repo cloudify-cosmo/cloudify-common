@@ -284,6 +284,7 @@ def scale_entity(ctx,
                  ignore_failure=False,
                  include_instances=None,
                  exclude_instances=None,
+                 abort_starting=False,
                  **kwargs):
     """Scales in/out the subgraph of node_or_group_name.
 
@@ -310,6 +311,9 @@ def scale_entity(ctx,
     :param ignore_failure: ignore operations failures in uninstall workflow
     :param include_instances: Instances to include when scaling down
     :param exclude_instances: Instances to exclude when scaling down
+    :param abort_starting: Remove any starting nodes and deployment
+                           modifications created prior to the interrupted
+                           scaling workflow
     """
     include_instances = include_instances or []
     exclude_instances = exclude_instances or []
@@ -379,6 +383,9 @@ def scale_entity(ctx,
                          .format(delta,
                                  scalable_entity_name,
                                  curr_num_instances))
+    kw_abort_starting = kwargs.get('abort_starting', None)
+    if kw_abort_starting is not None:
+        abort_starting = abort_starting or kw_abort_starting
     modification = ctx.deployment.start_modification({
         scale_id: {
             'instances': planned_num_instances,
@@ -405,7 +412,7 @@ def scale_entity(ctx,
             # if possible.
             # 'removed_ids_include_hint': []
         }
-    })
+    }, abort_starting)
     graph = ctx.graph_mode()
     try:
         ctx.logger.info('Deployment modification started. '
