@@ -52,7 +52,7 @@ class InterDeploymentDependencyClient(object):
 
     def __init__(self, api):
         self.api = api
-        self._uri_prefix = 'inter-deployment-dependencies'
+        self._uri_prefix = 'deployments/inter-deployment-dependencies'
         self._wrapper_cls = InterDeploymentDependency
 
     def _wrap_list(self, response):
@@ -109,7 +109,7 @@ class InterDeploymentDependencyClient(object):
             _include=None,
             **kwargs):
         """
-        Gets an inter-deployment dependency by its id.
+        Gets an inter-deployment dependency by its attributes.
 
         :param dependency_creator: a string representing the entity that
         :param source_deployment: source deployment that depends on the target
