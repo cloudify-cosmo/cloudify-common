@@ -198,8 +198,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_install(self, _mock, list_fn):
+    def test_serial_operation_install(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -210,7 +209,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'install'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation()
@@ -237,8 +235,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_install_wait_for_1(self, _mock, list_fn):
+    def test_serial_operation_install_wait_for_1(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -249,7 +246,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'install'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(threshold=1)
@@ -267,8 +263,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_install_states(self, _mock, list_fn):
+    def test_serial_operation_install_states(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -279,7 +274,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'install'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(states=['uninitialized'])
@@ -297,8 +291,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_install_workflow(self, _mock, list_fn):
+    def test_serial_operation_install_workflow(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -309,7 +302,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'install'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(workflows=['scale'])
@@ -327,8 +319,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_uninstall(self, _mock, list_fn):
+    def test_serial_operation_uninstall(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -339,7 +330,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'uninstall'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(workflows=['uninstall'])
@@ -358,8 +348,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_uninstall_wait_3(self, _mock, list_fn):
+    def test_serial_operation_uninstall_wait_3(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -370,7 +359,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'uninstall'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(threshold=3,
