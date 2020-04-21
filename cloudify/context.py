@@ -715,7 +715,7 @@ class CloudifyContext(CommonContext):
 
     @property
     def rest_host(self):
-        """REST host token"""
+        """REST host"""
         return self._rest_host
 
     @property
