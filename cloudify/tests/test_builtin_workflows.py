@@ -17,6 +17,7 @@
 import time
 from os import path
 
+import mock
 import testtools
 from testtools.matchers import MatchesAny, Equals, GreaterThan
 
@@ -24,6 +25,7 @@ from cloudify import exceptions
 from cloudify.plugins import lifecycle
 from cloudify.decorators import operation
 from cloudify.test_utils import workflow_test
+from cloudify.workflows.workflow_context import WorkflowDeploymentContext
 
 
 class GlobalCounter(object):
@@ -407,6 +409,62 @@ class TestScale(testtools.TestCase):
             cfy_local.execute('scale',
                               parameters={'scalable_entity_name': 'node',
                                           'delta': 'not a number'})
+
+    @workflow_test(scale_blueprint_path)
+    def test_valid_delta(self, cfy_local):
+        modification = mock.MagicMock(
+            'cloudify.workflows.workflow_context.Modification')
+        modification.id = 'dd8aa09e-035e-4f38-84df-bb2361d55efb'
+        modification.rollback = mock.MagicMock()
+        modification.finish = mock.MagicMock()
+        modification.added = mock.MagicMock()
+        with mock.patch.object(WorkflowDeploymentContext,
+                               'list_started_modifications',
+                               return_value=None) as list_mock:
+            with mock.patch.object(WorkflowDeploymentContext,
+                                   'start_modification',
+                                   return_value=modification) as start_mock:
+                cfy_local.execute('scale',
+                                  parameters={'scalable_entity_name': 'node',
+                                              'delta': 1,
+                                              'abort_started': False})
+        list_mock.assert_not_called()
+        start_mock.assert_called_once_with(
+            {u'node': {
+                'instances': 2,
+                'removed_ids_include_hint': [],
+                'removed_ids_exclude_hint': [],
+            }})
+        modification.rollback.assert_not_called()
+        modification.finish.assert_called_once()
+
+    @workflow_test(scale_blueprint_path)
+    def test_abort_started(self, cfy_local):
+        modification = mock.MagicMock(
+            'cloudify.workflows.workflow_context.Modification')
+        modification.id = 'dd8aa09e-035e-4f38-84df-bb2361d55efb'
+        modification.rollback = mock.MagicMock()
+        modification.finish = mock.MagicMock()
+        modification.added = mock.MagicMock()
+        with mock.patch.object(WorkflowDeploymentContext,
+                               'list_started_modifications',
+                               return_value=[modification]) as list_mock:
+            with mock.patch.object(WorkflowDeploymentContext,
+                                   'start_modification',
+                                   return_value=modification) as start_mock:
+                cfy_local.execute('scale',
+                                  parameters={'scalable_entity_name': 'node',
+                                              'delta': 3,
+                                              'abort_started': True})
+        list_mock.assert_called_once()
+        start_mock.assert_called_once_with(
+            {u'node': {
+                'instances': 4,
+                'removed_ids_include_hint': [],
+                'removed_ids_exclude_hint': [],
+            }})
+        modification.rollback.assert_called_once()
+        modification.finish.assert_called_once()
 
 
 class TestSubgraphWorkflowLogic(testtools.TestCase):

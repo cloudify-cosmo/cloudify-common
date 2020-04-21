@@ -21,6 +21,8 @@ workflows:
         default: 1
       scale_compute:
         default: false
+      abort_started:
+        default: false
 
   scale_old:
     mapping: plugin.cloudify.plugins.workflows.scale
