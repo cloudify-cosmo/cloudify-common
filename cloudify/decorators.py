@@ -15,8 +15,7 @@
 
 import functools
 
-from . import ctx
-from .manager import get_rest_client
+from . import ctx, manager
 from .utils import get_instances_of_node
 from .exceptions import CloudifySerializationRetry
 
@@ -79,7 +78,7 @@ def serial_operation(threshold=0,
         @functools.wraps(func)
         def inner_wrapper(*args, **kwargs):
             _ctx = kwargs.get('ctx', ctx)
-            rest_client = get_rest_client()
+            rest_client = manager.get_rest_client()
             if _ctx.workflow_id in workflows:
                 node_instances = get_instances_of_node(
                     rest_client,
