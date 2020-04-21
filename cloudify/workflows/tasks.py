@@ -623,7 +623,8 @@ class RemoteWorkflowTask(WorkflowTask):
                     tenant,
                     self._cloudify_agent['rest_host'])
         else:
-            return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None, None
+            return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None, \
+                   self.workflow_context.rest_host
 
     def _can_resend(self):
         return (self.cloudify_context['executor'] != 'host_agent' and
