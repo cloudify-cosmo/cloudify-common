@@ -231,11 +231,12 @@ def get_manager_rest_ssl_cert_path():
         os.path.dirname(os.environ[constants.LOCAL_REST_CERT_FILE_KEY]),
         'cloudify_rest_ca_cert.pem'
     )
+    ssl_cert_content = None
     try:
         ssl_cert_content = _get_current_context().rest_ssl_cert
     except RuntimeError:
         return None
-    else:
+    if ssl_cert_content:
         with open(ssl_cert_path, 'w') as f:
             f.write(ssl_cert_content)
     return ssl_cert_path
