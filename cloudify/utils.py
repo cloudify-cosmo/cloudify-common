@@ -246,11 +246,13 @@ def get_local_rest_certificate():
     """
     ssl_cert_path = os.path.join(
         os.path.dirname(os.environ[constants.LOCAL_REST_CERT_FILE_KEY]),
-        'cloudify_rest_ca_cert.pem'
+        'tmp_cloudify_internal_cert.pem'
     )
     ssl_cert_content = None
     try:
-        ssl_cert_content = _get_current_context().rest_ssl_cert
+        ssl_cert_content = \
+            _get_current_context().rest_ssl_cert if \
+            hasattr(_get_current_context(), 'rest_ssl_cert') else None
     except RuntimeError:
         pass
     if ssl_cert_content:
