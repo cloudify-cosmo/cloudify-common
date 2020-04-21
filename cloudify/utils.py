@@ -252,7 +252,7 @@ def get_local_rest_certificate():
     try:
         ssl_cert_content = _get_current_context().rest_ssl_cert
     except RuntimeError:
-        return None
+        pass
     if ssl_cert_content:
         with open(ssl_cert_path, 'w') as f:
             f.write(ssl_cert_content)
