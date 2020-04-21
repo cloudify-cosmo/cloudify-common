@@ -106,7 +106,7 @@ class Element(object):
             message.write('\n  in line: {0}, column: {1}'
                           .format(self.name_start_line + 1,
                                   self.name_start_column))
-        elif self.start_line >= 0:
+        elif self.start_line is not None and self.start_line >= 0:
             message.write('\n  in line {0}, column {1}'
                           .format(self.start_line + 1, self.start_column))
         message.write('\n  path: {0}'.format(self.path))
