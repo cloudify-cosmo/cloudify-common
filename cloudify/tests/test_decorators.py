@@ -21,7 +21,6 @@ import testtools
 from mock import patch, Mock
 
 from cloudify import ctx as ctx_proxy
-from cloudify import manager
 from cloudify import context
 from cloudify.state import current_ctx
 from cloudify.decorators import (
@@ -77,6 +76,7 @@ def assert_op_impl(ctx, test_case, **kwargs):
     test_case.assertEqual(ctx, ctx_proxy)
 
 
+@patch('cloudify.manager.get_rest_client', rest_client_mock.MockRestclient)
 class OperationTest(testtools.TestCase):
     def test_empty_ctx(self):
         ctx = acquire_context(0, 0)
@@ -104,10 +104,6 @@ class OperationTest(testtools.TestCase):
             'node_id': '5678',
         }
 
-        # using a mock rest client
-        manager.get_rest_client = \
-            lambda: rest_client_mock.MockRestclient()
-
         rest_client_mock.put_node_instance(
             '5678',
             relationships=[{'target_id': 'some_node',
@@ -131,10 +127,6 @@ class OperationTest(testtools.TestCase):
         ctx = {
             'node_id': '5678',
         }
-
-        # using a mock rest client
-        manager.get_rest_client = \
-            lambda: rest_client_mock.MockRestclient()
 
         rest_client_mock.put_node_instance(
             '5678',
@@ -206,8 +198,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_install(self, _mock, list_fn):
+    def test_serial_operation_install(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -218,7 +209,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'install'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation()
@@ -245,8 +235,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_install_wait_for_1(self, _mock, list_fn):
+    def test_serial_operation_install_wait_for_1(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -257,7 +246,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'install'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(threshold=1)
@@ -275,8 +263,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_install_states(self, _mock, list_fn):
+    def test_serial_operation_install_states(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -287,7 +274,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'install'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(states=['uninitialized'])
@@ -305,8 +291,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_install_workflow(self, _mock, list_fn):
+    def test_serial_operation_install_workflow(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -317,7 +302,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'install'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(workflows=['scale'])
@@ -335,8 +319,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_uninstall(self, _mock, list_fn):
+    def test_serial_operation_uninstall(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -347,7 +330,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'uninstall'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(workflows=['uninstall'])
@@ -366,8 +348,7 @@ class OperationTest(testtools.TestCase):
 
     @patch('cloudify.tests.mocks.mock_rest_client.'
            'MockNodeInstancesClient.list')
-    @patch('cloudify.decorators.get_rest_client')
-    def test_serial_operation_uninstall_wait_3(self, _mock, list_fn):
+    def test_serial_operation_uninstall_wait_3(self, list_fn):
 
         _ctx = MockCloudifyContext(
             node_id='test_node',
@@ -378,7 +359,6 @@ class OperationTest(testtools.TestCase):
         # Check that we raise if the preceder is not 'started'.
         _ctx._context['workflow_id'] = 'uninstall'
         current_ctx.set(_ctx)
-        _mock.side_effect = lambda: rest_client_mock.MockRestclient()
         _caller = Mock()
 
         @serial_operation(threshold=3,
@@ -395,8 +375,7 @@ class OperationTest(testtools.TestCase):
             else:
                 state = 'uninitialized'
             finished3.append(
-                Mock(
-                     id='test_node{x}'.format(x=n),
+                Mock(id='test_node{x}'.format(x=n),
                      index=n,
                      state=state))
         list_fn.return_value = finished3
