@@ -222,26 +222,6 @@ def get_manager_rest_service_host():
     return host_ip or os.environ[constants.REST_HOST_KEY].split(',')
 
 
-def get_manager_rest_ssl_cert_path():
-    """
-    Returns the rest host ssl certificate path where the content of the ssl
-    certificate is set to the cloudify context
-    """
-    ssl_cert_path = os.path.join(
-        os.path.dirname(os.environ[constants.LOCAL_REST_CERT_FILE_KEY]),
-        'cloudify_rest_ca_cert.pem'
-    )
-    ssl_cert_content = None
-    try:
-        ssl_cert_content = _get_current_context().rest_ssl_cert
-    except RuntimeError:
-        return None
-    if ssl_cert_content:
-        with open(ssl_cert_path, 'w') as f:
-            f.write(ssl_cert_content)
-    return ssl_cert_path
-
-
 def get_broker_ssl_cert_path():
     """
     Returns location of the broker certificate on the agent
@@ -264,8 +244,21 @@ def get_local_rest_certificate():
     """
     Returns the path to the local copy of the server's public certificate
     """
-    return get_manager_rest_ssl_cert_path() or \
-        os.environ[constants.LOCAL_REST_CERT_FILE_KEY]
+    ssl_cert_path = os.path.join(
+        os.path.dirname(os.environ[constants.LOCAL_REST_CERT_FILE_KEY]),
+        'cloudify_rest_ca_cert.pem'
+    )
+    ssl_cert_content = None
+    try:
+        ssl_cert_content = _get_current_context().rest_ssl_cert
+    except RuntimeError:
+        return None
+    if ssl_cert_content:
+        with open(ssl_cert_path, 'w') as f:
+            f.write(ssl_cert_content)
+
+    return ssl_cert_path if ssl_cert_content \
+        else os.environ[constants.LOCAL_REST_CERT_FILE_KEY]
 
 
 def _get_current_context():
