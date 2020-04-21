@@ -395,8 +395,7 @@ class OperationTest(testtools.TestCase):
             else:
                 state = 'uninitialized'
             finished3.append(
-                Mock(
-                     id='test_node{x}'.format(x=n),
+                Mock(id='test_node{x}'.format(x=n),
                      index=n,
                      state=state))
         list_fn.return_value = finished3
