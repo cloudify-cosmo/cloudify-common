@@ -21,7 +21,6 @@ import testtools
 from mock import patch, Mock
 
 from cloudify import ctx as ctx_proxy
-from cloudify import manager
 from cloudify import context
 from cloudify.state import current_ctx
 from cloudify.decorators import (
@@ -77,6 +76,7 @@ def assert_op_impl(ctx, test_case, **kwargs):
     test_case.assertEqual(ctx, ctx_proxy)
 
 
+@patch('cloudify.manager.get_rest_client', rest_client_mock.MockRestclient)
 class OperationTest(testtools.TestCase):
     def test_empty_ctx(self):
         ctx = acquire_context(0, 0)
@@ -104,10 +104,6 @@ class OperationTest(testtools.TestCase):
             'node_id': '5678',
         }
 
-        # using a mock rest client
-        manager.get_rest_client = \
-            lambda: rest_client_mock.MockRestclient()
-
         rest_client_mock.put_node_instance(
             '5678',
             relationships=[{'target_id': 'some_node',
@@ -131,10 +127,6 @@ class OperationTest(testtools.TestCase):
         ctx = {
             'node_id': '5678',
         }
-
-        # using a mock rest client
-        manager.get_rest_client = \
-            lambda: rest_client_mock.MockRestclient()
 
         rest_client_mock.put_node_instance(
             '5678',
