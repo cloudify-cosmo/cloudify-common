@@ -25,7 +25,8 @@ from cloudify import exceptions
 from cloudify.plugins import lifecycle
 from cloudify.decorators import operation
 from cloudify.test_utils import workflow_test
-from cloudify.workflows.workflow_context import WorkflowDeploymentContext
+from cloudify.workflows.workflow_context import (Modification,
+                                                 WorkflowDeploymentContext)
 
 
 class GlobalCounter(object):
@@ -412,12 +413,8 @@ class TestScale(testtools.TestCase):
 
     @workflow_test(scale_blueprint_path)
     def test_valid_delta(self, cfy_local):
-        modification = mock.MagicMock(
-            'cloudify.workflows.workflow_context.Modification')
+        modification = mock.MagicMock(Modification)
         modification.id = 'dd8aa09e-035e-4f38-84df-bb2361d55efb'
-        modification.rollback = mock.MagicMock()
-        modification.finish = mock.MagicMock()
-        modification.added = mock.MagicMock()
         with mock.patch.object(WorkflowDeploymentContext,
                                'list_started_modifications',
                                return_value=None) as list_mock:
@@ -440,12 +437,8 @@ class TestScale(testtools.TestCase):
 
     @workflow_test(scale_blueprint_path)
     def test_abort_started(self, cfy_local):
-        modification = mock.MagicMock(
-            'cloudify.workflows.workflow_context.Modification')
+        modification = mock.MagicMock(Modification)
         modification.id = 'dd8aa09e-035e-4f38-84df-bb2361d55efb'
-        modification.rollback = mock.MagicMock()
-        modification.finish = mock.MagicMock()
-        modification.added = mock.MagicMock()
         with mock.patch.object(WorkflowDeploymentContext,
                                'list_started_modifications',
                                return_value=[modification]) as list_mock:

@@ -493,7 +493,7 @@ def _abort_started_deployment_modifications(ctx, ignore_failure):
     graph = ctx.graph_mode()
     for modification in started_modifications:
         ctx.logger.info('Rolling back deployment modification. '
-                        '[modification_id={0}]'.format(modification.id))
+                        '[modification_id=%s]', modification.id)
         added_and_related = set(modification.added.node_instances)
         added = set(i for i in added_and_related
                     if i.modification == 'added')
