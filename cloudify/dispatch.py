@@ -274,7 +274,8 @@ class TaskHandler(object):
             if self.cloudify_context.get('bypass_maintenance'):
                 os.environ[constants.BYPASS_MAINTENANCE] = 'True'
             env = self._build_subprocess_env()
-            command_args = [sys.executable, '-u', '-m', 'cloudify.dispatch',
+            executable = self._get_executable()
+            command_args = [executable, '-u', '-m', 'cloudify.dispatch',
                             dispatch_dir]
             self.run_subprocess(command_args,
                                 env=env,
@@ -300,6 +301,15 @@ class TaskHandler(object):
         finally:
             shutil.rmtree(dispatch_dir, ignore_errors=True)
 
+    def _get_executable(self):
+        plugin_dir = self._extract_plugin_dir()
+        if plugin_dir:
+            if os.name == 'nt':
+                return os.path.join(plugin_dir, 'Scripts', 'python.exe')
+            else:
+                return os.path.join(plugin_dir, 'bin', 'python')
+        return sys.executable
+
     def _build_subprocess_env(self):
         env = os.environ.copy()
 
@@ -316,44 +326,6 @@ class TaskHandler(object):
         execution_env = dict((k.encode(ENV_ENCODING), v.encode(ENV_ENCODING))
                              for k, v in execution_env.items())
         env.update(execution_env)
-
-        # Update PATH environment variable to include bin dir of current
-        # virtualenv, and of plugin that includes the operation (if exists)
-        bin_dir = 'Scripts' if os.name == 'nt' else 'bin'
-        prefixes = [VIRTUALENV]
-        plugin_dir = self._extract_plugin_dir()
-        if plugin_dir:
-            prefixes.insert(0, plugin_dir)
-        # Code that concats all bin dirs and is then prepended to the existing
-        # PATH environment variable
-        task_bin_dirs = [os.path.join(prefix, bin_dir) for prefix in prefixes]
-        task_bin_dirs = os.pathsep.join(task_bin_dirs)
-        env['PATH'] = '{0}{1}{2}'.format(task_bin_dirs,
-                                         os.pathsep,
-                                         env.get('PATH', ''))
-
-        # Update PYTHONPATH environment variable to include libraries
-        # that belong to plugin running the current operation.
-        if plugin_dir:
-            if os.name == 'nt':
-                plugin_pythonpath_dirs = [os.path.join(
-                    plugin_dir, 'Lib', 'site-packages')]
-            else:
-                # In linux, if plugin has compiled dependencies
-                # and was complied for 64bit arch, two libraries should
-                # be added: lib and lib64
-                plugin_pythonpath_dirs = [os.path.join(
-                    plugin_dir, 'lib{0}'.format(b),
-                    # e.g. python2.7
-                    'python{0}.{1}'.format(sys.version_info[0],
-                                           sys.version_info[1]),
-                    'site-packages') for b in ['', '64']]
-            plugin_pythonpath_dirs = os.pathsep.join(plugin_pythonpath_dirs)
-            # Plugin PYTHONPATH is prepended to current PYTHONPATH
-            env['PYTHONPATH'] = '{0}{1}{2}'.format(
-                plugin_pythonpath_dirs,
-                os.pathsep,
-                env.get('PYTHONPATH', ''))
 
         if self.cloudify_context.get('bypass_maintenance'):
             env[constants.BYPASS_MAINTENANCE] = 'True'
