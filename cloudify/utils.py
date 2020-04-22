@@ -244,7 +244,23 @@ def get_local_rest_certificate():
     """
     Returns the path to the local copy of the server's public certificate
     """
-    return os.environ[constants.LOCAL_REST_CERT_FILE_KEY]
+    ssl_cert_path = os.path.join(
+        os.path.dirname(os.environ[constants.LOCAL_REST_CERT_FILE_KEY]),
+        'tmp_cloudify_internal_cert.pem'
+    )
+    ssl_cert_content = None
+    try:
+        ssl_cert_content = \
+            _get_current_context().rest_ssl_cert if \
+            hasattr(_get_current_context(), 'rest_ssl_cert') else None
+    except RuntimeError:
+        pass
+    if ssl_cert_content:
+        with open(ssl_cert_path, 'w') as f:
+            f.write(ssl_cert_content)
+
+    return ssl_cert_path if ssl_cert_content \
+        else os.environ[constants.LOCAL_REST_CERT_FILE_KEY]
 
 
 def _get_current_context():

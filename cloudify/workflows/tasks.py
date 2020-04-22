@@ -530,8 +530,9 @@ class RemoteWorkflowTask(WorkflowTask):
         return self._kwargs
 
     def _set_queue_kwargs(self):
+        rest_host = None
         if self._task_queue is None or self._task_target is None:
-            queue, name, tenant = self._get_queue_kwargs()
+            queue, name, tenant, rest_host = self._get_queue_kwargs()
             if self._task_queue is None:
                 self._task_queue = queue
             if self._task_target is None:
@@ -540,6 +541,8 @@ class RemoteWorkflowTask(WorkflowTask):
                 self._task_tenant = tenant
         self.kwargs['__cloudify_context']['task_queue'] = self._task_queue
         self.kwargs['__cloudify_context']['task_target'] = self._task_target
+        if rest_host:
+            self.kwargs['__cloudify_context']['rest_host'] = rest_host
 
     def _get_agent_settings(self, node_instance_id, deployment_id,
                             tenant=None):
@@ -617,9 +620,11 @@ class RemoteWorkflowTask(WorkflowTask):
                     tenant=None)
             return (self._cloudify_agent['queue'],
                     self._cloudify_agent['name'],
-                    tenant)
+                    tenant,
+                    self._cloudify_agent['rest_host'])
         else:
-            return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None
+            return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None, \
+                   self.workflow_context.rest_host
 
     def _can_resend(self):
         return (self.cloudify_context['executor'] != 'host_agent' and

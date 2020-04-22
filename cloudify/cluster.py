@@ -55,7 +55,11 @@ class ClusterHTTPClient(HTTPClient):
             try:
                 return super(ClusterHTTPClient, self).do_request(*args,
                                                                  **kwargs)
-            except (requests.exceptions.ConnectionError):
+            except (requests.exceptions.ConnectionError) as error:
+                self.logger.debug(
+                    'Connection error when trying to connect to '
+                    'manager {0}'.format(error)
+                )
                 continue
 
         raise CloudifyClientError('No active node in the cluster!')

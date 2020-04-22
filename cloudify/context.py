@@ -558,6 +558,7 @@ class CloudifyContext(CommonContext):
         self._provider_context = None
         self._bootstrap_context = None
         self._rest_host = self._context.get('rest_host')
+        self._rest_ssl_cert = self._context.get('rest_ssl_cert')
         self._node = None
         self._instance = None
         self._source = None
@@ -714,12 +715,18 @@ class CloudifyContext(CommonContext):
 
     @property
     def rest_host(self):
+        """REST host"""
         return self._rest_host
 
     @property
     def rest_token(self):
         """REST service token"""
         return self._context.get('rest_token')
+
+    @property
+    def rest_ssl_cert(self):
+        """REST SSL Certificate Content"""
+        return self._rest_ssl_cert
 
     @property
     def tenant_name(self):
