@@ -103,6 +103,9 @@ CLOUDIFY_TOKEN_AUTHENTICATION_HEADER = 'Authentication-Token'
 
 NAMESPACE_BLUEPRINT_IMPORT_DELIMITER = '--'
 
+COMPONENT = 'component'
+SHARED_RESOURCE = 'sharedresource'
+
 TASK_PENDING = 'pending'
 TASK_SENDING = 'sending'
 TASK_SENT = 'sent'

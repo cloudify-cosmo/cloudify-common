@@ -15,6 +15,7 @@
 
 from dsl_parser import functions
 from dsl_parser.tasks import prepare_deployment_plan
+from dsl_parser.constants import INTER_DEPLOYMENT_FUNCTIONS, OUTPUTS
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
@@ -255,3 +256,34 @@ node_templates:
             message="`get_capability` function arguments can't be complex "
                     "values; only strings/ints/functions are accepted. "
         )
+
+    def test_get_capability_registers_to_plan(self):
+        yaml = """
+node_types:
+    type: {}
+node_templates:
+    node:
+        type: type
+outputs:
+    output1:
+      value: { get_capability: [ { get_capability: [ dep_1, cap_a ]}, cap_b ]}
+    output2:
+      value: { get_capability:
+                [ { get_attribute: [node, doesnt_matter] }, cap_a ]}
+"""
+
+        def _assert_capability_is_registered(capability_path, expected_value):
+            self.assertIn(capability_path, parsed[INTER_DEPLOYMENT_FUNCTIONS])
+            self.assertEqual(
+                parsed[INTER_DEPLOYMENT_FUNCTIONS][capability_path],
+                expected_value)
+
+        parsed = prepare_deployment_plan(self.parse(yaml))
+        get_cap_path1 = '{0}.output1.value.get_capability'.format(OUTPUTS)
+        get_cap_path2 = '{0}.output1.value.get_capability[0].get_capability' \
+                        ''.format(OUTPUTS)
+        get_cap_path3 = '{0}.output2.value.get_capability'.format(OUTPUTS)
+        self.assertIn(INTER_DEPLOYMENT_FUNCTIONS, parsed)
+        _assert_capability_is_registered(get_cap_path1, None)
+        _assert_capability_is_registered(get_cap_path2, 'dep_1')
+        _assert_capability_is_registered(get_cap_path3, None)

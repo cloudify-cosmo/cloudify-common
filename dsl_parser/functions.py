@@ -1,17 +1,17 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
+#########
+# Copyright (c) 2017-2019 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#       http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
 
 import abc
 import pkg_resources
@@ -19,10 +19,14 @@ import json
 
 from functools import wraps
 
+from dsl_parser import exceptions, scan, constants
 from dsl_parser._compat import ABC, text_type
-from dsl_parser import (constants,
-                        exceptions,
-                        scan)
+from dsl_parser.constants import (OUTPUTS,
+                                  CAPABILITIES,
+                                  NODE_INSTANCES,
+                                  INTER_DEPLOYMENT_FUNCTIONS,
+                                  EVAL_FUNCS_PATH_PREFIX_KEY,
+                                  EVAL_FUNCS_PATH_DEFAULT_PREFIX)
 
 SELF = 'SELF'
 SOURCE = 'SOURCE'
@@ -189,6 +193,9 @@ class Function(ABC):
 
     @abc.abstractmethod
     def evaluate(self, handler):
+        pass
+
+    def register_function_to_plan(self, plan):
         pass
 
 
@@ -639,45 +646,6 @@ class GetSecret(Function):
             return handler.get_secret(self.secret_id)
 
 
-@register(name='get_capability', func_eval_type=RUNTIME_FUNC)
-class GetCapability(Function):
-    def __init__(self, args, **kwargs):
-        self.capability_path = None
-        super(GetCapability, self).__init__(args, **kwargs)
-
-    def parse_args(self, args):
-        if not isinstance(args, list):
-            raise ValueError(
-                "`get_capability` function argument should be a list. Instead "
-                "it is a {0} with the value: {1}.".format(type(args), args))
-        if len(args) < 2:
-            raise ValueError(
-                "`get_capability` function argument should be a list with 2 "
-                "elements at least - [ deployment ID, capability ID "
-                "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
-                .format(','.join('{0}'.format(a) for a in args))
-            )
-        for arg_index in range(len(args)):
-            if not isinstance(args[arg_index], (text_type, int)) \
-                    and not is_function(args[arg_index]):
-                raise ValueError(
-                    "`get_capability` function arguments can't be complex "
-                    "values; only strings/ints/functions are accepted. "
-                    "Instead, the item with "
-                    "index {0} is {1} of type {2}".format(
-                        arg_index, args[arg_index], type(args[arg_index])
-                    )
-                )
-
-        self.capability_path = args
-
-    def validate(self, plan):
-        pass
-
-    def evaluate(self, handler):
-        return handler.get_capability(self.capability_path)
-
-
 @register(name='concat', func_eval_type=HYBRID_FUNC)
 class Concat(Function):
 
@@ -709,6 +677,85 @@ class Concat(Function):
     def join(self):
         str_join = [str(elem) for elem in self.joined]
         return self.separator.join(str_join)
+
+
+class InterDeploymentDependencyCreatingFunction(Function):
+
+    def register_function_to_plan(self, plan):
+        if not self.function_identifier:
+            return
+
+        plan.setdefault(
+            INTER_DEPLOYMENT_FUNCTIONS,
+            {}
+        )[self.function_identifier] = self.target_deployment
+
+    def evaluate(self, handler):
+        if not self.function_identifier:
+            return self._evaluate(handler)
+
+        handler.set_inter_deployment_dependency(
+            self.target_deployment,
+            self.function_identifier)
+        return self._evaluate(handler)
+
+    @abc.abstractmethod
+    def _evaluate(self, handler):
+        pass
+
+    @abc.abstractproperty
+    def target_deployment(self):
+        pass
+
+    @property
+    def function_identifier(self):
+        if not self.path.startswith(EVAL_FUNCS_PATH_DEFAULT_PREFIX):
+            return '{0}.{1}'.format(self.path, self.name)
+        return None
+
+
+@register(name='get_capability', func_eval_type=RUNTIME_FUNC)
+class GetCapability(InterDeploymentDependencyCreatingFunction):
+    def __init__(self, args, **kwargs):
+        self.capability_path = None
+        super(GetCapability, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, list):
+            raise ValueError(
+                "`get_capability` function argument should be a list. Instead "
+                "it is a {0} with the value: {1}.".format(type(args), args))
+        if len(args) < 2:
+            raise ValueError(
+                "`get_capability` function argument should be a list with 2 "
+                "elements at least - [ deployment ID, capability ID "
+                "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
+                .format(','.join('{0}'.format(a) for a in args))
+            )
+        for arg_index in range(len(args)):
+            if not isinstance(args[arg_index], (text_type, int)) \
+                    and not is_function(args[arg_index]):
+                raise ValueError(
+                    "`get_capability` function arguments can't be complex "
+                    "values; only strings/ints/functions are accepted. "
+                    "Instead, the item with "
+                    "index {0} is {1} of type {2}".format(
+                        arg_index, args[arg_index], type(args[arg_index])
+                    )
+                )
+
+        self.capability_path = args
+
+    def _evaluate(self, handler):
+        return handler.get_capability(self.capability_path)
+
+    def validate(self, plan):
+        pass
+
+    @property
+    def target_deployment(self):
+        first_arg = self.capability_path[0]
+        return None if is_function(first_arg) else first_arg
 
 
 def _get_property_value(node_name,
@@ -799,7 +846,8 @@ def evaluate_node_instance_functions(instance, storage):
         handler,
         scope=scan.NODE_TEMPLATE_SCOPE,
         context=instance,
-        path='{0}.runtime_properties'.format(
+        path='{0}.{1}.runtime_properties'.format(
+            NODE_INSTANCES,
             instance['id']),
         replace=True)
     return instance
@@ -823,7 +871,9 @@ def evaluate_functions(payload, context, storage):
                          handler,
                          scope=scope,
                          context=context,
-                         path='payload',
+                         path=context.pop(
+                             EVAL_FUNCS_PATH_PREFIX_KEY,
+                             EVAL_FUNCS_PATH_DEFAULT_PREFIX),
                          replace=True)
     return payload
 
@@ -838,7 +888,7 @@ def evaluate_capabilities(capabilities, storage):
     capabilities = dict((k, v['value']) for k, v in capabilities.items())
     return evaluate_functions(
         payload=capabilities,
-        context={},
+        context={EVAL_FUNCS_PATH_PREFIX_KEY: CAPABILITIES},
         storage=storage)
 
 
@@ -852,7 +902,8 @@ def evaluate_outputs(outputs_def, storage):
     outputs = dict((k, v['value']) for k, v in outputs_def.items())
     return evaluate_functions(
         payload=outputs,
-        context={'evaluate_outputs': True},
+        context={'evaluate_outputs': True,
+                 EVAL_FUNCS_PATH_PREFIX_KEY: OUTPUTS},
         storage=storage)
 
 
@@ -902,11 +953,13 @@ class _PlanEvaluationHandler(_EvaluationHandler):
     def evaluate_function(self, func):
         if not self._runtime_only_evaluation and \
                 func.func_eval_type in (HYBRID_FUNC, STATIC_FUNC):
-            return func.evaluate(self)
+            return_value = func.evaluate(self)
         else:
             if 'operation' in func.context:
                 func.context['operation']['has_intrinsic_functions'] = True
-            return func.raw
+            return_value = func.raw
+        func.register_function_to_plan(self._plan)
+        return return_value
 
     def get_input(self, input_name):
         try:
@@ -969,6 +1022,12 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             capability = self._storage.get_capability(capability_path)
             self._capabilities_cache[capability_id] = capability
         return self._capabilities_cache[capability_id]
+
+    def set_inter_deployment_dependency(self,
+                                        target_deployment,
+                                        function_identifier):
+        self._storage.set_inter_deployment_dependency(target_deployment,
+                                                      function_identifier)
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
