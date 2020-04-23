@@ -275,6 +275,8 @@ class TaskHandler(object):
                 os.environ[constants.BYPASS_MAINTENANCE] = 'True'
             env = self._build_subprocess_env()
             executable = self._get_executable()
+            env['PATH'] = '{0}:{1}'.format(
+                os.path.dirname(executable), env['PATH'])
             command_args = [executable, '-u', '-m', 'cloudify.dispatch',
                             dispatch_dir]
             self.run_subprocess(command_args,
