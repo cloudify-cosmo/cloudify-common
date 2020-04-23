@@ -52,7 +52,7 @@ class InterDeploymentDependencyClient(object):
 
     def __init__(self, api):
         self.api = api
-        self._uri_prefix = 'inter-deployment-dependencies'
+        self._uri_prefix = 'deployments/inter-deployment-dependencies'
         self._wrapper_cls = InterDeploymentDependency
 
     def _wrap_list(self, response):
@@ -100,31 +100,6 @@ class InterDeploymentDependencyClient(object):
                                             target_deployment)
         response = self.api.delete(
             '/{self._uri_prefix}'.format(self=self), data=data)
-        return self._wrapper_cls(response)
-
-    def get(self,
-            dependency_creator,
-            source_deployment,
-            target_deployment,
-            _include=None,
-            **kwargs):
-        """
-        Gets an inter-deployment dependency by its id.
-
-        :param dependency_creator: a string representing the entity that
-        :param source_deployment: source deployment that depends on the target
-         deployment.
-        :param target_deployment: the deployment that the source deployment
-         depends on.
-        :param _include: List of fields to include in response.
-        :return: The inter-deployment dependency details.
-        """
-        data = create_deployment_dependency(dependency_creator,
-                                            source_deployment,
-                                            target_deployment)
-        kwargs.update(data)
-        uri = '/{self._uri_prefix}/id'.format(self=self)
-        response = self.api.get(uri, _include=_include, params=kwargs)
         return self._wrapper_cls(response)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
