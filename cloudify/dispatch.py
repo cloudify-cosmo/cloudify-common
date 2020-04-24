@@ -274,7 +274,11 @@ class TaskHandler(object):
             if self.cloudify_context.get('bypass_maintenance'):
                 os.environ[constants.BYPASS_MAINTENANCE] = 'True'
             env = self._build_subprocess_env()
-            executable = self._get_executable()
+            plugin_dir = self._extract_plugin_dir()
+            if plugin_dir:
+                executable = utils.get_python_path(plugin_dir)
+            else:
+                executable = sys.executable
             env['PATH'] = '{0}:{1}'.format(
                 os.path.dirname(executable), env['PATH'])
             command_args = [executable, '-u', '-m', 'cloudify.dispatch',
@@ -302,15 +306,6 @@ class TaskHandler(object):
                     .format(dispatch_output['type']))
         finally:
             shutil.rmtree(dispatch_dir, ignore_errors=True)
-
-    def _get_executable(self):
-        plugin_dir = self._extract_plugin_dir()
-        if plugin_dir:
-            if os.name == 'nt':
-                return os.path.join(plugin_dir, 'Scripts', 'python.exe')
-            else:
-                return os.path.join(plugin_dir, 'bin', 'python')
-        return sys.executable
 
     def _build_subprocess_env(self):
         env = os.environ.copy()

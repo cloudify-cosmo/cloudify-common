@@ -804,3 +804,23 @@ class OutputConsumer(object):
 
     def join(self):
         self.consumer.join()
+
+
+def get_executable_path(executable, venv):
+    """Lookup the path to the executable, os agnostic
+
+    :param executable: the name of the executable
+    :param venv: the venv to look for the executable in
+    """
+    if os.name == 'nt':
+        return '{0}\\Scripts\\{1}'.format(venv, executable)
+    else:
+        return '{0}/bin/{1}'.format(venv, executable)
+
+
+def get_python_path(venv):
+    """Path to the python executable in the given venv"""
+    return get_executable_path(
+        'python.exe' if os.name == 'nt' else 'python',
+        venv=venv
+    )
