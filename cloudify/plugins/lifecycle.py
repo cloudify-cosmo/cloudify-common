@@ -22,21 +22,27 @@ from cloudify.workflows.tasks_graph import forkjoin, make_or_get_graph
 from cloudify.workflows import tasks as workflow_tasks
 
 
-def install_node_instances(graph, node_instances, related_nodes=None):
+def install_node_instances(graph,
+                           node_instances,
+                           related_nodes=None,
+                           name_prefix=''):
     processor = LifecycleProcessor(graph=graph,
                                    node_instances=node_instances,
-                                   related_nodes=related_nodes)
+                                   related_nodes=related_nodes,
+                                   name_prefix=name_prefix)
     processor.install()
 
 
 def uninstall_node_instances(graph,
                              node_instances,
                              ignore_failure,
-                             related_nodes=None):
+                             related_nodes=None,
+                             name_prefix=''):
     processor = LifecycleProcessor(graph=graph,
                                    node_instances=node_instances,
                                    ignore_failure=ignore_failure,
-                                   related_nodes=related_nodes)
+                                   related_nodes=related_nodes,
+                                   name_prefix=name_prefix)
     processor.uninstall()
 
 
@@ -45,7 +51,7 @@ def reinstall_node_instances(graph,
                              ignore_failure,
                              related_nodes=None):
     uninstall_node_instances(graph, node_instances, ignore_failure,
-                             related_nodes)
+                             related_nodes, name_prefix='reinstall')
     # refresh the local node instance references, because they most likely
     # changed their state & runtime props during the uninstall
     workflow_ctx.refresh_node_instances()
@@ -53,7 +59,8 @@ def reinstall_node_instances(graph,
                          for inst in node_instances)
     related_nodes = set(workflow_ctx.get_node_instance(inst.id)
                         for inst in related_nodes)
-    install_node_instances(graph, node_instances, related_nodes)
+    install_node_instances(graph, node_instances, related_nodes,
+                           name_prefix='reinstall')
 
 
 def execute_establish_relationships(graph,
