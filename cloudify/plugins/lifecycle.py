@@ -51,7 +51,7 @@ def reinstall_node_instances(graph,
                              ignore_failure,
                              related_nodes=None):
     uninstall_node_instances(graph, node_instances, ignore_failure,
-                             related_nodes, name_prefix='reinstall')
+                             related_nodes, name_prefix='reinstall-')
     # refresh the local node instance references, because they most likely
     # changed their state & runtime props during the uninstall
     workflow_ctx.refresh_node_instances()
@@ -60,7 +60,7 @@ def reinstall_node_instances(graph,
     related_nodes = set(workflow_ctx.get_node_instance(inst.id)
                         for inst in related_nodes)
     install_node_instances(graph, node_instances, related_nodes,
-                           name_prefix='reinstall')
+                           name_prefix='reinstall-')
 
 
 def execute_establish_relationships(graph,
@@ -71,7 +71,7 @@ def execute_establish_relationships(graph,
         graph=graph,
         related_nodes=node_instances,
         modified_relationship_ids=modified_relationship_ids,
-        name_prefix='establish')
+        name_prefix='establish-')
     processor.install()
 
 
@@ -83,7 +83,7 @@ def execute_unlink_relationships(graph,
         graph=graph,
         related_nodes=node_instances,
         modified_relationship_ids=modified_relationship_ids,
-        name_prefix='unlink')
+        name_prefix='unlink-')
     processor.uninstall()
 
 
