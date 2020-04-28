@@ -23,6 +23,7 @@ var/
 .installed.cfg
 *.egg
 .idea
+.DS_Store
 
 # Installer logs
 pip-log.txt
