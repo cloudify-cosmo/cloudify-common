@@ -691,9 +691,6 @@ class InterDeploymentDependencyCreatingFunction(Function):
         )[self.function_identifier] = self.target_deployment
 
     def evaluate(self, handler):
-        if not self.function_identifier:
-            return self._evaluate(handler)
-
         handler.set_inter_deployment_dependency(
             self.target_deployment,
             self.function_identifier)
@@ -709,9 +706,15 @@ class InterDeploymentDependencyCreatingFunction(Function):
 
     @property
     def function_identifier(self):
-        if not self.path.startswith(EVAL_FUNCS_PATH_DEFAULT_PREFIX):
+        if self.path.startswith(EVAL_FUNCS_PATH_DEFAULT_PREFIX):
+            return 'nodes.{node}.operations.{operation}.inputs.{path}.' \
+                   'get_capability'.format(
+                    node=self.context.get('node'),
+                    operation=self.context.get('operation'),
+                    path=self.path.split('.', 1)[1]
+                    )
+        else:
             return '{0}.{1}'.format(self.path, self.name)
-        return None
 
 
 @register(name='get_capability', func_eval_type=RUNTIME_FUNC)
