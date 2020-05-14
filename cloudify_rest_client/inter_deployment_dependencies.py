@@ -122,7 +122,8 @@ class InterDeploymentDependencyClient(object):
                                 params=params)
         return self._wrap_list(response)
 
-    def restore(self, deployment_id, runtime_only_evaluation=False):
+    def restore(self, deployment_id, update_service_composition,
+                runtime_only_evaluation=False):
         """
         Updating the inter deployment dependencies table from the specified
         deployment during an upgrade
@@ -130,7 +131,8 @@ class InterDeploymentDependencyClient(object):
        """
         data = {
             'deployment_id': deployment_id,
-            'runtime_only_evaluation': runtime_only_evaluation
+            'update_service_composition': update_service_composition,
+            'runtime_only_evaluation': runtime_only_evaluation,
         }
         self.api.post('/{self._uri_prefix}/restore'.format(self=self),
                       data=data)
