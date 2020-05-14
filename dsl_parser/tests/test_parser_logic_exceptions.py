@@ -666,8 +666,7 @@ node_templates:
 
         expected_err_msg = "Invalid tosca_definitions_version: '{0}', " \
                            "major version is 'a' while expected to be a" \
-                           " number" \
-            .format('cloudify_dsl_a_0', version.DSL_VERSION_1_0)
+                           " number".format('cloudify_dsl_a_0')
         self.assertRaisesRegex(DSLParsingLogicException,
                                expected_err_msg,
                                version.parse_dsl_version,
@@ -675,8 +674,7 @@ node_templates:
 
         expected_err_msg = "Invalid tosca_definitions_version: '{0}', " \
                            "minor version is 'a' while expected to be a" \
-                           " number" \
-            .format('cloudify_dsl_1_a', version.DSL_VERSION_1_0)
+                           " number".format('cloudify_dsl_1_a')
         self.assertRaisesRegex(DSLParsingLogicException,
                                expected_err_msg,
                                version.parse_dsl_version,
@@ -684,8 +682,7 @@ node_templates:
 
         expected_err_msg = "Invalid tosca_definitions_version: '{0}', " \
                            "micro version is 'a' while expected to be a" \
-                           " number" \
-            .format('cloudify_dsl_1_1_a', version.DSL_VERSION_1_0)
+                           " number".format('cloudify_dsl_1_1_a')
         self.assertRaisesRegex(DSLParsingLogicException,
                                expected_err_msg,
                                version.parse_dsl_version,

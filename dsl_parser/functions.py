@@ -149,14 +149,14 @@ def _convert_attribute_list_to_python_syntax_string(attr_list):
 _register_entry_point_functions()
 
 
-def _contains_legal_nested_attribute_path_items(l):
-    return all(is_function(x) or isinstance(x, (text_type, int)) for x in l)
+def _contains_legal_nested_attribute_path_items(args):
+    return all(is_function(x) or isinstance(x, (text_type, int)) for x in args)
 
 
-def _is_legal_nested_attribute_path(l):
-    return isinstance(l, list) \
-        and len(l) >= 2 \
-        and _contains_legal_nested_attribute_path_items(l)
+def _is_legal_nested_attribute_path(args):
+    return isinstance(args, list) \
+        and len(args) >= 2 \
+        and _contains_legal_nested_attribute_path_items(args)
 
 
 class Function(ABC):
@@ -207,10 +207,10 @@ class GetInput(Function):
         super(GetInput, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        def _is_valid_args_list(l):
-            return isinstance(l, list) \
-                and len(l) >= 1 \
-                and _contains_legal_nested_attribute_path_items(l)
+        def _is_valid_args_list(args_list):
+            return isinstance(args_list, list) \
+                and len(args_list) >= 1 \
+                and _contains_legal_nested_attribute_path_items(args_list)
 
         if not isinstance(args, text_type) \
                 and not is_function(args) \

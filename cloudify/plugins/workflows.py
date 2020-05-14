@@ -507,6 +507,7 @@ def _abort_started_deployment_modifications(ctx, ignore_failure):
             )
         modification.rollback()
 
+
 # Kept for backward compatibility with older versions of types.yaml
 @workflow
 def scale(ctx, node_id, delta, scale_compute, **kwargs):
