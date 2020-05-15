@@ -209,11 +209,14 @@ class PluginsClient(object):
 
     def upload(self,
                plugin_path,
+               plugin_title=None,
                visibility=VisibilityState.TENANT,
                progress_callback=None):
         """Uploads a plugin archive to the manager
 
         :param plugin_path: Path to plugin archive.
+        :param plugin_title: Plugin title to be used e.g. in UI for
+                             presentation purposes in Topology widget.
         :param visibility: The visibility of the plugin, can be 'private',
                            'tenant' or 'global'
         :param progress_callback: Progress bar callback method
@@ -221,6 +224,8 @@ class PluginsClient(object):
         """
         assert plugin_path
         query_params = {'visibility': visibility}
+        if plugin_title:
+            query_params['title'] = plugin_title
         timeout = self.api.default_timeout_sec
         if urlparse(plugin_path).scheme and not os.path.exists(plugin_path):
             query_params['plugin_archive_url'] = plugin_path
