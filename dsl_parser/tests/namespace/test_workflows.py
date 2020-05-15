@@ -74,7 +74,7 @@ imports:
     -   {0}--{1}
 workflows:
     workflow1: test_plugin.workflow1
-""".format('test', import_file_name, 'other_test')
+""".format('test', import_file_name)
         parsed = self.parse_1_3(main_yaml)
         workflows = parsed[constants.WORKFLOWS]
         self.assertEqual(2, len(workflows))
@@ -99,7 +99,7 @@ imports:
     -   {0}--{1}
 workflows:
     workflow2: test_plugin.workflow2
-""".format('test', import_file_name, 'other_test')
+""".format('test', import_file_name)
         parsed = self.parse_1_3(main_yaml)
         workflows = parsed[constants.WORKFLOWS]
         self.assertEqual(2, len(workflows))

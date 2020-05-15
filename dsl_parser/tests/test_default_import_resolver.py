@@ -85,7 +85,7 @@ class TestDefaultResolver(testtools.TestCase):
             expected_urls_to_resolve=[ORIGINAL_V2_URL],
             expected_failure=True,
             partial_err_msg='Failed to resolve the following urls: {0}'
-            .format(str(expected_failed_urls), ORIGINAL_V1_URL))
+            .format(expected_failed_urls))
 
     def test_illegal_resolved_url_from_rules(self):
         rules = [
@@ -102,7 +102,7 @@ class TestDefaultResolver(testtools.TestCase):
             expected_urls_to_resolve=[ILLEGAL_URL],
             expected_failure=True,
             partial_err_msg='Failed to resolve the following urls: {0}'
-            .format(str(expected_failed_urls), ORIGINAL_V1_URL))
+            .format(expected_failed_urls))
 
     def test_illegal_resolved_url_from_rules_fallback(self):
         rules = [

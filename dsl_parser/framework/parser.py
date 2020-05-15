@@ -586,9 +586,8 @@ class Parser(object):
                 for input in requirements:
                     if input.name not in context.inputs and input.required:
                         raise exceptions.DSLParsingFormatException(
-                            1, "Missing required input '{0}'. "
-                               "Existing inputs: "
-                               .format(input.name, list(context.inputs)))
+                            1, "Missing required input '{0}'."
+                               .format(input.name))
                     required_args[input.name] = context.inputs.get(input.name)
             else:
                 if required_type == 'self':

@@ -62,7 +62,7 @@ class PythonWrapperTests(testtools.TestCase):
     def _prescript(self):
         return (
             '#!/usr/bin/env python\n'
-            'from ctxwrapper import ctx\n'.format(self.tempdir)
+            'from ctxwrapper import ctx\n'
         )
 
     def _create_script(self, script):
