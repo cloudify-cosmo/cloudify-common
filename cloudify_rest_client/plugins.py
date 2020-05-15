@@ -143,6 +143,13 @@ class Plugin(dict):
         """
         return self.get('yaml_url_path')
 
+    @property
+    def title(self):
+        """
+        :return: The title assigned to the plugin during upload.
+        """
+        return self.get('title')
+
 
 class PluginsClient(object):
     """
