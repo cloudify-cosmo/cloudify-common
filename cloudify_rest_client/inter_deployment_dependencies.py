@@ -121,3 +121,16 @@ class InterDeploymentDependencyClient(object):
                                 _include=_include,
                                 params=params)
         return self._wrap_list(response)
+
+    def restore(self, deployment_id, update_service_composition):
+        """
+        Updating the inter deployment dependencies table from the specified
+        deployment during an upgrade
+
+       """
+        data = {
+            'deployment_id': deployment_id,
+            'update_service_composition': update_service_composition,
+        }
+        self.api.post('/{self._uri_prefix}/restore'.format(self=self),
+                      data=data)
