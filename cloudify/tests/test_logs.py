@@ -1,3 +1,4 @@
+# This Python file uses the following encoding: utf-8
 ########
 # Copyright (c) 2016 GigaSpaces Technologies Ltd. All rights reserved
 #
@@ -27,5 +28,16 @@ class TestLogs(testtools.TestCase):
                       'timestamp': '',
                       'message': {'text': 'message'}}
         self.assertIn('message', logs.create_event_message_prefix(test_event))
+        test_event['level'] = 'DEBUG'
+        self.assertIsNone(logs.create_event_message_prefix(test_event))
+
+    def test_create_event_message_prefix_unicode(self):
+        test_event = {'type': 'cloudify_log',
+                      'level': 'INFO',
+                      'context': {'deployment_id': ''},
+                      'timestamp': '',
+                      'message': {'text': u'Zażółć gęślą jaźń'}}
+        self.assertIn(u'Zażółć gęślą jaźń',
+                      logs.create_event_message_prefix(test_event))
         test_event['level'] = 'DEBUG'
         self.assertIsNone(logs.create_event_message_prefix(test_event))
