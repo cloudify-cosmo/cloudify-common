@@ -22,6 +22,7 @@ PY2 = sys.version_info[0] == 2
 
 if PY2:
     import httplib
+    import xmlrpclib
     import Queue as queue
     from urllib import quote as urlquote, pathname2url, urlencode, unquote
     from urllib2 import urlopen
@@ -44,8 +45,9 @@ def exec_(code, globs):
 else:
     import builtins
     import queue
-    from io import StringIO
+    import xmlrpc.client as xmlrpclib
     import http.client as httplib
+    from io import StringIO
     from configparser import SafeConfigParser
     from urllib.parse import (
         quote as urlquote, urlparse, urljoin, parse_qs, urlencode, unquote
@@ -62,5 +64,5 @@ else:
 __all__ = [
     'PY2', 'queue', 'StringIO', 'reraise', 'text_type', 'urlquote',
     'urlparse', 'exec_', 'urljoin', 'urlopen', 'pathname2url', 'parse_qs'
-    'urlencode', 'unquote', 'httplib', 'SafeConfigParser'
+    'urlencode', 'unquote', 'httplib', 'SafeConfigParser', 'xmlrpclib'
 ]
