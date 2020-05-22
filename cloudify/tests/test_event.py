@@ -1,3 +1,4 @@
+# This Python file uses the following encoding: utf-8
 ########
 # Copyright (c) 2016 GigaSpaces Technologies Ltd. All rights reserved
 #
@@ -19,6 +20,7 @@ import testtools
 
 from cloudify import utils
 from cloudify import event
+from cloudify._compat import text_type
 
 
 class TestEvent(testtools.TestCase):
@@ -91,10 +93,27 @@ class TestEvent(testtools.TestCase):
         self.assertIn('Causes (most recent cause last):', text)
         self.assertEqual(2, text.count(causes[0]['traceback']))
 
+    def test_event_unicode_event(self):
+        test_event = _event('cloudify_event', level='INFO',
+                            message=u'אני אבחן אותך ביסודיות',
+                            deployment_id='b44a008f-a8fa-4790-xyz',
+                            timestamp='NOW')
+        self.assertIn(u'אני אבחן אותך ביסודיות', text_type(test_event))
+
+    def test_event_unicode_log(self):
+        test_event = _event('cloudify_log', level='DEBUG',
+                            message=u'אני אבחן אותך ביסודיות',
+                            deployment_id='64be2ce0-93c5-453e-qwe',
+                            timestamp='THEN')
+        self.assertIn(u'אני אבחן אותך ביסודיות', text_type(test_event))
+
 
 def _event(type, event_type=None, level=None, message=None,
-           causes=None, verbosity_level=event.NO_VERBOSE):
+           causes=None, verbosity_level=event.NO_VERBOSE, deployment_id=None,
+           timestamp=None):
     result = {'type': type, 'context': {}}
+    if deployment_id:
+        result['context']['deployment_id'] = deployment_id
     if event_type:
         result['event_type'] = event_type
     if level:
@@ -103,4 +122,6 @@ def _event(type, event_type=None, level=None, message=None,
         result['message'] = {'text': message}
     if causes:
         result['context']['task_error_causes'] = causes
+    if timestamp:
+        result['timestamp'] = timestamp
     return event.Event(result, verbosity_level=verbosity_level)
