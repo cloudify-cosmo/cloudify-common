@@ -25,8 +25,10 @@ if PY2:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
+    text_type = unicode
 else:
     import queue
     from io import StringIO
+    text_type = str
 
-__all__ = ['PY2', 'queue', 'StringIO']
+__all__ = ['PY2', 'queue', 'StringIO', 'text_type']
