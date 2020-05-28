@@ -235,8 +235,11 @@ def process_ctx_request(ctx, args):
 def _desugar_attr(obj, attr):
     if not isinstance(attr, text_type):
         return None
-    if hasattr(obj, attr):
-        return attr
+    try:
+        if hasattr(obj, attr):
+            return attr
+    except UnicodeError:
+        return None
     attr = attr.replace('-', '_')
     if hasattr(obj, attr):
         return attr
