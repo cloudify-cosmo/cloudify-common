@@ -414,8 +414,7 @@ class OutputConsumer(object):
 
     def consume_output(self):
         for line in self.out:
-            line = line.rstrip('\n').decode('utf-8', 'replace')
-            self.logger.info("%s%s", self.prefix, line)
+            self.logger.info("%s%s", self.prefix, line.rstrip('\n'))
         self.out.close()
 
     def join(self):
