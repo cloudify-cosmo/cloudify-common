@@ -1718,7 +1718,9 @@ class WorkflowDeploymentContext(context.DeploymentContext):
         :rtype: Modification
         """
         handler = self.workflow_ctx.internal.handler
-        return handler.start_deployment_modification(nodes)
+        modification = handler.start_deployment_modification(nodes)
+        self.workflow_ctx.refresh_node_instances()
+        return modification
 
     def list_started_modifications(self):
         """List modifications already started (and not finished)
