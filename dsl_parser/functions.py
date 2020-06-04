@@ -680,15 +680,17 @@ class Concat(Function):
 
 
 class InterDeploymentDependencyCreatingFunction(Function):
+    def __init__(self, args, **kwargs):
+        self.capability_path = None
+        super(InterDeploymentDependencyCreatingFunction, self).__init__(
+            args, **kwargs)
 
     def register_function_to_plan(self, plan):
-        if not self.function_identifier:
-            return
-
         plan.setdefault(
             INTER_DEPLOYMENT_FUNCTIONS,
             {}
-        )[self.function_identifier] = self.target_deployment
+        )[self.function_identifier] = (self.target_deployment,
+                                       str(self.capability_path[0]))
 
     def evaluate(self, handler):
         handler.set_inter_deployment_dependency(
@@ -706,23 +708,14 @@ class InterDeploymentDependencyCreatingFunction(Function):
 
     @property
     def function_identifier(self):
-        if self.path.startswith(EVAL_FUNCS_PATH_DEFAULT_PREFIX):
-            return 'nodes.{node}.operations.{operation}.inputs.{path}.' \
-                   'get_capability'.format(
-                    node=self.context.get('node'),
-                    operation=self.context.get('operation'),
-                    path=self.path.split('.', 1)[1]
-                    )
-        else:
-            return '{0}.{1}'.format(self.path, self.name)
+        path = (self.path.split('.', 1)[1] if
+                self.path.startswith(EVAL_FUNCS_PATH_DEFAULT_PREFIX)
+                else self.path)
+        return '{0}.{1}'.format(path, self.name)
 
 
 @register(name='get_capability', func_eval_type=RUNTIME_FUNC)
 class GetCapability(InterDeploymentDependencyCreatingFunction):
-    def __init__(self, args, **kwargs):
-        self.capability_path = None
-        super(GetCapability, self).__init__(args, **kwargs)
-
     def parse_args(self, args):
         if not isinstance(args, list):
             raise ValueError(
