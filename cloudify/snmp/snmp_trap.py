@@ -16,18 +16,22 @@
 import time
 import json
 from calendar import timegm
-
-from pysnmp.hlapi import (SnmpEngine,
-                          ContextData,
-                          CommunityData,
-                          ObjectIdentity,
-                          NotificationType,
-                          sendNotification,
-                          UdpTransportTarget,
-                          OctetString,
-                          Counter64)
-
 from cloudify.utils import setup_logger
+
+try:
+    from pysnmp.hlapi import (SnmpEngine,
+                              ContextData,
+                              CommunityData,
+                              ObjectIdentity,
+                              NotificationType,
+                              sendNotification,
+                              UdpTransportTarget,
+                              OctetString,
+                              Counter64)
+except ImportError:
+    SNMP_AVAILABLE = False
+else:
+    SNMP_AVAILABLE = True
 
 
 # The name of our mib
@@ -61,6 +65,8 @@ notification_types = {
 
 
 def send_snmp_trap(event_context, **kwargs):
+    if not SNMP_AVAILABLE:
+        raise RuntimeError('pysnmp not available')
     notification_type = _create_notification_type(event_context)
     destination_address = kwargs['destination_address']
     destination_port = kwargs['destination_port']

@@ -22,8 +22,7 @@ install_requires = [
     'proxy_tools==0.1.0',
     'bottle==0.12.18',
     'jinja2>=2.10,<2.11',
-    'requests_toolbelt==0.8.0',
-    'pysnmp==4.4.5'
+    'requests_toolbelt==0.8.0'
 ]
 
 try:
@@ -69,6 +68,9 @@ setup(
         'dispatcher': [
             'PyYAML==3.12',
             'networkx==1.9.1',
+        ],
+        'snmp': [
+            'pysnmp==4.4.5'
         ]
     }
 )
