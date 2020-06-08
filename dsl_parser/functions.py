@@ -692,7 +692,6 @@ class InterDeploymentDependencyCreatingFunction(Function):
         )[self.function_identifier] = self.target_deployment
 
     def evaluate(self, handler):
-        handler.update_inter_deployment_dependency(self.target_deployment[0])
         return self._evaluate(handler)
 
     @abc.abstractmethod
@@ -1013,10 +1012,6 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             capability = self._storage.get_capability(capability_path)
             self._capabilities_cache[capability_id] = capability
         return self._capabilities_cache[capability_id]
-
-    def update_inter_deployment_dependency(self,
-                                           target_deployment):
-        self._storage.update_inter_deployment_dependency(target_deployment)
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
