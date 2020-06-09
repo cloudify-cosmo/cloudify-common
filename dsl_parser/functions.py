@@ -680,10 +680,6 @@ class Concat(Function):
 
 
 class InterDeploymentDependencyCreatingFunction(Function):
-    def __init__(self, args, **kwargs):
-        self.capability_path = None
-        super(InterDeploymentDependencyCreatingFunction, self).__init__(
-            args, **kwargs)
 
     def register_function_to_plan(self, plan):
         plan.setdefault(
@@ -709,6 +705,10 @@ class InterDeploymentDependencyCreatingFunction(Function):
 
 @register(name='get_capability', func_eval_type=RUNTIME_FUNC)
 class GetCapability(InterDeploymentDependencyCreatingFunction):
+    def __init__(self, args, **kwargs):
+        self.capability_path = None
+        super(GetCapability, self).__init__(args, **kwargs)
+
     def parse_args(self, args):
         if not isinstance(args, list):
             raise ValueError(
@@ -745,7 +745,7 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
     def target_deployment(self):
         first_arg = self.capability_path[0]
         target_deployment = None if is_function(first_arg) else first_arg
-        return target_deployment, str(first_arg)
+        return target_deployment, first_arg
 
 
 def _get_property_value(node_name,

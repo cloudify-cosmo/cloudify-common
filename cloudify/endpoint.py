@@ -135,8 +135,6 @@ class Endpoint(object):
         evaluation_context = {}
         if self.ctx.type == constants.NODE_INSTANCE:
             evaluation_context['self'] = self.ctx.instance.id
-            evaluation_context['node'] = self.ctx.node.id
-            evaluation_context['operation'] = self.ctx.operation.name
         elif self.ctx.type == constants.RELATIONSHIP_INSTANCE:
             evaluation_context.update({
                 'source': self.ctx.source.instance.id,
