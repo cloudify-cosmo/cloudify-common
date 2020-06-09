@@ -682,21 +682,12 @@ class Concat(Function):
 class InterDeploymentDependencyCreatingFunction(Function):
 
     def register_function_to_plan(self, plan):
-        if not self.function_identifier:
-            return
-
         plan.setdefault(
             INTER_DEPLOYMENT_FUNCTIONS,
             {}
         )[self.function_identifier] = self.target_deployment
 
     def evaluate(self, handler):
-        if not self.function_identifier:
-            return self._evaluate(handler)
-
-        handler.set_inter_deployment_dependency(
-            self.target_deployment,
-            self.function_identifier)
         return self._evaluate(handler)
 
     @abc.abstractmethod
@@ -709,9 +700,7 @@ class InterDeploymentDependencyCreatingFunction(Function):
 
     @property
     def function_identifier(self):
-        if not self.path.startswith(EVAL_FUNCS_PATH_DEFAULT_PREFIX):
-            return '{0}.{1}'.format(self.path, self.name)
-        return None
+        return '{0}.{1}'.format(self.path, self.name)
 
 
 @register(name='get_capability', func_eval_type=RUNTIME_FUNC)
@@ -755,7 +744,8 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
     @property
     def target_deployment(self):
         first_arg = self.capability_path[0]
-        return None if is_function(first_arg) else first_arg
+        target_deployment = None if is_function(first_arg) else first_arg
+        return target_deployment, first_arg
 
 
 def _get_property_value(node_name,
@@ -1022,12 +1012,6 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             capability = self._storage.get_capability(capability_path)
             self._capabilities_cache[capability_id] = capability
         return self._capabilities_cache[capability_id]
-
-    def set_inter_deployment_dependency(self,
-                                        target_deployment,
-                                        function_identifier):
-        self._storage.set_inter_deployment_dependency(target_deployment,
-                                                      function_identifier)
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):

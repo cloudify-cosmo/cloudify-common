@@ -280,10 +280,15 @@ outputs:
 
         parsed = prepare_deployment_plan(self.parse(yaml))
         get_cap_path1 = '{0}.output1.value.get_capability'.format(OUTPUTS)
+        cap_path1_func = {'get_capability': ['dep_1', 'cap_a']}
         get_cap_path2 = '{0}.output1.value.get_capability[0].get_capability' \
                         ''.format(OUTPUTS)
+        cap_path2_func = 'dep_1'
         get_cap_path3 = '{0}.output2.value.get_capability'.format(OUTPUTS)
+        cap_path3_func = {'get_attribute': ['node', 'doesnt_matter']}
+
         self.assertIn(INTER_DEPLOYMENT_FUNCTIONS, parsed)
-        _assert_capability_is_registered(get_cap_path1, None)
-        _assert_capability_is_registered(get_cap_path2, 'dep_1')
-        _assert_capability_is_registered(get_cap_path3, None)
+        _assert_capability_is_registered(get_cap_path1, (None, cap_path1_func))
+        _assert_capability_is_registered(get_cap_path2, ('dep_1',
+                                                         cap_path2_func))
+        _assert_capability_is_registered(get_cap_path3, (None, cap_path3_func))
