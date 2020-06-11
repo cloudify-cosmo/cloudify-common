@@ -83,7 +83,8 @@ class InterDeploymentDependencyClient(object):
     def delete(self,
                dependency_creator,
                source_deployment,
-               target_deployment):
+               target_deployment,
+               is_component_deletion=False):
         """Deletes an inter-deployment dependency.
 
         :param dependency_creator: a string representing the entity that
@@ -93,11 +94,15 @@ class InterDeploymentDependencyClient(object):
          deployment.
         :param target_deployment: the deployment that the source deployment
          depends on.
+        :param is_component_deletion: a special flag for allowing the
+         deletion of a Component inter-deployment dependency when the target
+         deployment is already deleted.
         :return: an InterDeploymentDependency object.
         """
         data = create_deployment_dependency(dependency_creator,
                                             source_deployment,
                                             target_deployment)
+        data['is_component_deletion'] = is_component_deletion
         response = self.api.delete(
             '/{self._uri_prefix}'.format(self=self), data=data)
         return self._wrapper_cls(response)
