@@ -16,17 +16,25 @@
 DEPENDENCY_CREATOR = 'dependency_creator'
 SOURCE_DEPLOYMENT = 'source_deployment'
 TARGET_DEPLOYMENT = 'target_deployment'
+EXTERNAL_SOURCE = 'external_source'
+EXTERNAL_TARGET = 'external_target'
 
 
-def create_deployment_dependency(dependency_creator, source_deployment,
-                                 target_deployment=None):
+def create_deployment_dependency(dependency_creator,
+                                 source_deployment,
+                                 target_deployment=None,
+                                 external_source=None,
+                                 external_target=None):
     dependency = {
         DEPENDENCY_CREATOR: dependency_creator,
         SOURCE_DEPLOYMENT: source_deployment,
     }
-
     if target_deployment:
         dependency[TARGET_DEPLOYMENT] = target_deployment
+    if external_source:
+        dependency[EXTERNAL_SOURCE] = external_source
+    if external_target:
+        dependency[EXTERNAL_TARGET] = external_target
     return dependency
 
 
