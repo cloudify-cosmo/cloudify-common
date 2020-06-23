@@ -161,11 +161,6 @@ class ManagerItem(dict):
         """Content of the CA cert to use for connecting to this manager"""
         return self.get('ca_cert_content')
 
-    @property
-    def node_id(self):
-        """Cloudify's auto-generated node id"""
-        return self.get('node_id')
-
 
 class DBNodeItem(dict):
     def __init__(self, db_node):
