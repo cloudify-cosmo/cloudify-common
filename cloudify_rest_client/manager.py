@@ -376,8 +376,7 @@ class ManagerClient(object):
             response['metadata']
         )
 
-    def add_broker(self, name, address, port=None, networks=None,
-                   node_id=None):
+    def add_broker(self, name, address, port=None, networks=None):
         """Add a broker to the brokers table.
 
         This will allow cloudify components to use this broker.
@@ -391,7 +390,6 @@ class ManagerClient(object):
             default network with the address parameter. If this is supplied,
             the address in the address parameter must belong to one of the
             networks.
-        :param node_id: Cloudify's auto-generated node id.
 
         :return: The broker that was created.
         """
@@ -403,8 +401,6 @@ class ManagerClient(object):
             params['port'] = port
         if networks:
             params['networks'] = networks
-        if node_id:
-            params['node_id'] = node_id
         response = self.api.post('/brokers', data=params)
         return RabbitMQBrokerItem(response)
 
