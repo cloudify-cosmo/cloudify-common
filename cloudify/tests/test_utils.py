@@ -15,6 +15,7 @@
 
 import os
 import mock
+import shutil
 import logging
 import tempfile
 from testtools import TestCase
@@ -26,6 +27,7 @@ from cloudify.utils import (
     merge_plugins,
     get_exec_tempdir,
     LocalCommandRunner)
+from cloudify_rest_client import utils as rest_utils
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
@@ -186,3 +188,17 @@ class TestPluginInstallationTaskExecutionFuncs(TestCase):
                 'plugins': plugins_list,
                 'delete_managed_plugins': False})
         self.sequence_mock.add.assert_called_with('send_event', 'execute_task')
+
+
+class TestRestUtils(object):
+    def test_get_folder_size_and_files(self):
+        temp_dir = tempfile.mkdtemp()
+        sub_dir = os.path.join(temp_dir, 'sub_dir')
+        os.mkdir(sub_dir)
+        os_dir_size = os.path.getsize(temp_dir)
+        open(os.path.join(temp_dir, '1.bin'), 'wb').write(b'ABCD')
+        open(os.path.join(sub_dir, '2.bin'), 'wb').write(b'1234567890')
+        expected_dir_size = 2 * os_dir_size + 14
+        assert rest_utils.get_folder_size_and_files(temp_dir) == \
+            (expected_dir_size, 3)
+        shutil.rmtree(temp_dir)

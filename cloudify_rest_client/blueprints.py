@@ -25,6 +25,9 @@ from cloudify_rest_client._compat import urlquote, urlparse
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
+BLUEPRINT_SIZE_LIMIT = 50000000
+BLUEPRINT_FILES_LIMIT = 500
+
 
 class Blueprint(dict):
 
@@ -153,13 +156,23 @@ class BlueprintsClient(object):
             expected_status_code=204
         )
 
-    def _validate_blueprint_size(self, path, tempdir, skip_size_limit):
+    @staticmethod
+    def _validate_blueprint_size(path, tempdir, skip_size_limit):
+        blueprint_directory = os.path.dirname(path) or os.getcwd()
+        size, files = utils.get_folder_size_and_files(blueprint_directory)
+        if not skip_size_limit:
+            error_message = '{0}, move some resources from the blueprint ' \
+                            'folder to an external location or upload the ' \
+                            'blueprint folder as a zip file.'
+            if size > BLUEPRINT_SIZE_LIMIT:
+                raise Exception(error_message.format(
+                    'Blueprint folder size exceeds {} MB'.format(
+                        (BLUEPRINT_SIZE_LIMIT // 1000000))))
+            if files > BLUEPRINT_FILES_LIMIT:
+                raise Exception(error_message.format(
+                    'Number of files in blueprint folder exceeds {}'.format(
+                        BLUEPRINT_FILES_LIMIT)))
         tar_path = utils.tar_blueprint(path, tempdir)
-        if not skip_size_limit and os.path.getsize(tar_path) > 30000000:
-            raise Exception('Blueprint folder exceeds 30 MB, '
-                            'move some resources from the blueprint '
-                            'folder to an external location or upload'
-                            ' the blueprint folder as a zip file.')
         return tar_path, os.path.basename(path)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
