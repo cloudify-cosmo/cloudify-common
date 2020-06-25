@@ -60,3 +60,17 @@ def is_kerberos_env():
     if os.path.exists('/etc/krb5.conf') and find_executable('klist'):
         return True
     return False
+
+
+def get_folder_size_and_files(path):
+    size = os.path.getsize(path)
+    files = len(os.listdir(path))
+    for entry in os.listdir(path):
+        entry_path = os.path.join(path, entry)
+        if os.path.isfile(entry_path) and not os.path.islink(entry_path):
+            size += os.path.getsize(entry_path)
+        elif os.path.isdir(entry_path):
+            sub_size, sub_files = get_folder_size_and_files(entry_path)
+            size += sub_size
+            files += sub_files
+    return size, files
