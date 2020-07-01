@@ -26,7 +26,7 @@ from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
 BLUEPRINT_SIZE_LIMIT = 50000000
-BLUEPRINT_FILES_LIMIT = 500
+BLUEPRINT_FILES_LIMIT = 10000
 
 
 class Blueprint(dict):
