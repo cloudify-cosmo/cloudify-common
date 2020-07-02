@@ -319,3 +319,24 @@ class ExecutionsClient(object):
                                  data={'action': 'requeue'},
                                  expected_status_code=200)
         return self._wrapper_cls(response)
+
+    def delete(self, to_datetime=None, keep_last=None, **kwargs):
+        """Deletes finished executions from the DB.
+
+        :param to_datetime: Until which timestamp to delete executions
+        :param keep_last: How many most recent executions to keep from deletion
+        :param kwargs: Optional filter fields. For a list of available fields
+               see the REST service's models.Execution.fields
+        :return: List of deleted executions.
+
+        Parameters `to_datetime` and `keep_last` are mutually-exclusive.
+        """
+        data = {}
+        if to_datetime:
+            data['to_datetime'] = to_datetime.isoformat()
+        if keep_last:
+            data['keep_last'] = keep_last
+        response = self.api.delete('/{self._uri_prefix}'.format(self=self),
+                                   data=data,
+                                   params=kwargs)
+        return response['items'][0]['count']
