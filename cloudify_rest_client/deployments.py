@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import warnings
+
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -283,16 +285,19 @@ class DeploymentsClient(object):
         return Deployment(response)
 
     def delete(self, deployment_id,
-               ignore_live_nodes=False,
+               force=False,
                delete_db_mode=False,
-               with_logs=False):
+               with_logs=False,
+               ignore_live_nodes=None):
         """
         Deletes the deployment whose id matches the provided deployment id.
-        By default, deployment with live nodes deletion is not allowed and
-        this behavior can be changed using the ignore_live_nodes argument.
+        By default, deletion of a deployment with live nodes or installations
+        which depend on it is not allowed. This behavior can be changed
+        using the force argument.
 
         :param deployment_id: The deployment's to be deleted id.
-        :param ignore_live_nodes: Determines whether to ignore live nodes.
+        :param force: Delete deployment even if there are existing live nodes
+               for it, or existing installations which depend on it.
         :param delete_db_mode: when set to true the deployment is deleted from
                the DB. This option is used by the `delete_dep_env` workflow to
                make sure the dep is deleted AFTER the workflow finished
@@ -302,12 +307,13 @@ class DeploymentsClient(object):
         :return: The deleted deployment.
         """
         assert deployment_id
-
-        ignore_live_nodes = 'true' if ignore_live_nodes else 'false'
-        delete_db_mode = 'true' if delete_db_mode else 'false'
-        params = {'ignore_live_nodes': ignore_live_nodes,
+        params = {'force': force,
                   'delete_db_mode': delete_db_mode,
-                  'delete_logs': 'true' if with_logs else 'false'}
+                  'delete_logs': with_logs}
+        if ignore_live_nodes is not None:
+            warnings.warn("'ignore_live_nodes' is deprecated, use 'force' "
+                          "instead",  DeprecationWarning)
+            params['force'] = force or ignore_live_nodes
 
         response = self.api.delete('/deployments/{0}'.format(deployment_id),
                                    params=params)
