@@ -50,6 +50,12 @@ from cloudify.error_handling import (
     serialize_known_exception,
     deserialize_known_exception
 )
+
+try:
+    from cloudify_agent.api.plugins import installer as plugin_installer
+except ImportError:
+    plugin_installer = None
+
 try:
     from cloudify.workflows import api
     from cloudify.workflows import workflow_context
@@ -88,6 +94,12 @@ SYSTEM_DEPLOYMENT = '__system__'
 PLUGINS_DIR = os.path.join(VIRTUALENV, 'plugins')
 DISPATCH_LOGGER_FORMATTER = logging.Formatter(
     '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
+PREINSTALLED_PLUGINS = [
+    'agent',
+    'script',
+    'cfy_extensions',
+    'default_workflows'
+]
 
 
 class LockedFile(object):
@@ -274,7 +286,12 @@ class TaskHandler(object):
             if self.cloudify_context.get('bypass_maintenance'):
                 os.environ[constants.BYPASS_MAINTENANCE] = 'True'
             env = self._build_subprocess_env()
+
             plugin_dir = self._extract_plugin_dir()
+            if not plugin_dir and self._should_install_plugin():
+                self._install_plugin()
+                plugin_dir = self._extract_plugin_dir()
+
             if plugin_dir:
                 executable = utils.get_python_path(plugin_dir)
             else:
@@ -328,6 +345,34 @@ class TaskHandler(object):
             env[constants.BYPASS_MAINTENANCE] = 'True'
 
         return env
+
+    def _should_install_plugin(self):
+        plugin = self.cloudify_context.get('plugin')
+        if not plugin or not plugin.get('name'):
+            return False
+        if plugin['name'] in PREINSTALLED_PLUGINS:
+            return False
+        return True
+
+    def _install_plugin(self):
+        plugin = self.cloudify_context.get('plugin')
+        if plugin_installer is None:
+            raise RuntimeError(
+                "cloudify_agent's plugin_installer is not available, "
+                "cannot install plugin: {0}".format(plugin))
+        with state.current_ctx.push(self.ctx, self.kwargs):
+            # source plugins are per-deployment/blueprint, while non-source
+            # plugins are expected to be "managed", ie. uploaded to the manager
+            if plugin.get('source'):
+                dep_id = self.ctx.deployment.id
+                bp_id = self.ctx.blueprint.id
+            else:
+                dep_id = None
+                bp_id = None
+            plugin_installer.install(
+                plugin,
+                deployment_id=dep_id,
+                blueprint_id=bp_id)
 
     def _extract_plugin_dir(self):
         plugin = self.cloudify_context.get('plugin', {})
