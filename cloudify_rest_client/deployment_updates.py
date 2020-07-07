@@ -17,6 +17,7 @@ import os
 import json
 import shutil
 import tempfile
+import warnings
 
 from mimetypes import MimeTypes
 
@@ -210,7 +211,7 @@ class DeploymentUpdatesClient(object):
         if skip_reinstall is not None:
             params['skip_reinstall'] = skip_reinstall
         if force:
-            params['force'] = force
+            warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
         if ignore_failure:
             params['ignore_failure'] = ignore_failure
         if install_first:
@@ -244,12 +245,13 @@ class DeploymentUpdatesClient(object):
                                        preview=False,
                                        update_plugins=True,
                                        runtime_only_evaluation=None):
+        if force:
+            warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
         data = {
             'workflow_id': workflow_id,
             'skip_install': skip_install,
             'skip_uninstall': skip_uninstall,
             'skip_reinstall': skip_reinstall,
-            'force': force,
             'ignore_failure': ignore_failure,
             'install_first': install_first,
             'preview': preview,
