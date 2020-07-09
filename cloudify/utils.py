@@ -543,9 +543,14 @@ class Internal(object):
     @staticmethod
     def _get_package_version(plugins_dir, package_name):
         # get all plugin dirs
-        subdirs = next(os.walk(plugins_dir))[1]
+        try:
+            subdirs = next(os.walk(plugins_dir))[1]
+        except StopIteration:
+            return
         # filter by package name
         package_dirs = [dir for dir in subdirs if dir.startswith(package_name)]
+        if not package_dirs:
+            return
         # cut package name prefix
         versions = [dir[len(package_name) + 1:] for dir in package_dirs]
         # return the latest version
