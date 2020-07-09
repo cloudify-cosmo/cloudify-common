@@ -13,10 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import json
-
-from cloudify.cluster_status import CloudifyNodeType
-
 
 class ClusterStatusClient(object):
     """
@@ -25,7 +21,6 @@ class ClusterStatusClient(object):
 
     def __init__(self, api):
         self.api = api
-        self._uri_prefix = '/cluster-status/{0}/{1}'
 
     def get_status(self, summary_format=False):
         """
@@ -33,15 +28,3 @@ class ClusterStatusClient(object):
         """
         return self.api.get('/cluster-status',
                             params={'summary': summary_format})
-
-    def report_node_status(self, node_type, node_id, status_report):
-        if node_type not in CloudifyNodeType.TYPE_LIST:
-            raise Exception('Tried to send a status report for not '
-                            'Cloudify\'s node type \"{}\"'.format(node_type))
-        if not isinstance(status_report, dict):
-            raise Exception('Tried to send malformed cluster node\'s '
-                            'status report of type {0}'.format(
-                             type(status_report)))
-        data = json.dumps(status_report)
-        uri = self._uri_prefix.format(node_type, node_id)
-        return self.api.put(uri, data)
