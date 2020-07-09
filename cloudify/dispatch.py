@@ -459,22 +459,11 @@ class OperationHandler(TaskHandler):
             ctx.resume = True
         if store:
             ctx.update_operation(constants.TASK_STARTED)
-
         try:
             yield
-            error = False
-        except Exception:
-            error = True
-            raise
         finally:
             if store:
-                if ctx.operation._operation_retry:
-                    state = constants.TASK_RESCHEDULED
-                elif error:
-                    state = constants.TASK_FAILED
-                else:
-                    state = constants.TASK_SUCCEEDED
-                ctx.update_operation(state)
+                ctx.update_operation(constants.TASK_RESPONSE_SENT)
 
     @contextmanager
     def _amqp_client(self):

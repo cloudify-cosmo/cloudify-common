@@ -32,6 +32,7 @@ from cloudify.constants import (
     TASK_SENDING,
     TASK_SENT,
     TASK_STARTED,
+    TASK_RESPONSE_SENT,
     TASK_RESCHEDULED,
     TASK_SUCCEEDED,
     TASK_FAILED,
@@ -343,11 +344,10 @@ class WorkflowTask(object):
 
     def _should_resume(self):
         """Has this task already been sent and should be resumed?"""
-        return (self._state in (TASK_SENT, TASK_STARTED) and
-                self.async_result is None)
-
-    def _can_resend(self):
-        return False
+        return (
+            self._state in (TASK_SENT, TASK_STARTED, TASK_RESPONSE_SENT) and
+            self.async_result is None
+        )
 
 
 class RemoteWorkflowTask(WorkflowTask):
@@ -443,12 +443,6 @@ class RemoteWorkflowTask(WorkflowTask):
         # can safely be rerun
         if state == TASK_SENDING:
             return
-        # final states are set by the agent side
-        if state in TERMINATED_STATES:
-            # Unless we failed sending the task
-            if not (state == TASK_FAILED and self._state in (TASK_SENDING,
-                                                             TASK_SENT)):
-                return
         return super(RemoteWorkflowTask, self)._update_stored_state(state)
 
     def apply_async(self):
@@ -462,13 +456,11 @@ class RemoteWorkflowTask(WorkflowTask):
         # 1) this is the first execution of this task (state=pending)
         # 2) this is a resume (state=sent|started) and the task is a central
         #    deployment agent task
-        should_send = self._state == TASK_PENDING or self._should_resume()
+        should_send = self._state == TASK_PENDING
         if self._state == TASK_PENDING:
             self.set_state(TASK_SENDING)
         try:
             self._set_queue_kwargs()
-            if self._can_resend():
-                self.kwargs['__cloudify_context']['resume'] = True
             task = self.workflow_context.internal.handler.get_task(
                 self, queue=self._task_queue, target=self._task_target,
                 tenant=self._task_tenant)
@@ -624,11 +616,7 @@ class RemoteWorkflowTask(WorkflowTask):
                     self._cloudify_agent['rest_host'])
         else:
             return MGMTWORKER_QUEUE, MGMTWORKER_QUEUE, None, \
-                   self.workflow_context.rest_host
-
-    def _can_resend(self):
-        return (self.cloudify_context['executor'] != 'host_agent' and
-                self._should_resume())
+                self.workflow_context.rest_host
 
 
 class LocalWorkflowTask(WorkflowTask):
