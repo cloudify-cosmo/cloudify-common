@@ -360,7 +360,7 @@ def exception_to_error_cause(exception, tb):
     etype = type(exception)
     traceback.print_exception(etype, exception, tb, file=error)
     return {
-        'message': str(exception),
+        'message': u'{0}'.format(exception),
         'traceback': error.getvalue(),
         'type': etype.__name__
     }
