@@ -411,7 +411,8 @@ class LocalCommandRunner(object):
             stdout_pipe=True,
             stderr_pipe=True,
             cwd=None,
-            execution_env=None):
+            execution_env=None,
+            encoding='utf-8'):
 
         """
         Runs local commands.
@@ -441,9 +442,9 @@ class LocalCommandRunner(object):
                              stderr=stderr, cwd=cwd, env=command_env)
         out, err = p.communicate()
         if out is not None:
-            out = out.rstrip().decode('utf-8', 'replace')
+            out = out.rstrip().decode(encoding, 'replace')
         if err is not None:
-            err = err.rstrip().decode('utf-8', 'replace')
+            err = err.rstrip().decode(encoding, 'replace')
 
         if p.returncode != 0:
             error = CommandExecutionException(
