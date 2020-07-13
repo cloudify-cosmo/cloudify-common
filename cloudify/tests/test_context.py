@@ -291,6 +291,8 @@ class PluginContextTests(testtools.TestCase):
             '{0}-{1}'.format(self.plugin_pacakge_name,
                              self.plugin_pacakge_version))
         os.makedirs(expected_prefix)
+        with open(os.path.join(expected_prefix, 'plugin.id'), 'w') as f:
+            f.write('plugin id')
         with patch('sys.prefix', self.test_prefix):
             self.assertEqual(self.ctx.plugin.prefix, expected_prefix)
 
@@ -302,6 +304,8 @@ class PluginContextTests(testtools.TestCase):
             '{0}-{1}'.format(self.deployment_id,
                              self.plugin_name))
         os.makedirs(expected_prefix)
+        with open(os.path.join(expected_prefix, 'plugin.id'), 'w') as f:
+            f.write('plugin id')
         with patch('sys.prefix', self.test_prefix):
             self.assertEqual(self.ctx.plugin.prefix, expected_prefix)
 
