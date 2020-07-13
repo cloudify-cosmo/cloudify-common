@@ -561,6 +561,12 @@ class Internal(object):
         return newest
 
     @staticmethod
+    def _is_plugin_dir(path):
+        """Is the given path a directory containing a plugin?"""
+        return (os.path.isdir(path) and
+                os.path.exists(os.path.join(path, 'plugin.id')))
+
+    @staticmethod
     def plugin_prefix(package_name=None, package_version=None,
                       deployment_id=None, plugin_name=None, tenant_name=None,
                       sys_prefix_fallback=True):
@@ -572,12 +578,12 @@ class Internal(object):
                 plugins_dir, package_name)
             wagon_dir = os.path.join(
                 plugins_dir, '{0}-{1}'.format(package_name, package_version))
-            if os.path.isdir(wagon_dir):
+            if Internal._is_plugin_dir(wagon_dir):
                 prefix = wagon_dir
         if prefix is None and deployment_id and plugin_name:
             source_dir = os.path.join(
                 plugins_dir, '{0}-{1}'.format(deployment_id, plugin_name))
-            if os.path.isdir(source_dir):
+            if Internal._is_plugin_dir(source_dir):
                 prefix = source_dir
         if prefix is None and sys_prefix_fallback:
             prefix = sys.prefix
