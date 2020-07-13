@@ -42,7 +42,7 @@ from cloudify import context
 from cloudify import utils
 from cloudify import amqp_client_utils
 from cloudify import constants
-from cloudify._compat import queue, StringIO
+from cloudify._compat import queue, StringIO, PY2
 from cloudify.amqp_client_utils import AMQPWrappedThread
 from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.constants import LOGGING_CONFIG_FILE
@@ -337,8 +337,10 @@ class TaskHandler(object):
         # Note that this is received via json, so it is unicode. It must
         # be encoded, because environment variables must be bytes.
         execution_env = self.cloudify_context.get('execution_env') or {}
-        execution_env = dict((k.encode(ENV_ENCODING), v.encode(ENV_ENCODING))
-                             for k, v in execution_env.items())
+        if PY2:
+            execution_env = dict((k.encode(ENV_ENCODING),
+                                  v.encode(ENV_ENCODING))
+                                 for k, v in execution_env.items())
         env.update(execution_env)
 
         if self.cloudify_context.get('bypass_maintenance'):
