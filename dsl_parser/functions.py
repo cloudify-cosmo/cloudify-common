@@ -875,7 +875,7 @@ def evaluate_capabilities(capabilities, storage):
     :param storage: Storage backend for runtime function evaluation
     :return: Capabilities dict.
     """
-    capabilities = dict((k, v['value']) for k, v in capabilities.items())
+    capabilities = _clean_invalid_secrets(capabilities, storage)
     return evaluate_functions(
         payload=capabilities,
         context={EVAL_FUNCS_PATH_PREFIX_KEY: CAPABILITIES},
@@ -889,12 +889,31 @@ def evaluate_outputs(outputs_def, storage):
     :param storage: Storage backend for runtime function evaluation
     :return: Outputs dict.
     """
-    outputs = dict((k, v['value']) for k, v in outputs_def.items())
+    outputs = _clean_invalid_secrets(outputs_def, storage)
     return evaluate_functions(
         payload=outputs,
         context={'evaluate_outputs': True,
                  EVAL_FUNCS_PATH_PREFIX_KEY: OUTPUTS},
         storage=storage)
+
+
+def _clean_invalid_secrets(data_dict, storage):
+    clean_dict = {}
+    for k, v in data_dict.items():
+        value = v['value']
+        if isinstance(value, dict) and 'get_secret' in value:
+            secret_key = value['get_secret']
+            if isinstance(value['get_secret'], list):
+                secret_key = secret_key[0]
+            try:
+                storage.secret_method(secret_key)
+            except Exception as e:
+                if hasattr(e, 'status_code') and e.status_code == 404:
+                    continue
+                else:
+                    raise
+        clean_dict[k] = value
+    return clean_dict
 
 
 def _args_to_str_func(handler, v, scope, context, path):
