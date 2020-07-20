@@ -15,6 +15,7 @@
 
 from cloudify.models_states import AgentState
 from cloudify_rest_client.responses import ListResponse
+from cloudify_rest_client.utils import get_file_content
 
 
 class Agent(dict):
@@ -200,3 +201,24 @@ class AgentsClient(object):
         response = self.api.patch('/{0}/{1}'.format(self._uri_prefix, name),
                                   data=data)
         return self._wrapper_cls(response)
+
+    def replace_ca_certs(self,
+                         bundle,
+                         new_manager_ca_cert,
+                         new_broker_ca_cert):
+
+        manager_ca_cert_str = (get_file_content(new_manager_ca_cert)
+                               if new_manager_ca_cert else None)
+
+        broker_ca_cert_str = (get_file_content(new_broker_ca_cert)
+                              if new_broker_ca_cert else None)
+
+        data = {
+            'bundle': bundle,
+            'broker_ca_cert': broker_ca_cert_str,
+            'manager_ca_cert': manager_ca_cert_str
+        }
+
+        response = self.api.patch('/' + self._uri_prefix, data=data)
+
+        return response
