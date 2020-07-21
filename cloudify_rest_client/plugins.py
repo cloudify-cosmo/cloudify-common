@@ -150,6 +150,34 @@ class Plugin(dict):
         """
         return self.get('title')
 
+    @property
+    def installation_state(self):
+        """Plugin installation state.
+
+        The installation state is a dict containing the installation
+        state details, eg.:
+        {
+            "managers": {
+                "manager1": {
+                    "state": "installed"
+                }
+            },
+            "agents": {
+                "agent1": {
+                    "state": "failed",
+                    "error": "error text here"
+                }
+            }
+        }
+        This means that the plugin is installed on manager1, and has
+        failed installation on agent1, and installation has not been
+        attempted on any other manager or agent.
+
+        :return: Plugin installation state, with details per agent/manager,
+
+        """
+        return self.get('installation_state')
+
 
 class PluginsClient(object):
     """
@@ -314,4 +342,45 @@ class PluginsClient(object):
         """
         assert plugin_id
         response = self.api.put('/plugins/{0}'.format(plugin_id))
+        return Plugin(response)
+
+    def install(self, plugin_id, managers=None, agents=None):
+        """Force the plugin installation on the given managers and agents
+
+        :param plugin_id: The id of the plugin to be installed.
+
+        :return: Plugin representation, with updated installation_state
+        """
+        if not managers and not agents:
+            raise RuntimeError(
+                'Specify managers or agents to install the plugin on')
+        data = {
+            'action': 'install',
+        }
+        if managers:
+            data['managers'] = managers
+        if agents:
+            data['agents'] = agents
+        response = self.api.post('/plugins/{0}'.format(plugin_id), data=data)
+        return Plugin(response)
+
+    def set_state(self, plugin_id, state, agent_name=None,
+                  manager_name=None, error=None):
+        """Update plugin installation state.
+
+        Set the plugin installation state to state, for the given agent_name
+        or manager_name, optionally with an error text.
+        """
+        if agent_name and manager_name:
+            raise RuntimeError('Specify agent_name OR manager_name, not both')
+        data = {
+            'state': state
+        }
+        if agent_name:
+            data['agent'] = agent_name
+        elif manager_name:
+            data['manager'] = manager_name
+        if error:
+            data['error'] = error
+        response = self.api.put('/plugins/{0}'.format(plugin_id), data=data)
         return Plugin(response)
