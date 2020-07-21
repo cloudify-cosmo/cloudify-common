@@ -21,9 +21,9 @@ import contextlib
 from cloudify_rest_client import utils
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client._compat import urlquote, urlparse
-
-from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
+from cloudify_rest_client.exceptions import CloudifyClientError
+from cloudify_rest_client.responses import ListResponse
 
 
 class Blueprint(dict):
@@ -157,10 +157,18 @@ class BlueprintsClient(object):
         blueprint_directory = os.path.dirname(path) or os.getcwd()
         size, files = utils.get_folder_size_and_files(blueprint_directory)
 
-        size_limit = self.api.get(
-            '/config/{0}'.format('blueprint_folder_max_size_mb'))['value']
-        files_limit = self.api.get(
-            '/config/{0}'.format('blueprint_folder_max_files'))['value']
+        try:
+            config = self.api.get('/config', params={'scope': 'rest'})
+        except CloudifyClientError as err:
+            if err.status_code == 404:
+                config = {}
+            else:
+                raise
+
+        size_limit = config.get('blueprint_folder_max_size_mb', {}).get(
+            'value', 50)
+        files_limit = config.get('blueprint_folder_max_files', {}).get(
+            'value', 10000)
 
         if not skip_size_limit:
             error_message = '{0}, move some resources from the blueprint ' \
