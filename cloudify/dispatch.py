@@ -98,7 +98,8 @@ PREINSTALLED_PLUGINS = [
     'agent',
     'script',
     'cfy_extensions',
-    'default_workflows'
+    'default_workflows',
+    'worker_installer'
 ]
 
 
