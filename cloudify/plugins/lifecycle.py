@@ -685,25 +685,12 @@ def _wait_for_host_to_start(host_node_instance):
 
 
 def prepare_running_agent(host_node_instance):
-    tasks = []
-    plugins_to_install = [
-        plugin for plugin in host_node_instance.node.plugins_to_install
-        if plugin['install']
-    ]
-
-    _plugins_install_task = plugins_install_task(host_node_instance,
-                                                 plugins_to_install)
-    if _plugins_install_task:
-        tasks += [host_node_instance.send_event('Installing plugins')]
-        tasks += [_plugins_install_task]
-    tasks += [host_node_instance.send_event('Plugins installed')]
-    tasks += [
+    return [
         host_node_instance.execute_operation(
             'cloudify.interfaces.monitoring_agent.install'),
         host_node_instance.execute_operation(
             'cloudify.interfaces.monitoring_agent.start'),
     ]
-    return tasks
 
 
 def plugins_uninstall_task(host_node_instance, plugins_to_uninstall):
