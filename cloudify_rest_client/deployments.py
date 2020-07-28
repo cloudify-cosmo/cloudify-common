@@ -314,6 +314,7 @@ class DeploymentsClient(object):
             warnings.warn("'ignore_live_nodes' is deprecated, use 'force' "
                           "instead",  DeprecationWarning)
             params['force'] = force or ignore_live_nodes
+        params['ignore_live_nodes'] = params['force']
 
         response = self.api.delete('/deployments/{0}'.format(deployment_id),
                                    params=params)
