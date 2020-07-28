@@ -151,6 +151,13 @@ class Plugin(dict):
         return self.get('title')
 
     @property
+    def tenant_name(self):
+        """
+        :return: Name of the tenant that owns this plugin.
+        """
+        return self.get('tenant_name')
+
+    @property
     def installation_state(self):
         """Plugin installation state.
 
