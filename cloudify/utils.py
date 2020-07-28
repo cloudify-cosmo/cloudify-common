@@ -841,7 +841,13 @@ def get_executable_path(executable, venv):
     :param venv: the venv to look for the executable in
     """
     if os.name == 'nt':
-        return '{0}\\Scripts\\{1}'.format(venv, executable)
+        venv_python = '{0}\\Scripts\\{1}'.format(venv, executable)
+        if os.path.exists(venv_python):
+            return venv_python
+        else:
+            # If venv python path doesn't exist, this is the embedded python
+            # interpreter used in, e.g. the windows agent
+            return sys.executable
     else:
         return '{0}/bin/{1}'.format(venv, executable)
 
