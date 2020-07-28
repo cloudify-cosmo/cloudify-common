@@ -878,13 +878,15 @@ def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
 # by plugin_prefix
 def target_plugin_prefix(name, tenant_name, version=None, deployment_id=None):
     """Target directory into which the plugin should be installed"""
-    target_dir = os.path.join(
-        sys.prefix, 'source_plugins' if deployment_id else 'plugins')
+    parts = [
+        sys.prefix,
+        'source_plugins' if deployment_id else 'plugins'
+    ]
     if tenant_name:
-        target_dir = os.path.join(target_dir, tenant_name)
+        parts.append(tenant_name)
     if deployment_id:
-        target_dir = os.path.join(target_dir, deployment_id)
+        parts.append(deployment_id)
     # if version is not given, default to 0.0.0 so that version that _are_
     # declared always take precedence
-    target_dir = os.path.join(target_dir, name, version or '0.0.0')
-    return target_dir
+    parts += [name, version or '0.0.0']
+    return os.path.join(*parts)
