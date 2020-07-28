@@ -755,7 +755,6 @@ class LocalWorkflowTest(BaseWorkflowTest):
             self.assertEqual(PLUGIN_PACKAGE_NAME, ctx.plugin.package_name)
             self.assertEqual(PLUGIN_PACKAGE_VERSION,
                              ctx.plugin.package_version)
-            self.assertEqual(sys.prefix, ctx.plugin.prefix)
             self.assertEqual('test.op0', ctx.operation.name)
             self.assertEqual(ctx.node.properties.get('property'), 'value'),
             self.assertEqual(b'content', ctx.get_resource('resource'))

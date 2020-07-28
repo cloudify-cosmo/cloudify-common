@@ -845,13 +845,29 @@ def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
     """Virtualenv for the specified plugin.
 
     If version is not provided, the highest version is used.
+
+    :param name: package name of the plugin
+    :param tenant_name: tenant name, or None for local executions
+    :param version: version of the plugin, or None for the newest version
+    :param deployment_id: deployment id, for source plugins
+    :return: directory containing the plugin virtualenv, or None
     """
-    managed_plugin_dir = os.path.join(
-        sys.prefix, 'plugins', tenant_name, name)
+    managed_plugin_dir = os.path.join(sys.prefix, 'plugins')
+    if tenant_name:
+        managed_plugin_dir = os.path.join(
+            managed_plugin_dir, tenant_name, name)
+    else:
+        managed_plugin_dir = os.path.join(managed_plugin_dir, name)
+
     prefix = _find_versioned_plugin_dir(managed_plugin_dir, version)
     if prefix is None and deployment_id is not None:
-        source_plugin_dir = os.path.join(
-            sys.prefix, 'source_plugins', tenant_name, deployment_id, name)
+        source_plugin_dir = os.path.join(sys.prefix, 'source_plugins')
+        if tenant_name:
+            source_plugin_dir = os.path.join(
+                source_plugin_dir, tenant_name, deployment_id, name)
+        else:
+            source_plugin_dir = os.path.join(
+                source_plugin_dir, deployment_id, name)
         prefix = _find_versioned_plugin_dir(
             source_plugin_dir, version)
     return prefix
