@@ -98,7 +98,9 @@ PREINSTALLED_PLUGINS = [
     'script',
     'cfy_extensions',
     'default_workflows',
-    'worker_installer'
+    'worker_installer',
+    'cloudify_system_workflows'
+
 ]
 
 
