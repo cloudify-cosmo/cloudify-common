@@ -288,8 +288,8 @@ class PluginContextTests(testtools.TestCase):
             self.test_prefix,
             'plugins',
             self.tenant_name,
-            '{0}-{1}'.format(self.plugin_pacakge_name,
-                             self.plugin_pacakge_version))
+            self.plugin_pacakge_name,
+            self.plugin_pacakge_version)
         os.makedirs(expected_prefix)
         with open(os.path.join(expected_prefix, 'plugin.id'), 'w') as f:
             f.write('plugin id')
@@ -299,18 +299,16 @@ class PluginContextTests(testtools.TestCase):
     def test_prefix_from_source(self):
         expected_prefix = os.path.join(
             self.test_prefix,
-            'plugins',
+            'source_plugins',
             self.tenant_name,
-            '{0}-{1}'.format(self.deployment_id,
-                             self.plugin_name))
+            self.deployment_id,
+            self.plugin_pacakge_name,
+            self.plugin_pacakge_version)
         os.makedirs(expected_prefix)
         with open(os.path.join(expected_prefix, 'plugin.id'), 'w') as f:
             f.write('plugin id')
         with patch('sys.prefix', self.test_prefix):
             self.assertEqual(self.ctx.plugin.prefix, expected_prefix)
-
-    def test_fallback_prefix(self):
-        self.assertEqual(self.ctx.plugin.prefix, sys.prefix)
 
 
 class GetResourceTemplateTests(testtools.TestCase):
