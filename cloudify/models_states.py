@@ -93,3 +93,13 @@ class AgentState(object):
     STATES = [CREATING, CREATED, CONFIGURING, CONFIGURED, STARTING, STARTED,
               STOPPING, STOPPED, DELETING, DELETED, RESTARTING, RESTARTED,
               UPGRADING, UPGRADED, FAILED, NONRESPONSIVE, RESTORED]
+
+
+class PluginInstallationState(object):
+    PENDING = 'pending'
+    INSTALLING = 'installing'
+    INSTALLED = 'installed'
+    ERROR = 'error'
+    PENDING_UNINSTALL = 'pending-uninstall'
+    UNINSTALLING = 'uninstalling'
+    UNINSTALLED = 'uninstalled'
