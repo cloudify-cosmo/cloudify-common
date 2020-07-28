@@ -326,7 +326,10 @@ def get_is_bypass_maintenance():
     """
     Returns true if workflow should run in maintenance mode.
     """
-    return os.environ.get(constants.BYPASS_MAINTENANCE, '').lower() == 'true'
+    try:
+        return _get_current_context()._context.get('bypass_maintenance')
+    except RuntimeError:    # not in context
+        return False
 
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
