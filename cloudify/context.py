@@ -1109,13 +1109,11 @@ class PluginContext(str):
     @property
     def prefix(self):
         """The plugin prefix."""
-        return utils.internal.plugin_prefix(
-            package_name=self.package_name,
-            package_version=self.package_version,
+        return utils.plugin_prefix(
+            name=self.package_name,
+            version=self.package_version,
             deployment_id=self._deployment_id,
-            plugin_name=self.name,
-            tenant_name=self._tenant_name,
-            sys_prefix_fallback=True)
+            tenant_name=self._tenant_name)
 
     @property
     def workdir(self):

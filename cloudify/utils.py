@@ -538,61 +538,6 @@ class Internal(object):
         return broker_user, broker_pass, broker_vhost
 
     @staticmethod
-    def _get_formatted_version(version):
-        try:
-            return StrictVersion(version)
-        except ValueError:
-            return None
-
-    @staticmethod
-    def _get_package_version(plugins_dir, package_name):
-        # get all plugin dirs
-        try:
-            subdirs = next(os.walk(plugins_dir))[1]
-        except StopIteration:
-            return
-        # filter by package name
-        package_dirs = [dir for dir in subdirs if dir.startswith(package_name)]
-        if not package_dirs:
-            return
-        # cut package name prefix
-        versions = [dir[len(package_name) + 1:] for dir in package_dirs]
-        # return the latest version
-        newest = max(versions, key=Internal._get_formatted_version)
-        if Internal._get_formatted_version(newest) is None:
-            return
-        return newest
-
-    @staticmethod
-    def _is_plugin_dir(path):
-        """Is the given path a directory containing a plugin?"""
-        return (os.path.isdir(path) and
-                os.path.exists(os.path.join(path, 'plugin.id')))
-
-    @staticmethod
-    def plugin_prefix(package_name=None, package_version=None,
-                      deployment_id=None, plugin_name=None, tenant_name=None,
-                      sys_prefix_fallback=True):
-        tenant_name = tenant_name or ''
-        plugins_dir = os.path.join(sys.prefix, 'plugins', tenant_name)
-        prefix = None
-        if package_name:
-            package_version = package_version or Internal._get_package_version(
-                plugins_dir, package_name)
-            wagon_dir = os.path.join(
-                plugins_dir, '{0}-{1}'.format(package_name, package_version))
-            if Internal._is_plugin_dir(wagon_dir):
-                prefix = wagon_dir
-        if prefix is None and deployment_id and plugin_name:
-            source_dir = os.path.join(
-                plugins_dir, '{0}-{1}'.format(deployment_id, plugin_name))
-            if Internal._is_plugin_dir(source_dir):
-                prefix = source_dir
-        if prefix is None and sys_prefix_fallback:
-            prefix = sys.prefix
-        return prefix
-
-    @staticmethod
     @contextmanager
     def _change_tenant(ctx, tenant):
         """
@@ -855,3 +800,96 @@ def get_python_path(venv):
         'python.exe' if os.name == 'nt' else 'python',
         venv=venv
     )
+
+
+def _get_formatted_version(version):
+    """StrictVersion, but None instead of a ValueError"""
+    try:
+        return StrictVersion(version)
+    except ValueError:
+        return None
+
+
+def _find_versioned_plugin_dir(base_dir, version):
+    """In base_dir, find a subdirectory containing the version, or the newest.
+
+    If version is not None, the plugin directory is base_dir+version.
+    If version is None, then the plugin directory is the highest version
+    from base_dir.
+
+    For example, say base_dir contains the subdirectories: 1.0.0, 2.0.0:
+    >>> _find_versioned_plugin_dir('/plugins', None)
+    /plugins/2.0.0
+    >>> _find_versioned_plugin_dir('/plugins', '1.0.0')
+    /plugins/1.0.0
+    >>> _find_versioned_plugin_dir('/plugins', '3.0.0')
+    None
+    """
+    if not os.path.isdir(base_dir):
+        return
+    if version:
+        found = os.path.join(base_dir, version)
+    else:
+        available_versions = [
+            (d, _get_formatted_version(d))
+            for d in os.listdir(base_dir)
+            if _get_formatted_version(d) is not None
+        ]
+        if not available_versions:
+            return
+        newest = max(available_versions, key=lambda pair: pair[1])[0]
+        found = os.path.join(base_dir, newest)
+    if not os.path.isdir(found):
+        return
+    return found
+
+
+def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
+    """Virtualenv for the specified plugin.
+
+    If version is not provided, the highest version is used.
+
+    :param name: package name of the plugin
+    :param tenant_name: tenant name, or None for local executions
+    :param version: version of the plugin, or None for the newest version
+    :param deployment_id: deployment id, for source plugins
+    :return: directory containing the plugin virtualenv, or None
+    """
+    managed_plugin_dir = os.path.join(sys.prefix, 'plugins')
+    if tenant_name:
+        managed_plugin_dir = os.path.join(
+            managed_plugin_dir, tenant_name, name)
+    else:
+        managed_plugin_dir = os.path.join(managed_plugin_dir, name)
+
+    prefix = _find_versioned_plugin_dir(managed_plugin_dir, version)
+    if prefix is None and deployment_id is not None:
+        source_plugin_dir = os.path.join(sys.prefix, 'source_plugins')
+        if tenant_name:
+            source_plugin_dir = os.path.join(
+                source_plugin_dir, tenant_name, deployment_id, name)
+        else:
+            source_plugin_dir = os.path.join(
+                source_plugin_dir, deployment_id, name)
+        prefix = _find_versioned_plugin_dir(
+            source_plugin_dir, version)
+    return prefix
+
+
+# this function must be kept in sync with the above plugin_prefix,
+# so that the target directory created by this, can be then found
+# by plugin_prefix
+def target_plugin_prefix(name, tenant_name, version=None, deployment_id=None):
+    """Target directory into which the plugin should be installed"""
+    parts = [
+        sys.prefix,
+        'source_plugins' if deployment_id else 'plugins'
+    ]
+    if tenant_name:
+        parts.append(tenant_name)
+    if deployment_id:
+        parts.append(deployment_id)
+    # if version is not given, default to 0.0.0 so that version that _are_
+    # declared always take precedence
+    parts += [name, version or '0.0.0']
+    return os.path.join(*parts)

@@ -259,8 +259,8 @@ class PluginContextTests(testtools.TestCase):
     def setUp(self):
         super(PluginContextTests, self).setUp()
         self.plugin_name = 'test_plugin'
-        self.plugin_pacakge_name = 'test-plugin'
-        self.plugin_pacakge_version = '0.1.1'
+        self.plugin_package_name = 'test-plugin'
+        self.plugin_package_version = '0.1.1'
         self.deployment_id = 'test_deployment'
         self.tenant_name = 'default_tenant'
         self.ctx = context.CloudifyContext({
@@ -268,8 +268,8 @@ class PluginContextTests(testtools.TestCase):
             'tenant': {'name': self.tenant_name},
             'plugin': {
                 'name': self.plugin_name,
-                'package_name': self.plugin_pacakge_name,
-                'package_version': self.plugin_pacakge_version
+                'package_name': self.plugin_package_name,
+                'package_version': self.plugin_package_version
             }
         })
         self.test_prefix = tempfile.mkdtemp(prefix='context-plugin-test-')
@@ -279,17 +279,17 @@ class PluginContextTests(testtools.TestCase):
     def test_attributes(self):
         self.assertEqual(self.ctx.plugin.name, self.plugin_name)
         self.assertEqual(self.ctx.plugin.package_name,
-                         self.plugin_pacakge_name)
+                         self.plugin_package_name)
         self.assertEqual(self.ctx.plugin.package_version,
-                         self.plugin_pacakge_version)
+                         self.plugin_package_version)
 
     def test_prefix_from_wagon(self):
         expected_prefix = os.path.join(
             self.test_prefix,
             'plugins',
             self.tenant_name,
-            '{0}-{1}'.format(self.plugin_pacakge_name,
-                             self.plugin_pacakge_version))
+            self.plugin_package_name,
+            self.plugin_package_version)
         os.makedirs(expected_prefix)
         with open(os.path.join(expected_prefix, 'plugin.id'), 'w') as f:
             f.write('plugin id')
@@ -299,18 +299,16 @@ class PluginContextTests(testtools.TestCase):
     def test_prefix_from_source(self):
         expected_prefix = os.path.join(
             self.test_prefix,
-            'plugins',
+            'source_plugins',
             self.tenant_name,
-            '{0}-{1}'.format(self.deployment_id,
-                             self.plugin_name))
+            self.deployment_id,
+            self.plugin_package_name,
+            self.plugin_package_version)
         os.makedirs(expected_prefix)
         with open(os.path.join(expected_prefix, 'plugin.id'), 'w') as f:
             f.write('plugin id')
         with patch('sys.prefix', self.test_prefix):
             self.assertEqual(self.ctx.plugin.prefix, expected_prefix)
-
-    def test_fallback_prefix(self):
-        self.assertEqual(self.ctx.plugin.prefix, sys.prefix)
 
 
 class GetResourceTemplateTests(testtools.TestCase):

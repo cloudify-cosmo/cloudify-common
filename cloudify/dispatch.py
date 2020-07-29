@@ -29,7 +29,6 @@ import traceback
 from contextlib import contextmanager
 
 from cloudify_rest_client.executions import Execution
-from cloudify_rest_client.constants import VisibilityState
 from cloudify_rest_client.exceptions import (
     InvalidExecutionUpdateStatus,
     CloudifyClientError
@@ -288,15 +287,19 @@ class TaskHandler(object):
                 os.environ[constants.BYPASS_MAINTENANCE] = 'True'
             env = self._build_subprocess_env()
 
-            plugin_dir = self._extract_plugin_dir()
-            if not plugin_dir and self._should_install_plugin():
-                self._install_plugin()
+            if self._uses_external_plugin():
                 plugin_dir = self._extract_plugin_dir()
-
-            if plugin_dir:
+                if plugin_dir is None:
+                    self._install_plugin()
+                    plugin_dir = self._extract_plugin_dir()
+                if plugin_dir is None:
+                    raise RuntimeError(
+                        'Plugin was not installed: {0}'
+                        .format(self.cloudify_context['plugin']))
                 executable = utils.get_python_path(plugin_dir)
             else:
                 executable = sys.executable
+
             env['PATH'] = '{0}:{1}'.format(
                 os.path.dirname(executable), env['PATH'])
             command_args = [executable, '-u', '-m', 'cloudify.dispatch',
@@ -349,7 +352,8 @@ class TaskHandler(object):
 
         return env
 
-    def _should_install_plugin(self):
+    def _uses_external_plugin(self):
+        """Whether this operation uses a plugin that is not built-in"""
         plugin = self.cloudify_context.get('plugin')
         if not plugin or not plugin.get('name'):
             return False
@@ -378,26 +382,17 @@ class TaskHandler(object):
                 blueprint_id=bp_id)
 
     def _extract_plugin_dir(self):
-        plugin = self.cloudify_context.get('plugin', {})
-        plugin_name = plugin.get('name')
+        plugin = self.cloudify_context['plugin']
         package_name = plugin.get('package_name')
         package_version = plugin.get('package_version')
-        deployment_id = self.cloudify_context.get('deployment_id',
-                                                  SYSTEM_DEPLOYMENT)
-        tenant = self.cloudify_context.get('tenant', {})
-        tenant_name = tenant.get('name')
-        plugin_visibility = plugin.get('visibility')
+        deployment_id = self.cloudify_context.get('deployment_id')
+        tenant_name = self.cloudify_context['tenant']['name']
 
-        if plugin_visibility == VisibilityState.GLOBAL:
-            tenant_name = plugin.get('tenant_name')
-
-        return utils.internal.plugin_prefix(
-            package_name=package_name,
-            package_version=package_version,
+        return utils.plugin_prefix(
+            name=package_name,
+            version=package_version,
             deployment_id=deployment_id,
-            plugin_name=plugin_name,
-            tenant_name=tenant_name,
-            sys_prefix_fallback=False)
+            tenant_name=tenant_name)
 
     def setup_logging(self):
         logs.setup_subprocess_logger()
