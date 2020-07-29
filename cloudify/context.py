@@ -353,6 +353,11 @@ class NodeInstanceContext(EntityContext):
         return self._context.get('node_id')
 
     @property
+    def node(self):
+        """The node that this instance was created from."""
+        return NodeContext(self._node)
+
+    @property
     def runtime_properties(self):
         """The node instance runtime properties as a dict (read-only).
 
