@@ -96,7 +96,7 @@ class AgentState(object):
 
 
 class PluginInstallationState(object):
-    PENDING = 'pending'
+    PENDING = 'pending-install'
     INSTALLING = 'installing'
     INSTALLED = 'installed'
     ERROR = 'error'
