@@ -734,6 +734,11 @@ class CloudifyContext(CommonContext):
         return self._rest_ssl_cert
 
     @property
+    def bypass_maintenance(self):
+        """If true, all requests sent bypass maintenance mode."""
+        return self._context.get('bypass_maintenance', False)
+
+    @property
     def tenant_name(self):
         """Cloudify tenant name"""
         return self._context.get('tenant', {}).get('name')

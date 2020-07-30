@@ -513,6 +513,11 @@ class _WorkflowContextBase(object):
         return self._context.get('execution_token')
 
     @property
+    def bypass_maintenance(self):
+        """If true, all requests sent bypass maintenance mode."""
+        return self._context.get('bypass_maintenance', False)
+
+    @property
     def tenant_name(self):
         """Cloudify tenant name"""
         return self.tenant.get('name')
