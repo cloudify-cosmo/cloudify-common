@@ -327,7 +327,7 @@ def get_is_bypass_maintenance():
     Returns true if workflow should run in maintenance mode.
     """
     try:
-        return _get_current_context()._context.get('bypass_maintenance')
+        return _get_current_context()._context.get('bypass_maintenance', False)
     except RuntimeError:    # not in context
         return False
 
