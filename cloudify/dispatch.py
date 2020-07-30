@@ -384,7 +384,7 @@ class TaskHandler(object):
 
     def _extract_plugin_dir(self):
         plugin = self.cloudify_context['plugin']
-        package_name = plugin.get('package_name')
+        package_name = plugin.get('package_name') or plugin['name']
         package_version = plugin.get('package_version')
         deployment_id = self.cloudify_context.get('deployment_id')
         tenant_name = self.cloudify_context['tenant']['name']
