@@ -810,6 +810,12 @@ def _get_formatted_version(version):
         return None
 
 
+def _is_plugin_dir(path):
+    """Is the given path a directory containing a plugin?"""
+    return (os.path.isdir(path) and
+            os.path.exists(os.path.join(path, 'plugin.id')))
+
+
 def _find_versioned_plugin_dir(base_dir, version):
     """In base_dir, find a subdirectory containing the version, or the newest.
 
@@ -839,7 +845,7 @@ def _find_versioned_plugin_dir(base_dir, version):
             return
         newest = max(available_versions, key=lambda pair: pair[1])[0]
         found = os.path.join(base_dir, newest)
-    if not os.path.isdir(found):
+    if _is_plugin_dir(found):
         return
     return found
 
