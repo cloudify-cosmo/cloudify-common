@@ -61,8 +61,28 @@ class ClusterHTTPClient(HTTPClient):
                     'manager {0}'.format(error)
                 )
                 continue
+            except CloudifyClientError as e:
+                if e.response.status_code == 404 and \
+                        self._is_fileserver_download(e.response):
+                    continue
+                else:
+                    raise
 
         raise CloudifyClientError('No active node in the cluster!')
+
+    def _is_fileserver_download(self, response):
+        """Is this response a file-download response?
+
+        404 responses to requests that download files, need to be retried
+        with all managers in the cluster: if some file was not yet
+        replicated, another manager might have this file.
+
+        This is because the file replication is asynchronous.
+        """
+        disposition = response.headers.get('Content-Disposition')
+        if not disposition:
+            return False
+        return disposition.strip().startswith('attachment')
 
 
 class CloudifyClusterClient(CloudifyClient):
