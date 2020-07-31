@@ -845,7 +845,7 @@ def _find_versioned_plugin_dir(base_dir, version):
             return
         newest = max(available_versions, key=lambda pair: pair[1])[0]
         found = os.path.join(base_dir, newest)
-    if _is_plugin_dir(found):
+    if not _is_plugin_dir(found):
         return
     return found
 
