@@ -135,7 +135,8 @@ class HTTPClient(object):
                 error_msg = '{0}: {1}'.format(response.status_code, message)
             raise exceptions.CloudifyClientError(
                 error_msg,
-                status_code=response.status_code)
+                status_code=response.status_code,
+                response=response)
         message = result['message']
         code = result.get('error_code')
         server_traceback = result.get('server_traceback')
