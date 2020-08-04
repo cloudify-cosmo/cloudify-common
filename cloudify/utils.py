@@ -30,14 +30,13 @@ import traceback
 import threading
 import subprocess
 
-from distutils.version import StrictVersion
 from contextlib import contextmanager, closing
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
 from cloudify import constants
-from cloudify._compat import StringIO
 from cloudify.state import workflow_ctx, ctx
+from cloudify._compat import StringIO, parse_version
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
@@ -802,14 +801,6 @@ def get_python_path(venv):
     )
 
 
-def _get_formatted_version(version):
-    """StrictVersion, but None instead of a ValueError"""
-    try:
-        return StrictVersion(version)
-    except ValueError:
-        return None
-
-
 def _is_plugin_dir(path):
     """Is the given path a directory containing a plugin?"""
     return (os.path.isdir(path) and
@@ -837,9 +828,9 @@ def _find_versioned_plugin_dir(base_dir, version):
         found = os.path.join(base_dir, version)
     else:
         available_versions = [
-            (d, _get_formatted_version(d))
+            (d, parse_version(d))
             for d in os.listdir(base_dir)
-            if _get_formatted_version(d) is not None
+            if parse_version(d) is not None
         ]
         if not available_versions:
             return
