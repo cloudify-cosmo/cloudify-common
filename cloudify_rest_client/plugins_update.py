@@ -13,6 +13,8 @@
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
 
+import warnings
+
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -111,17 +113,14 @@ class PluginsUpdateClient(object):
 
         :param blueprint_id: blueprint ID to perform the update with.
         :param force: if to forcefully update when other non-active plugins
-         updates exists associated with this blueprint.
+         updates exists associated with this blueprint [deprecated].
         :return: a PluginUpdate object.
         """
-        params = {
-            'force': force
-        }
+        if force:
+            warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
-                                                            self=self),
-            params=params
-        )
+                                                            self=self))
         return PluginsUpdate(response)
 
     def finalize_plugins_update(self, plugins_update_id):
