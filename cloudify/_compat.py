@@ -61,6 +61,18 @@ else:
     exec_ = getattr(builtins, 'exec')
 
 
+def parse_version(version):
+    try:
+        from packaging.version import parse
+        return parse(version)
+    except ImportError:
+        from distutils.version import StrictVersion, LooseVersion
+        try:
+            return StrictVersion(version)
+        except ValueError:
+            return LooseVersion(version)
+
+
 __all__ = [
     'PY2', 'queue', 'StringIO', 'reraise', 'text_type', 'urlquote',
     'urlparse', 'exec_', 'urljoin', 'urlopen', 'pathname2url', 'parse_qs'
