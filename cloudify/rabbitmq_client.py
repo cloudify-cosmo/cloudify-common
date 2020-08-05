@@ -133,6 +133,14 @@ class RabbitMQClient(object):
     def delete_user(self, username):
         self._do_request(requests.delete, 'users/{0}'.format(username))
 
+    def delete_queue(self, vhost, queue):
+        self._do_request(
+            requests.delete, 'queues/{0}/{1}'.format(vhost, queue))
+
+    def delete_exchange(self, vhost, exchange):
+        self._do_request(
+            requests.delete, 'exchanges/{0}/{1}'.format(vhost, exchange))
+
     def set_vhost_permissions(self, vhost, username, configure='', write='',
                               read=''):
         vhost = urlquote(vhost, '')
