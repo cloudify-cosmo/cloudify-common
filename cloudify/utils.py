@@ -830,7 +830,8 @@ def _find_versioned_plugin_dir(base_dir, version):
         available_versions = [
             (d, parse_version(d))
             for d in os.listdir(base_dir)
-            if parse_version(d) is not None
+            if _is_plugin_dir(os.path.join(base_dir, d)) and
+            parse_version(d) is not None
         ]
         if not available_versions:
             return
