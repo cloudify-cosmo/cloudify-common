@@ -74,17 +74,43 @@ def _initialize_rabbitmq_user(cloudify_agent):
         cloudify_agent['broker_pass'] = password
 
 
+def _get_rabbitmq_client():
+    return RabbitMQClient(broker_config.broker_management_hostname,
+                          broker_config.broker_username,
+                          broker_config.broker_password,
+                          verify=broker_config.broker_cert_path)
+
+
 def delete_agent_rabbitmq_user(cloudify_agent):
     # Proxy agents are not being installed
     if _is_proxied(cloudify_agent):
         return
     # Delete the rabbitmq user of the agent
-    rabbitmq_client = RabbitMQClient(broker_config.broker_management_hostname,
-                                     broker_config.broker_username,
-                                     broker_config.broker_password,
-                                     verify=broker_config.broker_cert_path)
     username = USERNAME_PATTERN.format(cloudify_agent['name'])
+    rabbitmq_client = _get_rabbitmq_client()
     rabbitmq_client.delete_user(username)
+
+
+def delete_agent_queues(cloudify_agent):
+    if _is_proxied(cloudify_agent):
+        return
+    queues = [
+        '{0}_service'.format(cloudify_agent['queue']),
+        '{0}_operation'.format(cloudify_agent['queue'])
+    ]
+    vhost = cloudify_agent['tenant']['rabbitmq_vhost']
+    rabbitmq_client = _get_rabbitmq_client()
+    for queue in queues:
+        rabbitmq_client.delete_queue(vhost, queue)
+
+
+def delete_agent_exchange(cloudify_agent):
+    if _is_proxied(cloudify_agent):
+        return
+    rabbitmq_client = _get_rabbitmq_client()
+    vhost = cloudify_agent['tenant']['rabbitmq_vhost']
+    name = cloudify_agent['name']
+    rabbitmq_client.delete_exchange(vhost, name)
 
 
 def _get_agent_system(cloudify_agent):
