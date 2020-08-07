@@ -66,31 +66,7 @@ except ImportError:
 ENV_ENCODING = 'utf-8'  # encoding for env variables
 CLOUDIFY_DISPATCH = 'CLOUDIFY_DISPATCH'
 
-# This is relevant in integration tests when cloudify-agent is installed in
-# editable mode. Adding this directory using PYTHONPATH will make it appear
-# after the editable projects appear so it is not applicable in this case.
-if os.environ.get('PREPEND_CWD_TO_PYTHONPATH'):
-    if os.getcwd() in sys.path:
-        sys.path.remove(os.getcwd())
-    sys.path.insert(0, os.getcwd())
-
-# Remove different variations in which cloudify may be added to the sys
-# path
-if os.environ.get(CLOUDIFY_DISPATCH):
-    file_dir = os.path.dirname(__file__)
-    site_packages_cloudify = os.path.join('site-packages', 'cloudify')
-    for entry in copy.copy(sys.path):
-        if entry == file_dir or entry.endswith(site_packages_cloudify):
-            sys.path.remove(entry)
-
-try:
-    from cloudify_agent import VIRTUALENV
-except ImportError:
-    VIRTUALENV = sys.prefix
-
-
 SYSTEM_DEPLOYMENT = '__system__'
-PLUGINS_DIR = os.path.join(VIRTUALENV, 'plugins')
 DISPATCH_LOGGER_FORMATTER = logging.Formatter(
     '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
 PREINSTALLED_PLUGINS = [
