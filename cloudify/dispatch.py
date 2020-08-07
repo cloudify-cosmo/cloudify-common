@@ -66,14 +66,7 @@ except ImportError:
 ENV_ENCODING = 'utf-8'  # encoding for env variables
 CLOUDIFY_DISPATCH = 'CLOUDIFY_DISPATCH'
 
-try:
-    from cloudify_agent import VIRTUALENV
-except ImportError:
-    VIRTUALENV = sys.prefix
-
-
 SYSTEM_DEPLOYMENT = '__system__'
-PLUGINS_DIR = os.path.join(VIRTUALENV, 'plugins')
 DISPATCH_LOGGER_FORMATTER = logging.Formatter(
     '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
 PREINSTALLED_PLUGINS = [
