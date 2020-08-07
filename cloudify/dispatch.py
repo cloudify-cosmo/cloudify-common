@@ -66,15 +66,6 @@ except ImportError:
 ENV_ENCODING = 'utf-8'  # encoding for env variables
 CLOUDIFY_DISPATCH = 'CLOUDIFY_DISPATCH'
 
-# Remove different variations in which cloudify may be added to the sys
-# path
-if os.environ.get(CLOUDIFY_DISPATCH):
-    file_dir = os.path.dirname(__file__)
-    site_packages_cloudify = os.path.join('site-packages', 'cloudify')
-    for entry in copy.copy(sys.path):
-        if entry == file_dir or entry.endswith(site_packages_cloudify):
-            sys.path.remove(entry)
-
 try:
     from cloudify_agent import VIRTUALENV
 except ImportError:
