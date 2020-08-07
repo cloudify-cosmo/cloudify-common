@@ -66,14 +66,6 @@ except ImportError:
 ENV_ENCODING = 'utf-8'  # encoding for env variables
 CLOUDIFY_DISPATCH = 'CLOUDIFY_DISPATCH'
 
-# This is relevant in integration tests when cloudify-agent is installed in
-# editable mode. Adding this directory using PYTHONPATH will make it appear
-# after the editable projects appear so it is not applicable in this case.
-if os.environ.get('PREPEND_CWD_TO_PYTHONPATH'):
-    if os.getcwd() in sys.path:
-        sys.path.remove(os.getcwd())
-    sys.path.insert(0, os.getcwd())
-
 # Remove different variations in which cloudify may be added to the sys
 # path
 if os.environ.get(CLOUDIFY_DISPATCH):
