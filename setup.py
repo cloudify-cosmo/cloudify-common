@@ -19,12 +19,6 @@ install_requires = [
     'requests>=2.7.0,<3.0.0',
     'retrying==1.3.3',
     'pika==0.11.2',
-    'proxy_tools==0.1.0',
-    'bottle==0.12.18',
-    'jinja2>=2.10,<2.11',
-    'requests_toolbelt==0.8.0'
-]
-
 try:
     from collections import OrderedDict  # NOQA
 except ImportError as e:
