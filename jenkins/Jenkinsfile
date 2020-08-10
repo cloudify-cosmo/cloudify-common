@@ -57,9 +57,7 @@ pipeline {
                 sh "pip install future --user"
                 echo 'remove compat modules'
                 sh '''
-                    ls
-                    ls cloudify-common
-                    ls cloudify-common@tmp
+                    cd cloudify-common
                     rm cloudify/_compat.py
                     rm dsl_parser/_compat.py
                     rm cloudify_rest_client/_compat.py
