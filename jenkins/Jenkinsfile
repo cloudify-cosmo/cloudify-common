@@ -53,7 +53,6 @@ pipeline {
       stage ('py3_compat'){
         steps{
             container('docs-builder27'){
-                /* checkout */
                 echo 'install futurize'
                 sh "pip install future --user"
                 echo 'remove compat modules'
