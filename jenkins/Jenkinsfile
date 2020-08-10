@@ -51,35 +51,37 @@ pipeline {
   }
   stages('build_and_test'){
       stage ('py3_compat'){
-          container('docs_builder27'){
-              /* checkout */
-              echo 'install futurize'
-              sh "pip install future --user"
-              echo 'remove compat modules'
-              sh '''
-                rm cloudify/_compat.py
-                rm dsl_parser/_compat.py
-                rm cloudify_rest_client/_compat.py
-                rm cloudify/ctx_wrappers/ctx-py.py
-              '''
-              echo 'find python3-incompatible code'
-              sh '''
-                FUTURIZE="futurize ."
-                while read line; do
-                    [[ "$line" =~ ^#.* ]] && continue
-                    FUTURIZE="${FUTURIZE} -f ${line}"
-                done<.circleci/py3fixers
-                $FUTURIZE>futurize_diffs
-              '''
-              echo 'check that there is no python3-incompatible code'
-              sh '''
-                if [[ -s futurize_diffs ]]; then
-                    echo "Python-3-incompatible code found"
-                    cat futurize_diffs
-                    exit 1
-                fi                
-              '''
+        steps{
+            container('docs_builder27'){
+                /* checkout */
+                echo 'install futurize'
+                sh "pip install future --user"
+                echo 'remove compat modules'
+                sh '''
+                    rm cloudify/_compat.py
+                    rm dsl_parser/_compat.py
+                    rm cloudify_rest_client/_compat.py
+                    rm cloudify/ctx_wrappers/ctx-py.py
+                '''
+                echo 'find python3-incompatible code'
+                sh '''
+                    FUTURIZE="futurize ."
+                    while read line; do
+                        [[ "$line" =~ ^#.* ]] && continue
+                        FUTURIZE="${FUTURIZE} -f ${line}"
+                    done<.circleci/py3fixers
+                    $FUTURIZE>futurize_diffs
+                '''
+                echo 'check that there is no python3-incompatible code'
+                sh '''
+                    if [[ -s futurize_diffs ]]; then
+                        echo "Python-3-incompatible code found"
+                        cat futurize_diffs
+                        exit 1
+                    fi                
+                '''
           }
+        }
       }
       stage('flake8_py27'){
           steps{
@@ -155,15 +157,17 @@ pipeline {
   }
   stages('docs'){
       stage('build_all_project_docs'){
-          container('docs_builder27'){
-              /* checkout */
-              /* restore cache with relevant keys */
-              echo 'Install sphinx'
-              sh "pip install sphinx sphinx-rtd-theme"
-              echo 'Install cloudify-common'
-              sh "pip install ."
-              /* save cache */
+        steps{
+            container('docs_builder27'){
+                /* checkout */
+                /* restore cache with relevant keys */
+                echo 'Install sphinx'
+                sh "pip install sphinx sphinx-rtd-theme"
+                echo 'Install cloudify-common'
+                sh "pip install ."
+                /* save cache */
           }
+        }
       }
   }
 }
