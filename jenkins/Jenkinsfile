@@ -1,27 +1,4 @@
-pipeline {
-  agent {
-    kubernetes {
-      label 'common'
-      defaultContainer 'jnlp'
-      yamlFile 'jenkins/build-pod.yaml'
-    }
-  }
-
-  options {
-    checkoutToSubdirectory('cloudify-common')
-    buildDiscarder(logRotator(numToKeepStr:'30'))
-    timeout(time: 60, unit: 'MINUTES')
-    timestamps()
-  }
-
-  environment {
-    branch = "${env.BRANCH_NAME}"
-    workspace = "${env.WORKSPACE}"
-    stage_dir = "cloudify-common"
-    cfy_manager_url = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
-    cfy_node_rpm = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
-  }
-  def install_test_dependencies(cache_prefix) {
+def install_test_dependencies(cache_prefix) {
       /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
       sh '''
         pip install -r dev-requirements.txt --user
@@ -48,6 +25,30 @@ pipeline {
 
   }
 */
+
+pipeline {
+  agent {
+    kubernetes {
+      label 'common'
+      defaultContainer 'jnlp'
+      yamlFile 'jenkins/build-pod.yaml'
+    }
+  }
+
+  options {
+    checkoutToSubdirectory('cloudify-common')
+    buildDiscarder(logRotator(numToKeepStr:'30'))
+    timeout(time: 60, unit: 'MINUTES')
+    timestamps()
+  }
+
+  environment {
+    branch = "${env.BRANCH_NAME}"
+    workspace = "${env.WORKSPACE}"
+    stage_dir = "cloudify-common"
+    cfy_manager_url = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
+    cfy_node_rpm = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
+  }
   stages('build_and_test'){
       stage ('py3_compat'){
           container('docs_builder27'){
