@@ -52,7 +52,7 @@ pipeline {
   stages{
       stage ('py3_compat'){
         steps{
-            container('docs_builder27'){
+            container('docs-builder27'){
                 /* checkout */
                 echo 'install futurize'
                 sh "pip install future --user"
@@ -85,7 +85,7 @@ pipeline {
       }
       stage('flake8_py27'){
           steps{
-              container('docs_builder27'){
+              container('docs-builder27'){
                   /* checkout */
                   echo 'install flake 8'
                   sh "pip install flake8 --user"
@@ -96,7 +96,7 @@ pipeline {
       }
       stage('flake8_py36'){
           steps{
-              container('docs_builder36'){
+              container('docs-builder36'){
                   /* checkout */
                   echo 'install flake 8'
                   sh "pip install flake8 --user"
@@ -156,7 +156,7 @@ pipeline {
       }
       stage('build_all_project_docs'){
             steps{
-                container('docs_builder27'){
+                container('docs-builder27'){
                     /* checkout */
                     /* restore cache with relevant keys */
                     echo 'Install sphinx'
