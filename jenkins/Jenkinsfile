@@ -31,7 +31,7 @@ pipeline {
       /* save cache with relevant paths and key */
   }
   def pytest(target){
-      echo running pytest << target >>
+      echo "running pytest << target >>"
       sh '''
         pytest \
               -n 4 \
