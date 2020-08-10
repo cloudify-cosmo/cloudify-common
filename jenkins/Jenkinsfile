@@ -1,0 +1,35 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'common'
+      defaultContainer 'jnlp'
+      yamlFile 'jenkins/build-pod.yaml'
+    }
+  }
+
+  options {
+    checkoutToSubdirectory('cloudify-common')
+    buildDiscarder(logRotator(numToKeepStr:'30'))
+    timeout(time: 60, unit: 'MINUTES')
+    timestamps()
+  }
+
+  environment {
+    branch = "${env.BRANCH_NAME}"
+    workspace = "${env.WORKSPACE}"
+    stage_dir = "cloudify-common"
+    cfy_manager_url = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
+    cfy_node_rpm = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
+  }
+
+  stages {
+      stage ('flake8_py27'){
+          steps{
+              container('py27'){
+                  echo 'install sphinx'
+                  sh "pip install sphinx sphinx-rtd-theme"
+              }
+          }
+      }
+
+  }
