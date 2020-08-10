@@ -44,7 +44,9 @@ pipeline {
   enum projects{
       cloudify_rest_client, cloudify_dsl_parser, cloudify_plugins
   }
-  def build_docs(enum)
+  def build_docs(enum){
+      
+  }
 
   stages('build_and_test'){
       stage ('py3_compat'){
