@@ -58,6 +58,8 @@ pipeline {
                 echo 'remove compat modules'
                 sh '''
                     ls
+                    ls cloudify-common
+                    ls cloudify-common@tmp
                     rm cloudify/_compat.py
                     rm dsl_parser/_compat.py
                     rm cloudify_rest_client/_compat.py
