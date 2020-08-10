@@ -25,9 +25,23 @@ pipeline {
   stages {
       stage ('flake8_py27'){
           steps{
-              container('py27'){
-                  echo 'install sphinx'
-                  sh "pip install sphinx sphinx-rtd-theme"
+              container('docs_builder27'){
+                  /* checkout */
+                  echo 'install flake 8'
+                  sh "pip install flake8 --user"
+                  echo 'run flake8'
+                  sh "flake8 dsl_parser script_runner cloudify cloudify_rest_client"
+              }
+          }
+      }
+      stage (flake8_py36){
+          steps{
+              container('docs_builder36'){
+                  /* checkout */
+                  echo 'install flake 8'
+                  sh "pip install flake8 --user"
+                  echo 'run flake8'
+                  sh "flake8 dsl_parser script_runner cloudify cloudify_rest_client"
               }
           }
       }
