@@ -6,22 +6,32 @@ metadata:
     name: cloudify-common
 spec:
   containers:
-  - name: py26
-    image: circleci/python:2.7-stretch
-    #image: rabbitmq:3.7.4
+  - name: docs-builder27
+    image: circleci/python:2.7
     resources:
+      requests:
+        cpu: 1.5
+    command:
+    - cat
+    tty: true
+    securityContext:
+      runAsUser: 0
+      privileged: true
+  # - name: py26
+  #   image: circleci/python:2.7-stretch
+    #image: rabbitmq:3.7.4
+    
      # limits:
       #  memory: "128Mi"
      #   cpu: "500m"
     #ports:
      # - containerPort: <Port>
-  - name: py27
-    image: circleci/python:2.7
+  # - name: py27
+  #   image: circleci/python:2.7
+  #   #image: rabbitmq:3.7.4
+  # - name: py36
+  #   image: circleci/python:3.6
     #image: rabbitmq:3.7.4
-  - name: py36
-    image: circleci/python:3.6
-    #image: rabbitmq:3.7.4
-  - name: docs-builder27
-    image: circleci/python:2.7
-  - name: docs-builder36
-    image: circleci/python:3.6
+  
+  # - name: docs-builder36
+  #   image: circleci/python:3.6
