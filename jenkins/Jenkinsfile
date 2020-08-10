@@ -49,7 +49,7 @@ pipeline {
     cfy_manager_url = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
     cfy_node_rpm = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
   }
-  stages('build_and_test'){
+  stages{
       stage ('py3_compat'){
         steps{
             container('docs_builder27'){
@@ -154,20 +154,18 @@ pipeline {
               }
           }
       }
-  }
-  stages('docs'){
       stage('build_all_project_docs'){
-        steps{
-            container('docs_builder27'){
-                /* checkout */
-                /* restore cache with relevant keys */
-                echo 'Install sphinx'
-                sh "pip install sphinx sphinx-rtd-theme"
-                echo 'Install cloudify-common'
-                sh "pip install ."
-                /* save cache */
+            steps{
+                container('docs_builder27'){
+                    /* checkout */
+                    /* restore cache with relevant keys */
+                    echo 'Install sphinx'
+                    sh "pip install sphinx sphinx-rtd-theme"
+                    echo 'Install cloudify-common'
+                    sh "pip install ."
+                    /* save cache */
           }
         }
       }
-  }
+  }        
 }
