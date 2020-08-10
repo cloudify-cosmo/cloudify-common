@@ -83,12 +83,12 @@ def get_file_content(file_path):
     return None
 
 
+# Copied verbatim from distutils.spawn, since we don't always ship distutils.
 def find_executable(executable, path=None):
     """Tries to find 'executable' in the directories listed in 'path'.
+
     A string listing directories separated by 'os.pathsep'; defaults to
     os.environ['PATH'].  Returns the complete filename or None if not found.
-    ~~NOTE:~~
-    Copied verbatim from distutils.spawn, since we don't always ship distutils.
     """
     if path is None:
         path = os.environ['PATH']
