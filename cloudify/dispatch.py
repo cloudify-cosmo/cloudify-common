@@ -76,6 +76,7 @@ PREINSTALLED_PLUGINS = [
     'default_workflows',
     'worker_installer',
     'cloudify_system_workflows',
+    'agent_installer',
 ]
 
 
