@@ -96,7 +96,7 @@ pipeline {
                   sh "pip install flake8 --user"
                   echo 'run flake8'
                   sh '''flake8 dsl_parser script_runner cloudify cloudify_rest_client
-                        PATH=$PATH:~/.local/bin
+                        PATH=$PATH:~/root/.local/bin
                   '''
               }
             }
