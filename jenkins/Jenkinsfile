@@ -52,34 +52,36 @@ pipeline {
   stages{
       stage ('py3_compat'){
         steps{
+            sh "mkdir -p ${env.WORKSPACE}/py3_compat && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/py3_compat"  
             container('docs-builder27'){
-                echo 'install futurize'
-                sh "pip install future --user"
-                echo 'remove compat modules'
-                sh '''
-                    cd cloudify-common
-                    rm cloudify/_compat.py
-                    rm dsl_parser/_compat.py
-                    rm cloudify_rest_client/_compat.py
-                    rm cloudify/ctx_wrappers/ctx-py.py
-                '''
-                echo 'find python3-incompatible code'
-                sh '''
+                dir("${env.WORKSPACE}/py3_compat"){
+                    
+                    echo 'install futurize, remove compat modules and find python3-incompatible code'
+                    sh '''#!/bin/bash
+                    pip install future --user
+                    PATH=$PATH:~/.local/bin
+                
+                    rm cloudify-common/cloudify/_compat.py
+                    rm cloudify-common/dsl_parser/_compat.py
+                    rm cloudify-common/cloudify_rest_client/_compat.py
+                    rm cloudify-common/cloudify/ctx_wrappers/ctx-py.py
+                
                     FUTURIZE="futurize ."
                     while read line; do
                         [[ "$line" =~ ^#.* ]] && continue
-                        FUTURIZE="${FUTURIZE} -f ${line}"
+                        FUTURIZE="${FUTURIZE} ${line}"
                     done<.circleci/py3fixers
                     $FUTURIZE>futurize_diffs
-                '''
-                echo 'check that there is no python3-incompatible code'
-                sh '''
-                    if [[ -s futurize_diffs ]]; then
-                        echo "Python-3-incompatible code found"
-                        cat futurize_diffs
-                        exit 1
-                    fi                
-                '''
+                    '''
+                    echo 'check that there is no python3-incompatible code'
+                    sh ''' #!/bin/bash
+                        if [[ -s futurize_diffs ]]; then
+                            echo "Python-3-incompatible code found"
+                            cat futurize_diffs
+                            exit 1
+                        fi                
+                    '''
+            }
           }
         }
       }
