@@ -62,10 +62,10 @@ pipeline {
                     pip install future --user
                     PATH=$PATH:~/.local/bin
                 
-                    rm cloudify-common/cloudify/_compat.py
-                    rm cloudify-common/dsl_parser/_compat.py
-                    rm cloudify-common/cloudify_rest_client/_compat.py
-                    rm cloudify-common/cloudify/ctx_wrappers/ctx-py.py
+                    rm cloudify/_compat.py
+                    rm dsl_parser/_compat.py
+                    rm cloudify_rest_client/_compat.py
+                    rm cloudify/ctx_wrappers/ctx-py.py
                 
                     FUTURIZE="futurize ."
                     while read line; do
