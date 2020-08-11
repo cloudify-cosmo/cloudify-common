@@ -100,17 +100,19 @@ pipeline {
             }
           }
       }
-    //   stage('flake8_py36'){
-    //       steps{
-    //           container('py36'){
-    //               
-    //               echo 'install flake 8'
-    //               sh "pip install flake8 --user"
-    //               echo 'run flake8'
-    //               sh "flake8 dsl_parser script_runner cloudify cloudify_rest_client"
-    //           }
-    //       }
-    //   }
+      stage('flake8_py36'){
+          steps{
+                sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
+              container('py36'){
+                  dir("${env.WORKSPACE}/flake8") {
+                  echo 'install flake 8'
+                  sh "pip install flake8 --user"
+                  echo 'run flake8'
+                  sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client"
+              }
+            }
+          }
+      }
     //   stage('test_py26'){
     //       steps{
     //           container('py26'){
