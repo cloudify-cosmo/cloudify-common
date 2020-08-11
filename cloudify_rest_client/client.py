@@ -444,3 +444,6 @@ class CloudifyClient(object):
         self.cluster_status = ClusterStatusClient(self._client)
         self.inter_deployment_dependencies = InterDeploymentDependencyClient(
             self._client)
+
+    def change_client_cert(self, new_cert_path):
+        self._client.cert = new_cert_path
