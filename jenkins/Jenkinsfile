@@ -68,9 +68,11 @@ pipeline {
                     rm cloudify/ctx_wrappers/ctx-py.py
                 
                     FUTURIZE="futurize ."
+                    pwd
                     while read line; do
                         [[ "$line" =~ ^#.* ]] && continue
                         FUTURIZE="${FUTURIZE} ${line}"
+                    pwd
                     done<.circleci/py3fixers
                     $FUTURIZE>futurize_diffs
                     '''
