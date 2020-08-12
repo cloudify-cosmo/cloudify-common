@@ -837,6 +837,10 @@ class CloudifyContext(CommonContext):
         """This run of the operation is a resume of an interrupted run"""
         return self._context.get('resume', False)
 
+    @property
+    def execution_creator_username(self):
+        return self._context.get('execution_creator_username')
+
     @resume.setter
     def resume(self, value):
         self._context['resume'] = value

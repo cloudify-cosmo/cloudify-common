@@ -547,6 +547,10 @@ class _WorkflowContextBase(object):
         """Cloudify tenant"""
         return self._context.get('tenant', {})
 
+    @property
+    def execution_creator_username(self):
+        return self._context.get('execution_creator_username')
+
     def _init_cloudify_logger(self):
         logger_name = self.execution_id
         logging_handler = self.internal.handler.get_context_logging_handler()

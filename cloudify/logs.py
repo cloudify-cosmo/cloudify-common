@@ -24,7 +24,8 @@ from functools import wraps
 from cloudify import constants
 from cloudify import amqp_client_utils
 from cloudify import event as _event
-from cloudify.utils import (is_management_environment,
+from cloudify.utils import (get_execution_creator_username,
+                            is_management_environment,
                             ENV_AGENT_LOG_LEVEL,
                             ENV_AGENT_LOG_DIR,
                             ENV_AGENT_LOG_MAX_BYTES,
@@ -375,18 +376,17 @@ def _publish_message(client, message, message_type, logger):
                     json.dumps(message)))
 
 
-def setup_logger_base(log_level, log_dir=None):
+def setup_logger_base(log_level, log_dir=None, username=None):
     # for python 2.6 compat, we translate the string to the actual number
     # that is required (like logging.DEBUG etc)
     log_level = logging.getLevelName(log_level)
 
-    console_formatter = logging.Formatter(
-        '%(asctime)s:%(levelname)s: %(message)s')
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
-    console_handler.setFormatter(console_formatter)
+    console_handler.setFormatter(BaseExecutorNameFormatter())
 
     root_logger = logging.getLogger()
+    root_logger.addFilter(ExecutorNameFilter())
     root_logger.setLevel(log_level)
     root_logger.addHandler(console_handler)
 
@@ -427,8 +427,6 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None,
 
     if log_dir:
         log_file = os.path.join(log_dir, '{0}.log'.format(log_name))
-        file_formatter = logging.Formatter(
-            ' %(asctime)-15s - %(name)s - %(levelname)s - %(message)s')
 
         # On the manager, we for sure have a logrotate policy.
         if is_management_environment():
@@ -455,7 +453,41 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None,
                 filename=log_file, maxBytes=max_bytes,
                 backupCount=max_history)
         file_handler.setLevel(log_level)
-        file_handler.setFormatter(file_formatter)
+        file_handler.setFormatter(AgentExecutorNameFormatter())
 
         root_logger = logging.getLogger()
+        root_logger.addFilter(ExecutorNameFilter())
         root_logger.addHandler(file_handler)
+
+
+class ExecutorNameFilter(logging.Filter):
+    def filter(self, record):
+        username = get_execution_creator_username()
+        if username:
+            record.username = username
+            return True
+
+        return super(ExecutorNameFilter, self).filter(record)
+
+
+class BaseExecutorNameFormatter(logging.Formatter):
+    def __init__(self):
+        username = get_execution_creator_username()
+        if username:
+            super(BaseExecutorNameFormatter, self).__init__(
+                '%(asctime)s:%(levelname)s:%(username)s %(message)s')
+        else:
+            super(BaseExecutorNameFormatter, self).__init__(
+                '%(asctime)s:%(levelname)s: %(message)s')
+
+
+class AgentExecutorNameFormatter(logging.Formatter):
+    def __init__(self):
+        username = get_execution_creator_username()
+        if username:
+            super(AgentExecutorNameFormatter, self).__init__(
+                ' %(asctime)-15s - %(name)s - %(levelname)s - %(username)s - '
+                '%(message)s')
+        else:
+            super(AgentExecutorNameFormatter, self).__init__(
+                ' %(asctime)-15s - %(name)s - %(levelname)s - %(message)s')
