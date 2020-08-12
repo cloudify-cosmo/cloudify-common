@@ -132,7 +132,7 @@ pipeline {
                 '''
                     install_test_dependencies('py26')
                     pytest('dsl_parser')
-                    pytest('script_runner)
+                    pytest('script_runner')
                     pytest('cloudify')
                     /* storte test results in path: test-results
                     echo 'export PYENV_ROOT="$HOME/.pyenv"' >> $BASH_ENV
