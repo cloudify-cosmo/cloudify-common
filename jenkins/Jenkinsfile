@@ -51,41 +51,41 @@ pipeline {
     cfy_node_rpm = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
   }
   stages{
-      stage ('py3_compat'){
-        steps{
-            sh "mkdir -p ${env.WORKSPACE}/py3_compat && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/py3_compat"  
-            container('py27'){
-                dir("${env.WORKSPACE}/py3_compat"){
+    //   stage ('py3_compat'){
+    //     steps{
+    //         sh "mkdir -p ${env.WORKSPACE}/py3_compat && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/py3_compat"  
+    //         container('py27'){
+    //             dir("${env.WORKSPACE}/py3_compat"){
                     
-                    echo 'install futurize, remove compat modules and find python3-incompatible code'
-                    sh '''#!/bin/bash
-                    pip install future --user
-                    PATH=$PATH:~/.local/bin
+    //                 echo 'install futurize, remove compat modules and find python3-incompatible code'
+    //                 sh '''#!/bin/bash
+    //                 pip install future --user
+    //                 PATH=$PATH:~/.local/bin
                 
-                    rm cloudify/_compat.py
-                    rm dsl_parser/_compat.py
-                    rm cloudify_rest_client/_compat.py
-                    rm cloudify/ctx_wrappers/ctx-py.py
+    //                 rm cloudify/_compat.py
+    //                 rm dsl_parser/_compat.py
+    //                 rm cloudify_rest_client/_compat.py
+    //                 rm cloudify/ctx_wrappers/ctx-py.py
                 
-                    FUTURIZE="futurize ."
-                    while read line; do
-                        [[ "$line" =~ ^#.* ]] && continue
-                        FUTURIZE="${FUTURIZE} -f ${line}"
-                    done<.circleci/py3fixers
-                    $FUTURIZE>futurize_diffs
-                    '''
-                    echo 'check that there is no python3-incompatible code'
-                    sh ''' #!/bin/bash
-                        if [ -s futurize_diffs ]; then
-                          echo "Python-3-incompatible code found"
-                          cat futurize_diffs
-                          exit 1
-                        fi          
-                    '''
-            }
-          }
-        }
-      }
+    //                 FUTURIZE="futurize ."
+    //                 while read line; do
+    //                     [[ "$line" =~ ^#.* ]] && continue
+    //                     FUTURIZE="${FUTURIZE} -f ${line}"
+    //                 done<.circleci/py3fixers
+    //                 $FUTURIZE>futurize_diffs
+    //                 '''
+    //                 echo 'check that there is no python3-incompatible code'
+    //                 sh ''' #!/bin/bash
+    //                     if [ -s futurize_diffs ]; then
+    //                       echo "Python-3-incompatible code found"
+    //                       cat futurize_diffs
+    //                       exit 1
+    //                     fi          
+    //                 '''
+    //         }
+    //       }
+    //     }
+    //   }
       stage('flake8_py27'){
           steps{
               sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
@@ -121,6 +121,7 @@ pipeline {
                     echo 'setup_py26 - Install and set python version with pyenv'
                     sh '''
                     #!/bin/bash
+                    sleep 9000
                     set -eux
                     git clone https://github.com/yyuu/pyenv.git ~/.pyenv
                     export PYENV_ROOT="$HOME/.pyenv"
