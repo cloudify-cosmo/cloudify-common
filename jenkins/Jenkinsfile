@@ -1,30 +1,29 @@
-// def install_test_dependencies(cache_prefix) {
-//       /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
-//       sh '''
-//         pip install -r dev-requirements.txt --user
-//         pip install -r test-requirements.txt --user
-//         pip install -e '.[dispatcher]' --user
-//       '''
-//       /* save cache with relevant paths and key */
-//   }
-//   def pytest(target){
-//       echo "running pytest << target >>"
-//       sh '''
-//         pytest \
-//               -n 4 \
-//               --cov-report term-missing \
-//               --cov=<< parameters.target >> \
-//               << parameters.target >>/tests \
-//               --junitxml=test-results/<< parameters.target >>.xml
-//       '''
-//   }
+def install_test_dependencies(cache_prefix) {
+      /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
+      sh '''
+        pip install -r dev-requirements.txt --user
+        pip install -r test-requirements.txt --user
+        pip install -e '.[dispatcher]' --user
+      '''
+      /* save cache with relevant paths and key */
+  }
+  def pytest(target){
+      echo "running pytest << target >>"
+      sh '''
+        pytest \
+              -n 4 \
+              --cov-report term-missing \
+              --cov=<< parameters.target >> \
+              << parameters.target >>/tests \
+              --junitxml=test-results/<< parameters.target >>.xml
+      '''
+  }
 //   enum projects{
 //       cloudify_rest_client, cloudify_dsl_parser, cloudify_plugins
+//    }
+//   def build_docs(enum){
 //   }
-  /*def build_docs(enum){
 
-  }
-*/
 
 pipeline {
   agent {
@@ -123,13 +122,13 @@ pipeline {
                     #!/bin/bash
                     sleep 9000
                     set -eux
-                    git clone https://github.com/yyuu/pyenv.git ${env.WORKSPACE}/test-py26/.pyenv
-                    export PYENV_ROOT="${env.WORKSPACE}/test-py26/.pyenv"
+                    git clone https://github.com/yyuu/pyenv.git ~/.pyenv
+                    export PYENV_ROOT="$HOME/.pyenv"
                     export PATH="$PYENV_ROOT/bin:$PATH"
-                    echo 'export PYENV_ROOT="${env.WORKSPACE}/test-py26/.pyenv"' >> $BASH_ENV
-                    echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> $BASH_ENV
+                    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> $BASH
+                    echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> $BASH
                     sudo apt-get install -y build-essential libssl1.0-dev zlib1g-dev xz-utils
-                    echo -e 'if [ $SHLVL = 1 ]; then eval "$(pyenv init -)"; fi' >> ${env.WORKSPACE}/test-py26
+                    echo -e 'if [ $SHLVL = 1 ]; then eval "$(pyenv init -)"; fi' >> $BASH
                     pyenv install 2.6.9
                     pyenv global 2.6.9
                 '''
