@@ -24,25 +24,16 @@ spec:
     securityContext:
       runAsUser: 0
       privileged: true
-  # - name: rabbitmq374
-  #   image: rabbitmq:3.7.4
-  #   resources:
-  #     requests:
-  #       cpu: 1
-  #   command:
-  #   - cat
-  #   tty: true
-  #   securityContext:
-  #     runAsUser: 0
-  #     privileged: true
-  # - name: py26
-  #   image: circleci/python:2.7-stretch
-  #   resources:
-  #     requests:
-  #       cpu: 1
-  #   command:
-  #   - cat
-  #   tty: true
-  #   securityContext:
-  #     runAsUser: 0
-  #     privileged: true
+  - name: rabbitmq374
+    image: rabbitmq:3.7.4
+  - name: py26
+    image: circleci/python:2.7-stretch
+    resources:
+      requests:
+        cpu: 1
+    command:
+    - cat
+    tty: true
+    securityContext:
+      runAsUser: 0
+      privileged: true
