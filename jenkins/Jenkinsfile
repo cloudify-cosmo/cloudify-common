@@ -120,7 +120,6 @@ pipeline {
                     echo 'setup_py26 - Install and set python version with pyenv'
                     sh '''
                     #!/bin/bash
-                    sleep 9000
                     set -eux
                     git clone https://github.com/yyuu/pyenv.git ~/.pyenv
                     export PYENV_ROOT="$HOME/.pyenv"
