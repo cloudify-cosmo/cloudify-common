@@ -7,17 +7,17 @@ def install_test_dependencies(cache_prefix) {
       '''
       /* save cache with relevant paths and key */
   }
-  /*def pytest(String target){
-      echo 'running pytest << target >>'
+  void pytest(String target){
+      echo 'running pytest << ${target} >>'
       sh '''#!/bin/bash
         pytest \
               -n 4 \
               --cov-report term-missing \
-              --cov=<< parameters.target >> \
-              << parameters.target >> /tests \
-              --junitxml=test-results/<< parameters.target >>.xml
+              --cov=<< parameters.${target} >> \
+              << parameters.${target} >> /tests \
+              --junitxml=test-results/<< parameters.${target} >>.xml
       '''
-  }*/
+  }
 //   enum projects{
 //       cloudify_rest_client, cloudify_dsl_parser, cloudify_plugins
 //    }
@@ -43,7 +43,6 @@ pipeline {
     branch = "${env.BRANCH_NAME}"
     workspace = "${env.WORKSPACE}"
     project = "cloudify-common"
-    functions = "cloudify-common/jenkins/functions.groovy"
     stage_dir = "cloudify-common"
     cfy_manager_url = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
     cfy_node_rpm = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
@@ -156,11 +155,10 @@ pipeline {
                             --cov=<< parameters.cloudify >> \
                             << parameters.cloudify >> /tests \
                             --junitxml=test-results/<< parameters.cloudify >>.xml
-                    '''*/
-                    pytest = load "functions.groovy"
-                    pytest.test1('dsl_parser')
-                    pytest 'script_runner'
-                    pytest 'cloudify'
+                    '''*/                    
+                    pytest ('dsl_parser')
+                    pytest ('script_runner')
+                    pytest ('cloudify')
                     /* storte test results in path: test-results
                      */
                 }

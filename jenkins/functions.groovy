@@ -1,6 +1,5 @@
 void test1(String target) {
-      var = target
-      echo 'running pytest << var >>'
+      echo "running pytest << ${target} >>"
       sh '''#!/bin/bash
         pytest \
               -n 4 \
