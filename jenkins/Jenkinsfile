@@ -9,7 +9,7 @@ def install_test_dependencies(cache_prefix) {
   }
   def pytest(target){
       echo "running pytest << target >>"
-      sh '''
+      sh '''#!/bin/bash
         pytest \
               -n 4 \
               --cov-report term-missing \
