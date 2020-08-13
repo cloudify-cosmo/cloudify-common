@@ -272,6 +272,14 @@ def _get_current_context():
                        'context available.')
 
 
+def get_execution_creator_username():
+    """Returns the execution creator username to use in the logs"""
+    try:
+        return _get_current_context().execution_creator_username
+    except RuntimeError:
+        return None
+
+
 def get_rest_token():
     """
     Returns the auth token to use when calling the REST service
