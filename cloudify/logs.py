@@ -297,6 +297,10 @@ def _send_event(ctx, context_type, event_type,
     additional_context = additional_context or {}
     message_context.update(additional_context)
 
+    if hasattr(ctx, 'execution_creator_username'):
+        if ctx.execution_creator_username:
+            message_context.update({'execution_creator_username':
+                                    ctx.execution_creator_username})
     event = {
         'event_type': event_type,
         'context': message_context,
@@ -376,17 +380,18 @@ def _publish_message(client, message, message_type, logger):
                     json.dumps(message)))
 
 
-def setup_logger_base(log_level, log_dir=None, username=None):
+def setup_logger_base(log_level, log_dir=None):
     # for python 2.6 compat, we translate the string to the actual number
     # that is required (like logging.DEBUG etc)
     log_level = logging.getLevelName(log_level)
 
+    console_formatter = logging.Formatter(
+        '%(asctime)s:%(levelname)s: %(message)s')
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
-    console_handler.setFormatter(BaseExecutorNameFormatter())
+    console_handler.setFormatter(console_formatter)
 
     root_logger = logging.getLogger()
-    root_logger.addFilter(ExecutorNameFilter())
     root_logger.setLevel(log_level)
     root_logger.addHandler(console_handler)
 
@@ -453,41 +458,22 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None,
                 filename=log_file, maxBytes=max_bytes,
                 backupCount=max_history)
         file_handler.setLevel(log_level)
-        file_handler.setFormatter(AgentExecutorNameFormatter())
+        file_handler.setFormatter(ExecutorNameFormatter())
 
         root_logger = logging.getLogger()
-        root_logger.addFilter(ExecutorNameFilter())
         root_logger.addHandler(file_handler)
 
 
-class ExecutorNameFilter(logging.Filter):
-    def filter(self, record):
+class ExecutorNameFormatter(logging.Formatter):
+    default_fmt = logging.Formatter(' %(asctime)-15s - %(name)s - '
+                                    '%(levelname)s - %(message)s')
+    user_fmt = logging.Formatter(' %(asctime)-15s - %(name)s - '
+                                 '%(levelname)s - %(username)s - %(message)s')
+
+    def format(self, record):
         username = get_execution_creator_username()
         if username:
             record.username = username
-            return True
+            return self.user_fmt.format(record)
 
-        return super(ExecutorNameFilter, self).filter(record)
-
-
-class BaseExecutorNameFormatter(logging.Formatter):
-    def __init__(self):
-        username = get_execution_creator_username()
-        if username:
-            super(BaseExecutorNameFormatter, self).__init__(
-                '%(asctime)s:%(levelname)s:%(username)s %(message)s')
-        else:
-            super(BaseExecutorNameFormatter, self).__init__(
-                '%(asctime)s:%(levelname)s: %(message)s')
-
-
-class AgentExecutorNameFormatter(logging.Formatter):
-    def __init__(self):
-        username = get_execution_creator_username()
-        if username:
-            super(AgentExecutorNameFormatter, self).__init__(
-                ' %(asctime)-15s - %(name)s - %(levelname)s - %(username)s - '
-                '%(message)s')
-        else:
-            super(AgentExecutorNameFormatter, self).__init__(
-                ' %(asctime)-15s - %(name)s - %(levelname)s - %(message)s')
+        return self.default_fmt.format(record)
