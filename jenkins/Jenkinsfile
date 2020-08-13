@@ -46,7 +46,7 @@ pipeline {
     workspace = "${env.WORKSPACE}"
     project = "cloudify-common"
     stage_dir = "cloudify-common"
-    BASH_ENV = "/etc/profile"
+    BASH_ENV = "~/.bashrc"
     cfy_manager_url = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
     cfy_node_rpm = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
   }
