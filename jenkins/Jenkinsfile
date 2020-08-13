@@ -1,4 +1,4 @@
-def install_test_dependencies(cache_prefix) {
+def install_test_dependencies(String cache_prefix) {
       /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
       sh '''
         pip install -r dev-requirements.txt --user
@@ -7,16 +7,16 @@ def install_test_dependencies(cache_prefix) {
       '''
       /* save cache with relevant paths and key */
   }
-  void pytest(String target){
-      echo 'running pytest << ${target} >>'
-      sh '''#!/bin/bash
+  def pytest(String target){
+      echo "running pytest << ${target} >>"
+      sh """#!/bin/bash
         pytest \
               -n 4 \
               --cov-report term-missing \
-              --cov= << parameters.${target} >> \
-              << parameters.${target} >> /tests \
-              --junitxml=test-results/ << parameters.${target} >> .xml
-      '''
+              --cov= << ${target} >> \
+               << ${target} >> /tests \
+              --junitxml=test-results/ << ${target} >> .xml
+      """
   }
 //   enum projects{
 //       cloudify_rest_client, cloudify_dsl_parser, cloudify_plugins
@@ -156,9 +156,9 @@ pipeline {
                             << parameters.cloudify >> /tests \
                             --junitxml=test-results/<< parameters.cloudify >>.xml
                     '''*/                    
-                    pytest ('dsl_parser')
-                    pytest ('script_runner')
-                    pytest ('cloudify')
+                    pytest('dsl_parser')
+                    pytest('script_runner')
+                    pytest('cloudify')
                     /* storte test results in path: test-results
                      */
                 }
