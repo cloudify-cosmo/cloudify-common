@@ -13,9 +13,9 @@ def install_test_dependencies(String cache_prefix) {
         pytest \
               -n 4 \
               --cov-report term-missing \
-              --cov= << ${target} >> \
-               << ${target} >> /tests \
-              --junitxml=test-results/ << ${target} >> .xml
+              --cov= ${target} \
+              ${target} /tests \
+              --junitxml=test-results/ ${target} .xml
       """
   }
 //   enum projects{
