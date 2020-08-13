@@ -16,8 +16,8 @@ def install_test_dependencies(cache_prefix) {
               --cov=<< parameters.target >> \
               << parameters.target >> /tests \
               --junitxml=test-results/<< parameters.target >>.xml
-      '''*/
-  }
+      '''
+  }*/
 //   enum projects{
 //       cloudify_rest_client, cloudify_dsl_parser, cloudify_plugins
 //    }
