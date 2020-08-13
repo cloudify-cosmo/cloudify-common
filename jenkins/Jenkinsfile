@@ -7,8 +7,8 @@ def install_test_dependencies(cache_prefix) {
       '''
       /* save cache with relevant paths and key */
   }
-  def pytest(target){
-      echo "running pytest << target >>"
+  def pytest(String target){
+      echo 'running pytest << target >>'
       sh '''#!/bin/bash
         pytest \
               -n 4 \
@@ -52,20 +52,17 @@ pipeline {
   stages{
     //   stage ('py3_compat'){
     //     steps{
-    //         sh "mkdir -p ${env.WORKSPACE}/py3_compat && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/py3_compat"  
+    //         sh "mkdir -p ${env.WORKSPACE}/py3_compat && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/py3_compat"
     //         container('py27'){
     //             dir("${env.WORKSPACE}/py3_compat"){
-                    
     //                 echo 'install futurize, remove compat modules and find python3-incompatible code'
     //                 sh '''#!/bin/bash
     //                 pip install future --user
     //                 PATH=$PATH:~/.local/bin
-                
     //                 rm cloudify/_compat.py
     //                 rm dsl_parser/_compat.py
     //                 rm cloudify_rest_client/_compat.py
     //                 rm cloudify/ctx_wrappers/ctx-py.py
-                
     //                 FUTURIZE="futurize ."
     //                 while read line; do
     //                     [[ "$line" =~ ^#.* ]] && continue
@@ -134,9 +131,36 @@ pipeline {
                     pyenv global 2.6.9
                 '''
                     install_test_dependencies('py26')
-                    pytest('dsl_parser')
+                    echo 'running pytest << dsl_parser >>'
+                    sh '''#!/bin/bash
+                      pytest \
+                            -n 4 \
+                            --cov-report term-missing \
+                            --cov=<< parameters.dsl_parser >> \
+                            << parameters.dsl_parser >> /tests \
+                            --junitxml=test-results/<< parameters.dsl_parser >>.xml
+                    '''
+                    echo 'running pytest << script_runner >>'
+                    sh '''#!/bin/bash
+                      pytest \
+                            -n 4 \
+                            --cov-report term-missing \
+                            --cov=<< parameters.script_runner >> \
+                            << parameters.script_runner >> /tests \
+                            --junitxml=test-results/<< parameters.script_runner >>.xml
+                    '''
+                    echo 'running pytest << cloudify >>'
+                    sh '''#!/bin/bash
+                      pytest \
+                            -n 4 \
+                            --cov-report term-missing \
+                            --cov=<< parameters.cloudify >> \
+                            << parameters.cloudify >> /tests \
+                            --junitxml=test-results/<< parameters.cloudify >>.xml
+                    '''
+                    /*pytest('dsl_parser')
                     pytest('script_runner')
-                    pytest('cloudify')
+                    pytest('cloudify')*/
                     /* storte test results in path: test-results
                      */
                 }
@@ -147,10 +171,10 @@ pipeline {
     //       steps{
     //           container('py27'){
     //                 
-    //                 install_test_dependencies(py27)
-    //                 pytest(dsl_parser)
-    //                 pytest(script_runner)
-    //                 pytest(cloudify)
+    //                 install_test_dependencies('py27')
+    //                 pytest('dsl_parser')
+    //                 pytest('script_runner')
+    //                 pytest('cloudify')
     //                 /* storte test results in path: test-results */
     //           }
     //       }
@@ -159,10 +183,10 @@ pipeline {
     //       steps{
     //           container('py36'){
     //                 
-    //                 install_test_dependencies(py36)
-    //                 pytest(dsl_parser)
-    //                 pytest(script_runner)
-    //                 pytest(cloudify)
+    //                 install_test_dependencies('py36')
+    //                 pytest('dsl_parser')
+    //                 pytest('script_runner')
+    //                 pytest('cloudify')
     //                 /* storte test results in path: test-results */
     //           }
     //       }
