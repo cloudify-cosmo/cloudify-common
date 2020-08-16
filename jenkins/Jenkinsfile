@@ -1,6 +1,7 @@
 def install_test_dependencies(String cache_prefix) {
       /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
       sh '''
+        #!/bin/bash
         pip install -r dev-requirements.txt --user
         pip install -r test-requirements.txt --user
         pip install -e '.[dispatcher]' --user
@@ -127,16 +128,9 @@ pipeline {
                         fi'
                     pyenv install 2.6.9
                     pyenv global 2.6.9
-                    echo 'running pytest << dsl_parser >>'
-                    pip install -U pytest
-                    pytest \
-                      -n 4 \
-                      --cov-report term-missing \
-                      --cov= dsl_parser \
-                      dsl_parser /tests \
-                      --junitxml=test-results/ dsl_parser .xml
                 '''
                     install_test_dependencies('py26')
+                    
                     /*echo 'running pytest << dsl_parser >>'
                     sh '''#!/bin/bash
                       pytest \
