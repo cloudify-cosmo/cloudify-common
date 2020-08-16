@@ -128,44 +128,40 @@ pipeline {
                         fi'
                     pyenv install 2.6.9
                     pyenv global 2.6.9
+                    echo 'install_test_dependencies'
                     pip install -r dev-requirements.txt --user
                     pip install -r test-requirements.txt --user
-                    pip install -e '.[dispatcher]' --user
-                '''
-                   // install_test_dependencies('py26')
-                    
-                    /*echo 'running pytest << dsl_parser >>'
-                    sh '''#!/bin/bash
-                      pytest \
-                            -n 4 \
-                            --cov-report term-missing \
-                            --cov=<< parameters.dsl_parser >> \
-                            << parameters.dsl_parser >> /tests \
-                            --junitxml=test-results/<< parameters.dsl_parser >>.xml
-                    '''
+                    pip install -e '.[dispatcher]' --user              
+                    echo 'running pytest << dsl_parser >>'
+                    pytest \
+                      -n 4 \
+                      --cov-report term-missing \
+                      --cov= dsl_parser \
+                      dsl_parser /tests \
+                      --junitxml=test-results/ dsl_parser .xml
                     echo 'running pytest << script_runner >>'
-                    sh '''#!/bin/bash
-                      pytest \
-                            -n 4 \
-                            --cov-report term-missing \
-                            --cov=<< parameters.script_runner >> \
-                            << parameters.script_runner >> /tests \
-                            --junitxml=test-results/<< parameters.script_runner >>.xml
-                    '''
+                    pytest \
+                      -n 4 \
+                      --cov-report term-missing \
+                      --cov= script_runner \
+                      script_runner /tests \
+                      --junitxml=test-results/ script_runner .xml
                     echo 'running pytest << cloudify >>'
-                    sh '''#!/bin/bash
-                      pytest \
-                            -n 4 \
-                            --cov-report term-missing \
-                            --cov=<< parameters.cloudify >> \
-                            << parameters.cloudify >> /tests \
-                            --junitxml=test-results/<< parameters.cloudify >>.xml
-                    '''*/                    
-                    pytest('dsl_parser')
-                    pytest('script_runner')
-                    pytest('cloudify')
-                    /* storte test results in path: test-results
+                    pytest \
+                      -n 4 \
+                      --cov-report term-missing \
+                      --cov= cloudify \
+                      cloudify /tests \
+                      --junitxml=test-results/ cloudify .xml 
+                    '''           
+                    //install_test_dependencies('py26')
+                    // pytest('dsl_parser')
+                    // pytest('script_runner')
+                    // pytest('cloudify')
+
+                    /* store test results in path: test-results
                      */
+                    
                 }
             }
           }
