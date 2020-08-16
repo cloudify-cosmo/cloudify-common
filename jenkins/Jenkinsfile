@@ -131,9 +131,9 @@ pipeline {
                     pytest \
                       -n 4 \
                       --cov-report term-missing \
-                      --cov=<< parameters.dsl_parser >> \
-                      << parameters.dsl_parser >> /tests \
-                      --junitxml=test-results/<< parameters.dsl_parser >>.xml
+                      --cov= dsl_parser \
+                      dsl_parser /tests \
+                      --junitxml=test-results/ dsl_parser .xml
                 '''
                     install_test_dependencies('py26')
                     /*echo 'running pytest << dsl_parser >>'
