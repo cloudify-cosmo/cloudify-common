@@ -113,7 +113,7 @@ pipeline {
               container('py26'){
                     dir("${env.WORKSPACE}/test-py26") {
                     echo 'setup_py26 - Install and set python version with pyenv'
-                    sh """
+                    sh '''
                     #!/bin/bash
                     set -eux
                     git clone https://github.com/yyuu/pyenv.git ~/.pyenv
@@ -134,7 +134,7 @@ pipeline {
                       --cov=<< parameters.dsl_parser >> \
                       << parameters.dsl_parser >> /tests \
                       --junitxml=test-results/<< parameters.dsl_parser >>.xml
-                """
+                '''
                     install_test_dependencies('py26')
                     /*echo 'running pytest << dsl_parser >>'
                     sh '''#!/bin/bash
