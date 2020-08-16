@@ -134,21 +134,18 @@ pipeline {
                     pip install -e '.[dispatcher]' --user              
                     echo 'running pytest << dsl_parser >>'
                     pytest \
-                      -n 4 \
                       --cov-report term-missing \
                       --cov= dsl_parser \
                       dsl_parser /tests \
                       --junitxml=test-results/ dsl_parser .xml
                     echo 'running pytest << script_runner >>'
                     pytest \
-                      -n 4 \
                       --cov-report term-missing \
                       --cov= script_runner \
                       script_runner /tests \
                       --junitxml=test-results/ script_runner .xml
                     echo 'running pytest << cloudify >>'
                     pytest \
-                      -n 4 \
                       --cov-report term-missing \
                       --cov= cloudify \
                       cloudify /tests \
