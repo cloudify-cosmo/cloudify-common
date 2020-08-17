@@ -131,7 +131,8 @@ pipeline {
                     echo 'install_test_dependencies'
                     pip install -r dev-requirements.txt --user
                     pip install -r test-requirements.txt --user
-                    pip install -e '.[dispatcher]' --user              
+                    pip install -e '.[dispatcher]' --user 
+                    sleep 9000             
                     echo 'running pytest << dsl_parser >>'
                     mkdir -p test-results/dsl_parser
                     python -m pytest \
@@ -155,7 +156,6 @@ pipeline {
                       script_runner/tests \
                       --junitxml=test-results/script_runner script_runner
                     echo 'finished pytest'
-                    sleep 9000
                     '''           
                     //install_test_dependencies('py26')
                     // pytest('dsl_parser')
