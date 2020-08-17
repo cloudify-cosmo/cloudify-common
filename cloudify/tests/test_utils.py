@@ -198,7 +198,7 @@ class TestRestUtils(object):
         os_dir_size = os.path.getsize(temp_dir)
         open(os.path.join(temp_dir, '1.bin'), 'wb').write(b'ABCD')
         open(os.path.join(sub_dir, '2.bin'), 'wb').write(b'1234567890')
-        expected_dir_size = 2 * os_dir_size + 14
+        expected_dir_size = 2 * os_dir_size + 25
         assert rest_utils.get_folder_size_and_files(temp_dir) == \
             (expected_dir_size, 3)
         shutil.rmtree(temp_dir)
