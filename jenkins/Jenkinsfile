@@ -134,20 +134,20 @@ pipeline {
                     pip install -e '.[dispatcher]' --user 
                     export 'PATH=$PATH:/root/.local/bin'
                     echo 'running pytest << dsl_parser >>'
-                    python -m pytest \
+                    pytest \
                       --cov-report term-missing \
                       --cov= dsl_parser \
                       dsl_parser/tests \
                       --junitxml=test-results/ dsl_parser
                     
                     echo 'running pytest << cloudify >>'
-                    python -m pytest \
+                    pytest \
                       --cov-report term-missing \
                       --cov= cloudify \
                       cloudify/tests \
                       --junitxml=test-results/ cloudify
                     echo 'running pytest << script_runner >>'
-                    python -m pytest \
+                    pytest \
                       --cov-report term-missing \
                       --cov= script_runner \
                       script_runner/tests \
