@@ -139,19 +139,19 @@ pipeline {
                       --cov= dsl_parser \
                       dsl_parser/tests \
                       --junitxml=test-results/ dsl_parser
-                    
-                    echo 'running pytest << cloudify >>'
-                    pytest \
-                      --cov-report term-missing \
-                      --cov= cloudify \
-                      cloudify/tests \
-                      --junitxml=test-results/ cloudify
                     echo 'running pytest << script_runner >>'
                     pytest \
                       --cov-report term-missing \
                       --cov= script_runner \
                       script_runner/tests \
                       --junitxml=test-results/ script_runner
+                    echo 'running pytest << cloudify >>'
+                    pytest \
+                      --cov-report term-missing \
+                      --cov= cloudify \
+                      cloudify/tests \
+                      --junitxml=test-results/ cloudify
+                    
                     echo 'finished pytest'
                     '''           
                     //install_test_dependencies('py26')
