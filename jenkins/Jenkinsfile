@@ -1,22 +1,21 @@
-// def install_test_dependencies(String cache_prefix) {
-//       /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
-//       sh '''
-//         #!/bin/bash
-//         pip install -r dev-requirements.txt --user
-//         pip install -r test-requirements.txt --user
-//         pip install -e '.[dispatcher]' --user
-//       '''
-//      /* save cache with relevant paths and key */
-//  }
+def install_test_dependencies(String cache_prefix) {
+      /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
+      sh '''
+        #!/bin/bash
+        pip install -r dev-requirements.txt --user
+        pip install -r test-requirements.txt --user
+        pip install -e '.[dispatcher]' --user
+      '''
+     /* save cache with relevant paths and key */
+ }
   def pytest(String target){
       echo "running pytest << ${target} >>"
       sh """#!/bin/bash
         pytest \
-              -n 4 \
               --cov-report term-missing \
               --cov= ${target} \
-              ${target} /tests \
-              --junitxml=test-results/ ${target} .xml
+              ${target}/tests \
+              --junitxml=test-results/ ${target}
       """
   }
 //   enum projects{
@@ -45,6 +44,7 @@ pipeline {
     WORKSPACE = "${env.WORKSPACE}"
     PROJECT = "cloudify-common"
     STAGE_DIR = "cloudify-common"
+    PATH= "/root/.local/bin:$PATH"
     CFY_MANAGER_URL = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
     CFY_NODE_RPM = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
   }
@@ -128,37 +128,38 @@ pipeline {
                         fi'
                     pyenv install 2.6.9
                     pyenv global 2.6.9
-                    echo 'install_test_dependencies'
-                    pip install -r dev-requirements.txt --user
-                    pip install -r test-requirements.txt --user
-                    pip install -e '.[dispatcher]' --user 
-                    export PATH="/root/.local/bin:$PATH"
-                    echo $PATH
-                    echo 'running pytest << dsl_parser >>'
-                    pytest \
-                      --cov-report term-missing \
-                      --cov= dsl_parser \
-                      dsl_parser/tests \
-                      --junitxml=test-results/ dsl_parser
-                    echo 'running pytest << script_runner >>'
-                    pytest \
-                      --cov-report term-missing \
-                      --cov= script_runner \
-                      script_runner/tests \
-                      --junitxml=test-results/ script_runner
-                    echo 'running pytest << cloudify >>'
-                    pytest \
-                      --cov-report term-missing \
-                      --cov= cloudify \
-                      cloudify/tests \
-                      --junitxml=test-results/ cloudify
+                    '''
+                    // echo 'install_test_dependencies'
+                    // pip install -r dev-requirements.txt --user
+                    // pip install -r test-requirements.txt --user
+                    // pip install -e '.[dispatcher]' --user 
+                    // export PATH="/root/.local/bin:$PATH"
+                    // echo $PATH
+                    // echo 'running pytest << dsl_parser >>'
+                    // pytest \
+                    //   --cov-report term-missing \
+                    //   --cov= dsl_parser \
+                    //   dsl_parser/tests \
+                    //   --junitxml=test-results/ dsl_parser
+                    // echo 'running pytest << script_runner >>'
+                    // pytest \
+                    //   --cov-report term-missing \
+                    //   --cov= script_runner \
+                    //   script_runner/tests \
+                    //   --junitxml=test-results/ script_runner
+                    // echo 'running pytest << cloudify >>'
+                    // pytest \
+                    //   --cov-report term-missing \
+                    //   --cov= cloudify \
+                    //   cloudify/tests \
+                    //   --junitxml=test-results/ cloudify
                     
-                    echo 'finished pytest'
-                    '''           
-                    //install_test_dependencies('py26')
-                    // pytest('dsl_parser')
-                    // pytest('script_runner')
-                    // pytest('cloudify')
+                    // echo 'finished pytest'
+                               
+                    install_test_dependencies('py26')
+                    pytest('dsl_parser')
+                    pytest('script_runner')
+                    pytest('cloudify')
 
                     /* store test results in path: test-results
                      */
