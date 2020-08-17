@@ -133,24 +133,27 @@ pipeline {
                     pip install -r test-requirements.txt --user
                     pip install -e '.[dispatcher]' --user              
                     echo 'running pytest << dsl_parser >>'
+                    mkdir -p test-results/dsl_parser
                     python -m pytest \
                       --cov-report term-missing \
                       --cov= dsl_parser \
                       dsl_parser/tests \
-                      --junitxml=test-results/ dsl_parser
+                      --junitxml=test-results/dsl_parser dsl_parser
                     
                     echo 'running pytest << cloudify >>'
+                    mkdir -p test-results/cloudify
                     python -m pytest \
                       --cov-report term-missing \
                       --cov= cloudify \
                       cloudify/tests \
-                      --junitxml=test-results/ cloudify
+                      --junitxml=test-results/cloudify cloudify
                     echo 'running pytest << script_runner >>'
+                    mkdir -p test-results/script_runner
                     python -m pytest \
                       --cov-report term-missing \
                       --cov= script_runner \
                       script_runner/tests \
-                      --junitxml=test-results/ script_runner
+                      --junitxml=test-results/script_runner script_runner
                     echo 'finished pytest'
                     sleep 9000
                     '''           
