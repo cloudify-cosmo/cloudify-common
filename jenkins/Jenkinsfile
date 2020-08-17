@@ -133,6 +133,7 @@ pipeline {
                     pip install -r test-requirements.txt --user
                     pip install -e '.[dispatcher]' --user 
                     echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.bashrc
+                    echo $PATH
                     source ~/.bashrc
                     echo 'running pytest << dsl_parser >>'
                     pytest \
