@@ -150,6 +150,8 @@ pipeline {
                       --cov= cloudify \
                       cloudify/tests \
                       --junitxml=test-results/ cloudify
+                    echo 'finished pytest'
+                    sleep 9000
                     '''           
                     //install_test_dependencies('py26')
                     // pytest('dsl_parser')
