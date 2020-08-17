@@ -132,7 +132,8 @@ pipeline {
                     pip install -r dev-requirements.txt --user
                     pip install -r test-requirements.txt --user
                     pip install -e '.[dispatcher]' --user 
-                    export 'PATH=$PATH:/root/.local/bin'
+                    echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.bashrc
+                    source ~/.bashrc
                     echo 'running pytest << dsl_parser >>'
                     pytest \
                       --cov-report term-missing \
