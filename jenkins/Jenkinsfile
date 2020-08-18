@@ -24,7 +24,7 @@ def build_docs(String project){
   #!/bin/bash
     sphinx build \
       -d _build/doctrees \
-      -D version=$(python setup.py --version) \
+      -D version="$(python setup.py --version)" \
       docs/${project} \
       docs/${project}/_build/html
   """
