@@ -170,38 +170,43 @@ pipeline {
       }
       stage('test_py27'){
           steps{
+            sh "mkdir -p ${env.WORKSPACE}/test-py27 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py27"
               container('py27'){
-                    
+                    dir("${env.WORKSPACE}/test-py27") {
                     install_test_dependencies('py27')
                     pytest('dsl_parser')
                     pytest('script_runner')
                     pytest('cloudify')
                     /* storte test results in path: test-results */
+                    }
               }
           }
       }
       stage('test_py36'){
           steps{
+            sh "mkdir -p ${env.WORKSPACE}/test-py36 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py36"
               container('py36'){
-                    
+                    dir("${env.WORKSPACE}/test-py36") {
                     install_test_dependencies('py36')
                     pytest('dsl_parser')
                     pytest('script_runner')
                     pytest('cloudify')
-                    /* storte test results in path: test-results */
+                    /* store test results in path: test-results */
+                    }
               }
           }
       }
       stage('build_all_project_docs'){
             steps{
                 container('py27'){
-                    
+                    dir("${env.WORKSPACE}/test-py27") {
                     /* restore cache with relevant keys */
                     echo 'Install sphinx'
                     sh "pip install sphinx sphinx-rtd-theme"
                     echo 'Install cloudify-common'
                     sh "pip install ."
                     /* save cache */
+                    }
           }
         }
       }
