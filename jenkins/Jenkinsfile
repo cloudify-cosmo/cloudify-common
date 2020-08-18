@@ -8,7 +8,7 @@ def install_test_dependencies(String cache_prefix) {
       '''
      /* save cache with relevant paths and key */
  }
-  def pytest(String target){
+def pytest(String target){
       echo "running pytest << ${target} >>"
       sh """#!/bin/bash
         pytest \
@@ -18,6 +18,17 @@ def install_test_dependencies(String cache_prefix) {
               --junitxml=test-results/ ${target}
       """
   }
+def build_docs(String project){
+  echo "build docs for ${project}"
+  sh """
+  #!/bin/bash
+    sphinx build \
+      -d _build/doctrees \
+      -D version=$(python setup.py --version) \
+      docs/${project} \
+      docs/${project}/_build/html
+  """
+}
 //   enum projects{
 //       cloudify_rest_client, cloudify_dsl_parser, cloudify_plugins
 //    }
@@ -49,38 +60,38 @@ pipeline {
     CFY_NODE_RPM = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
   }
   stages{
-      stage ('py3_compat'){
-        steps{
-            sh "mkdir -p ${env.WORKSPACE}/py3_compat && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/py3_compat"
-            container('py27'){
-                dir("${env.WORKSPACE}/py3_compat"){
-                    echo 'install futurize, remove compat modules and find python3-incompatible code'
-                    sh '''#!/bin/bash
-                    pip install future --user
-                    PATH=$PATH:~/.local/bin
-                    rm cloudify/_compat.py
-                    rm dsl_parser/_compat.py
-                    rm cloudify_rest_client/_compat.py
-                    rm cloudify/ctx_wrappers/ctx-py.py
-                    FUTURIZE="futurize ."
-                    while read line; do
-                        [[ "$line" =~ ^#.* ]] && continue
-                        FUTURIZE="${FUTURIZE} -f ${line}"
-                    done<.circleci/py3fixers
-                    $FUTURIZE>futurize_diffs
-                    '''
-                    echo 'check that there is no python3-incompatible code'
-                    sh ''' #!/bin/bash
-                        if [ -s futurize_diffs ]; then
-                          echo "Python-3-incompatible code found"
-                          cat futurize_diffs
-                          exit 1
-                        fi          
-                    '''
-            }
-          }
-        }
-      }
+      // stage ('py3_compat'){
+      //   steps{
+      //       sh "mkdir -p ${env.WORKSPACE}/py3_compat && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/py3_compat"
+      //       container('py27'){
+      //           dir("${env.WORKSPACE}/py3_compat"){
+      //               echo 'install futurize, remove compat modules and find python3-incompatible code'
+      //               sh '''#!/bin/bash
+      //               pip install future --user
+      //               PATH=$PATH:~/.local/bin
+      //               rm cloudify/_compat.py
+      //               rm dsl_parser/_compat.py
+      //               rm cloudify_rest_client/_compat.py
+      //               rm cloudify/ctx_wrappers/ctx-py.py
+      //               FUTURIZE="futurize ."
+      //               while read line; do
+      //                   [[ "$line" =~ ^#.* ]] && continue
+      //                   FUTURIZE="${FUTURIZE} -f ${line}"
+      //               done<.circleci/py3fixers
+      //               $FUTURIZE>futurize_diffs
+      //               '''
+      //               echo 'check that there is no python3-incompatible code'
+      //               sh ''' #!/bin/bash
+      //                   if [ -s futurize_diffs ]; then
+      //                     echo "Python-3-incompatible code found"
+      //                     cat futurize_diffs
+      //                     exit 1
+      //                   fi          
+      //               '''
+      //       }
+      //     }
+      //   }
+      // }
       stage('flake8_py27'){
           steps{
               sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
@@ -95,79 +106,79 @@ pipeline {
             }
           }
       }
-      stage('flake8_py36'){
-          steps{
-                sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
-              container('py36'){
-                  dir("${env.WORKSPACE}/flake8") {
-                  echo 'install flake 8'
-                  sh "pip install flake8 --user"
-                  echo 'run flake8'
-                  sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client"
-              }
-            }
-          }
-      }
-      stage('test_py26'){
-          steps{
-                sh "mkdir -p ${env.WORKSPACE}/test-py26 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py26"
-              container('py26'){
-                    dir("${env.WORKSPACE}/test-py26") {
-                    echo 'setup_py26 - Install and set python version with pyenv'
-                    sh '''
-                    #!/bin/bash
-                    set -eux
-                    git clone https://github.com/yyuu/pyenv.git ~/.pyenv
-                    export PYENV_ROOT="$HOME/.pyenv"
-                    export PATH="$PYENV_ROOT/bin:$PATH"
-                    echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.bashrc
-                    sudo apt-get install -y build-essential libssl1.0-dev zlib1g-dev xz-utils
-                    echo 'if [ -e $SHLVL = 1 ]; then
-                        echo 'eval "$(pyenv init -)"' >> ~/.bashrc
-                        echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
-                        fi'
-                    pyenv install 2.6.9
-                    pyenv global 2.6.9
-                    '''
-                    // echo 'install_test_dependencies'
-                    // pip install -r dev-requirements.txt --user
-                    // pip install -r test-requirements.txt --user
-                    // pip install -e '.[dispatcher]' --user 
-                    // export PATH="/root/.local/bin:$PATH"
-                    // echo $PATH
-                    // echo 'running pytest << dsl_parser >>'
-                    // pytest \
-                    //   --cov-report term-missing \
-                    //   --cov= dsl_parser \
-                    //   dsl_parser/tests \
-                    //   --junitxml=test-results/ dsl_parser
-                    // echo 'running pytest << script_runner >>'
-                    // pytest \
-                    //   --cov-report term-missing \
-                    //   --cov= script_runner \
-                    //   script_runner/tests \
-                    //   --junitxml=test-results/ script_runner
-                    // echo 'running pytest << cloudify >>'
-                    // pytest \
-                    //   --cov-report term-missing \
-                    //   --cov= cloudify \
-                    //   cloudify/tests \
-                    //   --junitxml=test-results/ cloudify
+      // stage('flake8_py36'){
+      //     steps{
+      //           sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
+      //         container('py36'){
+      //             dir("${env.WORKSPACE}/flake8") {
+      //             echo 'install flake 8'
+      //             sh "pip install flake8 --user"
+      //             echo 'run flake8'
+      //             sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client"
+      //         }
+      //       }
+      //     }
+      // }
+      // stage('test_py26'){
+      //     steps{
+      //           sh "mkdir -p ${env.WORKSPACE}/test-py26 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py26"
+      //         container('py26'){
+      //               dir("${env.WORKSPACE}/test-py26") {
+      //               echo 'setup_py26 - Install and set python version with pyenv'
+      //               sh '''
+      //               #!/bin/bash
+      //               set -eux
+      //               git clone https://github.com/yyuu/pyenv.git ~/.pyenv
+      //               export PYENV_ROOT="$HOME/.pyenv"
+      //               export PATH="$PYENV_ROOT/bin:$PATH"
+      //               echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.bashrc
+      //               sudo apt-get install -y build-essential libssl1.0-dev zlib1g-dev xz-utils
+      //               echo 'if [ -e $SHLVL = 1 ]; then
+      //                   echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+      //                   echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
+      //                   fi'
+      //               pyenv install 2.6.9
+      //               pyenv global 2.6.9
+      //               '''
+      //               // echo 'install_test_dependencies'
+      //               // pip install -r dev-requirements.txt --user
+      //               // pip install -r test-requirements.txt --user
+      //               // pip install -e '.[dispatcher]' --user 
+      //               // export PATH="/root/.local/bin:$PATH"
+      //               // echo $PATH
+      //               // echo 'running pytest << dsl_parser >>'
+      //               // pytest \
+      //               //   --cov-report term-missing \
+      //               //   --cov= dsl_parser \
+      //               //   dsl_parser/tests \
+      //               //   --junitxml=test-results/ dsl_parser
+      //               // echo 'running pytest << script_runner >>'
+      //               // pytest \
+      //               //   --cov-report term-missing \
+      //               //   --cov= script_runner \
+      //               //   script_runner/tests \
+      //               //   --junitxml=test-results/ script_runner
+      //               // echo 'running pytest << cloudify >>'
+      //               // pytest \
+      //               //   --cov-report term-missing \
+      //               //   --cov= cloudify \
+      //               //   cloudify/tests \
+      //               //   --junitxml=test-results/ cloudify
                     
-                    // echo 'finished pytest'
+      //               // echo 'finished pytest'
                                
-                    install_test_dependencies('py26')
-                    pytest('dsl_parser')
-                    pytest('script_runner')
-                    pytest('cloudify')
+      //               install_test_dependencies('py26')
+      //               pytest('dsl_parser')
+      //               pytest('script_runner')
+      //               pytest('cloudify')
 
-                    /* store test results in path: test-results
-                     */
+      //               /* store test results in path: test-results
+      //                */
                     
-                }
-            }
-          }
-      }
+      //           }
+      //       }
+      //     }
+      // }
       stage('test_py27'){
           steps{
             sh "mkdir -p ${env.WORKSPACE}/test-py27 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py27"
@@ -182,20 +193,20 @@ pipeline {
               }
           }
       }
-      stage('test_py36'){
-          steps{
-            sh "mkdir -p ${env.WORKSPACE}/test-py36 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py36"
-              container('py36'){
-                    dir("${env.WORKSPACE}/test-py36") {
-                    install_test_dependencies('py36')
-                    pytest('dsl_parser')
-                    pytest('script_runner')
-                    pytest('cloudify')
-                    /* store test results in path: test-results */
-                    }
-              }
-          }
-      }
+      // stage('test_py36'){
+      //     steps{
+      //       sh "mkdir -p ${env.WORKSPACE}/test-py36 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py36"
+      //         container('py36'){
+      //               dir("${env.WORKSPACE}/test-py36") {
+      //               install_test_dependencies('py36')
+      //               pytest('dsl_parser')
+      //               pytest('script_runner')
+      //               pytest('cloudify')
+      //               /* store test results in path: test-results */
+      //               }
+      //         }
+      //     }
+      // }
       stage('build_all_project_docs'){
             steps{
                 container('py27'){
@@ -205,6 +216,10 @@ pipeline {
                     sh "pip install sphinx sphinx-rtd-theme"
                     echo 'Install cloudify-common'
                     sh "pip install ."
+                    build_docs('cloudify_plugins_common')
+                    build_docs('cloudify_rest_client')
+                    build_docs('cloudify_script_plugin')
+                    build_docs('cloudify_dsl_parser')
                     /* save cache */
                     }
           }
