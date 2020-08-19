@@ -22,7 +22,7 @@ def build_docs(String project){
   echo "build docs for ${project}"
   sh """
   #!/bin/bash
-    sphinx build \
+    sphinx-build \
       -d _build/doctrees \
       -D version="\$(python setup.py --version)" \
       docs/${project} \
