@@ -29,7 +29,7 @@ def build_docs(String project){
       docs/${project}/_build/html
   """
 }
-def deploy_docs('String project, String path'){
+def deploy_docs(String project, String path){
   echo "deploy docs for ${project} to S3"
   sh """
     #!/bin/bash
@@ -233,21 +233,21 @@ pipeline {
                     build_docs('cloudify_dsl_parser')
                     /* save cache */
                     }
-          }
-        }
+                  }
+              }
       }
       stage('deploy_all_project_docs'){
         steps{
-          container('py27'){
-            dir("${env.WORKSPACE}/test-py27"){
-              echo 'Install awscli'
-              sh "pip install awscli --user"
-              build_docs('cloudify_plugins_common, s3://docs.cloudify.co/cloudify-plugins-common/')
-              build_docs('cloudify_rest_client, s3://docs.cloudify.co/cloudify-rest-client/')
-              build_docs('cloudify_script_plugin, s3://docs.cloudify.co/cloudify-script-plugin/')
-              build_docs('cloudify_dsl_parser, s3://docs.cloudify.co/cloudify-dsl-parser/')
+            container('py27'){
+                dir("${env.WORKSPACE}/test-py27"){
+                echo 'Install awscli'
+                sh "pip install awscli --user"
+                build_docs('cloudify_plugins_common, s3://docs.cloudify.co/cloudify-plugins-common/')
+                build_docs('cloudify_rest_client, s3://docs.cloudify.co/cloudify-rest-client/')
+                build_docs('cloudify_script_plugin, s3://docs.cloudify.co/cloudify-script-plugin/')
+                build_docs('cloudify_dsl_parser, s3://docs.cloudify.co/cloudify-dsl-parser/')
+                }
             }
-          }
         }
       }
   }        
