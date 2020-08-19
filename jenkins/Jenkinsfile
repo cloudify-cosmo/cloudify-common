@@ -103,20 +103,20 @@ pipeline {
       //     }
       //   }
       // }
-      stage('flake8_py27'){
-          steps{
-              sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
+      // stage('flake8_py27'){
+      //     steps{
+      //         sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
 
-              container('py27'){
-                dir("${env.WORKSPACE}/flake8") {
-                  echo 'install flake 8'
-                  sh "pip install flake8 --user"
-                  echo 'run flake8'
-                  sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client"
-              }
-            }
-          }
-      }
+      //         container('py27'){
+      //           dir("${env.WORKSPACE}/flake8") {
+      //             echo 'install flake 8'
+      //             sh "pip install flake8 --user"
+      //             echo 'run flake8'
+      //             sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client"
+      //         }
+      //       }
+      //     }
+      // }
       // stage('flake8_py36'){
       //     steps{
       //           sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
@@ -190,20 +190,20 @@ pipeline {
       //       }
       //     }
       // }
-      stage('test_py27'){
-          steps{
-            sh "mkdir -p ${env.WORKSPACE}/test-py27 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py27"
-              container('py27'){
-                    dir("${env.WORKSPACE}/test-py27") {
-                    install_test_dependencies('py27')
-                    pytest('dsl_parser')
-                    pytest('script_runner')
-                    pytest('cloudify')
-                    /* storte test results in path: test-results */
-                    }
-              }
-          }
-      }
+      // stage('test_py27'){
+      //     steps{
+      //       sh "mkdir -p ${env.WORKSPACE}/test-py27 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py27"
+      //         container('py27'){
+      //               dir("${env.WORKSPACE}/test-py27") {
+      //               install_test_dependencies('py27')
+      //               pytest('dsl_parser')
+      //               pytest('script_runner')
+      //               pytest('cloudify')
+      //               /* storte test results in path: test-results */
+      //               }
+      //         }
+      //     }
+      // }
       // stage('test_py36'){
       //     steps{
       //       sh "mkdir -p ${env.WORKSPACE}/test-py36 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py36"
@@ -227,6 +227,7 @@ pipeline {
                     sh "pip install sphinx sphinx-rtd-theme"
                     echo 'Install cloudify-common'
                     sh "pip install ."
+                    sh "sleep 9000"
                     build_docs('cloudify_plugins_common')
                     build_docs('cloudify_rest_client')
                     build_docs('cloudify_script_plugin')
