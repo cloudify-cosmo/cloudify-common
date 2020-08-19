@@ -23,10 +23,21 @@ def build_docs(String project){
   sh """
   #!/bin/bash
     sphinx build \
-      -d _build/doctrees \
-      -D version="$(python setup.py --version)" \
+      -d _build/doctrees \git 
+      -D version="\$(python setup.py --version)" \
       docs/${project} \
       docs/${project}/_build/html
+  """
+}
+def deploy_docs('String project, String path'){
+  echo "deploy docs for ${project} to S3"
+  sh """
+    #!/bin/bash
+      aws s3 sync \
+        docs/${project}/_build/html \
+        path \
+        --delete \
+        -acl public-read
   """
 }
 //   enum projects{
@@ -222,6 +233,20 @@ pipeline {
                     build_docs('cloudify_dsl_parser')
                     /* save cache */
                     }
+          }
+        }
+      }
+      stage('deploy_all_project_docs'){
+        steps{
+          container('py27'){
+            dir("${env.WORKSPACE}/test-py27"){
+              echo 'Install awscli'
+              sh "pip install awscli --user"
+              build_docs('cloudify_plugins_common, s3://docs.cloudify.co/cloudify-plugins-common/')
+              build_docs('cloudify_rest_client, s3://docs.cloudify.co/cloudify-rest-client/')
+              build_docs('cloudify_script_plugin, s3://docs.cloudify.co/cloudify-script-plugin/')
+              build_docs('cloudify_dsl_parser, s3://docs.cloudify.co/cloudify-dsl-parser/')
+            }
           }
         }
       }
