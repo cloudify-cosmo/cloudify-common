@@ -228,7 +228,6 @@ pipeline {
                     sh "pip install sphinx sphinx-rtd-theme"
                     echo 'Install cloudify-common'
                     sh "pip install ."
-                    sh "sleep 9000"
                     build_docs('cloudify_plugins_common')
                     build_docs('cloudify_rest_client')
                     build_docs('cloudify_script_plugin')
