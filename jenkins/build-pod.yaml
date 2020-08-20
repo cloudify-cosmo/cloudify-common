@@ -4,9 +4,6 @@ spec:
   containers:
   - name: py27
     image: circleci/python:2.7
-    resources:
-      requests:
-        cpu: 1
     command:
     - cat
     tty: true
@@ -15,9 +12,6 @@ spec:
       privileged: true
   - name: py36
     image: circleci/python:3.6
-    resources:
-      requests:
-        cpu: 0.5
     command:
     - cat
     tty: true
@@ -28,9 +22,6 @@ spec:
     image: rabbitmq:3.7.4
   - name: py26
     image: circleci/python:2.7-stretch
-    resources:
-      requests:
-        cpu: 1
     command:
     - cat
     tty: true
@@ -39,9 +30,6 @@ spec:
       privileged: true
   - name: awscli
     image: amazon/aws-cli
-    resources:
-      requests:
-        cpu: 0.5
     command:
     - cat
     tty: true
