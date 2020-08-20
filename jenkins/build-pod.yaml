@@ -17,7 +17,7 @@ spec:
     image: circleci/python:3.6
     resources:
       requests:
-        cpu: 1
+        cpu: 0.5
     command:
     - cat
     tty: true
@@ -39,6 +39,9 @@ spec:
       privileged: true
   - name: awscli
     image: amazon/aws-cli
+    resources:
+      requests:
+        cpu: 0.5
     command:
     - cat
     tty: true
