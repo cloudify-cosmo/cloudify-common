@@ -71,6 +71,7 @@ pipeline {
     //BRANCH = "${env.BRANCH_NAME}"
     WORKSPACE = "${env.WORKSPACE}"
     PROJECT = "cloudify-common"
+    UPLOAD_FOLDER = 'cloudify-common'
     STAGE_DIR = "cloudify-common"
     PATH= "/root/.local/bin:$PATH"
     CFY_MANAGER_URL = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
@@ -254,6 +255,9 @@ pipeline {
                 // deploy_docs('cloudify_script_plugin, s3://docs.cloudify.co/cloudify-script-plugin/')
                 // deploy_docs('cloudify_dsl_parser, s3://docs.cloudify.co/cloudify-dsl-parser/')
                 uploadToReleaseS3("${env.WORKSPACE}/project-docs/docs/cloudify_plugins_common", "${env.VERSION}", "${env.PRERELEASE}", "${env.UPLOAD_FOLDER}", "5.0.5", "${env.UPLOAD_S3_BUILD_NUMBER}")
+                uploadToReleaseS3("${env.WORKSPACE}/project-docs/docs/cloudify_rest_client", "${env.VERSION}", "${env.PRERELEASE}", "${env.UPLOAD_FOLDER}", "5.0.5", "${env.UPLOAD_S3_BUILD_NUMBER}")
+                uploadToReleaseS3("${env.WORKSPACE}/project-docs/docs/cloudify_script_plugin", "${env.VERSION}", "${env.PRERELEASE}", "${env.UPLOAD_FOLDER}", "5.0.5", "${env.UPLOAD_S3_BUILD_NUMBER}")
+                uploadToReleaseS3("${env.WORKSPACE}/project-docs/docs/cloudify_dsl_parser", "${env.VERSION}", "${env.PRERELEASE}", "${env.UPLOAD_FOLDER}", "5.0.5", "${env.UPLOAD_S3_BUILD_NUMBER}")
                 }
             }
         }
