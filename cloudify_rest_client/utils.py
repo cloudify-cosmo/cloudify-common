@@ -77,8 +77,9 @@ def get_folder_size_and_files(path):
 
 
 def get_file_content(file_path):
-    if os.path.exists(file_path):
-        with open(file_path) as fd:
+    expanded_file_path = os.path.expanduser(file_path)
+    if os.path.exists(expanded_file_path):
+        with open(expanded_file_path) as fd:
             return fd.read()
     return None
 
