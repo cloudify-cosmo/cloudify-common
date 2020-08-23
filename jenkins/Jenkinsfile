@@ -211,7 +211,7 @@ pipeline {
     stage('deploy_all_project_docs'){
       when { branch pattern: ".+-build", comparator: "REGEXP"}
       environment {
-        BUILD_NUMBER = "${BRANCH.split('-')[0]}"
+        BRANCH_BUILD_NUMBER = "${env.BRANCH_NAME.split('-')[0]}"
       }
       steps{
         container('py27'){
@@ -221,7 +221,7 @@ pipeline {
               "${env.VERSION}", 
               "${env.PRERELEASE}", 
               "${env.UPLOAD_FOLDER}", 
-              BUILD_NUMBER, 
+              BRANCH_BUILD_NUMBER, 
               "${env.BUILD_NUMBER}"
             )
             uploadToReleaseS3(
@@ -229,7 +229,7 @@ pipeline {
               "${env.VERSION}", 
               "${env.PRERELEASE}", 
               "${env.UPLOAD_FOLDER}", 
-              BUILD_NUMBER, 
+              BRANCH_BUILD_NUMBER, 
               "${env.BUILD_NUMBER}"
             )
             uploadToReleaseS3(
@@ -237,7 +237,7 @@ pipeline {
               "${env.VERSION}", 
               "${env.PRERELEASE}", 
               "${env.UPLOAD_FOLDER}", 
-              BUILD_NUMBER, 
+              BRANCH_BUILD_NUMBER, 
               "${env.BUILD_NUMBER}"
             )
             uploadToReleaseS3(
@@ -245,7 +245,7 @@ pipeline {
               "${env.VERSION}", 
               "${env.PRERELEASE}", 
               "${env.UPLOAD_FOLDER}", 
-              BUILD_NUMBER, 
+              BRANCH_BUILD_NUMBER, 
               "${env.BUILD_NUMBER}"
             )
           }
