@@ -15,7 +15,7 @@
 
 import os
 import mock
-import shutil
+# import shutil
 import logging
 import tempfile
 from testtools import TestCase
