@@ -42,8 +42,6 @@ from cloudify.exceptions import (
     PluginInstallationError
 )
 
-from cloudify_agent import VIRTUALENV
-
 try:
     from cloudify_premium import syncthing_utils
 except ImportError:
@@ -295,7 +293,7 @@ def extract_package_to_dir(package_url):
         # multi-threaded scenario (i.e snapshot restore).
         # We don't use `curl` because pip can handle different kinds of files,
         # including .git.
-        command = [get_python_path(VIRTUALENV), '-m', 'pip', 'download', '-d',
+        command = [sys.executable, '-m', 'pip', 'download', '-d',
                    archive_dir, '--no-deps', package_url]
         runner.run(command=command)
         archive = _get_archive(archive_dir, package_url)
