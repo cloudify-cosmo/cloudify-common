@@ -73,7 +73,6 @@ def install(plugin,
     managed_plugin = get_managed_plugin(plugin)
     source = get_plugin_source(plugin, blueprint_id)
     args = get_plugin_args(plugin)
-    _create_plugins_dir_if_missing()
     if managed_plugin:
         _install_managed_plugin(
             managed_plugin=managed_plugin,
@@ -261,16 +260,6 @@ def uninstall(plugin, deployment_id=None):
             os.remove(lock_file)
         except OSError as e:
             if e.errno != errno.ENOENT:
-                raise
-
-
-def _create_plugins_dir_if_missing():
-    plugins_dir = os.path.join(VIRTUALENV, 'plugins')
-    if not os.path.exists(plugins_dir):
-        try:
-            os.makedirs(plugins_dir)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
                 raise
 
 
