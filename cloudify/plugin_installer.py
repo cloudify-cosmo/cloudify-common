@@ -39,7 +39,6 @@ from cloudify._compat import reraise, urljoin, pathname2url, parse_version
 from cloudify.exceptions import NonRecoverableError, CommandExecutionException
 
 from cloudify_agent import VIRTUALENV
-from cloudify_agent.api import plugins
 from cloudify_agent.api import exceptions
 
 try:
@@ -228,16 +227,13 @@ def _pip_install(source, venv, args):
         else:
             ctx.logger.debug('Extracting archive: %s', source)
             plugin_dir = extract_package_to_dir(source)
-        package_name = extract_package_name(plugin_dir)
-        ctx.logger.debug('Installing from directory: %s '
-                         '[args=%s, package_name=%s]',
-                         plugin_dir, args, package_name)
+        ctx.logger.debug('Installing from directory: %s [args=%ss]',
+                         plugin_dir, args)
         command = [
             get_python_path(venv), '-m', 'pip', 'install'
         ] + args + [plugin_dir]
 
         runner.run(command=command, cwd=plugin_dir)
-        ctx.logger.debug('Retrieved package name: %s', package_name)
     except CommandExecutionException as e:
         ctx.logger.debug('Failed running pip install. Output:\n%s', e.output)
         raise exceptions.PluginInstallationError(
@@ -367,27 +363,6 @@ def _get_archive(archive_dir, package_url):
     files = contents[0][2]
     _assert_list_len(files, 1, package_url, archive_dir)
     return os.path.join(archive_dir, files[0])
-
-
-def extract_package_name(package_dir):
-    """
-    Detects the package name of the package located at 'package_dir' as
-    specified in the package setup.py file.
-
-    :param package_dir: the directory the package was extracted to.
-
-    :return: the package name
-    """
-    runner = LocalCommandRunner()
-    plugin_name = runner.run(
-        '{0} {1} {2}'.format(
-            sys.executable,
-            os.path.join(os.path.dirname(plugins.__file__),
-                         'extract_package_name.py'),
-            package_dir),
-        cwd=package_dir
-    ).std_out
-    return plugin_name
 
 
 def get_managed_plugin(plugin):
