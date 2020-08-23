@@ -62,7 +62,6 @@ pipeline {
     PATH= "/root/.local/bin:$PATH"
     CFY_MANAGER_URL = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
     CFY_NODE_RPM = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
-    BUILD_NUMBER = "${GIT_BRANCH.split('/')[1].split('-')[0]}"
   }
   stages{
     stage ('compatability and flake8') {
@@ -213,6 +212,7 @@ pipeline {
     stage('deploy_all_project_docs'){
       when { branch pattern: ".+-build", comparator: "REGEXP"}
       steps{
+        BUILD_NUMBER = "${GIT_BRANCH.split('/')[1].split('-')[0]}"
         container('py27'){
           dir("${env.WORKSPACE}/project-docs"){
             uploadToReleaseS3(
