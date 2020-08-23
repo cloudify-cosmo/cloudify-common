@@ -165,7 +165,7 @@ def _install_managed_plugin(managed_plugin, args):
             with open(os.path.join(dst_dir, 'plugin.id'), 'w') as f:
                 f.write(managed_plugin.id)
         except Exception as e:
-            _rmtree(dst_dir)
+            shutil.rmtree(dst_dir, ignore_errors=True)
             tpe, value, tb = sys.exc_info()
             exc = NonRecoverableError(
                 'Failed installing managed plugin: {0} [{1}][{2}]'
@@ -191,7 +191,7 @@ def _wagon_install(plugin, venv, args):
         )
     finally:
         ctx.logger.debug('Removing directory: %s', wagon_dir)
-        _rmtree(wagon_dir)
+        shutil.rmtree(wagon_dir, ignore_errors=True)
 
 
 def _install_source_plugin(deployment_id, plugin, source, args):
@@ -213,7 +213,7 @@ def _install_source_plugin(deployment_id, plugin, source, args):
         try:
             _pip_install(source=source, venv=dst_dir, args=args)
         except Exception:
-            _rmtree(dst_dir)
+            shutil.rmtree(dst_dir, ignore_errors=True)
             raise
         with open(os.path.join(dst_dir, 'plugin.id'), 'w') as f:
             f.write('source-{0}'.format(deployment_id))
@@ -241,7 +241,7 @@ def _pip_install(source, venv, args):
     finally:
         if plugin_dir and not os.path.isabs(source):
             ctx.logger.debug('Removing directory: %s', plugin_dir)
-            _rmtree(plugin_dir)
+            shutil.rmtree(plugin_dir, ignore_errors=True)
 
 
 def uninstall(plugin, deployment_id=None):
@@ -254,7 +254,7 @@ def uninstall(plugin, deployment_id=None):
     )
     ctx.logger.info('uninstalling %s', dst_dir)
     if os.path.isdir(dst_dir):
-        _rmtree(dst_dir)
+        shutil.rmtree(dst_dir, ignore_errors=True)
     lock_file = '{0}.lock'.format(dst_dir)
     if os.path.exists(lock_file):
         try:
@@ -271,10 +271,6 @@ def _lock(path):
     with PLUGIN_INSTALL_LOCK:
         with fasteners.InterProcessLock('{0}.lock'.format(path)):
             yield
-
-
-def _rmtree(path):
-    shutil.rmtree(path, ignore_errors=True)
 
 
 def extract_package_to_dir(package_url):
