@@ -201,4 +201,4 @@ class TestRestUtils(object):
         expected_dir_size = 2 * os_dir_size + 25
         assert rest_utils.get_folder_size_and_files(temp_dir) == \
             (expected_dir_size, 3)
-        shutil.rmtree(temp_dir)
+        # shutil.rmtree(temp_dir)
