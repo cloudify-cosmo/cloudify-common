@@ -36,10 +36,13 @@ from cloudify.constants import MANAGER_PLUGINS_PATH
 from cloudify.utils import extract_archive, get_python_path
 from cloudify.utils import LocalCommandRunner, target_plugin_prefix
 from cloudify._compat import reraise, urljoin, pathname2url, parse_version
-from cloudify.exceptions import NonRecoverableError, CommandExecutionException
+from cloudify.exceptions import (
+    NonRecoverableError,
+    CommandExecutionException,
+    PluginInstallationError
+)
 
 from cloudify_agent import VIRTUALENV
-from cloudify_agent.api import exceptions
 
 try:
     from cloudify_premium import syncthing_utils
@@ -120,13 +123,13 @@ def is_already_installed(dst_dir, plugin_id):
             if existing_plugin_id == plugin_id:
                 return True
             else:
-                raise exceptions.PluginInstallationError(
+                raise PluginInstallationError(
                     'Managed plugin installation found but its ID '
                     'does not match the ID of the plugin currently '
                     'on the manager. [existing: {0}, new: {1}]'
                     .format(existing_plugin_id, plugin_id))
         else:
-            raise exceptions.PluginInstallationError(
+            raise PluginInstallationError(
                 'Managed plugin installation found but it is '
                 'in a corrupted state. [{0}]'.format(plugin_id))
 
@@ -235,7 +238,7 @@ def _pip_install(source, venv, args):
         runner.run(command=command, cwd=plugin_dir)
     except CommandExecutionException as e:
         ctx.logger.debug('Failed running pip install. Output:\n%s', e.output)
-        raise exceptions.PluginInstallationError(
+        raise PluginInstallationError(
             'Failed running pip install. ({0})'.format(e.error))
     finally:
         if plugin_dir and not os.path.isabs(source):
@@ -334,7 +337,7 @@ def _assert_list_len(lst, expected_len, package_url, archive_dir):
 def _remove_tempdir_and_raise_proper_exception(package_url, tempdir):
     if tempdir and os.path.exists(tempdir):
         shutil.rmtree(tempdir)
-    raise exceptions.PluginInstallationError(
+    raise PluginInstallationError(
         'Failed to download package from {0}.'
         'You may consider uploading the plugin\'s Wagon archive '
         'to the manager, For more information please refer to '
