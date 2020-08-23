@@ -212,7 +212,7 @@ pipeline {
     stage('deploy_all_project_docs'){
       when { branch pattern: ".+-build", comparator: "REGEXP"}
       steps{
-        BUILD_NUMBER = "${BRANCH.split('-')[0]}"
+        def BUILD_NUMBER = "${BRANCH.split('-')[0]}"
         container('py27'){
           dir("${env.WORKSPACE}/project-docs"){
             uploadToReleaseS3(
