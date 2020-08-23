@@ -17,7 +17,6 @@ import os
 import sys
 import glob
 import json
-import time
 import errno
 import shutil
 import tempfile
@@ -32,7 +31,6 @@ import fasteners
 
 from cloudify import ctx
 from cloudify.manager import get_rest_client
-from cloudify.constants import MANAGER_PLUGINS_PATH
 from cloudify.utils import extract_archive, get_python_path
 from cloudify.utils import LocalCommandRunner, target_plugin_prefix
 from cloudify._compat import reraise, urljoin, pathname2url, parse_version
@@ -42,18 +40,7 @@ from cloudify.exceptions import (
     PluginInstallationError
 )
 
-try:
-    from cloudify_premium import syncthing_utils
-except ImportError:
-    syncthing_utils = None
-
-SYSTEM_DEPLOYMENT = '__system__'
-SYNCTHING_QUERY_INTERVAL = 1
-PLUGIN_QUERY_INTERVAL = 1
-INSTALLATION_TIMEOUT = 75
 PLUGIN_INSTALL_LOCK = threading.Lock()
-
-
 runner = LocalCommandRunner()
 
 
@@ -450,15 +437,6 @@ def path_to_file_url(path):
     path = os.path.normpath(os.path.abspath(path))
     url = urljoin('file:', pathname2url(path))
     return url
-
-
-def wait_for_wagon_in_directory(plugin_id, retries=30, interval=1):
-    path = os.path.join(MANAGER_PLUGINS_PATH, plugin_id)
-    for _ in range(retries):
-        if os.path.isdir(path) and \
-                (any(File.endswith('.wgn') for File in os.listdir(path))):
-            return
-        time.sleep(interval)
 
 
 def _link_virtualenv(venv):
