@@ -35,7 +35,6 @@ pipeline {
     string(name: 'VERSION', defaultValue: '5.1.0', description: 'Cloudify version label, to be used in the filenames (eg. "5.1.0")')
     string(name: 'PRERELEASE', defaultValue: '.dev1', description: 'A prerelase/milestone label, to be used in the filenames (eg. ".dev1")')
     string(name: 'BRANCH', defaultValue: 'master', description: 'Branch name for cloudify-agent')
-    string(name: 'UPSTREAM_BUILD_NUMBER', defaultValue: '0', description: 'Build number from upstream job - Nightly')
   }
   agent {
     kubernetes {
@@ -223,7 +222,7 @@ pipeline {
               "${env.PRERELEASE}", 
               "${env.UPLOAD_FOLDER}", 
               BUILD_NUMBER, 
-              "${env.UPLOAD_S3_BUILD_NUMBER}"
+              "${env.BUILD_NUMBER}"
             )
             uploadToReleaseS3(
               "${env.WORKSPACE}/project-docs/docs/cloudify_rest_client", 
@@ -231,7 +230,7 @@ pipeline {
               "${env.PRERELEASE}", 
               "${env.UPLOAD_FOLDER}", 
               BUILD_NUMBER, 
-              "${env.UPLOAD_S3_BUILD_NUMBER}"
+              "${env.BUILD_NUMBER}"
             )
             uploadToReleaseS3(
               "${env.WORKSPACE}/project-docs/docs/cloudify_script_plugin", 
@@ -239,7 +238,7 @@ pipeline {
               "${env.PRERELEASE}", 
               "${env.UPLOAD_FOLDER}", 
               BUILD_NUMBER, 
-              "${env.UPLOAD_S3_BUILD_NUMBER}"
+              "${env.BUILD_NUMBER}"
             )
             uploadToReleaseS3(
               "${env.WORKSPACE}/project-docs/docs/cloudify_dsl_parser", 
@@ -247,7 +246,7 @@ pipeline {
               "${env.PRERELEASE}", 
               "${env.UPLOAD_FOLDER}", 
               BUILD_NUMBER, 
-              "${env.UPLOAD_S3_BUILD_NUMBER}"
+              "${env.BUILD_NUMBER}"
             )
           }
         }
