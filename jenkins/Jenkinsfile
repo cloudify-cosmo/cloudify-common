@@ -62,6 +62,7 @@ pipeline {
     PATH= "/root/.local/bin:$PATH"
     CFY_MANAGER_URL = 'https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager'
     CFY_NODE_RPM = 'http://repository.cloudifysource.org/cloudify/components/nodejs-12.16.1-1nodesource.x86_64.rpm'
+    BUILD_NUMBER = "${GIT_BRANCH.split('/')[1].split('-')[0]}"
   }
   stages{
     stage ('compatability and flake8') {
@@ -190,6 +191,7 @@ pipeline {
       }
     }
     stage('build_all_project_docs'){
+      when { branch pattern: ".+-build", comparator: "REGEXP"}
       steps{
         sh "mkdir -p ${env.WORKSPACE}/project-docs && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/project-docs"
         container('py27'){
@@ -209,13 +211,42 @@ pipeline {
       }
     }
     stage('deploy_all_project_docs'){
+      when { branch pattern: ".+-build", comparator: "REGEXP"}
       steps{
         container('py27'){
           dir("${env.WORKSPACE}/project-docs"){
-            uploadToReleaseS3("${env.WORKSPACE}/project-docs/docs/cloudify_plugins_common", "${env.VERSION}", "${env.PRERELEASE}", "${env.UPLOAD_FOLDER}", "5.0.5", "${env.UPLOAD_S3_BUILD_NUMBER}")
-            uploadToReleaseS3("${env.WORKSPACE}/project-docs/docs/cloudify_rest_client", "${env.VERSION}", "${env.PRERELEASE}", "${env.UPLOAD_FOLDER}", "5.0.5", "${env.UPLOAD_S3_BUILD_NUMBER}")
-            uploadToReleaseS3("${env.WORKSPACE}/project-docs/docs/cloudify_script_plugin", "${env.VERSION}", "${env.PRERELEASE}", "${env.UPLOAD_FOLDER}", "5.0.5", "${env.UPLOAD_S3_BUILD_NUMBER}")
-            uploadToReleaseS3("${env.WORKSPACE}/project-docs/docs/cloudify_dsl_parser", "${env.VERSION}", "${env.PRERELEASE}", "${env.UPLOAD_FOLDER}", "5.0.5", "${env.UPLOAD_S3_BUILD_NUMBER}")
+            uploadToReleaseS3(
+              "${env.WORKSPACE}/project-docs/docs/cloudify_plugins_common", 
+              "${env.VERSION}", 
+              "${env.PRERELEASE}", 
+              "${env.UPLOAD_FOLDER}", 
+              BUILD_NUMBER, 
+              "${env.UPLOAD_S3_BUILD_NUMBER}"
+            )
+            uploadToReleaseS3(
+              "${env.WORKSPACE}/project-docs/docs/cloudify_rest_client", 
+              "${env.VERSION}", 
+              "${env.PRERELEASE}", 
+              "${env.UPLOAD_FOLDER}", 
+              BUILD_NUMBER, 
+              "${env.UPLOAD_S3_BUILD_NUMBER}"
+            )
+            uploadToReleaseS3(
+              "${env.WORKSPACE}/project-docs/docs/cloudify_script_plugin", 
+              "${env.VERSION}", 
+              "${env.PRERELEASE}", 
+              "${env.UPLOAD_FOLDER}", 
+              BUILD_NUMBER, 
+              "${env.UPLOAD_S3_BUILD_NUMBER}"
+            )
+            uploadToReleaseS3(
+              "${env.WORKSPACE}/project-docs/docs/cloudify_dsl_parser", 
+              "${env.VERSION}", 
+              "${env.PRERELEASE}", 
+              "${env.UPLOAD_FOLDER}", 
+              BUILD_NUMBER, 
+              "${env.UPLOAD_S3_BUILD_NUMBER}"
+            )
           }
         }
       }

@@ -199,7 +199,7 @@ class TestRestUtils(object):
         open(os.path.join(temp_dir, '1.bin'), 'wb').write(b'ABCD')
         open(os.path.join(sub_dir, '2.bin'), 'wb').write(b'1234567890')
         size_fixture = 25
-        if os.environ["CIRCLECI"] == "true":
+        if "CIRCLECI" in os.environ:
             size_fixture = 14
         expected_dir_size = 2 * os_dir_size + size_fixture
         assert rest_utils.get_folder_size_and_files(temp_dir) == \
