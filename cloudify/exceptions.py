@@ -171,9 +171,4 @@ class ClosedAMQPClientException(Exception):
 
 
 class PluginInstallationError(Exception):
-
-    """
-    Error indicating that an error occurred during a plugin
-    installation process
-
-    """
+    """An error occurred during plugin installation"""
