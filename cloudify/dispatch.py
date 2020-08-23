@@ -41,6 +41,7 @@ from cloudify import context
 from cloudify import utils
 from cloudify import amqp_client_utils
 from cloudify import constants
+from cloudify import plugin_installer
 from cloudify._compat import queue, StringIO, PY2
 from cloudify.amqp_client_utils import AMQPWrappedThread
 from cloudify.manager import update_execution_status, get_rest_client
@@ -49,11 +50,6 @@ from cloudify.error_handling import (
     serialize_known_exception,
     deserialize_known_exception
 )
-
-try:
-    from cloudify_agent.api.plugins import installer as plugin_installer
-except ImportError:
-    plugin_installer = None
 
 try:
     from cloudify.workflows import api
