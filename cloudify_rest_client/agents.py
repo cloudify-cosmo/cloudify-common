@@ -206,7 +206,16 @@ class AgentsClient(object):
                          bundle,
                          new_manager_ca_cert,
                          new_broker_ca_cert):
+        """Replace the agents' CA certs
 
+        :param bundle: If true, a CA bundle that consists the new CA
+        certificate and the old one will be passed to the agents. Otherwise,
+        only the new CA certificates will be passed.
+        :param new_manager_ca_cert: The new Manager CA certificate
+        :param new_broker_ca_cert: The new RabbitMQ CA certificate
+        :return: A dictionary {'number_of_updated_agents':
+        number of agents that their CA certs were updated}
+        """
         manager_ca_cert_str = (get_file_content(new_manager_ca_cert)
                                if new_manager_ca_cert else None)
 
