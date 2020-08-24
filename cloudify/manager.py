@@ -279,7 +279,7 @@ def get_resource_from_manager(resource_path,
         headers[constants.CLOUDIFY_EXECUTION_TOKEN_HEADER] = \
             workflow_ctx.execution_token
 
-    for next_url in base_urls:
+    for ix, next_url in enumerate(base_urls):
         url = '{0}/{1}'.format(next_url.rstrip('/'), resource_path.lstrip('/'))
         try:
             response = requests.get(
@@ -287,6 +287,12 @@ def get_resource_from_manager(resource_path,
         except requests.ConnectionError:
             continue
         if not response.ok:
+            is_last = (ix == len(base_urls) - 1)
+            if not is_last:
+                # if there's more managers to try, try them: due to filesystem
+                # replication lag, they might have files that the previous
+                # manager didn't
+                continue
             raise HttpException(url, response.status_code, response.reason)
         return response.content
 
