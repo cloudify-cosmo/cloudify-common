@@ -249,6 +249,9 @@ def uninstall(plugin, deployment_id=None):
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
+    parent_dir = os.path.dirname(dst_dir)
+    if not os.listdir(parent_dir):
+        shutil.rmtree(parent_dir, ignore_errors=True)
 
 
 @contextmanager
