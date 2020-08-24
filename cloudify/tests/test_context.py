@@ -22,6 +22,8 @@ import tempfile
 import unittest
 from os.path import dirname
 
+import pytest
+import requests
 import testtools
 from mock import patch, MagicMock
 
@@ -29,7 +31,7 @@ from cloudify_rest_client.exceptions import CloudifyClientError
 
 from cloudify.utils import create_temp_folder
 from cloudify.decorators import operation
-from cloudify.manager import NodeInstance
+from cloudify.manager import NodeInstance, get_resource_from_manager
 from cloudify.workflows import local
 from cloudify import constants, state, context, exceptions, conflict_handlers
 
@@ -172,6 +174,62 @@ class CloudifyContextTest(testtools.TestCase):
                 filename),
             '{0}/resources/{1}'.format(base_url, filename)
         ])
+
+    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
+    def test_get_from_multiple_managers(self, _):
+        # get_resource tries all the managers in a cluster
+        with mock.patch(
+            'cloudify.utils.get_manager_file_server_url', return_value=[
+                'http://server1', 'http://server2']):
+
+            # can't connect to any managers - thats NonRecoverable
+            with mock.patch('requests.get', side_effect=[
+                requests.ConnectionError(),
+                requests.ConnectionError(),
+            ]) as mock_get:
+                pytest.raises(
+                    exceptions.NonRecoverableError,
+                    get_resource_from_manager,
+                    'resource.txt')
+            assert len(mock_get.mock_calls) == 2
+
+            # can't connect to the first, but second is OK
+            with mock.patch('requests.get', side_effect=[
+                requests.ConnectionError(),
+                mock.Mock(ok=True, content='content'),
+            ]) as mock_get:
+                response = get_resource_from_manager('resource.txt')
+            assert response == 'content'
+            assert len(mock_get.mock_calls) == 2
+
+            # first is OK already, second not tried
+            with mock.patch('requests.get', side_effect=[
+                mock.Mock(ok=True, content='content'),
+            ]) as mock_get:
+                response = get_resource_from_manager('resource.txt')
+            assert response == 'content'
+            assert len(mock_get.mock_calls) == 1
+
+            # first is 404, but second is OK. First must've not replicated
+            # the files yet.
+            with mock.patch('requests.get', side_effect=[
+                mock.Mock(ok=False, status_code=404, reason='Not found'),
+                mock.Mock(ok=True, content='content'),
+            ]) as mock_get:
+                response = get_resource_from_manager('resource.txt')
+            assert response == 'content'
+            assert len(mock_get.mock_calls) == 2
+
+            # both are 404 - the exception is reraised
+            with mock.patch('requests.get', side_effect=[
+                mock.Mock(ok=False, status_code=404, reason='Not found'),
+                mock.Mock(ok=False, status_code=404, reason='Not found'),
+            ]) as mock_get:
+                pytest.raises(
+                    exceptions.HttpException,
+                    get_resource_from_manager,
+                    'resource.txt')
+            assert len(mock_get.mock_calls) == 2
 
     def test_ctx_instance_in_relationship(self):
         ctx = context.CloudifyContext({
@@ -321,9 +379,6 @@ class GetResourceTemplateTests(testtools.TestCase):
         self.blueprint_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             "resources/blueprints/test-get-resource-template.yaml")
-
-    def setUp(self):
-        super(GetResourceTemplateTests, self).setUp()
 
     def _assert_rendering(self, env, download,
                           rendered, should_fail_rendering):
