@@ -208,12 +208,10 @@ class AMQPConnection(object):
             try:
                 self._pika_connection.process_data_events(0.2)
                 self._process_publish(out_channel)
-            except pika.exceptions.ChannelClosed as e:
-                # happens when we attempt to use an exchange/queue that is not
-                # declared - nothing we can do to help it, just exit
-                logger.error('Channel closed: {0}'.format(e))
-                break
-            except pika.exceptions.ConnectionClosed:
+            except (pika.exceptions.ConnectionClosed,
+                    pika.exceptions.ChannelClosed) as e:
+                if isinstance(e, pika.exceptions.ChannelClosed):
+                    self._pika_connection.close()
                 self.connect_wait.clear()
                 out_channel = self.connect()
                 continue
