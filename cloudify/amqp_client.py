@@ -210,6 +210,7 @@ class AMQPConnection(object):
                 self._process_publish(out_channel)
             except (pika.exceptions.ConnectionClosed,
                     pika.exceptions.ChannelClosed) as e:
+                logger.error('Reconnecting due to: %s', e)
                 if isinstance(e, pika.exceptions.ChannelClosed):
                     self._pika_connection.close()
                 self.connect_wait.clear()
