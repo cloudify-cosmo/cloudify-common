@@ -56,38 +56,37 @@ class TaskDependencyGraph(object):
     @classmethod
     def restore(cls, workflow_context, retrieved_graph):
         graph = cls(workflow_context, graph_id=retrieved_graph.id)
-        operations = workflow_context.get_operations(retrieved_graph.id)
-        ops = {}
         ctx = workflow_context._get_current_object()
-        for op_descr in operations:
+        retrieved_operations = {
+            op.id: op for op in
+            workflow_context.get_operations(retrieved_graph.id)
+        }
+        operations = retrieved_operations.copy()
+        restored_ops = {}
+        while operations:
+            op_id, op_descr = operations.popitem()
             if op_descr.state in tasks.TERMINATED_STATES:
                 continue
-            op = OP_TYPES[op_descr.type].restore(ctx, graph, op_descr)
-            ops[op_descr.id] = op
+            op = graph._restore_operation(ctx, op_descr)
+            restored_ops[op_id] = op
+            while op_descr.containing_subgraph:
+                contained_op = op
+                op_id = op_descr.containing_subgraph
+                op_descr = operations.pop(op_id)
+                op = graph._restore_operation(ctx, op_descr)
+                restored_ops[op_id] = op
+                contained_op.containing_subgraph = op
+                op.add_task(contained_op)
+            graph.add_task(op)
 
-        for op in ops.values():
-            if op.containing_subgraph:
-                subgraph_id = op.containing_subgraph
-                op.containing_subgraph = None
-                if subgraph_id not in ops:
-                    raise NonRecoverableError(
-                        'Cannot resume task {0} - containing subgraph {1} is '
-                        'already finished. The execution might have not been '
-                        'cancelled properly (some tasks are still running?)'
-                        .format(op.id, subgraph_id))
-                subgraph = ops[subgraph_id]
-                subgraph.add_task(op)
-            else:
-                graph.add_task(op)
-
-        for op_descr in operations:
-            op = ops.get(op_descr.id)
+        for op_descr in retrieved_operations.values():
+            op = restored_ops.get(op_descr.id)
             if op is None:
                 continue
             for target in op_descr.dependencies:
-                if target not in ops:
+                if target not in restored_ops:
                     continue
-                target = ops[target]
+                target = restored_ops[target]
                 graph.add_dependency(op, target)
 
         graph._stored = True
@@ -102,6 +101,9 @@ class TaskDependencyGraph(object):
         self._error = None
         self._stored = False
         self.id = graph_id
+
+    def _restore_operation(self, ctx, op_descr):
+        return OP_TYPES[op_descr.type].restore(ctx, self, op_descr)
 
     def store(self, name):
         serialized_tasks = []

@@ -270,3 +270,24 @@ class TestTaskGraphRestore(testtools.TestCase):
         operations = list(graph.tasks_iter())
         assert len(operations) == 2
         assert graph.graph.predecessors(1) == [2]
+
+    def test_restore_with_finished_subgraph(self):
+        """Restoring operations keeps subgraph structure"""
+        subgraph = self._subgraph()
+        task = self._remote_task()
+        subgraph['id'] = 15
+        task['parameters']['containing_subgraph'] = 15
+
+        subgraph['state'] = tasks.TASK_SUCCEEDED
+
+        graph = self._restore_graph([subgraph, task])
+        operations = list(graph.tasks_iter())
+        assert len(operations) == 2
+        subgraphs = [op for op in operations if op.is_subgraph]
+        remote_tasks = [op for op in operations if not op.is_subgraph]
+
+        assert len(subgraphs) == 1
+        assert len(remote_tasks) == 1
+
+        assert len(subgraphs[0].tasks) == 1
+        assert remote_tasks[0].containing_subgraph is subgraphs[0]
