@@ -121,7 +121,14 @@ class TaskDependencyGraph(object):
             self.add_task(op)
 
     def _restore_operation(self, op_descr):
-        """Create a Task object from a rest-client Operation object."""
+        """Create a Task object from a rest-client Operation object.
+
+        If the task was already restored before, return a reference to the
+        same object.
+        """
+        restored = self.get_task(op_descr.id)
+        if restored is not None:
+            return restored
         return OP_TYPES[op_descr.type].restore(
             self.ctx._get_current_object(), self, op_descr)
 

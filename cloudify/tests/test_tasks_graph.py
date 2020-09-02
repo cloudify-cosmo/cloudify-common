@@ -291,3 +291,34 @@ class TestTaskGraphRestore(testtools.TestCase):
 
         assert len(subgraphs[0].tasks) == 1
         assert remote_tasks[0].containing_subgraph is subgraphs[0]
+
+    def test_restore_multiple_in_subgraph(self):
+        """Multiple tasks in the same subgraph, reference the same subgraph.
+
+        As opposed to restoring the same subgraph multiple times, it's all
+        references to one object. If it was restored multiple times, then
+        the next task in the subgraph would still run even if a previous
+        task failed.
+        """
+        subgraph = self._subgraph()
+        subgraph['id'] = 15
+        task1 = self._remote_task()
+        task1['id'] = 1
+        task2 = self._remote_task()
+        task2['id'] = 2
+        task1['parameters']['containing_subgraph'] = 15
+        task2['parameters']['containing_subgraph'] = 15
+
+        graph = self._restore_graph([subgraph, task1, task2])
+        operations = list(graph.tasks_iter())
+        assert len(operations) == 3
+        subgraphs = [op for op in operations if op.is_subgraph]
+        remote_tasks = [op for op in operations if not op.is_subgraph]
+
+        # those are all references to the same subgraph, the subgraph was
+        # NOT restored multiple times
+        assert remote_tasks[0].containing_subgraph \
+            is remote_tasks[1].containing_subgraph \
+            is subgraphs[0]
+
+        assert len(subgraphs[0].tasks) == 2
