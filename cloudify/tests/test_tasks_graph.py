@@ -228,7 +228,7 @@ class TestTaskGraphRestore(testtools.TestCase):
         """A single operation is restored into the graph"""
         graph = self._restore_graph([self._remote_task()])
         operations = list(graph.tasks_iter())
-        assert len(operations)
+        assert len(operations) == 1
         assert isinstance(operations[0], tasks.RemoteWorkflowTask)
 
     def test_restore_finished(self):
