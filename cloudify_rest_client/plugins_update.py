@@ -124,18 +124,11 @@ class PluginsUpdateClient(object):
         """
         if force:
             warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
-        if plugin_name or minor or minor_except:
-            data = {
-                'plugin_name': plugin_name,
-                'minor': minor,
-                'minor_except': minor_except,
-            }
-        else:
-            data = None
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
                                                             self=self),
-            data=data)
+            data=_data_from_kwargs(plugin_name=plugin_name, minor=minor,
+                                   minor_except=minor_except))
         return PluginsUpdate(response)
 
     def finalize_plugins_update(self, plugins_update_id):
@@ -146,6 +139,13 @@ class PluginsUpdateClient(object):
         """
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/finalize'.format(plugins_update_id,
-                                                            self=self)
-        )
+                                                            self=self))
         return PluginsUpdate(response)
+
+
+def _data_from_kwargs(**kwargs):
+    data = {}
+    for k, v in kwargs.items():
+        if v:
+            data[k] = v
+    return data or None
