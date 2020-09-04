@@ -106,7 +106,8 @@ class PluginsUpdateClient(object):
                                 params=params)
         return self._wrap_list(response)
 
-    def update_plugins(self, blueprint_id, force=False):
+    def update_plugins(self, blueprint_id, force=False,
+                       plugin_name=None, minor=False, minor_except=None):
         """
         Updates the plugins in all the deployments that use the given
         blueprint.
@@ -114,13 +115,27 @@ class PluginsUpdateClient(object):
         :param blueprint_id: blueprint ID to perform the update with.
         :param force: if to forcefully update when other non-active plugins
          updates exists associated with this blueprint [deprecated].
+        :param plugin_name: list of plugin names to update (only those).
+        :param minor: update all selected plugins to the latest minor release.
+        :param minor_except: list of plugin names; all plugins will be updated
+         to the latest minor release, except for the plugins in the list, which
+         will be updated to the latest (either major or minor) version.
         :return: a PluginUpdate object.
         """
         if force:
             warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
+        if plugin_name or minor or minor_except:
+            data = {
+                'plugin_name': plugin_name,
+                'minor': minor,
+                'minor_except': minor_except,
+            }
+        else:
+            data = None
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
-                                                            self=self))
+                                                            self=self),
+            data=data)
         return PluginsUpdate(response)
 
     def finalize_plugins_update(self, plugins_update_id):
