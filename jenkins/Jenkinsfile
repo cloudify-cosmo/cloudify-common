@@ -1,10 +1,10 @@
 def install_test_dependencies(String cache_prefix) {
   /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
-  sh '''#!/bin/bash
+  sh """#!/bin/bash
   pip install -r dev-requirements.txt --user
   pip install -r test-requirements.txt --user
   pip install -e '.[dispatcher]' --user
-  '''
+  """
   /* save cache with relevant paths and key */
 }
 def pytest(String target){
@@ -82,7 +82,7 @@ pipeline {
             container('py27'){
               dir("${env.WORKSPACE}/py3_compat"){
                 echo 'install futurize, remove compat modules and find python3-incompatible code'
-                sh '''#!/bin/bash
+                sh """#!/bin/bash
                 pip install future --user
                 PATH=$PATH:~/.local/bin
                 rm cloudify/_compat.py
@@ -95,15 +95,15 @@ pipeline {
                   FUTURIZE="${FUTURIZE} -f ${line}"
                 done<.circleci/py3fixers
                 $FUTURIZE>futurize_diffs
-                '''
+                """
                 echo 'check that there is no python3-incompatible code'
-                sh ''' #!/bin/bash
+                sh """ #!/bin/bash
                 if [ -s futurize_diffs ]; then
                   echo "Python-3-incompatible code found"
                   cat futurize_diffs
                   exit 1
                 fi          
-                '''
+                """
               }
             }
           }
@@ -144,7 +144,7 @@ pipeline {
             container('py26'){
               dir("${env.WORKSPACE}/test-py26") {
                 echo 'setup_py26 - Install and set python version with pyenv'
-                sh '''
+                sh """
                 #!/bin/bash
                 set -eux
                 git clone https://github.com/yyuu/pyenv.git ~/.pyenv
@@ -158,7 +158,7 @@ pipeline {
                   fi'
                 pyenv install 2.6.9
                 pyenv global 2.6.9
-                '''     
+                """    
                 install_test_dependencies('py26')
                 pytest('dsl_parser')
                 pytest('script_runner')
