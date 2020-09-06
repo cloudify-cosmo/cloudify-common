@@ -153,8 +153,8 @@ pipeline {
                 echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.bashrc
                 sudo apt-get install -y build-essential libssl1.0-dev zlib1g-dev xz-utils
                 echo 'if [ -e $SHLVL = 1 ]; then
-                  echo 'eval "$(pyenv init -)"' >> ~/.bashrc
-                  echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
+                  echo 'eval "\$(pyenv init -)"' >> ~/.bashrc
+                  echo 'eval "\$(pyenv virtualenv-init -)"' >> ~/.bashrc
                   fi'
                 pyenv install 2.6.9
                 pyenv global 2.6.9
