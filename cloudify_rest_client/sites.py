@@ -145,7 +145,6 @@ class SitesClient(object):
         :param name: The name of the site to be deleted.
         :return: Deleted site.
         """
-        response = self.api.delete(
+        self.api.delete(
             '/{self._uri_prefix}/{name}'.format(self=self, name=name)
         )
-        return self._wrapper_cls(response)

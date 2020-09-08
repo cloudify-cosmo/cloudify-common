@@ -100,7 +100,8 @@ class EventsClient(object):
                                     deployment_id=deployment_id,
                                     **kwargs)
 
-        response = self.api.delete(uri, params=params)
+        response = self.api.delete(uri, params=params,
+                                   expected_status_code=200)
         return ListResponse(response['items'], response['metadata'])
 
     @staticmethod

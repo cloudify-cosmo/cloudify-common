@@ -312,13 +312,12 @@ class DeploymentsClient(object):
                   'delete_logs': with_logs}
         if ignore_live_nodes is not None:
             warnings.warn("'ignore_live_nodes' is deprecated, use 'force' "
-                          "instead",  DeprecationWarning)
+                          "instead", DeprecationWarning)
             params['force'] = force or ignore_live_nodes
         params['ignore_live_nodes'] = params['force']
 
-        response = self.api.delete('/deployments/{0}'.format(deployment_id),
-                                   params=params)
-        return Deployment(response)
+        self.api.delete(
+            '/deployments/{0}'.format(deployment_id), params=params)
 
     def set_visibility(self, deployment_id, visibility):
         """
