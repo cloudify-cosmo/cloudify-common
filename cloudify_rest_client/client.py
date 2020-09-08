@@ -118,6 +118,8 @@ class HTTPClient(object):
         return any(header in self.headers for header in auth_headers)
 
     def _raise_client_error(self, response, url=None):
+        if response.status_code == 204:
+            return None
         try:
             result = response.json()
         except Exception:
