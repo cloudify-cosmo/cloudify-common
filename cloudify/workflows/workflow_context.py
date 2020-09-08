@@ -556,6 +556,16 @@ class _WorkflowContextBase(object):
         logging_handler = self.internal.handler.get_context_logging_handler()
         return init_cloudify_logger(logging_handler, logger_name)
 
+    def download_resource(self, resource_path, target_path=None):
+        """Downloads a blueprint/deployment resource to target_path.
+
+        This mirrors ctx.download_resource, but for workflow contexts.
+        See CloudifyContext.download_resource.
+        """
+        return self._internal.handler.download_deployment_resource(
+            resource_path=resource_path,
+            target_path=target_path)
+
     def send_event(self, event, event_type='workflow_stage',
                    args=None,
                    additional_context=None):
