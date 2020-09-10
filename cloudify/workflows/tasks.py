@@ -413,6 +413,9 @@ class RemoteWorkflowTask(WorkflowTask):
         self._cloudify_context = cloudify_context
         self._cloudify_agent = None
 
+    def __repr__(self):
+        return '<{0} {1}: {2}>'.format(self.task_type, self.id, self.name)
+
     @classmethod
     def restore(cls, ctx, graph, task_descr):
         params = task_descr.parameters
@@ -673,6 +676,10 @@ class LocalWorkflowTask(WorkflowTask):
         self.node = node
         self.kwargs = kwargs or {}
         self._name = name or local_task.__name__
+
+    def __repr__(self):
+        return '<{0} {1}: {2}>'.format(
+            self.task_type, self.id, self.local_task)
 
     def dump(self):
         serialized = super(LocalWorkflowTask, self).dump()
@@ -1050,6 +1057,10 @@ class _SetNodeInstanceStateTask(_LocalTask):
         self._node_instance_id = node_instance_id
         self._state = state
 
+    def __repr__(self):
+        return '<SetNodeInstanceState {0}: {1}>'.format(
+            self._node_instance_id, self._state)
+
     def dump(self):
         return {
             'task': self.__name__,
@@ -1101,6 +1112,10 @@ class _SendNodeEventTask(_LocalTask):
         self._node_instance_id = node_instance_id
         self._event = event
         self._additional_context = additional_context
+
+    def __repr__(self):
+        return '<SendNodeEvent {0}: "{1}">'.format(
+            self._node_instance_id, self._event)
 
     def dump(self):
         return {
