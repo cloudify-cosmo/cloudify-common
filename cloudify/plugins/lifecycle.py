@@ -154,7 +154,7 @@ class LifecycleProcessor(object):
                 'resume_cleanup_{0}'.format(instance.id))
             sequence = uninstall_subgraph.sequence()
             sequence.add(*tasks)
-            ignore_subgraph_on_task_failure(uninstall_subgraph, instance)
+            ignore_subgraph_on_task_failure(uninstall_subgraph)
             _run_subgraph_before(uninstall_subgraph, install_subgraph)
 
     @make_or_get_graph
@@ -371,19 +371,29 @@ def _run_subgraph_before(subgraph_before, subgraph_after):
     graph.add_dependency(subgraph_after, subgraph_before)
 
 
-def ignore_subgraph_on_task_failure(task, instance):
+def ignore_subgraph_on_task_failure(subgraph):
     """If the subgraph fails, just ignore it.
 
-    This is to be used in the pre-resume uninstall graphs, so that
-    the uninstall failing doesn't block the install from being resumed.
+    This is to be used in the pre-resume cleanup graphs, so that
+    the cleanup failing doesn't block the install from being resumed.
     """
     def _ignore_subgraph_failure(tsk):
-        workflow_ctx.logger.info('Ignoring failure in uninstall')
+        workflow_ctx.logger.info('Ignoring subgraph failure in cleanup')
         for t in tsk.tasks.values():
             if t.get_state() == workflow_tasks.TASK_PENDING:
                 tsk.remove_task(t)
         return workflow_tasks.HandlerResult.ignore()
-    task.on_failure = _ignore_subgraph_failure
+
+    def _ignore_task_failure(tsk):
+        workflow_ctx.logger.info('Ignoring task failure in cleanup')
+        return workflow_tasks.HandlerResult.ignore()
+
+    for task in subgraph.tasks.values():
+        if task.is_subgraph:
+            ignore_subgraph_on_task_failure(task)
+            task.on_failure = _ignore_subgraph_failure
+        else:
+            task.on_failure = _ignore_task_failure
 
 
 def set_send_node_event_on_error_handler(task, instance):
