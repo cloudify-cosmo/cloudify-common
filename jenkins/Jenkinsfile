@@ -96,9 +96,8 @@ pipeline {
                   FUTURIZE="${FUTURIZE} -f ${line}"
                 done<.circleci/py3fixers
                 $FUTURIZE>futurize_diffs
-                ''', label: "
-                line length test"
-                
+                ''', label: "\n line length test"
+
                 echo 'check that there is no python3-incompatible code'
                 sh """ #!/bin/bash
                 if [ -s futurize_diffs ]; then
