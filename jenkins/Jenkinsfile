@@ -82,7 +82,8 @@ pipeline {
             container('py27'){
               dir("${env.WORKSPACE}/py3_compat"){
                 echo 'install futurize, remove compat modules and find python3-incompatible code'
-                sh '''#!/bin/bash
+                sh label: "test", '''
+                #!/bin/bash
                 pip install future --user
                 PATH=$PATH:~/.local/bin
                 rm cloudify/_compat.py
