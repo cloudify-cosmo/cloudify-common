@@ -82,7 +82,7 @@ pipeline {
             container('py27'){
               dir("${env.WORKSPACE}/py3_compat"){
                 echo 'install futurize, remove compat modules and find python3-incompatible code'
-                sh label: "test", script: '''
+                sh script: '''
                 #!/bin/bash
                 pip install future --user
                 PATH=$PATH:~/.local/bin
@@ -96,7 +96,9 @@ pipeline {
                   FUTURIZE="${FUTURIZE} -f ${line}"
                 done<.circleci/py3fixers
                 $FUTURIZE>futurize_diffs
-                '''
+                ''', label: "
+                line length test"
+                
                 echo 'check that there is no python3-incompatible code'
                 sh """ #!/bin/bash
                 if [ -s futurize_diffs ]; then
