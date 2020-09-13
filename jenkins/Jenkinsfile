@@ -40,7 +40,7 @@ def upload_docs(String project){
     "${env.BUILD_NUMBER}"
   )
 }
-@Library('pipeline-shared-library') _
+@Library('pipeline-shared-library@script-wrapper') _
 pipeline {
   parameters {
     string(name: 'VERSION', defaultValue: '5.1.0', description: 'Cloudify version label, to be used in the filenames (eg. "5.1.0")')
@@ -82,7 +82,7 @@ pipeline {
             container('py27'){
               dir("${env.WORKSPACE}/py3_compat"){
                 echo 'install futurize, remove compat modules and find python3-incompatible code'
-                sh script: '''#!/bin/bash
+                wrapper.script script: '''#!/bin/bash
                 pip install future --user
                 PATH=$PATH:~/.local/bin
                 rm cloudify/_compat.py
@@ -95,7 +95,7 @@ pipeline {
                   FUTURIZE="${FUTURIZE} -f ${line}"
                 done<.circleci/py3fixers
                 $FUTURIZE>futurize_diffs
-                ''', label: "install futurize, remove compat modules and find python3-incompatible code"
+                ''',returenStdout: true, stepName: "py3compat" label: "install futurize, remove compat modules and find python3-incompatible code"
 
                 echo 'check that there is no python3-incompatible code'
                 sh """ #!/bin/bash
