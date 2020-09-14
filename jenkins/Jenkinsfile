@@ -95,7 +95,7 @@ pipeline {
                   FUTURIZE="${FUTURIZE} -f ${line}"
                 done<.circleci/py3fixers
                 $FUTURIZE>futurize_diffs
-                ''',returenStdout: true, stepName: "py3compat", label: "install futurize, remove compat modules and find python3-incompatible code"
+                ''', returenStdout: true, stepName: "py3compat"
 
                 echo 'check that there is no python3-incompatible code'
                 sh """ #!/bin/bash
