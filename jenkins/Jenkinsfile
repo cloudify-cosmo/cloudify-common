@@ -40,7 +40,7 @@ def upload_docs(String project){
     "${env.BUILD_NUMBER}"
   )
 }
-@Library('pipeline-shared-library@script-wrapper') _
+@Library('pipeline-shared-library@') _
 pipeline {
   parameters {
     string(name: 'VERSION', defaultValue: '5.1.0', description: 'Cloudify version label, to be used in the filenames (eg. "5.1.0")')
