@@ -26,6 +26,9 @@ spec:
       privileged: true
   - name: rabbitmq374
     image: rabbitmq:3.7.4
+    resources:
+      requests:
+        cpu: 0.5
   - name: py26
     image: circleci/python:2.7-stretch
     resources:
