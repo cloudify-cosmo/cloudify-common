@@ -1,9 +1,11 @@
 def install_test_dependencies(String cache_prefix) {
+  /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
   sh '''#!/bin/bash
   pip install -r dev-requirements.txt --user
   pip install -r test-requirements.txt --user
   pip install -e '.[dispatcher]' --user
   '''
+  /* save cache with relevant paths and key */
 }
 def pytest(String target){
   echo "running pytest << ${target} >>"
@@ -71,11 +73,11 @@ pipeline {
       parallel{
         stage ('py3_compat'){
           steps{
-            sh "mkdir -p ${env.WORKSPACE}/py3_compat && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/py3_compat"
+            sh script: "mkdir -p ${env.WORKSPACE}/py3_compat && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/py3_compat", label: "copying repo to seperate workspace"
             container('py27'){
               dir("${env.WORKSPACE}/py3_compat"){
                 echo 'install futurize, remove compat modules and find python3-incompatible code'
-                sh script: '''#!/bin/bash
+                sh '''#!/bin/bash
                 pip install future --user
                 PATH=$PATH:~/.local/bin
                 rm cloudify/_compat.py
@@ -88,8 +90,7 @@ pipeline {
                   FUTURIZE="${FUTURIZE} -f ${line}"
                 done<.circleci/py3fixers
                 $FUTURIZE>futurize_diffs
-                ''', returnStdout: true, stepName: "py3_compat shell", label: "label"
-
+                '''
                 echo 'check that there is no python3-incompatible code'
                 sh """ #!/bin/bash
                 if [ -s futurize_diffs ]; then
@@ -104,7 +105,7 @@ pipeline {
         }
         stage('flake8_py27'){
           steps{
-            sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
+            sh script: "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8", label: "copying repo to seperate workspace"
             container('py27'){
               dir("${env.WORKSPACE}/flake8") {
                 echo 'install flake 8'
@@ -117,7 +118,7 @@ pipeline {
         }
         stage('flake8_py36'){
           steps{
-            sh "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8"
+            sh script: "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8", label: "copying repo to seperate workspace"
             container('py36'){
               dir("${env.WORKSPACE}/flake8") {
               echo 'install flake 8'
@@ -134,7 +135,7 @@ pipeline {
       parallel{
         stage('test_py26'){
           steps{
-            sh "mkdir -p ${env.WORKSPACE}/test-py26 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py26"
+            sh script: "mkdir -p ${env.WORKSPACE}/test-py26 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py26", label: "copying repo to seperate workspace"
             container('py26'){
               dir("${env.WORKSPACE}/test-py26") {
                 echo 'setup_py26 - Install and set python version with pyenv'
@@ -157,15 +158,13 @@ pipeline {
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
-                /* store test results in path: test-results
-                */
               }
             }
           }
         }
         stage('test_py27'){
           steps{
-            sh "mkdir -p ${env.WORKSPACE}/test-py27 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py27"
+            sh script: "mkdir -p ${env.WORKSPACE}/test-py27 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py27", label: "copying repo to seperate workspace"
             container('py27'){
               dir("${env.WORKSPACE}/test-py27") {
                 install_test_dependencies('py27')
@@ -178,7 +177,7 @@ pipeline {
         }
         stage('test_py36'){
           steps{
-            sh "mkdir -p ${env.WORKSPACE}/test-py36 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py36"
+            sh script: "mkdir -p ${env.WORKSPACE}/test-py36 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py36", label: "copying repo to seperate workspace"
             container('py36'){
               dir("${env.WORKSPACE}/test-py36") {
                 install_test_dependencies('py36')
