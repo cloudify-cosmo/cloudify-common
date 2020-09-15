@@ -78,19 +78,19 @@ pipeline {
               dir("${env.WORKSPACE}/py3_compat"){
                 echo 'install futurize, remove compat modules and find python3-incompatible code'
                 sh '''#!/bin/bash
-                  pip install future --user
-                  PATH=$PATH:~/.local/bin
-                  rm cloudify/_compat.py
-                  rm dsl_parser/_compat.py
-                  rm cloudify_rest_client/_compat.py
-                  rm cloudify/ctx_wrappers/ctx-py.py
-                  FUTURIZE="futurize ."
-                  while read line; do
-                    [[ "$line" =~ ^#.* ]] && continue
-                    FUTURIZE="${FUTURIZE} -f ${line}"
-                  done<.circleci/py3fixers
-                  $FUTURIZE>futurize_diffs
-                  '''
+                pip install future --user
+                PATH=$PATH:~/.local/bin
+                rm cloudify/_compat.py
+                rm dsl_parser/_compat.py
+                rm cloudify_rest_client/_compat.py
+                rm cloudify/ctx_wrappers/ctx-py.py
+                FUTURIZE="futurize ."
+                while read line; do
+                  [[ "$line" =~ ^#.* ]] && continue
+                  FUTURIZE="${FUTURIZE} -f ${line}"
+                done<.circleci/py3fixers
+                $FUTURIZE>futurize_diffs
+                '''
                 echo 'check that there is no python3-incompatible code'
                 sh """ #!/bin/bash
                 if [ -s futurize_diffs ]; then
@@ -158,8 +158,6 @@ pipeline {
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
-                /* store test results in path: test-results
-                */
               }
             }
           }
@@ -173,7 +171,6 @@ pipeline {
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
-                /* storte test results in path: test-results */
               }
             }
           }
@@ -187,7 +184,6 @@ pipeline {
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
-                /* store test results in path: test-results */
               }
             }
           }
@@ -200,7 +196,6 @@ pipeline {
         sh script: "mkdir -p ${env.WORKSPACE}/project-docs && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/project-docs", label: "copying repo to seperate workspace"
         container('py27'){
           dir("${env.WORKSPACE}/project-docs") {
-            /* restore cache with relevant keys */
             echo 'Install sphinx'
             sh "pip install sphinx sphinx-rtd-theme"
             echo 'Install cloudify-common'
@@ -209,7 +204,6 @@ pipeline {
             build_docs('cloudify_rest_client')
             build_docs('cloudify_script_plugin')
             build_docs('cloudify_dsl_parser')
-            /* save cache */
           }
         }
       }
