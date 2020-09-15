@@ -11,7 +11,7 @@ def pytest(String target){
   echo "running pytest << ${target} >>"
   sh """#!/bin/bash
   pytest \
-    -n 4 \
+    -n auto \
     --cov-report term-missing \
     --cov= ${target} \
     ${target}/tests \
