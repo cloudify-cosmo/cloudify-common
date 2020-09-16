@@ -59,13 +59,15 @@ def install(plugin,
                          as part of the blueprint itself.
     """
     managed_plugin = get_managed_plugin(plugin)
-    source = get_plugin_source(plugin, blueprint_id)
     args = get_plugin_args(plugin)
     if managed_plugin:
         _install_managed_plugin(
             managed_plugin=managed_plugin,
             args=args)
-    elif source:
+        return
+
+    source = get_plugin_source(plugin, blueprint_id)
+    if source:
         _install_source_plugin(
             deployment_id=deployment_id,
             plugin=plugin,
