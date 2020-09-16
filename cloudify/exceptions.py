@@ -168,3 +168,7 @@ class ProcessExecutionError(RuntimeError):
 class ClosedAMQPClientException(Exception):
     """Raised when attempting to use a closed AMQP client"""
     pass
+
+
+class PluginInstallationError(Exception):
+    """An error occurred during plugin installation"""

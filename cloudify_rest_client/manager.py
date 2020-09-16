@@ -173,11 +173,6 @@ class DBNodeItem(dict):
         return self.get('name')
 
     @property
-    def node_id(self):
-        """Cloudify's auto-generated node id"""
-        return self.get('node_id')
-
-    @property
     def host(self):
         """IP address of this DB node"""
         return self.get('host')
@@ -246,11 +241,6 @@ class RabbitMQBrokerItem(dict):
         :rtype: dict
         """
         return self.get('networks')
-
-    @property
-    def node_id(self):
-        """Cloudify's auto-generated node id"""
-        return self.get('node_id')
 
     @property
     def is_external(self):
