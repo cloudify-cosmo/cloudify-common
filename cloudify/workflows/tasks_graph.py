@@ -322,7 +322,7 @@ class TaskDependencyGraph(object):
         """
         An iterator on tasks added to the graph
         """
-        return (data['task'] for _, data in self.graph.nodes_iter(data=True))
+        return [data['task'] for _, data in self.graph.nodes_iter(data=True)]
 
     def _handle_executable_task(self, task):
         """Handle executable task"""
