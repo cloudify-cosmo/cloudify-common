@@ -56,9 +56,8 @@ pipeline {
     timestamps()
   }
   environment {
-    VERSION = getVersion("${env.BRANCH_NAME}").trim()
-    PRERELEASE = getPreRelease("${env.BRANCH_NAME}").trim()
-    UPLOAD_S3_BUILD_NUMBER = "${params.UPSTREAM_BUILD_NUMBER}"
+    VERSION = getVersion("master").trim()
+    PRERELEASE = getPreRelease("master").trim()
     WORKSPACE = "${env.WORKSPACE}"
     PROJECT = "cloudify-common"
     UPLOAD_FOLDER = 'cloudify-common'
