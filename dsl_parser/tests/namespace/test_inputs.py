@@ -104,3 +104,27 @@ imports:
         self.assertEqual(2, len(inputs))
         self._assert_input(inputs, 'test--port1', 'one', 1)
         self._assert_input(inputs, 'port2', 'two', 2)
+
+    def test_inputs_nested_list_property(self):
+        imported_yaml = """
+inputs:
+    config:
+        default:
+            env:
+                user: 'vlad'
+    environ:
+        default: env
+    username:
+        default: { get_input: [ config, { get_input: environ }, user ] }
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+    -   {0}--{1}
+""".format('test', import_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        inputs = parsed_yaml[constants.INPUTS]
+        self.assertEqual(
+            inputs['test--username']['default']['get_input'],
+            ['test--config', {'get_input': 'test--environ'}, 'user']
+        )
