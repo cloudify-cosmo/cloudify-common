@@ -106,8 +106,9 @@ class PluginsUpdateClient(object):
                                 params=params)
         return self._wrap_list(response)
 
-    def update_plugins(self, blueprint_id, force=False,
-                       plugin_name=None, minor=False, minor_except=None):
+    def update_plugins(self, blueprint_id, force=False, plugin_names=None,
+                       to_latest=None, all_to_latest=True,
+                       to_minor=None, all_to_minor=False):
         """
         Updates the plugins in all the deployments that use the given
         blueprint.
@@ -115,11 +116,16 @@ class PluginsUpdateClient(object):
         :param blueprint_id: blueprint ID to perform the update with.
         :param force: if to forcefully update when other non-active plugins
          updates exists associated with this blueprint [deprecated].
-        :param plugin_name: list of plugin names to update (only those).
-        :param minor: update all selected plugins to the latest minor release.
-        :param minor_except: list of plugin names; all plugins will be updated
-         to the latest minor release, except for the plugins in the list, which
-         will be updated to the latest (either major or minor) version.
+        :param plugin_names: list of plugin names to update (only those).
+        :param to_latest: list of plugin names to be upgraded to the latest
+         installed version.
+        :param all_to_latest: update all (selected) plugins to the latest
+         installed version of a plugin.
+        :param to_minor: list of plugin names to be upgraded to the latest
+         installed minor version (i.e. major versions of the plugin in use and
+         the upgraded one will match)
+        :param all_to_minor: update all (selected) plugins to the latest
+         installed minor version.
         :return: a PluginUpdate object.
         """
         if force:
@@ -127,8 +133,11 @@ class PluginsUpdateClient(object):
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
                                                             self=self),
-            data=_data_from_kwargs(plugin_name=plugin_name, minor=minor,
-                                   minor_except=minor_except))
+            data=_data_from_kwargs(plugin_names=plugin_names,
+                                   to_latest=to_latest,
+                                   all_to_latest=all_to_latest,
+                                   to_minor=to_minor,
+                                   all_to_minor=all_to_minor))
         return PluginsUpdate(response)
 
     def finalize_plugins_update(self, plugins_update_id):
@@ -139,7 +148,8 @@ class PluginsUpdateClient(object):
         """
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/finalize'.format(plugins_update_id,
-                                                            self=self))
+                                                            self=self)
+        )
         return PluginsUpdate(response)
 
 
