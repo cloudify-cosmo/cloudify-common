@@ -147,8 +147,7 @@ class UsersClient(object):
         return User(response)
 
     def delete(self, username):
-        response = self.api.delete('/users/{0}'.format(username))
-        return User(response)
+        self.api.delete('/users/{0}'.format(username))
 
     def activate(self, username):
         response = self.api.post(

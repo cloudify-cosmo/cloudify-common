@@ -118,8 +118,6 @@ class HTTPClient(object):
         return any(header in self.headers for header in auth_headers)
 
     def _raise_client_error(self, response, url=None):
-        if response.status_code == 204:
-            return None
         try:
             result = response.json()
         except Exception:
@@ -195,6 +193,9 @@ class HTTPClient(object):
 
         if response.status_code != expected_status_code:
             self._raise_client_error(response, request_url)
+
+        if response.status_code == 204:
+            return None
 
         if stream:
             return StreamedResponse(response)
@@ -328,7 +329,7 @@ class HTTPClient(object):
                                timeout=timeout)
 
     def delete(self, uri, data=None, params=None, headers=None,
-               expected_status_code=200, stream=False, timeout=None):
+               expected_status_code=204, stream=False, timeout=None):
         return self.do_request(requests.delete,
                                uri,
                                data=data,

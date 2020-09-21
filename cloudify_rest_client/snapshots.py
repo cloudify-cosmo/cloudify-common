@@ -140,8 +140,7 @@ class SnapshotsClient(object):
         :return: Deleted snapshot.
         """
         assert snapshot_id
-        response = self.api.delete('/snapshots/{0}'.format(snapshot_id))
-        return Snapshot(response)
+        self.api.delete('/snapshots/{0}'.format(snapshot_id))
 
     def restore(self,
                 snapshot_id,
