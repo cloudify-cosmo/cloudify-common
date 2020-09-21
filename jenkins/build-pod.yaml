@@ -9,6 +9,8 @@ spec:
     tty: true
     securityContext:
         runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
   - name: py36
     image: circleci/python:3.6
     command:
@@ -16,6 +18,8 @@ spec:
     tty: true
     securityContext:
       runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 2000
   - name: rabbitmq374
     image: rabbitmq:3.7.4
   - name: py26
@@ -28,6 +32,8 @@ spec:
     tty: true
     securityContext:
         runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
   - name: awscli
     image: amazon/aws-cli
     command:
