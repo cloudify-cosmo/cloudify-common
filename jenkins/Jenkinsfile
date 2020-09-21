@@ -73,7 +73,7 @@ pipeline {
               dir("${env.WORKSPACE}/py3_compat"){
                 echo 'install futurize, remove compat modules and find python3-incompatible code'
                 sh '''#!/bin/bash
-                python -m pip install future --user
+                pip install future --user
                 PATH=$PATH:~/.local/bin
                 rm cloudify/_compat.py
                 rm dsl_parser/_compat.py
@@ -104,7 +104,7 @@ pipeline {
             container('py27'){
               dir("${env.WORKSPACE}/flake8") {
                 echo 'install flake 8'
-                sh "python -m pip install flake8 --user"
+                sh "pip install flake8 --user"
                 echo 'run flake8'
                 sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client"
               }
@@ -117,7 +117,7 @@ pipeline {
             container('py36'){
               dir("${env.WORKSPACE}/flake8") {
               echo 'install flake 8'
-              sh "python -m pip install flake8 --user"
+              sh "pip install flake8 --user"
               echo 'run flake8'
               sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client"
               }
