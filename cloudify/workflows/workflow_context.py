@@ -547,10 +547,24 @@ class _WorkflowContextBase(object):
         """Cloudify tenant"""
         return self._context.get('tenant', {})
 
+    @property
+    def execution_creator_username(self):
+        return self._context.get('execution_creator_username')
+
     def _init_cloudify_logger(self):
         logger_name = self.execution_id
         logging_handler = self.internal.handler.get_context_logging_handler()
         return init_cloudify_logger(logging_handler, logger_name)
+
+    def download_resource(self, resource_path, target_path=None):
+        """Downloads a blueprint/deployment resource to target_path.
+
+        This mirrors ctx.download_resource, but for workflow contexts.
+        See CloudifyContext.download_resource.
+        """
+        return self._internal.handler.download_deployment_resource(
+            resource_path=resource_path,
+            target_path=target_path)
 
     def send_event(self, event, event_type='workflow_stage',
                    args=None,
@@ -1422,7 +1436,9 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         return {'local': False,
                 'bypass_maintenance': utils.get_is_bypass_maintenance(),
                 'rest_token': utils.get_rest_token(),
-                'execution_token': utils.get_execution_token()}
+                'execution_token': utils.get_execution_token(),
+                'execution_creator_username':
+                    utils.get_execution_creator_username()}
 
     def download_deployment_resource(self,
                                      blueprint_id,
@@ -1440,8 +1456,16 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def get_operations(self, graph_id):
         client = get_rest_client()
-        operations = client.operations.list(graph_id)
-        return operations
+        ops = []
+        offset = 0
+        while True:
+            operations = client.operations.list(graph_id, _offset=offset)
+            ops += operations.items
+            if len(ops) < operations.metadata.pagination.total:
+                offset += operations.metadata.pagination.size
+            else:
+                break
+        return ops
 
     def update_operation(self, operation_id, state):
         client = get_rest_client()

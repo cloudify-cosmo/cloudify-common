@@ -22,7 +22,9 @@ install_requires = [
     'proxy_tools==0.1.0',
     'bottle==0.12.18',
     'jinja2>=2.10,<2.11',
-    'requests_toolbelt==0.8.0'
+    'requests_toolbelt==0.8.0',
+    'wagon>0.10',
+    'fasteners==0.13.0',
 ]
 
 try:

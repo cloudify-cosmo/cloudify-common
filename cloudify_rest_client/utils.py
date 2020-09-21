@@ -1,8 +1,8 @@
 import os
+import sys
 import stat
 import tarfile
 from os.path import expanduser
-from distutils.spawn import find_executable
 
 SUPPORTED_ARCHIVE_TYPES = ['zip', 'tar', 'tar.gz', 'tar.bz2']
 
@@ -77,7 +77,32 @@ def get_folder_size_and_files(path):
 
 
 def get_file_content(file_path):
-    if os.path.exists(file_path):
-        with open(file_path) as fd:
+    expanded_file_path = os.path.expanduser(file_path)
+    if os.path.exists(expanded_file_path):
+        with open(expanded_file_path) as fd:
             return fd.read()
     return None
+
+
+# Copied verbatim from distutils.spawn, since we don't always ship distutils.
+def find_executable(executable, path=None):
+    """Tries to find 'executable' in the directories listed in 'path'.
+
+    A string listing directories separated by 'os.pathsep'; defaults to
+    os.environ['PATH'].  Returns the complete filename or None if not found.
+    """
+    if path is None:
+        path = os.environ['PATH']
+    paths = path.split(os.pathsep)
+    base, ext = os.path.splitext(executable)
+    if (sys.platform == 'win32') and (ext != '.exe'):
+        executable = executable + '.exe'
+    if not os.path.isfile(executable):
+        for p in paths:
+            f = os.path.join(p, executable)
+            if os.path.isfile(f):
+                # the file exists, we have a shot at spawn working
+                return f
+        return None
+    else:
+        return executable

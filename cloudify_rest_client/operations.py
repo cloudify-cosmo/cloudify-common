@@ -48,8 +48,12 @@ class OperationsClient(object):
         self._uri_prefix = 'operations'
         self._wrapper_cls = Operation
 
-    def list(self, graph_id):
+    def list(self, graph_id, _offset=None, _size=None):
         params = {'graph_id': graph_id}
+        if _offset is not None:
+            params['_offset'] = _offset
+        if _size is not None:
+            params['_size'] = _size
         response = self.api.get('/{self._uri_prefix}'.format(self=self),
                                 params=params)
         return ListResponse(

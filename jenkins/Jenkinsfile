@@ -11,7 +11,7 @@ def pytest(String target){
   echo "running pytest << ${target} >>"
   sh """#!/bin/bash
   pytest \
-    -n 4 \
+    -n auto \
     --cov-report term-missing \
     --cov= ${target} \
     ${target}/tests \
@@ -42,10 +42,6 @@ def upload_docs(String project){
 }
 @Library('pipeline-shared-library') _
 pipeline {
-  parameters {
-    string(name: 'VERSION', defaultValue: '5.1.0', description: 'Cloudify version label, to be used in the filenames (eg. "5.1.0")')
-    string(name: 'PRERELEASE', defaultValue: '.dev1', description: 'A prerelase/milestone label, to be used in the filenames (eg. ".dev1")')
-  }
   agent {
     kubernetes {
       label 'common'
@@ -55,14 +51,13 @@ pipeline {
   }
   options {
     checkoutToSubdirectory('cloudify-common')
-    buildDiscarder(logRotator(numToKeepStr:'30'))
+    buildDiscarder(logRotator(numToKeepStr:'10'))
     timeout(time: 60, unit: 'MINUTES')
     timestamps()
   }
   environment {
-    VERSION = "${params.VERSION}"
-    PRERELEASE = "${params.PRERELEASE}"
-    UPLOAD_S3_BUILD_NUMBER = "${params.UPSTREAM_BUILD_NUMBER}"
+    VERSION = getVersion("master").trim()
+    PRERELEASE = getPreRelease("master").trim()
     WORKSPACE = "${env.WORKSPACE}"
     PROJECT = "cloudify-common"
     UPLOAD_FOLDER = 'cloudify-common'
@@ -190,8 +185,11 @@ pipeline {
         }
       }
     }
-    stage('build_all_project_docs'){
+    stage('build_and_upload_all_project_docs'){
       when { branch pattern: ".+-build", comparator: "REGEXP"}
+      environment {
+        BRANCH_BUILD_NUMBER = "${env.BRANCH_NAME.split('-')[0]}"
+      }
       steps{
         sh script: "mkdir -p ${env.WORKSPACE}/project-docs && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/project-docs", label: "copying repo to seperate workspace"
         container('py27'){
@@ -207,20 +205,12 @@ pipeline {
           }
         }
       }
-    }
-    stage('deploy_all_project_docs'){
-      when { branch pattern: ".+-build", comparator: "REGEXP"}
-      environment {
-        BRANCH_BUILD_NUMBER = "${env.BRANCH_NAME.split('-')[0]}"
-      }
-      steps{
-        container('py27'){
-          dir("${env.WORKSPACE}/project-docs"){
-            upload_docs('cloudify_plugins_common')
-            upload_docs('cloudify_rest_client')
-            upload_docs('cloudify_script_plugin')
-            upload_docs('cloudify_dsl_parser')
-          }
+      post {
+        success {
+          upload_docs('cloudify_plugins_common')
+          upload_docs('cloudify_rest_client')
+          upload_docs('cloudify_script_plugin')
+          upload_docs('cloudify_dsl_parser')
         }
       }
     }
