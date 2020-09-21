@@ -8,9 +8,6 @@ spec:
     - cat
     tty: true
     securityContext:
-        runAsUser: 1000
-        runAsGroup: 3000
-        fsGroup: 2000
         allowPrivilegeEscalation: true
   - name: py36
     image: circleci/python:3.6
@@ -18,9 +15,6 @@ spec:
     - cat
     tty: true
     securityContext:
-      runAsUser: 1000
-      runAsGroup: 3000
-      fsGroup: 2000
       allowPrivilegeEscalation: true
   - name: rabbitmq374
     image: rabbitmq:3.7.4
@@ -33,9 +27,6 @@ spec:
     - cat
     tty: true
     securityContext:
-        runAsUser: 1000
-        runAsGroup: 3000
-        fsGroup: 2000
         allowPrivilegeEscalation: true
   - name: awscli
     image: amazon/aws-cli
