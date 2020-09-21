@@ -8,16 +8,14 @@ spec:
     - cat
     tty: true
     securityContext:
-        runAsUser: 0
-        priviliged: true
+        runAsUser: 1000
   - name: py36
     image: circleci/python:3.6
     command:
     - cat
     tty: true
     securityContext:
-      runAsUser: 0
-      privileged: true
+      runAsUser: 1000
   - name: rabbitmq374
     image: rabbitmq:3.7.4
   - name: py26
@@ -28,6 +26,8 @@ spec:
     command:
     - cat
     tty: true
+    securityContext:
+        runAsUser: 1000
   - name: awscli
     image: amazon/aws-cli
     command:

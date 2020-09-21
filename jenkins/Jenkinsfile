@@ -185,7 +185,7 @@ pipeline {
         }
       }
     }
-    stage('build_all_project_docs'){
+    stage('build_and_upload_all_project_docs'){
       when { branch pattern: ".+-build", comparator: "REGEXP"}
       environment {
         BRANCH_BUILD_NUMBER = "${env.BRANCH_NAME.split('-')[0]}"
