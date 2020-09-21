@@ -326,8 +326,7 @@ class ManagerClient(object):
         the cluster, not necessarily for uninstalling the manager
         :param hostname: The manager's hostname
         """
-        response = self.api.delete('/managers/{0}'.format(hostname))
-        return ManagerItem(response)
+        self.api.delete('/managers/{0}'.format(hostname))
 
     def update_manager(self, hostname, fs_sync_node_id, bootstrap_cluster):
         """
@@ -400,8 +399,7 @@ class ManagerClient(object):
 
         :return: The broker that was deleted.
         """
-        response = self.api.delete('/brokers/{0}'.format(name))
-        return RabbitMQBrokerItem(response)
+        self.api.delete('/brokers/{0}'.format(name))
 
     def update_broker(self, name, networks):
         """Update a broker.
