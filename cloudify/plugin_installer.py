@@ -24,6 +24,7 @@ import platform
 import threading
 
 from os import walk
+from functools import wraps
 from contextlib import contextmanager
 
 import wagon
@@ -31,24 +32,71 @@ import fasteners
 
 from cloudify import ctx
 from cloudify.manager import get_rest_client
-from cloudify.utils import extract_archive, get_python_path
-from cloudify.utils import LocalCommandRunner, target_plugin_prefix
+from cloudify.utils import (
+    LocalCommandRunner, target_plugin_prefix, extract_archive,
+    get_python_path, get_manager_name, get_daemon_name
+)
 from cloudify._compat import reraise, urljoin, pathname2url, parse_version
 from cloudify.exceptions import (
     NonRecoverableError,
     CommandExecutionException,
     PluginInstallationError
 )
+from cloudify.models_states import PluginInstallationState
+from cloudify_rest_client.exceptions import CloudifyClientError
 
 PLUGIN_INSTALL_LOCK = threading.Lock()
 runner = LocalCommandRunner()
 
 
-def install(plugin,
-            deployment_id=None,
-            blueprint_id=None):
+def _manage_plugin_state(pre_state, post_state, allow_missing=False):
+    """Update plugin state when doing a plugin operation.
+
+    Decorate a function that takes a plugin as the first argument with this,
+    and the plugin's state will be updated to pre_state before running
+    the function, and to post_state after. If the function throws, then
+    to the ERROR state.
     """
-    Install the plugin to the current virtualenv.
+    def _set_state(plugin, **kwargs):
+        client = get_rest_client()
+        if not plugin.get('id'):
+            return
+        try:
+            agent = get_daemon_name()
+            manager = None
+        except KeyError:
+            agent = None
+            manager = get_manager_name()
+
+        try:
+            client.plugins.set_state(
+                plugin['id'], agent_name=agent, manager_name=manager, **kwargs
+            )
+        except CloudifyClientError as e:
+            if e.status_code != 404 or not allow_missing:
+                raise
+
+    def _decorator(f):
+        @wraps(f)
+        def _inner(plugin, *args, **kwargs):
+            _set_state(plugin, state=pre_state)
+            try:
+                rv = f(plugin, *args, **kwargs)
+            except Exception as e:
+                _set_state(plugin, state=PluginInstallationState.ERROR,
+                           error=str(e))
+                raise
+            else:
+                _set_state(plugin, state=post_state)
+                return rv
+        return _inner
+    return _decorator
+
+
+@_manage_plugin_state(pre_state=PluginInstallationState.INSTALLING,
+                      post_state=PluginInstallationState.INSTALLED)
+def install(plugin, deployment_id=None, blueprint_id=None):
+    """Install the plugin to the current virtualenv.
 
     :param plugin: A plugin structure as defined in the blueprint.
     :param deployment_id: The deployment id associated with this
@@ -233,6 +281,9 @@ def _pip_install(source, venv, args):
             shutil.rmtree(plugin_dir, ignore_errors=True)
 
 
+@_manage_plugin_state(pre_state=PluginInstallationState.UNINSTALLING,
+                      post_state=PluginInstallationState.UNINSTALLED,
+                      allow_missing=True)
 def uninstall(plugin, deployment_id=None):
     name = plugin.get('package_name') or plugin['name']
     dst_dir = target_plugin_prefix(

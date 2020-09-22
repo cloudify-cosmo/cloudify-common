@@ -171,6 +171,11 @@ def format_exception(e):
             return repr(e)
 
 
+def get_daemon_name(cls):
+    """Name of the currently running agent."""
+    return os.environ['CLOUDIFY_DAEMON_NAME']
+
+
 def get_manager_name():
     """Hostname/id of the current manager.
 
