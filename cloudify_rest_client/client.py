@@ -17,7 +17,7 @@ import json
 import logging
 
 import requests
-from base64 import urlsafe_b64encode
+from base64 import b64encode
 from requests.packages import urllib3
 
 from cloudify import constants
@@ -343,7 +343,7 @@ class HTTPClient(object):
         if not username or not password:
             return None
         credentials = '{0}:{1}'.format(username, password).encode('utf-8')
-        encoded_credentials = urlsafe_b64encode(credentials).decode('utf-8')
+        encoded_credentials = b64encode(credentials).decode('utf-8')
         return BASIC_AUTH_PREFIX + ' ' + encoded_credentials
 
     def _set_header(self, key, value, log_value=True):
