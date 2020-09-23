@@ -93,8 +93,6 @@ def _manage_plugin_state(pre_state, post_state, allow_missing=False):
     return _decorator
 
 
-@_manage_plugin_state(pre_state=PluginInstallationState.INSTALLING,
-                      post_state=PluginInstallationState.INSTALLED)
 def install(plugin, deployment_id=None, blueprint_id=None):
     """Install the plugin to the current virtualenv.
 
@@ -178,6 +176,8 @@ def _get_plugin_description(managed_plugin):
         for field in fields if managed_plugin.get(field))
 
 
+@_manage_plugin_state(pre_state=PluginInstallationState.INSTALLING,
+                      post_state=PluginInstallationState.INSTALLED)
 def _install_managed_plugin(plugin, args):
     dst_dir = target_plugin_prefix(
         name=plugin.package_name,
