@@ -51,6 +51,8 @@ def serialize_known_exception(e):
     elif isinstance(e, exceptions.RecoverableError):
         known_exception_type = exceptions.RecoverableError
         known_exception_type_args = [e.retry_after]
+    elif isinstance(e, exceptions.StopAgent):
+        known_exception_type = exceptions.StopAgent
     else:
         # convert pure user exceptions to a RecoverableError
         known_exception_type = exceptions.RecoverableError

@@ -172,3 +172,10 @@ class ClosedAMQPClientException(Exception):
 
 class PluginInstallationError(Exception):
     """An error occurred during plugin installation"""
+
+
+class StopAgent(Exception):
+    """Raise this in an operation to force the agent to exit."""
+    def __init__(self, *args, **kwargs):
+        self.causes = kwargs.pop('causes', []) or []
+        super(StopAgent, self).__init__(*args, **kwargs)
