@@ -164,7 +164,8 @@ class HTTPClient(object):
             self._raise_client_error(response)
 
     def _do_request(self, requests_method, request_url, body, params, headers,
-                    expected_status_code, stream, verify, timeout):
+                    expected_status_code, back_compat_status_code,
+                    stream, verify, timeout):
         auth = None
         if self.has_kerberos() and not self.has_auth_header():
             if HTTPKerberosAuth is None:
@@ -191,7 +192,10 @@ class HTTPClient(object):
                 self.logger.debug('response header:  %s: %s'
                                   % (hdr, hdr_content))
 
-        if response.status_code != expected_status_code:
+        if (
+            response.status_code != expected_status_code
+            and response.status_code != back_compat_status_code
+        ):
             self._raise_client_error(response, request_url)
 
         if response.status_code == 204:
@@ -224,6 +228,7 @@ class HTTPClient(object):
                    params=None,
                    headers=None,
                    expected_status_code=200,
+                   back_compat_status_code=None,
                    stream=False,
                    versioned_url=True,
                    timeout=None):
@@ -260,7 +265,9 @@ class HTTPClient(object):
             return self._do_request(
                 requests_method=requests_method, request_url=request_url,
                 body=body, params=total_params, headers=total_headers,
-                expected_status_code=expected_status_code, stream=stream,
+                expected_status_code=expected_status_code,
+                back_compat_status_code=back_compat_status_code,
+                stream=stream,
                 verify=self.get_request_verify(), timeout=timeout)
         except requests.exceptions.SSLError as e:
             raise requests.exceptions.SSLError(
@@ -329,15 +336,18 @@ class HTTPClient(object):
                                timeout=timeout)
 
     def delete(self, uri, data=None, params=None, headers=None,
-               expected_status_code=204, stream=False, timeout=None):
-        return self.do_request(requests.delete,
-                               uri,
-                               data=data,
-                               params=params,
-                               headers=headers,
-                               expected_status_code=expected_status_code,
-                               stream=stream,
-                               timeout=timeout)
+               expected_status_code=204, stream=False, timeout=None,
+               back_compat_status_code=200):
+        return self.do_request(
+            requests.delete,
+            uri,
+            data=data,
+            params=params,
+            headers=headers,
+            expected_status_code=expected_status_code,
+            back_compat_status_code=back_compat_status_code,
+            stream=stream,
+            timeout=timeout)
 
     def _get_auth_header(self, username, password):
         if not username or not password:
