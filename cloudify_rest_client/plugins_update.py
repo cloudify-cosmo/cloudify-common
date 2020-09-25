@@ -134,7 +134,7 @@ class PluginsUpdateClient(object):
         """
         if force:
             warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
-        if mapping:
+        if mapping and mapping.get('updates'):
             warnings.warn("The 'mapping file' was used during the update; "
                           "remember to update your blueprint files",
                           RuntimeWarning)
