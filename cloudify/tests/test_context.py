@@ -20,12 +20,11 @@ import os
 import shutil
 import tempfile
 import unittest
-from os.path import dirname
 
 import pytest
 import requests
 import testtools
-from mock import patch, MagicMock
+from mock import patch, MagicMock, Mock
 
 from cloudify_rest_client.exceptions import CloudifyClientError
 
@@ -35,27 +34,15 @@ from cloudify.manager import NodeInstance, get_resource_from_manager
 from cloudify.workflows import local
 from cloudify import constants, state, context, exceptions, conflict_handlers
 
-import cloudify.tests as tests_path
 from cloudify.test_utils import workflow_test
 
 
 class CloudifyContextTest(testtools.TestCase):
-    file_server_process = None
-
     @classmethod
     def setUpClass(cls):
-
         state.current_ctx.set(context.CloudifyContext({}), {})
 
-        resources_path = os.path.join(dirname(tests_path.__file__))
-
-        from cloudify.tests.file_server import FileServer
-        from cloudify.tests.file_server import PORT
-
-        cls.file_server_process = FileServer(resources_path)
-        cls.file_server_process.start()
-
-        os.environ[constants.REST_PORT_KEY] = "{0}".format(PORT)
+        os.environ[constants.REST_PORT_KEY] = '53333'
         os.environ[constants.REST_HOST_KEY] = "localhost"
         os.environ[constants.MANAGER_FILE_SERVER_SCHEME] = "http"
         _, os.environ[constants.LOCAL_REST_CERT_FILE_KEY] = tempfile.mkstemp()
@@ -72,8 +59,11 @@ class CloudifyContextTest(testtools.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.file_server_process.stop()
         state.current_ctx.clear()
+        os.environ.pop(constants.REST_HOST_KEY)
+        os.environ.pop(constants.REST_PORT_KEY)
+        os.environ.pop(constants.MANAGER_FILE_SERVER_SCHEME)
+        os.environ.pop(constants.LOCAL_REST_CERT_FILE_KEY)
 
     def setup_tenant_context(self):
         self.context = context.CloudifyContext(
@@ -89,46 +79,65 @@ class CloudifyContextTest(testtools.TestCase):
 
     @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
     def test_get_resource(self, _):
-        resource = self.context.get_resource(
-            resource_path='for_test_bp_resource.txt')
+        with patch('requests.get',
+                   return_value=Mock(ok=True, content=b'Hello from test')):
+            resource = self.context.get_resource(
+                resource_path='for_test_bp_resource.txt')
         self.assertEquals(resource, b'Hello from test')
-
-    def test_get_deployment_resource_priority_over_blueprint_resource(self):
-        deployment_context_mock = MagicMock()
-        deployment_context_mock.id = 'dep1'
-        self.context.deployment = deployment_context_mock
-        resource = self.context.get_resource(resource_path='for_test.txt')
-        self.assertEquals(resource, b'belongs to dep1')
-
-    def test_get_deployment_resource_no_blueprint_resource(self):
-        deployment_context_mock = MagicMock()
-        deployment_context_mock.id = 'dep1'
-        self.context.deployment = deployment_context_mock
-        resource = self.context.get_resource(
-            resource_path='for_test_only_dep.txt')
-        self.assertEquals(resource, b'belongs to dep1')
 
     @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
     def test_download_resource(self, _):
-        resource_path = self.context.download_resource(
-            resource_path='for_test.txt')
+        with patch('requests.get',
+                   return_value=Mock(ok=True, content=b'')) as mock_get:
+            resource_path = self.context.download_resource(
+                resource_path='for_test.txt')
+
+        self.assertEqual(len(mock_get.mock_calls), 1)
+        _, args, kwargs = mock_get.mock_calls[0]
+        url = args[0]
+
+        expected_url_prefix = '{0}://{1}:{2}/'.format(
+            os.environ[constants.MANAGER_FILE_SERVER_SCHEME],
+            os.environ[constants.REST_HOST_KEY],
+            os.environ[constants.REST_PORT_KEY],
+        )
+        self.assertTrue(url.startswith(expected_url_prefix))
+        self.assertEqual(kwargs['verify'],
+                         os.environ[constants.LOCAL_REST_CERT_FILE_KEY])
+
         self.assertIsNotNone(resource_path)
         self.assertTrue(os.path.exists(resource_path))
 
     @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
     def test_download_blueprint_from_tenant(self, _):
         self.setup_tenant_context()
-        resource_path = self.context.download_resource(
-            resource_path='blueprint.yaml')
+        with patch('requests.get',
+                   return_value=Mock(ok=True, content=b'')) as mock_get:
+            resource_path = self.context.download_resource(
+                resource_path='blueprint.yaml')
+
+        self.assertEqual(len(mock_get.mock_calls), 1)
+        _, args, kwargs = mock_get.mock_calls[0]
+        url = args[0]
+
+        expected_url_prefix = '{0}://{1}:{2}/resources/blueprints/{3}'.format(
+            os.environ[constants.MANAGER_FILE_SERVER_SCHEME],
+            os.environ[constants.REST_HOST_KEY],
+            os.environ[constants.REST_PORT_KEY],
+            self.context.tenant_name
+        )
+        self.assertTrue(url.startswith(expected_url_prefix))
+
         self.assertIsNotNone(resource_path)
         self.assertTrue(os.path.exists(resource_path))
 
     @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
     def test_download_resource_to_specific_file(self, _):
         target_path = "{0}/for_test_custom.log".format(create_temp_folder())
-        resource_path = self.context.download_resource(
-            resource_path='for_test.txt',
-            target_path=target_path)
+        with patch('requests.get', return_value=Mock(ok=True, content=b'')):
+            resource_path = self.context.download_resource(
+                resource_path='for_test.txt',
+                target_path=target_path)
         self.assertEqual(target_path, resource_path)
         self.assertTrue(os.path.exists(resource_path))
 
@@ -158,9 +167,11 @@ class CloudifyContextTest(testtools.TestCase):
                 exceptions.HttpException, self.context.get_resource, filename)
         self.assertEqual(len(mock_get.mock_calls), 3)
 
-        # base is constructed from the constants in setUpClass
-        base_url = 'http://localhost:53229'
-
+        base_url = '{0}://{1}:{2}'.format(
+            os.environ[constants.MANAGER_FILE_SERVER_SCHEME],
+            os.environ[constants.REST_HOST_KEY],
+            os.environ[constants.REST_PORT_KEY]
+        )
         self.assertEqual([args[0] for _c, args, _k in mock_get.mock_calls], [
             '{0}/resources/deployments/{1}/{2}/{3}'.format(
                 base_url,
