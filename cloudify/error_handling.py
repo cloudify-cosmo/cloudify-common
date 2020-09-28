@@ -64,7 +64,6 @@ def serialize_known_exception(e):
         causes = []
 
     payload = {
-        'traceback': trace_out,
         'exception_type': type(e).__name__,
         'message': format_exception(e),
         'known_exception_type': known_exception_type.__name__,
@@ -72,6 +71,8 @@ def serialize_known_exception(e):
         'known_exception_type_kwargs': {'causes': causes or []},
         'append_message': append_message,
     }
+    if trace_out:
+        payload['traceback'] = trace_out
     return payload
 
 
