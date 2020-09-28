@@ -142,10 +142,7 @@ class DeploymentUpdatesClient(object):
         params = {}
         # all the inputs are passed through the query
         if inputs:
-            inputs_file = tempfile.TemporaryFile()
-            json.dump(inputs, inputs_file)
-            inputs_file.seek(0)
-            data_form['inputs'] = ('inputs', inputs_file, 'text/plain')
+            data_form['inputs'] = ('inputs', json.dumps(inputs), 'text/plain')
 
         if application_file_name:
             params['application_file_name'] = urlquote(application_file_name)
