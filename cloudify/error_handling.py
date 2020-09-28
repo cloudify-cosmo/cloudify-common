@@ -48,6 +48,7 @@ def serialize_known_exception(e):
     elif isinstance(e, exceptions.OperationRetry):
         known_exception_type = exceptions.OperationRetry
         known_exception_type_args = [e.retry_after]
+        trace_out = None
     elif isinstance(e, exceptions.RecoverableError):
         known_exception_type = exceptions.RecoverableError
         known_exception_type_args = [e.retry_after]
