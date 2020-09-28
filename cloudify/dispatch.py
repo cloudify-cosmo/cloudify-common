@@ -590,11 +590,7 @@ class WorkflowHandler(TaskHandler):
                         break
                     else:
                         # error occurred in child thread
-                        error = data['error']
-                        raise exceptions.ProcessExecutionError(
-                            error['message'],
-                            error['type'],
-                            error['traceback'])
+                        raise data['error']
                 except queue.Empty:
                     pass
 
@@ -658,14 +654,7 @@ class WorkflowHandler(TaskHandler):
             except api.ExecutionCancelled:
                 queue.put({'result': api.EXECUTION_CANCELLED_RESULT})
             except BaseException as workflow_ex:
-                tb = StringIO()
-                traceback.print_exc(file=tb)
-                err = {
-                    'type': type(workflow_ex).__name__,
-                    'message': str(workflow_ex),
-                    'traceback': tb.getvalue()
-                }
-                queue.put({'error': err})
+                queue.put({'error': workflow_ex})
 
     def _handle_local_workflow(self):
         try:
