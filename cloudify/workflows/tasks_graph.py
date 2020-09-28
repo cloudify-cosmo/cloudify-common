@@ -20,6 +20,7 @@ from functools import wraps
 
 import networkx as nx
 
+from cloudify.exceptions import WorkflowFailed
 from cloudify.workflows import api
 from cloudify.workflows import tasks
 from cloudify.state import workflow_ctx
@@ -340,11 +341,11 @@ class TaskDependencyGraph(object):
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
-            message = "Workflow failed: Task failed '{0}'".format(task.name)
+            message = "Task failed '{0}'".format(task.name)
             if task.error:
                 message = '{0} -> {1}'.format(message, task.error)
             if self._error is None:
-                self._error = RuntimeError(message)
+                self._error = WorkflowFailed(message)
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
             if self.id is not None:

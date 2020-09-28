@@ -179,3 +179,10 @@ class StopAgent(Exception):
     def __init__(self, *args, **kwargs):
         self.causes = kwargs.pop('causes', []) or []
         super(StopAgent, self).__init__(*args, **kwargs)
+
+
+class WorkflowFailed(RuntimeError):
+    """A workflow has failed."""
+    def __init__(self, *args, **kwargs):
+        self.causes = kwargs.pop('causes', []) or []
+        super(WorkflowFailed, self).__init__(*args, **kwargs)

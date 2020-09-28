@@ -638,8 +638,8 @@ class WorkflowHandler(TaskHandler):
             else:
                 self._workflow_succeeded()
             return result
-        except exceptions.ProcessExecutionError as e:
-            self._workflow_failed(e, e.traceback)
+        except exceptions.WorkflowFailed as e:
+            self._workflow_failed(e)
             raise
         except BaseException as e:
             self._workflow_failed(e, traceback.format_exc())
@@ -712,12 +712,12 @@ class WorkflowHandler(TaskHandler):
             additional_context=self._get_hook_params()
         )
 
-    def _workflow_failed(self, exception, error_traceback):
+    def _workflow_failed(self, exception, error_traceback=None):
         try:
             self.ctx.internal.send_workflow_event(
                 event_type='workflow_failed',
                 message="'{0}' workflow execution failed: {1}".format(
-                    self.ctx.workflow_id, str(exception)),
+                    self.ctx.workflow_id, exception),
                 args={'error': error_traceback},
                 additional_context=self._get_hook_params()
             )
