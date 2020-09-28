@@ -35,11 +35,7 @@ def serialize_known_exception(e):
     # Convert exception to a know exception type that can be deserialized
     # by the calling process
     known_exception_type_args = []
-    if isinstance(e, exceptions.ProcessExecutionError):
-        known_exception_type = exceptions.ProcessExecutionError
-        known_exception_type_args = [e.error_type, e.traceback]
-        trace_out = e.traceback
-    elif isinstance(e, exceptions.HttpException):
+    if isinstance(e, exceptions.HttpException):
         known_exception_type = exceptions.HttpException
         known_exception_type_args = [e.url, e.code]
         append_message = True

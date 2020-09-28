@@ -99,8 +99,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
             (exceptions.RecoverableError, ('message', 'retry_after')),
             (exceptions.OperationRetry, ('message', 'retry_after')),
             (exceptions.HttpException, ('url', 'code', 'message')),
-            (exceptions.ProcessExecutionError, ('message', 'error_type',
-                                                'traceback')),
             ((UserException, exceptions.RecoverableError), ('message',)),
             ((RecoverableUserException, exceptions.RecoverableError),
              ('message', 'retry_after')),
