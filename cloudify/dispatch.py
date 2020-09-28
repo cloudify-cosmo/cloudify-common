@@ -293,7 +293,7 @@ class TaskHandler(object):
                 error.causes.append({
                     'message': e['message'],
                     'type': e['exception_type'],
-                    'traceback': e['traceback']
+                    'traceback': e.get('traceback')
                 })
                 raise error
             else:
@@ -812,7 +812,7 @@ def main():
         logger.error('Task {0}[{1}] raised:\n{2}'.format(
             handler.cloudify_context['task_name'],
             handler.cloudify_context.get('task_id', '<no-id>'),
-            payload['traceback']))
+            payload.get('traceback')))
 
     with open(os.path.join(dispatch_dir, 'output.json'), 'w') as f:
         json.dump({

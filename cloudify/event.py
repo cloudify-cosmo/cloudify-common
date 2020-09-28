@@ -88,9 +88,13 @@ class Event(object):
                 for cause in causes:
                     if multiple_causes:
                         causes_out.write('{0}\n'.format('-' * 32))
-                    causes_out.write(cause.get('traceback', ''))
+                    tb = cause.get('traceback')
+                    if tb:
+                        causes_out.write(tb)
 
-                message = u'{0}\n{1}'.format(message, causes_out.getvalue())
+                causes = causes_out.getvalue()
+                if causes:
+                    message = u'{0}\n{1}'.format(message, causes)
         return message
 
     @property
