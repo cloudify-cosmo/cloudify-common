@@ -24,7 +24,7 @@ import unittest
 import pytest
 import requests
 import testtools
-from mock import patch, MagicMock, Mock
+from mock import patch, Mock
 
 from cloudify_rest_client.exceptions import CloudifyClientError
 
@@ -77,7 +77,7 @@ class CloudifyContextTest(testtools.TestCase):
         stdout_log_handler.setLevel(logging.DEBUG)
         logger.handlers = [stdout_log_handler]
 
-    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
+    @mock.patch('cloudify.manager.get_rest_client')
     def test_get_resource(self, _):
         with patch('requests.get',
                    return_value=Mock(ok=True, content=b'Hello from test')):
@@ -85,7 +85,7 @@ class CloudifyContextTest(testtools.TestCase):
                 resource_path='for_test_bp_resource.txt')
         self.assertEquals(resource, b'Hello from test')
 
-    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
+    @mock.patch('cloudify.manager.get_rest_client')
     def test_download_resource(self, _):
         with patch('requests.get',
                    return_value=Mock(ok=True, content=b'')) as mock_get:
@@ -108,7 +108,7 @@ class CloudifyContextTest(testtools.TestCase):
         self.assertIsNotNone(resource_path)
         self.assertTrue(os.path.exists(resource_path))
 
-    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
+    @mock.patch('cloudify.manager.get_rest_client')
     def test_download_blueprint_from_tenant(self, _):
         self.setup_tenant_context()
         with patch('requests.get',
@@ -131,7 +131,7 @@ class CloudifyContextTest(testtools.TestCase):
         self.assertIsNotNone(resource_path)
         self.assertTrue(os.path.exists(resource_path))
 
-    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
+    @mock.patch('cloudify.manager.get_rest_client')
     def test_download_resource_to_specific_file(self, _):
         target_path = "{0}/for_test_custom.log".format(create_temp_folder())
         with patch('requests.get', return_value=Mock(ok=True, content=b'')):
@@ -141,13 +141,13 @@ class CloudifyContextTest(testtools.TestCase):
         self.assertEqual(target_path, resource_path)
         self.assertTrue(os.path.exists(resource_path))
 
-    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
+    @mock.patch('cloudify.manager.get_rest_client')
     def test_get_non_existing_resource(self, _):
         self.assertRaises(exceptions.NonRecoverableError,
                           self.context.get_resource,
                           'non_existing.log')
 
-    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
+    @mock.patch('cloudify.manager.get_rest_client')
     def test_download_resource_tried_urls(self, _):
         # check that download_resource tries the urls:
         # - http://...//resources/deployments/default_tenant/dep/file.txt
@@ -186,7 +186,7 @@ class CloudifyContextTest(testtools.TestCase):
             '{0}/resources/{1}'.format(base_url, filename)
         ])
 
-    @mock.patch('cloudify.manager.get_rest_client', return_value=MagicMock())
+    @mock.patch('cloudify.manager.get_rest_client')
     def test_get_from_multiple_managers(self, _):
         # get_resource tries all the managers in a cluster
         with mock.patch(
