@@ -124,7 +124,11 @@ class TestDispatchTaskHandler(testtools.TestCase):
             self.assertIn('message', cause['message'])
             self.assertEqual(raised_exception_type.__name__,
                              cause['type'])
-            self.assertIsNotNone(cause.get('traceback'))
+
+            if raised_exception_type is not exceptions.OperationRetry:
+                # retries have no tracebacks
+                self.assertIsNotNone(cause.get('traceback'))
+
             for arg in args:
                 if arg == 'message':
                     self.assertIn('message', str(e))
