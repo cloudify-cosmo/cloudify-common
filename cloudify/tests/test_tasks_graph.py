@@ -20,6 +20,7 @@ from contextlib import contextmanager
 
 from cloudify_rest_client.operations import Operation
 
+from cloudify.exceptions import WorkflowFailed
 from cloudify.workflows import api
 from cloudify.workflows import tasks
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
@@ -93,7 +94,7 @@ class TestTasksGraphExecute(testtools.TestCase):
         seq.add(task1, task2)
 
         with limited_sleep_mock():
-            self.assertRaisesRegex(RuntimeError, 'Workflow failed', g.execute)
+            self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
         self.assertTrue(task1.is_terminated)
         self.assertFalse(task2.apply_async.called)
 
@@ -128,7 +129,7 @@ class TestTasksGraphExecute(testtools.TestCase):
         seq.add(task1, task2)
         with limited_sleep_mock():
             start_time = time.time()
-            self.assertRaisesRegex(RuntimeError, 'Workflow failed', g.execute)
+            self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
 
         # even though the workflow failed 1 second in, the other task was
         # still waited for and completed
