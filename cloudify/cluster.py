@@ -31,7 +31,8 @@ class ClusterHTTPClient(HTTPClient):
         # from outside, we get self.host passed in as a list (optionally).
         # But we still need self.host to be the currently-used manager,
         # and we can store the list as self.hosts
-        hosts = self.host if isinstance(self.host, list) else [self.host]
+        # (copy the list so that outside mutations don't affect us)
+        hosts = list(self.host) if isinstance(self.host, list) else [self.host]
         random.shuffle(hosts)
         self.hosts = itertools.cycle(hosts)
         self.host = hosts[0]
