@@ -31,14 +31,10 @@ def build_docs(String project){
 }
 def upload_docs(String project){
   echo "upload docs to S3 for ${project}"
-  uploadToReleaseS3(
-    "${env.WORKSPACE}/project-docs/docs/${project}", 
-    "${env.VERSION}", 
-    "${env.PRERELEASE}", 
-    "${env.UPLOAD_FOLDER}", 
-    BRANCH_BUILD_NUMBER, 
-    "${env.BUILD_NUMBER}"
-  )
+  uploadToDocsS3(
+    "${project}/_build/html", 
+    "${project}"
+  )  
 }
 @Library('pipeline-shared-library') _
 pipeline {
