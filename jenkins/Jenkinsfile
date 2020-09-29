@@ -190,19 +190,19 @@ pipeline {
             sh "pip install sphinx sphinx-rtd-theme"
             echo 'Install cloudify-common'
             sh "pip install ."
-            build_docs('cloudify_plugins_common')
-            build_docs('cloudify_rest_client')
-            build_docs('cloudify_script_plugin')
-            build_docs('cloudify_dsl_parser')
+            build_docs('cloudify-plugins-common')
+            build_docs('cloudify-rest-client')
+            build_docs('cloudify-script-plugin')
+            build_docs('cloudify-dsl-parser')
           }
         }
       }
       post {
         success {
-          upload_docs('cloudify_plugins_common')
-          upload_docs('cloudify_rest_client')
-          upload_docs('cloudify_script_plugin')
-          upload_docs('cloudify_dsl_parser')
+          upload_docs('cloudify-plugins-common')
+          upload_docs('cloudify-rest-client')
+          upload_docs('cloudify-script-plugin')
+          upload_docs('cloudify-dsl-parser')
         }
       }
     }
