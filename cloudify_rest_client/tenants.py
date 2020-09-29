@@ -154,8 +154,7 @@ class TenantsClient(object):
 
     def remove_user(self, username, tenant_name):
         data = {'username': username, 'tenant_name': tenant_name}
-        response = self.api.delete('/tenants/users', data=data)
-        return Tenant(response)
+        self.api.delete('/tenants/users', data=data)
 
     def add_user_group(self, group_name, tenant_name, role):
         """Add user group to a tenant.
@@ -202,8 +201,7 @@ class TenantsClient(object):
 
         """
         data = {'group_name': group_name, 'tenant_name': tenant_name}
-        response = self.api.delete('/tenants/user-groups', data=data)
-        return Tenant(response)
+        self.api.delete('/tenants/user-groups', data=data)
 
     def get(self, tenant_name, **kwargs):
         response = self.api.get(
@@ -213,5 +211,4 @@ class TenantsClient(object):
         return Tenant(response)
 
     def delete(self, tenant_name):
-        response = self.api.delete('/tenants/{0}'.format(tenant_name))
-        return Tenant(response)
+        self.api.delete('/tenants/{0}'.format(tenant_name))

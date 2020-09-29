@@ -245,9 +245,7 @@ class PluginsClient(object):
         data = {
             'force': force
         }
-        response = self.api.delete('/plugins/{0}'.format(plugin_id),
-                                   data=data)
-        return Plugin(response)
+        self.api.delete('/plugins/{0}'.format(plugin_id), data=data)
 
     def upload(self,
                plugin_path,

@@ -187,8 +187,7 @@ class SecretsClient(object):
                             response['metadata'])
 
     def delete(self, key):
-        response = self.api.delete('/secrets/{0}'.format(key))
-        return Secret(response)
+        self.api.delete('/secrets/{0}'.format(key))
 
     def set_global(self, key):
         """

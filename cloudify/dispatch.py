@@ -67,6 +67,7 @@ DISPATCH_LOGGER_FORMATTER = logging.Formatter(
     '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
 PREINSTALLED_PLUGINS = [
     'agent',
+    'diamond',  # Stub for back compat
     'script',
     'cfy_extensions',
     'default_workflows',

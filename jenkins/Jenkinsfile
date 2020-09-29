@@ -31,6 +31,7 @@ def build_docs(String project){
 }
 def upload_docs(String project){
   echo "upload docs to S3 for ${project}"
+<<<<<<< HEAD
   uploadToReleaseS3(
     "${env.WORKSPACE}/project-docs/docs/${project}", 
     "${env.VERSION}", 
@@ -39,6 +40,12 @@ def upload_docs(String project){
     BRANCH_BUILD_NUMBER, 
     "${env.BUILD_NUMBER}"
   )
+=======
+  uploadToDocsS3(
+    "${project}/_build/html", 
+    "${project}/"
+  )  
+>>>>>>> CY-3542-fix-upload-path
 }
 @Library('pipeline-shared-library') _
 pipeline {
@@ -60,8 +67,12 @@ pipeline {
     PRERELEASE = getPreRelease("master").trim()
     WORKSPACE = "${env.WORKSPACE}"
     PROJECT = "cloudify-common"
+<<<<<<< HEAD
     UPLOAD_FOLDER = 'cloudify-common'
     PATH= "/root/.local/bin:$PATH"
+=======
+    PATH = "/root/.local/bin:$PATH"
+>>>>>>> CY-3542-fix-upload-path
   }
   stages{
     stage ('compatability and flake8') {
@@ -187,9 +198,12 @@ pipeline {
     }
     stage('build_and_upload_all_project_docs'){
       when { branch pattern: ".+-build", comparator: "REGEXP"}
+<<<<<<< HEAD
       environment {
         BRANCH_BUILD_NUMBER = "${env.BRANCH_NAME.split('-')[0]}"
       }
+=======
+>>>>>>> CY-3542-fix-upload-path
       steps{
         sh script: "mkdir -p ${env.WORKSPACE}/project-docs && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/project-docs", label: "copying repo to seperate workspace"
         container('py27'){

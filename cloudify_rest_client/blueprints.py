@@ -348,10 +348,9 @@ class BlueprintsClient(object):
         """
         assert blueprint_id
 
-        response = self.api.delete(
+        self.api.delete(
             '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id),
             params={'force': force})
-        return self._wrapper_cls(response)
 
     def download(self, blueprint_id, output_file=None, progress_callback=None):
         """

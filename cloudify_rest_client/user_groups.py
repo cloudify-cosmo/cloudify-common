@@ -103,8 +103,7 @@ class UserGroupsClient(object):
         return Group(response)
 
     def delete(self, group_name):
-        response = self.api.delete('/user-groups/{0}'.format(group_name))
-        return Group(response)
+        self.api.delete('/user-groups/{0}'.format(group_name))
 
     def set_role(self, group_name, new_role):
         data = {'role': new_role}
@@ -119,5 +118,4 @@ class UserGroupsClient(object):
 
     def remove_user(self, username, group_name):
         data = {'username': username, 'group_name': group_name}
-        response = self.api.delete('/user-groups/users', data=data)
-        return Group(response)
+        self.api.delete('/user-groups/users', data=data)

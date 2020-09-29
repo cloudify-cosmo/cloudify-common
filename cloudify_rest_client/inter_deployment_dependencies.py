@@ -118,9 +118,7 @@ class InterDeploymentDependencyClient(object):
                                             external_source,
                                             external_target)
         data['is_component_deletion'] = is_component_deletion
-        response = self.api.delete(
-            '/{self._uri_prefix}'.format(self=self), data=data)
-        return self._wrapper_cls(response)
+        self.api.delete('/{self._uri_prefix}'.format(self=self), data=data)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """

@@ -338,5 +338,6 @@ class ExecutionsClient(object):
             data['keep_last'] = keep_last
         response = self.api.delete('/{self._uri_prefix}'.format(self=self),
                                    data=data,
-                                   params=kwargs)
+                                   params=kwargs,
+                                   expected_status_code=200)
         return response['items'][0]['count']
