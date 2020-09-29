@@ -32,7 +32,7 @@ def build_docs(String project){
 def upload_docs(String project){
   echo "upload docs to S3 for ${project}"
   uploadToDocsS3(
-    "${project}/_build/html", 
+    "${env.WORKSPACE}/project-docs/docs/${project}/_build/html", 
     "${project}/"
   )  
 }
