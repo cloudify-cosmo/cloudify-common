@@ -33,7 +33,7 @@ def upload_docs(String project){
   echo "upload docs to S3 for ${project}"
   uploadToDocsS3(
     "${project}/_build/html", 
-    "${project}"
+    "${project}/"
   )  
 }
 @Library('pipeline-shared-library') _
@@ -56,8 +56,7 @@ pipeline {
     PRERELEASE = getPreRelease("master").trim()
     WORKSPACE = "${env.WORKSPACE}"
     PROJECT = "cloudify-common"
-    UPLOAD_FOLDER = 'cloudify-common'
-    PATH= "/root/.local/bin:$PATH"
+    PATH = "/root/.local/bin:$PATH"
   }
   stages{
     stage ('compatability and flake8') {
@@ -183,9 +182,6 @@ pipeline {
     }
     stage('build_and_upload_all_project_docs'){
       when { branch pattern: ".+-build", comparator: "REGEXP"}
-      environment {
-        BRANCH_BUILD_NUMBER = "${env.BRANCH_NAME.split('-')[0]}"
-      }
       steps{
         sh script: "mkdir -p ${env.WORKSPACE}/project-docs && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/project-docs", label: "copying repo to seperate workspace"
         container('py27'){
