@@ -117,6 +117,10 @@ def _process_functions(plan, runtime_only_evaluation=False):
         plan, handler, replace=True, search_secrets=True)
 
 
+def _set_plan_plugins(plan, plugins=None):
+    plugins = plugins or {}
+
+
 def _validate_secrets(plan, get_secret_method):
     if 'secrets' not in plan:
         return
@@ -147,7 +151,8 @@ def _validate_secrets(plan, get_secret_method):
 
 
 def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
-                            runtime_only_evaluation=False, **_):
+                            runtime_only_evaluation=False,
+                            plugins=None, **_):
     """
     Prepare a plan for deployment
     """
@@ -155,4 +160,5 @@ def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
     _set_plan_inputs(plan, inputs)
     _process_functions(plan, runtime_only_evaluation)
     _validate_secrets(plan, get_secret_method)
+    _set_plan_plugins(plan, plugins)
     return multi_instance.create_deployment_plan(plan)
