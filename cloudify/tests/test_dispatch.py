@@ -99,8 +99,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
             (exceptions.RecoverableError, ('message', 'retry_after')),
             (exceptions.OperationRetry, ('message', 'retry_after')),
             (exceptions.HttpException, ('url', 'code', 'message')),
-            (exceptions.ProcessExecutionError, ('message', 'error_type',
-                                                'traceback')),
             ((UserException, exceptions.RecoverableError), ('message',)),
             ((RecoverableUserException, exceptions.RecoverableError),
              ('message', 'retry_after')),
@@ -124,7 +122,11 @@ class TestDispatchTaskHandler(testtools.TestCase):
             self.assertIn('message', cause['message'])
             self.assertEqual(raised_exception_type.__name__,
                              cause['type'])
-            self.assertIsNotNone(cause.get('traceback'))
+
+            if raised_exception_type is not exceptions.OperationRetry:
+                # retries have no tracebacks
+                self.assertIsNotNone(cause.get('traceback'))
+
             for arg in args:
                 if arg == 'message':
                     self.assertIn('message', str(e))

@@ -15,9 +15,10 @@
 
 import json
 import logging
+import numbers
 
 import requests
-from base64 import urlsafe_b64encode
+from base64 import b64encode
 from requests.packages import urllib3
 
 from cloudify import constants
@@ -165,6 +166,19 @@ class HTTPClient(object):
 
     def _do_request(self, requests_method, request_url, body, params, headers,
                     expected_status_code, stream, verify, timeout):
+        """Run a requests method.
+
+        :param request_method: string choosing the method, eg "get" or "post"
+        :param request_url: the URL to run the request against
+        :param body: request body, as a string
+        :param params: querystring parameters, as a dict
+        :param headers: request headers, as a dict
+        :param expected_status_code: check that the response is this
+            status code, can also be an iterable of allowed status codes.
+        :param stream: whether or not to stream the response
+        :param verify: the CA cert path
+        :param timeout: request timeout or a (connect, read) timeouts pair
+        """
         auth = None
         if self.has_kerberos() and not self.has_auth_header():
             if HTTPKerberosAuth is None:
@@ -191,7 +205,9 @@ class HTTPClient(object):
                 self.logger.debug('response header:  %s: %s'
                                   % (hdr, hdr_content))
 
-        if response.status_code != expected_status_code:
+        if isinstance(expected_status_code, numbers.Number):
+            expected_status_code = [expected_status_code]
+        if response.status_code not in expected_status_code:
             self._raise_client_error(response, request_url)
 
         if response.status_code == 204:
@@ -329,7 +345,7 @@ class HTTPClient(object):
                                timeout=timeout)
 
     def delete(self, uri, data=None, params=None, headers=None,
-               expected_status_code=204, stream=False, timeout=None):
+               expected_status_code=(200, 204), stream=False, timeout=None):
         return self.do_request(requests.delete,
                                uri,
                                data=data,
@@ -343,7 +359,7 @@ class HTTPClient(object):
         if not username or not password:
             return None
         credentials = '{0}:{1}'.format(username, password).encode('utf-8')
-        encoded_credentials = urlsafe_b64encode(credentials).decode('utf-8')
+        encoded_credentials = b64encode(credentials).decode('utf-8')
         return BASIC_AUTH_PREFIX + ' ' + encoded_credentials
 
     def _set_header(self, key, value, log_value=True):

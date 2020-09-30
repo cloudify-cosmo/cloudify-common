@@ -108,7 +108,8 @@ class PluginsUpdateClient(object):
 
     def update_plugins(self, blueprint_id, force=False, plugin_names=None,
                        to_latest=None, all_to_latest=True,
-                       to_minor=None, all_to_minor=False):
+                       to_minor=None, all_to_minor=False,
+                       mapping=None):
         """
         Updates the plugins in all the deployments that use the given
         blueprint.
@@ -126,10 +127,19 @@ class PluginsUpdateClient(object):
          the upgraded one will match)
         :param all_to_minor: update all (selected) plugins to the latest
          installed minor version.
+        :param mapping: detailed information on required plugin update
+         (overrides all other arguments/settings concerning version
+         constraints)
         :return: a PluginUpdate object.
         """
         if force:
             warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
+        if mapping and mapping.get('updates'):
+            warnings.warn("The 'mapping file' was used during the update; "
+                          "remember to update your blueprint files",
+                          RuntimeWarning)
+        else:
+            mapping = {}
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
                                                             self=self),
@@ -137,7 +147,8 @@ class PluginsUpdateClient(object):
                                    to_latest=to_latest,
                                    all_to_latest=all_to_latest,
                                    to_minor=to_minor,
-                                   all_to_minor=all_to_minor))
+                                   all_to_minor=all_to_minor,
+                                   mapping=mapping))
         return PluginsUpdate(response)
 
     def finalize_plugins_update(self, plugins_update_id):

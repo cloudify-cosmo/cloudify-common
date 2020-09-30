@@ -19,7 +19,7 @@ import testtools
 
 from cloudify.constants import COMPUTE_NODE_TYPE
 from cloudify.decorators import operation
-from cloudify.exceptions import NonRecoverableError
+from cloudify.exceptions import NonRecoverableError, WorkflowFailed
 from cloudify.test_utils import workflow_test
 
 
@@ -79,8 +79,7 @@ class TestInstallNewAgentsWorkflow(testtools.TestCase):
         'host_b_validation_result': _VALIDATION_FAIL})
     def test_failed_validation(self, cfy_local):
         cfy_local.execute('install')
-        with testtools.ExpectedException(RuntimeError,
-                                         ".*Task failed.*validate_amqp.*"):
+        with self.assertRaisesRegex(WorkflowFailed, 'validate_amqp'):
             cfy_local.execute('install_new_agents')
         self._assert_all_computes_created(cfy_local, created=False)
 

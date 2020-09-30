@@ -293,7 +293,7 @@ class TaskHandler(object):
                 error.causes.append({
                     'message': e['message'],
                     'type': e['exception_type'],
-                    'traceback': e['traceback']
+                    'traceback': e.get('traceback')
                 })
                 raise error
             else:
@@ -590,11 +590,7 @@ class WorkflowHandler(TaskHandler):
                         break
                     else:
                         # error occurred in child thread
-                        error = data['error']
-                        raise exceptions.ProcessExecutionError(
-                            error['message'],
-                            error['type'],
-                            error['traceback'])
+                        raise data['error']
                 except queue.Empty:
                     pass
 
@@ -638,8 +634,8 @@ class WorkflowHandler(TaskHandler):
             else:
                 self._workflow_succeeded()
             return result
-        except exceptions.ProcessExecutionError as e:
-            self._workflow_failed(e, e.traceback)
+        except exceptions.WorkflowFailed as e:
+            self._workflow_failed(e)
             raise
         except BaseException as e:
             self._workflow_failed(e, traceback.format_exc())
@@ -658,14 +654,7 @@ class WorkflowHandler(TaskHandler):
             except api.ExecutionCancelled:
                 queue.put({'result': api.EXECUTION_CANCELLED_RESULT})
             except BaseException as workflow_ex:
-                tb = StringIO()
-                traceback.print_exc(file=tb)
-                err = {
-                    'type': type(workflow_ex).__name__,
-                    'message': str(workflow_ex),
-                    'traceback': tb.getvalue()
-                }
-                queue.put({'error': err})
+                queue.put({'error': workflow_ex})
 
     def _handle_local_workflow(self):
         try:
@@ -712,12 +701,12 @@ class WorkflowHandler(TaskHandler):
             additional_context=self._get_hook_params()
         )
 
-    def _workflow_failed(self, exception, error_traceback):
+    def _workflow_failed(self, exception, error_traceback=None):
         try:
             self.ctx.internal.send_workflow_event(
                 event_type='workflow_failed',
                 message="'{0}' workflow execution failed: {1}".format(
-                    self.ctx.workflow_id, str(exception)),
+                    self.ctx.workflow_id, exception),
                 args={'error': error_traceback},
                 additional_context=self._get_hook_params()
             )
@@ -812,7 +801,7 @@ def main():
         logger.error('Task {0}[{1}] raised:\n{2}'.format(
             handler.cloudify_context['task_name'],
             handler.cloudify_context.get('task_id', '<no-id>'),
-            payload['traceback']))
+            payload.get('traceback')))
 
     with open(os.path.join(dispatch_dir, 'output.json'), 'w') as f:
         json.dump({
