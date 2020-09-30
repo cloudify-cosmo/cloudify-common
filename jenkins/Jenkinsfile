@@ -1,11 +1,9 @@
 def install_test_dependencies(String cache_prefix) {
-  /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
   sh '''#!/bin/bash
   pip install -r dev-requirements.txt --user
   pip install -r test-requirements.txt --user
   pip install -e '.[dispatcher]' --user
   '''
-  /* save cache with relevant paths and key */
 }
 def pytest(String target){
   echo "running pytest << ${target} >>"
