@@ -1,11 +1,9 @@
 def install_test_dependencies(String cache_prefix) {
-  /* restore cache with key: << parameters.cache_prefix >>-dependencies-{{ checksum "dev-requirements.txt" }}-{{ checksum "test-requirements.txt" }}-{{ checksum "setup.py" }} */
   sh '''#!/bin/bash
   pip install -r dev-requirements.txt --user
   pip install -r test-requirements.txt --user
   pip install -e '.[dispatcher]' --user
   '''
-  /* save cache with relevant paths and key */
 }
 def pytest(String target){
   echo "running pytest << ${target} >>"
@@ -29,16 +27,12 @@ def build_docs(String project){
     docs/${project}/_build/html
   """
 }
-def upload_docs(String project){
+def upload_docs(String project, String path){
   echo "upload docs to S3 for ${project}"
-  uploadToReleaseS3(
-    "${env.WORKSPACE}/project-docs/docs/${project}", 
-    "${env.VERSION}", 
-    "${env.PRERELEASE}", 
-    "${env.UPLOAD_FOLDER}", 
-    BRANCH_BUILD_NUMBER, 
-    "${env.BUILD_NUMBER}"
-  )
+  uploadToDocsS3(
+    "${env.WORKSPACE}/project-docs/docs/${project}/_build/html", 
+    "${path}/"
+  )  
 }
 @Library('pipeline-shared-library') _
 pipeline {
@@ -60,8 +54,7 @@ pipeline {
     PRERELEASE = getPreRelease("master").trim()
     WORKSPACE = "${env.WORKSPACE}"
     PROJECT = "cloudify-common"
-    UPLOAD_FOLDER = 'cloudify-common'
-    PATH= "/root/.local/bin:$PATH"
+    PATH = "/root/.local/bin:$PATH"
   }
   stages{
     stage ('compatability and flake8') {
@@ -187,9 +180,6 @@ pipeline {
     }
     stage('build_and_upload_all_project_docs'){
       when { branch pattern: ".+-build", comparator: "REGEXP"}
-      environment {
-        BRANCH_BUILD_NUMBER = "${env.BRANCH_NAME.split('-')[0]}"
-      }
       steps{
         sh script: "mkdir -p ${env.WORKSPACE}/project-docs && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/project-docs", label: "copying repo to seperate workspace"
         container('py27'){
@@ -207,10 +197,10 @@ pipeline {
       }
       post {
         success {
-          upload_docs('cloudify_plugins_common')
-          upload_docs('cloudify_rest_client')
-          upload_docs('cloudify_script_plugin')
-          upload_docs('cloudify_dsl_parser')
+          upload_docs('cloudify_plugins_common', 'cloudify-plugins-common')
+          upload_docs('cloudify_rest_client', 'cloudify-rest-client')
+          upload_docs('cloudify_script_plugin', 'cloudify-script-plugin')
+          upload_docs('cloudify_dsl_parser', 'cloudify-dsl-parser')
         }
       }
     }
