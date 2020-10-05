@@ -16,6 +16,7 @@
 
 
 from cloudify import utils, broker_config
+from cloudify.state import ctx
 from cloudify.manager import get_rest_client
 from cloudify.models_states import AgentState
 from cloudify.rabbitmq_client import RabbitMQClient, USERNAME_PATTERN
@@ -75,7 +76,7 @@ def _initialize_rabbitmq_user(cloudify_agent):
 
 
 def _get_rabbitmq_client():
-    return RabbitMQClient(broker_config.broker_management_hostname,
+    return RabbitMQClient([b.management_host for b in ctx.get_brokers()],
                           broker_config.broker_username,
                           broker_config.broker_password,
                           verify=broker_config.broker_cert_path)
