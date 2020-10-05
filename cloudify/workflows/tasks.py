@@ -133,6 +133,8 @@ class WorkflowTask(object):
         task.current_retries = params['current_retries']
         task.send_task_events = params['send_task_events']
         task.containing_subgraph = params['containing_subgraph']
+        task.retry_interval = params['retry_interval']
+        task.total_retries = params['total_retries']
         task.stored = True
         return task
 
@@ -154,6 +156,8 @@ class WorkflowTask(object):
                 'retried_task': self.retried_task,
                 'current_retries': self.current_retries,
                 'send_task_events': self.send_task_events,
+                'retry_interval': self.retry_interval,
+                'total_retries': self.total_retries,
                 'info': self.info,
                 'error': self.error,
                 'containing_subgraph': getattr(
