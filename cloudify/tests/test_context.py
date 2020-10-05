@@ -253,57 +253,34 @@ class CloudifyContextTest(testtools.TestCase):
         # - blueprint path
         # - global path
         # ...and if it fails, returns a httpexception
-        with mock.patch(
-            'cloudify.utils.get_manager_file_server_url', return_value=[
-                'http://server1', 'http://server2']):
 
+        cases_to_try = [
             # all calls return 404 - all tried, httpexception is raised
-            with mock.patch('requests.get', side_effect=[
-                mock.Mock(ok=False, status_code=404, reason='Not found'),
-            ] * 6) as mock_get:
-                pytest.raises(
-                    exceptions.HttpException,
-                    get_resource,
-                    'blueprint-id', 'deployment-id', 'tenant-name',
-                    'resource.txt')
-            assert len(mock_get.mock_calls) == 6
+            [mock.Mock(ok=False, status_code=404, reason='Not found')] * 6,
 
             # 5x 404 + connectionerror - still wraps with httpexception
-            with mock.patch('requests.get', side_effect=[
-                mock.Mock(ok=False, status_code=404, reason='Not found'),
-            ] * 5 + [
-                requests.ConnectionError()
-            ]) as mock_get:
-                pytest.raises(
-                    exceptions.HttpException,
-                    get_resource,
-                    'blueprint-id', 'deployment-id', 'tenant-name',
-                    'resource.txt')
-            assert len(mock_get.mock_calls) == 6
+            [mock.Mock(ok=False, status_code=404, reason='Not found')] * 5 + \
+            [requests.ConnectionError()],
 
             # all calls return connectionerror
-            with mock.patch('requests.get', side_effect=[
-                requests.ConnectionError()
-            ] * 6) as mock_get:
-                pytest.raises(
-                    exceptions.HttpException,
-                    get_resource,
-                    'blueprint-id', 'deployment-id', 'tenant-name',
-                    'resource.txt')
-            assert len(mock_get.mock_calls) == 6
+            [requests.ConnectionError()] * 6,
 
             # 5 connectionerror, and then 404 - all paths are tried
-            with mock.patch('requests.get', side_effect=[
-                requests.ConnectionError()
-            ] * 5 + [
-                mock.Mock(ok=False, status_code=404, reason='Not found'),
-            ]) as mock_get:
-                pytest.raises(
-                    exceptions.HttpException,
-                    get_resource,
-                    'blueprint-id', 'deployment-id', 'tenant-name',
-                    'resource.txt')
-            assert len(mock_get.mock_calls) == 6
+            [requests.ConnectionError()] * 5 + \
+            [mock.Mock(ok=False, status_code=404, reason='Not found')]
+        ]
+        for case in cases_to_try:
+            with mock.patch(
+                'cloudify.utils.get_manager_file_server_url', return_value=[
+                    'http://server1', 'http://server2']):
+
+                with mock.patch('requests.get', side_effect=case) as mock_get:
+                    pytest.raises(
+                        exceptions.HttpException,
+                        get_resource,
+                        'blueprint-id', 'deployment-id', 'tenant-name',
+                        'resource.txt')
+                assert len(mock_get.mock_calls) == 6
 
     def test_ctx_instance_in_relationship(self):
         ctx = context.CloudifyContext({
