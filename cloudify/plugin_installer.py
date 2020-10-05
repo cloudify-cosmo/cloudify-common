@@ -60,7 +60,13 @@ def _manage_plugin_state(pre_state, post_state, allow_missing=False):
     def _set_state(plugin, **kwargs):
         client = get_rest_client()
         if not plugin.get('id'):
-            return
+            # we don't have the full plugin details, try to retrieve them
+            # from the restservice
+            managed_plugin = get_managed_plugin(plugin)
+            if managed_plugin and managed_plugin.get('id'):
+                plugin = managed_plugin
+            else:
+                return
         try:
             agent = get_daemon_name()
             manager = None
