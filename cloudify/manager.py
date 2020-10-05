@@ -356,6 +356,8 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
             blueprint_id, deployment_id, tenant_name, resource_path):
         try:
             return get_resource_from_manager(path)
+        except NonRecoverableError:
+            tried_paths.append(path)
         except HttpException as e:
             if e.code != 404:
                 raise
