@@ -30,7 +30,11 @@ from cloudify_rest_client.exceptions import CloudifyClientError
 
 from cloudify.utils import create_temp_folder
 from cloudify.decorators import operation
-from cloudify.manager import NodeInstance, get_resource_from_manager
+from cloudify.manager import (
+    NodeInstance,
+    get_resource,
+    get_resource_from_manager
+)
 from cloudify.workflows import local
 from cloudify import constants, state, context, exceptions, conflict_handlers
 
@@ -241,6 +245,42 @@ class CloudifyContextTest(testtools.TestCase):
                     get_resource_from_manager,
                     'resource.txt')
             assert len(mock_get.mock_calls) == 2
+
+    @mock.patch('cloudify.manager.get_rest_client')
+    def test_get_resource_raise_http(self, _):
+        # get_resource tries 3 paths per manager:
+        # - deployment path
+        # - blueprint path
+        # - global path
+        # ...and if it fails, returns a httpexception
+
+        cases_to_try = [
+            # all calls return 404 - all tried, httpexception is raised
+            [mock.Mock(ok=False, status_code=404, reason='Not found')] * 6,
+
+            # 5x 404 + connectionerror - still wraps with httpexception
+            [mock.Mock(ok=False, status_code=404, reason='Not found')] * 5 + \
+            [requests.ConnectionError()],
+
+            # all calls return connectionerror
+            [requests.ConnectionError()] * 6,
+
+            # 5 connectionerror, and then 404 - all paths are tried
+            [requests.ConnectionError()] * 5 + \
+            [mock.Mock(ok=False, status_code=404, reason='Not found')]
+        ]
+        for case in cases_to_try:
+            with mock.patch(
+                'cloudify.utils.get_manager_file_server_url', return_value=[
+                    'http://server1', 'http://server2']):
+
+                with mock.patch('requests.get', side_effect=case) as mock_get:
+                    pytest.raises(
+                        exceptions.HttpException,
+                        get_resource,
+                        'blueprint-id', 'deployment-id', 'tenant-name',
+                        'resource.txt')
+                assert len(mock_get.mock_calls) == 6
 
     def test_ctx_instance_in_relationship(self):
         ctx = context.CloudifyContext({
