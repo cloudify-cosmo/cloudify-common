@@ -11,9 +11,9 @@ def pytest(String target){
   pytest \
     -n auto \
     --cov-report term-missing \
-    --cov= ${target} \
+    --cov=${target} \
     ${target}/tests \
-    --junitxml=test-results/ ${target}
+    --junitxml=test-results/${target}.xml
   """
 }
 def build_docs(String project){
@@ -149,6 +149,11 @@ pipeline {
               }
             }
           }
+          post {
+            always {
+              junit '**/test-results/*.xml'
+            }
+          }
         }
         stage('test_py27'){
           steps{
@@ -162,6 +167,11 @@ pipeline {
               }
             }
           }
+          post {
+            always {
+              junit '**/test-results/*.xml'
+            }
+          }
         }
         stage('test_py36'){
           steps{
@@ -173,6 +183,11 @@ pipeline {
                 pytest('script_runner')
                 pytest('cloudify')
               }
+            }
+          }
+          post {
+            always {
+              junit '**/test-results/*.xml'
             }
           }
         }
