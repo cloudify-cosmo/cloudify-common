@@ -431,8 +431,10 @@ def get_managed_plugin(plugin):
      a_dist_release) = _extract_platform_and_distro_info()
 
     if not supported_platform:
-        plugins = [p for p in plugins
-                   if p.supported_platform in ['any', current_platform]]
+        plugins = [
+            p for p in plugins
+            if _is_platform_compatible(current_platform, p.supported_platform)
+        ]
     if os.name != 'nt':
         if not distribution:
             plugins = [p for p in plugins
@@ -450,6 +452,19 @@ def get_managed_plugin(plugin):
     plugins.sort(key=lambda plugin: parse_version(plugin['package_version']),
                  reverse=True)
     return plugins[0]
+
+
+def _is_platform_compatible(current_platform, plugin_platform):
+    """Can a plugin for plugin_platform be installed on current_platform?
+
+    This compares a plugin's .supported_platform field with the
+    platform we're running on.
+    """
+    if plugin_platform == 'any':
+        return True
+    if plugin_platform.startswith('manylinux') and os.name == 'posix':
+        return True
+    return current_platform == plugin_platform
 
 
 def _extract_platform_and_distro_info():
