@@ -290,7 +290,7 @@ workflows:
             - build_all_project_docs
           filters:
             branches:
-              only: 5.0.5-build
+              only: 5.1.0-build
 
   build_and_test:
     jobs:

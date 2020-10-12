@@ -24,6 +24,7 @@ import platform
 import threading
 
 from os import walk
+from functools import wraps
 from contextlib import contextmanager
 
 import wagon
@@ -31,24 +32,75 @@ import fasteners
 
 from cloudify import ctx
 from cloudify.manager import get_rest_client
-from cloudify.utils import extract_archive, get_python_path
-from cloudify.utils import LocalCommandRunner, target_plugin_prefix
+from cloudify.utils import (
+    LocalCommandRunner, target_plugin_prefix, extract_archive,
+    get_python_path, get_manager_name, get_daemon_name
+)
 from cloudify._compat import reraise, urljoin, pathname2url, parse_version
 from cloudify.exceptions import (
     NonRecoverableError,
     CommandExecutionException,
     PluginInstallationError
 )
+from cloudify.models_states import PluginInstallationState
+from cloudify_rest_client.exceptions import CloudifyClientError
 
 PLUGIN_INSTALL_LOCK = threading.Lock()
 runner = LocalCommandRunner()
 
 
-def install(plugin,
-            deployment_id=None,
-            blueprint_id=None):
+def _manage_plugin_state(pre_state, post_state, allow_missing=False):
+    """Update plugin state when doing a plugin operation.
+
+    Decorate a function that takes a plugin as the first argument with this,
+    and the plugin's state will be updated to pre_state before running
+    the function, and to post_state after. If the function throws, then
+    to the ERROR state.
     """
-    Install the plugin to the current virtualenv.
+    def _set_state(plugin, **kwargs):
+        client = get_rest_client()
+        if not plugin.get('id'):
+            # we don't have the full plugin details, try to retrieve them
+            # from the restservice
+            managed_plugin = get_managed_plugin(plugin)
+            if managed_plugin and managed_plugin.get('id'):
+                plugin = managed_plugin
+            else:
+                return
+        try:
+            agent = get_daemon_name()
+            manager = None
+        except KeyError:
+            agent = None
+            manager = get_manager_name()
+
+        try:
+            client.plugins.set_state(
+                plugin['id'], agent_name=agent, manager_name=manager, **kwargs
+            )
+        except CloudifyClientError as e:
+            if e.status_code != 404 or not allow_missing:
+                raise
+
+    def _decorator(f):
+        @wraps(f)
+        def _inner(plugin, *args, **kwargs):
+            _set_state(plugin, state=pre_state)
+            try:
+                rv = f(plugin, *args, **kwargs)
+            except Exception as e:
+                _set_state(plugin, state=PluginInstallationState.ERROR,
+                           error=str(e))
+                raise
+            else:
+                _set_state(plugin, state=post_state)
+                return rv
+        return _inner
+    return _decorator
+
+
+def install(plugin, deployment_id=None, blueprint_id=None):
+    """Install the plugin to the current virtualenv.
 
     :param plugin: A plugin structure as defined in the blueprint.
     :param deployment_id: The deployment id associated with this
@@ -61,9 +113,7 @@ def install(plugin,
     managed_plugin = get_managed_plugin(plugin)
     args = get_plugin_args(plugin)
     if managed_plugin:
-        _install_managed_plugin(
-            managed_plugin=managed_plugin,
-            args=args)
+        _install_managed_plugin(managed_plugin, args=args)
         return
 
     source = get_plugin_source(plugin, blueprint_id)
@@ -132,33 +182,35 @@ def _get_plugin_description(managed_plugin):
         for field in fields if managed_plugin.get(field))
 
 
-def _install_managed_plugin(managed_plugin, args):
+@_manage_plugin_state(pre_state=PluginInstallationState.INSTALLING,
+                      post_state=PluginInstallationState.INSTALLED)
+def _install_managed_plugin(plugin, args):
     dst_dir = target_plugin_prefix(
-        name=managed_plugin.package_name,
+        name=plugin.package_name,
         tenant_name=ctx.tenant_name,
-        version=managed_plugin.package_version
+        version=plugin.package_version
     )
     with _lock(dst_dir):
-        if is_already_installed(dst_dir, managed_plugin.id):
+        if is_already_installed(dst_dir, plugin.id):
             ctx.logger.info(
                 'Using existing installation of managed plugin: %s [%s]',
-                managed_plugin.id, _get_plugin_description(managed_plugin))
+                plugin.id, _get_plugin_description(plugin))
             return
 
         ctx.logger.info(
             'Installing managed plugin: %s [%s]',
-            managed_plugin.id, _get_plugin_description(managed_plugin))
+            plugin.id, _get_plugin_description(plugin))
         _make_virtualenv(dst_dir)
         try:
-            _wagon_install(plugin=managed_plugin, venv=dst_dir, args=args)
+            _wagon_install(plugin, venv=dst_dir, args=args)
             with open(os.path.join(dst_dir, 'plugin.id'), 'w') as f:
-                f.write(managed_plugin.id)
+                f.write(plugin.id)
         except Exception as e:
             shutil.rmtree(dst_dir, ignore_errors=True)
             tpe, value, tb = sys.exc_info()
             exc = NonRecoverableError(
                 'Failed installing managed plugin: {0} [{1}][{2}]'
-                .format(managed_plugin.id, managed_plugin, e))
+                .format(plugin.id, plugin, e))
             reraise(NonRecoverableError, exc, tb)
 
 
@@ -233,6 +285,9 @@ def _pip_install(source, venv, args):
             shutil.rmtree(plugin_dir, ignore_errors=True)
 
 
+@_manage_plugin_state(pre_state=PluginInstallationState.UNINSTALLING,
+                      post_state=PluginInstallationState.UNINSTALLED,
+                      allow_missing=True)
 def uninstall(plugin, deployment_id=None):
     name = plugin.get('package_name') or plugin['name']
     dst_dir = target_plugin_prefix(

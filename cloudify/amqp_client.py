@@ -352,6 +352,7 @@ class AMQPConnection(object):
 # return this result from .handle_task to not send a response.
 # If a response is not sent, the reply queue will also be deleted
 NO_RESPONSE = object()
+STOP_AGENT = object()
 
 
 class TaskConsumer(object):
@@ -413,14 +414,20 @@ class TaskConsumer(object):
             if result is NO_RESPONSE:
                 self.delete_queue(properties.reply_to)
             else:
+                if result is STOP_AGENT:
+                    body = json.dumps({'ok': True})
+                else:
+                    body = json.dumps(result)
                 self._connection.publish({
                     'exchange': self.exchange,
                     'routing_key': properties.reply_to,
                     'properties': pika.BasicProperties(
                         correlation_id=properties.correlation_id),
-                    'body': json.dumps(result)
+                    'body': body
                 })
-
+        if result is STOP_AGENT:
+            # the operation asked us to exit, so drop everything and exit
+            os._exit(0)
         if not self._maybe_run_next_task():
             self._sem.release()
 

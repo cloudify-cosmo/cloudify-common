@@ -35,11 +35,7 @@ def serialize_known_exception(e):
     # Convert exception to a know exception type that can be deserialized
     # by the calling process
     known_exception_type_args = []
-    if isinstance(e, exceptions.ProcessExecutionError):
-        known_exception_type = exceptions.ProcessExecutionError
-        known_exception_type_args = [e.error_type, e.traceback]
-        trace_out = e.traceback
-    elif isinstance(e, exceptions.HttpException):
+    if isinstance(e, exceptions.HttpException):
         known_exception_type = exceptions.HttpException
         known_exception_type_args = [e.url, e.code]
         append_message = True
@@ -48,9 +44,15 @@ def serialize_known_exception(e):
     elif isinstance(e, exceptions.OperationRetry):
         known_exception_type = exceptions.OperationRetry
         known_exception_type_args = [e.retry_after]
+        trace_out = None
     elif isinstance(e, exceptions.RecoverableError):
         known_exception_type = exceptions.RecoverableError
         known_exception_type_args = [e.retry_after]
+    elif isinstance(e, exceptions.StopAgent):
+        known_exception_type = exceptions.StopAgent
+    elif isinstance(e, exceptions.WorkflowFailed):
+        known_exception_type = exceptions.WorkflowFailed
+        trace_out = None
     else:
         # convert pure user exceptions to a RecoverableError
         known_exception_type = exceptions.RecoverableError
@@ -61,7 +63,6 @@ def serialize_known_exception(e):
         causes = []
 
     payload = {
-        'traceback': trace_out,
         'exception_type': type(e).__name__,
         'message': format_exception(e),
         'known_exception_type': known_exception_type.__name__,
@@ -69,6 +70,8 @@ def serialize_known_exception(e):
         'known_exception_type_kwargs': {'causes': causes or []},
         'append_message': append_message,
     }
+    if trace_out:
+        payload['traceback'] = trace_out
     return payload
 
 
