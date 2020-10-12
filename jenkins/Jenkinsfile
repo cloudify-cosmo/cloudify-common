@@ -11,9 +11,9 @@ def pytest(String target){
   pytest \
     -n auto \
     --cov-report term-missing \
-    --cov= ${target} \
+    --cov=${target} \
     ${target}/tests \
-    --junitxml=test-results/ ${target}
+    --junitxml=test-results/${target}.xml
   """
 }
 def build_docs(String project){
