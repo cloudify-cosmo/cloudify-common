@@ -68,7 +68,7 @@ setup(
         # for running workflows (in the mgmtworker and the cli), as opposed
         # to eg. just executing operations (in the agent)
         'dispatcher': [
-            'PyYAML==3.12',
+            'PyYAML==4.2b4',
             'networkx==1.9.1',
         ],
         'snmp': [
