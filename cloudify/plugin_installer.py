@@ -126,7 +126,7 @@ def install(plugin, deployment_id=None, blueprint_id=None):
             source=source,
             args=args)
     else:
-        platform, distro, release = _extract_platform_and_distro_info()
+        platform, distro, release = _platform_and_distro()
         raise NonRecoverableError(
             'No source or managed plugin found for {0} '
             '[current platform={1}, distro={2}, release={3}]'
@@ -408,53 +408,48 @@ def _get_archive(archive_dir, package_url):
 def get_managed_plugin(plugin):
     package_name = plugin.get('package_name')
     package_version = plugin.get('package_version')
-    distribution = plugin.get('distribution')
-    distribution_version = plugin.get('distribution_version')
-    distribution_release = plugin.get('distribution_release')
-    supported_platform = plugin.get('supported_platform')
     if not package_name:
         return None
     query_parameters = {'package_name': package_name}
     if package_version:
         query_parameters['package_version'] = package_version
-    if distribution:
-        query_parameters['distribution'] = distribution
-    if distribution_version:
-        query_parameters['distribution_version'] = distribution_version
-    if distribution_release:
-        query_parameters['distribution_release'] = distribution_release
-    if supported_platform:
-        query_parameters['supported_platform'] = supported_platform
     client = get_rest_client()
     plugins = client.plugins.list(**query_parameters)
 
-    (current_platform,
-     a_dist,
-     a_dist_release) = _extract_platform_and_distro_info()
-
-    if not supported_platform:
-        plugins = [p for p in plugins
-                   if p.supported_platform in ['any', current_platform]]
-    if os.name != 'nt':
-        if not distribution:
-            plugins = [p for p in plugins
-                       if p.supported_platform == 'any' or
-                       p.distribution == a_dist]
-        if not distribution_release:
-            plugins = [p for p in plugins
-                       if p.supported_platform == 'any' or
-                       p.distribution_release == a_dist_release]
-
-    if not plugins:
+    supported_plugins = [p for p in plugins if _is_plugin_supported(p)]
+    if not supported_plugins:
         return None
 
-    # in case version was not specified, return the latest
-    plugins.sort(key=lambda plugin: parse_version(plugin['package_version']),
-                 reverse=True)
-    return plugins[0]
+    return max(supported_plugins,
+               key=lambda plugin: parse_version(plugin['package_version']))
 
 
-def _extract_platform_and_distro_info():
+def _is_plugin_supported(plugin):
+    """Can plugin be installed on the current OS?
+
+    This compares a plugin's .supported_platform field with the
+    platform we're running on.
+    """
+    if plugin.supported_platform == 'any':
+        return True
+    current_platform, current_dist, current_release = _platform_and_distro()
+
+    if os.name == 'posix':
+        # for linux,
+        # 1) allow manylinux always,
+        # 2) disallow if the distro is specified and different than current
+        if plugin.supported_platform.startswith('manylinux'):
+            return True
+        if plugin.distribution and plugin.distribution != current_dist:
+            return False
+        if plugin.distribution_release \
+                and plugin.distribution_release != current_release:
+            return False
+    # non-linux, or linux but the distribution fits
+    return plugin.supported_platform == current_platform
+
+
+def _platform_and_distro():
     current_platform = wagon.get_platform()
     distribution, _, distribution_release = platform.linux_distribution(
         full_distribution_name=False)
