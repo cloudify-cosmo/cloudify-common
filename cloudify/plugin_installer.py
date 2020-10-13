@@ -428,6 +428,8 @@ def _is_plugin_supported(plugin):
     This compares a plugin's .supported_platform field with the
     platform we're running on.
     """
+    if not plugin.supported_platform:
+        return False
     if plugin.supported_platform == 'any':
         return True
     current_platform, current_dist, current_release = _platform_and_distro()
