@@ -85,6 +85,8 @@ def _manage_plugin_state(pre_state, post_state, allow_missing=False):
     def _decorator(f):
         @wraps(f)
         def _inner(plugin, *args, **kwargs):
+            if not kwargs.get('manage_state', True):
+                return
             _set_state(plugin, state=pre_state)
             try:
                 rv = f(plugin, *args, **kwargs)
@@ -288,7 +290,7 @@ def _pip_install(source, venv, args):
 @_manage_plugin_state(pre_state=PluginInstallationState.UNINSTALLING,
                       post_state=PluginInstallationState.UNINSTALLED,
                       allow_missing=True)
-def uninstall(plugin, deployment_id=None):
+def uninstall(plugin, deployment_id=None, manage_state=True):
     name = plugin.get('package_name') or plugin['name']
     dst_dir = target_plugin_prefix(
         name=name,
