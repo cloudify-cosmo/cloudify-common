@@ -40,13 +40,14 @@ class ClusterHTTPClient(HTTPClient):
         self.retries = 30
         self.retry_interval = 3
 
-    def do_request(self, *args, **kwargs):
+    def do_request(self, method, url, *args, **kwargs):
         kwargs.setdefault('timeout', self.default_timeout_sec)
 
         copied_data = None
         if isinstance(kwargs.get('data'), types.GeneratorType):
             copied_data = itertools.tee(kwargs.pop('data'), self.retries)
 
+        errors = {}
         for retry in range(self.retries):
             manager_to_try = next(self.hosts)
             self.host = manager_to_try
@@ -54,22 +55,31 @@ class ClusterHTTPClient(HTTPClient):
                 kwargs['data'] = copied_data[retry]
 
             try:
-                return super(ClusterHTTPClient, self).do_request(*args,
-                                                                 **kwargs)
+                return super(ClusterHTTPClient, self).do_request(
+                    method, url, *args, **kwargs)
             except (requests.exceptions.ConnectionError) as error:
                 self.logger.debug(
                     'Connection error when trying to connect to '
                     'manager {0}'.format(error)
                 )
+                errors[manager_to_try] = error
                 continue
             except CloudifyClientError as e:
+                errors[manager_to_try] = e.status_code
                 if e.response.status_code == 404 and \
                         self._is_fileserver_download(e.response):
                     continue
                 else:
                     raise
 
-        raise CloudifyClientError('No active node in the cluster!')
+        raise CloudifyClientError(
+            'HTTP Client error: {0} {1} ({2})'.format(
+                method.__name__.upper(),
+                url,
+                ', '.join(
+                    '{0}: {1}'.format(host, e) for host, e in errors.items()
+                )
+            ))
 
     def _is_fileserver_download(self, response):
         """Is this response a file-download response?
