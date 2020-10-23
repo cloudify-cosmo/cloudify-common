@@ -427,9 +427,6 @@ class ManagerClient(object):
     def update_db_nodes(self):
         """Force updating DB information on all manager nodes.
 
-        Currently it means re-rendering Prometheus (a.k.a. Status Reporter)
-        configuration.
-
         :return: A list of DB nodes in the cluster.
         """
         params = {'action': 'update'}
