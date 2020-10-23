@@ -424,6 +424,21 @@ class ManagerClient(object):
             response['metadata']
         )
 
+    def update_db_nodes(self):
+        """Force updating DB information on all manager nodes.
+
+        Currently it means re-rendering Prometheus (a.k.a. Status Reporter)
+        configuration.
+
+        :return: A list of DB nodes in the cluster.
+        """
+        params = {'action': 'update'}
+        response = self.api.post('/db-nodes', data=params)
+        return ListResponse(
+            [DBNodeItem(item) for item in response['items']],
+            response['metadata']
+        )
+
     def get_db_nodes(self):
         response = self.api.get('/db-nodes')
         return ListResponse(
