@@ -1329,15 +1329,17 @@ node_templates:
 """
         plan = prepare_deployment_plan(self.parse(blueprint_yaml),
                                        self.get_secret)
+        self.assertEqual(1, len(plan[constants.NODES]))
+        plan_properties = plan[constants.NODES][0][constants.PROPERTIES]
         self.assertEqual(
             {'get_secret': 'test_base_url'},
-            plan[constants.INPUTS].get('test_config').get('base_url')
+            plan_properties.get('test_config').get('base_url')
         )
         self.assertEqual(
             'Benoit',
-            plan[constants.INPUTS].get('test_config').get('username')
+            plan_properties.get('test_config').get('username')
         )
         self.assertEqual(
             {'get_secret': 'test_password'},
-            plan[constants.INPUTS].get('test_config').get('password')
+            plan_properties.get('test_config').get('password')
         )
