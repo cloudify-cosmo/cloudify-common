@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import constants
+from dsl_parser import constants, exceptions
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
@@ -1190,3 +1190,155 @@ imports:
                          {'get_input': 'ns2--ns--port'})
         self.assertEqual(vm_properties['data'],
                          {'get_input': 'ns2--ns--port'})
+
+    def test_node_template_defaults_from_data_type(self):
+        blueprint_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+inputs:
+  test_config:
+    type: my.test_config
+    required: false
+
+data_types:
+  my.test_config:
+    properties:
+      username:
+        default: { get_secret: test_username }
+      password:
+        default: { get_secret: test_password }
+      base_url:
+        default: { get_secret: test_base_url }
+
+node_types:
+  my.node.type:
+    derived_from: cloudify.nodes.Root
+    properties:
+      test_config:
+        description: Login information for vno.
+        type: my.test_config
+        default: { get_input: test_config }
+        required: false
+      use_existing:
+        description: Whether or not to reuse the node if one exists.
+        type: string
+        default: false
+
+node_templates:
+  test_node:
+    type: my.node.type
+"""
+        plan = prepare_deployment_plan(self.parse(blueprint_yaml),
+                                       self.get_secret)
+        self.assertEqual(
+            {'get_secret': 'test_base_url'},
+            plan[constants.INPUTS].get('test_config').get('base_url')
+        )
+        self.assertEqual(
+            {'get_secret': 'test_username'},
+            plan[constants.INPUTS].get('test_config').get('username')
+        )
+        self.assertEqual(
+            {'get_secret': 'test_password'},
+            plan[constants.INPUTS].get('test_config').get('password')
+        )
+
+    def test_node_template_incorrect_data_type(self):
+        blueprint_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+inputs:
+  test_config:
+    type: my.test_config
+    required: false
+
+data_types:
+  my.test_config:
+    properties:
+      username:
+        default: { get_secret: test_username }
+      password:
+        default: { get_secret: test_password }
+      base_url:
+        default: { get_secret: test_base_url }
+
+node_types:
+  my.node.type:
+    derived_from: cloudify.nodes.Root
+    properties:
+      test_config:
+        description: Login information for vno.
+        type: my.test_config
+        default: { get_input: test_config }
+        required: false
+      use_existing:
+        description: Whether or not to reuse the node if one exists.
+        type: string
+        default: false
+
+node_templates:
+  test_node:
+    type: my.node.type
+    properties:
+      test_config:
+        beep
+"""
+        self.assertRaises(exceptions.DSLParsingLogicException,
+                          self.parse, blueprint_yaml)
+
+    def test_node_template_only_some_defaults_from_data_type(self):
+        blueprint_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+inputs:
+  test_config:
+    type: my.test_config
+    required: false
+
+data_types:
+  my.test_config:
+    properties:
+      username:
+        default: { get_secret: test_username }
+      password:
+        default: { get_secret: test_password }
+      base_url:
+        default: { get_secret: test_base_url }
+
+node_types:
+  my.node.type:
+    derived_from: cloudify.nodes.Root
+    properties:
+      test_config:
+        description: Login information for vno.
+        type: my.test_config
+        default: { get_input: test_config }
+        required: false
+      use_existing:
+        description: Whether or not to reuse the node if one exists.
+        type: string
+        default: false
+
+node_templates:
+  test_node:
+    type: my.node.type
+    properties:
+      test_config:
+        username: Benoit
+"""
+        plan = prepare_deployment_plan(self.parse(blueprint_yaml),
+                                       self.get_secret)
+        self.assertEqual(1, len(plan[constants.NODES]))
+        plan_properties = plan[constants.NODES][0][constants.PROPERTIES]
+        self.assertEqual(
+            {'get_secret': 'test_base_url'},
+            plan_properties.get('test_config').get('base_url')
+        )
+        self.assertEqual(
+            'Benoit',
+            plan_properties.get('test_config').get('username')
+        )
+        self.assertEqual(
+            {'get_secret': 'test_password'},
+            plan_properties.get('test_config').get('password')
+        )

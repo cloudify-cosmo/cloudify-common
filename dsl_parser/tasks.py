@@ -60,12 +60,34 @@ def _set_plan_inputs(plan, inputs=None):
                     exceptions.ERROR_INVALID_CHARS,
                     'Illegal characters in input: {0}. '
                     'Only valid ascii chars are supported.'.format(input_name))
+        elif DEFAULT in input_def and input_def[DEFAULT] is not None:
+            inputs[input_name] = input_def[DEFAULT]
         else:
-            if DEFAULT in input_def and input_def[DEFAULT] is not None:
-                inputs[input_name] = input_def[DEFAULT]
-            else:
+            # Try to get some defaults from the data_type maybe or in another
+            # words just try to parse the value before validating it.
+            try:
+                parsed_value = utils.parse_value(
+                    {},
+                    type_name=input_def.get(TYPE, None),
+                    data_types=plan.get(DATA_TYPES, {}),
+                    undefined_property_error_message="Undefined property "
+                                                     "{1} in value of "
+                                                     "input {0}.",
+                    missing_property_error_message="Value of input {0} "
+                                                   "is missing property "
+                                                   "{1}.",
+                    node_name=input_name,
+                    path=[],
+                    raise_on_missing_property=True)
+            except RuntimeError:
                 missing_inputs.append(input_name)
                 input_is_missing = True
+            else:
+                if parsed_value:
+                    inputs[input_name] = parsed_value
+                else:
+                    missing_inputs.append(input_name)
+                    input_is_missing = True
 
         # Verify inputs comply with the given constraints and also the
         # data_type, if mentioned
