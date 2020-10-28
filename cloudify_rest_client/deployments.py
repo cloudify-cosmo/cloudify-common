@@ -13,8 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import warnings
-
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -287,8 +285,7 @@ class DeploymentsClient(object):
     def delete(self, deployment_id,
                force=False,
                delete_db_mode=False,
-               with_logs=False,
-               ignore_live_nodes=None):
+               with_logs=False):
         """
         Deletes the deployment whose id matches the provided deployment id.
         By default, deletion of a deployment with live nodes or installations
@@ -310,11 +307,6 @@ class DeploymentsClient(object):
         params = {'force': force,
                   'delete_db_mode': delete_db_mode,
                   'delete_logs': with_logs}
-        if ignore_live_nodes is not None:
-            warnings.warn("'ignore_live_nodes' is deprecated, use 'force' "
-                          "instead", DeprecationWarning)
-            params['force'] = force or ignore_live_nodes
-        params['ignore_live_nodes'] = params['force']
 
         self.api.delete(
             '/deployments/{0}'.format(deployment_id), params=params)
