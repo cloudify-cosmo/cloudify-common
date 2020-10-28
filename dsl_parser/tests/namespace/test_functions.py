@@ -1286,7 +1286,6 @@ node_templates:
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse, blueprint_yaml)
 
-
     def test_node_template_only_some_defaults_from_data_type(self):
         blueprint_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
