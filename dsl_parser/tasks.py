@@ -79,7 +79,7 @@ def _set_plan_inputs(plan, inputs=None):
                     node_name=input_name,
                     path=[],
                     raise_on_missing_property=True)
-            except RuntimeError or exceptions.DSLParsingException:
+            except exceptions.DSLParsingException:
                 parsed_value = None
             finally:
                 if parsed_value:
