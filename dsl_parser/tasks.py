@@ -51,7 +51,7 @@ def _set_plan_inputs(plan, inputs=None):
     # Verify inputs satisfied
     missing_inputs = []
     for input_name, input_def in plan[INPUTS].items():
-        input_is_missing = False
+        input_is_missing = skip_input_validation = False
         if input_name in inputs:
             try:
                 str(json.dumps(inputs[input_name], ensure_ascii=False))
@@ -79,15 +79,19 @@ def _set_plan_inputs(plan, inputs=None):
                     node_name=input_name,
                     path=[],
                     raise_on_missing_property=True)
-            except RuntimeError:
-                missing_inputs.append(input_name)
-                input_is_missing = True
-            else:
+            except exceptions.DSLParsingException:
+                parsed_value = None
+            finally:
                 if parsed_value:
                     inputs[input_name] = parsed_value
-                else:
+                elif input_def.get('required', True):
                     missing_inputs.append(input_name)
                     input_is_missing = True
+                else:
+                    skip_input_validation = True
+                    inputs[input_name] = None
+        if skip_input_validation:
+            continue
 
         # Verify inputs comply with the given constraints and also the
         # data_type, if mentioned
