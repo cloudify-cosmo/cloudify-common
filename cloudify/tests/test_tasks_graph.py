@@ -84,7 +84,9 @@ class TestTasksGraphExecute(testtools.TestCase):
             name = 'failtask'
 
             def apply_async(self):
+                self.async_result.result = tasks.HandlerResult.fail()
                 self.set_state(tasks.TASK_FAILED)
+                return self.async_result
 
         task1 = FailedTask(mock.Mock())
         task2 = mock.Mock(execute_after=0)
@@ -104,32 +106,29 @@ class TestTasksGraphExecute(testtools.TestCase):
             """Task that fails 1 second after starting"""
             name = 'failtask'
 
-            def get_state(self):
-                if time.time() > start_time + 1:
-                    return tasks.TASK_FAILED
-                else:
-                    return tasks.TASK_SENT
+            def apply_async(self):
+                self.set_state(tasks.TASK_FAILED)
+                self.async_result.result = tasks.HandlerResult.fail()
+                return self.async_result
+
+            def handle_task_terminated(self):
+                rv = super(FailedTask, self).handle_task_terminated()
+                task2.set_state(tasks.TASK_SUCCEEDED)
+                task2.async_result.result = None
+                return rv
 
         class DelayedTask(tasks.WorkflowTask):
             """Task that succeeds 3 seconds after starting"""
             name = 'delayedtask'
-
-            def get_state(self):
-                if time.time() > start_time + 3:
-                    return tasks.TASK_SUCCEEDED
-                else:
-                    return tasks.TASK_SENT
             handle_task_terminated = mock.Mock()
 
-        task1 = FailedTask(mock.Mock())
+        task1 = FailedTask(mock.Mock(), total_retries=0)
         task2 = DelayedTask(mock.Mock())
 
         g = TaskDependencyGraph(MockWorkflowContext())
-        seq = g.sequence()
-        seq.add(task1, task2)
-        with limited_sleep_mock():
-            start_time = time.time()
-            self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
+        g.add_task(task1)
+        g.add_task(task2)
+        self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
 
         # even though the workflow failed 1 second in, the other task was
         # still waited for and completed
@@ -144,6 +143,9 @@ class TestTasksGraphExecute(testtools.TestCase):
             def apply_async(self):
                 record.append(self.i)
                 self.set_state(tasks.TASK_SUCCEEDED)
+                self.async_result.result = None
+                return self.async_result
+
         task_count = 10
 
         # prepare the task seuqence
@@ -221,24 +223,20 @@ class TestTaskGraphRestore(testtools.TestCase):
 
     def test_restore_empty(self):
         """Restoring an empty list of operations results in an empty graph"""
-        graph = self._restore_graph([])
-        operations = list(graph.tasks_iter())
-        assert operations == []
+        assert self._restore_graph([]).tasks == []
 
     def test_restore_single(self):
         """A single operation is restored into the graph"""
         graph = self._restore_graph([self._remote_task()])
-        operations = list(graph.tasks_iter())
-        assert len(operations) == 1
-        assert isinstance(operations[0], tasks.RemoteWorkflowTask)
+        assert len(graph.tasks) == 1
+        assert isinstance(graph.tasks[0], tasks.RemoteWorkflowTask)
 
     def test_restore_finished(self):
         """Finished tasks are not restored into the graph"""
         task = self._remote_task()
         task['state'] = tasks.TASK_SUCCEEDED
         graph = self._restore_graph([task])
-        operations = list(graph.tasks_iter())
-        assert operations == []
+        assert graph.tasks == []
 
     def test_restore_with_subgraph(self):
         """Restoring operations keeps subgraph structure"""
@@ -248,10 +246,9 @@ class TestTaskGraphRestore(testtools.TestCase):
         task['parameters']['containing_subgraph'] = 15
 
         graph = self._restore_graph([subgraph, task])
-        operations = list(graph.tasks_iter())
-        assert len(operations) == 2
-        subgraphs = [op for op in operations if op.is_subgraph]
-        remote_tasks = [op for op in operations if not op.is_subgraph]
+        assert len(graph.tasks) == 2
+        subgraphs = [op for op in graph.tasks if op.is_subgraph]
+        remote_tasks = [op for op in graph.tasks if not op.is_subgraph]
 
         assert len(subgraphs) == 1
         assert len(remote_tasks) == 1
@@ -268,9 +265,8 @@ class TestTaskGraphRestore(testtools.TestCase):
         task2['dependencies'] = [1]
 
         graph = self._restore_graph([task1, task2])
-        operations = list(graph.tasks_iter())
-        assert len(operations) == 2
-        assert graph.graph.predecessors(1) == [2]
+        assert len(graph.tasks) == 2
+        assert graph._dependencies[2] == set([1])
 
     def test_restore_with_finished_subgraph(self):
         """Restoring operations keeps subgraph structure"""
@@ -282,10 +278,9 @@ class TestTaskGraphRestore(testtools.TestCase):
         subgraph['state'] = tasks.TASK_SUCCEEDED
 
         graph = self._restore_graph([subgraph, task])
-        operations = list(graph.tasks_iter())
-        assert len(operations) == 2
-        subgraphs = [op for op in operations if op.is_subgraph]
-        remote_tasks = [op for op in operations if not op.is_subgraph]
+        assert len(graph.tasks) == 2
+        subgraphs = [op for op in graph.tasks if op.is_subgraph]
+        remote_tasks = [op for op in graph.tasks if not op.is_subgraph]
 
         assert len(subgraphs) == 1
         assert len(remote_tasks) == 1
@@ -311,10 +306,9 @@ class TestTaskGraphRestore(testtools.TestCase):
         task2['parameters']['containing_subgraph'] = 15
 
         graph = self._restore_graph([subgraph, task1, task2])
-        operations = list(graph.tasks_iter())
-        assert len(operations) == 3
-        subgraphs = [op for op in operations if op.is_subgraph]
-        remote_tasks = [op for op in operations if not op.is_subgraph]
+        assert len(graph.tasks) == 3
+        subgraphs = [op for op in graph.tasks if op.is_subgraph]
+        remote_tasks = [op for op in graph.tasks if not op.is_subgraph]
 
         # those are all references to the same subgraph, the subgraph was
         # NOT restored multiple times
