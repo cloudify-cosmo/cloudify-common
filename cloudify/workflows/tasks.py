@@ -793,6 +793,10 @@ class WorkflowTaskResult(object):
             self.result = api.ExecutionCancelled()
             raise self.result
 
+        ctx = self.task.workflow_context
+        if not ctx.internal.graph_mode:
+            ctx.internal.task_graph.remove_task(self.task)
+
         if self.task.get_state() in (TASK_FAILED, TASK_RESCHEDULED):
             handler_result = self.task.handle_task_terminated()
             if handler_result.retried_task and retry_on_failure:
