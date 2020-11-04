@@ -259,7 +259,7 @@ class TaskDependencyGraph(object):
                 task = self._ready.pop()
                 self._run_task(task)
 
-            self._tasks_wait.wait()
+            self._tasks_wait.wait(1)
 
             while self._finished_tasks:
                 task, result = self._finished_tasks.popitem()
