@@ -45,7 +45,7 @@ except ImportError as e:
 
 setup(
     name='cloudify-common',
-    version='5.2.0.dev1',
+    version='5.1.1.dev1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     packages=find_packages(exclude=('dsl_parser.tests*',
