@@ -13,12 +13,12 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import sys
 import time
 import uuid
+import functools
+import threading
 
 from cloudify import exceptions, logs
-from cloudify._compat import queue, reraise
 from cloudify.workflows import api
 from cloudify.manager import (
     get_rest_client,
@@ -32,15 +32,14 @@ from cloudify.constants import (
     TASK_SENDING,
     TASK_SENT,
     TASK_STARTED,
-    TASK_RESPONSE_SENT,
     TASK_RESCHEDULED,
     TASK_SUCCEEDED,
     TASK_FAILED,
-    TERMINATED_STATES
+    TERMINATED_STATES,
 )
 from cloudify.state import workflow_ctx
-from cloudify.utils import exception_to_error_cause
 # imported for backwards compat:
+from cloudify.constants import TASK_RESPONSE_SENT  # noqa
 from cloudify.utils import INSPECT_TIMEOUT  # noqa
 
 INFINITE_TOTAL_RETRIES = -1
@@ -50,6 +49,29 @@ DEFAULT_SUBGRAPH_TOTAL_RETRIES = 0
 
 DEFAULT_SEND_TASK_EVENTS = True
 DISPATCH_TASK = 'cloudify.dispatch.dispatch'
+
+
+def with_execute_after(f):
+    """Wrap a task's apply_async to delay it if requested.
+
+    If a task has .execute_after set, the apply_async will actually
+    only run after that time has passed.
+    """
+    @functools.wraps(f)
+    def _inner(*args, **kwargs):
+        task = args[0]
+        if api.has_cancel_request():
+            return task.async_result
+        if task.execute_after and task.execute_after > time.time():
+            t = threading.Timer(
+                task.execute_after - time.time(),
+                _inner, args=args, kwargs=kwargs
+            )
+            t.daemon = True
+            t.start()
+            return task.async_result
+        return f(*args, **kwargs)
+    return _inner
 
 
 class WorkflowTask(object):
@@ -391,6 +413,7 @@ class RemoteWorkflowTask(WorkflowTask):
             return
         return super(RemoteWorkflowTask, self)._update_stored_state(state)
 
+    @with_execute_after
     def apply_async(self):
         """Send the task to an agent.
 
@@ -628,6 +651,7 @@ class LocalWorkflowTask(WorkflowTask):
             return
         return super(LocalWorkflowTask, self)._update_stored_state(state)
 
+    @with_execute_after
     def apply_async(self):
         """Execute the task in the local task thread pool
 
