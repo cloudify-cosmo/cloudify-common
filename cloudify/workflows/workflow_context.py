@@ -67,7 +67,7 @@ except ImportError:
     from ordereddict import OrderedDict
 
 
-DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE = 1
+DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE = 8
 
 
 class CloudifyWorkflowRelationshipInstance(object):
