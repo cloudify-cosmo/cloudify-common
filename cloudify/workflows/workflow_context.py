@@ -473,7 +473,7 @@ class _WorkflowContextBase(object):
 
         :return: A task dependency graph instance
         """
-        if next(self.internal.task_graph.tasks_iter(), None) is not None:
+        if self.internal.task_graph.tasks:
             raise RuntimeError('Cannot switch to graph mode when tasks have '
                                'already been executed')
 

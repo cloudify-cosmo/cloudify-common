@@ -673,8 +673,7 @@ class WorkflowHandler(TaskHandler):
             self.ctx.internal.start_local_tasks_processing()
             result = self.func(*self.args, **self.kwargs)
             if not self.ctx.internal.graph_mode:
-                tasks = list(self.ctx.internal.task_graph.tasks_iter())
-                for workflow_task in tasks:
+                for workflow_task in self.ctx.internal.task_graph.tasks:
                     workflow_task.async_result.get()
             return result
         finally:
