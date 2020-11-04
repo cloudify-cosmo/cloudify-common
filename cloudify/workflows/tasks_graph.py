@@ -388,29 +388,17 @@ class SubgraphTask(tasks.WorkflowTask):
                  graph,
                  workflow_context=None,
                  task_id=None,
-                 on_success=None,
-                 on_failure=None,
-                 info=None,
                  total_retries=tasks.DEFAULT_SUBGRAPH_TOTAL_RETRIES,
-                 retry_interval=tasks.DEFAULT_RETRY_INTERVAL,
-                 send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS,
                  **kwargs):
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,
-            info=info,
-            on_success=on_success,
-            on_failure=on_failure,
-            total_retries=total_retries,
-            retry_interval=retry_interval,
-            send_task_events=send_task_events)
+            total_retries=total_retries)
         self.graph = graph
-        self._name = info
         self.tasks = {}
         self.failed_task = None
         if not self.on_failure:
             self.on_failure = lambda tsk: tasks.HandlerResult.fail()
-        self.async_result = tasks.StubAsyncResult()
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
@@ -430,7 +418,7 @@ class SubgraphTask(tasks.WorkflowTask):
 
     @property
     def name(self):
-        return self._name
+        return self.info
 
     @property
     def is_subgraph(self):
@@ -466,18 +454,33 @@ class SubgraphTask(tasks.WorkflowTask):
         self.graph.add_dependency(src_task, dst_task)
 
     def apply_async(self):
+        super(SubgraphTask, self).apply_async()
         if not self.tasks:
             self.set_state(tasks.TASK_SUCCEEDED)
         else:
+            for task_id, task in self.tasks.items():
+                self.graph.remove_dependency(task, self)
             self.set_state(tasks.TASK_STARTED)
+        return self.async_result
 
     def task_terminated(self, task, new_task=None):
         del self.tasks[task.id]
         if new_task:
             self.tasks[new_task.id] = new_task
             new_task.containing_subgraph = self
-        if not self.tasks and self.get_state() not in tasks.TERMINATED_STATES:
-            self.set_state(tasks.TASK_SUCCEEDED)
+        if self.get_state() not in tasks.TERMINATED_STATES:
+            if self.failed_task:
+                self.set_state(tasks.TASK_FAILED)
+            elif not self.tasks:
+                self.set_state(tasks.TASK_SUCCEEDED)
+
+    def set_state(self, state):
+        super(SubgraphTask, self).set_state(state)
+        if state in tasks.TERMINATED_STATES:
+            self.async_result.result = None
+
+    def __repr__(self):
+        return '<{0} {1}: {2}>'.format(self.task_type, self.id, self.info)
 
 
 OP_TYPES = {

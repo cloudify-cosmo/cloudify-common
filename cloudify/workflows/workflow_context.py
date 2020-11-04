@@ -1273,22 +1273,6 @@ class CloudifyWorkflowContextHandler(object):
         raise NotImplementedError('Implemented by subclasses')
 
 
-class _AsyncResult(object):
-    NOTSET = object()
-
-    def __init__(self, task):
-        self._task = task
-        self.result = self.NOTSET
-        self.error = False
-
-    def get(self):
-        while self.result is self.NOTSET:
-            time.sleep(0.5)
-        if self.error:
-            raise self.result
-        return self.result
-
-
 class _TaskDispatcher(object):
     def __init__(self):
         self._tasks = {}
@@ -1338,8 +1322,7 @@ class _TaskDispatcher(object):
                         correlation_id=task['id'])
         self._logger.debug('Task [{0}] sent'.format(task['id']))
 
-    def wait_for_result(self, workflow_task, task):
-        result = _AsyncResult(task)
+    def wait_for_result(self, result, workflow_task, task):
         client, handler = task['client'], task['handler']
         callback = functools.partial(self._received, task['id'], client)
         handler.callbacks[task['id']] = callback
@@ -1379,15 +1362,14 @@ class _TaskDispatcher(object):
                     state = TASK_RESCHEDULED
                 else:
                     state = TASK_FAILED
-                _result = exception
-                result.error = True
                 self._set_task_state(workflow_task, state)
+                result.result = exception
             else:
                 state = TASK_SUCCEEDED
-                _result = response.get('result')
-                self._set_task_state(workflow_task, state, {'result': _result})
-
-            result.result = _result
+                self._set_task_state(workflow_task, state, {
+                    'result': response.get('result')
+                })
+                result.result = response.get('result')
 
             self._maybe_stop_client(client)
         except Exception:
@@ -1428,8 +1410,8 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def send_task(self, workflow_task, task):
         return self._dispatcher.send_task(workflow_task, task)
 
-    def wait_for_result(self, workflow_task, task):
-        return self._dispatcher.wait_for_result(workflow_task, task)
+    def wait_for_result(self, result, workflow_task, task):
+        return self._dispatcher.wait_for_result(result, workflow_task, task)
 
     @property
     def operation_cloudify_context(self):

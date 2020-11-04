@@ -118,6 +118,7 @@ commands:
           name: pytest << parameters.target >>
           command: |
             pytest \
+              -sv \
               -n 4 \
               --cov-report term-missing \
               --cov=<< parameters.target >> \
