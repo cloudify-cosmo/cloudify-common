@@ -398,7 +398,9 @@ def ignore_subgraph_on_task_failure(subgraph):
 
 def set_send_node_event_on_error_handler(task, instance):
     def send_node_event_error_handler(tsk):
-        instance.send_event('Ignoring task {0} failure'.format(tsk.name))
+        event = instance.send_event(
+            'Ignoring task {0} failure'.format(tsk.name))
+        event.apply_async()
         return workflow_tasks.HandlerResult.ignore()
     task.on_failure = send_node_event_error_handler
 
