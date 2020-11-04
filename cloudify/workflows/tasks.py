@@ -140,6 +140,14 @@ class WorkflowTask(object):
         task.stored = True
         return task
 
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        if isinstance(other, WorkflowTask):
+            return self.id == other.id
+        return self.id == other
+
     def __repr__(self):
         return '<{0} {1}>'.format(self.task_type, self.id)
 
