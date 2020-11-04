@@ -19,6 +19,26 @@ EXECUTION_CANCELLED_RESULT = 'execution_cancelled'
 cancel_request = False
 kill_request = False
 
+cancel_callbacks = set()
+kill_callbacks = set()
+
+
+def set_cancel_request():
+    global cancel_request
+    cancel_request = True
+    for f in cancel_callbacks:
+        f()
+
+
+def set_kill_request():
+    global cancel_request, kill_request
+    cancel_request = True
+    kill_request = True
+    for f in kill_request:
+        f()
+    for f in cancel_callbacks:
+        f()
+
 
 def has_cancel_request():
     """

@@ -614,13 +614,13 @@ class WorkflowHandler(TaskHandler):
                     # deprecated api.EXECUTION_CANCELLED_RESULT as result).
                     # parent thread then goes back to polling for messages from
                     # child thread or possibly 'force-cancelling' requests
-                    api.cancel_request = True
+                    api.set_cancel_request()
 
                 if execution.status == Execution.KILL_CANCELLING:
                     # if a custom workflow function must attempt some cleanup,
                     # it might attempt to catch SIGTERM, and confirm using this
                     # flag that it is being kill-cancelled
-                    api.kill_request = True
+                    api.set_kill_request()
 
                 if execution.status in [
                         Execution.FORCE_CANCELLING,
