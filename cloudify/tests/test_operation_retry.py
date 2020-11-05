@@ -110,7 +110,7 @@ class OperationRetryWorkflowTests(testtools.TestCase):
     def test_operation_retry(self, cfy_local):
         cfy_local.execute('execute_operation',
                           task_retries=3,
-                          task_retry_interval=1,
+                          task_retry_interval=0,
                           parameters={
                               'operation': 'lifecycle.start'
                           })
@@ -136,7 +136,7 @@ class OperationRetryWorkflowTests(testtools.TestCase):
     def test_ignore_operation_retry(self, cfy_local):
         cfy_local.execute('execute_operation',
                           task_retries=3,
-                          task_retry_interval=1,
+                          task_retry_interval=0,
                           parameters={
                               'operation': 'lifecycle.stop'
                           })
