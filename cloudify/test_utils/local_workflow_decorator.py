@@ -193,29 +193,37 @@ class WorkflowTestDecorator(object):
         else:
             local_file_path, test_method_name = None, None
 
-        # Creating a temp dir
-        if self.temp_dir_prefix:
-            self.temp_dir = tempfile.mkdtemp(prefix=self.temp_dir_prefix)
-        elif test_method_name:
-            self.temp_dir = tempfile.mkdtemp(prefix=test_method_name)
+        if self.resources_to_copy:
+            # user asked to copy some resources, so we'll have to make
+            # a tempdir and copy the blueprint as well.
+
+            if self.temp_dir_prefix:
+                self.temp_dir = tempfile.mkdtemp(prefix=self.temp_dir_prefix)
+            elif test_method_name:
+                self.temp_dir = tempfile.mkdtemp(prefix=test_method_name)
+            else:
+                self.temp_dir = tempfile.mkdtemp()
+
+            # Adding blueprint to the resources to copy
+            self.resources_to_copy.append(self.blueprint_path)
+
+            # Finding and adding the plugin
+            if func_self is not None and self.copy_plugin_yaml:
+                self.resources_to_copy.append(
+                    _find_plugin_yaml(path.dirname(local_file_path)))
+            elif self.copy_plugin_yaml:
+                raise Exception("You cannot use copy_plugin_yaml in "
+                                "contextmanager mode.")
+
+            # Copying resources
+            _copy_resources(path.dirname(local_file_path)
+                            if local_file_path else None,
+                            self.resources_to_copy, self.temp_dir)
+            temp_blueprint_path = path.join(self.temp_dir,
+                                            path.basename(self.blueprint_path))
         else:
-            self.temp_dir = tempfile.mkdtemp()
-
-        # Adding blueprint to the resources to copy
-        self.resources_to_copy.append(self.blueprint_path)
-
-        # Finding and adding the plugin
-        if func_self is not None and self.copy_plugin_yaml:
-            self.resources_to_copy.append(
-                _find_plugin_yaml(path.dirname(local_file_path)))
-        elif self.copy_plugin_yaml:
-            raise Exception("You cannot use copy_plugin_yaml in "
-                            "contextmanager mode.")
-
-        # Copying resources
-        _copy_resources(path.dirname(local_file_path)
-                        if local_file_path else None,
-                        self.resources_to_copy, self.temp_dir)
+            temp_blueprint_path = path.join(path.dirname(local_file_path),
+                                            self.blueprint_path)
 
         # Updating the test_method_name (if not manually set)
         if self.init_args and not self.init_args.get('name'):
@@ -231,8 +239,6 @@ class WorkflowTestDecorator(object):
                                    self.input_func_kwargs)
 
         # Init env with supplied args
-        temp_blueprint_path = path.join(self.temp_dir,
-                                        path.basename(self.blueprint_path))
         test_env = local.init_env(temp_blueprint_path, **self.init_args)
 
         return test_env
@@ -242,7 +248,7 @@ class WorkflowTestDecorator(object):
         Deletes the allocated temp dir
         :return: None
         """
-        if path.exists(self.temp_dir):
+        if self.resources_to_copy and path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
     def __call__(self, test):
