@@ -34,7 +34,7 @@ def set_kill_request():
     global cancel_request, kill_request
     cancel_request = True
     kill_request = True
-    for f in kill_request:
+    for f in kill_callbacks:
         f()
     for f in cancel_callbacks:
         f()
