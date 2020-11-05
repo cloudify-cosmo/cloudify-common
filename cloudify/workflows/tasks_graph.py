@@ -15,10 +15,9 @@
 
 
 import time
+import threading
+from collections import defaultdict
 from functools import wraps
-
-
-import networkx as nx
 
 from cloudify.exceptions import WorkflowFailed
 from cloudify.workflows import api
@@ -47,8 +46,7 @@ def make_or_get_graph(f):
 
 
 class TaskDependencyGraph(object):
-    """
-    A task graph builder
+    """A task graph.
 
     :param workflow_context: A WorkflowContext instance (used for logging)
     """
@@ -65,12 +63,20 @@ class TaskDependencyGraph(object):
     def __init__(self, workflow_context, graph_id=None,
                  default_subgraph_task_config=None):
         self.ctx = workflow_context
-        self.graph = nx.DiGraph()
         default_subgraph_task_config = default_subgraph_task_config or {}
         self._default_subgraph_task_config = default_subgraph_task_config
         self._error = None
+        self._wake_after_fail = None
+        self._error_time = None
         self._stored = False
         self.id = graph_id
+        self._tasks = {}
+        self._dependencies = defaultdict(set)
+        self._dependents = defaultdict(set)
+        self._ready = set()
+        self._waiting_for = set()
+        self._tasks_wait = threading.Event()
+        self._finished_tasks = {}
 
     def _restore_dependencies(self, ops):
         """Set dependencies between this graph's tasks according to ops.
@@ -112,6 +118,7 @@ class TaskDependencyGraph(object):
                 subgraph_descr = ops_by_id[subgraph_id]
                 subgraph_descr['state'] = tasks.TASK_STARTED
                 subgraph = self._restore_operation(subgraph_descr)
+                self.add_task(subgraph)
                 restored_ops[subgraph_id] = subgraph
 
                 op.containing_subgraph = subgraph
@@ -135,10 +142,10 @@ class TaskDependencyGraph(object):
 
     def store(self, name):
         serialized_tasks = []
-        for task in self.tasks_iter():
+        for task in self._tasks.values():
             serialized = task.dump()
-            serialized['dependencies'] = list(
-                self.graph.succ.get(task.id, {}).keys())
+            serialized['dependencies'] = [
+                dep.id for dep in self._dependencies.get(task, [])]
             serialized_tasks.append(serialized)
         stored_graph = self.ctx.store_tasks_graph(
             name, operations=serialized_tasks)
@@ -146,12 +153,17 @@ class TaskDependencyGraph(object):
             self.id = stored_graph['id']
             self._stored = True
 
+    @property
+    def tasks(self):
+        return list(self._tasks.values())
+
     def add_task(self, task):
         """Add a WorkflowTask to this graph
 
         :param task: The task
         """
-        self.graph.add_node(task.id, task=task)
+        self._tasks[task.id] = task
+        self._ready.add(task)
 
     def get_task(self, task_id):
         """Get a task instance that was inserted to this graph by its id
@@ -160,8 +172,7 @@ class TaskDependencyGraph(object):
         :return: a WorkflowTask instance for the requested task if found.
                  None, otherwise.
         """
-        data = self.graph.node.get(task_id)
-        return data['task'] if data is not None else None
+        return self._tasks.get(task_id)
 
     def remove_task(self, task):
         """Remove the provided task from the graph
@@ -171,13 +182,19 @@ class TaskDependencyGraph(object):
         if task.is_subgraph:
             for subgraph_task in task.tasks.values():
                 self.remove_task(subgraph_task)
-        if task.id in self.graph:
-            self.graph.remove_node(task.id)
+        if task.id in self._tasks:
+            del self._tasks[task.id]
+            self._ready.discard(task)
+            for dependent in self._dependents.pop(task, []):
+                self._dependencies[dependent].discard(task)
+                if not self._dependencies.get(dependent):
+                    self._ready.add(dependent)
+            for dependency in self._dependencies.pop(task, []):
+                self._dependents[dependency].discard(task)
 
-    # src depends on dst
     def add_dependency(self, src_task, dst_task):
-        """
-        Add a dependency between tasks.
+        """Add a dependency between tasks: src depends on dst.
+
         The source task will only be executed after the target task terminates.
         A task may depend on several tasks, in which case it will only be
         executed after all its 'destination' tasks terminate
@@ -185,13 +202,24 @@ class TaskDependencyGraph(object):
         :param src_task: The source task
         :param dst_task: The target task
         """
-        if not self.graph.has_node(src_task.id):
-            raise RuntimeError('source task {0} is not in graph (task id: '
-                               '{1})'.format(src_task, src_task.id))
-        if not self.graph.has_node(dst_task.id):
-            raise RuntimeError('destination task {0} is not in graph (task '
-                               'id: {1})'.format(dst_task, dst_task.id))
-        self.graph.add_edge(src_task.id, dst_task.id)
+        if src_task.id not in self._tasks:
+            raise RuntimeError('src not in graph: {0!r}'.format(src_task))
+        if dst_task.id not in self._tasks:
+            raise RuntimeError('dst not in graph: {0!r}'.format(dst_task))
+        self._dependencies[src_task].add(dst_task)
+        self._dependents[dst_task].add(src_task)
+        self._ready.discard(src_task)
+
+    def remove_dependency(self, src_task, dst_task):
+        if src_task.id not in self._tasks:
+            raise RuntimeError('src not in graph: {0!r}'.format(src_task))
+        if dst_task.id not in self._tasks:
+            raise RuntimeError('dst not in graph: {0!r}'.format(dst_task))
+        self._dependencies[src_task].discard(dst_task)
+        self._dependents[dst_task].discard(src_task)
+        if not self._dependencies[src_task]:
+            self._ready.add(src_task)
+            self._tasks_wait.set()
 
     def sequence(self):
         """
@@ -206,155 +234,102 @@ class TaskDependencyGraph(object):
         return task
 
     def execute(self):
-        """
-        Start executing the graph based on tasks and dependencies between
-        them.\
-        Calling this method will block until one of the following occurs:\
-            1. all tasks terminated\
-            2. a task failed\
-            3. an unhandled exception is raised\
-            4. the execution is cancelled\
+        """Execute tasks in this graph.
 
-        Note: This method will raise an api.ExecutionCancelled error if the\
-        execution has been cancelled. When catching errors raised from this\
-        method, make sure to re-raise the error if it's\
-        api.ExecutionsCancelled in order to allow the execution to be set in\
-        cancelled mode properly.\
+        Run ready tasks, register callbacks on their result, process
+        results from tasks that did finish.
+        Tasks whose dependencies finished, are marked as ready for
+        the next iteration.
 
-        Also note that for the time being, if such a cancelling event\
-        occurs, the method might return even while there's some operations\
-        still being executed.
+        This main loop is directed by the _tasks_wait event, which
+        is set only when there is something to be done: a task response
+        has been received, some tasks dependencies finished which makes
+        new tasks ready to be run, or the execution was cancelled.
+
+        If a task failed, wait for ctx.wait_after_fail for additional
+        responses to come in anyway.
         """
-        # clear error, in case the tasks graph has been reused
         self._error = None
+        api.cancel_callbacks.add(self._tasks_wait.set)
 
-        while self._error is None:
+        while not self._is_finished():
+            self._tasks_wait.clear()
 
-            if self._is_execution_cancelled():
-                raise api.ExecutionCancelled()
+            while self._ready and not self._error:
+                task = self._ready.pop()
+                self._run_task(task)
 
-            # handle all terminated tasks
-            # it is important this happens before handling
-            # executable tasks so we get to make tasks executable
-            # and then execute them in this iteration (otherwise, it would
-            # be the next one)
-            for task in self._terminated_tasks():
-                self._handle_terminated_task(task)
+            self._tasks_wait.wait(1)
 
-            # if there was an error when handling terminated tasks, don't
-            # continue on to sending new tasks in handle_executable
-            if self._error:
-                break
+            while self._finished_tasks:
+                task, result = self._finished_tasks.popitem()
+                self._handle_terminated_task(result, task)
 
-            # handle all executable tasks
-            for task in self._executable_tasks():
-                self._handle_executable_task(task)
+        api.cancel_callbacks.discard(self._tasks_wait.set)
+        if self._wake_after_fail:
+            self._wake_after_fail.cancel()
+        if self._error:
+            raise self._error
 
-            # no more tasks to process, time to move on
-            if len(self.graph.node) == 0:
-                if self._error:
-                    raise self._error
-                return
-            # sleep some and do it all over again
+    def _is_finished(self):
+        if api.has_cancel_request():
+            self._error = api.ExecutionCancelled()
+            return True
+
+        if not self._tasks:
+            return True
+
+        if self._error:
+            if not self._waiting_for:
+                return True
+            deadline = self._error_time + self.ctx.wait_after_fail
+            if deadline > time.time():
+                return True
             else:
-                time.sleep(0.1)
+                self._wake_after_fail = threading.Timer(
+                    deadline - time.time(),
+                    self._tasks_wait.set)
+                self._wake_after_fail.daemon = True
+                self._wake_after_fail.start()
+        return False
 
-        # if we got here, we had an error in a task, and we're just waiting
-        # for other tasks to return, but not sending new tasks
-        deadline = time.time() + self.ctx.wait_after_fail
-        while deadline > time.time():
-            if self._is_execution_cancelled():
-                raise api.ExecutionCancelled()
-            for task in self._terminated_tasks():
-                self._handle_terminated_task(task)
-            if not any(self._sent_tasks()):
-                break
-            else:
-                time.sleep(0.1)
-        raise self._error
+    def _run_task(self, task):
+        result = task.apply_async()
+        self._waiting_for.add(task)
+        result.on_result(self._task_finished, task)
 
-    @staticmethod
-    def _is_execution_cancelled():
-        return api.has_cancel_request()
+    def _task_finished(self, result, task):
+        self._finished_tasks[task] = result
+        self._tasks_wait.set()
 
-    def _executable_tasks(self):
-        """
-        A task is executable if it is in pending state
-        , it has no dependencies at the moment (i.e. all of its dependencies
-        already terminated) and its execution timestamp is smaller then the
-        current timestamp
-
-        :return: An iterator for executable tasks
-        """
-        now = time.time()
-        return (task for task in self.tasks_iter()
-                if (task.get_state() == tasks.TASK_PENDING or
-                    task._should_resume()) and
-                task.execute_after <= now and
-                not (task.containing_subgraph and
-                     task.containing_subgraph.get_state() ==
-                     tasks.TASK_FAILED) and
-                not self._task_has_dependencies(task))
-
-    def _terminated_tasks(self):
-        """
-        A task is terminated if it is in 'succeeded' or 'failed' state
-
-        :return: An iterable of terminated tasks
-        """
-        return [task for task in self.tasks_iter()
-                if task.get_state() in tasks.TERMINATED_STATES]
-
-    def _sent_tasks(self):
-        """Tasks that are in the 'sent' state"""
-        return (task for task in self.tasks_iter()
-                if task.get_state() == tasks.TASK_SENT)
-
-    def _task_has_dependencies(self, task):
-        """
-        :param task: The task
-        :return: Does this task have any dependencies
-        """
-        return (len(self.graph.succ.get(task.id, {})) > 0 or
-                (task.containing_subgraph and self._task_has_dependencies(
-                    task.containing_subgraph)))
-
-    def tasks_iter(self):
-        """
-        An iterator on tasks added to the graph
-        """
-        return (data['task'] for _, data in self.graph.nodes_iter(data=True))
-
-    def _handle_executable_task(self, task):
-        """Handle executable task"""
-        task.apply_async()
-
-    def _handle_terminated_task(self, task):
-        """Handle terminated task"""
+    def _handle_terminated_task(self, result, task):
+        self._waiting_for.discard(task)
         handler_result = task.handle_task_terminated()
-
-        dependents = self.graph.predecessors(task.id)
-        removed_edges = [(dependent, task.id)
-                         for dependent in dependents]
-        self.graph.remove_edges_from(removed_edges)
-        self.graph.remove_node(task.id)
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
             message = "Task failed '{0}'".format(task.name)
-            if task.error:
-                message = '{0} -> {1}'.format(message, task.error)
+            if result and not isinstance(result, tasks.HandlerResult):
+                message = '{0} -> {1}'.format(message, result)
             if self._error is None:
                 self._error = WorkflowFailed(message)
+                self._error_time = time.time()
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
             if self.id is not None:
-                self.ctx.store_operation(new_task, dependents, self.id)
+                self.ctx.store_operation(
+                    new_task,
+                    [dep.id for dep in self._dependencies[task]],
+                    self.id)
                 new_task.stored = True
             self.add_task(new_task)
-            added_edges = [(dependent, new_task.id)
-                           for dependent in dependents]
-            self.graph.add_edges_from(added_edges)
+            for dependency in self._dependencies[task]:
+                self.add_dependency(new_task, self.get_task(dependency))
+            for dependent in self._dependents[task]:
+                self.add_dependency(self.get_task(dependent), new_task)
+
+        self.remove_task(task)
+        self._tasks_wait.set()
 
 
 class forkjoin(object):
@@ -381,19 +356,17 @@ class TaskSequence(object):
         self.last_fork_join_tasks = None
 
     def add(self, *tasks):
-        """
-        Add tasks to the sequence.
+        """Add tasks to the sequence.
 
         :param tasks: Each task might be:
-
-                      * A WorkflowTask instance, in which case, it will be
-                        added to the graph with a dependency between it and
-                        the task previously inserted into the sequence
-                      * A forkjoin of tasks, in which case it will be treated
-                        as a "fork-join" task in the sequence, i.e. all the
-                        fork-join tasks will depend on the last task in the
-                        sequence (could be fork join) and the next added task
-                        will depend on all tasks in this fork-join task
+            * A WorkflowTask instance, in which case, it will be
+              added to the graph with a dependency between it and
+              the task previously inserted into the sequence
+            * A forkjoin of tasks, in which case it will be treated
+              as a "fork-join" task in the sequence, i.e. all the
+              fork-join tasks will depend on the last task in the
+              sequence (could be fork join) and the next added task
+              will depend on all tasks in this fork-join task
         """
         for fork_join_tasks in tasks:
             if isinstance(fork_join_tasks, forkjoin):
@@ -415,29 +388,17 @@ class SubgraphTask(tasks.WorkflowTask):
                  graph,
                  workflow_context=None,
                  task_id=None,
-                 on_success=None,
-                 on_failure=None,
-                 info=None,
                  total_retries=tasks.DEFAULT_SUBGRAPH_TOTAL_RETRIES,
-                 retry_interval=tasks.DEFAULT_RETRY_INTERVAL,
-                 send_task_events=tasks.DEFAULT_SEND_TASK_EVENTS,
                  **kwargs):
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,
-            info=info,
-            on_success=on_success,
-            on_failure=on_failure,
-            total_retries=total_retries,
-            retry_interval=retry_interval,
-            send_task_events=send_task_events)
+            total_retries=total_retries)
         self.graph = graph
-        self._name = info
         self.tasks = {}
         self.failed_task = None
         if not self.on_failure:
             self.on_failure = lambda tsk: tasks.HandlerResult.fail()
-        self.async_result = tasks.StubAsyncResult()
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
@@ -457,7 +418,7 @@ class SubgraphTask(tasks.WorkflowTask):
 
     @property
     def name(self):
-        return self._name
+        return self.info
 
     @property
     def is_subgraph(self):
@@ -474,6 +435,7 @@ class SubgraphTask(tasks.WorkflowTask):
 
     def add_task(self, task):
         self.graph.add_task(task)
+        self.add_dependency(task, self)
         self.tasks[task.id] = task
         if task.containing_subgraph and task.containing_subgraph is not self:
             raise RuntimeError('task {0}[{1}] cannot be contained in more '
@@ -492,18 +454,36 @@ class SubgraphTask(tasks.WorkflowTask):
         self.graph.add_dependency(src_task, dst_task)
 
     def apply_async(self):
+        super(SubgraphTask, self).apply_async()
         if not self.tasks:
             self.set_state(tasks.TASK_SUCCEEDED)
         else:
+            # subgraph started - allow its tasks to run - remove their
+            # dependency on the subgraph, so they don't wait on the
+            # subgraph anymore
+            for task_id, task in self.tasks.items():
+                self.graph.remove_dependency(task, self)
             self.set_state(tasks.TASK_STARTED)
+        return self.async_result
 
     def task_terminated(self, task, new_task=None):
         del self.tasks[task.id]
         if new_task:
             self.tasks[new_task.id] = new_task
             new_task.containing_subgraph = self
-        if not self.tasks and self.get_state() not in tasks.TERMINATED_STATES:
-            self.set_state(tasks.TASK_SUCCEEDED)
+        if self.get_state() not in tasks.TERMINATED_STATES:
+            if self.failed_task:
+                self.set_state(tasks.TASK_FAILED)
+            elif not self.tasks:
+                self.set_state(tasks.TASK_SUCCEEDED)
+
+    def set_state(self, state):
+        super(SubgraphTask, self).set_state(state)
+        if state in tasks.TERMINATED_STATES:
+            self.async_result.result = None
+
+    def __repr__(self):
+        return '<{0} {1}: {2}>'.format(self.task_type, self.id, self.info)
 
 
 OP_TYPES = {

@@ -1,0 +1,267 @@
+###
+# this is a minimal version of Cloudify types.yaml, to be used only in
+# cloudify-common unittests.
+###
+
+
+
+plugins:
+  default_workflows:
+    executor: central_deployment_agent
+    install: false
+
+node_types:
+  cloudify.nodes.Root:
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        precreate: {}
+        create: {}
+        configure: {}
+        start: {}
+        poststart: {}
+        prestop: {}
+        stop: {}
+        delete: {}
+        postdelete: {}
+      cloudify.interfaces.validation:
+        create: {}
+        delete: {}
+      cloudify.interfaces.monitoring:
+        start: {}
+        stop: {}
+
+  cloudify.nodes.Compute:
+    derived_from: cloudify.nodes.Root
+    properties:
+      agent_config:
+        default:
+          install_method: remote
+      install_agent:
+        default: ''
+
+    interfaces:
+      cloudify.interfaces.cloudify_agent:
+        create: {}
+        configure: {}
+        start: {}
+        stop: {}
+        stop_amqp: {}
+        delete: {}
+        restart: {}
+        restart_amqp: {}
+        install_plugins: {}
+        uninstall_plugins: {}
+        create_amqp: {}
+        validate_amqp: {}
+
+
+      cloudify.interfaces.host:  # DEPRECATED
+        get_state: {}
+
+      cloudify.interfaces.monitoring_agent:
+        install: {}
+        start: {}
+        stop: {}
+        uninstall: {}
+
+relationships:
+  cloudify.relationships.depends_on:
+    source_interfaces:
+      cloudify.interfaces.relationship_lifecycle:
+        preconfigure: {}
+        postconfigure: {}
+        establish: {}
+        unlink: {}
+    target_interfaces:
+      cloudify.interfaces.relationship_lifecycle:
+        preconfigure: {}
+        postconfigure: {}
+        establish: {}
+        unlink: {}
+    properties:
+      connection_type:
+        default: all_to_all
+
+  cloudify.relationships.connected_to:
+    derived_from: cloudify.relationships.depends_on
+
+  cloudify.relationships.contained_in:
+    derived_from: cloudify.relationships.depends_on
+
+workflows:
+  install:
+    mapping: default_workflows.cloudify.plugins.workflows.install
+    is_cascading: false
+
+  uninstall:
+    mapping: default_workflows.cloudify.plugins.workflows.uninstall
+    is_cascading: false
+    parameters:
+      ignore_failure:
+        default: false
+        type: boolean
+
+  start:
+    mapping: default_workflows.cloudify.plugins.workflows.start
+    is_cascading: false
+    parameters:
+      operation_parms:
+        default: {}
+      run_by_dependency_order:
+        default: true
+      type_names:
+        default: []
+      node_ids:
+        default: []
+      node_instance_ids:
+        default: []
+
+  stop:
+    mapping: default_workflows.cloudify.plugins.workflows.stop
+    is_cascading: false
+    parameters:
+      operation_parms:
+        default: {}
+      run_by_dependency_order:
+        default: true
+      type_names:
+        default: []
+      node_ids:
+        default: []
+      node_instance_ids:
+        default: []
+
+  restart:
+    mapping: default_workflows.cloudify.plugins.workflows.restart
+    is_cascading: false
+    parameters:
+      stop_parms:
+        default: {}
+      start_parms:
+        default: {}
+      run_by_dependency_order:
+        default: true
+      type_names:
+        default: []
+      node_ids:
+        default: []
+      node_instance_ids:
+        default: []
+
+  execute_operation:
+    mapping: default_workflows.cloudify.plugins.workflows.execute_operation
+    is_cascading: false
+    parameters:
+      operation: {}
+      operation_kwargs:
+        default: {}
+      allow_kwargs_override:
+        default: null
+      run_by_dependency_order:
+        default: false
+      type_names:
+        default: []
+      node_ids:
+        default: []
+      node_instance_ids:
+        default: []
+
+  heal:
+    mapping: default_workflows.cloudify.plugins.workflows.auto_heal_reinstall_node_subgraph
+    is_cascading: false
+    parameters:
+      node_instance_id:
+        description: Which node instance has failed
+      diagnose_value:
+        description: Diagnosed reason of failure
+        default: Not provided
+      ignore_failure:
+        default: true
+        type: boolean
+
+  update:
+    mapping: default_workflows.cloudify.plugins.workflows.update
+    is_cascading: false
+    parameters:
+      update_id:
+        default: ''
+      skip_install:
+        default: false
+      skip_uninstall:
+        default: false
+      added_instance_ids:
+        default: []
+        type: list
+      added_target_instances_ids:
+        default: []
+        type: list
+      removed_instance_ids:
+        default: []
+        type: list
+      remove_target_instance_ids:
+        default: []
+        type: list
+      modified_entity_ids:
+        default: []
+        type: list
+      extended_instance_ids:
+        default: []
+        type: list
+      extend_target_instance_ids:
+        default: []
+        type: list
+      reduced_instance_ids:
+        default: []
+        type: list
+      reduce_target_instance_ids:
+        default: []
+        type: list
+      ignore_failure:
+        default: false
+        type: boolean
+      install_first:
+        default: false
+        type: boolean
+      node_instances_to_reinstall:
+        default: []
+        type: list
+      central_plugins_to_install:
+        default: []
+        type: list
+      central_plugins_to_uninstall:
+        default: []
+        type: list
+      update_plugins:
+        default: true
+        type: boolean
+
+  install_new_agents:
+    mapping: default_workflows.cloudify.plugins.workflows.install_new_agents
+    is_cascading: false
+    parameters:
+      install_agent_timeout:
+        default: 300
+      node_ids:
+        default: []
+      node_instance_ids:
+        default: []
+      install_methods:
+        default: null
+      validate:
+        default: True
+        type: boolean
+      install:
+        default: True
+        type: boolean
+      install_script:
+        default: ''
+      manager_ip:
+        description: The private ip of the new manager
+        default: ''
+      manager_certificate:
+        description: The cloudify_internal_ca_cert.pem of the new manager
+        default: ''
+      stop_old_agent:
+        description: Stop the old agent after the new agent is installed
+        default: false
+        type: boolean

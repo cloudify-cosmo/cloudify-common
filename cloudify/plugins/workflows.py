@@ -436,8 +436,7 @@ def scale_entity(ctx,
                     raise
 
                 ctx.logger.error('Scale out failed, scaling back in.')
-                tasks_list = [task for task in graph.tasks_iter()]
-                for task in tasks_list:
+                for task in graph.tasks:
                     graph.remove_task(task)
                 lifecycle.uninstall_node_instances(
                     graph=graph,

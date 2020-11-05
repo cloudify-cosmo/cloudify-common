@@ -218,7 +218,7 @@ class LifecycleProcessor(object):
     def _handle_dependency_creation(source_subgraph, target_subgraph,
                                     operation, target_id, graph):
         if operation:
-            for task_subgraph in target_subgraph.graph.tasks_iter():
+            for task_subgraph in target_subgraph.graph.tasks:
                 # If the task is not an operation task
                 if not task_subgraph.cloudify_context:
                     continue
@@ -285,7 +285,7 @@ def _find_install_subgraphs(graph):
     Make a dict of {instance id: subgraph}, based on the subgraph name.
     """
     install_subgraphs = {}
-    for task in graph.tasks_iter():
+    for task in graph.tasks:
         if task.is_subgraph and task.name.startswith('install_'):
             instance_name = task.name[len('install_'):]
             install_subgraphs[instance_name] = task
@@ -398,7 +398,9 @@ def ignore_subgraph_on_task_failure(subgraph):
 
 def set_send_node_event_on_error_handler(task, instance):
     def send_node_event_error_handler(tsk):
-        instance.send_event('Ignoring task {0} failure'.format(tsk.name))
+        event = instance.send_event(
+            'Ignoring task {0} failure'.format(tsk.name))
+        event.apply_async()
         return workflow_tasks.HandlerResult.ignore()
     task.on_failure = send_node_event_error_handler
 

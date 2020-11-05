@@ -123,4 +123,4 @@ class TestGraphSerialize(TestCase):
                          deserialized_subgraph.id)
 
         # this checks dependencies
-        self.assertEqual(deserialized.graph.edges(), graph.graph.edges())
+        self.assertEqual(deserialized._dependencies, graph._dependencies)

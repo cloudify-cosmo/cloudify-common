@@ -614,13 +614,13 @@ class WorkflowHandler(TaskHandler):
                     # deprecated api.EXECUTION_CANCELLED_RESULT as result).
                     # parent thread then goes back to polling for messages from
                     # child thread or possibly 'force-cancelling' requests
-                    api.cancel_request = True
+                    api.set_cancel_request()
 
                 if execution.status == Execution.KILL_CANCELLING:
                     # if a custom workflow function must attempt some cleanup,
                     # it might attempt to catch SIGTERM, and confirm using this
                     # flag that it is being kill-cancelled
-                    api.kill_request = True
+                    api.set_kill_request()
 
                 if execution.status in [
                         Execution.FORCE_CANCELLING,
@@ -673,8 +673,7 @@ class WorkflowHandler(TaskHandler):
             self.ctx.internal.start_local_tasks_processing()
             result = self.func(*self.args, **self.kwargs)
             if not self.ctx.internal.graph_mode:
-                tasks = list(self.ctx.internal.task_graph.tasks_iter())
-                for workflow_task in tasks:
+                for workflow_task in self.ctx.internal.task_graph.tasks:
                     workflow_task.async_result.get()
             return result
         finally:
