@@ -19,7 +19,6 @@ from os import path
 
 import mock
 import testtools
-from testtools.matchers import MatchesAny, Equals, GreaterThan
 
 from cloudify import exceptions
 from cloudify.plugins import lifecycle
@@ -91,29 +90,28 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation(self, cfy_local):
-        params = self._get_params()
-        cfy_local.execute('execute_operation', params)
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.create'
+        })
         self._make_filter_assertions(cfy_local, 4)
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_default_values(self, cfy_local):
-        params = {'operation': 'cloudify.interfaces.lifecycle.create'}
-        cfy_local.execute('execute_operation', params)
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.create'
+        })
         self._make_filter_assertions(cfy_local, 4)
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_with_operation_parameters(self, cfy_local):
-        self._test_execute_operation_with_op_params(cfy_local,
-                                                    'cloudify.interfaces.'
-                                                    'lifecycle.create')
+        self._test_execute_operation_with_op_params(
+            cfy_local, 'cloudify.interfaces.lifecycle.create')
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_with_op_params_and_kwargs_override_allowed(
             self, cfy_local):
-        self._test_execute_operation_with_op_params(cfy_local,
-                                                    'cloudify.interfaces.'
-                                                    'lifecycle.configure',
-                                                    True)
+        self._test_execute_operation_with_op_params(
+            cfy_local, 'cloudify.interfaces.lifecycle.configure', True)
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_with_op_params_and_kwargs_override_disallowed(
@@ -129,15 +127,11 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
 
     def _test_exec_op_with_params_and_no_kwargs_override(self, cfy_local,
                                                          kw_over_val):
-        try:
-            self._test_execute_operation_with_op_params(cfy_local,
-                                                        'cloudify.interfaces.'
-                                                        'lifecycle.configure',
-                                                        kw_over_val)
-            self.fail('expected kwargs override to be disallowed')
-        except RuntimeError as e:
-            self.assertIn(
-                'To allow redefinition, pass "allow_kwargs_override"', str(e))
+        self.assertRaisesRegex(
+            RuntimeError, 'allow_kwargs_override',
+            self._test_execute_operation_with_op_params,
+            cfy_local, 'cloudify.interfaces.lifecycle.configure', kw_over_val
+        )
 
     def _test_execute_operation_with_op_params(self, cfy_local, op,
                                                allow_kw_override=None):
@@ -145,9 +139,11 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
         operation_param_value = 'operation_param_value'
         op_params = {operation_param_key: operation_param_value}
 
-        params = self._get_params(op=op, op_params=op_params,
-                                  allow_kw_override=allow_kw_override)
-        cfy_local.execute('execute_operation', params)
+        cfy_local.execute('execute_operation', {
+            'operation': op,
+            'operation_kwargs': op_params,
+            'allow_kwargs_override': allow_kw_override
+        })
         self._make_filter_assertions(cfy_local, 4)
 
         instances = cfy_local.storage.get_node_instances()
@@ -160,84 +156,106 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_by_nodes(self, cfy_local):
-        node_ids = ['node2', 'node3']
-        params = self._get_params(node_ids=node_ids)
-        cfy_local.execute('execute_operation', params)
-        self._make_filter_assertions(cfy_local, 3, node_ids=node_ids)
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.create',
+            'node_ids': ['node2', 'node3']
+        })
+        self._make_filter_assertions(cfy_local, 3, node_ids=['node2', 'node3'])
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_by_node_instances(self, cfy_local):
         instances = cfy_local.storage.get_node_instances()
         node_instance_ids = [instances[0].id, instances[3].id]
-        params = self._get_params(node_instance_ids=node_instance_ids)
-        cfy_local.execute('execute_operation', params)
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.create',
+            'node_instance_ids': node_instance_ids
+        })
         self._make_filter_assertions(cfy_local, 2,
                                      node_instance_ids=node_instance_ids)
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_by_type_names(self, cfy_local):
-        type_names = ['mock_type2']
-        params = self._get_params(type_names=type_names)
-        cfy_local.execute('execute_operation', params)
-        self._make_filter_assertions(cfy_local, 3, type_names=type_names)
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.create',
+            'type_names': ['mock_type2']
+        })
+        self._make_filter_assertions(cfy_local, 3, type_names=['mock_type2'])
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_by_nodes_and_types(self, cfy_local):
-        node_ids = ['node1', 'node2']
-        type_names = ['mock_type2']
-        params = self._get_params(node_ids=node_ids, type_names=type_names)
-        cfy_local.execute('execute_operation', params)
-        self._make_filter_assertions(cfy_local, 2, node_ids=node_ids,
-                                     type_names=type_names)
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.create',
+            'type_names': ['mock_type2'],
+            'node_ids': ['node1', 'node2']
+        })
+        self._make_filter_assertions(cfy_local, 2, node_ids=['node1', 'node2'],
+                                     type_names=['mock_type2'])
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_by_nodes_types_and_node_instances(self,
                                                                  cfy_local):
         node_ids = ['node2', 'node3']
         type_names = ['mock_type2', 'mock_type1']
-        instances = cfy_local.storage.get_node_instances()
-        node_instance_ids = [next(inst.id for inst in instances if
-                                  inst.node_id == 'node2')]
-        params = self._get_params(node_ids=node_ids,
-                                  node_instance_ids=node_instance_ids,
-                                  type_names=type_names)
-        cfy_local.execute('execute_operation', params)
+        node_instance_ids = [
+            inst.id for inst in cfy_local.storage.get_node_instances()
+            if inst.node_id == 'node2'
+        ][:1]
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.create',
+            'type_names': type_names,
+            'node_ids': node_ids,
+            'node_instance_ids': node_instance_ids
+        })
         self._make_filter_assertions(cfy_local, 1, node_ids=node_ids,
                                      node_instance_ids=node_instance_ids,
                                      type_names=type_names)
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_empty_intersection(self, cfy_local):
-        node_ids = ['node1', 'node2']
-        type_names = ['mock_type3']
-        params = self._get_params(node_ids=node_ids, type_names=type_names)
-        cfy_local.execute('execute_operation', params)
-        self._make_filter_assertions(cfy_local, 0, node_ids=node_ids,
-                                     type_names=type_names)
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.create',
+            'type_names': ['mock_type3'],
+            'node_ids': ['node1', 'node2']
+        })
+        self._make_filter_assertions(cfy_local, 0, node_ids=['node1', 'node2'],
+                                     type_names=['mock_type3'])
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_with_dependency_order(self, cfy_local):
-        time_diff_assertions_pairs = [
-            (0, 1),  # node 1 instance and node 2 instance
-            (0, 2),  # node 1 instance and node 2 instance
-            (1, 3),  # node 2 instance and node 3 instance
-            (2, 3)  # node 2 instance and node 3 instance
-        ]
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.start',
+            'run_by_dependency_order': True
+        }, task_thread_pool_size=4)
 
-        self._dep_order_tests_helper(cfy_local, [],
-                                     ['node1', 'node2', 'node2', 'node3'],
-                                     time_diff_assertions_pairs)
+        instances = cfy_local.storage.get_node_instances()
+        node1_time = next(ni.runtime_properties['visit_time']
+                          for ni in instances if ni.node_id == 'node1')
+        node2_time1, node2_time2 = [
+            ni.runtime_properties['visit_time']
+            for ni in instances if ni.node_id == 'node2']
+        node3_time = next(ni.runtime_properties['visit_time']
+                          for ni in instances if ni.node_id == 'node3')
+
+        assert node1_time < node2_time1
+        assert node1_time < node2_time2
+        assert node2_time1 < node3_time
+        assert node2_time2 < node3_time
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_with_indirect_dependency_order(self, cfy_local):
-        time_diff_assertions_pairs = [
-            (0, 1),  # node 1 instance and node 3 instance
-        ]
+        cfy_local.execute('execute_operation', {
+            'operation': 'cloudify.interfaces.lifecycle.start',
+            'run_by_dependency_order': True,
+            'node_ids': ['node1', 'node3'],
+        }, task_thread_pool_size=4)
 
-        self._dep_order_tests_helper(cfy_local,
-                                     ['node1', 'node3'],
-                                     ['node1', 'node3'],
-                                     time_diff_assertions_pairs)
+        instances = cfy_local.storage.get_node_instances()
+        node1_time = next(ni.runtime_properties['visit_time']
+                          for ni in instances if ni.node_id == 'node1')
+        node3_time = next(ni.runtime_properties['visit_time']
+                          for ni in instances if ni.node_id == 'node3')
+
+        assert node1_time < node3_time
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_failure_zero_subgraph_retries(self, cfy_local):
@@ -279,19 +297,23 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
 
     def _test_retries(self, cfy_local,
                       op, count, subgraph_retries, expected_str):
-        params = self._get_params(op=op,
-                                  op_params={'count': count},
-                                  node_ids=['node1'])
-        e = self.assertRaises(RuntimeError,
-                              cfy_local.execute,
-                              'execute_operation', params,
-                              task_retries=1,
-                              task_retry_interval=0,
-                              subgraph_retries=subgraph_retries)
+        params = {
+            'operation': op,
+            'operation_kwargs': {'count': count},
+            'node_ids': ['node1']
+        }
+
+        self.assertRaisesRegex(
+            RuntimeError, expected_str,
+            cfy_local.execute,
+            'execute_operation', params,
+            task_retries=1,
+            task_retry_interval=0,
+            subgraph_retries=subgraph_retries)
+
         instance = cfy_local.storage.get_node_instances('node1')[0]
         invocations = instance.runtime_properties.get('invocations', [])
         self.assertEqual(len(invocations), 2)
-        self.assertIn(expected_str, str(e))
 
     def _make_filter_assertions(self, cfy_local,
                                 expected_num_of_visited_instances,
@@ -320,53 +342,6 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
         # this is actually an assertion to ensure the tests themselves are ok
         self.assertEquals(expected_num_of_visited_instances,
                           num_of_visited_instances)
-
-    def _dep_order_tests_helper(self, cfy_local, node_ids_param,
-                                ordered_node_ids_of_instances,
-                                indices_pairs_for_time_diff_assertions):
-        params = self._get_params(
-            op='cloudify.interfaces.lifecycle.start',
-            node_ids=node_ids_param,
-            run_by_dep=True)
-        cfy_local.execute('execute_operation', params, task_thread_pool_size=4)
-
-        instances_and_visit_times = sorted(
-            ((inst, inst.runtime_properties['visit_time']) for inst in
-             cfy_local.storage.get_node_instances() if 'visit_time' in
-             inst.runtime_properties),
-            key=lambda inst_and_time: inst_and_time[1])
-
-        self.assertEqual(ordered_node_ids_of_instances,
-                         [inst_and_time[0].node_id for inst_and_time in
-                          instances_and_visit_times])
-
-        # asserting time difference between the operation execution for the
-        # different nodes. this way if something breaks and the tasks aren't
-        # dependent on one another, there's a better chance we'll catch
-        # it, since even if the order of the visits happens to be correct,
-        # it's less likely there'll be a significant time difference between
-        # the visits
-        def assert_time_difference(earlier_inst_index, later_inst_index):
-            td = instances_and_visit_times[later_inst_index][1] - \
-                instances_and_visit_times[earlier_inst_index][1]
-            self.assertThat(td, MatchesAny(Equals(1), GreaterThan(1)))
-
-        for index1, index2 in indices_pairs_for_time_diff_assertions:
-            assert_time_difference(index1, index2)
-
-    def _get_params(self, op='cloudify.interfaces.lifecycle.create',
-                    op_params=None, run_by_dep=False,
-                    allow_kw_override=None, node_ids=None,
-                    node_instance_ids=None, type_names=None):
-        return {
-            'operation': op,
-            'operation_kwargs': op_params or {},
-            'run_by_dependency_order': run_by_dep,
-            'allow_kwargs_override': allow_kw_override,
-            'node_ids': node_ids or [],
-            'node_instance_ids': node_instance_ids or [],
-            'type_names': type_names or []
-        }
 
 
 class TestScale(testtools.TestCase):
@@ -692,7 +667,6 @@ def exec_op_test_operation(ctx, **kwargs):
 @operation
 def exec_op_dependency_order_test_operation(ctx, **kwargs):
     ctx.instance.runtime_properties['visit_time'] = time.time()
-    time.sleep(1)
 
 
 @operation
