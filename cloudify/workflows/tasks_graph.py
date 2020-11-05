@@ -458,6 +458,9 @@ class SubgraphTask(tasks.WorkflowTask):
         if not self.tasks:
             self.set_state(tasks.TASK_SUCCEEDED)
         else:
+            # subgraph started - allow its tasks to run - remove their
+            # dependency on the subgraph, so they don't wait on the
+            # subgraph anymore
             for task_id, task in self.tasks.items():
                 self.graph.remove_dependency(task, self)
             self.set_state(tasks.TASK_STARTED)
