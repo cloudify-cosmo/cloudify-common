@@ -291,8 +291,6 @@ class WorkflowTask(object):
         (i.e. has either failed or been rescheduled)
         """
         result = self.async_result.result
-        if isinstance(result, HandlerResult):
-            return result
 
         if isinstance(result, exceptions.OperationRetry):
             # operation explicitly requested a retry, so we ignore

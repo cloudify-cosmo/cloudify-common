@@ -84,11 +84,11 @@ class TestTasksGraphExecute(testtools.TestCase):
             name = 'failtask'
 
             def apply_async(self):
-                self.async_result.result = tasks.HandlerResult.fail()
+                self.async_result.result = None
                 self.set_state(tasks.TASK_FAILED)
                 return self.async_result
 
-        task1 = FailedTask(mock.Mock())
+        task1 = FailedTask(mock.Mock(), total_retries=0)
         task2 = mock.Mock(execute_after=0)
 
         g = TaskDependencyGraph(MockWorkflowContext())
