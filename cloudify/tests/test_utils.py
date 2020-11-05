@@ -195,13 +195,18 @@ class TestRestUtils(object):
         temp_dir = tempfile.mkdtemp()
         sub_dir = os.path.join(temp_dir, 'sub_dir')
         os.mkdir(sub_dir)
-        os_dir_size = os.path.getsize(temp_dir)
-        open(os.path.join(temp_dir, '1.bin'), 'wb').write(b'ABCD')
-        open(os.path.join(sub_dir, '2.bin'), 'wb').write(b'1234567890')
-        size_fixture = 25
-        if "CIRCLECI" in os.environ:
-            size_fixture = 14
-        expected_dir_size = 2 * os_dir_size + size_fixture
+        file1_content = b'ABCD'
+        file2_content = b'1234567890'
+        with open(os.path.join(temp_dir, '1.bin'), 'wb') as f:
+            f.write(file1_content)
+        with open(os.path.join(sub_dir, '2.bin'), 'wb') as f:
+            f.write(file2_content)
+        expected_dir_size = (
+            os.path.getsize(temp_dir) +
+            os.path.getsize(sub_dir) +
+            len(file1_content) +
+            len(file2_content)
+        )
         assert rest_utils.get_folder_size_and_files(temp_dir) == \
             (expected_dir_size, 3)
         shutil.rmtree(temp_dir)
