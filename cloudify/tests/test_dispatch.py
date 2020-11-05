@@ -22,7 +22,7 @@ import tempfile
 from mock import patch, MagicMock, Mock
 import testtools
 
-from cloudify import amqp_client
+from cloudify import amqp_client, amqp_client_utils
 from cloudify import dispatch
 from cloudify import exceptions
 from cloudify import utils
@@ -54,7 +54,8 @@ class TestDispatchTaskHandler(testtools.TestCase):
         register_calls = process_registry.register.mock_calls
         self.assertEqual(len(register_calls), 1)
 
-    def test_dispatch_update_operation_resume(self):
+    @patch('cloudify.dispatch.amqp_client_utils')
+    def test_dispatch_update_operation_resume(self, _):
         """When the operation was already started, we set resume=true
 
         (and the function fails because it's not resumable)
@@ -338,6 +339,8 @@ class TestDispatchTaskHandler(testtools.TestCase):
 
 if os.environ.get('CLOUDIFY_DISPATCH'):
     amqp_client.create_client = Mock()
+    amqp_client_utils.init_events_publisher = Mock()
+    amqp_client_utils.close_amqp_client = Mock()
 
 
 def func1(result):
