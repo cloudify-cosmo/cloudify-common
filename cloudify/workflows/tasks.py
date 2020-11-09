@@ -188,10 +188,10 @@ class WorkflowTask(object):
         if not handler:
             return None
         if isinstance(handler, types.FunctionType):
-            path = '{0}.{1}'.format(handler.__module__, handler.__qualname__)
+            path = '{0}.{1}'.format(handler.__module__, handler.__name__)
         else:
             path = '{0}.{1}'.format(
-                handler.__class__.__module__, handler.__class__.__qualname__)
+                handler.__class__.__module__, handler.__class__.__name__)
         if '<' in path:  # eg. "f.<locals>.g"
             raise exceptions.NonRecoverableError(
                 'Cannot serialize handler {0}'.format(handler))
