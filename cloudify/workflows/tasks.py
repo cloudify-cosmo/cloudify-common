@@ -13,10 +13,11 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import time
-import uuid
 import functools
+import time
 import threading
+import types
+import uuid
 
 from cloudify import exceptions, logs
 from cloudify.workflows import api
@@ -38,6 +39,7 @@ from cloudify.constants import (
     TERMINATED_STATES,
 )
 from cloudify.state import workflow_ctx
+from cloudify.utils import get_func
 # imported for backwards compat:
 from cloudify.constants import TASK_RESPONSE_SENT  # noqa
 from cloudify.utils import INSPECT_TIMEOUT  # noqa
@@ -139,6 +141,8 @@ class WorkflowTask(object):
     @classmethod
     def restore(cls, ctx, graph, task_descr):
         params = task_descr.parameters
+        on_success = cls._deserialize_handler(params.pop('on_success', None))
+        on_failure = cls._deserialize_handler(params.pop('on_failure', None))
         task = cls(
             workflow_context=ctx,
             task_id=task_descr.id,
@@ -146,6 +150,8 @@ class WorkflowTask(object):
             **params['task_kwargs']
         )
         task._state = task_descr.state
+        task.on_failure = on_failure
+        task.on_success = on_success
         task.current_retries = params['current_retries']
         task.send_task_events = params['send_task_events']
         task.containing_subgraph = params['containing_subgraph']
@@ -171,6 +177,42 @@ class WorkflowTask(object):
     def task_type(self):
         return self.__class__.__name__
 
+    def _serialize_handler(self, handler):
+        """Serialize the on_failure/on_success handler.
+
+        For functions, just their qualified import name will be stored
+        (and later restored by simply importing it).
+        For class instances, the qualified import name and optionally the
+        __init__ kwargs returned by a .dump method on that class.
+        """
+        if not handler:
+            return None
+        if isinstance(handler, types.FunctionType):
+            path = '{0}.{1}'.format(handler.__module__, handler.__name__)
+        else:
+            path = '{0}.{1}'.format(
+                handler.__class__.__module__, handler.__class__.__name__)
+        if '<' in path:  # eg. "f.<locals>.g"
+            raise exceptions.NonRecoverableError(
+                'Cannot serialize handler {0}'.format(handler))
+        serialized = {'path': path}
+        if hasattr(handler, 'dump'):
+            serialized.update(handler.dump())
+        return serialized
+
+    @classmethod
+    def _deserialize_handler(cls, data):
+        if not data:
+            return None
+        elif 'path' in data:
+            func = get_func(data.pop('path'))
+            if isinstance(func, types.FunctionType):
+                return func
+            return func(**data)
+        else:
+            raise exceptions.NonRecoverableError(
+                'Cannot deserialize: {0!r}'.format(data))
+
     def dump(self):
         self.stored = True
         return {
@@ -179,6 +221,8 @@ class WorkflowTask(object):
             'state': self._state,
             'type': self.task_type,
             'parameters': {
+                'on_success': self._serialize_handler(self.on_success),
+                'on_failure': self._serialize_handler(self.on_failure),
                 'retried_task': self.retried_task,
                 'current_retries': self.current_retries,
                 'send_task_events': self.send_task_events,

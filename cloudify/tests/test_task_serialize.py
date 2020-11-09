@@ -15,7 +15,7 @@
 
 from testtools import TestCase
 
-
+from cloudify import exceptions
 from cloudify.workflows import tasks, tasks_graph
 from cloudify_rest_client.operations import Operation, TasksGraph
 
@@ -48,6 +48,23 @@ def _make_remote_task(kwargs=None):
     )
 
 
+def _on_success_func(tsk):
+    pass
+
+
+class _OnFailureHandler(object):
+    def __init__(self, value):
+        self.value = value
+
+    def dump(self):
+        return {
+            'value': self.value
+        }
+
+    def __call__(self):
+        return self.value
+
+
 class TestSerialize(TestCase):
 
     def test_task_serialize(self):
@@ -76,6 +93,34 @@ class TestSerialize(TestCase):
         self.assertFalse(task.stored)
         task.dump()
         self.assertTrue(task.stored)
+
+    def test_handler_serialize_func(self):
+        task = _make_remote_task()
+        task.on_success = _on_success_func
+        serialized = Operation(task.dump())
+        deserialized = tasks.RemoteWorkflowTask.restore(
+            ctx=_MockCtx({}),
+            graph=None,
+            task_descr=serialized)
+        self.assertIs(task.on_success, deserialized.on_success)
+
+    def test_handler_serialize_class(self):
+        task = _make_remote_task()
+        task.on_success = _OnFailureHandler(42)
+        serialized = Operation(task.dump())
+        deserialized = tasks.RemoteWorkflowTask.restore(
+            ctx=_MockCtx({}),
+            graph=None,
+            task_descr=serialized)
+        self.assertEqual(deserialized.on_success(), 42)
+
+    def test_handler_serialize_error(self):
+        task = _make_remote_task()
+        task.on_success = lambda tsk: None
+        self.assertRaises(
+            exceptions.NonRecoverableError,
+            task.dump
+        )
 
 
 class TestGraphSerialize(TestCase):

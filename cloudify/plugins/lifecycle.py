@@ -15,7 +15,7 @@
 
 import itertools
 
-from cloudify import utils
+from cloudify import exceptions, utils
 from cloudify import constants
 from cloudify.state import workflow_ctx
 from cloudify.workflows.tasks_graph import forkjoin, make_or_get_graph
@@ -377,17 +377,6 @@ def ignore_subgraph_on_task_failure(subgraph):
     This is to be used in the pre-resume cleanup graphs, so that
     the cleanup failing doesn't block the install from being resumed.
     """
-    def _ignore_subgraph_failure(tsk):
-        workflow_ctx.logger.info('Ignoring subgraph failure in cleanup')
-        for t in tsk.tasks.values():
-            if t.get_state() == workflow_tasks.TASK_PENDING:
-                tsk.remove_task(t)
-        return workflow_tasks.HandlerResult.ignore()
-
-    def _ignore_task_failure(tsk):
-        workflow_ctx.logger.info('Ignoring task failure in cleanup')
-        return workflow_tasks.HandlerResult.ignore()
-
     for task in subgraph.tasks.values():
         if task.is_subgraph:
             ignore_subgraph_on_task_failure(task)
@@ -397,12 +386,7 @@ def ignore_subgraph_on_task_failure(subgraph):
 
 
 def set_send_node_event_on_error_handler(task, instance):
-    def send_node_event_error_handler(tsk):
-        event = instance.send_event(
-            'Ignoring task {0} failure'.format(tsk.name))
-        event.apply_async()
-        return workflow_tasks.HandlerResult.ignore()
-    task.on_failure = send_node_event_error_handler
+    task.on_failure = _SendNodeEventHandler(instance)
 
 
 def _skip_nop_operations(task, pre=None, post=None):
@@ -591,7 +575,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         )]
 
     sequence.add(*tasks)
-    subgraph.on_failure = get_subgraph_on_failure_handler(instance)
+    subgraph.on_failure = _SubgraphOnFailure(instance)
     return subgraph
 
 
@@ -727,8 +711,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
     if ignore_failure:
         set_ignore_handlers(subgraph)
     else:
-        subgraph.on_failure = get_subgraph_on_failure_handler(
-            instance, uninstall_node_instance_subgraph)
+        subgraph.on_failure = _SubgraphOnFailure(instance, 'uninstall')
 
     return subgraph
 
@@ -745,27 +728,8 @@ def reinstall_node_instance_subgraph(instance, graph):
                             'Attempting to re-run node lifecycle'),
         uninstall_subgraph,
         install_subgraph)
-    reinstall_subgraph.on_failure = get_subgraph_on_failure_handler(
-        instance)
+    reinstall_subgraph.on_failure = _SubgraphOnFailure(instance)
     return reinstall_subgraph
-
-
-def get_subgraph_on_failure_handler(
-        instance, retried_task=reinstall_node_instance_subgraph):
-    def subgraph_on_failure_handler(subgraph):
-        graph = subgraph.graph
-        for task in subgraph.tasks.values():
-            subgraph.remove_task(task)
-        if not subgraph.containing_subgraph:
-            result = workflow_tasks.HandlerResult.retry()
-            result.retried_task = retried_task(instance, graph)
-            result.retried_task.current_retries = subgraph.current_retries + 1
-        else:
-            result = workflow_tasks.HandlerResult.ignore()
-            subgraph.containing_subgraph.failed_task = subgraph.failed_task
-            subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
-        return result
-    return subgraph_on_failure_handler
 
 
 def _relationships_operations(graph,
@@ -773,13 +737,6 @@ def _relationships_operations(graph,
                               operation,
                               reverse=False,
                               modified_relationship_ids=None):
-    def on_failure(subgraph):
-        for task in subgraph.tasks.values():
-            subgraph.remove_task(task)
-        handler_result = workflow_tasks.HandlerResult.ignore()
-        subgraph.containing_subgraph.failed_task = subgraph.failed_task
-        subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
-        return handler_result
     relationships_groups = itertools.groupby(
         node_instance.relationships,
         key=lambda r: r.relationship.target_id)
@@ -806,7 +763,7 @@ def _relationships_operations(graph,
     if reverse:
         tasks = reversed(tasks)
     result = graph.subgraph('{0}_subgraph'.format(operation))
-    result.on_failure = on_failure
+    result.on_failure = _relationship_subgraph_on_failure
     sequence = result.sequence()
     sequence.add(*tasks)
     return result
@@ -826,18 +783,7 @@ def _wait_for_host_to_start(host_node_instance):
         'cloudify.interfaces.host.get_state')
     if task.is_nop() or workflow_ctx.dry_run:
         return task
-
-    # handler returns True if if get_state returns False,
-    # this means, that get_state will be re-executed until
-    # get_state returns True
-    def node_get_state_handler(tsk):
-        host_started = tsk.async_result.get()
-        if host_started:
-            return workflow_tasks.HandlerResult.cont()
-        else:
-            return workflow_tasks.HandlerResult.retry(
-                ignore_total_retries=True)
-    task.on_success = node_get_state_handler
+    task.on_success = _node_get_state_handler
     return task
 
 
@@ -963,3 +909,91 @@ def _host_pre_stop(host_node_instance):
                 ]
         tasks += [host_node_instance.send_event('Agent deleted')]
     return tasks
+
+
+class _SubgraphOnFailure(object):
+    def __init__(self, instance=None, on_retry='reinstall', instance_id=None):
+        if instance is None:
+            instance = workflow_ctx.get_node_instance(instance_id)
+        self.instance = instance
+        if on_retry not in ('reinstall', 'uninstall'):
+            raise exceptions.NonRecoverableError(
+                'on_retry must be reinstall or uninstall')
+        self.on_retry = on_retry
+
+    def dump(self):
+        return {
+            'instance_id': self.instance.id,
+            'on_retry': self.on_retry
+        }
+
+    def __call__(self, subgraph):
+        graph = subgraph.graph
+        for task in subgraph.tasks.values():
+            subgraph.remove_task(task)
+        if not subgraph.containing_subgraph:
+            result = workflow_tasks.HandlerResult.retry()
+            if self.on_retry == 'reinstall':
+                result.retried_task = reinstall_node_instance_subgraph(
+                    self.instance, graph)
+            elif self.on_retry == 'uninstall':
+                result.retried_task = uninstall_node_instance_subgraph(
+                    self.instance, graph)
+            else:
+                raise exceptions.NonRecoverableError(
+                    'subgraph {0} on_failure: unknown retry method {1}'
+                    .format(subgraph, self.on_retry))
+            result.retried_task.current_retries = subgraph.current_retries + 1
+        else:
+            result = workflow_tasks.HandlerResult.ignore()
+            subgraph.containing_subgraph.failed_task = subgraph.failed_task
+            subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
+        return result
+
+
+def _ignore_subgraph_failure(tsk):
+    workflow_ctx.logger.info('Ignoring subgraph failure in cleanup')
+    for t in tsk.tasks.values():
+        if t.get_state() == workflow_tasks.TASK_PENDING:
+            tsk.remove_task(t)
+    return workflow_tasks.HandlerResult.ignore()
+
+
+def _ignore_task_failure(tsk):
+    workflow_ctx.logger.info('Ignoring task failure in cleanup')
+    return workflow_tasks.HandlerResult.ignore()
+
+
+class _SendNodeEventHandler(object):
+    def __init__(self, instance=None, instance_id=None):
+        if instance is None:
+            instance = workflow_ctx.get_node_instance(instance_id)
+        self.instance = instance
+
+    def dump(self):
+        return {
+            'instance_id': self.instance.id,
+        }
+
+    def __call__(self, tsk):
+        event = self.instance.send_event(
+            'Ignoring task {0} failure'.format(tsk.name))
+        event.apply_async()
+        return workflow_tasks.HandlerResult.ignore()
+
+
+def _relationship_subgraph_on_failure(subgraph):
+    for task in subgraph.tasks.values():
+        subgraph.remove_task(task)
+    handler_result = workflow_tasks.HandlerResult.ignore()
+    subgraph.containing_subgraph.failed_task = subgraph.failed_task
+    subgraph.containing_subgraph.set_state(workflow_tasks.TASK_FAILED)
+    return handler_result
+
+
+def _node_get_state_handler(tsk):
+    host_started = tsk.async_result.get()
+    if host_started:
+        return workflow_tasks.HandlerResult.cont()
+    else:
+        return workflow_tasks.HandlerResult.retry(ignore_total_retries=True)

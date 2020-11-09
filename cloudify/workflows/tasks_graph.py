@@ -398,7 +398,7 @@ class SubgraphTask(tasks.WorkflowTask):
         self.tasks = {}
         self.failed_task = None
         if not self.on_failure:
-            self.on_failure = lambda tsk: tasks.HandlerResult.fail()
+            self.on_failure = _on_failure_handler_fail
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
@@ -484,6 +484,10 @@ class SubgraphTask(tasks.WorkflowTask):
 
     def __repr__(self):
         return '<{0} {1}: {2}>'.format(self.task_type, self.id, self.info)
+
+
+def _on_failure_handler_fail(task):
+    return tasks.HandlerResult.fail()
 
 
 OP_TYPES = {
