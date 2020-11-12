@@ -234,8 +234,8 @@ class LifecycleProcessor(object):
                     # Adding dependency to all post tasks that are dependent
                     # of the chosen operation, with the assumption that they
                     # are all only dependent on the operation not each other.
-                    for task_id in target_subgraph.graph.graph.predecessors(
-                            task_subgraph.id):
+                    for task_id in target_subgraph.graph._dependents.get(
+                            task_subgraph.id, []):
                         graph.add_dependency(source_subgraph,
                                              target_subgraph.graph.get_task(
                                                  task_id))
@@ -366,7 +366,7 @@ def _run_subgraph_before(subgraph_before, subgraph_after):
         raise RuntimeError('{0} and {1} belog to different graphs'
                            .format(subgraph_before, subgraph_after))
     graph = subgraph_before.graph
-    for dependency_id in graph.graph.successors(subgraph_after.id):
+    for dependency_id in graph._dependencies.get(subgraph_after.id, []):
         graph.add_dependency(subgraph_before.id, graph.get_task(dependency_id))
     graph.add_dependency(subgraph_after, subgraph_before)
 
