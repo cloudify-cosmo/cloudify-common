@@ -832,8 +832,9 @@ class WorkflowTaskResult(object):
         api.cancel_callbacks.discard(done.set)
 
         if api.has_cancel_request():
-            self.result = api.ExecutionCancelled()
-            raise self.result
+            if self._result is self._NOT_SET:
+                self.result = api.ExecutionCancelled()
+                raise self.result
 
         ctx = self.task.workflow_context
         if not ctx.internal.graph_mode:
