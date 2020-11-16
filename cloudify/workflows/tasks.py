@@ -376,6 +376,8 @@ class WorkflowTask(object):
         if dup.cloudify_context and 'operation' in dup.cloudify_context:
             op_ctx = dup.cloudify_context['operation']
             op_ctx['retry_number'] = dup.current_retries
+        dup.on_success = self.on_success
+        dup.on_failure = self.on_failure
         return dup
 
     def _duplicate(self):
