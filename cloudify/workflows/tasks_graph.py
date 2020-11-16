@@ -393,7 +393,8 @@ class SubgraphTask(tasks.WorkflowTask):
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,
-            total_retries=total_retries)
+            total_retries=total_retries,
+            **kwargs)
         self.graph = graph
         self.tasks = {}
         self.failed_task = None
