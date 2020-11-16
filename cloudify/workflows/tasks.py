@@ -38,7 +38,7 @@ from cloudify.constants import (
     TASK_FAILED,
     TERMINATED_STATES,
 )
-from cloudify.state import workflow_ctx
+from cloudify.state import workflow_ctx, current_workflow_ctx
 from cloudify.utils import get_func
 # imported for backwards compat:
 from cloudify.constants import TASK_RESPONSE_SENT  # noqa
@@ -72,7 +72,8 @@ def with_execute_after(f):
             t.daemon = True
             t.start()
             return task.async_result
-        return f(*args, **kwargs)
+        with current_workflow_ctx.push(task.workflow_context):
+            return f(*args, **kwargs)
     return _inner
 
 
