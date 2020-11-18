@@ -16,6 +16,8 @@
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
+from .labels import Label
+
 
 class Deployment(dict):
     """
@@ -28,6 +30,8 @@ class Deployment(dict):
         if 'workflows' in self and self['workflows']:
             # might be None, for example in response for delete deployment
             self['workflows'] = [Workflow(item) for item in self['workflows']]
+        if self.get('labels'):
+            self['labels'] = [Label(item) for item in self['labels']]
 
     @property
     def id(self):
@@ -102,6 +106,13 @@ class Deployment(dict):
     @property
     def runtime_only_evaluation(self):
         return self.get('runtime_only_evaluation')
+
+    @property
+    def labels(self):
+        """
+        :return: The labels of this deployment.
+        """
+        return self.get('labels')
 
 
 class Workflow(dict):
@@ -249,7 +260,8 @@ class DeploymentsClient(object):
                visibility=VisibilityState.TENANT,
                skip_plugins_validation=False,
                site_name=None,
-               runtime_only_evaluation=False):
+               runtime_only_evaluation=False,
+               labels=None):
         """
         Creates a new deployment for the provided blueprint id and
         deployment id.
@@ -267,6 +279,8 @@ class DeploymentsClient(object):
         :param runtime_only_evaluation: If set, all intrinsic functions
             will only be evaluated at runtime, and no functions will be
             evaluated at parse time.
+        :param labels: The deployment's labels. A list of 1-entry
+            dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
         :return: The created deployment.
         """
         assert blueprint_id
@@ -276,6 +290,8 @@ class DeploymentsClient(object):
             data['inputs'] = inputs
         if site_name:
             data['site_name'] = site_name
+        if labels:
+            data['labels'] = labels
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
@@ -342,3 +358,17 @@ class DeploymentsClient(object):
             '/deployments/{0}/set-site'.format(deployment_id),
             data=data
         )
+
+    def update_labels(self, deployment_id, labels):
+        """
+        Updateas the deployment's labels.
+
+        :param deployment_id: Deployment's id to update.
+        :param labels: The new deployment's labels. A list of 1-entry
+            dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
+        :return: The deployment
+        """
+        data = {'labels': labels}
+        updated_dep = self.api.patch(
+            '/deployments/{0}'.format(deployment_id), data=data)
+        return Deployment(updated_dep)
