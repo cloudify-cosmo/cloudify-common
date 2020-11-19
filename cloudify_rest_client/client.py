@@ -279,6 +279,16 @@ class HTTPClient(object):
                 expected_status_code=expected_status_code, stream=stream,
                 verify=self.get_request_verify(), timeout=timeout)
         except requests.exceptions.SSLError as e:
+            # Special handling: SSL Verification Error.
+            # We'd have liked to use `__context__` but this isn't supported in
+            # Py26, so as long as we support Py26, we need to go about this
+            # awkwardly.
+            if len(e.args) > 0 and 'CERTIFICATE_VERIFY_FAILED' in str(
+                    e.args[0]):
+                raise requests.exceptions.SSLError(
+                    'Certificate verification failed; please ensure that the '
+                    'certificate presented by Cloudify Manager is trusted '
+                    '(underlying reason: {0})'.format(e))
             raise requests.exceptions.SSLError(
                 'An SSL-related error has occurred. This can happen if the '
                 'specified REST certificate does not match the certificate on '
