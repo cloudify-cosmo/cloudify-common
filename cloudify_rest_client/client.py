@@ -54,6 +54,7 @@ from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
 from cloudify_rest_client.inter_deployment_dependencies import (
     InterDeploymentDependencyClient)
+from cloudify_rest_client.labels import DeploymentsLabelsClient
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -473,3 +474,4 @@ class CloudifyClient(object):
         self.cluster_status = ClusterStatusClient(self._client)
         self.inter_deployment_dependencies = InterDeploymentDependencyClient(
             self._client)
+        self.deployments_labels = DeploymentsLabelsClient(self._client)
