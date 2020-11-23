@@ -29,15 +29,14 @@ class DeploymentsLabelsClient(object):
 
     def list_keys(self):
         """
-        Retunrns a list of the deployments labels' keys in the current tenant.
+        Returns all defined label keys, from all deployments.
         """
         response = self.api.get('/labels/deployments')
         return ListResponse(response['items'], response['metadata'])
 
     def list_key_values(self, label_key):
         """
-        Returns a list of the deployments labels' values for the specified
-        key in the current tenant.
+        Returns all deployments labels' values for the specified key.
 
         :param label_key: The deployments labels' key to list the values for.
         """

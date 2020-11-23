@@ -361,7 +361,7 @@ class DeploymentsClient(object):
 
     def update_labels(self, deployment_id, labels):
         """
-        Updateas the deployment's labels.
+        Updates the deployment's labels.
 
         :param deployment_id: Deployment's id to update.
         :param labels: The new deployment's labels. A list of 1-entry
