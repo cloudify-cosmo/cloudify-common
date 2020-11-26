@@ -289,6 +289,7 @@ class BlueprintsClient(object):
     def validate(self,
                  path,
                  entity_id,
+                 blueprint_filename=None,
                  visibility=VisibilityState.TENANT,
                  progress_callback=None,
                  skip_size_limit=True):
@@ -297,6 +298,7 @@ class BlueprintsClient(object):
 
         :param path: Main blueprint yaml file path.
         :param entity_id: Id of the uploaded blueprint.
+        :param blueprint_filename: The archive's main blueprint yaml filename.
         :param visibility: The visibility of the blueprint, can be 'private',
                            'tenant' or 'global'.
         :param progress_callback: Progress bar callback method
@@ -309,14 +311,18 @@ class BlueprintsClient(object):
         Validation is basically an upload without the storage part being done.
         """
         tempdir = tempfile.mkdtemp()
+        tar_path = None
+        application_file = None
         try:
-            tar_path, application_file = self._validate_blueprint_size(
-                path, tempdir, skip_size_limit)
+            if not urlparse(path).scheme or os.path.exists(path):
+                # path is not a URL, create archive
+                tar_path, application_file = self._validate_blueprint_size(
+                    path, tempdir, skip_size_limit)
 
             self._validate(
-                tar_path,
+                tar_path or path,
                 blueprint_id=entity_id,
-                application_file_name=application_file,
+                application_file_name=application_file or blueprint_filename,
                 visibility=visibility,
                 progress_callback=progress_callback)
         finally:

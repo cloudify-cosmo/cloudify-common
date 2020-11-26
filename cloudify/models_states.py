@@ -107,6 +107,7 @@ class PluginInstallationState(object):
 
 class BlueprintUploadState(object):
     PENDING = 'pending'
+    VALIDATING = 'validating'
     UPLOADING = 'uploading'
     EXTRACTING = 'extracting'
     PARSING = 'parsing'
