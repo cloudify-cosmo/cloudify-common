@@ -231,13 +231,12 @@ class BlueprintsClient(object):
         blueprint's unique Id.
         """
 
-        response = self._upload(
+        self._upload(
             archive_location,
             blueprint_id=blueprint_id,
             application_file_name=blueprint_filename,
             visibility=visibility,
             progress_callback=progress_callback)
-        return self._wrapper_cls(response)
 
     @staticmethod
     def calc_size(blueprint_path):
@@ -278,13 +277,12 @@ class BlueprintsClient(object):
             tar_path, application_file = self._validate_blueprint_size(
                 path, tempdir, skip_size_limit)
 
-            blueprint = self._upload(
+            self._upload(
                 tar_path,
                 blueprint_id=entity_id,
                 application_file_name=application_file,
                 visibility=visibility,
                 progress_callback=progress_callback)
-            return self._wrapper_cls(blueprint)
         finally:
             shutil.rmtree(tempdir)
 
@@ -420,4 +418,25 @@ class BlueprintsClient(object):
         return self.api.patch('/{self._uri_prefix}/{id}'.format(
             self=self, id=blueprint_id),
             data=update_dict
+        )
+
+    def upload_archive(self, blueprint_id, archive_path):
+        """
+        Upload an archive for an existing a blueprint.
+
+        Used for uploading the blueprint's archive, downloaded from a URL using
+        a system workflow, to the manager's file server
+        This method is for internal use only.
+
+        :param blueprint_id: Blueprint's id to update.
+        :param archive_path: Path of a local blueprint archive data to upload
+            to the manager's file server. Valid only when the blueprint's
+            current upload state is `Uploading`, and is not being updated.
+        """
+        archive_data = bytes_stream_utils.request_data_file_stream(
+            archive_path,
+            client=self.api)
+        self.api.put('/{self._uri_prefix}/{id}/archive'.format(
+            self=self, id=blueprint_id),
+            data=archive_data
         )
