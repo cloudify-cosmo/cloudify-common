@@ -103,3 +103,19 @@ class PluginInstallationState(object):
     PENDING_UNINSTALL = 'pending-uninstall'
     UNINSTALLING = 'uninstalling'
     UNINSTALLED = 'uninstalled'
+
+
+class BlueprintUploadState(object):
+    PENDING = 'pending'
+    UPLOADING = 'uploading'
+    EXTRACTING = 'extracting'
+    PARSING = 'parsing'
+    UPLOADED = 'uploaded'
+    FAILED_UPLOADING = 'failed_uploading'
+    FAILED_EXTRACTING = 'failed_extracting'
+    FAILED_PARSING = 'failed_parsing'
+    INVALID = 'invalid'
+
+    FAILED_STATES = [FAILED_UPLOADING, FAILED_EXTRACTING, FAILED_PARSING,
+                     INVALID]
+    END_STATES = FAILED_STATES + [UPLOADED]
