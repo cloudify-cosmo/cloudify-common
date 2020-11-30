@@ -404,3 +404,20 @@ class BlueprintsClient(object):
                 self=self, id=blueprint_id),
             data=data
         )
+
+    def update(self, blueprint_id, update_dict):
+        """
+        Update a blueprint.
+
+        Used for updating the blueprint's state (and error) while uploading,
+        and updating the blueprint's other attributes upon a successful upload.
+        This method is for internal use only.
+
+        :param blueprint_id: Blueprint's id to update.
+        :param update_dict: Dictionary of attributes and values to be updated.
+        :return: The updated blueprint.
+        """
+        return self.api.patch('/{self._uri_prefix}/{id}'.format(
+            self=self, id=blueprint_id),
+            data=update_dict
+        )
