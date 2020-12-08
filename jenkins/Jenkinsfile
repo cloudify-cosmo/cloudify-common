@@ -141,8 +141,13 @@ pipeline {
                   fi'
                 pyenv install 2.6.9
                 pyenv global 2.6.9
-                '''    
-                install_test_dependencies('py26')
+                '''
+                // py26 uses py26-only-compatible versions of libs: pyyaml 4.2b4, hence the specialcased [dispatcher_py26]
+                sh '''#!/bin/bash
+                pip install -r dev-requirements.txt --user
+                pip install -r test-requirements.txt --user
+                pip install -e '.[dispatcher_py26]' --user
+                '''
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
