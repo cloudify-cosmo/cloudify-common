@@ -450,29 +450,6 @@ class ManagerClient(object):
         response = self.api.get('/version', versioned_url=False)
         return response
 
-    def ssl_status(self):
-        """
-        Get manager's ssl state (enabled/disabled)
-        """
-        try:
-            response = self.api.get('/ssl')
-        except TypeError as e:
-            if "'unicode' object does not support item assignment" \
-                    in e.message:
-                raise Exception('Manager is working with SSL, '
-                                'but your local client is not')
-            else:
-                raise
-        return response
-
-    def set_ssl(self, state):
-        """
-        Set manager's ssl to state (true/false)
-        """
-        data = {'state': state}
-        response = self.api.post('/ssl', data)
-        return response
-
     def get_context(self, _include=None):
         """
         Gets the context which was stored on management machine bootstrap.
