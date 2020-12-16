@@ -79,7 +79,8 @@ def _get_rabbitmq_client():
     return RabbitMQClient([b.management_host for b in ctx.get_brokers()],
                           broker_config.broker_username,
                           broker_config.broker_password,
-                          verify=broker_config.broker_cert_path)
+                          verify=broker_config.broker_cert_path,
+                          logger=ctx.logger)
 
 
 def delete_agent_rabbitmq_user(cloudify_agent):
