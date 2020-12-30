@@ -38,7 +38,6 @@ def upload_docs(String project, String path){
 pipeline {
   agent {
     kubernetes {
-      label 'common'
       defaultContainer 'jnlp'
       yamlFile 'jenkins/build-pod.yaml'
     }
