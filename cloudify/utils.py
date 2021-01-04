@@ -778,6 +778,7 @@ def wait_for(callable_obj,
 class OutputConsumer(object):
     def __init__(self, out, logger, prefix):
         self.out = out
+        self.output = []
         self.logger = logger
         self.prefix = prefix
         self.consumer = threading.Thread(target=self.consume_output)
@@ -786,7 +787,9 @@ class OutputConsumer(object):
 
     def consume_output(self):
         for line in self.out:
-            line = line.decode('utf-8', 'replace').rstrip('\n')
+            line = line.decode('utf-8', 'replace')
+            self.output.append(line)
+            line = line.rstrip('\r\n')
             self.logger.info("%s%s", self.prefix, line)
         self.out.close()
 
