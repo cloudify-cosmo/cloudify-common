@@ -52,10 +52,10 @@ class RabbitMQClient(object):
         request_kwargs.setdefault('headers', {})\
             .setdefault('Content-Type', 'application/json',)
 
-        url = '{0}/api/{1}'.format(self.base_url, url)
         while True:
+            full_url = '{0}/api/{1}'.format(self.base_url, url)
             try:
-                response = request_method(url, **request_kwargs)
+                response = request_method(full_url, **request_kwargs)
                 response.raise_for_status()
                 # Successful call, return the results
                 break
@@ -63,7 +63,7 @@ class RabbitMQClient(object):
                 base_message = (
                     'Failed making request to rabbitmq {url}. '
                     'Error was: {err_type}- {err_msg}. '.format(
-                        url=url,
+                        url=full_url,
                         err_type=type(err),
                         err_msg=str(err),
                     )

@@ -45,7 +45,7 @@ except ImportError as e:
 
 setup(
     name='cloudify-common',
-    version='5.1.1.dev1',
+    version='5.2.0.dev1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     packages=find_packages(exclude=('dsl_parser.tests*',
@@ -68,6 +68,13 @@ setup(
         # for running workflows (in the mgmtworker and the cli), as opposed
         # to eg. just executing operations (in the agent)
         'dispatcher': [
+            'PyYAML==5.3.1',
+            'networkx==1.9.1',
+        ],
+        # this is just a hack to allow running unittests on py26.
+        # DO NOT USE THIS ANYWHERE ELSE.
+        # to be removed ASAP whenever we can drop py26 agents.
+        'dispatcher_py26': [
             'PyYAML==4.2b4',
             'networkx==1.9.1',
         ],

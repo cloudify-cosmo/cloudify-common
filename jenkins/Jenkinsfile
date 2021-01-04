@@ -38,7 +38,6 @@ def upload_docs(String project, String path){
 pipeline {
   agent {
     kubernetes {
-      label 'common'
       defaultContainer 'jnlp'
       yamlFile 'jenkins/build-pod.yaml'
     }
@@ -50,10 +49,10 @@ pipeline {
     timestamps()
   }
   environment {
-    VERSION = getVersion("master").trim()
-    PRERELEASE = getPreRelease("master").trim()
-    WORKSPACE = "${env.WORKSPACE}"
     PROJECT = "cloudify-common"
+    VERSION = getVersion("${env.PROJECT}", "${env.BRANCH_NAME}").trim()
+    PRERELEASE = getPreRelease("${env.PROJECT}", "${env.BRANCH_NAME}").trim()
+    WORKSPACE = "${env.WORKSPACE}"
     PATH = "/root/.local/bin:$PATH"
   }
   stages{
@@ -141,8 +140,13 @@ pipeline {
                   fi'
                 pyenv install 2.6.9
                 pyenv global 2.6.9
-                '''    
-                install_test_dependencies('py26')
+                '''
+                // py26 uses py26-only-compatible versions of libs: pyyaml 4.2b4, hence the specialcased [dispatcher_py26]
+                sh '''#!/bin/bash
+                pip install -r dev-requirements.txt --user
+                pip install -r test-requirements.txt --user
+                pip install -e '.[dispatcher_py26]' --user
+                '''
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
