@@ -283,8 +283,17 @@ def execute(script_path, ctx, process):
     elif return_code != 0:
         if not (ctx.is_script_exception_defined and
                 isinstance(ctx._return_value, ScriptException)):
-            raise ProcessException(command,
-                                   return_code)
+            if log_stdout:
+                stdout = ''.join(stdout_consumer.output)
+            else:
+                stdout = process.stdout.read().decode('utf-8', 'replace')
+            if stderr_to_stdout:
+                stderr = None
+            elif log_stderr:
+                stderr = ''.join(stderr_consumer.output)
+            else:
+                stderr = process.stderr.read().decode('utf-8', 'replace')
+            raise ProcessException(command, return_code, stdout, stderr)
 
 
 def start_ctx_proxy(ctx, process):
@@ -403,11 +412,18 @@ def _prepare_ssl_cert(ssl_cert_content):
 
 
 class ProcessException(Exception):
-    def __init__(self, command, exit_code):
+    def __init__(self, command, exit_code, stdout=None, stderr=None):
         self.command = command
         self.exit_code = exit_code
+        self.stdout = stdout
+        self.stderr = stderr
 
         message = 'command: {0}, exit_code: {1}'.format(
             command, exit_code)
+
+        if stdout:
+            message += ', stdout: {0}'.format(stdout)
+        if stderr:
+            message += ', stderr: {0}'.format(stderr)
 
         super(ProcessException, self).__init__(message)
