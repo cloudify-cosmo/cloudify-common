@@ -1417,6 +1417,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         return {'local': False,
                 'bypass_maintenance': utils.get_is_bypass_maintenance(),
                 'rest_token': utils.get_rest_token(),
+                'workflow_parameters': utils.get_workflow_parameters(),
                 'execution_token': utils.get_execution_token(),
                 'execution_creator_username':
                     utils.get_execution_creator_username()}
