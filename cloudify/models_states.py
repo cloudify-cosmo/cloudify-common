@@ -114,9 +114,10 @@ class BlueprintUploadState(object):
     FAILED_UPLOADING = 'failed_uploading'
     FAILED_EXTRACTING = 'failed_extracting'
     FAILED_PARSING = 'failed_parsing'
+    FAILED_EXTRACTING_TO_FILE_SERVER = 'failed_extracting_to_file_server'
     INVALID = 'invalid'
 
     FAILED_STATES = [FAILED_UPLOADING, FAILED_EXTRACTING, FAILED_PARSING,
-                     INVALID]
+                     FAILED_EXTRACTING_TO_FILE_SERVER, INVALID]
     END_STATES = FAILED_STATES + [UPLOADED]
     STATES = END_STATES + [PENDING, UPLOADING, EXTRACTING, PARSING]

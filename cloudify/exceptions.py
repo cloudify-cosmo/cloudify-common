@@ -169,3 +169,9 @@ class WorkflowFailed(RuntimeError):
     def __init__(self, *args, **kwargs):
         self.causes = kwargs.pop('causes', []) or []
         super(WorkflowFailed, self).__init__(*args, **kwargs)
+
+
+class InvalidBlueprintImport(RuntimeError):
+    def __init__(self, *args, **kwargs):
+        self.causes = kwargs.pop('causes', []) or []
+        super(InvalidBlueprintImport, self).__init__(*args, **kwargs)
