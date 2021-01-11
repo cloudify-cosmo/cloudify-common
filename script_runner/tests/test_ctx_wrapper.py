@@ -145,13 +145,14 @@ class PythonWrapperTests(testtools.TestCase):
             'error_message'
         ]
         self._run(script)
-        # first four messages are unrelated to the test
-        del capture.records[:4]
+        # skip messages that are unrelated to the test
+        records = [r for r in capture.records
+                   if any(msg in r.msg for msg in expected_msgs)]
         for m in range(1, len(expected_levels)):
             self.assertEqual(
                 '{0}: {1}'.format(
-                    capture.records[m].levelname,
-                    capture.records[m].msg),
+                    records[m].levelname,
+                    records[m].msg),
                 '{0}: {1}'.format(
                     expected_levels[m],
                     expected_msgs[m]))
