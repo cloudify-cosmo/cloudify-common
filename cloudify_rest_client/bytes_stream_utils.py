@@ -84,14 +84,19 @@ def write_response_stream_to_file(streamed_response,
     :param progress_callback: Callback function - can be used to print progress
     :return:
     """
+    output_filename = streamed_response.headers[
+        CONTENT_DISPOSITION_HEADER].split('filename=')[1]
+
     if not output_file:
         if CONTENT_DISPOSITION_HEADER not in streamed_response.headers:
             raise RuntimeError(
                 'Cannot determine attachment filename: {0} header not'
                 ' found in response headers'.format(
                     CONTENT_DISPOSITION_HEADER))
-        output_file = streamed_response.headers[
-            CONTENT_DISPOSITION_HEADER].split('filename=')[1]
+        output_file = output_filename
+
+    if os.path.isdir(output_file):
+        output_file = os.path.join(output_file, output_filename)
 
     if os.path.exists(output_file):
         raise OSError("Output file '{0}' already exists".format(output_file))
