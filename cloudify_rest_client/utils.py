@@ -106,3 +106,18 @@ def find_executable(executable, path=None):
         return None
     else:
         return executable
+
+
+def get_filters_data(filter_rules, filter_name):
+    if filter_rules and filter_name:
+        raise RuntimeError(
+            'Filter rules and filter name cannot be provided together. '
+            'Please specify one of them or neither.')
+
+    data = None
+    if filter_rules:
+        data = {'filter_rules': filter_rules}
+    if filter_name:
+        data = {'filter_name': filter_name}
+
+    return data
