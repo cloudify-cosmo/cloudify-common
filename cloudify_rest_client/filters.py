@@ -1,5 +1,3 @@
-import json
-
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -15,7 +13,7 @@ class Filter(dict):
 
     @property
     def value(self):
-        return json.loads(self.get('value', {}))
+        return self.get('value', {})
 
     @property
     def labels_filter(self):
@@ -24,6 +22,10 @@ class Filter(dict):
     @property
     def created_at(self):
         return self.get('created_at')
+
+    @property
+    def updated_at(self):
+        return self.get('updated_at')
 
     @property
     def visibility(self):
@@ -71,3 +73,34 @@ class FiltersClient(object):
         response = self.api.get('/filters', params=kwargs)
         return ListResponse([Filter(item) for item in response['items']],
                             response['metadata'])
+
+    def get(self, filter_id):
+        response = self.api.get('/filters/{0}'.format(filter_id))
+        return Filter(response)
+
+    def delete(self, filter_id):
+        self.api.delete('/filters/{0}'.format(filter_id))
+
+    def update(self, filter_id, new_filter_rules=None, new_visibility=None):
+        """Updates the filter's visibility or rules
+
+        :param filter_id: The Id of the filter to update
+        :param new_filter_rules: A new list of filter rules. Filter rules must
+               be one of: <key>=<value>, <key>=[<value1>,<value2>,...],
+               <key>!=<value>, <key>!=[<value1>,<value2>,...], <key> is null,
+               <key> is not null
+        :param new_visibility: The new visibility to update
+        :return: The updated filter
+        """
+        data = {}
+        if not new_filter_rules and not new_visibility:
+            raise RuntimeError('In order to update a filter, you must specify '
+                               'either a new list of filter rules or a new'
+                               'visibility')
+
+        if new_visibility:
+            data['visibility'] = new_visibility
+        if new_filter_rules:
+            data['filter_rules'] = new_filter_rules
+
+        return self.api.patch('/filters/{0}'.format(filter_id), data=data)
