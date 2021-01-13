@@ -17,7 +17,7 @@ from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
 from .labels import Label
-from .utils import get_filters_data
+from .utils import add_filter_rules
 
 
 class Deployment(dict):
@@ -240,12 +240,11 @@ class DeploymentsClient(object):
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
+        add_filter_rules(params, filter_rules, filter_name)
 
-        data = get_filters_data(filter_rules, filter_name)
         response = self.api.get('/deployments',
                                 _include=_include,
-                                params=params,
-                                data=data)
+                                params=params)
 
         return ListResponse([Deployment(item) for item in response['items']],
                             response['metadata'])
