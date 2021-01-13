@@ -13,11 +13,11 @@ class Filter(dict):
 
     @property
     def value(self):
-        return self.get('value', {})
+        return self.get('value')
 
     @property
     def labels_filter(self):
-        return self.value.get('labels')
+        return self.get('labels_filters')
 
     @property
     def created_at(self):
@@ -103,4 +103,5 @@ class FiltersClient(object):
         if new_filter_rules:
             data['filter_rules'] = new_filter_rules
 
-        return self.api.patch('/filters/{0}'.format(filter_id), data=data)
+        response = self.api.patch('/filters/{0}'.format(filter_id), data=data)
+        return Filter(response)
