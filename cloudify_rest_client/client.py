@@ -43,7 +43,10 @@ from cloudify_rest_client.cluster import ClusterStatusClient
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.executions import ExecutionsClient
 from cloudify_rest_client.user_groups import UserGroupsClient
-from cloudify_rest_client.deployments import DeploymentsClient
+from cloudify_rest_client.deployments import (
+    DeploymentsClient,
+    DeploymentGroupsClient
+)
 from cloudify_rest_client.permissions import PermissionsClient
 from cloudify_rest_client.maintenance import MaintenanceModeClient
 from cloudify_rest_client.plugins_update import PluginsUpdateClient
@@ -449,6 +452,7 @@ class CloudifyClient(object):
         self.permissions = PermissionsClient(self._client)
         self.snapshots = SnapshotsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
+        self.deployment_groups = DeploymentGroupsClient(self._client)
         self.executions = ExecutionsClient(self._client)
         self.nodes = NodesClient(self._client)
         self.node_instances = NodeInstancesClient(self._client)
