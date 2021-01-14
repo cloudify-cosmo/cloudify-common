@@ -178,6 +178,37 @@ class DeploymentCapabilities(dict):
         return self['capabilities']
 
 
+class DeploymentGroup(dict):
+    def __init__(self, group):
+        super(DeploymentGroup, self).__init__()
+        self.update(group)
+
+
+class DeploymentGroupsClient(object):
+    def __init__(self, api):
+        self.api = api
+
+    def list(self):
+        """List all deployment groups."""
+        response = self.api.get('/deployment-groups')
+        return ListResponse(
+            [DeploymentGroup(item) for item in response['items']],
+            response['metadata'])
+
+    def get(self, group_id):
+        """Get the specified deployment group."""
+        response = self.api.get('/deployment-groups/{0}'.format(group_id))
+        return DeploymentGroup(response)
+
+    def put(self, group_id, **kwargs):
+        """Create or update the specified deployment group."""
+        response = self.api.put(
+            '/deployment-groups/{0}'.format(group_id),
+            data=kwargs
+        )
+        return DeploymentGroup(response)
+
+
 class DeploymentOutputsClient(object):
 
     def __init__(self, api):
