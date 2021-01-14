@@ -17,6 +17,7 @@ from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
 from .labels import Label
+from .utils import add_filter_rules
 
 
 class Deployment(dict):
@@ -177,6 +178,37 @@ class DeploymentCapabilities(dict):
         return self['capabilities']
 
 
+class DeploymentGroup(dict):
+    def __init__(self, group):
+        super(DeploymentGroup, self).__init__()
+        self.update(group)
+
+
+class DeploymentGroupsClient(object):
+    def __init__(self, api):
+        self.api = api
+
+    def list(self):
+        """List all deployment groups."""
+        response = self.api.get('/deployment-groups')
+        return ListResponse(
+            [DeploymentGroup(item) for item in response['items']],
+            response['metadata'])
+
+    def get(self, group_id):
+        """Get the specified deployment group."""
+        response = self.api.get('/deployment-groups/{0}'.format(group_id))
+        return DeploymentGroup(response)
+
+    def put(self, group_id, **kwargs):
+        """Create or update the specified deployment group."""
+        response = self.api.put(
+            '/deployment-groups/{0}'.format(group_id),
+            data=kwargs
+        )
+        return DeploymentGroup(response)
+
+
 class DeploymentOutputsClient(object):
 
     def __init__(self, api):
@@ -218,13 +250,20 @@ class DeploymentsClient(object):
         self.outputs = DeploymentOutputsClient(api)
         self.capabilities = DeploymentCapabilitiesClient(api)
 
-    def list(self, _include=None, sort=None, is_descending=False, **kwargs):
+    def list(self, _include=None, sort=None, is_descending=False,
+             filter_rules=None, filter_name=None, **kwargs):
         """
         Returns a list of all deployments.
 
         :param _include: List of fields to include in response.
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
+        :param filter_rules: A list of filter rules to filter the deployments
+               by. Filter rules must be one of: <key>=<value>,
+               <key>=[<value1>,<value2>,...], <key>!=<value>,
+               <key>!=[<value1>,<value2>,...], <key> is null,
+               <key> is not null.
+        :param filter_name: A filter name to filter the deployments by.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.Deployment.fields
         :return: Deployments list.
@@ -232,6 +271,7 @@ class DeploymentsClient(object):
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
+        add_filter_rules(params, filter_rules, filter_name)
 
         response = self.api.get('/deployments',
                                 _include=_include,
