@@ -85,7 +85,8 @@ def _manage_plugin_state(pre_state, post_state, allow_missing=False):
     def _decorator(f):
         @wraps(f)
         def _inner(plugin, *args, **kwargs):
-            _set_state(plugin, state=pre_state)
+            if pre_state:
+                _set_state(plugin, state=pre_state)
             try:
                 rv = f(plugin, *args, **kwargs)
             except Exception as e:
@@ -93,7 +94,8 @@ def _manage_plugin_state(pre_state, post_state, allow_missing=False):
                            error=str(e))
                 raise
             else:
-                _set_state(plugin, state=post_state)
+                if post_state:
+                    _set_state(plugin, state=post_state)
                 return rv
         return _inner
     return _decorator
@@ -285,7 +287,7 @@ def _pip_install(source, venv, args):
             shutil.rmtree(plugin_dir, ignore_errors=True)
 
 
-@_manage_plugin_state(pre_state=PluginInstallationState.UNINSTALLING,
+@_manage_plugin_state(pre_state=None,
                       post_state=PluginInstallationState.UNINSTALLED,
                       allow_missing=True)
 def uninstall(plugin, deployment_id=None):
