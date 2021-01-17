@@ -93,7 +93,7 @@ class FiltersClient(object):
         data = {}
         if not new_filter_rules and not new_visibility:
             raise RuntimeError('In order to update a filter, you must specify '
-                               'either a new list of filter rules or a new'
+                               'either a new list of filter rules or a new '
                                'visibility')
 
         if new_visibility:
