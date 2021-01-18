@@ -864,6 +864,11 @@ class CloudifyContext(CommonContext):
             self._provider_context = self._endpoint.get_provider_context()
         return self._provider_context
 
+    @property
+    def workflow_parameters(self):
+        """Get workflow parameters associated with this context."""
+        return self._context.get('workflow_parameters', {})
+
     def get_operation(self):
         """Get the operation object for the currently-executed task."""
         return self._endpoint.get_operation(self.task_id)

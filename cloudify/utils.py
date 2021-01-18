@@ -35,7 +35,7 @@ from contextlib import contextmanager, closing
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
 from cloudify import constants
-from cloudify.state import workflow_ctx, ctx
+from cloudify.state import workflow_parameters, workflow_ctx, ctx
 from cloudify._compat import StringIO, parse_version
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.amqp_client import BlockingRequestResponseHandler
@@ -406,6 +406,14 @@ def get_kerberos_indication(kerberos_env):
     if kerberos_env is None:
         return None
     return str(kerberos_env).lower() == 'true'
+
+
+def get_workflow_parameters():
+    """Get workflow parameters (except `ctx` key) as a dict."""
+    p = workflow_parameters.copy()
+    if 'ctx' in p:
+        del p['ctx']
+    return p
 
 
 class LocalCommandRunner(object):
