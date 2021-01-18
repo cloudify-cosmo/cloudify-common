@@ -410,9 +410,7 @@ def get_kerberos_indication(kerberos_env):
 
 def get_workflow_parameters():
     """Get workflow parameters (except `ctx` key) as a dict."""
-    p = workflow_parameters
-    if not isinstance(p, dict):
-        p = dict(p)
+    p = workflow_parameters.copy()
     if 'ctx' in p:
         del p['ctx']
     return p
