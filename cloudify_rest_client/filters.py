@@ -41,12 +41,12 @@ class FiltersClient(object):
         self.api = api
 
     def create(self,
-               filter_name,
+               filter_id,
                filter_rules,
                visibility=VisibilityState.TENANT):
         """Creates a new filter.
 
-        :param filter_name: The filter name
+        :param filter_id: The filter ID
         :param filter_rules: A list of filter rules. Filter rules must
                be one of: <key>=<value>, <key>=[<value1>,<value2>,...],
                <key>!=<value>, <key>!=[<value1>,<value2>,...], <key> is null,
@@ -58,17 +58,23 @@ class FiltersClient(object):
             'filter_rules': filter_rules,
             'visibility': visibility
         }
-        response = self.api.put('/filters/{0}'.format(filter_name), data=data)
+        response = self.api.put('/filters/{0}'.format(filter_id), data=data)
         return Filter(response)
 
-    def list(self, **kwargs):
+    def list(self, sort=None, is_descending=False, **kwargs):
         """Returns a list of all filters.
 
+        :param sort: Key for sorting the list
+        :param is_descending: True for descending order, False for ascending
         :param kwargs: Optional parameters. Can be: `_sort`, `_include`,
                `_size`, `_offset`, `_all_tenants'`, or `_search`
         :return: The filters list
         """
-        response = self.api.get('/filters', params=kwargs)
+        params = kwargs
+        if sort:
+            params['_sort'] = '-' + sort if is_descending else sort
+
+        response = self.api.get('/filters', params=params)
         return ListResponse([Filter(item) for item in response['items']],
                             response['metadata'])
 
