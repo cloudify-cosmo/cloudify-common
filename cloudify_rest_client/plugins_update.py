@@ -138,19 +138,17 @@ class PluginsUpdateClient(object):
                           RuntimeWarning)
         else:
             mapping = {}
-        params = {
-            'force': force
-        }
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
                                                             self=self),
-            params=params,
             data=_data_from_kwargs(plugin_names=plugin_names,
                                    to_latest=to_latest,
                                    all_to_latest=all_to_latest,
                                    to_minor=to_minor,
                                    all_to_minor=all_to_minor,
-                                   mapping=mapping))
+                                   mapping=mapping,
+                                   force=force)
+        )
         return PluginsUpdate(response)
 
     def finalize_plugins_update(self, plugins_update_id):
