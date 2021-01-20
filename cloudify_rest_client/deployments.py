@@ -182,6 +182,21 @@ class DeploymentGroup(dict):
         super(DeploymentGroup, self).__init__()
         self.update(group)
 
+    @property
+    def deployment_ids(self):
+        """IDs of deployments belonging to this group"""
+        return self['deployment_ids']
+
+    @property
+    def default_inputs(self):
+        """Default inputs for new deployments created in this group"""
+        return self['default_inputs']
+
+    @property
+    def default_blueprint(self):
+        """Default blueprint for new deployments created in this group"""
+        return self['default_blueprint']
+
 
 class DeploymentGroupsClient(object):
     def __init__(self, api):
