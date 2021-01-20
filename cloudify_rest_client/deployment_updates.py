@@ -242,8 +242,6 @@ class DeploymentUpdatesClient(object):
                                        preview=False,
                                        update_plugins=True,
                                        runtime_only_evaluation=None):
-        if force:
-            warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
         data = {
             'workflow_id': workflow_id,
             'skip_install': skip_install,
@@ -253,7 +251,8 @@ class DeploymentUpdatesClient(object):
             'install_first': install_first,
             'preview': preview,
             'blueprint_id': blueprint_id,
-            'update_plugins': update_plugins
+            'update_plugins': update_plugins,
+            'force': force,
         }
         if inputs:
             data['inputs'] = inputs
