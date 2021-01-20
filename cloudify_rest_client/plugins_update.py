@@ -116,7 +116,7 @@ class PluginsUpdateClient(object):
 
         :param blueprint_id: blueprint ID to perform the update with.
         :param force: if to forcefully update when other non-active plugins
-         updates exists associated with this blueprint [deprecated].
+         updates exists associated with this blueprint.
         :param plugin_names: list of plugin names to update (only those).
         :param to_latest: list of plugin names to be upgraded to the latest
          installed version.
@@ -132,17 +132,19 @@ class PluginsUpdateClient(object):
          constraints)
         :return: a PluginUpdate object.
         """
-        if force:
-            warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
         if mapping and mapping.get('updates'):
             warnings.warn("The 'mapping file' was used during the update; "
                           "remember to update your blueprint files",
                           RuntimeWarning)
         else:
             mapping = {}
+        params = {
+            'force': force
+        }
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
                                                             self=self),
+            params=params,
             data=_data_from_kwargs(plugin_names=plugin_names,
                                    to_latest=to_latest,
                                    all_to_latest=all_to_latest,
