@@ -145,6 +145,46 @@ class Execution(dict):
         return self.get('is_dry_run', False)
 
 
+class ExecutionGroup(dict):
+    def __init__(self, group):
+        super(ExecutionGroup, self).__init__()
+        self.update(group)
+
+    @property
+    def execution_ids(self):
+        return self['execution_ids']
+
+
+class ExecutionGroupsClient(object):
+    def __init__(self, api):
+        self.api = api
+
+    def list(self, **kwargs):
+        response = self.api.get('/execution-groups', params=kwargs)
+        return ListResponse(
+            [ExecutionGroup(item) for item in response['items']],
+            response['metadata'])
+
+    def start(self, deployment_group_id, workflow_id, default_parameters=None,
+              parameters=None):
+        """Start an execution group from a deployment group.
+
+        :param deployment_group_id: start an execution for every deployment
+            belonging to this deployment group
+        :param workflow_id: the workflow to run
+        :param default_parameters: default parameters for every execution
+        :param parameters: a dict of {deployment_id: params_dict}, overrides
+            the default parameters on a per-deployment basis
+        """
+        response = self.api.post('/execution-groups', data={
+            'deployment_group_id': deployment_group_id,
+            'workflow_id': workflow_id,
+            'parameters': parameters,
+            'default_parameters': default_parameters,
+        })
+        return ExecutionGroup(response)
+
+
 class ExecutionsClient(object):
 
     def __init__(self, api):
