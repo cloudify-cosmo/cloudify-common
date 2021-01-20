@@ -78,6 +78,15 @@ class Blueprint(dict):
         """
         return self.get('description')
 
+    @property
+    def state(self):
+        """
+        Gets the upload state of the blueprint
+
+        :return: The upload state of the blueprint.
+        """
+        return self.get('state')
+
 
 class BlueprintsClient(object):
 
@@ -90,8 +99,9 @@ class BlueprintsClient(object):
                              archive_location,
                              application_file_name,
                              visibility,
-                             progress_callback):
-        query_params = {'visibility': visibility}
+                             progress_callback,
+                             async_upload):
+        query_params = {'visibility': visibility, 'async_upload': async_upload}
         if application_file_name is not None:
             query_params['application_file_name'] = \
                 urlquote(application_file_name)
@@ -117,12 +127,14 @@ class BlueprintsClient(object):
                 blueprint_id,
                 application_file_name=None,
                 visibility=VisibilityState.TENANT,
-                progress_callback=None):
+                progress_callback=None,
+                async_upload=False):
         query_params, data = self._prepare_put_request(
             archive_location,
             application_file_name,
             visibility,
-            progress_callback
+            progress_callback,
+            async_upload,
         )
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
         return self.api.put(
@@ -142,7 +154,8 @@ class BlueprintsClient(object):
             archive_location,
             application_file_name,
             visibility,
-            progress_callback
+            progress_callback,
+            async_upload=False,
         )
         uri = '/{self._uri_prefix}/{id}/validate'.format(self=self,
                                                          id=blueprint_id)
@@ -212,7 +225,8 @@ class BlueprintsClient(object):
                         blueprint_id,
                         blueprint_filename=None,
                         visibility=VisibilityState.TENANT,
-                        progress_callback=None):
+                        progress_callback=None,
+                        async_upload=False):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
@@ -231,12 +245,15 @@ class BlueprintsClient(object):
         blueprint's unique Id.
         """
 
-        self._upload(
+        response = self._upload(
             archive_location,
             blueprint_id=blueprint_id,
             application_file_name=blueprint_filename,
             visibility=visibility,
-            progress_callback=progress_callback)
+            progress_callback=progress_callback,
+            async_upload=async_upload)
+        if not async_upload:
+            return self._wrapper_cls(response)
 
     @staticmethod
     def calc_size(blueprint_path):
@@ -253,7 +270,8 @@ class BlueprintsClient(object):
                entity_id,
                visibility=VisibilityState.TENANT,
                progress_callback=None,
-               skip_size_limit=True):
+               skip_size_limit=True,
+               async_upload=False):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -277,12 +295,15 @@ class BlueprintsClient(object):
             tar_path, application_file = self._validate_blueprint_size(
                 path, tempdir, skip_size_limit)
 
-            self._upload(
+            response = self._upload(
                 tar_path,
                 blueprint_id=entity_id,
                 application_file_name=application_file,
                 visibility=visibility,
-                progress_callback=progress_callback)
+                progress_callback=progress_callback,
+                async_upload=async_upload)
+            if not async_upload:
+                return self._wrapper_cls(response)
         finally:
             shutil.rmtree(tempdir)
 
