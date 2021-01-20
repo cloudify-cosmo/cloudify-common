@@ -253,7 +253,8 @@ class DeploymentUpdatesClient(object):
             'install_first': install_first,
             'preview': preview,
             'blueprint_id': blueprint_id,
-            'update_plugins': update_plugins
+            'update_plugins': update_plugins,
+            'force': force,
         }
         if inputs:
             data['inputs'] = inputs
