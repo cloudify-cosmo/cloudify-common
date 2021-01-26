@@ -56,6 +56,17 @@ class Pagination(dict):
         """
         return int(self.get('total'))
 
+    @property
+    def model_cnt(self):
+        """
+        :return: The total number of the model's items in the DB.
+        """
+        model_cnt = self.get('model_cnt')
+        if model_cnt:
+            return int(model_cnt)
+
+        return None
+
 
 class ListResponse(object):
 
