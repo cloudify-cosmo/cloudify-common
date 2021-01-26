@@ -222,6 +222,54 @@ class DeploymentGroupsClient(object):
         )
         return DeploymentGroup(response)
 
+    def add_deployments(self, group_id, deployment_ids=None, count=None,
+                        inputs=None):
+        """Add the specified deployments to the group
+
+        :param group_id: add deployments to this group
+        :param deployment_ids: add these pre-existing deployments
+        :param count: create this many deployments using the group's
+            default_inputs and default_blueprint, and add them to the
+            group. Mutally exclusive with inputs.
+        :param inputs: create deployments using these inputs merged
+            with the group's default_inputs, and the group's default_blueprint,
+            and add them to the group. Mutually exclusive with inputs.
+        :return: the updated deployment group
+        """
+        if inputs is not None and count is not None:
+            raise ValueError('provide either count or inputs, not both')
+        if inputs is None:
+            inputs = []
+        if count:
+            inputs += [{}] * count
+        response = self.api.patch(
+            '/deployment-groups/{0}'.format(group_id),
+            data={
+                'add': {
+                    'deployment_ids': deployment_ids,
+                    'inputs': inputs
+                }
+            }
+        )
+        return DeploymentGroup(response)
+
+    def remove_deployments(self, group_id, deployment_ids):
+        """Remove the speccified deployments from the group
+
+        :param group_id: remove deployments from this group
+        :param deployment_ids: remove these deployment from the group
+        :return: the updated deployment group
+        """
+        response = self.api.patch(
+            '/deployment-groups/{0}'.format(group_id),
+            data={
+                'remove': {
+                    'deployment_ids': deployment_ids
+                }
+            }
+        )
+        return DeploymentGroup(response)
+
 
 class DeploymentOutputsClient(object):
 
