@@ -45,6 +45,7 @@ from cloudify_rest_client.executions import (
     ExecutionsClient,
     ExecutionGroupsClient
 )
+from cloudify_rest_client.execution_schedules import ExecutionSchedulesClient
 from cloudify_rest_client.user_groups import UserGroupsClient
 from cloudify_rest_client.deployments import (
     DeploymentsClient,
@@ -458,6 +459,7 @@ class CloudifyClient(object):
         self.deployment_groups = DeploymentGroupsClient(self._client)
         self.executions = ExecutionsClient(self._client)
         self.execution_groups = ExecutionGroupsClient(self._client)
+        self.execution_schedules = ExecutionSchedulesClient(self._client)
         self.nodes = NodesClient(self._client)
         self.node_instances = NodeInstancesClient(self._client)
         self.manager = ManagerClient(self._client)
