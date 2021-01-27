@@ -114,6 +114,13 @@ class Deployment(dict):
         """
         return self.get('labels')
 
+    @property
+    def deployment_groups(self):
+        """
+        :return: IDs of deployment groups that this deployment belongs to
+        """
+        return self.get('deployment_groups')
+
 
 class Workflow(dict):
 
