@@ -139,7 +139,7 @@ class ExecutionSchedulesClient(object):
             'until': until.isoformat() if until else None,
             'frequency': frequency,
             'count': count,
-            'weekdays': weekdays.split(',') if weekdays else None,
+            'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
             'rrule': rrule,
             'slip': slip,
             'stop_on_fail': str(stop_on_fail).lower()
@@ -187,7 +187,7 @@ class ExecutionSchedulesClient(object):
             'until': until.isoformat() if until else None,
             'frequency': frequency,
             'count': count,
-            'weekdays': weekdays.split(',') if weekdays else None,
+            'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
             'rrule': rrule,
             'slip': slip,
             'stop_on_fail': str(stop_on_fail).lower() if stop_on_fail else None
@@ -241,3 +241,8 @@ class ExecutionSchedulesClient(object):
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.get(uri, _include=_include)
         return ExecutionSchedule(response)
+
+
+def _split_ignore_spaces(list_string):
+    """Split a string of comma-separated items, ignore surrounding spaces. """
+    return [item.strip() for item in list_string.split(',')]
