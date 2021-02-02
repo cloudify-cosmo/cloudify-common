@@ -277,6 +277,14 @@ class DeploymentGroupsClient(object):
         )
         return DeploymentGroup(response)
 
+    def delete(self, group_id):
+        """Delete a deployment group. Do not delete the deployments.
+
+        :param group_id: the group to remove
+        """
+        self.api.delete('/deployment-groups/{0}'.format(group_id),
+                        expected_status_code=204)
+
 
 class DeploymentOutputsClient(object):
 
