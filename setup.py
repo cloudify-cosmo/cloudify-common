@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 install_requires = [
     'requests>=2.7.0,<3.0.0',
     'retrying==1.3.3',
-    'pika==0.11.2',
+    'pika==1.1.0',
     'proxy_tools==0.1.0',
     'bottle==0.12.18',
     'jinja2>=2.10,<2.11',
