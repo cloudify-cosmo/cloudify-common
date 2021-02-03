@@ -37,11 +37,7 @@ from cloudify.constants import EVENTS_EXCHANGE_NAME, LOGS_EXCHANGE_NAME
 # on this flag. We're keeping compat with 0.11 for the py2.6 agent on rhel6.
 # all pika calls that are different between 0.11 and 1.1, must be under
 # if statements on this flag.
-if hasattr(pika, 'SSLOptions'):
-    OLD_PIKA = False
-else:
-    OLD_PIKA = True
-
+OLD_PIKA = not hasattr(pika, 'SSLOptions')
 
 logger = logging.getLogger(__name__)
 
