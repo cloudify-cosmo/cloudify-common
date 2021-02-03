@@ -33,6 +33,11 @@ from cloudify import broker_config
 from cloudify._compat import queue
 from cloudify.constants import EVENTS_EXCHANGE_NAME, LOGS_EXCHANGE_NAME
 
+# keep compat with both pika 0.11 and pika 1.1: switch the calls based
+# on this flag. We're keeping compat with 0.11 for the py2.6 agent on rhel6.
+# all pika calls that are different between 0.11 and 1.1, must be under
+# if statements on this flag.
+OLD_PIKA = not hasattr(pika, 'SSLOptions')
 
 logger = logging.getLogger(__name__)
 
@@ -84,17 +89,23 @@ class AMQPParams(object):
             }
         if not broker_ssl_options:
             broker_ssl_options = broker_config.broker_ssl_options
-
+            ssl_enabled = ssl_enabled or broker_config.broker_ssl_enabled
         self.raw_host = amqp_host or broker_config.broker_hostname
         self._amqp_params = {
             'port': amqp_port or broker_config.broker_port,
             'virtual_host': amqp_vhost or broker_config.broker_vhost,
             'credentials': credentials,
-            'ssl': ssl_enabled or broker_config.broker_ssl_enabled,
-            'ssl_options': broker_ssl_options,
             'heartbeat': heartbeat,
             'socket_timeout': socket_timeout
         }
+        if OLD_PIKA:
+            self._amqp_params['ssl'] = ssl_enabled
+            self._amqp_params['ssl_options'] = broker_ssl_options
+        else:
+            if ssl_enabled:
+                self._amqp_params['ssl_options'] = pika.SSLOptions(
+                    ssl.create_default_context(
+                        cafile=broker_ssl_options['ca_certs']))
 
     def as_pika_params(self):
         return pika.ConnectionParameters(**self._amqp_params)
@@ -342,7 +353,12 @@ class AMQPConnection(object):
             # it's on a durable queue).
             properties.delivery_mode = 2
         message['properties'] = properties
-        self.channel_method('publish', wait=wait, timeout=timeout, **message)
+        if OLD_PIKA:
+            self.channel_method(
+                'publish', wait=wait, timeout=timeout, **message)
+        else:
+            self.channel_method(
+                'basic_publish', wait=wait, timeout=timeout, **message)
 
     def ack(self, channel, delivery_tag, wait=True, timeout=None):
         self.channel_method('basic_ack', wait=wait, timeout=timeout,
@@ -382,7 +398,10 @@ class TaskConsumer(object):
         channel.queue_bind(queue=self.queue,
                            exchange=self.exchange,
                            routing_key=self.routing_key)
-        channel.basic_consume(self.process, self.queue)
+        if OLD_PIKA:
+            channel.basic_consume(self.process, self.queue)
+        else:
+            channel.basic_consume(self.queue, self.process)
 
     def process(self, channel, method, properties, body):
         try:
@@ -564,8 +583,14 @@ class _RequestResponseHandlerBase(TaskConsumer):
             exclusive=self.queue_exclusive)
         self._connection.channel_method(
             'queue_bind', queue=queue_name, exchange=self.exchange)
-        self._connection.channel_method(
-            'basic_consume', queue=queue_name, consumer_callback=self.process)
+        if OLD_PIKA:
+            self._connection.channel_method(
+                'basic_consume', queue=queue_name,
+                consumer_callback=self.process)
+        else:
+            self._connection.channel_method(
+                'basic_consume', queue=queue_name,
+                on_message_callback=self.process)
 
     def _queue_name(self, correlation_id):
         """Make the queue name for this handler based on the correlation id"""

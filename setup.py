@@ -13,12 +13,12 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import sys
 from setuptools import setup, find_packages
 
 install_requires = [
     'requests>=2.7.0,<3.0.0',
     'retrying==1.3.3',
-    'pika==0.11.2',
     'proxy_tools==0.1.0',
     'bottle==0.12.18',
     'jinja2>=2.10,<2.11',
@@ -27,9 +27,14 @@ install_requires = [
     'fasteners==0.13.0',
 ]
 
+if sys.version_info[:2] == (2, 6):
+    install_requires += ['pika==0.11.2', ]
+else:
+    install_requires += ['pika==1.1.0', ]
+
 try:
     from collections import OrderedDict  # NOQA
-except ImportError as e:
+except ImportError:
     install_requires.append('ordereddict==1.1')
 
 try:
@@ -39,7 +44,7 @@ except ImportError:
 
 try:
     import argparse  # NOQA
-except ImportError as e:
+except ImportError:
     install_requires.append('argparse==1.2.2')
 
 
