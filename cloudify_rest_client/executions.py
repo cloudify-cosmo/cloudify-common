@@ -151,8 +151,29 @@ class ExecutionGroup(dict):
         self.update(group)
 
     @property
+    def id(self):
+        """The ID of this group"""
+        return self['id']
+
+    @property
     def execution_ids(self):
-        return self['execution_ids']
+        """IDs of executions in this group"""
+        return self.get('execution_ids')
+
+    @property
+    def status(self):
+        """Status of this group, based on the status of each execution"""
+        return self.get('status')
+
+    @property
+    def deployment_group_id(self):
+        """Deployment group ID that this execution group was started from"""
+        return self.get('deployment_group_id')
+
+    @property
+    def workflow_id(self):
+        """The workflow that this execution group is running"""
+        return self.get('workflow_id')
 
 
 class ExecutionGroupsClient(object):
@@ -165,18 +186,25 @@ class ExecutionGroupsClient(object):
             [ExecutionGroup(item) for item in response['items']],
             response['metadata'])
 
-    def start(self, deployment_group_id, workflow_id, default_parameters=None,
-              parameters=None):
+    def get(self, execution_group_id):
+        response = self.api.get(
+            '/execution-groups/{0}'.format(execution_group_id))
+        return ExecutionGroup(response)
+
+    def start(self, deployment_group_id, workflow_id, force=False,
+              default_parameters=None, parameters=None):
         """Start an execution group from a deployment group.
 
         :param deployment_group_id: start an execution for every deployment
             belonging to this deployment group
         :param workflow_id: the workflow to run
+        :param force: force concurrent execution
         :param default_parameters: default parameters for every execution
         :param parameters: a dict of {deployment_id: params_dict}, overrides
             the default parameters on a per-deployment basis
         """
         response = self.api.post('/execution-groups', data={
+            'force': force,
             'deployment_group_id': deployment_group_id,
             'workflow_id': workflow_id,
             'parameters': parameters,
