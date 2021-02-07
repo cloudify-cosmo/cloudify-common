@@ -27,7 +27,7 @@ install_requires = [
     'fasteners==0.13.0',
 ]
 
-if sys.version_info[:2] == (2, 6):
+if sys.version_info[:3] < (2, 7, 9):
     install_requires += ['pika==0.11.2', ]
 else:
     install_requires += ['pika==1.1.0', ]
