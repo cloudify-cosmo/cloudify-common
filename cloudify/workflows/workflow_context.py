@@ -998,7 +998,7 @@ class CloudifyWorkflowContext(
                 storage = self.internal.handler.storage
                 raw_nodes = storage.get_nodes()
                 raw_node_instances = storage.get_node_instances()
-            else:
+            elif self.deployment.id:
                 rest = get_rest_client()
                 raw_nodes = rest.nodes.list(
                     deployment_id=self.deployment.id,
@@ -1007,6 +1007,11 @@ class CloudifyWorkflowContext(
                 raw_node_instances = rest.node_instances.list(
                     deployment_id=self.deployment.id,
                     _get_all_results=True)
+            else:
+                # no deployment means no nodes
+                # this happens in eg. blueprint-upload
+                raw_nodes = []
+                raw_node_instances = []
 
             WorkflowNodesAndInstancesContainer.__init__(self, self, raw_nodes,
                                                         raw_node_instances)
