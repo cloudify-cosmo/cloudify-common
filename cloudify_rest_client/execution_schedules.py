@@ -78,6 +78,13 @@ class ExecutionSchedule(dict):
         """
         return self.get('stop_on_fail')
 
+    @property
+    def enabled(self):
+        """
+        :return: Whether this schedule is currently enabled.
+        """
+        return self.get('enabled')
+
 
 class ExecutionSchedulesClient(object):
 
@@ -142,7 +149,7 @@ class ExecutionSchedulesClient(object):
             'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
             'rrule': rrule,
             'slip': slip,
-            'stop_on_fail': str(stop_on_fail).lower()
+            'stop_on_fail': stop_on_fail
         }
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.put(uri,
@@ -152,7 +159,7 @@ class ExecutionSchedulesClient(object):
 
     def update(self, schedule_id, since=None, until=None, frequency=None,
                count=None, weekdays=None, rrule=None, slip=None,
-               stop_on_fail=None):
+               stop_on_fail=None, enabled=None):
         """Updates scheduling parameters of an existing execution schedule
         whose id is provided.
 
@@ -178,6 +185,8 @@ class ExecutionSchedulesClient(object):
             in which the scheduled execution can run (in minutes).
         :param stop_on_fail: If set to true, once the execution has failed,
             the scheduler won't make further attempts to run it.
+        :param enabled: Set to false to make the scheduler ignore this
+            schedule, until set to true again.
 
         :return: The updated execution schedule.
         """
@@ -190,7 +199,8 @@ class ExecutionSchedulesClient(object):
             'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
             'rrule': rrule,
             'slip': slip,
-            'stop_on_fail': str(stop_on_fail).lower() if stop_on_fail else None
+            'enabled': enabled,
+            'stop_on_fail': stop_on_fail
         }
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.patch(uri,
