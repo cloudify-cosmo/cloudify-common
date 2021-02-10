@@ -1213,6 +1213,304 @@ outputs:
             outputs['output3']['value'])
 
 
+class TestMergeDicts(AbstractTestParser):
+
+    def test_invalid_version(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { merge: [{}, {}] }
+"""
+        with ExpectedException(exceptions.FunctionValidationError,
+                               '.*version 1_3 or greater.*'):
+            prepare_deployment_plan(self.parse(
+                yaml,
+                dsl_version=self.BASIC_VERSION_SECTION_DSL_1_0))
+
+    def test_invalid_merge(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { merge: 1 }
+"""
+        with ExpectedException(ValueError, '.*Illegal.*merge.*'):
+            prepare_deployment_plan(self.parse_1_3(yaml))
+
+    def test_node_template_properties_simple(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { merge: [{'key1': 'value1'}, {'key2': 'value2'},
+                {'key3': 'value3'}] }
+"""
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
+        node = self.get_node_by_name(parsed, 'node')
+        self.assertEqual({
+            'key1': 'value1',
+            'key2': 'value2',
+            'key3': 'value3'
+        }, node['properties']['property'])
+
+    def test_node_template_properties_override(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { merge: [{'key1': 'value1'}, {'key2': 'value2'},
+                {'key3': 'value3'}, {'key2': 'valueA'} ] }
+"""
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
+        node = self.get_node_by_name(parsed, 'node')
+        self.assertEqual({
+            'key1': 'value1',
+            'key2': 'valueA',
+            'key3': 'value3'
+        }, node['properties']['property'])
+
+    def test_node_template_properties_with_self_property(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property1: {}
+            property2: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property1: { key1: value1 }
+            property2: { merge:
+                [{key2: value2}, { get_property: [SELF, property1] },
+                {key3: value3}]
+            }
+"""
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
+        node = self.get_node_by_name(parsed, 'node')
+        self.assertEqual({
+            'key1': 'value1',
+            'key2': 'value2',
+            'key3': 'value3'
+        }, node['properties']['property2'])
+
+    def test_node_template_properties_with_named_node_property(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: { merge:
+                [{ key2: value2}, { get_property: [node2, property] }]
+            }
+    node2:
+        type: type
+        properties:
+            property:
+                key1: value1
+"""
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
+        node = self.get_node_by_name(parsed, 'node')
+        self.assertEqual({
+            'key1': 'value1',
+            'key2': 'value2'
+        }, node['properties']['property'])
+
+    def test_node_template_properties_with_recursive_merge(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node1:
+        type: type
+        properties:
+            property: { merge:
+                [{key1: value1}, { get_property: [node2, property] }]
+            }
+    node2:
+        type: type
+        properties:
+            property: { merge: [{key3: value3}, {key4: value4}] }
+"""
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
+        node1 = self.get_node_by_name(parsed, 'node1')
+        node2 = self.get_node_by_name(parsed, 'node2')
+        self.assertEqual({
+            'key1': 'value1',
+            'key3': 'value3',
+            'key4': 'value4',
+        }, node1['properties']['property'])
+        self.assertEqual({
+            'key3': 'value3',
+            'key4': 'value4'
+        }, node2['properties']['property'])
+
+    def test_node_operation_inputs(self):
+        yaml = """
+plugins:
+    p:
+        executor: central_deployment_agent
+        install: false
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property:
+                key2: value2
+        interfaces:
+            interface:
+                op:
+                    implementation: p.task
+                    inputs: { merge: [ {key1: value1},
+                        { get_property: [SELF, property] } ] }
+"""
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
+        inputs = self.get_node_by_name(parsed, 'node')['operations'][
+            'interface.op']['inputs']
+        self.assertEqual({
+            'merge': [
+                {'key1': 'value1'},
+                {'key2': 'value2'}
+            ]
+        }, inputs)
+
+    def test_relationship_operation_inputs(self):
+        yaml = """
+plugins:
+    p:
+        executor: central_deployment_agent
+        install: false
+node_types:
+    type:
+        properties:
+            property: {}
+relationships:
+    cloudify.relationships.contained_in: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property: value
+        relationships:
+            -   type: cloudify.relationships.contained_in
+                target: node2
+                source_interfaces:
+                    interface:
+                        op:
+                            implementation: p.task
+                            inputs:
+                                input1: { concat: [one,
+                                    { get_property: [SOURCE, property] },
+                                    three] }
+                                input2:
+                                    key1: value1
+                                    key2: { concat: [one,
+                                        { get_property: [SOURCE, property] },
+                                        three] }
+                                    key3:
+                                        - item1
+                                        - { concat: [one,
+                                            {get_property: [TARGET, property]},
+                                            three] }
+                                input3: { concat: [one,
+                                    {get_property: [SOURCE, property] },
+                                    {get_attribute: [SOURCE, attribute] }]}
+    node2:
+        type: type
+        properties:
+            property: value2
+"""
+        parsed = prepare_deployment_plan(self.parse_1_1(yaml))
+        inputs = self.get_node_by_name(parsed, 'node')['relationships'][0][
+            'source_operations']['interface.op']['inputs']
+        self.assertEqual('onevaluethree', inputs['input1'])
+        self.assertEqual('onevaluethree', inputs['input2']['key2'])
+        self.assertEqual('onevalue2three', inputs['input2']['key3'][1])
+        self.assertEqual(
+            {
+                'concat': [
+                    'one',
+                    'value',
+                    {'get_attribute': ['SOURCE', 'attribute']}]
+            },
+            inputs['input3'])
+
+    def test_outputs(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property:
+                key1: value1
+outputs:
+    output1:
+        value: { merge: [{key2: value2},
+                          {get_property: [node, property]}]}
+    output2:
+        value:
+            - item1
+            - { merge: [{key2: value2},
+                         {get_property: [node, property]}]}
+    output3:
+        value: { merge: [{key2: value2},
+                          {get_property: [node, property]},
+                          {get_attribute: [node, attribute]}] }
+"""
+        parsed = prepare_deployment_plan(self.parse_1_3(yaml))
+        outputs = parsed['outputs']
+        self.assertEqual({
+            'key1': 'value1',
+            'key2': 'value2'
+        }, outputs['output1']['value'])
+        self.assertEqual({
+            'key1': 'value1',
+            'key2': 'value2'
+        }, outputs['output2']['value'][1])
+        self.assertEqual(
+            {
+                'merge':
+                    [{'key2': 'value2'}, {'key1': 'value1'},
+                     {'get_attribute': ['node', 'attribute']}]
+            },
+            outputs['output3']['value'])
+
+
 class TestFunctionIntegration(AbstractTestParser):
 
     def test_func_integrations(self):
