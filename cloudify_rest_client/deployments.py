@@ -230,7 +230,7 @@ class DeploymentGroupsClient(object):
         return DeploymentGroup(response)
 
     def add_deployments(self, group_id, deployment_ids=None, count=None,
-                        inputs=None):
+                        inputs=None, filter_id=None):
         """Add the specified deployments to the group
 
         :param group_id: add deployments to this group
@@ -241,6 +241,7 @@ class DeploymentGroupsClient(object):
         :param inputs: create deployments using these inputs merged
             with the group's default_inputs, and the group's default_blueprint,
             and add them to the group. Mutually exclusive with inputs.
+        :param filter_id: add deployments matching this filter
         :return: the updated deployment group
         """
         if inputs is not None and count is not None:
@@ -254,24 +255,28 @@ class DeploymentGroupsClient(object):
             data={
                 'add': {
                     'deployment_ids': deployment_ids,
-                    'inputs': inputs
+                    'inputs': inputs,
+                    'filter_id': filter_id,
                 }
             }
         )
         return DeploymentGroup(response)
 
-    def remove_deployments(self, group_id, deployment_ids):
-        """Remove the speccified deployments from the group
+    def remove_deployments(self, group_id, deployment_ids=None,
+                           filter_id=None):
+        """Remove the specified deployments from the group
 
         :param group_id: remove deployments from this group
         :param deployment_ids: remove these deployment from the group
+        :param filter_id: remove deployments matching this filter
         :return: the updated deployment group
         """
         response = self.api.patch(
             '/deployment-groups/{0}'.format(group_id),
             data={
                 'remove': {
-                    'deployment_ids': deployment_ids
+                    'deployment_ids': deployment_ids,
+                    'filter_id': filter_id,
                 }
             }
         )
