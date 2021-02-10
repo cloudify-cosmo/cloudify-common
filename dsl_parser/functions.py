@@ -679,6 +679,45 @@ class Concat(Function):
         return self.separator.join(str_join)
 
 
+@register(name='merge', func_eval_type=HYBRID_FUNC)
+class MergeDicts(Function):
+
+    def __init__(self, args, **kwargs):
+        self.merged = args
+        super(MergeDicts, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, list):
+            raise ValueError(
+                'Illegal arguments passed to {0} function. '
+                'Expected: [arg1\\function1, arg2\\function2, ...]'
+                'but got: {1}.'.format(self.name, args))
+
+    def validate(self, plan):
+        if plan.version.definitions_version < (1, 3):
+            raise exceptions.FunctionValidationError(
+                'Using {0} requires using dsl version 1_3 or '
+                'greater, but found: {1} in {2}.'
+                .format(self.name, plan.version, self.path))
+        for merged_item in self.merged:
+            if not isinstance(merged_item, dict):
+                raise exceptions.FunctionValidationError(
+                    'Encountered non-dict element for merge: {0}'
+                    .format(merged_item))
+
+    def evaluate(self, handler):
+        for merged_value in self.merged:
+            if parse(merged_value) != merged_value:
+                return self.raw
+        return self.join()
+
+    def join(self):
+        merged = {}
+        for cur_dict in self.merged:
+            merged.update(cur_dict)
+        return merged
+
+
 class InterDeploymentDependencyCreatingFunction(Function):
 
     def register_function_to_plan(self, plan):
