@@ -14,6 +14,7 @@
 #  * limitations under the License.
 
 from dsl_parser.constants import (NODES,
+                                  LABELS,
                                   INPUTS,
                                   OUTPUTS,
                                   POLICIES,
@@ -28,6 +29,7 @@ OUTPUTS_SCOPE = 'outputs'
 POLICIES_SCOPE = 'policies'
 SCALING_GROUPS_SCOPE = 'scaling_groups'
 CAPABILITIES_SCOPE = 'capabilities'
+LABELS_SCOPE = 'labels'
 
 # Searching for secrets in the blueprint only one time of the few times
 # that scan_service_template is called
@@ -175,6 +177,13 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
                         path='{0}.{1}'.format(
                             CAPABILITIES,
                             capability_name),
+                        replace=replace)
+    for label_key, label in plan.get('labels', {}).items():
+        scan_properties(label,
+                        handler,
+                        scope=LABELS_SCOPE,
+                        context=label,
+                        path='{0}.{1}'.format(LABELS, label_key),
                         replace=replace)
 
     if collect_secrets and len(secrets) > 0:

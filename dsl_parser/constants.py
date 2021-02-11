@@ -42,6 +42,7 @@ NAMESPACES_MAPPING = 'namespaces_mapping'
 CONSTRAINTS = 'constraints'
 DEFAULT = 'default'
 TYPE = 'type'
+LABELS = 'labels'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
