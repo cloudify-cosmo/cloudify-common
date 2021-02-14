@@ -144,10 +144,6 @@ class Label(DictNoDefaultElement):
         'value': LabelValue
     }
 
-
-class Labels(DictElement):
-    schema = Dict(type=Label)
-
     def validate(self, **kwargs):
         """
         A label's value cannot be a runtime property, since labels are
@@ -156,11 +152,14 @@ class Labels(DictElement):
         err_msg = "The label's value cannot be a runtime property. Please " \
                   "remove the `get_attribute` function from the values of {0}"
 
-        for label in self.children():
-            label_value = label.value['value']
-            label_values = (label_value if isinstance(label_value, list)
-                            else [label_value])
-            for value in label_values:
-                if isinstance(value, dict) and 'get_attribute' in value:
-                    raise exceptions.DSLParsingException(
-                        1, err_msg.format(label.name))
+        label_value = self.initial_value['value']
+        label_values = (label_value if isinstance(label_value, list)
+                        else [label_value])
+        for value in label_values:
+            if isinstance(value, dict) and 'get_attribute' in value:
+                raise exceptions.DSLParsingException(
+                    1, err_msg.format(self.name))
+
+
+class Labels(DictElement):
+    schema = Dict(type=Label)
