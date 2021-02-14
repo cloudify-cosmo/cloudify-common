@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import elements
+from dsl_parser import elements, exceptions
 from dsl_parser._compat import text_type
 from dsl_parser.elements import version as element_version
 from dsl_parser.framework.elements import (DictElement,
@@ -132,3 +132,34 @@ class NamespacesMapping(DictElement):
     namespaces.
     """
     schema = Dict(type=NamespaceMapping)
+
+
+class LabelValue(Element):
+    required = True
+    schema = Leaf(type=(text_type, list, dict))
+
+
+class Label(DictNoDefaultElement):
+    schema = {
+        'value': LabelValue
+    }
+
+    def validate(self, **kwargs):
+        """
+        A label's value cannot be a runtime property, since labels are
+        assigned to deployment during its creation.
+        """
+        err_msg = "The label's value cannot be a runtime property. Please " \
+                  "remove the `get_attribute` function from the values of {0}"
+
+        label_value = self.initial_value['value']
+        label_values = (label_value if isinstance(label_value, list)
+                        else [label_value])
+        for value in label_values:
+            if isinstance(value, dict) and 'get_attribute' in value:
+                raise exceptions.DSLParsingException(
+                    1, err_msg.format(self.name))
+
+
+class Labels(DictElement):
+    schema = Dict(type=Label)
