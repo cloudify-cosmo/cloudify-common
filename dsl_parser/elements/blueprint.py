@@ -88,7 +88,8 @@ class Blueprint(Element):
         'capabilities': misc.Capabilities,
         'imported_blueprints': misc.ImportedBlueprints,
         'namespaces_mapping': misc.NamespacesMapping,
-        'labels': misc.Labels
+        'labels': misc.Labels,
+        'blueprint-labels': misc.BlueprintLabels
     }
 
     requires = {
@@ -130,5 +131,6 @@ class Blueprint(Element):
             constants.NAMESPACES_MAPPING:
                 self.child(misc.NamespacesMapping).value,
             constants.DATA_TYPES: self.child(data_types.DataTypes).value,
-            constants.LABELS: self.child(misc.Labels).value
+            constants.LABELS: self.child(misc.Labels).value,
+            constants.BLUEPRINT_LABELS: self.child(misc.BlueprintLabels).value
         })
