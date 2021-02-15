@@ -136,7 +136,7 @@ class NamespacesMapping(DictElement):
 
 class LabelValue(Element):
     required = True
-    schema = Leaf(type=(text_type, list, dict))
+    schema = Leaf(type=list)
 
 
 class Label(DictNoDefaultElement):
@@ -152,10 +152,7 @@ class Label(DictNoDefaultElement):
         err_msg = "The label's value cannot be a runtime property. Please " \
                   "remove the `get_attribute` function from the values of {0}"
 
-        label_value = self.initial_value['value']
-        label_values = (label_value if isinstance(label_value, list)
-                        else [label_value])
-        for value in label_values:
+        for value in self.initial_value['value']:
             if isinstance(value, dict) and 'get_attribute' in value:
                 raise exceptions.DSLParsingException(
                     1, err_msg.format(self.name))
