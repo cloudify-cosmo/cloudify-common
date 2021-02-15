@@ -160,3 +160,7 @@ class Label(DictNoDefaultElement):
 
 class Labels(DictElement):
     schema = Dict(type=Label)
+
+
+class BlueprintLabels(DictElement):
+    schema = Dict(type=Label)
