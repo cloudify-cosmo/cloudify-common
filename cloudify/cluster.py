@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import re
 import types
 import random
 import requests
@@ -90,6 +91,8 @@ class ClusterHTTPClient(HTTPClient):
 
         This is because the file replication is asynchronous.
         """
+        if re.search('/(blueprints|snapshots)/[^/]+/archive', response.url):
+            return True
         disposition = response.headers.get('Content-Disposition')
         if not disposition:
             return False
