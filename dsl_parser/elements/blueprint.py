@@ -21,6 +21,7 @@ from dsl_parser.elements import (imports,
                                  plugins,
                                  node_types,
                                  node_templates,
+                                 deployment_schedules,
                                  relationships,
                                  workflows,
                                  policies,
@@ -89,7 +90,8 @@ class Blueprint(Element):
         'imported_blueprints': misc.ImportedBlueprints,
         'namespaces_mapping': misc.NamespacesMapping,
         'labels': misc.Labels,
-        'blueprint_labels': misc.BlueprintLabels
+        'blueprint_labels': misc.BlueprintLabels,
+        'deployment_schedules': deployment_schedules.DeploymentSchedules
     }
 
     requires = {
@@ -132,5 +134,7 @@ class Blueprint(Element):
                 self.child(misc.NamespacesMapping).value,
             constants.DATA_TYPES: self.child(data_types.DataTypes).value,
             constants.LABELS: self.child(misc.Labels).value,
-            constants.BLUEPRINT_LABELS: self.child(misc.BlueprintLabels).value
+            constants.BLUEPRINT_LABELS: self.child(misc.BlueprintLabels).value,
+            constants.DEPLOYMENT_SCHEDULES: self.child(
+                deployment_schedules.DeploymentSchedules).value
         })

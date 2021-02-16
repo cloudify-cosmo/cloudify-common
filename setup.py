@@ -25,6 +25,7 @@ install_requires = [
     'requests_toolbelt==0.8.0',
     'wagon>0.10',
     'fasteners==0.13.0',
+    'pytz==2021.1'
 ]
 
 if sys.version_info[:3] < (2, 7, 9):
