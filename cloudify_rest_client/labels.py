@@ -48,9 +48,9 @@ class _LabelsClient(object):
 
 class DeploymentsLabelsClient(_LabelsClient):
     def __init__(self, api):
-        super().__init__(api, 'deployments')
+        super(DeploymentsLabelsClient, self).__init__(api, 'deployments')
 
 
 class BlueprintsLabelsClient(_LabelsClient):
     def __init__(self, api):
-        super().__init__(api, 'blueprints')
+        super(BlueprintsLabelsClient, self).__init__(api, 'blueprints')
