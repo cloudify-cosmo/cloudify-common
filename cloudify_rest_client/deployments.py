@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -352,12 +353,7 @@ class DeploymentsClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        if filter_rules:
-            filter_rules_list = filter_rules.get('_filter_rules')
-            if filter_rules_list:
-                filter_rules['_filter_rules'] = ','.join(filter_rules_list)
-            params.update(filter_rules)
-
+        utils.add_filter_rules_to_params(filter_rules, params)
         response = self.api.get('/deployments',
                                 _include=_include,
                                 params=params)
