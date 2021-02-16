@@ -25,12 +25,16 @@ from cloudify_rest_client.constants import VisibilityState
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
+from .labels import Label
+
 
 class Blueprint(dict):
 
     def __init__(self, blueprint):
         super(Blueprint, self).__init__()
         self.update(blueprint)
+        if self.get('labels'):
+            self['labels'] = [Label(item) for item in self['labels']]
 
     @property
     def id(self):
@@ -86,6 +90,13 @@ class Blueprint(dict):
         :return: The upload state of the blueprint.
         """
         return self.get('state')
+
+    @property
+    def labels(self):
+        """
+        :return: The labels of this blueprint.
+        """
+        return self.get('labels')
 
 
 class BlueprintsClient(object):
