@@ -23,22 +23,34 @@ class Label(dict):
         return self['creator_id']
 
 
-class DeploymentsLabelsClient(object):
-    def __init__(self, api):
+class _LabelsClient(object):
+    def __init__(self, api, resource_name):
         self.api = api
+        self.resource_name = resource_name
 
     def list_keys(self):
         """
-        Returns all defined label keys, from all deployments.
+        Returns all defined label keys, from all elements of the resource.
         """
-        response = self.api.get('/labels/deployments')
+        response = self.api.get('/labels/{0}'.format(self.resource_name))
         return ListResponse(response['items'], response['metadata'])
 
     def list_key_values(self, label_key):
         """
         Returns all deployments labels' values for the specified key.
 
-        :param label_key: The deployments labels' key to list the values for.
+        :param label_key: The resource labels' key to list the values for.
         """
-        response = self.api.get('/labels/deployments/{0}'.format(label_key))
+        response = self.api.get(
+            '/labels/{0}/{1}'.format(self.resource_name, label_key))
         return ListResponse(response['items'], response['metadata'])
+
+
+class DeploymentsLabelsClient(_LabelsClient):
+    def __init__(self, api):
+        super().__init__(api, 'deployments')
+
+
+class BlueprintsLabelsClient(_LabelsClient):
+    def __init__(self, api):
+        super().__init__(api, 'blueprints')

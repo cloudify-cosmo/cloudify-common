@@ -62,7 +62,8 @@ from cloudify_rest_client.deployment_modifications import (
     DeploymentModificationsClient)
 from cloudify_rest_client.inter_deployment_dependencies import (
     InterDeploymentDependencyClient)
-from cloudify_rest_client.labels import DeploymentsLabelsClient
+from cloudify_rest_client.labels import (DeploymentsLabelsClient,
+                                         BlueprintsLabelsClient)
 from cloudify_rest_client.filters import FiltersClient
 
 try:
@@ -489,3 +490,4 @@ class CloudifyClient(object):
             self._client)
         self.deployments_labels = DeploymentsLabelsClient(self._client)
         self.filters = FiltersClient(self._client)
+        self.blueprints_labels = BlueprintsLabelsClient(self._client)
