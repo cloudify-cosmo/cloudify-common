@@ -111,11 +111,18 @@ class BlueprintsClient(object):
                              application_file_name,
                              visibility,
                              progress_callback,
-                             async_upload):
+                             async_upload,
+                             labels=None):
         query_params = {'visibility': visibility, 'async_upload': async_upload}
         if application_file_name is not None:
             query_params['application_file_name'] = \
                 urlquote(application_file_name)
+        if labels is not None:
+            labels_params = []
+            for label in labels:
+                [(key, value)] = label.items()
+                labels_params.append('{0}={1}'.format(key, value))
+            query_params['labels'] = ','.join(labels_params)
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
@@ -139,13 +146,15 @@ class BlueprintsClient(object):
                 application_file_name=None,
                 visibility=VisibilityState.TENANT,
                 progress_callback=None,
-                async_upload=False):
+                async_upload=False,
+                labels=None):
         query_params, data = self._prepare_put_request(
             archive_location,
             application_file_name,
             visibility,
             progress_callback,
             async_upload,
+            labels
         )
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
         return self.api.put(
@@ -288,7 +297,8 @@ class BlueprintsClient(object):
                visibility=VisibilityState.TENANT,
                progress_callback=None,
                skip_size_limit=True,
-               async_upload=False):
+               async_upload=False,
+               labels=None):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -299,6 +309,8 @@ class BlueprintsClient(object):
         :param progress_callback: Progress bar callback method
         :param skip_size_limit: Indicator whether to check size limit on
                            blueprint folder
+        :param labels: The deployment's labels. A list of 1-entry
+            dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
         :return: Created response.
 
         Blueprint path should point to the main yaml file of the response
@@ -318,7 +330,8 @@ class BlueprintsClient(object):
                 application_file_name=application_file,
                 visibility=visibility,
                 progress_callback=progress_callback,
-                async_upload=async_upload)
+                async_upload=async_upload,
+                labels=labels)
             if not async_upload:
                 return self._wrapper_cls(response)
         finally:
