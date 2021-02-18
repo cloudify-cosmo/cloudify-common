@@ -91,7 +91,7 @@ class ClusterHTTPClient(HTTPClient):
 
         This is because the file replication is asynchronous.
         """
-        if re.search('/(blueprints|snapshots)/[^/]+/archive', response.url):
+        if re.search('/(blueprints|snapshots)/', response.url):
             return True
         disposition = response.headers.get('Content-Disposition')
         if not disposition:
