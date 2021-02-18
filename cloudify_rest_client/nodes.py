@@ -235,5 +235,5 @@ class NodesClient(object):
             data={
                 'nodes': nodes
             },
-            expected_status_code=201,
+            expected_status_code=(201, 204),
         )
