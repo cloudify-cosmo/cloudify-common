@@ -89,7 +89,7 @@ class Blueprint(Element):
         'imported_blueprints': misc.ImportedBlueprints,
         'namespaces_mapping': misc.NamespacesMapping,
         'labels': misc.Labels,
-        'blueprint-labels': misc.BlueprintLabels
+        'blueprint_labels': misc.BlueprintLabels
     }
 
     requires = {

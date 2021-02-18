@@ -31,7 +31,7 @@ POLICIES_SCOPE = 'policies'
 SCALING_GROUPS_SCOPE = 'scaling_groups'
 CAPABILITIES_SCOPE = 'capabilities'
 LABELS_SCOPE = 'labels'
-BLUEPRINT_LABELS_SCOPE = 'blueprint-labels'
+BLUEPRINT_LABELS_SCOPE = 'blueprint_labels'
 
 # Searching for secrets in the blueprint only one time of the few times
 # that scan_service_template is called
@@ -187,7 +187,7 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
                         context=label,
                         path='{0}.{1}'.format(LABELS, label_key),
                         replace=replace)
-    for label_key, label in plan.get('blueprint-labels', {}).items():
+    for label_key, label in plan.get('blueprint_labels', {}).items():
         scan_properties(label,
                         handler,
                         scope=BLUEPRINT_LABELS_SCOPE,

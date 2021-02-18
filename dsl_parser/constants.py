@@ -43,7 +43,7 @@ CONSTRAINTS = 'constraints'
 DEFAULT = 'default'
 TYPE = 'type'
 LABELS = 'labels'
-BLUEPRINT_LABELS = 'blueprint-labels'
+BLUEPRINT_LABELS = 'blueprint_labels'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
