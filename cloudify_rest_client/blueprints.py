@@ -120,6 +120,12 @@ class BlueprintsClient(object):
         if labels is not None:
             labels_params = []
             for label in labels:
+                if (not isinstance(label, dict)) or len(label) != 1:
+                    raise CloudifyClientError(
+                        'Labels must be a list of 1-entry dictionaries: '
+                        '[{<key1>: <value1>}, {<key2>: [<value2>, <value3>]}, '
+                        '...]')
+
                 [(key, value)] = label.items()
                 labels_params.append('{0}={1}'.format(key, value))
             query_params['labels'] = ','.join(labels_params)
@@ -252,7 +258,8 @@ class BlueprintsClient(object):
                         blueprint_filename=None,
                         visibility=VisibilityState.TENANT,
                         progress_callback=None,
-                        async_upload=False):
+                        async_upload=False,
+                        labels=None):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
@@ -261,6 +268,8 @@ class BlueprintsClient(object):
         :param visibility: The visibility of the blueprint, can be 'private',
                            'tenant' or 'global'.
         :param progress_callback: Progress bar callback method
+        :param labels: The blueprint's labels. A list of 1-entry
+            dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
         :return: Created blueprint.
 
         Archive file should contain a single directory in which there is a
@@ -277,7 +286,8 @@ class BlueprintsClient(object):
             application_file_name=blueprint_filename,
             visibility=visibility,
             progress_callback=progress_callback,
-            async_upload=async_upload)
+            async_upload=async_upload,
+            labels=labels)
         if not async_upload:
             return self._wrapper_cls(response)
 
@@ -309,7 +319,7 @@ class BlueprintsClient(object):
         :param progress_callback: Progress bar callback method
         :param skip_size_limit: Indicator whether to check size limit on
                            blueprint folder
-        :param labels: The deployment's labels. A list of 1-entry
+        :param labels: The blueprint's labels. A list of 1-entry
             dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
         :return: Created response.
 
