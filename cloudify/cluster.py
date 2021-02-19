@@ -67,6 +67,8 @@ class ClusterHTTPClient(HTTPClient):
                 continue
             except CloudifyClientError as e:
                 errors[manager_to_try] = e.status_code
+                if e.response.status_code == 502:
+                    continue
                 if e.response.status_code == 404 and \
                         self._is_fileserver_download(e.response):
                     continue
