@@ -141,7 +141,7 @@ class LabelValue(Element):
 
 class Label(DictNoDefaultElement):
     schema = {
-        'value': LabelValue
+        'values': LabelValue
     }
 
     def validate(self, **kwargs):
@@ -149,13 +149,19 @@ class Label(DictNoDefaultElement):
         A label's value cannot be a runtime property, since labels are
         assigned to deployment during its creation.
         """
-        err_msg = "The label's value cannot be a runtime property. Please " \
-                  "remove the `get_attribute` function from the values of {0}"
+        type_err_msg = "The label's value must be a string or an intrinsic " \
+                       "function. Please modify the values of {0}"
+        get_attr_err_msg = "The label's value cannot be a runtime property. " \
+                           "Please remove the `get_attribute` function from " \
+                           "the values of {0}"
 
-        for value in self.initial_value['value']:
+        for value in self.initial_value['values']:
+            if not isinstance(value, (dict, text_type)):
+                raise exceptions.DSLParsingException(
+                    1, type_err_msg.format(self.name))
             if isinstance(value, dict) and 'get_attribute' in value:
                 raise exceptions.DSLParsingException(
-                    1, err_msg.format(self.name))
+                    1, get_attr_err_msg.format(self.name))
 
 
 class Labels(DictElement):
