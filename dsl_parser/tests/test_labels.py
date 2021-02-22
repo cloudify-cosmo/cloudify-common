@@ -10,7 +10,7 @@ class TestLabels(AbstractTestParser):
 labels: {}
 """
         yaml_2 = """
-blueprint-labels: {}
+blueprint_labels: {}
 """
         for yaml, labels_type in [(yaml_1, constants.LABELS),
                                   (yaml_2, constants.BLUEPRINT_LABELS)]:
@@ -29,7 +29,7 @@ labels:
             - key2_val2
 """
         yaml_2 = """
-blueprint-labels:
+blueprint_labels:
     key1:
         value:
             - key1_val1
@@ -70,7 +70,7 @@ inputs:
     a:
         default: some_value
 
-blueprint-labels:
+blueprint_labels:
     concat:
         value:
             - { concat: ['a', 'b'] }
@@ -98,7 +98,7 @@ labels:
         yaml_2 = """
 tosca_definitions_version: cloudify_dsl_1_3
 
-blueprint-labels:
+blueprint_labels:
     get_attribute:
         value:
           - val1
