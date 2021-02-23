@@ -1227,6 +1227,36 @@ data_types:
         self._test_validate_value_successful(
             'string', list(), [''], self.assertListEqual)
 
+    def test_autocorrect_int_successful(self):
+        self._test_autocorrect_value_successful(
+            'integer', '30', 30, self.assertEqual)
+        self._test_autocorrect_value_successful(
+            'integer', '-123456789', -123456789, self.assertEqual)
+
+    def test_autocorrect_int_mismatch(self):
+        self._test_autocorrect_value_mismatch(
+            'integer', 'qwe')
+        self._test_autocorrect_value_mismatch(
+            'integer', 1.234)
+        self._test_autocorrect_value_mismatch(
+            'integer', ['lazy', 'fox', ])
+
+    def test_autocorrect_float_successful(self):
+        self._test_autocorrect_value_successful(
+            'float', '1.1e3', 1100.0, self.assertEqual)
+        self._test_autocorrect_value_successful(
+            'float', '-123456.789', -123456.789, self.assertEqual)
+        self._test_autocorrect_value_successful(
+            'float', '789', 789.0, self.assertEqual)
+
+    def test_autocorrect_float_mismatch(self):
+        self._test_autocorrect_value_mismatch(
+            'float', 'qwe')
+        self._test_autocorrect_value_mismatch(
+            'float', True)
+        self._test_autocorrect_value_mismatch(
+            'integer', ['lazy', 'fox', ])
+
     def _test_validate_value_successful(self,
                                         type_name,
                                         default_value,
@@ -1273,3 +1303,37 @@ inputs:
         plan = self.parse(yaml)
         with self.assertRaisesRegex(DSLParsingException, message_regex):
             prepare_deployment_plan(plan, inputs={'some_input': value})
+
+    def _test_autocorrect_value_successful(self,
+                                           type_name,
+                                           input_value,
+                                           expected_value,
+                                           value_assert_equal_func):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: {0}
+""".format(type_name)
+        parsed = self.parse(yaml)
+        self.assertEqual(
+            parsed[consts.INPUTS]['some_input'][consts.TYPE], type_name)
+        plan = prepare_deployment_plan(
+            parsed, inputs={'some_input': input_value},
+            auto_correct_types=True)
+        value_assert_equal_func(plan['inputs']['some_input'], expected_value)
+
+    def _test_autocorrect_value_mismatch(self,
+                                         type_name,
+                                         input_value):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
+inputs:
+    some_input:
+        type: {0}
+""".format(type_name)
+        message_regex = ("Property type validation failed.*type is '{0}'"
+                         .format(type_name))
+        plan = self.parse(yaml)
+        self.assertEqual(
+            plan[consts.INPUTS]['some_input'][consts.TYPE], type_name)
+        with self.assertRaisesRegex(DSLParsingException, message_regex):
+            prepare_deployment_plan(plan, inputs={'some_input': input_value})
