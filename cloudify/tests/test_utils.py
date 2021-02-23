@@ -19,9 +19,10 @@ import shutil
 import logging
 import tempfile
 from testtools import TestCase
+from datetime import datetime, timedelta
 
 from cloudify import utils
-from cloudify.exceptions import CommandExecutionException
+from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 from cloudify.utils import (
     setup_logger,
     merge_plugins,
@@ -210,3 +211,67 @@ class TestRestUtils(object):
         assert rest_utils.get_folder_size_and_files(temp_dir) == \
             (expected_dir_size, 3)
         shutil.rmtree(temp_dir)
+
+
+class TestDateTimeUtils(TestCase):
+    def test_parse_utc_datetime(self):
+        parsed_datetime = utils.parse_utc_datetime("1905-6-13 12:00", "GMT")
+        expected_datetime = \
+            datetime.strptime('1905-6-13 12:00', '%Y-%m-%d %H:%M')
+        self.assertEqual(parsed_datetime, expected_datetime)
+
+    def test_parse_utc_datetime_no_date(self):
+        parsed_datetime = utils.parse_utc_datetime("12:00", "EST")
+        expected_datetime = datetime.utcnow().replace(
+            hour=17, minute=0, second=0, microsecond=0)
+        self.assertEqual(parsed_datetime, expected_datetime)
+
+    def test_parse_utc_datetime_bad_time_expressions(self):
+        illegal_time_formats = ['blah', '15:33:18', '99:99',
+                                '2000/1/1 09:17', '-1 min']
+        error_msg = '{} is not a legal time format. accepted formats are ' \
+                    'YYYY-MM-DD HH:MM | HH:MM'
+        for time_format in illegal_time_formats:
+            self.assertRaisesRegex(
+                NonRecoverableError,
+                error_msg.format(time_format),
+                utils.parse_utc_datetime, time_format
+            )
+        illegal_time_deltas = ['+10 dobosh', '+rez']
+        for delta in illegal_time_deltas:
+            self.assertRaisesRegex(
+                NonRecoverableError,
+                '{} is not a legal time delta'.format(delta.strip('+')),
+                utils.parse_utc_datetime, delta
+            )
+
+    def test_parse_utc_datetime_bad_timezone(self):
+        self.assertRaisesRegex(
+            NonRecoverableError,
+            'Mars/SpaceX is not a recognized timezone',
+            utils.parse_utc_datetime, '7:15', 'Mars/SpaceX'
+        )
+
+    def test_parse_utc_datetime_months_delta(self):
+        parsed_datetime = utils.parse_utc_datetime("+13mo")
+        now = datetime.utcnow()
+        current_month = now.month
+        expected_month = 1 if current_month == 12 else current_month + 1
+        expected_year = now.year + (2 if current_month == 12 else 1)
+        expected_datetime = now.replace(
+            second=0, microsecond=0, year=expected_year, month=expected_month)
+        self.assertEqual(parsed_datetime, expected_datetime)
+
+    def test_parse_utc_datetime_years_delta(self):
+        parsed_datetime = utils.parse_utc_datetime("+2y")
+        now = datetime.utcnow()
+        expected_datetime = now.replace(
+            second=0, microsecond=0, year=now.year+2)
+        self.assertEqual(parsed_datetime, expected_datetime)
+
+    def test_parse_utc_datetime_hours_minutes_delta(self):
+        parsed_datetime = utils.parse_utc_datetime("+25 hours+119min")
+        expected_datetime = \
+            (datetime.utcnow().replace(second=0, microsecond=0) +
+             timedelta(days=1, hours=2, minutes=59))
+        self.assertEqual(parsed_datetime, expected_datetime)
