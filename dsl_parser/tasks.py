@@ -46,7 +46,7 @@ def parse_dsl(dsl_location,
         additional_resource_sources=additional_resources)
 
 
-def _set_plan_inputs(plan, inputs=None):
+def _set_plan_inputs(plan, inputs=None, auto_correct_types=False):
     inputs = inputs if inputs else {}
     # Verify inputs satisfied
     missing_inputs = []
@@ -97,6 +97,9 @@ def _set_plan_inputs(plan, inputs=None):
         # data_type, if mentioned
         input_constraints = constraints.extract_constraints(input_def)
         if not input_is_missing:
+            if auto_correct_types:
+                inputs[input_name] = utils.cast_to_type(
+                    inputs[input_name], input_def.get(TYPE, None))
             constraints.validate_input_value(
                 input_name, input_constraints, inputs[input_name])
             inputs_complete = inputs[input_name]
@@ -173,12 +176,14 @@ def _validate_secrets(plan, get_secret_method):
 
 
 def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
-                            runtime_only_evaluation=False, **_):
+                            runtime_only_evaluation=False,
+                            auto_correct_types=False,
+                            **_):
     """
     Prepare a plan for deployment
     """
     plan = models.Plan(copy.deepcopy(plan))
-    _set_plan_inputs(plan, inputs)
+    _set_plan_inputs(plan, inputs, auto_correct_types)
     _process_functions(plan, runtime_only_evaluation)
     _validate_secrets(plan, get_secret_method)
     return multi_instance.create_deployment_plan(plan)
