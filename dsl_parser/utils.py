@@ -255,6 +255,23 @@ def parse_value(
         exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE, err_msg)
 
 
+def cast_to_type(value, type_name):
+    """Try converting value to the specified type_name if possible."""
+
+    if not isinstance(value, text_type):
+        return value
+
+    try:
+        if type_name == 'integer':
+            return int(value)
+        if type_name == 'float':
+            return float(value)
+    except ValueError:
+        pass
+
+    return value
+
+
 def load_yaml(raw_yaml, error_message, filename=None):
     try:
         return yaml_loader.load(raw_yaml, filename)
