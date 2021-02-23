@@ -241,7 +241,8 @@ class DeploymentUpdatesClient(object):
                                        reinstall_list=None,
                                        preview=False,
                                        update_plugins=True,
-                                       runtime_only_evaluation=None):
+                                       runtime_only_evaluation=None,
+                                       auto_correct_types=None):
         data = {
             'workflow_id': workflow_id,
             'skip_install': skip_install,
@@ -260,6 +261,8 @@ class DeploymentUpdatesClient(object):
             data['reinstall_list'] = reinstall_list
         if runtime_only_evaluation is not None:
             data['runtime_only_evaluation'] = runtime_only_evaluation
+        if auto_correct_types is not None:
+            data['auto_correct_types'] = auto_correct_types
         uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
         response = self.api.put(uri, data=data)
         return DeploymentUpdate(response)
