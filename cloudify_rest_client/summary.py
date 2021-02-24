@@ -41,3 +41,4 @@ class SummariesClient(object):
         self.executions = SummaryClient(api, 'executions')
         self.nodes = SummaryClient(api, 'nodes')
         self.node_instances = SummaryClient(api, 'node_instances')
+        self.execution_schedules = SummaryClient(api, 'execution_schedules')
