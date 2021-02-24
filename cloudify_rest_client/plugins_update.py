@@ -109,7 +109,7 @@ class PluginsUpdateClient(object):
     def update_plugins(self, blueprint_id, force=False, plugin_names=None,
                        to_latest=None, all_to_latest=True,
                        to_minor=None, all_to_minor=False,
-                       mapping=None):
+                       mapping=None, auto_correct_types=False):
         """
         Updates the plugins in all the deployments that use the given
         blueprint.
@@ -130,6 +130,8 @@ class PluginsUpdateClient(object):
         :param mapping: detailed information on required plugin update
          (overrides all other arguments/settings concerning version
          constraints)
+        :param auto_correct_types: auto_correct_types flag to run deployments
+        update with.
         :return: a PluginUpdate object.
         """
         if force:
@@ -143,12 +145,16 @@ class PluginsUpdateClient(object):
         response = self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
                                                             self=self),
-            data=_data_from_kwargs(plugin_names=plugin_names,
-                                   to_latest=to_latest,
-                                   all_to_latest=all_to_latest,
-                                   to_minor=to_minor,
-                                   all_to_minor=all_to_minor,
-                                   mapping=mapping))
+            data=_data_from_kwargs(
+                plugin_names=plugin_names,
+                to_latest=to_latest,
+                all_to_latest=all_to_latest,
+                to_minor=to_minor,
+                all_to_minor=all_to_minor,
+                mapping=mapping,
+                auto_correct_types=auto_correct_types,
+            )
+        )
         return PluginsUpdate(response)
 
     def finalize_plugins_update(self, plugins_update_id):
