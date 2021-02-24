@@ -109,6 +109,22 @@ class NodeInstancesClient(object):
         self._wrapper_cls = NodeInstance
         self._uri_prefix = 'node-instances'
 
+    def create_many(self, node_instances):
+        """Create multiple node-instances.
+
+        :param node_instances: list of dicts representing the instances
+             to be created. Each node dict must contain at least the
+             keys: id, node_id, deployment_id.
+        :return: None
+        """
+        self.api.post(
+            '/{self._uri_prefix}'.format(self=self),
+            data={
+                'node_instances': node_instances
+            },
+            expected_status_code=(201, 204),
+        )
+
     def get(self, node_instance_id, _include=None, evaluate_functions=False):
         """
         Returns the node instance for the provided node instance id.
