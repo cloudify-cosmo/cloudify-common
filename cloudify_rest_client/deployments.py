@@ -122,6 +122,27 @@ class Deployment(dict):
         """
         return self.get('deployment_groups')
 
+    @property
+    def latest_execution_status(self):
+        """
+        :return: The deployment latest execution status
+        """
+        return self.get('latest_execution_status')
+
+    @property
+    def installation_status(self):
+        """
+        :return: The deployment installation status
+        """
+        return self.get('installation_status')
+
+    @property
+    def deployment_status(self):
+        """
+        :return: The overall deployment status
+        """
+        return self.get('deployment_status')
+
 
 class Workflow(dict):
 
