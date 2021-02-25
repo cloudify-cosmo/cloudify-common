@@ -23,7 +23,7 @@ from dsl_parser.constants import (NODES,
                                   CAPABILITIES,
                                   SCALING_GROUPS,
                                   BLUEPRINT_LABELS,
-                                  DEPLOYMENT_SCHEDULES)
+                                  DEPLOYMENT_SETTINGS)
 
 NODE_TEMPLATE_SCOPE = 'node_template'
 NODE_TEMPLATE_RELATIONSHIP_SCOPE = 'node_template_relationship'
@@ -33,7 +33,7 @@ SCALING_GROUPS_SCOPE = 'scaling_groups'
 CAPABILITIES_SCOPE = 'capabilities'
 LABELS_SCOPE = 'labels'
 BLUEPRINT_LABELS_SCOPE = 'blueprint_labels'
-DEPLOYMENT_SCHEDULES_SCOPE = 'deployment_schedules'
+DEPLOYMENT_SETTINGS_SCOPE = 'deployment_settings'
 
 # Searching for secrets in the blueprint only one time of the few times
 # that scan_service_template is called
@@ -197,13 +197,13 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
                         path='{0}.{1}'.format(BLUEPRINT_LABELS, label_key),
                         replace=replace)
 
-    for schedule_id, schedule in plan.get('deployment_schedules', {}).items():
-        scan_properties(schedule,
+    for setting_id, setting in plan.get('deployment_settings', {}).items():
+        scan_properties(setting,
                         handler,
-                        scope=DEPLOYMENT_SCHEDULES_SCOPE,
-                        context=schedule,
-                        path='{0}.{1}'.format(DEPLOYMENT_SCHEDULES,
-                                              schedule_id),
+                        scope=DEPLOYMENT_SETTINGS_SCOPE,
+                        context=setting,
+                        path='{0}.{1}'.format(DEPLOYMENT_SETTINGS,
+                                              setting_id),
                         replace=replace)
 
     if collect_secrets and len(secrets) > 0:
