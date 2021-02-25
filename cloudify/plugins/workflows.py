@@ -1000,7 +1000,7 @@ def rollback(ctx,
                                            ignore_failure=True,
                                            name_prefix='uninstall-a'
                                            )
-        # ctx.refresh_node_instances()
+        ctx.refresh_node_instances()
         lifecycle.uninstall_node_instances(
             graph=ctx.graph_mode(),
             node_instances=ctx.node_instances,
