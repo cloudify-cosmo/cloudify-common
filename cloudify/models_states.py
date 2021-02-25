@@ -53,6 +53,43 @@ class ExecutionState(object):
     QUEUED_STATE = [QUEUED]
     END_STATES = [TERMINATED, FAILED, CANCELLED]
 
+    # In progress execution states
+    IN_PROGRESS_STATES = [
+        PENDING,
+        STARTED,
+        CANCELLED,
+        FORCE_CANCELLING,
+        KILL_CANCELLING
+    ]
+
+
+class DeploymentState(object):
+    # Installation states
+    ACTIVE = 'active'
+    INACTIVE = 'inactive'
+
+    # Latest execution states
+    IN_PROGRESS = 'in_progress'
+    COMPLETED = 'completed'
+    FAILED = 'failed'
+    CANCELLED = 'cancelled'
+
+    # deployment states
+    GOOD = 'good'
+    REQUIRE_ATTENTION = 'require_attention'
+
+    EXECUTION_STATES_SUMMARY = {
+        ExecutionState.TERMINATED: COMPLETED,
+        ExecutionState.FAILED: FAILED,
+        ExecutionState.CANCELLED: CANCELLED,
+        ExecutionState.PENDING: IN_PROGRESS,
+        ExecutionState.STARTED: IN_PROGRESS,
+        ExecutionState.CANCELLING: IN_PROGRESS,
+        ExecutionState.FORCE_CANCELLING: IN_PROGRESS,
+        ExecutionState.KILL_CANCELLING: IN_PROGRESS,
+        ExecutionState.QUEUED: IN_PROGRESS
+    }
+
 
 # needs to be separate because python3 doesn't allow `if` in listcomps
 # using names from class scope
