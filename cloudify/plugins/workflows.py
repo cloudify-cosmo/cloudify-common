@@ -991,7 +991,7 @@ def rollback(ctx,
     if full_rollback:
         # The first uninstall is because of the current behaviour of uninstall
         # workflow: if node in `configured` state the uninstall try's to run
-        # stop , so for now we need rollback always to `deleted`.
+        # stop, so for now we need rollback always to `deleted`.
         ctx.logger.debug("Start full rollback")
         lifecycle.uninstall_node_instances(ctx.graph_mode(),
                                            node_instances=set(
