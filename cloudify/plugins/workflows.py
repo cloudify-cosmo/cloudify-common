@@ -989,7 +989,7 @@ def rollback(ctx,
     ctx.logger.debug("intact node instances:{ids}".format(
         ids=[instance.id for instance in intact_nodes]))
     if full_rollback:
-        # The first uninstall is because of the current behaviour of uninstall
+        # The first uninstall is because of the current behavior of uninstall
         # workflow: if node in `configured` state the uninstall try's to run
         # stop, so for now we need rollback always to `deleted`.
         ctx.logger.debug("Start full rollback")
