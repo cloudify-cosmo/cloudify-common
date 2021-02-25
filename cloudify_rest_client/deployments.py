@@ -493,3 +493,14 @@ class DeploymentsClient(object):
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=data)
         return Deployment(updated_dep)
+
+    def set_attributes(self, deployment_id, **kwargs):
+        """Set kwargs on the deployment.
+
+        This is used internally for first populating the deployment
+        with the attributes from the plan.
+        For updating existing deployments, use the deployment update methods.
+        """
+        updated_dep = self.api.patch(
+            '/deployments/{0}'.format(deployment_id), data=kwargs)
+        return Deployment(updated_dep)
