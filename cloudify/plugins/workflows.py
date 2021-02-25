@@ -987,7 +987,7 @@ def rollback(ctx,
         ids=[instance.id for instance in unresolved_node_instances]))
     intact_nodes = set(ctx.node_instances) - set(unresolved_node_instances)
     ctx.logger.debug("intact node instances:{ids}".format(
-        [instance.id for instance in intact_nodes]))
+        ids=[instance.id for instance in intact_nodes]))
     if full_rollback:
         # The first uninstall is because a bug in the uninstall workflow:
         # if node in `configured` state the uninstall try's to run stop so
