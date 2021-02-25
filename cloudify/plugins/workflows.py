@@ -988,27 +988,19 @@ def rollback(ctx,
     intact_nodes = set(ctx.node_instances) - set(unresolved_node_instances)
     ctx.logger.debug("intact node instances:{ids}".format(
         ids=[instance.id for instance in intact_nodes]))
+
+    lifecycle.rollback_node_instances(
+        graph=ctx.graph_mode(),
+        node_instances=set(unresolved_node_instances),
+        related_nodes=intact_nodes
+    )
+    ctx.refresh_node_instances()
     if full_rollback:
-        ctx.logger.debug("Start full rollback")
-        lifecycle.rollback_node_instances(
-            graph=ctx.graph_mode(),
-            node_instances=set(unresolved_node_instances),
-            related_nodes=intact_nodes
-        )
-        ctx.refresh_node_instances()
         lifecycle.uninstall_node_instances(
             graph=ctx.graph_mode(),
             node_instances=ctx.node_instances,
             ignore_failure=False,
             name_prefix='uninstall-b')
-
-    # Build rollback graph and execute
-    else:
-        lifecycle.rollback_node_instances(
-            graph=ctx.graph_mode(),
-            node_instances=set(unresolved_node_instances),
-            related_nodes=intact_nodes
-        )
 
 
 def _find_all_unresolved_node_instances(ctx,
