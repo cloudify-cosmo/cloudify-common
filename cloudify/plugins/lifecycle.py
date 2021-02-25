@@ -613,7 +613,8 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
 
     # Remove unneeded operations
     instance_state = instance.state
-    if instance_state in ['stopped', 'deleting', 'deleted', 'uninitialized','configured']:
+    if instance_state in ['stopped', 'deleting', 'deleted', 'uninitialized',
+                          'configured']:
         stop_message = []
         monitoring_stop = []
         host_pre_stop = []
