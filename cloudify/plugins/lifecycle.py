@@ -87,6 +87,19 @@ def execute_unlink_relationships(graph,
     processor.uninstall()
 
 
+def rollback_node_instances(graph,
+                            node_instances,
+                            related_nodes=None,
+                            name_prefix=''):
+    processor = LifecycleProcessor(graph=graph,
+                                   node_instances=node_instances,
+                                   related_nodes=related_nodes,
+                                   name_prefix=name_prefix,
+                                   ignore_failure=True)
+
+    processor.rollback()
+
+
 class LifecycleProcessor(object):
 
     def __init__(self,
@@ -118,6 +131,14 @@ class LifecycleProcessor(object):
             workflow_ctx,
             name=self._name_prefix + 'uninstall',
             node_instance_subgraph_func=uninstall_node_instance_subgraph,
+            graph_finisher_func=self._finish_uninstall)
+        graph.execute()
+
+    def rollback(self):
+        graph = self._process_node_instances(
+            workflow_ctx,
+            name=self._name_prefix + 'rollback',
+            node_instance_subgraph_func=rollback_node_instance_subgraph,
             graph_finisher_func=self._finish_uninstall)
         graph.execute()
 
@@ -909,6 +930,149 @@ def _host_pre_stop(host_node_instance):
                 ]
         tasks += [host_node_instance.send_event('Agent deleted')]
     return tasks
+
+
+def rollback_node_instance_subgraph(instance, graph, ignore_failure):
+    subgraph = graph.subgraph(instance.id)
+    sequence = subgraph.sequence()
+
+    def set_ignore_handlers(_subgraph):
+        for task in _subgraph.tasks.values():
+            if task.is_subgraph:
+                set_ignore_handlers(task)
+            else:
+                set_send_node_event_on_error_handler(task, instance)
+
+    # Remove unneeded operations
+    instance_state = instance.state
+    # decide if do prestop stop and validation delete
+
+    if instance_state not in ['starting']:
+        stop_message = []
+        monitoring_stop = []
+        host_pre_stop = []
+        prestop = []
+        deletion_validation = []
+        stop = [instance.send_event(
+            'Rollback Stop: nothing to do, instance state is {0}'.format(
+                instance_state))]
+        configured_set_state = []
+    else:
+        stop_message = [
+            forkjoin(
+                instance.set_state('stopping'),
+                instance.send_event('Stopping node instance')
+            )
+        ]
+        monitoring_stop = _skip_nop_operations(
+            instance.execute_operation('cloudify.interfaces.monitoring.stop')
+        )
+
+        # Only exists in >= 5.0.
+        if 'cloudify.interfaces.validation.delete' in instance.node.operations:
+            deletion_validation = _skip_nop_operations(
+                pre=instance.send_event(
+                    'Validating node instance before deletion'),
+                task=instance.execute_operation(
+                    'cloudify.interfaces.validation.delete'
+                ),
+                post=instance.send_event(
+                    'Node instance validated before deletion')
+            )
+        else:
+            deletion_validation = []
+
+        # Only exists in >= 5.0.
+        if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
+            prestop = _skip_nop_operations(
+                pre=instance.send_event('Prestopping node instance'),
+                task=instance.execute_operation(
+                    'cloudify.interfaces.lifecycle.prestop'),
+                post=instance.send_event('Node instance prestopped'))
+        else:
+            prestop = []
+
+        if is_host_node(instance):
+            host_pre_stop = _host_pre_stop(instance)
+        else:
+            host_pre_stop = []
+
+        stop = _skip_nop_operations(
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.stop'),
+            post=instance.send_event('Stopped node instance'))
+
+        configured_set_state = [instance.set_state('configured')]
+
+    # Decide when we want to unlink +delete + post delete
+    if instance_state not in ['creating', 'configuring']:
+        unlink = []
+        postdelete = []
+        delete = [instance.send_event(
+            'Rollback Delete: nothing to do, instance state is {0}'.format(
+                instance_state))]
+        uninitialized_set_state = []
+    else:
+        unlink = _skip_nop_operations(
+            pre=instance.send_event('Unlinking relationships'),
+            task=_relationships_operations(
+                subgraph,
+                instance,
+                'cloudify.interfaces.relationship_lifecycle.unlink',
+                reverse=True),
+            post=instance.send_event('Relationships unlinked')
+        )
+        delete = _skip_nop_operations(
+            pre=forkjoin(
+                instance.set_state('deleting'),
+                instance.send_event('Deleting node instance')),
+            task=instance.execute_operation(
+                'cloudify.interfaces.lifecycle.delete')
+        )
+        # Only exists in >= 5.0.
+        if 'cloudify.interfaces.lifecycle.postdelete' \
+                in instance.node.operations:
+            postdelete = _skip_nop_operations(
+                pre=instance.send_event('Postdeleting node instance'),
+                task=instance.execute_operation(
+                    'cloudify.interfaces.lifecycle.postdelete'),
+                post=instance.send_event('Node instance postdeleted'))
+        else:
+            postdelete = []
+
+        uninitialized_set_state = [instance.set_state('uninitialized')]
+
+    if instance_state not in ['creating', 'configuring', 'starting']:
+        finish_message = []
+    else:
+        finish_message = [
+            instance.send_event('Rollbacked node instance')
+        ]
+
+    tasks = (
+            stop_message +
+            (deletion_validation or
+             [instance.send_event('Validating node instance after deletion: '
+                                  'nothing to do')]) +
+            monitoring_stop +
+            prestop +
+            host_pre_stop +
+            (stop or
+             [instance.send_event('Stopped node instance: nothing to do')]) +
+            configured_set_state +
+            unlink +
+            (delete or
+             [instance.send_event('Deleting node instance: nothing to do')]) +
+            postdelete +
+            uninitialized_set_state +
+            finish_message
+    )
+    sequence.add(*tasks)
+
+    if ignore_failure:
+        set_ignore_handlers(subgraph)
+
+    return subgraph
 
 
 class _SubgraphOnFailure(object):
