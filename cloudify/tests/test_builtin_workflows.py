@@ -41,7 +41,17 @@ class GlobalCounter(object):
 global_counter = GlobalCounter()
 
 
-class TestWorkflowLifecycleOperations(testtools.TestCase):
+class LifecycleBaseTest(testtools.TestCase):
+
+    def _make_assertions(self, cfy_local, expected_ops):
+        instances = cfy_local.storage.get_node_instances()
+        instance = instances[0]
+        invocations = instance.runtime_properties['invocations']
+        invoked_operations = [x['operation'] for x in invocations]
+        self.assertEquals(invoked_operations, expected_ops)
+
+
+class TestWorkflowLifecycleOperations(LifecycleBaseTest):
     lifecycle_blueprint_path = path.join('resources', 'blueprints',
                                          'test-lifecycle.yaml')
 
@@ -75,13 +85,6 @@ class TestWorkflowLifecycleOperations(testtools.TestCase):
             cfy_local,
             ['cloudify.interfaces.lifecycle.stop',
              'cloudify.interfaces.lifecycle.start'])
-
-    def _make_assertions(self, cfy_local, expected_ops):
-        instances = cfy_local.storage.get_node_instances()
-        instance = instances[0]
-        invocations = instance.runtime_properties['invocations']
-        invoked_operations = [x['operation'] for x in invocations]
-        self.assertEquals(invoked_operations, expected_ops)
 
 
 class TestExecuteOperationWorkflow(testtools.TestCase):
@@ -657,6 +660,75 @@ class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):
         return self.env.storage.get_node_instances(node_id=node_id)[0]
 
 
+class TestRollbackWorkflow(LifecycleBaseTest):
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-creating-to-uninitialized.yaml'))
+    def test_creating_to_uninitialized(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback')
+        self._make_assertions(cfy_local, [
+            'cloudify.interfaces.lifecycle.create',
+            'cloudify.interfaces.lifecycle.delete',
+            'cloudify.interfaces.lifecycle.postdelete'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-configuring-to-uninitialized.yaml'))
+    def test_configuring_to_uninitialized(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback')
+        self._make_assertions(cfy_local, [
+            'cloudify.interfaces.lifecycle.configure',
+            'cloudify.interfaces.lifecycle.delete',
+            'cloudify.interfaces.lifecycle.postdelete'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-starting-to-configured.yaml'))
+    def test_starting_to_configuring(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback')
+        self._make_assertions(cfy_local, [
+            'cloudify.interfaces.lifecycle.start',
+            'cloudify.interfaces.lifecycle.prestop',
+            'cloudify.interfaces.lifecycle.stop'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-starting-to-configured.yaml'))
+    def test_full_rollback(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback', parameters={'full_rollback': True})
+        node_instance = cfy_local.storage.get_node_instances()[0]
+        self.assertEqual(node_instance['state'],'deleted')
+        # start during install, prestop and stop during rollback, delete and
+        # postdelete during uninstall.
+        self._make_assertions(cfy_local, [
+            'cloudify.interfaces.lifecycle.start',
+            'cloudify.interfaces.lifecycle.prestop',
+            'cloudify.interfaces.lifecycle.stop',
+            'cloudify.interfaces.lifecycle.delete',
+            'cloudify.interfaces.lifecycle.postdelete'])
+
+
 @operation
 def exec_op_test_operation(ctx, **kwargs):
     ctx.instance.runtime_properties['test_op_visited'] = True
@@ -683,9 +755,8 @@ def target_operation(ctx, **_):
 def node_operation(ctx, **_):
     _write_operation(ctx)
 
-
 @operation
-def fail_stop(ctx, **_):
+def fail_op(ctx, **_):
     _write_operation(ctx)
     raise exceptions.NonRecoverableError('')
 
