@@ -961,7 +961,10 @@ def rollback(ctx,
     is unresolved, and for those that are, execute the corresponding node
     operation that will get us back to a resolved node state, and then
     execute the unfinished workflow.
-
+    Unresolved states are: creating, configuring, starting.
+    Nodes that are in `creating` and `configuring` states will rollback to
+    `uninitialized` state.
+    Nodes that are in `starting` state will rollback to `configured` state.
     :param ctx : Cloudify context
     :param type_names: A list of type names. The operation will be executed
           only on node instances which are of these types or of types which
@@ -973,8 +976,8 @@ def rollback(ctx,
     :param node_instance_ids: A list of node instance ids. The operation will
           be executed only on the node instances specified. An empty list
           means no filtering will take place and all node instances are valid.
-    :param full_rollback Whether to rollback to resolved state or full
-    uninstall.
+    :param full_rollback Whether to perform uninstall after rollback to
+    resolved state.
     """
     # Find all node instances in unresolved state
     unresolved_node_instances = _find_all_unresolved_node_instances(
@@ -1000,7 +1003,7 @@ def rollback(ctx,
             graph=ctx.graph_mode(),
             node_instances=ctx.node_instances,
             ignore_failure=False,
-            name_prefix='uninstall-b')
+            name_prefix='uninstall-a')
 
 
 def _find_all_unresolved_node_instances(ctx,
