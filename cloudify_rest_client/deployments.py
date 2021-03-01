@@ -224,7 +224,7 @@ class DeploymentGroupsClient(object):
 
     def put(self, group_id, visibility=VisibilityState.TENANT,
             description=None, blueprint_id=None, default_inputs=None,
-            filter_id=None, deployment_ids=None):
+            filter_id=None, deployment_ids=None, inputs=None):
         """Create or update the specified deployment group.
 
         Setting group deployments using this method (via either filter_id
@@ -238,6 +238,8 @@ class DeploymentGroupsClient(object):
         :param deployment_ids: set the group deployments to these
         :param filter_id: set the group to contain the deployments matching
                           this filter
+        :param inputs: create new deployments using these inputs merged
+                       with default_inputs, and using default_blueprint
         :return: the created deployment group
         """
         response = self.api.put(
@@ -264,7 +266,7 @@ class DeploymentGroupsClient(object):
             group. Mutally exclusive with inputs.
         :param inputs: create deployments using these inputs merged
             with the group's default_inputs, and the group's default_blueprint,
-            and add them to the group. Mutually exclusive with inputs.
+            and add them to the group. Mutually exclusive with count.
         :param filter_id: add deployments matching this filter
         :return: the updated deployment group
         """
