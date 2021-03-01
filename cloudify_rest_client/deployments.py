@@ -222,11 +222,34 @@ class DeploymentGroupsClient(object):
         response = self.api.get('/deployment-groups/{0}'.format(group_id))
         return DeploymentGroup(response)
 
-    def put(self, group_id, **kwargs):
-        """Create or update the specified deployment group."""
+    def put(self, group_id, visibility=VisibilityState.TENANT,
+            description=None, blueprint_id=None, default_inputs=None,
+            filter_id=None, deployment_ids=None):
+        """Create or update the specified deployment group.
+
+        Setting group deployments using this method (via either filter_id
+        or deployment_ids) will set, NOT ADD, ie. it will remove all other
+        deployments from the group.
+
+        :param visibility: visibility of the group
+        :param description: description of the group
+        :param blueprint_id: the default blueprint to use when extending
+        :param default_inputs: the default inputs to use when extending
+        :param deployment_ids: set the group deployments to these
+        :param filter_id: set the group to contain the deployments matching
+                          this filter
+        :return: the created deployment group
+        """
         response = self.api.put(
             '/deployment-groups/{0}'.format(group_id),
-            data=kwargs
+            data={
+                'visibility': visibility,
+                'description': description,
+                'blueprint_id': blueprint_id,
+                'default_inputs': default_inputs,
+                'filter_id': filter_id,
+                'deployment_ids': deployment_ids,
+            }
         )
         return DeploymentGroup(response)
 
