@@ -251,6 +251,7 @@ class DeploymentGroupsClient(object):
                 'default_inputs': default_inputs,
                 'filter_id': filter_id,
                 'deployment_ids': deployment_ids,
+                'inputs': inputs,
             }
         )
         return DeploymentGroup(response)
