@@ -30,6 +30,8 @@ FILE_SERVER_GLOBAL_RESOURCES_FOLDER = 'global-resources'
 FILE_SERVER_TENANT_RESOURCES_FOLDER = 'tenant-resources'
 FILE_SERVER_AUTHENTICATORS_FOLDER = 'authenticators'
 
+LDAP_CA_PATH = '/etc/cloudify/ssl/ldap_ca.crt'
+
 MANAGER_ROOT_PATH = '/opt/manager'
 MANAGER_RESOURCES_PATH = '{0}/{1}'.format(MANAGER_ROOT_PATH,
                                           FILE_SERVER_RESOURCES_FOLDER)
