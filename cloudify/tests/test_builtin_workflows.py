@@ -50,6 +50,34 @@ class LifecycleBaseTest(testtools.TestCase):
         invoked_operations = [x['operation'] for x in invocations]
         self.assertEquals(invoked_operations, expected_ops)
 
+    def _make_filter_assertions(self, cfy_local,
+                                expected_num_of_visited_instances,
+                                node_ids=None, node_instance_ids=None,
+                                type_names=None):
+        num_of_visited_instances = 0
+        instances = cfy_local.storage.get_node_instances()
+        nodes_by_id = dict((node.id, node) for node in
+                           cfy_local.storage.get_nodes())
+
+        for inst in instances:
+            test_op_visited = inst.runtime_properties.get('test_op_visited')
+
+            if (not node_ids or inst.node_id in node_ids) \
+                    and \
+                    (not node_instance_ids or inst.id in node_instance_ids) \
+                    and \
+                    (not type_names or (next((type for type in nodes_by_id[
+                        inst.node_id].type_hierarchy if type in type_names),
+                    None))):
+                self.assertTrue(test_op_visited)
+                num_of_visited_instances += 1
+            else:
+                self.assertIsNone(test_op_visited)
+
+        # this is actually an assertion to ensure the tests themselves are ok
+        self.assertEquals(expected_num_of_visited_instances,
+                          num_of_visited_instances)
+
 
 class TestWorkflowLifecycleOperations(LifecycleBaseTest):
     lifecycle_blueprint_path = path.join('resources', 'blueprints',
@@ -87,7 +115,7 @@ class TestWorkflowLifecycleOperations(LifecycleBaseTest):
              'cloudify.interfaces.lifecycle.start'])
 
 
-class TestExecuteOperationWorkflow(testtools.TestCase):
+class TestExecuteOperationWorkflow(LifecycleBaseTest):
     execute_blueprint_path = path.join('resources', 'blueprints',
                                        'execute_operation-blueprint.yaml')
 
@@ -317,34 +345,6 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
         instance = cfy_local.storage.get_node_instances('node1')[0]
         invocations = instance.runtime_properties.get('invocations', [])
         self.assertEqual(len(invocations), 2)
-
-    def _make_filter_assertions(self, cfy_local,
-                                expected_num_of_visited_instances,
-                                node_ids=None, node_instance_ids=None,
-                                type_names=None):
-        num_of_visited_instances = 0
-        instances = cfy_local.storage.get_node_instances()
-        nodes_by_id = dict((node.id, node) for node in
-                           cfy_local.storage.get_nodes())
-
-        for inst in instances:
-            test_op_visited = inst.runtime_properties.get('test_op_visited')
-
-            if (not node_ids or inst.node_id in node_ids) \
-                    and \
-                    (not node_instance_ids or inst.id in node_instance_ids) \
-                    and \
-                    (not type_names or (next((type for type in nodes_by_id[
-                        inst.node_id].type_hierarchy if type in type_names),
-                    None))):
-                self.assertTrue(test_op_visited)
-                num_of_visited_instances += 1
-            else:
-                self.assertIsNone(test_op_visited)
-
-        # this is actually an assertion to ensure the tests themselves are ok
-        self.assertEquals(expected_num_of_visited_instances,
-                          num_of_visited_instances)
 
 
 class TestScale(testtools.TestCase):
@@ -727,6 +727,52 @@ class TestRollbackWorkflow(LifecycleBaseTest):
             'cloudify.interfaces.lifecycle.stop',
             'cloudify.interfaces.lifecycle.delete',
             'cloudify.interfaces.lifecycle.postdelete'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-with-params.yaml'))
+    def test_rollback_node_ids(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        # node_b instances are in resolved state.
+        cfy_local.execute('rollback', parameters={'node_ids': ['node_b']})
+        cfy_local.execute('rollback', parameters={'node_ids': ['node_a']})
+        self._make_filter_assertions(cfy_local, 1, node_ids=['node_a'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-with-params.yaml'))
+    def test_rollback_type_names(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback',
+                          parameters={'type_names': ['mock_type2']})
+        cfy_local.execute('rollback', parameters={'type_names': ['mock_type1']})
+        self._make_filter_assertions(cfy_local, 1, type_names=['mock_type1'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-with-params.yaml'))
+    def test_rollback_node_instances(self, cfy_local):
+        instances = cfy_local.storage.get_node_instances()
+        node_instance_ids = [instances[0].id]
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback',
+                          parameters={
+                              'node_instance_ids': node_instance_ids})
+        self._make_filter_assertions(cfy_local,
+                                     1,
+                                     node_instance_ids=node_instance_ids)
 
 
 @operation
