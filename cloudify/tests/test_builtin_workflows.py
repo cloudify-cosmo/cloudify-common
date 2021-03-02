@@ -776,6 +776,24 @@ class TestRollbackWorkflow(LifecycleBaseTest):
                                      1,
                                      node_instance_ids=node_instance_ids)
 
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-with-params.yaml'))
+    def test_rollback_operations_dependency_order(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback', parameters={'full_rollback': True})
+        instances = cfy_local.storage.get_node_instances()
+        node_a_time = next(ni.runtime_properties['visit_time']
+                           for ni in instances if ni.node_id == 'node_a')
+        node_b_time = next(ni.runtime_properties['visit_time']
+                           for ni in instances if ni.node_id == 'node_b')
+
+        assert node_a_time < node_b_time
+
 
 @operation
 def exec_op_test_operation(ctx, **kwargs):
