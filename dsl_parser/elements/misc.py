@@ -16,6 +16,7 @@
 from dsl_parser import elements, exceptions
 from dsl_parser._compat import text_type
 from dsl_parser.elements import version as element_version
+from dsl_parser.elements.deployment_schedules import DeploymentSchedules
 from dsl_parser.framework.elements import (DictElement,
                                            DictNoDefaultElement,
                                            Element,
@@ -170,3 +171,9 @@ class Labels(DictElement):
 
 class BlueprintLabels(DictElement):
     schema = Dict(type=Label)
+
+
+class DeploymentSettings(DictNoDefaultElement):
+    schema = {
+        'default_schedules': DeploymentSchedules,
+    }
