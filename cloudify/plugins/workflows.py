@@ -986,11 +986,11 @@ def rollback(ctx,
         node_instance_ids,
         type_names)
 
-    ctx.logger.debug("unresolved node instances: {ids}".format(
-        ids=[instance.id for instance in unresolved_node_instances]))
+    ctx.logger.debug("unresolved node instances: %s",
+                     [instance.id for instance in unresolved_node_instances])
     intact_nodes = set(ctx.node_instances) - set(unresolved_node_instances)
-    ctx.logger.debug("intact node instances:{ids}".format(
-        ids=[instance.id for instance in intact_nodes]))
+    ctx.logger.debug("intact node instances: %s",
+                     [instance.id for instance in intact_nodes])
 
     lifecycle.rollback_node_instances(
         graph=ctx.graph_mode(),
