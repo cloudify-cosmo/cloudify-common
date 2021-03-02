@@ -999,9 +999,10 @@ def rollback(ctx,
     )
     ctx.refresh_node_instances()
     if full_rollback:
+        ctx.logger.debug("Start uninstall after rollback.")
         lifecycle.uninstall_node_instances(
             graph=ctx.graph_mode(),
-            node_instances=ctx.node_instances,
+            node_instances=set(ctx.node_instances),
             ignore_failure=False,
             name_prefix='uninstall-a')
 
