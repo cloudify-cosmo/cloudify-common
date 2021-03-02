@@ -946,3 +946,80 @@ def _handle_plugin_after_update(ctx, plugins_list, action):
                     task
                 )
     graph.execute()
+
+
+@workflow(resumable=True)
+def rollback(ctx,
+             type_names,
+             node_ids,
+             node_instance_ids,
+             full_rollback=False,
+             **kwargs):
+    """Rollback workflow.
+
+    Rollback workflow will look at each node state, decide if the node state
+    is unresolved, and for those that are, execute the corresponding node
+    operation that will get us back to a resolved node state, and then
+    execute the unfinished workflow.
+    Unresolved states are: creating, configuring, starting.
+    Nodes that are in `creating` and `configuring` states will rollback to
+    `uninitialized` state.
+    Nodes that are in `starting` state will rollback to `configured` state.
+    :param ctx : Cloudify context
+    :param type_names: A list of type names. The operation will be executed
+          only on node instances which are of these types or of types which
+          (recursively) derive from them. An empty list means no filtering
+          will take place and all type names are valid.
+    :param node_ids: A list of node ids. The operation will be executed only
+          on node instances which are instances of these nodes. An empty list
+          means no filtering will take place and all nodes are valid.
+    :param node_instance_ids: A list of node instance ids. The operation will
+          be executed only on the node instances specified. An empty list
+          means no filtering will take place and all node instances are valid.
+    :param full_rollback Whether to perform uninstall after rollback to
+    resolved state.
+    """
+    # Find all node instances in unresolved state
+    unresolved_node_instances = _find_all_unresolved_node_instances(
+        ctx,
+        node_ids,
+        node_instance_ids,
+        type_names)
+
+    ctx.logger.debug("unresolved node instances: %s",
+                     [instance.id for instance in unresolved_node_instances])
+    intact_nodes = set(ctx.node_instances) - set(unresolved_node_instances)
+    ctx.logger.debug("intact node instances: %s",
+                     [instance.id for instance in intact_nodes])
+
+    lifecycle.rollback_node_instances(
+        graph=ctx.graph_mode(),
+        node_instances=set(unresolved_node_instances),
+        related_nodes=intact_nodes
+    )
+    ctx.refresh_node_instances()
+    if full_rollback:
+        ctx.logger.debug("Start uninstall after rollback.")
+        lifecycle.uninstall_node_instances(
+            graph=ctx.graph_mode(),
+            node_instances=set(ctx.node_instances),
+            ignore_failure=False,
+            name_prefix='uninstall-a')
+
+
+def _find_all_unresolved_node_instances(ctx,
+                                        node_ids,
+                                        node_instance_ids,
+                                        type_names):
+    unresolved_states = ['creating', 'configuring', 'starting']
+    unresolved_node_instances = []
+    filtered_node_instances = _filter_node_instances(
+        ctx=ctx,
+        node_ids=node_ids,
+        node_instance_ids=node_instance_ids,
+        type_names=type_names)
+
+    for instance in filtered_node_instances:
+        if instance.state in unresolved_states:
+            unresolved_node_instances.append(instance)
+    return unresolved_node_instances

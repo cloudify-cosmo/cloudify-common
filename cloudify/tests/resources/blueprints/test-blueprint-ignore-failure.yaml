@@ -20,7 +20,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         create: p.cloudify.tests.test_builtin_workflows.node_operation
-        stop: p.cloudify.tests.test_builtin_workflows.fail_stop
+        stop: p.cloudify.tests.test_builtin_workflows.fail_op
     relationships:
       - type: cloudify.relationships.contained_in
         target: node1
