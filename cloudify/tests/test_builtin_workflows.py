@@ -718,7 +718,7 @@ class TestRollbackWorkflow(LifecycleBaseTest):
             pass
         cfy_local.execute('rollback', parameters={'full_rollback': True})
         node_instance = cfy_local.storage.get_node_instances()[0]
-        self.assertEqual(node_instance['state'],'deleted')
+        self.assertEqual(node_instance['state'], 'deleted')
         # start during install, prestop and stop during rollback, delete and
         # postdelete during uninstall.
         self._make_assertions(cfy_local, [
@@ -753,7 +753,8 @@ class TestRollbackWorkflow(LifecycleBaseTest):
             pass
         cfy_local.execute('rollback',
                           parameters={'type_names': ['mock_type2']})
-        cfy_local.execute('rollback', parameters={'type_names': ['mock_type1']})
+        cfy_local.execute('rollback',
+                          parameters={'type_names': ['mock_type1']})
         self._make_filter_assertions(cfy_local, 1, type_names=['mock_type1'])
 
     @workflow_test(path.join(
@@ -800,6 +801,7 @@ def target_operation(ctx, **_):
 @operation
 def node_operation(ctx, **_):
     _write_operation(ctx)
+
 
 @operation
 def fail_op(ctx, **_):
