@@ -763,7 +763,8 @@ class TestRollbackWorkflow(LifecycleBaseTest):
         'test-rollback-workflow-with-params.yaml'))
     def test_rollback_node_instances(self, cfy_local):
         instances = cfy_local.storage.get_node_instances()
-        node_instance_ids = [instances[0].id]
+        node_instance_ids = [instance.id for instance in instances if
+                             instance.node_id == 'node_a']
         try:
             cfy_local.execute('install')
         except RuntimeError:
