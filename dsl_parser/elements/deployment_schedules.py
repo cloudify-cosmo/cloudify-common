@@ -106,7 +106,7 @@ class Weekday(Element):
     def validate(self):
         weekdays_list = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
         err_msg = "{0} is not a valid weekday value. Accepted values: {1}"
-        weekday_value = self.initial_value.lower()
+        weekday_value = self.initial_value.lower()[-2:]
         if weekday_value not in weekdays_list:
             raise exceptions.DSLParsingException(
                 1, err_msg.format(weekday_value, weekdays_list))
