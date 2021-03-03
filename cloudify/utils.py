@@ -930,20 +930,43 @@ def parse_utc_datetime(time_expression, timezone=None):
     """
     if not time_expression:
         return None
-
-    # time expression is time delta from now
     if time_expression.startswith('+'):
-        deltas = re.findall(r"(\+\d+\ ?[a-z]+\ ?)", time_expression)
-        if not deltas:
-            raise NonRecoverableError(
-                "{} is not a legal time delta".format(time_expression))
-        date_time = datetime.utcnow().replace(second=0, microsecond=0)
-        for delta in deltas:
-            date_time = parse_and_apply_timedelta(
-                delta.rstrip().lstrip('+'), date_time)
-        return date_time
+        return parse_utc_datetime_relative(time_expression)
+    return parse_utc_datetime_absolute(time_expression, timezone)
 
-    # time expression is datetime
+
+def parse_utc_datetime_relative(time_expression, base_datetime=None):
+    """
+    :param time_expression: a string representing a relative time delta,
+        such as '+2 weeks' or '+1day+10min.
+    :param base_datetime: a datetime object representing the absolute date
+        and time to which we apply the time delta. By default: UTC now
+    :return: A naive datetime object, in UTC time.
+    """
+    if not time_expression:
+        return None
+    base_datetime = base_datetime or datetime.utcnow()
+    deltas = re.findall(r"(\+\d+\ ?[a-z]+\ ?)", time_expression)
+    if not deltas:
+        raise NonRecoverableError(
+            "{} is not a legal time delta".format(time_expression))
+    date_time = base_datetime.replace(second=0, microsecond=0)
+    for delta in deltas:
+        date_time = parse_and_apply_timedelta(
+            delta.rstrip().lstrip('+'), date_time)
+    return date_time
+
+
+def parse_utc_datetime_absolute(time_expression, timezone=None):
+    """
+    :param time_expression: a string representing an absolute date and time.
+        The following formats are possible: YYYY-MM-DD HH:MM, HH:MM
+    :param timezone: a string representing a timezone. Any timezone recognized
+        by UNIX can be used here, e.g. 'EST' or Asia/Jerusalem.
+    :return: A naive datetime object, in UTC time.
+    """
+    if not time_expression:
+        return None
     date_time = parse_schedule_datetime_string(time_expression)
     if timezone:
         if timezone not in pytz.all_timezones:

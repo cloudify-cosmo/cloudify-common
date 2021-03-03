@@ -34,9 +34,8 @@ deployment_settings:
         parsed = self.parse(yaml_1)
         deployment_schedules = parsed[DEPLOYMENT_SETTINGS][DEFAULT_SCHEDULES]
         self.assertEqual(2, len(deployment_schedules))
-        for schedule in deployment_schedules.values():
-            datetime.strptime(schedule['since'], time_fmt)
-            datetime.strptime(schedule['until'], time_fmt)
+        datetime.strptime(deployment_schedules['sc2']['since'], time_fmt)
+        datetime.strptime(deployment_schedules['sc2']['until'], time_fmt)
 
     def test_deployment_schedules_invalid_schema_field(self):
         yaml_1 = """
