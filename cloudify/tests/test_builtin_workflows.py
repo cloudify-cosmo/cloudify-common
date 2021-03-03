@@ -41,7 +41,45 @@ class GlobalCounter(object):
 global_counter = GlobalCounter()
 
 
-class TestWorkflowLifecycleOperations(testtools.TestCase):
+class LifecycleBaseTest(testtools.TestCase):
+
+    def _make_assertions(self, cfy_local, expected_ops):
+        instances = cfy_local.storage.get_node_instances()
+        instance = instances[0]
+        invocations = instance.runtime_properties['invocations']
+        invoked_operations = [x['operation'] for x in invocations]
+        self.assertEquals(invoked_operations, expected_ops)
+
+    def _make_filter_assertions(self, cfy_local,
+                                expected_num_of_visited_instances,
+                                node_ids=None, node_instance_ids=None,
+                                type_names=None):
+        num_of_visited_instances = 0
+        instances = cfy_local.storage.get_node_instances()
+        nodes_by_id = dict((node.id, node) for node in
+                           cfy_local.storage.get_nodes())
+
+        for inst in instances:
+            test_op_visited = inst.runtime_properties.get('test_op_visited')
+
+            if (not node_ids or inst.node_id in node_ids) \
+                    and \
+                    (not node_instance_ids or inst.id in node_instance_ids) \
+                    and \
+                    (not type_names or (next((type for type in nodes_by_id[
+                        inst.node_id].type_hierarchy if type in type_names),
+                    None))):
+                self.assertTrue(test_op_visited)
+                num_of_visited_instances += 1
+            else:
+                self.assertIsNone(test_op_visited)
+
+        # this is actually an assertion to ensure the tests themselves are ok
+        self.assertEquals(expected_num_of_visited_instances,
+                          num_of_visited_instances)
+
+
+class TestWorkflowLifecycleOperations(LifecycleBaseTest):
     lifecycle_blueprint_path = path.join('resources', 'blueprints',
                                          'test-lifecycle.yaml')
 
@@ -76,15 +114,8 @@ class TestWorkflowLifecycleOperations(testtools.TestCase):
             ['cloudify.interfaces.lifecycle.stop',
              'cloudify.interfaces.lifecycle.start'])
 
-    def _make_assertions(self, cfy_local, expected_ops):
-        instances = cfy_local.storage.get_node_instances()
-        instance = instances[0]
-        invocations = instance.runtime_properties['invocations']
-        invoked_operations = [x['operation'] for x in invocations]
-        self.assertEquals(invoked_operations, expected_ops)
 
-
-class TestExecuteOperationWorkflow(testtools.TestCase):
+class TestExecuteOperationWorkflow(LifecycleBaseTest):
     execute_blueprint_path = path.join('resources', 'blueprints',
                                        'execute_operation-blueprint.yaml')
 
@@ -314,34 +345,6 @@ class TestExecuteOperationWorkflow(testtools.TestCase):
         instance = cfy_local.storage.get_node_instances('node1')[0]
         invocations = instance.runtime_properties.get('invocations', [])
         self.assertEqual(len(invocations), 2)
-
-    def _make_filter_assertions(self, cfy_local,
-                                expected_num_of_visited_instances,
-                                node_ids=None, node_instance_ids=None,
-                                type_names=None):
-        num_of_visited_instances = 0
-        instances = cfy_local.storage.get_node_instances()
-        nodes_by_id = dict((node.id, node) for node in
-                           cfy_local.storage.get_nodes())
-
-        for inst in instances:
-            test_op_visited = inst.runtime_properties.get('test_op_visited')
-
-            if (not node_ids or inst.node_id in node_ids) \
-                    and \
-                    (not node_instance_ids or inst.id in node_instance_ids) \
-                    and \
-                    (not type_names or (next((type for type in nodes_by_id[
-                        inst.node_id].type_hierarchy if type in type_names),
-                    None))):
-                self.assertTrue(test_op_visited)
-                num_of_visited_instances += 1
-            else:
-                self.assertIsNone(test_op_visited)
-
-        # this is actually an assertion to ensure the tests themselves are ok
-        self.assertEquals(expected_num_of_visited_instances,
-                          num_of_visited_instances)
 
 
 class TestScale(testtools.TestCase):
@@ -657,6 +660,141 @@ class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):
         return self.env.storage.get_node_instances(node_id=node_id)[0]
 
 
+class TestRollbackWorkflow(LifecycleBaseTest):
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-creating-to-uninitialized.yaml'))
+    def test_creating_to_uninitialized(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback')
+        self._make_assertions(cfy_local, [
+            'cloudify.interfaces.lifecycle.create',
+            'cloudify.interfaces.lifecycle.delete',
+            'cloudify.interfaces.lifecycle.postdelete'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-configuring-to-uninitialized.yaml'))
+    def test_configuring_to_uninitialized(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback')
+        self._make_assertions(cfy_local, [
+            'cloudify.interfaces.lifecycle.configure',
+            'cloudify.interfaces.lifecycle.delete',
+            'cloudify.interfaces.lifecycle.postdelete'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-starting-to-configured.yaml'))
+    def test_starting_to_configuring(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback')
+        self._make_assertions(cfy_local, [
+            'cloudify.interfaces.lifecycle.start',
+            'cloudify.interfaces.lifecycle.prestop',
+            'cloudify.interfaces.lifecycle.stop'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-starting-to-configured.yaml'))
+    def test_full_rollback(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback', parameters={'full_rollback': True})
+        node_instance = cfy_local.storage.get_node_instances()[0]
+        self.assertEqual(node_instance['state'], 'deleted')
+        # start during install, prestop and stop during rollback, delete and
+        # postdelete during uninstall.
+        self._make_assertions(cfy_local, [
+            'cloudify.interfaces.lifecycle.start',
+            'cloudify.interfaces.lifecycle.prestop',
+            'cloudify.interfaces.lifecycle.stop',
+            'cloudify.interfaces.lifecycle.delete',
+            'cloudify.interfaces.lifecycle.postdelete'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-with-params.yaml'))
+    def test_rollback_node_ids(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        # node_b instances are in resolved state.
+        cfy_local.execute('rollback', parameters={'node_ids': ['node_b']})
+        cfy_local.execute('rollback', parameters={'node_ids': ['node_a']})
+        self._make_filter_assertions(cfy_local, 1, node_ids=['node_a'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-with-params.yaml'))
+    def test_rollback_type_names(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback',
+                          parameters={'type_names': ['mock_type2']})
+        cfy_local.execute('rollback',
+                          parameters={'type_names': ['mock_type1']})
+        self._make_filter_assertions(cfy_local, 1, type_names=['mock_type1'])
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-with-params.yaml'))
+    def test_rollback_node_instances(self, cfy_local):
+        instances = cfy_local.storage.get_node_instances()
+        node_instance_ids = [instance.id for instance in instances if
+                             instance.node_id == 'node_a']
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback',
+                          parameters={
+                              'node_instance_ids': node_instance_ids})
+        self._make_filter_assertions(cfy_local,
+                                     1,
+                                     node_instance_ids=node_instance_ids)
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-rollback-workflow-with-params.yaml'))
+    def test_rollback_operations_dependency_order(self, cfy_local):
+        try:
+            cfy_local.execute('install')
+        except RuntimeError:
+            pass
+        cfy_local.execute('rollback', parameters={'full_rollback': True})
+        instances = cfy_local.storage.get_node_instances()
+        node_a_time = next(ni.runtime_properties['visit_time']
+                           for ni in instances if ni.node_id == 'node_a')
+        node_b_time = next(ni.runtime_properties['visit_time']
+                           for ni in instances if ni.node_id == 'node_b')
+
+        assert node_a_time < node_b_time
+
+
 @operation
 def exec_op_test_operation(ctx, **kwargs):
     ctx.instance.runtime_properties['test_op_visited'] = True
@@ -685,7 +823,7 @@ def node_operation(ctx, **_):
 
 
 @operation
-def fail_stop(ctx, **_):
+def fail_op(ctx, **_):
     _write_operation(ctx)
     raise exceptions.NonRecoverableError('')
 
