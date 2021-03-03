@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from dsl_parser._compat import text_type
@@ -8,7 +9,7 @@ from dsl_parser.framework.elements import (DictElement,
                                            Leaf,
                                            List,
                                            Dict)
-from cloudify.utils import parse_utc_datetime, unpack_timedelta_string
+from cloudify.utils import parse_utc_datetime_absolute, unpack_timedelta_string
 
 
 class ScheduleEnabled(Element):
@@ -136,6 +137,17 @@ class DeploymentSchedule(DictNoDefaultElement):
         'slip': ScheduleSlip
     }
 
+    @staticmethod
+    def parse_time_expression(time_expression, timezone):
+        if time_expression.startswith('+'):
+            deltas = re.findall(r"(\+\d+\ ?[a-z]+\ ?)", time_expression)
+            for delta in deltas:
+                unpack_timedelta_string(delta[1:])
+            return time_expression
+        return datetime.strftime(
+            parse_utc_datetime_absolute(time_expression, timezone),
+            '%Y-%m-%d %H:%M:%S')
+
     def parse(self):
         timezone = self.initial_value.get('timezone')
         since = self.initial_value['since']
@@ -143,14 +155,9 @@ class DeploymentSchedule(DictNoDefaultElement):
         return_dict = self.initial_value.copy()
 
         # calculate naive UTC datetime from time expressions in since and until
-        time_fmt = '%Y-%m-%d %H:%M:%S'
-        return_dict['since'] = datetime.strftime(
-            parse_utc_datetime(since, timezone),
-            time_fmt)
+        return_dict['since'] = self.parse_time_expression(since, timezone)
         if until:
-            return_dict['until'] = datetime.strftime(
-                parse_utc_datetime(until, timezone),
-                time_fmt)
+            return_dict['until'] = self.parse_time_expression(until, timezone)
         if 'timezone' in return_dict:
             del return_dict['timezone']
         return return_dict
