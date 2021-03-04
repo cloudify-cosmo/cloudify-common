@@ -266,6 +266,11 @@ def cast_to_type(value, type_name):
             return int(value)
         if type_name == 'float':
             return float(value)
+        if type_name == 'boolean':
+            if value == 'true':
+                return True
+            if value == 'false':
+                return False
     except ValueError:
         pass
 
