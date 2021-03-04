@@ -109,7 +109,8 @@ class PluginsUpdateClient(object):
     def update_plugins(self, blueprint_id, force=False, plugin_names=None,
                        to_latest=None, all_to_latest=True,
                        to_minor=None, all_to_minor=False,
-                       mapping=None, auto_correct_types=False):
+                       mapping=None, auto_correct_types=False,
+                       reevaluate_active_statuses=False,):
         """
         Updates the plugins in all the deployments that use the given
         blueprint.
@@ -132,6 +133,8 @@ class PluginsUpdateClient(object):
          constraints)
         :param auto_correct_types: auto_correct_types flag to run deployments
         update with.
+        :param reevaluate_active_statuses: reevaluate active plugin-updates'
+        states based on relevant executions statuses.
         :return: a PluginUpdate object.
         """
         if mapping and mapping.get('updates'):
@@ -152,6 +155,7 @@ class PluginsUpdateClient(object):
                 mapping=mapping,
                 force=force,
                 auto_correct_types=auto_correct_types,
+                reevaluate_active_statuses=reevaluate_active_statuses
             )
         )
         return PluginsUpdate(response)
