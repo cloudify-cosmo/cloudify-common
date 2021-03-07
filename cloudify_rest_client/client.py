@@ -64,8 +64,8 @@ from cloudify_rest_client.inter_deployment_dependencies import (
     InterDeploymentDependencyClient)
 from cloudify_rest_client.labels import (DeploymentsLabelsClient,
                                          BlueprintsLabelsClient)
-from cloudify_rest_client.filters import (BlueprintsFiltersClient,
-                                          DeploymentsFiltersClient)
+from cloudify_rest_client.filters import (DeploymentsFiltersClient,
+                                          BlueprintsFiltersClient)
 
 try:
     from requests_kerberos import HTTPKerberosAuth

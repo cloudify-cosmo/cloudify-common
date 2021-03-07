@@ -224,17 +224,16 @@ class BlueprintsClient(object):
         return tar_path, os.path.basename(path)
 
     def list(self, _include=None, sort=None, is_descending=False,
-             filter_rules=None, **kwargs):
+             filter_id=None, filter_rules=None, **kwargs):
         """
         Returns a list of currently stored blueprints.
 
         :param _include: List of fields to include in response.
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
-        :param filter_rules: A dictionary of the form:
-               {_filter_id: <a filter id to filter the deployments by>} or
-               {_filter_rules: <a list of filter rules to filter the
-               deployments by>}.
+        :param filter_id: A filter ID to filter the blueprints list by
+        :param filter_rules: A list of filter rules to filter the
+               blueprints list by
         :param kwargs: Optional filter fields. For a list of available fields
                see the REST service's models.BlueprintState.fields
         :return: Blueprints list.
@@ -242,11 +241,17 @@ class BlueprintsClient(object):
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
+        if _include:
+            params['_include'] = ','.join(_include)
+        if filter_id:
+            params['_filter_id'] = filter_id
 
-        utils.add_filter_rules_to_params(filter_rules, params)
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                _include=_include,
-                                params=params)
+        if filter_rules:
+            response = self.api.post('/searches/blueprints', params=params,
+                                     data={'filter_rules': filter_rules})
+        else:
+            response = self.api.get('/{self._uri_prefix}'.format(self=self),
+                                    params=params)
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata']
