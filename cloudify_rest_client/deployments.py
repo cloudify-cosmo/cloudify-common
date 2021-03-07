@@ -13,7 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -380,18 +379,13 @@ class DeploymentsClient(object):
         self.outputs = DeploymentOutputsClient(api)
         self.capabilities = DeploymentCapabilitiesClient(api)
 
-    def list(self, _include=None, sort=None, is_descending=False,
-             filter_rules=None, **kwargs):
+    def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
         Returns a list of all deployments.
 
         :param _include: List of fields to include in response.
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
-        :param filter_rules: A dictionary of the form:
-               {_filter_id: <a filter id to filter the deployments by>} or
-               {_filter_rules: <a list of filter rules to filter the
-               deployments by>}.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.Deployment.fields
         :return: Deployments list.
@@ -400,7 +394,6 @@ class DeploymentsClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        utils.add_filter_rules_to_params(filter_rules, params)
         response = self.api.get('/deployments',
                                 _include=_include,
                                 params=params)
