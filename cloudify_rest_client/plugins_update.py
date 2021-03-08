@@ -133,8 +133,8 @@ class PluginsUpdateClient(object):
          constraints)
         :param auto_correct_types: auto_correct_types flag to run deployments
         update with.
-        :param reevaluate_active_statuses: reevaluate active plugin-updates'
-        states based on relevant executions statuses.
+        :param reevaluate_active_statuses: reevaluate active plugin-updates' and
+        deployment-updates' states based on relevant executions statuses.
         :return: a PluginUpdate object.
         """
         if mapping and mapping.get('updates'):
