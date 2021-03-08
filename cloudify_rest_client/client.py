@@ -66,8 +66,6 @@ from cloudify_rest_client.labels import (DeploymentsLabelsClient,
                                          BlueprintsLabelsClient)
 from cloudify_rest_client.filters import (DeploymentsFiltersClient,
                                           BlueprintsFiltersClient)
-from cloudify_rest_client.searches import (DeploymentsSearchClient,
-                                           BlueprintsSearchClient)
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -495,5 +493,3 @@ class CloudifyClient(object):
         self.blueprints_filters = BlueprintsFiltersClient(self._client)
         self.deployments_labels = DeploymentsLabelsClient(self._client)
         self.blueprints_labels = BlueprintsLabelsClient(self._client)
-        self.deployments_search = DeploymentsSearchClient(self._client)
-        self.blueprints_search = BlueprintsSearchClient(self._client)
