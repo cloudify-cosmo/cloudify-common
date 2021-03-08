@@ -137,8 +137,8 @@ class ExecutionSchedulesClient(object):
         assert deployment_id
         assert workflow_id
         assert since
+        params = {'deployment_id': deployment_id}
         data = {
-            'deployment_id': deployment_id,
             'workflow_id': workflow_id,
             'execution_arguments': execution_arguments,
             'parameters': parameters,
@@ -154,17 +154,18 @@ class ExecutionSchedulesClient(object):
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.put(uri,
                                 data=data,
+                                params=params,
                                 expected_status_code=201)
         return ExecutionSchedule(response)
 
-    def update(self, schedule_id, since=None, until=None, frequency=None,
-               count=None, weekdays=None, rrule=None, slip=None,
-               stop_on_fail=None, enabled=None):
+    def update(self, schedule_id, deployment_id, since=None, until=None,
+               frequency=None, count=None, weekdays=None, rrule=None,
+               slip=None, stop_on_fail=None, enabled=None):
         """Updates scheduling parameters of an existing execution schedule
         whose id is provided.
 
-        :param schedule_id: Name for the schedule task. Used for listing,
-            updating or deleting it later.
+        :param schedule_id: Name for the schedule task.
+        :param deployment_id: The deployment to which the schedule belongs.
         :param since: A string representing the earliest date and time this
             workflow should be executed at. Must be provided if no `rrule` is
             given.
@@ -191,6 +192,7 @@ class ExecutionSchedulesClient(object):
         :return: The updated execution schedule.
         """
         assert schedule_id
+        params = {'deployment_id': deployment_id}
         data = {
             'since': since.isoformat() if since else None,
             'until': until.isoformat() if until else None,
@@ -205,18 +207,22 @@ class ExecutionSchedulesClient(object):
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.patch(uri,
                                   data=data,
+                                  params=params,
                                   expected_status_code=201)
         return ExecutionSchedule(response)
 
-    def delete(self, schedule_id):
+    def delete(self, schedule_id, deployment_id):
         """
         Deletes the execution schedule whose id matches the provided id.
 
-        :param schedule_id: The id of the schedule to be deleted.
+        :param schedule_id: Name for the schedule task.
+        :param deployment_id: The deployment to which the schedule belongs.
         """
         assert schedule_id
+        params = {'deployment_id': deployment_id}
         self.api.delete('/{self._uri_prefix}/{id}'.format(self=self,
                                                           id=schedule_id),
+                        params=params,
                         expected_status_code=204)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
@@ -240,16 +246,18 @@ class ExecutionSchedulesClient(object):
                              for item in response['items']],
                             response['metadata'])
 
-    def get(self, schedule_id, _include=None):
+    def get(self, schedule_id, deployment_id, _include=None):
         """Get an execution schedule by its id.
 
-        :param schedule_id: Id of the execution schedule to get.
+        :param schedule_id: Name for the schedule task.
+        :param deployment_id: The deployment to which the schedule belongs.
         :param _include: List of fields to include in response.
         :return: Execution.
         """
         assert schedule_id
+        params = {'deployment_id': deployment_id}
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
-        response = self.api.get(uri, _include=_include)
+        response = self.api.get(uri, _include=_include, params=params)
         return ExecutionSchedule(response)
 
 
