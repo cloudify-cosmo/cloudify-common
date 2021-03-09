@@ -106,14 +106,13 @@ class ExecutionSchedulesClient(object):
             workflow execution. May contain the following keys:
             - allow_custom_parameters: bool
             - force: bool
-            - dry run: bool
+            - dry_run: bool
             - queue: bool
-            - wait after fail: integer
+            - wait_after_fail: integer
             See Executions for more details on these.
         :param parameters: Parameters for the workflow execution.
         :param since: A string representing the earliest date and time this
-            workflow should be executed at. Must be provided if no `rrule` is
-            given.
+            workflow should be executed at. Must be provided.
         :param until: A string representing the latest date and time this
             workflow may be executed at. May be empty.
         :param frequency: A string representing the frequency with which to
@@ -126,7 +125,8 @@ class ExecutionSchedulesClient(object):
             run on any weekday.
         :param rrule: A string representing a scheduling rule in the
             iCalendar format, e.g. 'RRULE:FREQ=DAILY;INTERVAL=3', which means
-            "run every 3 days". Overrides `frequency`, `count` and `weekdays`.
+            "run every 3 days". Mutually exclusive with `frequency`, `count`
+            and `weekdays`.
         :param slip: Maximum time window after the target time has passed,
             in which the scheduled execution can run (in minutes).
         :param stop_on_fail: If set to true, once the execution has failed,
@@ -181,7 +181,8 @@ class ExecutionSchedulesClient(object):
             run on any weekday.
         :param rrule: A string representing a scheduling rule in the
             iCalendar format, e.g. 'RRULE:FREQ=DAILY;INTERVAL=3', which means
-            "run every 3 days". Overrides `frequency`, `count` and `weekdays`.
+            "run every 3 days". Mutually exclusive with `frequency`, `count`
+            and `weekdays`.
         :param slip: Maximum time window after the target time has passed,
             in which the scheduled execution can run (in minutes).
         :param stop_on_fail: If set to true, once the execution has failed,
