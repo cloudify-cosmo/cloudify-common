@@ -129,7 +129,7 @@ pipeline {
                 sh '''
                 #!/bin/bash
                 set -eux
-                git clone https://github.com/mateumann/pyenv.git ~/.pyenv
+                git clone https://github.com/yyuu/pyenv.git ~/.pyenv
                 export PYENV_ROOT="$HOME/.pyenv"
                 export PATH="$PYENV_ROOT/bin:$PATH"
                 echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.bashrc
