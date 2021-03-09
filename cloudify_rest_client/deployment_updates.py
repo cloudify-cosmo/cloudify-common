@@ -242,7 +242,8 @@ class DeploymentUpdatesClient(object):
                                        preview=False,
                                        update_plugins=True,
                                        runtime_only_evaluation=None,
-                                       auto_correct_types=None):
+                                       auto_correct_types=None,
+                                       reevaluate_active_statuses=None):
         data = {
             'workflow_id': workflow_id,
             'skip_install': skip_install,
@@ -263,6 +264,8 @@ class DeploymentUpdatesClient(object):
             data['runtime_only_evaluation'] = runtime_only_evaluation
         if auto_correct_types is not None:
             data['auto_correct_types'] = auto_correct_types
+        if reevaluate_active_statuses is not None:
+            data['reevaluate_active_statuses'] = reevaluate_active_statuses
         uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
         response = self.api.put(uri, data=data)
         return DeploymentUpdate(response)
