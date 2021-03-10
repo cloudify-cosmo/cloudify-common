@@ -1023,3 +1023,36 @@ def _find_all_unresolved_node_instances(ctx,
         if instance.state in unresolved_states:
             unresolved_node_instances.append(instance)
     return unresolved_node_instances
+
+
+@workflow(resumable=True)
+def pull(ctx,
+         operation_parms,
+         run_by_dependency_order,
+         type_names,
+         node_ids,
+         node_instance_ids,
+         **kwargs):
+    """
+    Pull workflow will execute the "pull" operation on each node instance.
+    :param ctx : Cloudify context
+    :param operation_parms: A dictionary of keyword arguments that will be
+        passed to the operation invocation (Default: {}).
+    :param run_by_dependency_order: A boolean describing whether the operation
+        should execute on the relevant nodes according to the order of their
+        relationships dependencies or rather execute on all relevant nodes in
+        parallel (Default: true).
+    :param type_names: A list of type names. The operation will be executed
+          only on node instances which are of these types or of types which
+          (recursively) derive from them. An empty list means no filtering
+          will take place and all type names are valid.
+    :param node_ids: A list of node ids. The operation will be executed only
+          on node instances which are instances of these nodes. An empty list
+          means no filtering will take place and all nodes are valid.
+    :param node_instance_ids: A list of node instance ids. The operation will
+          be executed only on the node instances specified. An empty list
+          means no filtering will take place and all node instances are valid.
+    """
+    execute_operation(ctx, 'cloudify.interfaces.lifecycle.pull',
+                      operation_parms, True, run_by_dependency_order,
+                      type_names, node_ids, node_instance_ids, **kwargs)
