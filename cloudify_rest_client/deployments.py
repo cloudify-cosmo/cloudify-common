@@ -256,7 +256,8 @@ class DeploymentGroupsClient(object):
         :param description: description of the group
         :param blueprint_id: the default blueprint to use when extending
         :param default_inputs: the default inputs to use when extending
-        :param deployment_ids: set the group deployments to these
+        :param deployment_ids: make the group contain these
+                               existing deployments
         :param filter_id: set the group to contain the deployments matching
                           this filter
         :param inputs: create new deployments using these inputs merged
