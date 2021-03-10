@@ -245,7 +245,7 @@ class DeploymentGroupsClient(object):
 
     def put(self, group_id, visibility=VisibilityState.TENANT,
             description=None, blueprint_id=None, default_inputs=None,
-            filter_id=None, deployment_ids=None, inputs=None):
+            filter_id=None, deployment_ids=None, new_deployments=None):
         """Create or update the specified deployment group.
 
         Setting group deployments using this method (via either filter_id
@@ -256,13 +256,21 @@ class DeploymentGroupsClient(object):
         :param description: description of the group
         :param blueprint_id: the default blueprint to use when extending
         :param default_inputs: the default inputs to use when extending
-        :param deployment_ids: set the group deployments to these
+        :param deployment_ids: make the group contain these
+            existing deployments
         :param filter_id: set the group to contain the deployments matching
-                          this filter
-        :param inputs: create new deployments using these inputs merged
-                       with default_inputs, and using default_blueprint
+            this filter
+        :param new_deployments: create new deployments using this
+            specification, merged with the group's default_blueprint
+            and default_inputs
+        :type new_deployments: a list of dicts, each can contain the
+            key "inputs"
         :return: the created deployment group
         """
+        inputs = None
+        if new_deployments:
+            inputs = [dep.get('inputs', {}) for dep in new_deployments]
+
         response = self.api.put(
             '/deployment-groups/{0}'.format(group_id),
             data={
@@ -278,7 +286,7 @@ class DeploymentGroupsClient(object):
         return DeploymentGroup(response)
 
     def add_deployments(self, group_id, deployment_ids=None, count=None,
-                        inputs=None, filter_id=None):
+                        new_deployments=None, filter_id=None):
         """Add the specified deployments to the group
 
         :param group_id: add deployments to this group
@@ -286,16 +294,20 @@ class DeploymentGroupsClient(object):
         :param count: create this many deployments using the group's
             default_inputs and default_blueprint, and add them to the
             group. Mutally exclusive with inputs.
-        :param inputs: create deployments using these inputs merged
-            with the group's default_inputs, and the group's default_blueprint,
-            and add them to the group. Mutually exclusive with count.
+        :param new_deployments: create new deployments using this
+            specification, merged with the group's default_blueprint
+            and default_inputs. Mutually exclusive with count.
+        :type new_deployments: a list of dicts, each can contain the
+            key "inputs"
         :param filter_id: add deployments matching this filter
         :return: the updated deployment group
         """
-        if inputs is not None and count is not None:
-            raise ValueError('provide either count or inputs, not both')
-        if inputs is None:
-            inputs = []
+        if new_deployments is not None and count is not None:
+            raise ValueError('provide either count or new_deployments, '
+                             'not both')
+        inputs = []
+        if new_deployments:
+            inputs += [dep.get('inputs', {}) for dep in new_deployments]
         if count:
             inputs += [{}] * count
         response = self.api.patch(
