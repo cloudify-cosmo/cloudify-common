@@ -22,7 +22,6 @@ from dsl_parser.constants import (NODES,
                                   PROPERTIES,
                                   CAPABILITIES,
                                   SCALING_GROUPS,
-                                  BLUEPRINT_LABELS,
                                   DEPLOYMENT_SETTINGS)
 
 NODE_TEMPLATE_SCOPE = 'node_template'
@@ -32,7 +31,6 @@ POLICIES_SCOPE = 'policies'
 SCALING_GROUPS_SCOPE = 'scaling_groups'
 CAPABILITIES_SCOPE = 'capabilities'
 LABELS_SCOPE = 'labels'
-BLUEPRINT_LABELS_SCOPE = 'blueprint_labels'
 DEPLOYMENT_SETTINGS_SCOPE = 'deployment_settings'
 
 # Searching for secrets in the blueprint only one time of the few times
@@ -188,13 +186,6 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
                         scope=LABELS_SCOPE,
                         context=label,
                         path='{0}.{1}'.format(LABELS, label_key),
-                        replace=replace)
-    for label_key, label in plan.get('blueprint_labels', {}).items():
-        scan_properties(label,
-                        handler,
-                        scope=BLUEPRINT_LABELS_SCOPE,
-                        context=label,
-                        path='{0}.{1}'.format(BLUEPRINT_LABELS, label_key),
                         replace=replace)
 
     for setting_id, setting in plan.get('deployment_settings', {}).items():
