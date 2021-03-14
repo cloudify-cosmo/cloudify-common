@@ -175,6 +175,11 @@ class ExecutionGroup(dict):
         """The workflow that this execution group is running"""
         return self.get('workflow_id')
 
+    @property
+    def concurrency(self):
+        """The group runs this many executions at a time"""
+        return self.get('concurrency')
+
 
 class ExecutionGroupsClient(object):
     def __init__(self, api):
@@ -192,7 +197,8 @@ class ExecutionGroupsClient(object):
         return ExecutionGroup(response)
 
     def start(self, deployment_group_id, workflow_id, force=False,
-              default_parameters=None, parameters=None):
+              default_parameters=None, parameters=None,
+              concurrency=5):
         """Start an execution group from a deployment group.
 
         :param deployment_group_id: start an execution for every deployment
@@ -202,6 +208,7 @@ class ExecutionGroupsClient(object):
         :param default_parameters: default parameters for every execution
         :param parameters: a dict of {deployment_id: params_dict}, overrides
             the default parameters on a per-deployment basis
+        :param concurrency: run this many executions at a time
         """
         response = self.api.post('/execution-groups', data={
             'force': force,
@@ -209,6 +216,7 @@ class ExecutionGroupsClient(object):
             'workflow_id': workflow_id,
             'parameters': parameters,
             'default_parameters': default_parameters,
+            'concurrency': concurrency
         })
         return ExecutionGroup(response)
 

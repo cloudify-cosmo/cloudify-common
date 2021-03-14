@@ -17,7 +17,7 @@ import sys
 from setuptools import setup, find_packages
 
 install_requires = [
-    'requests>=2.7.0,<3.0.0',
+    'requests>=2.25.0,<3.0.0',
     'retrying==1.3.3',
     'proxy_tools==0.1.0',
     'bottle==0.12.18',

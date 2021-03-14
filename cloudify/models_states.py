@@ -76,7 +76,7 @@ class DeploymentState(object):
 
     # deployment states
     GOOD = 'good'
-    REQUIRE_ATTENTION = 'require_attention'
+    REQUIRE_ATTENTION = 'requires_attention'
 
     EXECUTION_STATES_SUMMARY = {
         ExecutionState.TERMINATED: COMPLETED,

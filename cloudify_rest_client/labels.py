@@ -45,6 +45,12 @@ class _LabelsClient(object):
             '/labels/{0}/{1}'.format(self.resource_name, label_key))
         return ListResponse(response['items'], response['metadata'])
 
+    def get_reserved_labels_keys(self):
+        """Returns the reserved labels keys (`csys-` prefixed)."""
+        response = self.api.get('/labels/{0}'.format(self.resource_name),
+                                params={'_reserved': True})
+        return ListResponse(response['items'], response['metadata'])
+
 
 class DeploymentsLabelsClient(_LabelsClient):
     def __init__(self, api):

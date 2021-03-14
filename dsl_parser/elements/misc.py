@@ -140,7 +140,27 @@ class LabelValue(Element):
     schema = Leaf(type=list)
 
 
-class Label(DictNoDefaultElement):
+class BlueprintLabel(DictNoDefaultElement):
+    schema = {
+        'values': LabelValue
+    }
+
+    def validate(self, **kwargs):
+        """
+        A blueprint label's value cannot be an intrinsic function, as labels
+        are assigned to a blueprint while it's uploaded, and the intrinsic
+        functions are not yet processed.
+        """
+        type_err_msg = "The blueprint label's value must be a string. " \
+                       "Please modify the values of {0}"
+
+        for value in self.initial_value['values']:
+            if not isinstance(value, text_type):
+                raise exceptions.DSLParsingException(
+                    1, type_err_msg.format(self.name))
+
+
+class DeploymentLabel(DictNoDefaultElement):
     schema = {
         'values': LabelValue
     }
@@ -166,11 +186,11 @@ class Label(DictNoDefaultElement):
 
 
 class Labels(DictElement):
-    schema = Dict(type=Label)
+    schema = Dict(type=DeploymentLabel)
 
 
 class BlueprintLabels(DictElement):
-    schema = Dict(type=Label)
+    schema = Dict(type=BlueprintLabel)
 
 
 class DeploymentSettings(DictNoDefaultElement):
