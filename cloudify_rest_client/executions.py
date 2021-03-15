@@ -144,6 +144,20 @@ class Execution(dict):
         """
         return self.get('is_dry_run', False)
 
+    @property
+    def total_operations(self):
+        """
+        :return: The total count of operations in this execution
+        """
+        return self.get('total_operations', False)
+
+    @property
+    def finished_operations(self):
+        """
+        :return: The count of finished operations in this execution
+        """
+        return self.get('finished_operations', False)
+
 
 class ExecutionGroup(dict):
     def __init__(self, group):
