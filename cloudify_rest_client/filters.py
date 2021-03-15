@@ -16,8 +16,12 @@ class Filter(dict):
         return self.get('value')
 
     @property
-    def labels_filter(self):
-        return self.get('labels_filters')
+    def labels_filter_rules(self):
+        return self.get('labels_filter_rules')
+
+    @property
+    def attrs_filter_rules(self):
+        return self.get('attrs_filter_rules')
 
     @property
     def created_at(self):
