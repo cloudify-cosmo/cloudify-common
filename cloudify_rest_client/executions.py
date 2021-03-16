@@ -137,8 +137,6 @@ class Execution(dict):
         """
         :return: The time this execution is scheduled for (if any)
         """
-        warnings.warn('Scheduling of executions is deprecated, '
-                      'use deployment schedules instead', DeprecationWarning)
         return self.get('scheduled_for')
 
     @property
