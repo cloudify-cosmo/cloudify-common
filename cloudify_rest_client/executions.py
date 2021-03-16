@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import warnings
+
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -135,6 +137,8 @@ class Execution(dict):
         """
         :return: The time this execution is scheduled for (if any)
         """
+        warnings.warn('Scheduling of executions is deprecated, '
+                      'use deployment schedules instead', DeprecationWarning)
         return self.get('scheduled_for')
 
     @property
@@ -337,6 +341,10 @@ class ExecutionsClient(object):
         """
         assert deployment_id
         assert workflow_id
+        if schedule:
+            warnings.warn("The 'schedule' flag is deprecated. Please use "
+                          "`cfy deployments schedule create instead`",
+                          DeprecationWarning)
         data = {
             'deployment_id': deployment_id,
             'workflow_id': workflow_id,
