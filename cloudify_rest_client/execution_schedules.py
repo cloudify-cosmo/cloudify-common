@@ -94,7 +94,7 @@ class ExecutionSchedulesClient(object):
 
     def create(self, schedule_id, deployment_id, workflow_id,
                execution_arguments=None, parameters=None,
-               since=None, until=None, frequency=None, count=None,
+               since=None, until=None, recurrence=None, count=None,
                weekdays=None, rrule=None, slip=0, stop_on_fail=False):
         """Schedules a deployment's workflow execution whose id is provided.
 
@@ -115,7 +115,7 @@ class ExecutionSchedulesClient(object):
             workflow should be executed at. Must be provided.
         :param until: A string representing the latest date and time this
             workflow may be executed at. May be empty.
-        :param frequency: A string representing the frequency with which to
+        :param recurrence: A string representing the frequency with which to
             run the execution, e.g. '2 weeks'. Must be provided if no `rrule`
             is given and `count` is other than 1.
         :param count: Maximum number of times to run the execution.
@@ -125,7 +125,7 @@ class ExecutionSchedulesClient(object):
             run on any weekday.
         :param rrule: A string representing a scheduling rule in the
             iCalendar format, e.g. 'RRULE:FREQ=DAILY;INTERVAL=3', which means
-            "run every 3 days". Mutually exclusive with `frequency`, `count`
+            "run every 3 days". Mutually exclusive with `recurrence`, `count`
             and `weekdays`.
         :param slip: Maximum time window after the target time has passed,
             in which the scheduled execution can run (in minutes).
@@ -144,7 +144,7 @@ class ExecutionSchedulesClient(object):
             'parameters': parameters,
             'since': since.isoformat(),
             'until': until.isoformat() if until else None,
-            'frequency': frequency,
+            'recurrence': recurrence,
             'count': count,
             'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
             'rrule': rrule,
@@ -159,7 +159,7 @@ class ExecutionSchedulesClient(object):
         return ExecutionSchedule(response)
 
     def update(self, schedule_id, deployment_id, since=None, until=None,
-               frequency=None, count=None, weekdays=None, rrule=None,
+               recurrence=None, count=None, weekdays=None, rrule=None,
                slip=None, stop_on_fail=None, enabled=None):
         """Updates scheduling parameters of an existing execution schedule
         whose id is provided.
@@ -171,7 +171,7 @@ class ExecutionSchedulesClient(object):
             given.
         :param until: A string representing the latest date and time this
             workflow may be executed at. May be empty.
-        :param frequency: A string representing the frequency with which to
+        :param recurrence: A string representing the frequency with which to
             run the execution, e.g. '2 weeks'. Must be provided if no `rrule`
             is given and `count` is other than 1.
         :param count: Maximum number of times to run the execution.
@@ -181,7 +181,7 @@ class ExecutionSchedulesClient(object):
             run on any weekday.
         :param rrule: A string representing a scheduling rule in the
             iCalendar format, e.g. 'RRULE:FREQ=DAILY;INTERVAL=3', which means
-            "run every 3 days". Mutually exclusive with `frequency`, `count`
+            "run every 3 days". Mutually exclusive with `recurrence`, `count`
             and `weekdays`.
         :param slip: Maximum time window after the target time has passed,
             in which the scheduled execution can run (in minutes).
@@ -197,7 +197,7 @@ class ExecutionSchedulesClient(object):
         data = {
             'since': since.isoformat() if since else None,
             'until': until.isoformat() if until else None,
-            'frequency': frequency,
+            'recurrence': recurrence,
             'count': count,
             'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
             'rrule': rrule,
