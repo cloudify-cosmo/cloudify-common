@@ -128,7 +128,7 @@ class DeploymentSchedule(DictNoDefaultElement):
         'workflow_parameters': ScheduledWorkflowParameters,
         'since': RequiredDateTimeExpression,
         'until': DateTimeExpression,
-        'recurring': TimeDelta,
+        'recurrence': TimeDelta,
         'timezone': TimeZoneExpression,
         'weekdays': ScheduleWeekdays,
         'count': ScheduleCount,

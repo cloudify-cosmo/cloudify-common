@@ -19,7 +19,7 @@ deployment_settings:
             workflow: install
             since: '+4h'
             until: '+1y'
-            recurring: 1w
+            recurrence: 1w
             weekdays: [mo, TU]
             count: 5
         sc2:
@@ -27,7 +27,7 @@ deployment_settings:
             since: '12:00'
             until: '2035-1-1 19:30'
             timezone: EST
-            recurring: '3 days'
+            recurrence: '3 days'
             execution_arguments:
                 allow_custom_parameters: False
 """
@@ -96,7 +96,7 @@ deployment_settings:
         sc1:
             workflow: install
             since: '+1d +1h'
-            recurring: blah
+            recurrence: blah
 """
         self.assertRaisesRegex(
             NonRecoverableError,
