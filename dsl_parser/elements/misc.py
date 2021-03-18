@@ -193,7 +193,12 @@ class BlueprintLabels(DictElement):
     schema = Dict(type=BlueprintLabel)
 
 
+class DeploymentGroups(Element):
+    schema = Leaf(list)
+
+
 class DeploymentSettings(DictNoDefaultElement):
     schema = {
         'default_schedules': DeploymentSchedules,
+        'default_groups': DeploymentGroups,
     }
