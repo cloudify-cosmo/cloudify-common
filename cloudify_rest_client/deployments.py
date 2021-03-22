@@ -263,13 +263,9 @@ class DeploymentGroupsClient(object):
             specification, merged with the group's default_blueprint
             and default_inputs
         :type new_deployments: a list of dicts, each can contain the
-            key "inputs"
+            keys "id", "inputs", "labels"
         :return: the created deployment group
         """
-        inputs = None
-        if new_deployments:
-            inputs = [dep.get('inputs', {}) for dep in new_deployments]
-
         response = self.api.put(
             '/deployment-groups/{0}'.format(group_id),
             data={
@@ -279,7 +275,7 @@ class DeploymentGroupsClient(object):
                 'default_inputs': default_inputs,
                 'filter_id': filter_id,
                 'deployment_ids': deployment_ids,
-                'inputs': inputs,
+                'new_deployments': new_deployments,
             }
         )
         return DeploymentGroup(response)
@@ -297,24 +293,21 @@ class DeploymentGroupsClient(object):
             specification, merged with the group's default_blueprint
             and default_inputs. Mutually exclusive with count.
         :type new_deployments: a list of dicts, each can contain the
-            key "inputs"
+            keys "id", "inputs", "labels"
         :param filter_id: add deployments matching this filter
         :return: the updated deployment group
         """
         if new_deployments is not None and count is not None:
             raise ValueError('provide either count or new_deployments, '
                              'not both')
-        inputs = []
-        if new_deployments:
-            inputs += [dep.get('inputs', {}) for dep in new_deployments]
         if count:
-            inputs += [{}] * count
+            new_deployments = [{}] * count
         response = self.api.patch(
             '/deployment-groups/{0}'.format(group_id),
             data={
                 'add': {
                     'deployment_ids': deployment_ids,
-                    'inputs': inputs,
+                    'new_deployments': new_deployments,
                     'filter_id': filter_id,
                 }
             }
