@@ -120,9 +120,9 @@ class ExecutionSchedulesClient(object):
             is given and `count` is other than 1.
         :param count: Maximum number of times to run the execution.
             If left empty, there's no limit on repetition.
-        :param weekdays: A string representing the weekdays on which to run
-            the execution, e.g. 'su,mo,tu'. If left empty, the execution will
-            run on any weekday.
+        :param weekdays: A list of strings representing the weekdays on
+            which to run the execution, e.g. ['su', 'mo', 'tu']. If left
+            empty, the execution will run on any weekday.
         :param rrule: A string representing a scheduling rule in the
             iCalendar format, e.g. 'RRULE:FREQ=DAILY;INTERVAL=3', which means
             "run every 3 days". Mutually exclusive with `recurrence`, `count`
@@ -146,7 +146,7 @@ class ExecutionSchedulesClient(object):
             'until': until.isoformat() if until else None,
             'recurrence': recurrence,
             'count': count,
-            'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
+            'weekdays': weekdays,
             'rrule': rrule,
             'slip': slip,
             'stop_on_fail': stop_on_fail
@@ -176,9 +176,9 @@ class ExecutionSchedulesClient(object):
             is given and `count` is other than 1.
         :param count: Maximum number of times to run the execution.
             If left empty, there's no limit on repetition.
-        :param weekdays: A string representing the weekdays on which to run
-            the execution, e.g. 'su,mo,tu'. If left empty, the execution will
-            run on any weekday.
+        :param weekdays: A list of strings representing the weekdays on
+            which to run the execution, e.g. ['su', 'mo', 'tu']. If left
+            empty, the execution will run on any weekday.
         :param rrule: A string representing a scheduling rule in the
             iCalendar format, e.g. 'RRULE:FREQ=DAILY;INTERVAL=3', which means
             "run every 3 days". Mutually exclusive with `recurrence`, `count`
@@ -199,7 +199,7 @@ class ExecutionSchedulesClient(object):
             'until': until.isoformat() if until else None,
             'recurrence': recurrence,
             'count': count,
-            'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
+            'weekdays': weekdays,
             'rrule': rrule,
             'slip': slip,
             'enabled': enabled,
@@ -260,8 +260,3 @@ class ExecutionSchedulesClient(object):
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.get(uri, _include=_include, params=params)
         return ExecutionSchedule(response)
-
-
-def _split_ignore_spaces(list_string):
-    """Split a string of comma-separated items, ignore surrounding spaces. """
-    return [item.strip() for item in list_string.split(',')]
