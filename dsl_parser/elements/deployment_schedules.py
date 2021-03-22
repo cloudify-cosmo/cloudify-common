@@ -73,7 +73,7 @@ class ScheduledWorkflowAllowCustomParameters(Element):
 class ScheduledWorkflowArguments(DictNoDefaultElement):
     schema = {
         'force': ScheduledWorkflowForce,
-        'dry_run': ScheduledWorkflowDryRun,
+        'is_dry_run': ScheduledWorkflowDryRun,
         'wait_after_fail': ScheduledWorkflowWaitAfterFail,
         'allow_custom_parameters': ScheduledWorkflowAllowCustomParameters
     }
