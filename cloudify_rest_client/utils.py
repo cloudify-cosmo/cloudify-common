@@ -106,11 +106,3 @@ def find_executable(executable, path=None):
         return None
     else:
         return executable
-
-
-def add_filter_rules_to_params(filter_rules, params):
-    if filter_rules:
-        filter_rules_list = filter_rules.get('_filter_rules')
-        if filter_rules_list:
-            filter_rules['_filter_rules'] = ','.join(filter_rules_list)
-        params.update(filter_rules)

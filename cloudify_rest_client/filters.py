@@ -16,8 +16,12 @@ class Filter(dict):
         return self.get('value')
 
     @property
-    def labels_filter(self):
-        return self.get('labels_filters')
+    def labels_filter_rules(self):
+        return self.get('labels_filter_rules')
+
+    @property
+    def attrs_filter_rules(self):
+        return self.get('attrs_filter_rules')
 
     @property
     def created_at(self):
@@ -37,8 +41,9 @@ class Filter(dict):
 
 
 class FiltersClient(object):
-    def __init__(self, api):
+    def __init__(self, api, filtered_resource):
         self.api = api
+        self.uri = '/filters/' + filtered_resource
 
     def create(self,
                filter_id,
@@ -58,7 +63,8 @@ class FiltersClient(object):
             'filter_rules': filter_rules,
             'visibility': visibility
         }
-        response = self.api.put('/filters/{0}'.format(filter_id), data=data)
+        response = self.api.put('{0}/{1}'.format(self.uri, filter_id),
+                                data=data)
         return Filter(response)
 
     def list(self, sort=None, is_descending=False, **kwargs):
@@ -74,16 +80,16 @@ class FiltersClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/filters', params=params)
+        response = self.api.get(self.uri, params=params)
         return ListResponse([Filter(item) for item in response['items']],
                             response['metadata'])
 
     def get(self, filter_id):
-        response = self.api.get('/filters/{0}'.format(filter_id))
+        response = self.api.get('{0}/{1}'.format(self.uri, filter_id))
         return Filter(response)
 
     def delete(self, filter_id):
-        self.api.delete('/filters/{0}'.format(filter_id))
+        self.api.delete('{0}/{1}'.format(self.uri, filter_id))
 
     def update(self, filter_id, new_filter_rules=None, new_visibility=None):
         """Updates the filter's visibility or rules
@@ -107,5 +113,16 @@ class FiltersClient(object):
         if new_filter_rules:
             data['filter_rules'] = new_filter_rules
 
-        response = self.api.patch('/filters/{0}'.format(filter_id), data=data)
+        response = self.api.patch('{0}/{1}'.format(self.uri, filter_id),
+                                  data=data)
         return Filter(response)
+
+
+class BlueprintsFiltersClient(FiltersClient):
+    def __init__(self, api):
+        super(BlueprintsFiltersClient, self).__init__(api, 'blueprints')
+
+
+class DeploymentsFiltersClient(FiltersClient):
+    def __init__(self, api):
+        super(DeploymentsFiltersClient, self).__init__(api, 'deployments')
