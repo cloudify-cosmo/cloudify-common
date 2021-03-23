@@ -244,7 +244,8 @@ class DeploymentGroupsClient(object):
 
     def put(self, group_id, visibility=VisibilityState.TENANT,
             description=None, blueprint_id=None, default_inputs=None,
-            filter_id=None, deployment_ids=None, new_deployments=None):
+            filter_id=None, deployment_ids=None, new_deployments=None,
+            deployments_from_group=None):
         """Create or update the specified deployment group.
 
         Setting group deployments using this method (via either filter_id
@@ -264,6 +265,8 @@ class DeploymentGroupsClient(object):
             and default_inputs
         :type new_deployments: a list of dicts, each can contain the
             keys "id", "inputs", "labels"
+        :param deployments_from_group: add all deployments belonging to the
+            group given by this id
         :return: the created deployment group
         """
         response = self.api.put(
@@ -276,12 +279,14 @@ class DeploymentGroupsClient(object):
                 'filter_id': filter_id,
                 'deployment_ids': deployment_ids,
                 'new_deployments': new_deployments,
+                'deployments_from_group': deployments_from_group,
             }
         )
         return DeploymentGroup(response)
 
     def add_deployments(self, group_id, deployment_ids=None, count=None,
-                        new_deployments=None, filter_id=None):
+                        new_deployments=None, filter_id=None,
+                        deployments_from_group=None):
         """Add the specified deployments to the group
 
         :param group_id: add deployments to this group
@@ -295,6 +300,8 @@ class DeploymentGroupsClient(object):
         :type new_deployments: a list of dicts, each can contain the
             keys "id", "inputs", "labels"
         :param filter_id: add deployments matching this filter
+        :param deployments_from_group: add all deployments belonging to the
+            group given by this id
         :return: the updated deployment group
         """
         if new_deployments is not None and count is not None:
@@ -309,18 +316,21 @@ class DeploymentGroupsClient(object):
                     'deployment_ids': deployment_ids,
                     'new_deployments': new_deployments,
                     'filter_id': filter_id,
+                    'deployments_from_group': deployments_from_group,
                 }
             }
         )
         return DeploymentGroup(response)
 
     def remove_deployments(self, group_id, deployment_ids=None,
-                           filter_id=None):
+                           filter_id=None, deployments_from_group=None):
         """Remove the specified deployments from the group
 
         :param group_id: remove deployments from this group
         :param deployment_ids: remove these deployment from the group
         :param filter_id: remove deployments matching this filter
+        :param deployments_from_group: remove all deployments belonging to the
+            group given by this id
         :return: the updated deployment group
         """
         response = self.api.patch(
@@ -329,6 +339,7 @@ class DeploymentGroupsClient(object):
                 'remove': {
                     'deployment_ids': deployment_ids,
                     'filter_id': filter_id,
+                    'deployments_from_group': deployments_from_group,
                 }
             }
         )
