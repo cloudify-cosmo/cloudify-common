@@ -106,20 +106,3 @@ def find_executable(executable, path=None):
         return None
     else:
         return executable
-
-
-def get_resource_labels(raw_resource_labels):
-    resource_labels = {}
-    for label in raw_resource_labels:
-        label_key, label_value = label['key'], label['value']
-        resource_labels.setdefault(label_key, [])
-        resource_labels[label_key].append(label_value)
-
-    return resource_labels
-
-
-def get_printable_resource_labels(resource_labels):
-    return [
-        {'key': resource_label_key, 'values': resource_label_values} for
-        resource_label_key, resource_label_values in resource_labels.items()
-    ]
