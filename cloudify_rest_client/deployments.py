@@ -225,6 +225,11 @@ class DeploymentGroup(dict):
         """Default blueprint for new deployments created in this group"""
         return self['default_blueprint']
 
+    @property
+    def labels(self):
+        """Labels of this deployment group"""
+        return self.get('labels')
+
 
 class DeploymentGroupsClient(object):
     def __init__(self, api):
@@ -244,8 +249,8 @@ class DeploymentGroupsClient(object):
 
     def put(self, group_id, visibility=VisibilityState.TENANT,
             description=None, blueprint_id=None, default_inputs=None,
-            filter_id=None, deployment_ids=None, new_deployments=None,
-            deployments_from_group=None):
+            labels=None, filter_id=None, deployment_ids=None,
+            new_deployments=None, deployments_from_group=None):
         """Create or update the specified deployment group.
 
         Setting group deployments using this method (via either filter_id
@@ -258,6 +263,8 @@ class DeploymentGroupsClient(object):
         :param default_inputs: the default inputs to use when extending
         :param deployment_ids: make the group contain these
             existing deployments
+        :param labels: labels for this group; those will be automatically
+            added to all deployments created by this group
         :param filter_id: set the group to contain the deployments matching
             this filter
         :param new_deployments: create new deployments using this
@@ -276,6 +283,7 @@ class DeploymentGroupsClient(object):
                 'description': description,
                 'blueprint_id': blueprint_id,
                 'default_inputs': default_inputs,
+                'labels': labels,
                 'filter_id': filter_id,
                 'deployment_ids': deployment_ids,
                 'new_deployments': new_deployments,
