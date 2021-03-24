@@ -32,6 +32,9 @@ class DeploymentUpdate(dict):
 
     def __init__(self, update):
         self.update(update)
+        new_labels = self.get('labels_to_create')
+        if new_labels:
+            self['labels_to_create'] = utils.get_resource_labels(new_labels)
 
     @property
     def id(self):
