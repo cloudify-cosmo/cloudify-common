@@ -142,6 +142,55 @@ class Deployment(dict):
         """
         return self.get('deployment_status')
 
+    @property
+    def sub_services_status(self):
+        """
+        :return: The aggregated sub services status
+        """
+        return self.get('sub_services_status')
+
+    @property
+    def sub_environments_status(self):
+        """
+        :return: The aggregated sub environments status
+        """
+        return self.get('sub_environments_status')
+
+    @property
+    def sub_services_count(self):
+        """
+        :return: The aggregated sub services count
+        """
+        return self.get('sub_services_count')
+
+    @property
+    def sub_environments_count(self):
+        """
+        :return: The aggregated sub environments count
+        """
+        return self.get('sub_environments_count')
+
+    @property
+    def environment_type(self):
+        """
+        :return: The environment type
+        """
+        return self.get('environment_type')
+
+    @property
+    def latest_execution_total_operations(self):
+        """
+        :return: The total operations for latest execution of deployment
+        """
+        return self.get('latest_execution_total_operations')
+
+    @property
+    def latest_execution_finished_operations(self):
+        """
+        :return: The finished operations for latest execution of deployment
+        """
+        return self.get('latest_execution_finished_operations')
+
 
 class Workflow(dict):
 
@@ -435,17 +484,29 @@ class DeploymentsClient(object):
         return ListResponse([Deployment(item) for item in response['items']],
                             response['metadata'])
 
-    def get(self, deployment_id, _include=None):
+    def get(self,
+            deployment_id,
+            _include=None,
+            all_sub_deployments=True
+            ):
         """
         Returns a deployment by its id.
 
         :param deployment_id: Id of the deployment to get.
         :param _include: List of fields to include in response.
+        :param all_sub_deployments: The values for sub_services_count and
+        sub_environments_count will represent recursive numbers. Otherwise
+        if its False, then only the direct services and environments
+        will be considered
         :return: Deployment.
         """
         assert deployment_id
         uri = '/deployments/{0}'.format(deployment_id)
-        response = self.api.get(uri, _include=_include)
+        response = self.api.get(
+            uri,
+            _include=_include,
+            params={'all_sub_deployments': all_sub_deployments}
+        )
         return Deployment(response)
 
     def create(self,

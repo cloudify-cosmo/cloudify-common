@@ -281,6 +281,14 @@ class InvalidFilterRule(CloudifyClientError):
         self.err_reason = response.json().get('err_reason')
 
 
+class DeploymentParentNotFound(CloudifyClientError):
+    """
+    Raised when  deployment reference parent that does not exist using
+    labels in blueprint dsl
+    """
+    ERROR_CODE = 'deployment_parent_not_found_error'
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -313,4 +321,5 @@ ERROR_MAPPING = dict([
         MissingCloudifyLicense,
         ExpiredCloudifyLicense,
         InvalidFilterRule,
+        DeploymentParentNotFound,
     ]])
