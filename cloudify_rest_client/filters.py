@@ -52,11 +52,15 @@ class FiltersClient(object):
         """Creates a new filter.
 
         :param filter_id: The filter ID
-        :param filter_rules: A list of filter rules. Filter rules must
-               be one of: <key>=<value>, <key>=[<value1>,<value2>,...],
-               <key>!=<value>, <key>!=[<value1>,<value2>,...], <key> is null,
-               <key> is not null
-        :param visibility: The visibility of the filter
+        :param filter_rules: A list of filter rules. A filter rule is a
+               dictionary of the form
+               {
+                   key: <key>,
+                   values: [<list of values>],
+                   operator: <LabelsOperator> or <AttrsOperator>,
+                   type: <FilterRuleType>
+              }
+        :param visibility: The filter's visibility
         :return: The created filter
         """
         data = {
@@ -95,10 +99,14 @@ class FiltersClient(object):
         """Updates the filter's visibility or rules
 
         :param filter_id: The Id of the filter to update
-        :param new_filter_rules: A new list of filter rules. Filter rules must
-               be one of: <key>=<value>, <key>=[<value1>,<value2>,...],
-               <key>!=<value>, <key>!=[<value1>,<value2>,...], <key> is null,
-               <key> is not null
+        :param new_filter_rules: A new list of filter rules. A filter rule is a
+               dictionary of the form
+               {
+                   key: <key>,
+                   values: [<list of values>],
+                   operator: <LabelsOperator> or <AttrsOperator>,
+                   type: <FilterRuleType>
+              }
         :param new_visibility: The new visibility to update
         :return: The updated filter
         """
