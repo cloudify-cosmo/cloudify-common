@@ -74,7 +74,7 @@ setup(
         # for running workflows (in the mgmtworker and the cli), as opposed
         # to eg. just executing operations (in the agent)
         'dispatcher': [
-            'PyYAML==5.3.1',
+            'PyYAML==5.4.1',
             'networkx==1.9.1',
         ],
         # this is just a hack to allow running unittests on py26.
