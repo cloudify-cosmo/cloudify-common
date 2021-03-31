@@ -1006,7 +1006,9 @@ def parse_and_apply_timedelta(expr, date_time):
     if period in ['mo', 'month']:
         new_month = (date_time.month + number) % 12
         new_year = date_time.year + (date_time.month + number) // 12
-        return date_time.replace(month=new_month, year=new_year)
+        new_day = date_time.day
+        date_time = date_time.replace(day=1, month=new_month, year=new_year)
+        return date_time + timedelta(days=new_day - 1)
     if period in ['w', 'week']:
         return date_time + timedelta(days=number * 7)
     if period in ['d', 'day']:
