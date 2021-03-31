@@ -258,9 +258,18 @@ class TestDateTimeUtils(TestCase):
         current_month = now.month
         expected_month = 1 if current_month == 12 else current_month + 1
         expected_year = now.year + (2 if current_month == 12 else 1)
+        expected_day = now.day
         expected_datetime = now.replace(
-            second=0, microsecond=0, year=expected_year, month=expected_month)
+            day=1, second=0, microsecond=0, year=expected_year,
+            month=expected_month)
+        expected_datetime += timedelta(days=expected_day - 1)
         self.assertEqual(parsed_datetime, expected_datetime)
+
+    def test_parse_timedelta_month_days(self):
+        dt = datetime(2021, 3, 31)
+        parsed = utils.parse_and_apply_timedelta('1mo', dt)
+        # march 31st + 1 mo would be april 31st, but that's may 1st
+        self.assertEqual(parsed, datetime(2021, 5, 1))
 
     def test_parse_utc_datetime_years_delta(self):
         parsed_datetime = utils.parse_utc_datetime("+2y")
