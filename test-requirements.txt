@@ -5,3 +5,4 @@ pytest-cov
 pytest-xdist
 testfixtures
 coverage==4.5.1 # coverage - This is done because of coverage pyhotn package bug, https://github.com/nedbat/coveragepy/issues/716
+decorator==4.4.2

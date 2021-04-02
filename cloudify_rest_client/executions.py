@@ -236,6 +236,19 @@ class ExecutionGroupsClient(object):
         })
         return ExecutionGroup(response)
 
+    def cancel(self, execution_group_id, force=False, kill=False):
+        """Cancel the executions in this group.
+
+        This cancels every non-queued execution according to the params,
+        see executions.cancel for their semantics.
+        Queued executions are marked cancelled immediately.
+        """
+        action = 'kill' if kill else 'force-cancel' if force else 'cancel'
+        response = self.api.post(
+            '/execution-groups/{0}'.format(execution_group_id),
+            data={'action': action})
+        return ExecutionGroup(response)
+
 
 class ExecutionsClient(object):
 
@@ -375,10 +388,12 @@ class ExecutionsClient(object):
         return Execution(response)
 
     def cancel(self, execution_id, force=False, kill=False):
-        """Cancels the execution which matches the provided execution id.
+        """Cancels an execution.
 
-        :param execution_id: Id of the execution to cancel.
-        :param force: Boolean describing whether to send a 'cancel' or a 'force-cancel' action  # NOQA
+        :param execution_id: id of the execution to cancel
+        :param force: force-cancel the execution: does not wait for the
+            workflow function to return
+        :param kill: kill the workflow process and the operation processes
         :return: Cancelled execution.
         """
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
