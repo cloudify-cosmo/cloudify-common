@@ -236,6 +236,19 @@ class ExecutionGroupsClient(object):
         })
         return ExecutionGroup(response)
 
+    def cancel(self, execution_group_id, force=False, kill=False):
+        """Cancel the executions in this group.
+
+        This cancels every non-queued execution according to the params,
+        see executions.cancel for their semantics.
+        Queued executions are marked cancelled immediately.
+        """
+        action = 'kill' if kill else 'force-cancel' if force else 'cancel'
+        response = self.api.post(
+            '/execution-groups/{0}'.format(execution_group_id),
+            data={'action': action})
+        return ExecutionGroup(response)
+
 
 class ExecutionsClient(object):
 
