@@ -144,7 +144,6 @@ class SnapshotsClient(object):
 
     def restore(self,
                 snapshot_id,
-                recreate_deployments_envs=True,
                 force=False,
                 restore_certificates=False,
                 no_reboot=False,
@@ -153,8 +152,6 @@ class SnapshotsClient(object):
         Restores the snapshot whose id matches the provided snapshot id.
 
         :param snapshot_id: The id of the snapshot to be restored.
-        :param recreate_deployments_envs: If manager should recreate
-        deployment environments.
         :param force: Skip clearing the manager and checking whether it is
         actually clean.
         :param restore_certificates: Whether to try and restore the
@@ -166,7 +163,6 @@ class SnapshotsClient(object):
         assert snapshot_id
         uri = '/snapshots/{0}/restore'.format(snapshot_id)
         params = {
-            'recreate_deployments_envs': recreate_deployments_envs,
             'force': force,
             'restore_certificates': restore_certificates,
             'no_reboot': no_reboot,
