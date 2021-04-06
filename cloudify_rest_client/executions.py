@@ -249,6 +249,14 @@ class ExecutionGroupsClient(object):
             data={'action': action})
         return ExecutionGroup(response)
 
+    def resume(self, execution_group_id, force=False):
+        """Resume the executions in this group."""
+        action = 'force-resume' if force else 'resume'
+        response = self.api.post(
+            '/execution-groups/{0}'.format(execution_group_id),
+            data={'action': action})
+        return ExecutionGroup(response)
+
 
 class ExecutionsClient(object):
 
