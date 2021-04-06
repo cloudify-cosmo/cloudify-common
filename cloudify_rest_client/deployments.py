@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import warnings
+
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -402,13 +404,25 @@ class DeploymentGroupsClient(object):
         )
         return DeploymentGroup(response)
 
-    def delete(self, group_id):
-        """Delete a deployment group. Do not delete the deployments.
+    def delete(self, group_id, delete_deployments=False,
+               force=False, with_logs=False):
+        """Delete a deployment group. By default, keep the deployments.
 
         :param group_id: the group to remove
+        :param delete_deployments: also delete all deployments belonging
+            to this group
+        :param force: same meaning as in deployments.delete
+        :param with_logs: same meaning as in deployments.delete
         """
-        self.api.delete('/deployment-groups/{0}'.format(group_id),
-                        expected_status_code=204)
+        self.api.delete(
+            '/deployment-groups/{0}'.format(group_id),
+            params={
+                'delete_deployments': delete_deployments,
+                'force': force,
+                'delete_logs': with_logs,
+            },
+            expected_status_code=204
+        )
 
 
 class DeploymentOutputsClient(object):
@@ -567,18 +581,16 @@ class DeploymentsClient(object):
         :param deployment_id: The deployment's to be deleted id.
         :param force: Delete deployment even if there are existing live nodes
                for it, or existing installations which depend on it.
-        :param delete_db_mode: when set to true the deployment is deleted from
-               the DB. This option is used by the `delete_dep_env` workflow to
-               make sure the dep is deleted AFTER the workflow finished
-               successfully.
+        :param delete_db_mode: deprecated and does nothing
         :param with_logs: when set to true, the management workers' logs for
                the deployment are deleted as well.
         :return: The deleted deployment.
         """
         assert deployment_id
-        params = {'force': force,
-                  'delete_db_mode': delete_db_mode,
-                  'delete_logs': with_logs}
+        params = {'force': force, 'delete_logs': with_logs}
+        if delete_db_mode:
+            warnings.warn('delete_db_mode is deprecated and does nothing',
+                          DeprecationWarning)
 
         self.api.delete(
             '/deployments/{0}'.format(deployment_id), params=params)
