@@ -289,6 +289,14 @@ class DeploymentParentNotFound(CloudifyClientError):
     ERROR_CODE = 'deployment_parent_not_found_error'
 
 
+class InvalidCSYSEnvironmentInput(CloudifyClientError):
+    """
+    Raised when deployment input value for `csys-environment` reference parent
+    that does not exist
+    """
+    ERROR_CODE = 'invalid_csys_environment_error'
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -322,4 +330,5 @@ ERROR_MAPPING = dict([
         ExpiredCloudifyLicense,
         InvalidFilterRule,
         DeploymentParentNotFound,
+        InvalidCSYSEnvironmentInput,
     ]])
