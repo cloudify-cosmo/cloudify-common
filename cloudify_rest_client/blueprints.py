@@ -127,6 +127,7 @@ class BlueprintsClient(object):
                         '...]')
 
                 [(key, value)] = label.items()
+                value = value.replace('=', '\\=').replace(',', '\\,')
                 labels_params.append('{0}={1}'.format(key, value))
             query_params['labels'] = ','.join(labels_params)
 
@@ -487,10 +488,12 @@ class BlueprintsClient(object):
         :param update_dict: Dictionary of attributes and values to be updated.
         :return: The updated blueprint.
         """
-        return self.api.patch('/{self._uri_prefix}/{id}'.format(
+        response = self.api.patch('/{self._uri_prefix}/{id}'.format(
             self=self, id=blueprint_id),
             data=update_dict
         )
+
+        return self._wrapper_cls(response)
 
     def upload_archive(self, blueprint_id, archive_path):
         """
