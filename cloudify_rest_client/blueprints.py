@@ -127,6 +127,7 @@ class BlueprintsClient(object):
                         '...]')
 
                 [(key, value)] = label.items()
+                value = value.replace('=', '\\=').replace(',', '\\,')
                 labels_params.append('{0}={1}'.format(key, value))
             query_params['labels'] = ','.join(labels_params)
 
