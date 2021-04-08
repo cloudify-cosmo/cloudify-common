@@ -795,8 +795,7 @@ class GetLabel(Function):
         super(GetLabel, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if (isinstance(args, list) and len(args) == 2 and
-                isinstance(args[0], text_type) and isinstance(args[1], int)):
+        if isinstance(args, list) and len(args) == 2:
             self.label_key = args[0]
             self.values_list_index = args[1]
         elif isinstance(args, text_type):

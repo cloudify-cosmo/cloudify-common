@@ -272,6 +272,27 @@ imports:"""
             return self._mock_storage.get_secret(secret_name)
         return self._mock_evaluation_storage().get_secret(secret_name)
 
+    def _assert_raises_with_message(self,
+                                    exception_type,
+                                    message,
+                                    callable_obj,
+                                    *args,
+                                    **kwargs):
+        try:
+            callable_obj(*args, **kwargs)
+        except exception_type as e:
+            self.assertIn(message, str(e))
+        else:
+            raise AssertionError('Error was not raised')
+
+    def assert_parsing_fails(self, yaml, message, error=ValueError):
+        self._assert_raises_with_message(
+            error,
+            message,
+            self.parse_1_3,
+            yaml
+        )
+
 
 class _MockRuntimeEvaluationStorage(object):
     def __init__(self, node_instances, nodes, inputs, secrets):
@@ -332,3 +353,16 @@ class _MockRuntimeEvaluationStorage(object):
     @staticmethod
     def set_inter_deployment_dependency(*_, **__):
         pass
+
+    @staticmethod
+    def get_label(label_key, values_list_index):
+        mock_labels = {
+            'key1': ['val1', 'val2'],
+            'key2': ['val3', 'val4'],
+            'key3': ['dep_1', 'dep_2'],
+        }
+
+        if values_list_index is not None:
+            return mock_labels[label_key][values_list_index]
+
+        return mock_labels[label_key]
