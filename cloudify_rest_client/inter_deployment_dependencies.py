@@ -62,7 +62,8 @@ class InterDeploymentDependencyClient(object):
         )
 
     def create(self, dependency_creator, source_deployment, target_deployment,
-               external_source=None, external_target=None):
+               external_source=None, external_target=None,
+               target_deployment_func=None):
         """Creates an inter-deployment dependency.
 
         :param dependency_creator: a string representing the entity that
@@ -78,11 +79,14 @@ class InterDeploymentDependencyClient(object):
         :param external_target: if the source deployment uses an external
         resource as target, pass here a JSON containing the target deployment
         metadata, i.e. deployment name, tenant name, and the manager host(s).
+        :param target_deployment_func: a function used to determine the target
+        deployment.
         :return: an InterDeploymentDependency object.
         """
         data = create_deployment_dependency(dependency_creator,
                                             source_deployment,
                                             target_deployment,
+                                            target_deployment_func,
                                             external_source,
                                             external_target)
         response = self.api.put(
@@ -115,8 +119,8 @@ class InterDeploymentDependencyClient(object):
         data = create_deployment_dependency(dependency_creator,
                                             source_deployment,
                                             target_deployment,
-                                            external_source,
-                                            external_target)
+                                            external_source=external_source,
+                                            external_target=external_target)
         data['is_component_deletion'] = is_component_deletion
         self.api.delete('/{self._uri_prefix}'.format(self=self), data=data)
 
