@@ -787,6 +787,37 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
         return target_deployment, first_arg
 
 
+@register(name='get_label', func_eval_type=RUNTIME_FUNC)
+class GetLabel(Function):
+    def __init__(self, args, **kwargs):
+        self.label_key = None
+        self.values_list_index = None
+        super(GetLabel, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if (isinstance(args, list) and len(args) == 2 and
+                isinstance(args[0], text_type) and isinstance(args[1], int)):
+            self.label_key = args[0]
+            self.values_list_index = args[1]
+        elif isinstance(args, text_type):
+            self.label_key = args
+        elif is_function(args):
+            self.label_key = args
+        else:
+            raise exceptions.FunctionValidationError(
+                "`get_label` function argument should be a list of 2 "
+                "elements ([<label-key>, <label-values list index>]), a "
+                "string (<label-key>), or a dict (a function). Instead, "
+                "it is a {0} with the value: {1}.".format(type(args), args)
+            )
+
+    def validate(self, plan):
+        pass
+
+    def evaluate(self, handler):
+        return handler.get_label(self.label_key, self.values_list_index)
+
+
 def _get_property_value(node_name,
                         properties,
                         property_path,
@@ -1033,6 +1064,7 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         self._node_instances_cache = {}
         self._secrets_cache = {}
         self._capabilities_cache = {}
+        self._labels_cache = {}
 
     def get_input(self, input_name):
         return self._storage.get_input(input_name)
@@ -1070,6 +1102,15 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             capability = self._storage.get_capability(capability_path)
             self._capabilities_cache[capability_id] = capability
         return self._capabilities_cache[capability_id]
+
+    def get_label(self, label_key, values_list_index):
+        labels_cache_entry = (label_key if values_list_index is None else
+                              label_key + '_' + str(values_list_index))
+        if labels_cache_entry not in self._labels_cache:
+            label_values = self._storage.get_label(label_key,
+                                                   values_list_index)
+            self._labels_cache[labels_cache_entry] = label_values
+        return self._labels_cache[labels_cache_entry]
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
