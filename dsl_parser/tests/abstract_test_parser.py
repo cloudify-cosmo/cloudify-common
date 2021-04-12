@@ -332,3 +332,16 @@ class _MockRuntimeEvaluationStorage(object):
     @staticmethod
     def set_inter_deployment_dependency(*_, **__):
         pass
+
+    @staticmethod
+    def get_label(label_key, values_list_index):
+        mock_labels = {
+            'key1': ['val1', 'val2'],
+            'key2': ['val3', 'val4'],
+            'key3': ['dep_1', 'dep_2'],
+        }
+
+        if values_list_index is not None:
+            return mock_labels[label_key][values_list_index]
+
+        return mock_labels[label_key]

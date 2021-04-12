@@ -474,6 +474,9 @@ class _Storage(object):
     def get_secret(self):
         raise NotImplementedError()
 
+    def get_label(self):
+        raise NotImplementedError()
+
     def get_executions(self):
         raise NotImplementedError()
 
