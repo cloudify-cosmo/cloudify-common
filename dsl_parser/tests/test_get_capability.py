@@ -181,6 +181,27 @@ outputs:
             parsed, {}, self._mock_evaluation_storage())
         self.assertEqual(outputs['output']['value'], 'value_a_1')
 
+    def _assert_raises_with_message(self,
+                                    exception_type,
+                                    message,
+                                    callable_obj,
+                                    *args,
+                                    **kwargs):
+        try:
+            callable_obj(*args, **kwargs)
+        except exception_type as e:
+            self.assertIn(message, str(e))
+        else:
+            raise AssertionError('Error was not raised')
+
+    def _assert_parsing_fails(self, yaml, message):
+        self._assert_raises_with_message(
+            ValueError,
+            message,
+            self.parse_1_3,
+            yaml
+        )
+
     def test_get_capability_not_list(self):
         yaml = """
 node_types:
@@ -193,7 +214,7 @@ node_templates:
         properties:
             property: { get_capability: i_should_be_a_list }
 """
-        self.assert_parsing_fails(
+        self._assert_parsing_fails(
             yaml,
             message="`get_capability` function argument should be a list. "
         )
@@ -210,7 +231,7 @@ node_templates:
         properties:
             property: { get_capability: [ only_one_item ] }
 """
-        self.assert_parsing_fails(
+        self._assert_parsing_fails(
             yaml,
             message="`get_capability` function argument should be a list "
                     "with 2 elements at least - [ deployment ID, capability "
@@ -230,7 +251,7 @@ node_templates:
         properties:
             property: { get_capability: [ [list] , value ] }
 """
-        self.assert_parsing_fails(
+        self._assert_parsing_fails(
             yaml,
             message="`get_capability` function arguments can't be complex "
                     "values; only strings/ints/functions are accepted. "

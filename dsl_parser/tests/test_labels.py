@@ -318,11 +318,11 @@ node_templates:
         properties:
             property: { get_label: [ only_one_item ] }
 """
-        self.assert_parsing_fails(
-            yaml,
-            message='`get_label` function argument should be',
-            error=exceptions.FunctionValidationError
-        )
+        self.assertRaisesRegex(
+            exceptions.FunctionValidationError,
+            '`get_label` function argument should be',
+            self.parse_1_3,
+            yaml)
 
     def test_get_label_invalid_label_key(self):
         yaml = """
@@ -336,11 +336,11 @@ node_templates:
         properties:
             property: { get_label: [ [list] , value ] }
 """
-        self.assert_parsing_fails(
-            yaml,
-            message='<label-key> should be',
-            error=exceptions.FunctionValidationError
-        )
+        self.assertRaisesRegex(
+            exceptions.FunctionValidationError,
+            '<label-key> should be',
+            self.parse_1_3,
+            yaml)
 
     def test_get_label_invalid_label_values_index(self):
         yaml = """
@@ -354,8 +354,8 @@ node_templates:
         properties:
             property: { get_label: [ key1 , val ] }
 """
-        self.assert_parsing_fails(
-            yaml,
-            message='<label-values list index> should be',
-            error=exceptions.FunctionValidationError
-        )
+        self.assertRaisesRegex(
+            exceptions.FunctionValidationError,
+            '<label-values list index> should be',
+            self.parse_1_3,
+            yaml)
