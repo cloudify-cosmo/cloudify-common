@@ -796,14 +796,29 @@ class GetLabel(Function):
 
     def parse_args(self, args):
         if isinstance(args, list) and len(args) == 2:
+            if not (isinstance(args[0], text_type) or is_function(args[0])):
+                raise exceptions.FunctionValidationError(
+                    '`get_label`',
+                    "the <label-key> should be a string or a dict "
+                    "(a function). Instead, it is a {0} with the value: "
+                    "{1}.".format(type(args[0]), args[0])
+                )
+            if not (isinstance(args[1], int) or args[1].isdigit()):
+                raise exceptions.FunctionValidationError(
+                    '`get_label`',
+                    "the <label-values list index> should be a number "
+                    "(in string or int form). Instead, it is a {0} with the "
+                    "value: {1}.".format(type(args[1]), args[1])
+                )
             self.label_key = args[0]
-            self.values_list_index = args[1]
+            self.values_list_index = int(args[1])
         elif isinstance(args, text_type):
             self.label_key = args
         elif is_function(args):
             self.label_key = args
         else:
             raise exceptions.FunctionValidationError(
+                '`get_label`',
                 "`get_label` function argument should be a list of 2 "
                 "elements ([<label-key>, <label-values list index>]), a "
                 "string (<label-key>), or a dict (a function). Instead, "
