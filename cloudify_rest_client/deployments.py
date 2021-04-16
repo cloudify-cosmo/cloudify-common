@@ -193,6 +193,15 @@ class Deployment(dict):
         """
         return self.get('latest_execution_finished_operations')
 
+    def is_environment(self):
+        """
+        :return: True if deployment is an environment
+        """
+        for label in self.labels:
+            if label['key'].lower() == 'csys-obj-type':
+                return label['value'].lower() == 'environment'
+        return False
+
 
 class Workflow(dict):
 
