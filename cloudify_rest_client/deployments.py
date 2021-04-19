@@ -354,7 +354,8 @@ class DeploymentGroupsClient(object):
 
     def add_deployments(self, group_id, deployment_ids=None, count=None,
                         new_deployments=None, filter_id=None,
-                        deployments_from_group=None):
+                        deployments_from_group=None,
+                        batch_size=5000):
         """Add the specified deployments to the group
 
         :param group_id: add deployments to this group
@@ -370,6 +371,8 @@ class DeploymentGroupsClient(object):
         :param filter_id: add deployments matching this filter
         :param deployments_from_group: add all deployments belonging to the
             group given by this id
+        :param batch_size: when creating new deployments, create this many
+            at a time (do multiple HTTP calls if needed)
         :return: the updated deployment group
         """
         if new_deployments is not None and count is not None:
@@ -377,17 +380,30 @@ class DeploymentGroupsClient(object):
                              'not both')
         if count:
             new_deployments = [{}] * count
-        response = self.api.patch(
-            '/deployment-groups/{0}'.format(group_id),
-            data={
-                'add': {
-                    'deployment_ids': deployment_ids,
-                    'new_deployments': new_deployments,
-                    'filter_id': filter_id,
-                    'deployments_from_group': deployments_from_group,
+
+        if new_deployments and len(new_deployments) > batch_size:
+            batches = [[]]
+            for dep_spec in new_deployments:
+                batches[-1].append(dep_spec)
+                if batch_size and len(batches[-1]) >= batch_size:
+                    batches.append([])
+        else:
+            batches = [new_deployments]
+
+        for new_deployments_batch in batches:
+            response = self.api.patch(
+                '/deployment-groups/{0}'.format(group_id),
+                data={
+                    'add': {
+                        'deployment_ids': deployment_ids,
+                        'new_deployments': new_deployments_batch or None,
+                        'filter_id': filter_id,
+                        'deployments_from_group': deployments_from_group,
+                    }
                 }
-            }
-        )
+            )
+            # don't send these again
+            deployment_ids = filter_id = deployments_from_group = None
         return DeploymentGroup(response)
 
     def remove_deployments(self, group_id, deployment_ids=None,
