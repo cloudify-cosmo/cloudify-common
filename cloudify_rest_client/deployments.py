@@ -385,7 +385,7 @@ class DeploymentGroupsClient(object):
         if new_deployments:
             for dep_spec in new_deployments:
                 batches[-1].append(dep_spec)
-                if batch_size and len(batches[-1]) > batch_size:
+                if batch_size and len(batches[-1]) >= batch_size:
                     batches.append([])
 
         for new_deployments_batch in batches:
