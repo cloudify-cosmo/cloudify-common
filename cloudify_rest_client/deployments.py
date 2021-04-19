@@ -381,12 +381,14 @@ class DeploymentGroupsClient(object):
         if count:
             new_deployments = [{}] * count
 
-        batches = [[]]
-        if new_deployments:
+        if new_deployments and len(new_deployments) > batch_size:
+            batches = [[]]
             for dep_spec in new_deployments:
                 batches[-1].append(dep_spec)
                 if batch_size and len(batches[-1]) >= batch_size:
                     batches.append([])
+        else:
+            batches = [new_deployments]
 
         for new_deployments_batch in batches:
             response = self.api.patch(
