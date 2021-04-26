@@ -1872,3 +1872,47 @@ node_templates:
                 "The recursion limit \\([0-9]+\\) has been reached while "
                 "evaluating the deployment\\..+get_property\\[0\\].+"):
             prepare_deployment_plan(self.parse(yaml))
+
+
+class TestGetGroupCapability(AbstractTestParser):
+    BLUEPRINT = """
+node_types:
+    vm_type:
+        properties:
+            a: {{ type: string }}
+node_templates:
+    vm1:
+        type: vm_type
+        properties:
+            a: {0}
+"""
+
+    def test_get_capability_value(self):
+        """Group capability is evaluated to whatever the storage returns."""
+        yaml = self.BLUEPRINT.format('{get_group_capability: [a, b]}')
+        plan = prepare_deployment_plan(self.parse(yaml))
+        plan_node = next(n for n in plan['nodes'] if n['name'] == 'vm1')
+        node = functions.evaluate_node_functions(
+            plan_node, self._mock_evaluation_storage(
+                nodes=plan['nodes'],
+                group_capabilities={
+                    'a': {'b': 'capability value'}
+                }
+            )
+        )
+        self.assertEqual(node['properties']['a'], 'capability value')
+
+    def test_not_enough_arguments(self):
+        yaml = self.BLUEPRINT.format('{get_group_capability: [a]}')
+        with self.assertRaisesRegex(ValueError, '2 elements at least'):
+            self.parse(yaml)
+
+    def test_invalid_argument_element_type(self):
+        yaml = self.BLUEPRINT.format('{get_group_capability: [a, b, [1] ]}')
+        with self.assertRaisesRegex(ValueError, "can't be complex"):
+            self.parse(yaml)
+
+    def test_invalid_argument_type(self):
+        yaml = self.BLUEPRINT.format('{get_group_capability: 1}')
+        with self.assertRaisesRegex(ValueError, 'should be a list'):
+            self.parse(yaml)

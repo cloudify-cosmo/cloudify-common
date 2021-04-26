@@ -279,13 +279,15 @@ imports:"""
 
 class _MockRuntimeEvaluationStorage(object):
     def __init__(self, node_instances=None, nodes=None, inputs=None,
-                 secrets=None, capabilities=None, labels=None):
+                 secrets=None, capabilities=None, labels=None,
+                 group_capabilities=None):
         self._node_instances = node_instances or []
         self._nodes = nodes or []
         self._inputs = inputs or {}
         self._secrets = secrets or {}
         self._capabilities = capabilities or {}
         self._labels = labels or {}
+        self._group_capabilities = group_capabilities or {}
 
     def get_input(self, input_name):
         return self._inputs[input_name]
@@ -323,3 +325,7 @@ class _MockRuntimeEvaluationStorage(object):
         if values_list_index is not None:
             return self._labels[label_key][values_list_index]
         return self._labels[label_key]
+
+    def get_group_capability(self, capability_path):
+        group_id, cap_id = capability_path[0], capability_path[1]
+        return self._group_capabilities[group_id][cap_id]
