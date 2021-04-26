@@ -319,9 +319,6 @@ class _MockRuntimeEvaluationStorage(object):
         dep_id, cap_id = capability_path[0], capability_path[1]
         return self._capabilities[dep_id][cap_id]
 
-    def set_inter_deployment_dependency(self, *_, **__):
-        pass
-
     def get_label(self, label_key, values_list_index):
         if values_list_index is not None:
             return self._labels[label_key][values_list_index]
