@@ -173,6 +173,13 @@ imports:"""
     -   {0}""".format(filename if not as_uri else self._path2url(filename))
         return yaml
 
+    def _local_resolver_rules(self):
+        types_path = os.path.join(
+            os.path.dirname(__file__), 'minimal_types.yaml')
+        return [
+            {'http://local-test-resolver/types.yaml': 'file://' + types_path}
+        ]
+
     def parse(self, dsl_string,
               resources_base_path=None,
               dsl_version=BASIC_VERSION_SECTION_DSL_1_0,
@@ -181,8 +188,9 @@ imports:"""
         # add dsl version if missing
         if DSL_VERSION_PREFIX not in dsl_string:
             dsl_string = dsl_version + dsl_string
-            if not resolver:
-                resolver = DefaultImportResolver()
+        if not resolver:
+            resolver = DefaultImportResolver(
+                rules=self._local_resolver_rules())
         return dsl_parse(dsl_string,
                          resources_base_path=resources_base_path,
                          resolver=resolver,
@@ -212,6 +220,9 @@ imports:"""
                         dsl_path,
                         resources_base_path=None,
                         resolver=None):
+        if not resolver:
+            resolver = DefaultImportResolver(
+                rules=self._local_resolver_rules())
         return dsl_parse_from_path(dsl_path,
                                    resources_base_path,
                                    resolver=resolver)

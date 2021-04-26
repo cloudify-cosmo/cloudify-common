@@ -314,7 +314,7 @@ node_templates:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    - http://local-test-resolver/types.yaml
     -   {0}--{1}
 """.format('test', import_file_name)
         main_yaml_path = self.make_file_with_name(content=main_yaml,
