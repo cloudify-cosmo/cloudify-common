@@ -112,6 +112,17 @@ blueprint_labels:
 
 
 class TestGetLabel(AbstractTestParser):
+    def setUp(self):
+        super(TestGetLabel, self).setUp()
+        self.mock_storage = self._mock_evaluation_storage(
+            capabilities={'dep_1': {'cap_a': 'value_a_1'}},
+            labels={
+                'key1': ['val1', 'val2'],
+                'key2': ['val3', 'val4'],
+                'key3': ['dep_1', 'dep_2'],
+            }
+        )
+
     def test_has_intrinsic_functions_property(self):
         yaml = """
 relationships:
@@ -190,8 +201,7 @@ node_templates:
             ]}
         }
 
-        functions.evaluate_functions(
-            payload, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(payload, {}, self.mock_storage)
 
         self.assertEqual(payload['a'], ['val1', 'val2'])
         self.assertEqual(payload['b'], 'val1')
@@ -218,8 +228,7 @@ node_templates:
         self.assertEqual({'get_label': ['key2', 0]},
                          node['properties']['property_2'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(node['properties']['property_1'], ['val1', 'val2'])
         self.assertEqual(node['properties']['property_2'], 'val3')
 
@@ -245,8 +254,7 @@ outputs:
         self.assertEqual({'get_label': ['key2', 0]},
                          outputs['output_2']['value'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(outputs['output_1']['value'], ['val1', 'val2'])
         self.assertEqual(outputs['output_2']['value'], 'val3')
 
@@ -279,8 +287,7 @@ outputs:
         self.assertEqual({'get_label': 'key2'},
                          outputs['output_2']['value'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(outputs['output_1']['value'], 'val1')
         self.assertEqual(outputs['output_2']['value'], ['val3', 'val4'])
 
@@ -302,8 +309,7 @@ outputs:
                                              'cap_a']},
                          outputs['output_1']['value'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(outputs['output_1']['value'], 'value_a_1')
 
     def test_get_label_short_list(self):

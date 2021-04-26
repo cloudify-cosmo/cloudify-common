@@ -726,13 +726,6 @@ class InterDeploymentDependencyCreatingFunction(Function):
             {}
         )[self.function_identifier] = self.target_deployment
 
-    def evaluate(self, handler):
-        return self._evaluate(handler)
-
-    @abc.abstractmethod
-    def _evaluate(self, handler):
-        pass
-
     @abc.abstractproperty
     def target_deployment(self):
         pass
@@ -760,21 +753,18 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
                 "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
                 .format(','.join('{0}'.format(a) for a in args))
             )
-        for arg_index in range(len(args)):
-            if not isinstance(args[arg_index], (text_type, int)) \
-                    and not is_function(args[arg_index]):
+        for arg_index, arg in enumerate(args):
+            if not isinstance(arg, (text_type, int)) and not is_function(arg):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
                     "values; only strings/ints/functions are accepted. "
-                    "Instead, the item with "
-                    "index {0} is {1} of type {2}".format(
-                        arg_index, args[arg_index], type(args[arg_index])
-                    )
+                    "Instead, the item with index {0} is {1} of type {2}"
+                    .format(arg_index, arg, type(arg))
                 )
 
         self.capability_path = args
 
-    def _evaluate(self, handler):
+    def evaluate(self, handler):
         return handler.get_capability(self.capability_path)
 
     def validate(self, plan):
@@ -785,6 +775,44 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
         first_arg = self.capability_path[0]
         target_deployment = None if is_function(first_arg) else first_arg
         return target_deployment, first_arg
+
+
+@register(name='get_group_capability', func_eval_type=RUNTIME_FUNC)
+class GetGroupCapability(Function):
+    def __init__(self, args, **kwargs):
+        self.capability_path = None
+        super(GetGroupCapability, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, list):
+            raise ValueError(
+                "`get_group_capability` function argument should be a list. "
+                "Instead it is a {0} with the value: {1}."
+                .format(type(args), args))
+        if len(args) < 2:
+            raise ValueError(
+                "`get_group_capability` function argument should be a list "
+                "with 2 elements at least - [ group ID, capability ID "
+                "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
+                .format(','.join('{0}'.format(a) for a in args))
+            )
+        for arg_index, arg in enumerate(args):
+            if arg_index == 1 and isinstance(arg, list):
+                continue
+            if not isinstance(arg, (text_type, int)) and not is_function(arg):
+                raise ValueError(
+                    "`get_group_capability` function arguments can't be "
+                    "complex values; only strings/ints/functions are "
+                    "accepted. Instead, the item with index {0} is {1} "
+                    "of type {2}".format(arg_index, arg, type(arg))
+                )
+        self.capability_path = args
+
+    def evaluate(self, handler):
+        return handler.get_group_capability(self.capability_path)
+
+    def validate(self, plan):
+        pass
 
 
 @register(name='get_label', func_eval_type=RUNTIME_FUNC)
@@ -1079,6 +1107,7 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         self._secrets_cache = {}
         self._capabilities_cache = {}
         self._labels_cache = {}
+        self._group_capabilities_cache = {}
 
     def get_input(self, input_name):
         return self._storage.get_input(input_name)
@@ -1116,6 +1145,14 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             capability = self._storage.get_capability(capability_path)
             self._capabilities_cache[capability_id] = capability
         return self._capabilities_cache[capability_id]
+
+    def get_group_capability(self, capability_path):
+        capability_id = _convert_attribute_list_to_python_syntax_string(
+            capability_path)
+        if capability_id not in self._group_capabilities_cache:
+            capability = self._storage.get_group_capability(capability_path)
+            self._group_capabilities_cache[capability_id] = capability
+        return self._group_capabilities_cache[capability_id]
 
     def get_label(self, label_key, values_list_index):
         labels_cache_entry = (label_key if values_list_index is None else

@@ -24,7 +24,7 @@ class TestCloudifyBasicTypesMark(AbstractTestParser):
     def test_marking(self):
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    - http://local-test-resolver/types.yaml
 
 node_types:
   test_type:
@@ -32,7 +32,7 @@ node_types:
       prop1:
         default: value
 """
-        resolver = DefaultImportResolver()
+        resolver = DefaultImportResolver(rules=self._local_resolver_rules())
         merged_blueprint = parse_from_import_blueprint(
             dsl_location=None,
             dsl_string=main_yaml,

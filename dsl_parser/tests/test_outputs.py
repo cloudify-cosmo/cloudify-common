@@ -211,7 +211,8 @@ outputs:
             }
         }]
         nodes = [{'id': 'webserver'}]
-        storage = self._mock_evaluation_storage(instances, nodes)
+        storage = self._mock_evaluation_storage(
+            instances, nodes, capabilities={'dep_1': {'cap_a': 'value_a_1'}})
 
         parsed = prepare_deployment_plan(self.parse_1_1(yaml),
                                          storage.get_secret)

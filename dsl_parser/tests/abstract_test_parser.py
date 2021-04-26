@@ -173,6 +173,13 @@ imports:"""
     -   {0}""".format(filename if not as_uri else self._path2url(filename))
         return yaml
 
+    def _local_resolver_rules(self):
+        types_path = os.path.join(
+            os.path.dirname(__file__), 'minimal_types.yaml')
+        return [
+            {'http://local-test-resolver/types.yaml': 'file://' + types_path}
+        ]
+
     def parse(self, dsl_string,
               resources_base_path=None,
               dsl_version=BASIC_VERSION_SECTION_DSL_1_0,
@@ -181,8 +188,9 @@ imports:"""
         # add dsl version if missing
         if DSL_VERSION_PREFIX not in dsl_string:
             dsl_string = dsl_version + dsl_string
-            if not resolver:
-                resolver = DefaultImportResolver()
+        if not resolver:
+            resolver = DefaultImportResolver(
+                rules=self._local_resolver_rules())
         return dsl_parse(dsl_string,
                          resources_base_path=resources_base_path,
                          resolver=resolver,
@@ -212,6 +220,9 @@ imports:"""
                         dsl_path,
                         resources_base_path=None,
                         resolver=None):
+        if not resolver:
+            resolver = DefaultImportResolver(
+                rules=self._local_resolver_rules())
         return dsl_parse_from_path(dsl_path,
                                    resources_base_path,
                                    resolver=resolver)
@@ -258,27 +269,25 @@ imports:"""
 
         return ordered_nodes
 
-    def _mock_evaluation_storage(self, node_instances=None, nodes=None,
-                                 inputs=None, secrets=None):
-        self._mock_storage = _MockRuntimeEvaluationStorage(
-            node_instances or [],
-            nodes or [],
-            inputs or {},
-            secrets or {})
-        return self._mock_storage
+    @property
+    def _mock_evaluation_storage(self):
+        return _MockRuntimeEvaluationStorage
 
     def get_secret(self, secret_name):
-        if self._mock_storage:
-            return self._mock_storage.get_secret(secret_name)
         return self._mock_evaluation_storage().get_secret(secret_name)
 
 
 class _MockRuntimeEvaluationStorage(object):
-    def __init__(self, node_instances, nodes, inputs, secrets):
-        self._node_instances = node_instances
-        self._nodes = nodes
+    def __init__(self, node_instances=None, nodes=None, inputs=None,
+                 secrets=None, capabilities=None, labels=None,
+                 group_capabilities=None):
+        self._node_instances = node_instances or []
+        self._nodes = nodes or []
         self._inputs = inputs or {}
         self._secrets = secrets or {}
+        self._capabilities = capabilities or {}
+        self._labels = labels or {}
+        self._group_capabilities = group_capabilities or {}
 
     def get_input(self, input_name):
         return self._inputs[input_name]
@@ -308,40 +317,15 @@ class _MockRuntimeEvaluationStorage(object):
             return Mock(value=self._secrets[secret_id])
         return Mock(value=secret_id + '_value')
 
-    @staticmethod
-    def get_capability(capability_path):
-        mock_deployments = {
-            'dep_1': {
-                'capabilities': {
-                    'cap_a': 'value_a_1',
-                    'cap_b': 'value_b_1'
-                }
-            },
-            'dep_2': {
-                'capabilities': {
-                    'cap_a': 'value_a_2',
-                    'cap_b': 'value_b_2'
-                }
-            }
-        }
-
+    def get_capability(self, capability_path):
         dep_id, cap_id = capability_path[0], capability_path[1]
+        return self._capabilities[dep_id][cap_id]
 
-        return mock_deployments[dep_id]['capabilities'][cap_id]
-
-    @staticmethod
-    def set_inter_deployment_dependency(*_, **__):
-        pass
-
-    @staticmethod
-    def get_label(label_key, values_list_index):
-        mock_labels = {
-            'key1': ['val1', 'val2'],
-            'key2': ['val3', 'val4'],
-            'key3': ['dep_1', 'dep_2'],
-        }
-
+    def get_label(self, label_key, values_list_index):
         if values_list_index is not None:
-            return mock_labels[label_key][values_list_index]
+            return self._labels[label_key][values_list_index]
+        return self._labels[label_key]
 
-        return mock_labels[label_key]
+    def get_group_capability(self, capability_path):
+        group_id, cap_id = capability_path[0], capability_path[1]
+        return self._group_capabilities[group_id][cap_id]

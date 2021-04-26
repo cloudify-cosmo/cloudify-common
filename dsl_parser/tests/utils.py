@@ -18,7 +18,8 @@ from ..import_resolver.default_import_resolver import DefaultImportResolver
 
 
 class ResolverWithBlueprintSupport(DefaultImportResolver):
-    def __init__(self, blueprint_mapping, resources_base_path=None):
+    def __init__(self, blueprint_mapping, resources_base_path=None,
+                 rules=None):
         """
         :param blueprint_mapping: This is a mapping between blueprint import
         command and this options
@@ -30,7 +31,7 @@ class ResolverWithBlueprintSupport(DefaultImportResolver):
                 blueprint import in a isolated environment.
         :param resources_base_path: base path of the blueprint.
         """
-        super(ResolverWithBlueprintSupport, self).__init__()
+        super(ResolverWithBlueprintSupport, self).__init__(rules=rules)
         self.blueprint_mapping = blueprint_mapping
         self.resources_base_path = resources_base_path
 

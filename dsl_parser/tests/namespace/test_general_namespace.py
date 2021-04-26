@@ -80,7 +80,7 @@ imports:
     def test_namespace_on_cloudify_basic_types(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   test--http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    -   test--http://local-test-resolver/types.yaml
 """
         self.assertRaises(exceptions.DSLParsingLogicException,
                           self.parse, yaml)
@@ -88,7 +88,7 @@ imports:
     def test_namespace_with_cloudify_types_from_imported(self):
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    -   http://local-test-resolver/types.yaml
 """
         layer1_import_path = self.make_yaml_file(layer1)
         main_yaml = """
@@ -102,7 +102,7 @@ imports:
     def test_namespace_on_cloudify_types_from_imported(self):
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   test--http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    -   test--http://local-test-resolver/types.yaml
 """
         layer1_import_path = self.make_yaml_file(layer1)
         main_yaml = """

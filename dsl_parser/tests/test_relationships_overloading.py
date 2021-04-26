@@ -517,7 +517,7 @@ imports:
     def test_side_import_expending_relationships(self):
         side_blueprint = """
 imports:
-    - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    - http://local-test-resolver/types.yaml
 
 node_types:
   test_other_type:
@@ -537,7 +537,7 @@ node_templates:
         side_import_file_name = self.make_yaml_file(side_blueprint)
         node_blueprint = """
 imports:
-    - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    - http://local-test-resolver/types.yaml
 
 node_types:
   test_type:
@@ -578,7 +578,7 @@ imports:
     def test_side_import_not_expending_relationships_failure(self):
         side_blueprint = """
 imports:
-    - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    - http://local-test-resolver/types.yaml
 
 node_types:
   test_other_type:
@@ -598,7 +598,7 @@ node_templates:
         side_import_file_name = self.make_yaml_file(side_blueprint)
         node_blueprint = """
 imports:
-    - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    - http://local-test-resolver/types.yaml
 
 node_types:
   test_type:

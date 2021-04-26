@@ -22,7 +22,7 @@ class TestImportedBlueprints(AbstractTestParser):
     basic_blueprint = """
 tosca_definitions_version: cloudify_dsl_1_3
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 """
     blueprint_with_blueprint_import = """
 tosca_definitions_version: cloudify_dsl_1_3
@@ -38,7 +38,7 @@ imported_blueprints:
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   {0}
-    -   http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    - http://local-test-resolver/types.yaml
 """.format(imported_blueprint)
 
         parsed_yaml = self.parse(yaml)
@@ -48,18 +48,18 @@ imports:
     def test_imported_list_with_namespace(self):
         layer1 = """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 """
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
   - {0}--{1}
 """.format('test1', layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
   - {0}--{1}
 """.format('test', layer2_import_path)
         parsed_yaml = self.parse_1_3(main_yaml)
@@ -67,8 +67,9 @@ imports:
         self.assertEqual(len(imported_blueprints), 0)
 
     def test_basic_blueprint_import(self):
-        resolver = ResolverWithBlueprintSupport({'blueprint:test':
-                                                 self.basic_blueprint})
+        resolver = ResolverWithBlueprintSupport({
+            'blueprint:test': self.basic_blueprint
+        }, rules=self._local_resolver_rules())
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   ns--blueprint:test
@@ -81,12 +82,10 @@ imports:
             imported_blueprints)
 
     def test_merge_imported_lists(self):
-        resolver =\
-            ResolverWithBlueprintSupport(
-                {'blueprint:test':
-                    self.blueprint_with_blueprint_import,
-                 'blueprint:another_test':
-                     self.blueprint_with_blueprint_import})
+        resolver = ResolverWithBlueprintSupport({
+            'blueprint:test': self.blueprint_with_blueprint_import,
+            'blueprint:another_test': self.blueprint_with_blueprint_import
+        }, rules=self._local_resolver_rules())
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
   - ns--blueprint:test
@@ -94,14 +93,14 @@ imports:
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
   - {0}--{1}
   - ns--blueprint:another_test
 """.format('test1', layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
   - {0}--{1}
 """.format('test', layer2_import_path)
         parsed_yaml = self.parse(main_yaml, resolver=resolver)
@@ -130,8 +129,9 @@ namespaces_mapping:
 """
 
     def test_merging_namespaces_mapping(self):
-        resolver = ResolverWithBlueprintSupport({'blueprint:test':
-                                                self.blueprint_imported})
+        resolver = ResolverWithBlueprintSupport({
+            'blueprint:test': self.blueprint_imported
+        }, rules=self._local_resolver_rules())
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
   - namespace--blueprint:test
@@ -162,11 +162,10 @@ imports:
                               namespaces_mapping)
 
     def test_blueprints_imports_with_the_same_import(self):
-        resolver = ResolverWithBlueprintSupport({'blueprint:test':
-                                                self.blueprint_imported,
-                                                 'blueprint:other':
-                                                     self.blueprint_imported
-                                                 })
+        resolver = ResolverWithBlueprintSupport({
+            'blueprint:test': self.blueprint_imported,
+            'blueprint:other': self.blueprint_imported
+        }, rules=self._local_resolver_rules())
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     -   same--blueprint:test
@@ -200,7 +199,7 @@ node_types:
         local_types_path = self.make_yaml_file(self.basic_blueprint)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
   - {0}
 """.format(local_types_path)
         self.parse(main_yaml)
@@ -209,16 +208,17 @@ imports:
         imported_yaml = """
 tosca_definitions_version: cloudify_dsl_1_3
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
     port:
         default: 90
 """
-        resolver = ResolverWithBlueprintSupport({'blueprint:test':
-                                                 imported_yaml})
+        resolver = ResolverWithBlueprintSupport({
+            'blueprint:test': imported_yaml
+        }, rules=self._local_resolver_rules())
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+    - http://local-test-resolver/types.yaml
     - ns--blueprint:test
 """
         self.parse(yaml, resolver=resolver)

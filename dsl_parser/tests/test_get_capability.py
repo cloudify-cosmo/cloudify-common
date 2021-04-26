@@ -20,6 +20,21 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestGetCapability(AbstractTestParser):
+    def setUp(self):
+        super(TestGetCapability, self).setUp()
+        self.mock_storage = self._mock_evaluation_storage(
+            capabilities={
+                'dep_1': {
+                    'cap_a': 'value_a_1',
+                    'cap_b': 'value_b_1'
+                },
+                'dep_2': {
+                    'cap_a': 'value_a_2',
+                    'cap_b': 'value_b_2'
+                }
+            }
+        )
+
     def test_has_intrinsic_functions_property(self):
         yaml = """
 relationships:
@@ -107,8 +122,7 @@ node_templates:
             ]}
         }
 
-        functions.evaluate_functions(
-            payload, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(payload, {}, self.mock_storage)
 
         self.assertEqual(payload['a'], 'value_a_1')
         self.assertEqual(payload['b'], 'value_a_2')
@@ -131,8 +145,7 @@ node_templates:
         self.assertEqual({'get_capability': ['dep_1', 'cap_a']},
                          node['properties']['property'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(node['properties']['property'], 'value_a_1')
 
     def test_capabilities_in_outputs(self):
@@ -151,8 +164,7 @@ outputs:
         self.assertEqual({'get_capability': ['dep_1', 'cap_a']},
                          outputs['output']['value'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(outputs['output']['value'], 'value_a_1')
 
     def test_capabilities_in_inputs(self):
@@ -177,8 +189,7 @@ outputs:
         self.assertEqual({'get_capability': ['dep_1', 'cap_a']},
                          outputs['output']['value'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(outputs['output']['value'], 'value_a_1')
 
     def test_get_capability_not_list(self):
