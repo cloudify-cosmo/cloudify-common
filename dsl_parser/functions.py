@@ -760,16 +760,13 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
                 "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
                 .format(','.join('{0}'.format(a) for a in args))
             )
-        for arg_index in range(len(args)):
-            if not isinstance(args[arg_index], (text_type, int)) \
-                    and not is_function(args[arg_index]):
+        for arg_index, arg in enumerate(args):
+            if not isinstance(arg, (text_type, int)) and not is_function(arg):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
                     "values; only strings/ints/functions are accepted. "
-                    "Instead, the item with "
-                    "index {0} is {1} of type {2}".format(
-                        arg_index, args[arg_index], type(args[arg_index])
-                    )
+                    "Instead, the item with index {0} is {1} of type {2}"
+                    .format(arg_index, arg, type(arg))
                 )
 
         self.capability_path = args
