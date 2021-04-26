@@ -259,12 +259,14 @@ imports:"""
         return ordered_nodes
 
     def _mock_evaluation_storage(self, node_instances=None, nodes=None,
-                                 inputs=None, secrets=None):
+                                 inputs=None, secrets=None,
+                                 capabilities=None):
         self._mock_storage = _MockRuntimeEvaluationStorage(
             node_instances or [],
             nodes or [],
             inputs or {},
-            secrets or {})
+            secrets or {},
+            capabilities or {})
         return self._mock_storage
 
     def get_secret(self, secret_name):
@@ -274,11 +276,12 @@ imports:"""
 
 
 class _MockRuntimeEvaluationStorage(object):
-    def __init__(self, node_instances, nodes, inputs, secrets):
+    def __init__(self, node_instances, nodes, inputs, secrets, capabilities):
         self._node_instances = node_instances
         self._nodes = nodes
         self._inputs = inputs or {}
         self._secrets = secrets or {}
+        self._capabilities = capabilities or {}
 
     def get_input(self, input_name):
         return self._inputs[input_name]
@@ -308,26 +311,9 @@ class _MockRuntimeEvaluationStorage(object):
             return Mock(value=self._secrets[secret_id])
         return Mock(value=secret_id + '_value')
 
-    @staticmethod
-    def get_capability(capability_path):
-        mock_deployments = {
-            'dep_1': {
-                'capabilities': {
-                    'cap_a': 'value_a_1',
-                    'cap_b': 'value_b_1'
-                }
-            },
-            'dep_2': {
-                'capabilities': {
-                    'cap_a': 'value_a_2',
-                    'cap_b': 'value_b_2'
-                }
-            }
-        }
-
+    def get_capability(self, capability_path):
         dep_id, cap_id = capability_path[0], capability_path[1]
-
-        return mock_deployments[dep_id]['capabilities'][cap_id]
+        return self._capabilities[dep_id][cap_id]
 
     @staticmethod
     def set_inter_deployment_dependency(*_, **__):
