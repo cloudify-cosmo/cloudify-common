@@ -726,13 +726,6 @@ class InterDeploymentDependencyCreatingFunction(Function):
             {}
         )[self.function_identifier] = self.target_deployment
 
-    def evaluate(self, handler):
-        return self._evaluate(handler)
-
-    @abc.abstractmethod
-    def _evaluate(self, handler):
-        pass
-
     @abc.abstractproperty
     def target_deployment(self):
         pass
@@ -771,7 +764,7 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
 
         self.capability_path = args
 
-    def _evaluate(self, handler):
+    def evaluate(self, handler):
         return handler.get_capability(self.capability_path)
 
     def validate(self, plan):
