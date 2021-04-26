@@ -31,22 +31,27 @@ class Workflow(dict):
 class WorkflowsClient(object):
     def __init__(self, api):
         self.api = api
-        self._uri_prefix = 'workflows'
 
-    def list(self, filter_id=None, **kwargs):
+    def list(self, filter_id=None, filter_rules=None, **kwargs):
         """
         Returns a list of workflows.
 
         :param filter_id: A filter ID to filter the deployments list by
+        :param filter_rules: A list of filter rules to filter the
+               deployments list by
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.Deployment.fields
-        :return: Deployments list.
+        :return: Workflows list.
         """
         params = kwargs
         if filter_id:
             params['_filter_id'] = filter_id
 
-        response = self.api.get('/{0}'.format(self._uri_prefix), params=params)
+        if filter_rules:
+            response = self.api.post('/searches/deployments', params=params,
+                                     data={'filter_rules': filter_rules})
+        else:
+            response = self.api.get('/workflows', params=params)
 
         return ListResponse(
             [Workflow(item) for item in response['items']],
