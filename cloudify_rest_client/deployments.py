@@ -281,14 +281,19 @@ class DeploymentGroup(dict):
         return self['default_inputs']
 
     @property
-    def default_blueprint(self):
+    def default_blueprint_id(self):
         """Default blueprint for new deployments created in this group"""
-        return self['default_blueprint']
+        return self['default_blueprint_id']
 
     @property
     def labels(self):
         """Labels of this deployment group"""
         return self.get('labels')
+
+    @property
+    def description(self):
+        """Description of this deployment group"""
+        return self.get('description')
 
 
 class DeploymentGroupsClient(object):
