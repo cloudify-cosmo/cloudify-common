@@ -570,7 +570,7 @@ outputs:
         value: { get_property: [test--node, key] }
 """
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             'value',
             plan[constants.OUTPUTS]['port']['value'])
@@ -605,7 +605,7 @@ outputs:
         value: { get_property: [test--middle_test--node, key] }
 """
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             'value',
             plan[constants.OUTPUTS]['port']['value'])
@@ -751,7 +751,7 @@ outputs:
         value: { get_attribute: [test--node, key] }
 """
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             {'get_attribute': ['test--node', 'key']},
             plan[constants.OUTPUTS]['port']['value'])
@@ -786,7 +786,7 @@ outputs:
         value: { get_attribute: [test--middle_test--node, key] }
 """
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             {'get_attribute': ['test--middle_test--node', 'key']},
             plan[constants.OUTPUTS]['port']['value'])
@@ -1025,7 +1025,7 @@ imports:
     -   {0}--{1}
 """.format('test', import_file_name)
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             {'get_capability': ['dep_1', 'cap_a']},
             plan[constants.OUTPUTS]['test--port']['value'])
@@ -1049,7 +1049,7 @@ imports:
     -   {0}--{1}
 """.format('test', import_file_name)
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             8080,
             plan[constants.OUTPUTS]['test--port']['value'])
@@ -1077,7 +1077,7 @@ imports:
     -   {0}--{1}
 """.format('test', layer2_file_name)
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             8080,
             plan[constants.OUTPUTS]['test--middle_test--port']['value'])
@@ -1399,8 +1399,7 @@ node_templates:
   test_node:
     type: my.node.type
 """
-        plan = prepare_deployment_plan(self.parse(blueprint_yaml),
-                                       self.get_secret)
+        plan = prepare_deployment_plan(self.parse(blueprint_yaml))
         self.assertEqual(
             None,
             plan[constants.INPUTS].get('test_config')

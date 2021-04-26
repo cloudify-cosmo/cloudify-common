@@ -269,33 +269,23 @@ imports:"""
 
         return ordered_nodes
 
-    def _mock_evaluation_storage(self, node_instances=None, nodes=None,
-                                 inputs=None, secrets=None, labels=None,
-                                 capabilities=None):
-        self._mock_storage = _MockRuntimeEvaluationStorage(
-            node_instances or [],
-            nodes or [],
-            inputs or {},
-            secrets or {},
-            capabilities or {},
-            labels or {})
-        return self._mock_storage
+    @property
+    def _mock_evaluation_storage(self):
+        return _MockRuntimeEvaluationStorage
 
     def get_secret(self, secret_name):
-        if self._mock_storage:
-            return self._mock_storage.get_secret(secret_name)
         return self._mock_evaluation_storage().get_secret(secret_name)
 
 
 class _MockRuntimeEvaluationStorage(object):
-    def __init__(self, node_instances, nodes, inputs, secrets, capabilities,
-                 labels):
-        self._node_instances = node_instances
-        self._nodes = nodes
-        self._inputs = inputs
-        self._secrets = secrets
-        self._capabilities = capabilities
-        self._labels = labels
+    def __init__(self, node_instances=None, nodes=None, inputs=None,
+                 secrets=None, capabilities=None, labels=None):
+        self._node_instances = node_instances or []
+        self._nodes = nodes or []
+        self._inputs = inputs or {}
+        self._secrets = secrets or {}
+        self._capabilities = capabilities or {}
+        self._labels = labels or {}
 
     def get_input(self, input_name):
         return self._inputs[input_name]
