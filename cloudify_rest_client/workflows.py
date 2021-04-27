@@ -48,7 +48,7 @@ class WorkflowsClient(object):
             params['_filter_id'] = filter_id
 
         if filter_rules:
-            response = self.api.post('/searches/deployments', params=params,
+            response = self.api.post('/searches/workflows', params=params,
                                      data={'filter_rules': filter_rules})
         else:
             response = self.api.get('/workflows', params=params)
