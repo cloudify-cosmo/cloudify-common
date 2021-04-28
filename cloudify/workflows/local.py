@@ -477,6 +477,9 @@ class _Storage(object):
     def get_label(self):
         raise NotImplementedError()
 
+    def get_environment_capability(self):
+        raise NotImplementedError()
+
     def get_executions(self):
         raise NotImplementedError()
 
