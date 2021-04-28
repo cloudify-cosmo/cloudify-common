@@ -329,3 +329,8 @@ class _MockRuntimeEvaluationStorage(object):
     def get_group_capability(self, capability_path):
         group_id, cap_id = capability_path[0], capability_path[1]
         return self._group_capabilities[group_id][cap_id]
+
+    def get_environment_capability(self, capability_path):
+        label_value = self.get_label('csys-obj-parent', 0)
+        capability_path = [label_value] + capability_path
+        return self.get_capability(capability_path)

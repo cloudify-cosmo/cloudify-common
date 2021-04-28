@@ -860,6 +860,50 @@ class GetLabel(Function):
         return handler.get_label(self.label_key, self.values_list_index)
 
 
+@register(name='get_environment_capability', func_eval_type=RUNTIME_FUNC)
+class GetEnvironmentCapability(Function):
+    def __init__(self, args, **kwargs):
+        self.capability_path = None
+        super(GetEnvironmentCapability, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if isinstance(args, text_type):
+            self.capability_path = [args]
+        elif isinstance(args, list):
+            if len(args) < 2:
+                raise exceptions.FunctionValidationError(
+                    '`get_environment_capability`',
+                    "`get_environment_capability` function arguments can't be"
+                    " list with only one item; only string or list with"
+                    " more than one item are accepted. Instead, it is a {0}"
+                    " with the value: {1}.".format(type(args), args)
+                )
+            else:
+                self.capability_path = args
+        else:
+            raise exceptions.FunctionValidationError(
+                '`get_environment_capability`',
+                "`get_environment_capability` function argument should be a "
+                "string or list with more than one item are accepted."
+                " Instead, it is a {0} with the value: {1}.".format(type(
+                    args), args)
+            )
+        for arg_index, arg in enumerate(args):
+            if not isinstance(arg, (text_type, int)) and not is_function(arg):
+                raise ValueError(
+                    "`get_environment_capability` function arguments"
+                    " can't be complex values; only strings/ints/functions"
+                    " are accepted. Instead, the item with index"
+                    " {0} is {1} of type {2}".format(arg_index, arg, type(arg))
+                )
+
+    def validate(self, plan):
+        pass
+
+    def evaluate(self, handler):
+        return handler.get_environment_capability(self.capability_path)
+
+
 def _get_property_value(node_name,
                         properties,
                         property_path,
@@ -1108,6 +1152,7 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         self._capabilities_cache = {}
         self._labels_cache = {}
         self._group_capabilities_cache = {}
+        self._environment_capabilities_cache = {}
 
     def get_input(self, input_name):
         return self._storage.get_input(input_name)
@@ -1162,6 +1207,16 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
                                                    values_list_index)
             self._labels_cache[labels_cache_entry] = label_values
         return self._labels_cache[labels_cache_entry]
+
+    def get_environment_capability(self, capability_path):
+        capability_id = _convert_attribute_list_to_python_syntax_string(
+            capability_path)
+        if capability_id not in self._environment_capabilities_cache:
+            capability = self._storage.get_environment_capability(
+                capability_path
+            )
+            self._environment_capabilities_cache[capability_id] = capability
+        return self._environment_capabilities_cache[capability_id]
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
