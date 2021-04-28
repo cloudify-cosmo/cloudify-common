@@ -202,6 +202,13 @@ class Deployment(dict):
                 return label['value'].lower() == 'environment'
         return False
 
+    @property
+    def display_name(self):
+        """
+        :return: The deployment's display name
+        """
+        return self.get('display_name')
+
 
 class Workflow(dict):
 
@@ -561,7 +568,8 @@ class DeploymentsClient(object):
                skip_plugins_validation=False,
                site_name=None,
                runtime_only_evaluation=False,
-               labels=None):
+               labels=None,
+               display_name=None):
         """
         Creates a new deployment for the provided blueprint id and
         deployment id.
@@ -581,6 +589,7 @@ class DeploymentsClient(object):
             evaluated at parse time.
         :param labels: The deployment's labels. A list of 1-entry
             dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
+        :param display_name: The deployment's display name.
         :return: The created deployment.
         """
         assert blueprint_id
@@ -592,6 +601,8 @@ class DeploymentsClient(object):
             data['site_name'] = site_name
         if labels:
             data['labels'] = labels
+        if display_name:
+            data['display_name'] = display_name
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
