@@ -30,9 +30,9 @@ def build_docs(String project){
 def upload_docs(String project, String path){
   echo "upload docs to S3 for ${project}"
   uploadToDocsS3(
-    "${env.WORKSPACE}/project-docs/docs/${project}/_build/html", 
+    "${env.WORKSPACE}/project-docs/docs/${project}/_build/html",
     "${path}/"
-  )  
+  )
 }
 @Library('pipeline-shared-library') _
 pipeline {
@@ -84,7 +84,7 @@ pipeline {
                   echo "Python-3-incompatible code found"
                   cat futurize_diffs
                   exit 1
-                fi          
+                fi
                 """
               }
             }
@@ -138,14 +138,17 @@ pipeline {
                   echo 'eval "\$(pyenv init -)"' >> ~/.bashrc
                   echo 'eval "\$(pyenv virtualenv-init -)"' >> ~/.bashrc
                   fi'
-                pyenv install 2.6.9
+                echo 'Restoring Python 2.6.9 installation'
+                mkdir /tmp/pip-wheels
+                tar xzvf packaging/pyenv-2.6.9.tar.gz -C /
+                tar xzvf packaging/pip-wheels.tar.gz -C /tmp/pip-wheels
                 pyenv global 2.6.9
                 '''
                 // py26 uses py26-only-compatible versions of libs: pyyaml 4.2b4, hence the specialcased [dispatcher_py26]
                 sh '''#!/bin/bash
-                pip install -r dev-requirements.txt --user
-                pip install -r test-requirements.txt --user
-                pip install -e '.[dispatcher_py26]' --user
+                pip install -r dev-requirements.txt -f /tmp/pip-wheels --user
+                pip install -r test-requirements.txt -f /tmp/pip-wheels --user
+                pip install -e '.[dispatcher_py26]' -f /tmp/pip-wheels --user
                 '''
                 pytest('dsl_parser')
                 pytest('script_runner')
