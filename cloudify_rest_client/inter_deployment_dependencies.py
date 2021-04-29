@@ -15,7 +15,6 @@
 from cloudify.deployment_dependencies import (create_deployment_dependency,
                                               DEPENDENCY_CREATOR)
 
-
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -92,6 +91,22 @@ class InterDeploymentDependencyClient(object):
         response = self.api.put(
             '/{self._uri_prefix}'.format(self=self), data=data)
         return self._wrapper_cls(response)
+
+    def create_many(self, source_deployment_id, inter_deployment_dependencies):
+        """Creates a number of inter-deployment dependencies.
+
+        :param source_deployment_id: ID of the source deployment (the one which
+         depends on the target deployment).
+        :param inter_deployment_dependencies: a list of inter-deployment
+         dependencies descriptions, but without a source_deployment(_id).
+        :return: a list of created InterDeploymentDependencies IDs.
+        """
+        response = self.api.post(
+            '/{self._uri_prefix}'.format(self=self), data={
+                'source_deployment_id': source_deployment_id,
+                'inter_deployment_dependencies': inter_deployment_dependencies}
+        )
+        return self._wrap_list(response)
 
     def delete(self, dependency_creator, source_deployment, target_deployment,
                is_component_deletion=False, external_source=None,
