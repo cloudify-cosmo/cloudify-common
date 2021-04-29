@@ -948,6 +948,16 @@ outputs:
 
 class TestConcat(AbstractTestParser):
 
+    def test_in_primitive_schema(self):
+        """The function is still used in a schema that is just a str"""
+        yaml = """
+deployment_settings:
+    display_name: {concat: [x, y]}
+"""
+        plan = prepare_deployment_plan(
+            self.parse(yaml, dsl_version=self.BASIC_VERSION_SECTION_DSL_1_3))
+        assert plan['deployment_settings']['display_name'] == 'xy'
+
     def test_invalid_version(self):
         yaml = """
 node_types:
