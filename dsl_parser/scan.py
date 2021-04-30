@@ -188,14 +188,12 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
                         path='{0}.{1}'.format(LABELS, label_key),
                         replace=replace)
 
-    for setting_id, setting in plan.get('deployment_settings', {}).items():
-        scan_properties(setting,
-                        handler,
-                        scope=DEPLOYMENT_SETTINGS_SCOPE,
-                        context=setting,
-                        path='{0}.{1}'.format(DEPLOYMENT_SETTINGS,
-                                              setting_id),
-                        replace=replace)
+    scan_properties(plan['deployment_settings'],
+                    handler,
+                    scope=DEPLOYMENT_SETTINGS_SCOPE,
+                    context=plan,
+                    path=DEPLOYMENT_SETTINGS,
+                    replace=replace)
 
     if collect_secrets and len(secrets) > 0:
         plan['secrets'] = list(secrets)
