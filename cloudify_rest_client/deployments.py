@@ -193,6 +193,10 @@ class Deployment(dict):
         """
         return self.get('latest_execution_finished_operations')
 
+    @property
+    def tenant_name(self):
+        return self.get('tenant_name')
+
     def is_environment(self):
         """
         :return: True if deployment is an environment
