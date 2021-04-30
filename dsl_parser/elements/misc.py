@@ -197,8 +197,18 @@ class DeploymentGroups(Element):
     schema = Leaf(list)
 
 
+class DeploymentIDTemplate(Element):
+    schema = Leaf(text_type)
+
+
+class DeploymentDisplayName(Element):
+    schema = Leaf(type=(text_type, dict))
+
+
 class DeploymentSettings(DictNoDefaultElement):
     schema = {
         'default_schedules': DeploymentSchedules,
         'default_groups': DeploymentGroups,
+        'id_template': DeploymentIDTemplate,
+        'display_name': DeploymentDisplayName
     }
