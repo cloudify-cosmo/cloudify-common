@@ -17,7 +17,6 @@ import sys
 from setuptools import setup, find_packages
 
 install_requires = [
-    'requests>=2.25.0,<3.0.0',
     'retrying==1.3.3',
     'proxy_tools==0.1.0',
     'bottle==0.12.18',
@@ -29,9 +28,9 @@ install_requires = [
 ]
 
 if sys.version_info[:3] < (2, 7, 9):
-    install_requires += ['pika==0.11.2', ]
+    install_requires += ['pika==0.11.2', 'requests==2.19.1', ]
 else:
-    install_requires += ['pika==1.1.0', ]
+    install_requires += ['pika==1.1.0', 'requests>=2.25.0,<3.0.0', ]
 
 try:
     from collections import OrderedDict  # NOQA
