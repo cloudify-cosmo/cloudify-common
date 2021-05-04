@@ -139,9 +139,11 @@ pipeline {
                   echo 'eval "\$(pyenv virtualenv-init -)"' >> ~/.bashrc
                   fi'
                 echo 'Restoring Python 2.6.9 installation'
+                curl -Lo /tmp/pyenv-2.6.9.tar https://cloudify-release-eu.s3-eu-west-1.amazonaws.com/cloudify/envs/pyenv-2.6.9.tar
+                curl -Lo /tmp/pip-wheels.tar https://cloudify-release-eu.s3-eu-west-1.amazonaws.com/cloudify/envs/pip-wheels.tar
                 mkdir /tmp/pip-wheels
-                tar xzvf packaging/pyenv-2.6.9.tar.gz -C /
-                tar xzvf packaging/pip-wheels.tar.gz -C /tmp/pip-wheels
+                tar xvf /tmp/pyenv-2.6.9.tar -C /
+                tar xvf /tmp/pip-wheels.tar -C /tmp/pip-wheels
                 pyenv global 2.6.9
                 '''
                 // py26 uses py26-only-compatible versions of libs: pyyaml 4.2b4, hence the specialcased [dispatcher_py26]
