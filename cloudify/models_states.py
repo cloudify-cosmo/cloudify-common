@@ -57,10 +57,19 @@ class ExecutionState(object):
     IN_PROGRESS_STATES = [
         PENDING,
         STARTED,
-        CANCELLED,
+        CANCELLING,
         FORCE_CANCELLING,
         KILL_CANCELLING
     ]
+
+
+# needs to be separate because python3 doesn't allow `if` in listcomps
+# using names from class scope
+ExecutionState.ACTIVE_STATES = [
+    state for state in ExecutionState.STATES
+    if state not in ExecutionState.END_STATES and
+    state not in ExecutionState.WAITING_STATES
+]
 
 
 class DeploymentState(object):
@@ -89,15 +98,6 @@ class DeploymentState(object):
         ExecutionState.KILL_CANCELLING: IN_PROGRESS,
         ExecutionState.QUEUED: IN_PROGRESS
     }
-
-
-# needs to be separate because python3 doesn't allow `if` in listcomps
-# using names from class scope
-ExecutionState.ACTIVE_STATES = [
-    state for state in ExecutionState.STATES
-    if state not in ExecutionState.END_STATES and
-    state not in ExecutionState.WAITING_STATES
-]
 
 
 class VisibilityState(object):
