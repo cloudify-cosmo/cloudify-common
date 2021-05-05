@@ -57,7 +57,7 @@ class ExecutionState(object):
     IN_PROGRESS_STATES = [
         PENDING,
         STARTED,
-        CANCELLED,
+        CANCELLING,
         FORCE_CANCELLING,
         KILL_CANCELLING
     ]
