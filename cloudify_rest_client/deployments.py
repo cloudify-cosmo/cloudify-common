@@ -370,7 +370,7 @@ class DeploymentGroupsClient(object):
 
     def add_deployments(self, group_id, deployment_ids=None, count=None,
                         new_deployments=None, filter_id=None,
-                        deployments_from_group=None,
+                        filter_rules=None, deployments_from_group=None,
                         batch_size=5000):
         """Add the specified deployments to the group
 
@@ -385,6 +385,7 @@ class DeploymentGroupsClient(object):
         :type new_deployments: a list of dicts, each can contain the
             keys "id", "inputs", "labels"
         :param filter_id: add deployments matching this filter
+        :param filter_rules: add deployments matching this filter rules
         :param deployments_from_group: add all deployments belonging to the
             group given by this id
         :param batch_size: when creating new deployments, create this many
@@ -414,6 +415,7 @@ class DeploymentGroupsClient(object):
                         'deployment_ids': deployment_ids,
                         'new_deployments': new_deployments_batch or None,
                         'filter_id': filter_id,
+                        'filter_rules': filter_rules,
                         'deployments_from_group': deployments_from_group,
                     }
                 }
@@ -423,12 +425,14 @@ class DeploymentGroupsClient(object):
         return DeploymentGroup(response)
 
     def remove_deployments(self, group_id, deployment_ids=None,
-                           filter_id=None, deployments_from_group=None):
+                           filter_id=None, filter_rules=None,
+                           deployments_from_group=None):
         """Remove the specified deployments from the group
 
         :param group_id: remove deployments from this group
         :param deployment_ids: remove these deployment from the group
         :param filter_id: remove deployments matching this filter
+        :param filter_rules: remove deployments matching this filter rules
         :param deployments_from_group: remove all deployments belonging to the
             group given by this id
         :return: the updated deployment group
@@ -439,6 +443,7 @@ class DeploymentGroupsClient(object):
                 'remove': {
                     'deployment_ids': deployment_ids,
                     'filter_id': filter_id,
+                    'filter_rules': filter_rules,
                     'deployments_from_group': deployments_from_group,
                 }
             }
