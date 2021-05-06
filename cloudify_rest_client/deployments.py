@@ -385,7 +385,7 @@ class DeploymentGroupsClient(object):
         :type new_deployments: a list of dicts, each can contain the
             keys "id", "inputs", "labels"
         :param filter_id: add deployments matching this filter
-        :param filter_rules: add deployments matching this filter rules
+        :param filter_rules: add deployments matching these filter rules
         :param deployments_from_group: add all deployments belonging to the
             group given by this id
         :param batch_size: when creating new deployments, create this many
@@ -432,7 +432,7 @@ class DeploymentGroupsClient(object):
         :param group_id: remove deployments from this group
         :param deployment_ids: remove these deployment from the group
         :param filter_id: remove deployments matching this filter
-        :param filter_rules: remove deployments matching this filter rules
+        :param filter_rules: remove deployments matching these filter rules
         :param deployments_from_group: remove all deployments belonging to the
             group given by this id
         :return: the updated deployment group
