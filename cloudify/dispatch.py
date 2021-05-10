@@ -740,8 +740,6 @@ class WorkflowHandler(TaskHandler):
     def _update_execution_status(self, status, error=None):
         if self.ctx.local or not self.update_execution_status:
             return
-
-        caught_error = None
         return update_execution_status(self.ctx.execution_id, status, error)
 
 
