@@ -294,37 +294,11 @@ def process_operation(
 
     candidate_plugins = [p for p in plugins
                          if operation_mapping.startswith('{0}.'.format(p))]
-    if candidate_plugins:
-        if len(candidate_plugins) > 1:
-            raise exceptions.DSLParsingLogicException(
-                91, 'Ambiguous operation mapping. [operation={0}, '
-                    'plugins={1}]'.format(operation_name, candidate_plugins))
-        plugin_name = candidate_plugins[0]
-        mapping = operation_mapping[len(plugin_name) + 1:]
-        if is_workflows:
-            return workflow_operation(
-                plugin_name=plugin_name,
-                workflow_mapping=mapping,
-                workflow_parameters=operation_payload,
-                is_workflow_cascading=is_workflow_cascading)
-        else:
-            if not operation_executor:
-                operation_executor = plugins[plugin_name]['executor']
-            return operation(
-                name=operation_name,
-                plugin_name=plugin_name,
-                operation_mapping=mapping,
-                operation_inputs=operation_payload,
-                executor=operation_executor,
-                max_retries=operation_max_retries,
-                retry_interval=operation_retry_interval,
-                timeout=operation_timeout,
-                timeout_recoverable=operation_timeout_recoverable)
-    elif (utils.is_valid_url(operation_mapping) or
-          _is_local_script_resource_exists(resource_bases,
-                                           operation_mapping) or
-          _is_remote_script_resource(operation_mapping,
-                                     remote_resources_namespaces)):
+
+    if (utils.is_valid_url(operation_mapping) or
+        _is_local_script_resource_exists(resource_bases, operation_mapping) or
+        _is_remote_script_resource(operation_mapping,
+                                   remote_resources_namespaces)):
         operation_payload = copy.deepcopy(operation_payload or {})
         if constants.SCRIPT_PATH_PROPERTY in operation_payload:
             message = "Cannot define '{0}' property in '{1}' for {2} '{3}'" \
@@ -385,6 +359,34 @@ def process_operation(
                 retry_interval=operation_retry_interval,
                 timeout=operation_timeout,
                 timeout_recoverable=operation_timeout_recoverable)
+
+    if candidate_plugins:
+        if len(candidate_plugins) > 1:
+            raise exceptions.DSLParsingLogicException(
+                91, 'Ambiguous operation mapping. [operation={0}, '
+                    'plugins={1}]'.format(operation_name, candidate_plugins))
+        plugin_name = candidate_plugins[0]
+        mapping = operation_mapping[len(plugin_name) + 1:]
+        if is_workflows:
+            return workflow_operation(
+                plugin_name=plugin_name,
+                workflow_mapping=mapping,
+                workflow_parameters=operation_payload,
+                is_workflow_cascading=is_workflow_cascading)
+        else:
+            if not operation_executor:
+                operation_executor = plugins[plugin_name]['executor']
+            return operation(
+                name=operation_name,
+                plugin_name=plugin_name,
+                operation_mapping=mapping,
+                operation_inputs=operation_payload,
+                executor=operation_executor,
+                max_retries=operation_max_retries,
+                retry_interval=operation_retry_interval,
+                timeout=operation_timeout,
+                timeout_recoverable=operation_timeout_recoverable)
+
     else:
         base_error_message = (
             "Could not extract plugin or a script resource is not found from "
