@@ -257,6 +257,30 @@ class ExecutionGroupsClient(object):
             data={'action': action})
         return ExecutionGroup(response)
 
+    def set_target_group(self, execution_group_id,
+                         success_group=None, failed_group=None):
+        """Set the success or failure target group for this execution-group
+
+        Deployments that have executions in this execution-group which
+        terminated successfully, will be added to the success group.
+        Deployments that have executions in this execution-group which
+        failed, will be added to the failure group.
+        Cancelled executions have no effect.
+
+        :param execution_group_id: ID of the execution group
+        :param success_group: ID of the target success deployment group
+        :param success_group: ID of the target failure deployment group
+        :return: The updated ExecutionGroup
+        """
+        response = self.api.put(
+            '/execution-groups/{0}'.format(execution_group_id),
+            data={
+                'success_group_id': success_group,
+                'failure_group_id': failed_group,
+            }
+        )
+        return ExecutionGroup(response)
+
 
 class ExecutionsClient(object):
 
