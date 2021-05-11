@@ -272,7 +272,7 @@ class ExecutionGroupsClient(object):
         :param success_group: ID of the target failure deployment group
         :return: The updated ExecutionGroup
         """
-        response = self.api.put(
+        response = self.api.patch(
             '/execution-groups/{0}'.format(execution_group_id),
             data={
                 'success_group_id': success_group,
