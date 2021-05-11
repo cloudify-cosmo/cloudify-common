@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import warnings
+
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -144,6 +146,20 @@ class Execution(dict):
         """
         return self.get('is_dry_run', False)
 
+    @property
+    def total_operations(self):
+        """
+        :return: The total count of operations in this execution
+        """
+        return self.get('total_operations', False)
+
+    @property
+    def finished_operations(self):
+        """
+        :return: The count of finished operations in this execution
+        """
+        return self.get('finished_operations', False)
+
 
 class ExecutionGroup(dict):
     def __init__(self, group):
@@ -175,6 +191,11 @@ class ExecutionGroup(dict):
         """The workflow that this execution group is running"""
         return self.get('workflow_id')
 
+    @property
+    def concurrency(self):
+        """The group runs this many executions at a time"""
+        return self.get('concurrency')
+
 
 class ExecutionGroupsClient(object):
     def __init__(self, api):
@@ -191,23 +212,73 @@ class ExecutionGroupsClient(object):
             '/execution-groups/{0}'.format(execution_group_id))
         return ExecutionGroup(response)
 
-    def start(self, deployment_group_id, workflow_id, default_parameters=None,
-              parameters=None):
+    def start(self, deployment_group_id, workflow_id, force=False,
+              default_parameters=None, parameters=None,
+              concurrency=5):
         """Start an execution group from a deployment group.
 
         :param deployment_group_id: start an execution for every deployment
             belonging to this deployment group
         :param workflow_id: the workflow to run
+        :param force: force concurrent execution
         :param default_parameters: default parameters for every execution
         :param parameters: a dict of {deployment_id: params_dict}, overrides
             the default parameters on a per-deployment basis
+        :param concurrency: run this many executions at a time
         """
         response = self.api.post('/execution-groups', data={
+            'force': force,
             'deployment_group_id': deployment_group_id,
             'workflow_id': workflow_id,
             'parameters': parameters,
             'default_parameters': default_parameters,
+            'concurrency': concurrency
         })
+        return ExecutionGroup(response)
+
+    def cancel(self, execution_group_id, force=False, kill=False):
+        """Cancel the executions in this group.
+
+        This cancels every non-queued execution according to the params,
+        see executions.cancel for their semantics.
+        Queued executions are marked cancelled immediately.
+        """
+        action = 'kill' if kill else 'force-cancel' if force else 'cancel'
+        response = self.api.post(
+            '/execution-groups/{0}'.format(execution_group_id),
+            data={'action': action})
+        return ExecutionGroup(response)
+
+    def resume(self, execution_group_id, force=False):
+        """Resume the executions in this group."""
+        action = 'force-resume' if force else 'resume'
+        response = self.api.post(
+            '/execution-groups/{0}'.format(execution_group_id),
+            data={'action': action})
+        return ExecutionGroup(response)
+
+    def set_target_group(self, execution_group_id,
+                         success_group=None, failed_group=None):
+        """Set the success or failure target group for this execution-group
+
+        Deployments that have executions in this execution-group which
+        terminated successfully, will be added to the success group.
+        Deployments that have executions in this execution-group which
+        failed, will be added to the failure group.
+        Cancelled executions have no effect.
+
+        :param execution_group_id: ID of the execution group
+        :param success_group: ID of the target success deployment group
+        :param success_group: ID of the target failure deployment group
+        :return: The updated ExecutionGroup
+        """
+        response = self.api.patch(
+            '/execution-groups/{0}'.format(execution_group_id),
+            data={
+                'success_group_id': success_group,
+                'failure_group_id': failed_group,
+            }
+        )
         return ExecutionGroup(response)
 
 
@@ -327,6 +398,10 @@ class ExecutionsClient(object):
         """
         assert deployment_id
         assert workflow_id
+        if schedule:
+            warnings.warn("The 'schedule' flag is deprecated. Please use "
+                          "`cfy deployments schedule create instead`",
+                          DeprecationWarning)
         data = {
             'deployment_id': deployment_id,
             'workflow_id': workflow_id,
@@ -345,10 +420,12 @@ class ExecutionsClient(object):
         return Execution(response)
 
     def cancel(self, execution_id, force=False, kill=False):
-        """Cancels the execution which matches the provided execution id.
+        """Cancels an execution.
 
-        :param execution_id: Id of the execution to cancel.
-        :param force: Boolean describing whether to send a 'cancel' or a 'force-cancel' action  # NOQA
+        :param execution_id: id of the execution to cancel
+        :param force: force-cancel the execution: does not wait for the
+            workflow function to return
+        :param kill: kill the workflow process and the operation processes
         :return: Cancelled execution.
         """
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)

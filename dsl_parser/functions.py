@@ -679,6 +679,45 @@ class Concat(Function):
         return self.separator.join(str_join)
 
 
+@register(name='merge', func_eval_type=HYBRID_FUNC)
+class MergeDicts(Function):
+
+    def __init__(self, args, **kwargs):
+        self.merged = args
+        super(MergeDicts, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, list):
+            raise ValueError(
+                'Illegal arguments passed to {0} function. '
+                'Expected: [arg1\\function1, arg2\\function2, ...]'
+                'but got: {1}.'.format(self.name, args))
+
+    def validate(self, plan):
+        if plan.version.definitions_version < (1, 3):
+            raise exceptions.FunctionValidationError(
+                'Using {0} requires using dsl version 1_3 or '
+                'greater, but found: {1} in {2}.'
+                .format(self.name, plan.version, self.path))
+        for merged_item in self.merged:
+            if not isinstance(merged_item, dict):
+                raise exceptions.FunctionValidationError(
+                    'Encountered non-dict element for merge: {0}'
+                    .format(merged_item))
+
+    def evaluate(self, handler):
+        for merged_value in self.merged:
+            if parse(merged_value) != merged_value:
+                return self.raw
+        return self.join()
+
+    def join(self):
+        merged = {}
+        for cur_dict in self.merged:
+            merged.update(cur_dict)
+        return merged
+
+
 class InterDeploymentDependencyCreatingFunction(Function):
 
     def register_function_to_plan(self, plan):
@@ -686,13 +725,6 @@ class InterDeploymentDependencyCreatingFunction(Function):
             INTER_DEPLOYMENT_FUNCTIONS,
             {}
         )[self.function_identifier] = self.target_deployment
-
-    def evaluate(self, handler):
-        return self._evaluate(handler)
-
-    @abc.abstractmethod
-    def _evaluate(self, handler):
-        pass
 
     @abc.abstractproperty
     def target_deployment(self):
@@ -721,21 +753,18 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
                 "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
                 .format(','.join('{0}'.format(a) for a in args))
             )
-        for arg_index in range(len(args)):
-            if not isinstance(args[arg_index], (text_type, int)) \
-                    and not is_function(args[arg_index]):
+        for arg_index, arg in enumerate(args):
+            if not isinstance(arg, (text_type, int)) and not is_function(arg):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
                     "values; only strings/ints/functions are accepted. "
-                    "Instead, the item with "
-                    "index {0} is {1} of type {2}".format(
-                        arg_index, args[arg_index], type(args[arg_index])
-                    )
+                    "Instead, the item with index {0} is {1} of type {2}"
+                    .format(arg_index, arg, type(arg))
                 )
 
         self.capability_path = args
 
-    def _evaluate(self, handler):
+    def evaluate(self, handler):
         return handler.get_capability(self.capability_path)
 
     def validate(self, plan):
@@ -746,6 +775,133 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
         first_arg = self.capability_path[0]
         target_deployment = None if is_function(first_arg) else first_arg
         return target_deployment, first_arg
+
+
+@register(name='get_group_capability', func_eval_type=RUNTIME_FUNC)
+class GetGroupCapability(Function):
+    def __init__(self, args, **kwargs):
+        self.capability_path = None
+        super(GetGroupCapability, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, list):
+            raise ValueError(
+                "`get_group_capability` function argument should be a list. "
+                "Instead it is a {0} with the value: {1}."
+                .format(type(args), args))
+        if len(args) < 2:
+            raise ValueError(
+                "`get_group_capability` function argument should be a list "
+                "with 2 elements at least - [ group ID, capability ID "
+                "[, key/index[, key/index [...]]] ]. Instead it is: [{0}]"
+                .format(','.join('{0}'.format(a) for a in args))
+            )
+        for arg_index, arg in enumerate(args):
+            if arg_index == 1 and isinstance(arg, list):
+                continue
+            if not isinstance(arg, (text_type, int)) and not is_function(arg):
+                raise ValueError(
+                    "`get_group_capability` function arguments can't be "
+                    "complex values; only strings/ints/functions are "
+                    "accepted. Instead, the item with index {0} is {1} "
+                    "of type {2}".format(arg_index, arg, type(arg))
+                )
+        self.capability_path = args
+
+    def evaluate(self, handler):
+        return handler.get_group_capability(self.capability_path)
+
+    def validate(self, plan):
+        pass
+
+
+@register(name='get_label', func_eval_type=RUNTIME_FUNC)
+class GetLabel(Function):
+    def __init__(self, args, **kwargs):
+        self.label_key = None
+        self.values_list_index = None
+        super(GetLabel, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if isinstance(args, list) and len(args) == 2:
+            if not (isinstance(args[0], text_type) or is_function(args[0])):
+                raise exceptions.FunctionValidationError(
+                    '`get_label`',
+                    "the <label-key> should be a string or a dict "
+                    "(a function). Instead, it is a {0} with the value: "
+                    "{1}.".format(type(args[0]), args[0])
+                )
+            if not (isinstance(args[1], int) or args[1].isdigit()):
+                raise exceptions.FunctionValidationError(
+                    '`get_label`',
+                    "the <label-values list index> should be a number "
+                    "(in string or int form). Instead, it is a {0} with the "
+                    "value: {1}.".format(type(args[1]), args[1])
+                )
+            self.label_key = args[0]
+            self.values_list_index = int(args[1])
+        elif isinstance(args, text_type):
+            self.label_key = args
+        elif is_function(args):
+            self.label_key = args
+        else:
+            raise exceptions.FunctionValidationError(
+                '`get_label`',
+                "`get_label` function argument should be a list of 2 "
+                "elements ([<label-key>, <label-values list index>]), a "
+                "string (<label-key>), or a dict (a function). Instead, "
+                "it is a {0} with the value: {1}.".format(type(args), args)
+            )
+
+    def validate(self, plan):
+        pass
+
+    def evaluate(self, handler):
+        return handler.get_label(self.label_key, self.values_list_index)
+
+
+@register(name='get_environment_capability', func_eval_type=RUNTIME_FUNC)
+class GetEnvironmentCapability(Function):
+    def __init__(self, args, **kwargs):
+        self.capability_path = None
+        super(GetEnvironmentCapability, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if isinstance(args, text_type):
+            self.capability_path = [args]
+        elif isinstance(args, list):
+            if len(args) < 2:
+                raise exceptions.FunctionValidationError(
+                    '`get_environment_capability`',
+                    "`get_environment_capability` function arguments can't be"
+                    " list with only one item; only string or list with"
+                    " more than one item are accepted. Instead, it is a {0}"
+                    " with the value: {1}.".format(type(args), args)
+                )
+            else:
+                self.capability_path = args
+        else:
+            raise exceptions.FunctionValidationError(
+                '`get_environment_capability`',
+                "`get_environment_capability` function argument should be a "
+                "string or list with more than one item are accepted."
+                " Instead, it is a {0} with the value: {1}.".format(type(
+                    args), args)
+            )
+        for arg_index, arg in enumerate(args):
+            if not isinstance(arg, (text_type, int)) and not is_function(arg):
+                raise ValueError(
+                    "`get_environment_capability` function arguments"
+                    " can't be complex values; only strings/ints/functions"
+                    " are accepted. Instead, the item with index"
+                    " {0} is {1} of type {2}".format(arg_index, arg, type(arg))
+                )
+
+    def validate(self, plan):
+        pass
+
+    def evaluate(self, handler):
+        return handler.get_environment_capability(self.capability_path)
 
 
 def _get_property_value(node_name,
@@ -994,6 +1150,9 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         self._node_instances_cache = {}
         self._secrets_cache = {}
         self._capabilities_cache = {}
+        self._labels_cache = {}
+        self._group_capabilities_cache = {}
+        self._environment_capabilities_cache = {}
 
     def get_input(self, input_name):
         return self._storage.get_input(input_name)
@@ -1031,6 +1190,33 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             capability = self._storage.get_capability(capability_path)
             self._capabilities_cache[capability_id] = capability
         return self._capabilities_cache[capability_id]
+
+    def get_group_capability(self, capability_path):
+        capability_id = _convert_attribute_list_to_python_syntax_string(
+            capability_path)
+        if capability_id not in self._group_capabilities_cache:
+            capability = self._storage.get_group_capability(capability_path)
+            self._group_capabilities_cache[capability_id] = capability
+        return self._group_capabilities_cache[capability_id]
+
+    def get_label(self, label_key, values_list_index):
+        labels_cache_entry = (label_key if values_list_index is None else
+                              label_key + '_' + str(values_list_index))
+        if labels_cache_entry not in self._labels_cache:
+            label_values = self._storage.get_label(label_key,
+                                                   values_list_index)
+            self._labels_cache[labels_cache_entry] = label_values
+        return self._labels_cache[labels_cache_entry]
+
+    def get_environment_capability(self, capability_path):
+        capability_id = _convert_attribute_list_to_python_syntax_string(
+            capability_path)
+        if capability_id not in self._environment_capabilities_cache:
+            capability = self._storage.get_environment_capability(
+                capability_path
+            )
+            self._environment_capabilities_cache[capability_id] = capability
+        return self._environment_capabilities_cache[capability_id]
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):

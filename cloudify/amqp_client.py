@@ -405,7 +405,7 @@ class TaskConsumer(object):
 
     def process(self, channel, method, properties, body):
         try:
-            full_task = json.loads(body)
+            full_task = json.loads(body.decode('utf-8'))
         except ValueError:
             logger.error('Error parsing task: {0}'.format(body))
             return
@@ -524,41 +524,6 @@ class SendHandler(object):
         }, wait=self.wait_for_publish)
 
 
-class ScheduledExecutionHandler(SendHandler):
-
-    def __init__(self, exchange, exchange_type, routing_key,
-                 target_exchange, target_routing_key, ttl):
-        super(ScheduledExecutionHandler, self).__init__(exchange,
-                                                        exchange_type,
-                                                        routing_key)
-        # The ultimate exchange and queue the message will be sent to (from
-        #  the Dead Letter queue)
-        self.target_exchange = target_exchange
-        self.target_routing_key = target_routing_key
-        self.ttl = ttl
-
-    def register(self, connection, channel):
-        self._connection = connection
-        channel.exchange_declare(exchange=self.exchange,
-                                 exchange_type=self.exchange_type,
-                                 **self.exchange_settings)
-        # Declare a new temporary queue for the Dead Letter Exchange, and
-        # set the routing key of the MGMTWORKER queue
-        channel.queue_declare(
-            queue=self.routing_key,
-            arguments={
-                'x-message-ttl': self.ttl,
-                'x-dead-letter-exchange': (
-                    self.target_exchange
-                ),
-                'x-dead-letter-routing-key': (
-                    self.target_routing_key
-                ),
-            },
-            durable=True)
-        channel.queue_bind(exchange=self.exchange, queue=self.routing_key)
-
-
 class NoWaitSendHandler(SendHandler):
     """
     A send handler that doesn't wait for the message to be sent.
@@ -637,7 +602,9 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
             message, correlation_id, *args, **kwargs)
 
         try:
-            return json.loads(self._response.get(timeout=timeout))
+            return json.loads(
+                self._response.get(timeout=timeout).decode('utf-8')
+            )
         except queue.Empty:
             raise RuntimeError('No response received for task {0}'
                                .format(correlation_id))
@@ -673,7 +640,7 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
     def process(self, channel, method, properties, body):
         if properties.correlation_id in self.callbacks:
             try:
-                response = json.loads(body)
+                response = json.loads(body.decode('utf-8'))
                 self.callbacks[properties.correlation_id](response)
             except ValueError:
                 logger.error('Error parsing response: {0}'.format(body))

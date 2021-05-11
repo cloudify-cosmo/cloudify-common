@@ -20,6 +20,21 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
 class TestGetCapability(AbstractTestParser):
+    def setUp(self):
+        super(TestGetCapability, self).setUp()
+        self.mock_storage = self._mock_evaluation_storage(
+            capabilities={
+                'dep_1': {
+                    'cap_a': 'value_a_1',
+                    'cap_b': 'value_b_1'
+                },
+                'dep_2': {
+                    'cap_a': 'value_a_2',
+                    'cap_b': 'value_b_2'
+                }
+            }
+        )
+
     def test_has_intrinsic_functions_property(self):
         yaml = """
 relationships:
@@ -107,8 +122,7 @@ node_templates:
             ]}
         }
 
-        functions.evaluate_functions(
-            payload, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(payload, {}, self.mock_storage)
 
         self.assertEqual(payload['a'], 'value_a_1')
         self.assertEqual(payload['b'], 'value_a_2')
@@ -131,8 +145,7 @@ node_templates:
         self.assertEqual({'get_capability': ['dep_1', 'cap_a']},
                          node['properties']['property'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(node['properties']['property'], 'value_a_1')
 
     def test_capabilities_in_outputs(self):
@@ -151,8 +164,7 @@ outputs:
         self.assertEqual({'get_capability': ['dep_1', 'cap_a']},
                          outputs['output']['value'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(outputs['output']['value'], 'value_a_1')
 
     def test_capabilities_in_inputs(self):
@@ -177,30 +189,8 @@ outputs:
         self.assertEqual({'get_capability': ['dep_1', 'cap_a']},
                          outputs['output']['value'])
 
-        functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+        functions.evaluate_functions(parsed, {}, self.mock_storage)
         self.assertEqual(outputs['output']['value'], 'value_a_1')
-
-    def _assert_raises_with_message(self,
-                                    exception_type,
-                                    message,
-                                    callable_obj,
-                                    *args,
-                                    **kwargs):
-        try:
-            callable_obj(*args, **kwargs)
-        except exception_type as e:
-            self.assertIn(message, str(e))
-        else:
-            raise AssertionError('Error was not raised')
-
-    def _assert_parsing_fails(self, yaml, message):
-        self._assert_raises_with_message(
-            ValueError,
-            message,
-            self.parse_1_3,
-            yaml
-        )
 
     def test_get_capability_not_list(self):
         yaml = """
@@ -214,10 +204,11 @@ node_templates:
         properties:
             property: { get_capability: i_should_be_a_list }
 """
-        self._assert_parsing_fails(
-            yaml,
-            message="`get_capability` function argument should be a list. "
-        )
+        self.assertRaisesRegex(
+            ValueError,
+            "`get_capability` function argument should be a list. ",
+            self.parse_1_3,
+            yaml)
 
     def test_get_capability_short_list(self):
         yaml = """
@@ -231,13 +222,12 @@ node_templates:
         properties:
             property: { get_capability: [ only_one_item ] }
 """
-        self._assert_parsing_fails(
-            yaml,
-            message="`get_capability` function argument should be a list "
-                    "with 2 elements at least - [ deployment ID, capability "
-                    "ID [, key/index[, key/index [...]]] ]. Instead it is: "
-                    "[only_one_item]"
-        )
+        self.assertRaisesRegex(
+            ValueError,
+            "`get_capability` function argument should be a list "
+            "with 2 elements at least",
+            self.parse_1_3,
+            yaml)
 
     def test_get_capability_first_complex(self):
         yaml = """
@@ -251,11 +241,12 @@ node_templates:
         properties:
             property: { get_capability: [ [list] , value ] }
 """
-        self._assert_parsing_fails(
-            yaml,
-            message="`get_capability` function arguments can't be complex "
-                    "values; only strings/ints/functions are accepted. "
-        )
+        self.assertRaisesRegex(
+            ValueError,
+            "`get_capability` function arguments can't be complex "
+            "values; only strings/ints/functions are accepted. ",
+            self.parse_1_3,
+            yaml)
 
     def test_get_capability_registers_to_plan(self):
         yaml = """

@@ -78,6 +78,13 @@ class ExecutionSchedule(dict):
         """
         return self.get('stop_on_fail')
 
+    @property
+    def enabled(self):
+        """
+        :return: Whether this schedule is currently enabled.
+        """
+        return self.get('enabled')
+
 
 class ExecutionSchedulesClient(object):
 
@@ -87,7 +94,7 @@ class ExecutionSchedulesClient(object):
 
     def create(self, schedule_id, deployment_id, workflow_id,
                execution_arguments=None, parameters=None,
-               since=None, until=None, frequency=None, count=None,
+               since=None, until=None, recurrence=None, count=None,
                weekdays=None, rrule=None, slip=0, stop_on_fail=False):
         """Schedules a deployment's workflow execution whose id is provided.
 
@@ -99,27 +106,27 @@ class ExecutionSchedulesClient(object):
             workflow execution. May contain the following keys:
             - allow_custom_parameters: bool
             - force: bool
-            - dry run: bool
+            - dry_run: bool
             - queue: bool
-            - wait after fail: integer
+            - wait_after_fail: integer
             See Executions for more details on these.
         :param parameters: Parameters for the workflow execution.
         :param since: A string representing the earliest date and time this
-            workflow should be executed at. Must be provided if no `rrule` is
-            given.
+            workflow should be executed at. Must be provided.
         :param until: A string representing the latest date and time this
             workflow may be executed at. May be empty.
-        :param frequency: A string representing the frequency with which to
+        :param recurrence: A string representing the frequency with which to
             run the execution, e.g. '2 weeks'. Must be provided if no `rrule`
             is given and `count` is other than 1.
         :param count: Maximum number of times to run the execution.
             If left empty, there's no limit on repetition.
-        :param weekdays: A string representing the weekdays on which to run
-            the execution, e.g. 'su,mo,tu'. If left empty, the execution will
-            run on any weekday.
+        :param weekdays: A list of strings representing the weekdays on
+            which to run the execution, e.g. ['su', 'mo', 'tu']. If left
+            empty, the execution will run on any weekday.
         :param rrule: A string representing a scheduling rule in the
             iCalendar format, e.g. 'RRULE:FREQ=DAILY;INTERVAL=3', which means
-            "run every 3 days". Overrides `frequency`, `count` and `weekdays`.
+            "run every 3 days". Mutually exclusive with `recurrence`, `count`
+            and `weekdays`.
         :param slip: Maximum time window after the target time has passed,
             in which the scheduled execution can run (in minutes).
         :param stop_on_fail: If set to true, once the execution has failed,
@@ -130,83 +137,93 @@ class ExecutionSchedulesClient(object):
         assert deployment_id
         assert workflow_id
         assert since
+        params = {'deployment_id': deployment_id}
         data = {
-            'deployment_id': deployment_id,
             'workflow_id': workflow_id,
             'execution_arguments': execution_arguments,
             'parameters': parameters,
             'since': since.isoformat(),
             'until': until.isoformat() if until else None,
-            'frequency': frequency,
+            'recurrence': recurrence,
             'count': count,
-            'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
+            'weekdays': weekdays,
             'rrule': rrule,
             'slip': slip,
-            'stop_on_fail': str(stop_on_fail).lower()
+            'stop_on_fail': stop_on_fail
         }
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.put(uri,
                                 data=data,
+                                params=params,
                                 expected_status_code=201)
         return ExecutionSchedule(response)
 
-    def update(self, schedule_id, since=None, until=None, frequency=None,
-               count=None, weekdays=None, rrule=None, slip=None,
-               stop_on_fail=None):
+    def update(self, schedule_id, deployment_id, since=None, until=None,
+               recurrence=None, count=None, weekdays=None, rrule=None,
+               slip=None, stop_on_fail=None, enabled=None):
         """Updates scheduling parameters of an existing execution schedule
         whose id is provided.
 
-        :param schedule_id: Name for the schedule task. Used for listing,
-            updating or deleting it later.
+        :param schedule_id: Name for the schedule task.
+        :param deployment_id: The deployment to which the schedule belongs.
         :param since: A string representing the earliest date and time this
             workflow should be executed at. Must be provided if no `rrule` is
             given.
         :param until: A string representing the latest date and time this
             workflow may be executed at. May be empty.
-        :param frequency: A string representing the frequency with which to
+        :param recurrence: A string representing the frequency with which to
             run the execution, e.g. '2 weeks'. Must be provided if no `rrule`
             is given and `count` is other than 1.
         :param count: Maximum number of times to run the execution.
             If left empty, there's no limit on repetition.
-        :param weekdays: A string representing the weekdays on which to run
-            the execution, e.g. 'su,mo,tu'. If left empty, the execution will
-            run on any weekday.
+        :param weekdays: A list of strings representing the weekdays on
+            which to run the execution, e.g. ['su', 'mo', 'tu']. If left
+            empty, the execution will run on any weekday.
         :param rrule: A string representing a scheduling rule in the
             iCalendar format, e.g. 'RRULE:FREQ=DAILY;INTERVAL=3', which means
-            "run every 3 days". Overrides `frequency`, `count` and `weekdays`.
+            "run every 3 days". Mutually exclusive with `recurrence`, `count`
+            and `weekdays`.
         :param slip: Maximum time window after the target time has passed,
             in which the scheduled execution can run (in minutes).
         :param stop_on_fail: If set to true, once the execution has failed,
             the scheduler won't make further attempts to run it.
+        :param enabled: Set to false to make the scheduler ignore this
+            schedule, until set to true again.
 
         :return: The updated execution schedule.
         """
         assert schedule_id
+        params = {'deployment_id': deployment_id}
         data = {
             'since': since.isoformat() if since else None,
             'until': until.isoformat() if until else None,
-            'frequency': frequency,
+            'recurrence': recurrence,
             'count': count,
-            'weekdays': _split_ignore_spaces(weekdays) if weekdays else None,
+            'weekdays': weekdays,
             'rrule': rrule,
             'slip': slip,
-            'stop_on_fail': str(stop_on_fail).lower() if stop_on_fail else None
+            'enabled': enabled,
+            'stop_on_fail': stop_on_fail
         }
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.patch(uri,
                                   data=data,
+                                  params=params,
                                   expected_status_code=201)
         return ExecutionSchedule(response)
 
-    def delete(self, schedule_id):
+    def delete(self, schedule_id, deployment_id):
         """
         Deletes the execution schedule whose id matches the provided id.
 
-        :param schedule_id: The id of the schedule to be deleted.
+        :param schedule_id: Name for the schedule task.
+        :param deployment_id: The deployment to which the schedule belongs.
         """
         assert schedule_id
+        params = {'deployment_id': deployment_id}
         self.api.delete('/{self._uri_prefix}/{id}'.format(self=self,
                                                           id=schedule_id),
+                        params=params,
                         expected_status_code=204)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
@@ -230,19 +247,16 @@ class ExecutionSchedulesClient(object):
                              for item in response['items']],
                             response['metadata'])
 
-    def get(self, schedule_id, _include=None):
+    def get(self, schedule_id, deployment_id, _include=None):
         """Get an execution schedule by its id.
 
-        :param schedule_id: Id of the execution schedule to get.
+        :param schedule_id: Name for the schedule task.
+        :param deployment_id: The deployment to which the schedule belongs.
         :param _include: List of fields to include in response.
         :return: Execution.
         """
         assert schedule_id
+        params = {'deployment_id': deployment_id}
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
-        response = self.api.get(uri, _include=_include)
+        response = self.api.get(uri, _include=_include, params=params)
         return ExecutionSchedule(response)
-
-
-def _split_ignore_spaces(list_string):
-    """Split a string of comma-separated items, ignore surrounding spaces. """
-    return [item.strip() for item in list_string.split(',')]

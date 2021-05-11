@@ -1,0 +1,35 @@
+###
+# this is a minimal version of Cloudify types.yaml, to be used only in
+# dsl-parser unittests
+###
+
+
+plugins:
+  default_workflows:
+    executor: central_deployment_agent
+    install: false
+
+node_types:
+  cloudify.nodes.Root: {}
+
+  cloudify.nodes.Compute:
+    derived_from: cloudify.nodes.Root
+
+  cloudify.nodes.SoftwareComponent:
+    derived_from: cloudify.nodes.Root
+
+  cloudify.nodes.WebServer:
+    derived_from: cloudify.nodes.SoftwareComponent
+    properties:
+      port:
+        default: 80
+
+relationships:
+  cloudify.relationships.depends_on: {}
+
+  cloudify.relationships.contained_in:
+    derived_from: cloudify.relationships.depends_on
+
+workflows:
+  install:
+    mapping: 'default_workflows.cloudify.plugins.workflows.install'

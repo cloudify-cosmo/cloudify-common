@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import re
 import types
 import random
 import requests
@@ -66,6 +67,8 @@ class ClusterHTTPClient(HTTPClient):
                 continue
             except CloudifyClientError as e:
                 errors[manager_to_try] = e.status_code
+                if e.response.status_code == 502:
+                    continue
                 if e.response.status_code == 404 and \
                         self._is_fileserver_download(e.response):
                     continue
@@ -90,6 +93,8 @@ class ClusterHTTPClient(HTTPClient):
 
         This is because the file replication is asynchronous.
         """
+        if re.search('/(blueprints|snapshots)/', response.url):
+            return True
         disposition = response.headers.get('Content-Disposition')
         if not disposition:
             return False

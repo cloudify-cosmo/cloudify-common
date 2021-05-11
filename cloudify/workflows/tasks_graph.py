@@ -83,15 +83,33 @@ class TaskDependencyGraph(object):
 
         :param ops: a list of rest-client Operation objects
         """
+        # a mapping of operations which retry previously-failed operations
+        retries_dict = dict(
+            (x.parameters['retried_task'], x.id) for x in ops if
+            x.parameters.get('retried_task'))
+
         for op_descr in ops:
             op = self.get_task(op_descr.id)
             if op is None:
                 continue
             for target_id in op_descr.dependencies:
                 target = self.get_task(target_id)
-                if target is None:
-                    continue
-                self.add_dependency(op, target)
+                if target is not None:
+                    self.add_dependency(op, target)
+                else:
+                    new_target = self._retrieve_active_target(target_id,
+                                                              retries_dict)
+                    if new_target is not None:
+                        self.add_dependency(op, new_target)
+
+    def _retrieve_active_target(self, target_id, retries_dict):
+        # traverse the retried task chain to find the active task which
+        # corresponds to the defunct target
+        next_target = target_id
+        while next_target:
+            last_target = next_target
+            next_target = retries_dict.get(last_target)
+        return self.get_task(last_target)
 
     def _restore_operations(self, ops):
         """Restore operations from ops into this graph.

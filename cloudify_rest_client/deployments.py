@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import warnings
+
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -121,6 +123,96 @@ class Deployment(dict):
         """
         return self.get('deployment_groups')
 
+    @property
+    def latest_execution_status(self):
+        """
+        :return: The deployment latest execution status
+        """
+        return self.get('latest_execution_status')
+
+    @property
+    def installation_status(self):
+        """
+        :return: The deployment installation status
+        """
+        return self.get('installation_status')
+
+    @property
+    def deployment_status(self):
+        """
+        :return: The overall deployment status
+        """
+        return self.get('deployment_status')
+
+    @property
+    def sub_services_status(self):
+        """
+        :return: The aggregated sub services status
+        """
+        return self.get('sub_services_status')
+
+    @property
+    def sub_environments_status(self):
+        """
+        :return: The aggregated sub environments status
+        """
+        return self.get('sub_environments_status')
+
+    @property
+    def sub_services_count(self):
+        """
+        :return: The aggregated sub services count
+        """
+        return self.get('sub_services_count')
+
+    @property
+    def sub_environments_count(self):
+        """
+        :return: The aggregated sub environments count
+        """
+        return self.get('sub_environments_count')
+
+    @property
+    def environment_type(self):
+        """
+        :return: The environment type
+        """
+        return self.get('environment_type')
+
+    @property
+    def latest_execution_total_operations(self):
+        """
+        :return: The total operations for latest execution of deployment
+        """
+        return self.get('latest_execution_total_operations')
+
+    @property
+    def latest_execution_finished_operations(self):
+        """
+        :return: The finished operations for latest execution of deployment
+        """
+        return self.get('latest_execution_finished_operations')
+
+    @property
+    def tenant_name(self):
+        return self.get('tenant_name')
+
+    def is_environment(self):
+        """
+        :return: True if deployment is an environment
+        """
+        for label in self.labels:
+            if label['key'].lower() == 'csys-obj-type':
+                return label['value'].lower() == 'environment'
+        return False
+
+    @property
+    def display_name(self):
+        """
+        :return: The deployment's display name
+        """
+        return self.get('display_name')
+
 
 class Workflow(dict):
 
@@ -200,9 +292,19 @@ class DeploymentGroup(dict):
         return self['default_inputs']
 
     @property
-    def default_blueprint(self):
+    def default_blueprint_id(self):
         """Default blueprint for new deployments created in this group"""
-        return self['default_blueprint']
+        return self['default_blueprint_id']
+
+    @property
+    def labels(self):
+        """Labels of this deployment group"""
+        return self.get('labels')
+
+    @property
+    def description(self):
+        """Description of this deployment group"""
+        return self.get('description')
 
 
 class DeploymentGroupsClient(object):
@@ -221,16 +323,55 @@ class DeploymentGroupsClient(object):
         response = self.api.get('/deployment-groups/{0}'.format(group_id))
         return DeploymentGroup(response)
 
-    def put(self, group_id, **kwargs):
-        """Create or update the specified deployment group."""
+    def put(self, group_id, visibility=VisibilityState.TENANT,
+            description=None, blueprint_id=None, default_inputs=None,
+            labels=None, filter_id=None, deployment_ids=None,
+            new_deployments=None, deployments_from_group=None):
+        """Create or update the specified deployment group.
+
+        Setting group deployments using this method (via either filter_id
+        or deployment_ids) will set, NOT ADD, ie. it will remove all other
+        deployments from the group.
+
+        :param visibility: visibility of the group
+        :param description: description of the group
+        :param blueprint_id: the default blueprint to use when extending
+        :param default_inputs: the default inputs to use when extending
+        :param deployment_ids: make the group contain these
+            existing deployments
+        :param labels: labels for this group; those will be automatically
+            added to all deployments created by this group
+        :param filter_id: set the group to contain the deployments matching
+            this filter
+        :param new_deployments: create new deployments using this
+            specification, merged with the group's default_blueprint
+            and default_inputs
+        :type new_deployments: a list of dicts, each can contain the
+            keys "id", "inputs", "labels"
+        :param deployments_from_group: add all deployments belonging to the
+            group given by this id
+        :return: the created deployment group
+        """
         response = self.api.put(
             '/deployment-groups/{0}'.format(group_id),
-            data=kwargs
+            data={
+                'visibility': visibility,
+                'description': description,
+                'blueprint_id': blueprint_id,
+                'default_inputs': default_inputs,
+                'labels': labels,
+                'filter_id': filter_id,
+                'deployment_ids': deployment_ids,
+                'new_deployments': new_deployments,
+                'deployments_from_group': deployments_from_group,
+            }
         )
         return DeploymentGroup(response)
 
     def add_deployments(self, group_id, deployment_ids=None, count=None,
-                        inputs=None):
+                        new_deployments=None, filter_id=None,
+                        filter_rules=None, deployments_from_group=None,
+                        batch_size=5000):
         """Add the specified deployments to the group
 
         :param group_id: add deployments to this group
@@ -238,52 +379,96 @@ class DeploymentGroupsClient(object):
         :param count: create this many deployments using the group's
             default_inputs and default_blueprint, and add them to the
             group. Mutally exclusive with inputs.
-        :param inputs: create deployments using these inputs merged
-            with the group's default_inputs, and the group's default_blueprint,
-            and add them to the group. Mutually exclusive with inputs.
+        :param new_deployments: create new deployments using this
+            specification, merged with the group's default_blueprint
+            and default_inputs. Mutually exclusive with count.
+        :type new_deployments: a list of dicts, each can contain the
+            keys "id", "inputs", "labels"
+        :param filter_id: add deployments matching this filter
+        :param filter_rules: add deployments matching these filter rules
+        :param deployments_from_group: add all deployments belonging to the
+            group given by this id
+        :param batch_size: when creating new deployments, create this many
+            at a time (do multiple HTTP calls if needed)
         :return: the updated deployment group
         """
-        if inputs is not None and count is not None:
-            raise ValueError('provide either count or inputs, not both')
-        if inputs is None:
-            inputs = []
+        if new_deployments is not None and count is not None:
+            raise ValueError('provide either count or new_deployments, '
+                             'not both')
         if count:
-            inputs += [{}] * count
-        response = self.api.patch(
-            '/deployment-groups/{0}'.format(group_id),
-            data={
-                'add': {
-                    'deployment_ids': deployment_ids,
-                    'inputs': inputs
+            new_deployments = [{}] * count
+
+        if new_deployments and len(new_deployments) > batch_size:
+            batches = [[]]
+            for dep_spec in new_deployments:
+                batches[-1].append(dep_spec)
+                if batch_size and len(batches[-1]) >= batch_size:
+                    batches.append([])
+        else:
+            batches = [new_deployments]
+
+        for new_deployments_batch in batches:
+            response = self.api.patch(
+                '/deployment-groups/{0}'.format(group_id),
+                data={
+                    'add': {
+                        'deployment_ids': deployment_ids,
+                        'new_deployments': new_deployments_batch or None,
+                        'filter_id': filter_id,
+                        'filter_rules': filter_rules,
+                        'deployments_from_group': deployments_from_group,
+                    }
                 }
-            }
-        )
+            )
+            # don't send these again
+            deployment_ids = filter_id = deployments_from_group = None
         return DeploymentGroup(response)
 
-    def remove_deployments(self, group_id, deployment_ids):
-        """Remove the speccified deployments from the group
+    def remove_deployments(self, group_id, deployment_ids=None,
+                           filter_id=None, filter_rules=None,
+                           deployments_from_group=None):
+        """Remove the specified deployments from the group
 
         :param group_id: remove deployments from this group
         :param deployment_ids: remove these deployment from the group
+        :param filter_id: remove deployments matching this filter
+        :param filter_rules: remove deployments matching these filter rules
+        :param deployments_from_group: remove all deployments belonging to the
+            group given by this id
         :return: the updated deployment group
         """
         response = self.api.patch(
             '/deployment-groups/{0}'.format(group_id),
             data={
                 'remove': {
-                    'deployment_ids': deployment_ids
+                    'deployment_ids': deployment_ids,
+                    'filter_id': filter_id,
+                    'filter_rules': filter_rules,
+                    'deployments_from_group': deployments_from_group,
                 }
             }
         )
         return DeploymentGroup(response)
 
-    def delete(self, group_id):
-        """Delete a deployment group. Do not delete the deployments.
+    def delete(self, group_id, delete_deployments=False,
+               force=False, with_logs=False):
+        """Delete a deployment group. By default, keep the deployments.
 
         :param group_id: the group to remove
+        :param delete_deployments: also delete all deployments belonging
+            to this group
+        :param force: same meaning as in deployments.delete
+        :param with_logs: same meaning as in deployments.delete
         """
-        self.api.delete('/deployment-groups/{0}'.format(group_id),
-                        expected_status_code=204)
+        self.api.delete(
+            '/deployment-groups/{0}'.format(group_id),
+            params={
+                'delete_deployments': delete_deployments,
+                'force': force,
+                'delete_logs': with_logs,
+            },
+            expected_status_code=204
+        )
 
 
 class DeploymentOutputsClient(object):
@@ -328,17 +513,16 @@ class DeploymentsClient(object):
         self.capabilities = DeploymentCapabilitiesClient(api)
 
     def list(self, _include=None, sort=None, is_descending=False,
-             filter_rules=None, **kwargs):
+             filter_id=None, filter_rules=None, **kwargs):
         """
         Returns a list of all deployments.
 
         :param _include: List of fields to include in response.
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
-        :param filter_rules: A dictionary of the form:
-               {_filter_id: <a filter id to filter the deployments by>} or
-               {_filter_rules: <a list of filter rules to filter the
-               deployments by>}.
+        :param filter_id: A filter ID to filter the deployments list by
+        :param filter_rules: A list of filter rules to filter the
+               deployments list by
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.Deployment.fields
         :return: Deployments list.
@@ -346,31 +530,43 @@ class DeploymentsClient(object):
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
+        if _include:
+            params['_include'] = ','.join(_include)
+        if filter_id:
+            params['_filter_id'] = filter_id
 
         if filter_rules:
-            filter_rules_list = filter_rules.get('_filter_rules')
-            if filter_rules_list:
-                filter_rules['_filter_rules'] = ','.join(filter_rules_list)
-            params.update(filter_rules)
-
-        response = self.api.get('/deployments',
-                                _include=_include,
-                                params=params)
+            response = self.api.post('/searches/deployments', params=params,
+                                     data={'filter_rules': filter_rules})
+        else:
+            response = self.api.get('/deployments', params=params)
 
         return ListResponse([Deployment(item) for item in response['items']],
                             response['metadata'])
 
-    def get(self, deployment_id, _include=None):
+    def get(self,
+            deployment_id,
+            _include=None,
+            all_sub_deployments=True
+            ):
         """
         Returns a deployment by its id.
 
         :param deployment_id: Id of the deployment to get.
         :param _include: List of fields to include in response.
+        :param all_sub_deployments: The values for sub_services_count and
+        sub_environments_count will represent recursive numbers. Otherwise
+        if its False, then only the direct services and environments
+        will be considered
         :return: Deployment.
         """
         assert deployment_id
         uri = '/deployments/{0}'.format(deployment_id)
-        response = self.api.get(uri, _include=_include)
+        response = self.api.get(
+            uri,
+            _include=_include,
+            params={'all_sub_deployments': all_sub_deployments}
+        )
         return Deployment(response)
 
     def create(self,
@@ -381,7 +577,8 @@ class DeploymentsClient(object):
                skip_plugins_validation=False,
                site_name=None,
                runtime_only_evaluation=False,
-               labels=None):
+               labels=None,
+               display_name=None):
         """
         Creates a new deployment for the provided blueprint id and
         deployment id.
@@ -401,6 +598,7 @@ class DeploymentsClient(object):
             evaluated at parse time.
         :param labels: The deployment's labels. A list of 1-entry
             dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
+        :param display_name: The deployment's display name.
         :return: The created deployment.
         """
         assert blueprint_id
@@ -412,6 +610,8 @@ class DeploymentsClient(object):
             data['site_name'] = site_name
         if labels:
             data['labels'] = labels
+        if display_name:
+            data['display_name'] = display_name
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
@@ -431,18 +631,16 @@ class DeploymentsClient(object):
         :param deployment_id: The deployment's to be deleted id.
         :param force: Delete deployment even if there are existing live nodes
                for it, or existing installations which depend on it.
-        :param delete_db_mode: when set to true the deployment is deleted from
-               the DB. This option is used by the `delete_dep_env` workflow to
-               make sure the dep is deleted AFTER the workflow finished
-               successfully.
+        :param delete_db_mode: deprecated and does nothing
         :param with_logs: when set to true, the management workers' logs for
                the deployment are deleted as well.
         :return: The deleted deployment.
         """
         assert deployment_id
-        params = {'force': force,
-                  'delete_db_mode': delete_db_mode,
-                  'delete_logs': with_logs}
+        params = {'force': force, 'delete_logs': with_logs}
+        if delete_db_mode:
+            warnings.warn('delete_db_mode is deprecated and does nothing',
+                          DeprecationWarning)
 
         self.api.delete(
             '/deployments/{0}'.format(deployment_id), params=params)
@@ -491,4 +689,15 @@ class DeploymentsClient(object):
         data = {'labels': labels}
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=data)
+        return Deployment(updated_dep)
+
+    def set_attributes(self, deployment_id, **kwargs):
+        """Set kwargs on the deployment.
+
+        This is used internally for first populating the deployment
+        with the attributes from the plan.
+        For updating existing deployments, use the deployment update methods.
+        """
+        updated_dep = self.api.patch(
+            '/deployments/{0}'.format(deployment_id), data=kwargs)
         return Deployment(updated_dep)

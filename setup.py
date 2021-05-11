@@ -17,7 +17,6 @@ import sys
 from setuptools import setup, find_packages
 
 install_requires = [
-    'requests>=2.7.0,<3.0.0',
     'retrying==1.3.3',
     'proxy_tools==0.1.0',
     'bottle==0.12.18',
@@ -25,12 +24,13 @@ install_requires = [
     'requests_toolbelt==0.8.0',
     'wagon>0.10',
     'fasteners==0.13.0',
+    'pytz==2021.1'
 ]
 
-if sys.version_info[:2] == (2, 6):
-    install_requires += ['pika==0.11.2', ]
+if sys.version_info[:3] < (2, 7, 9):
+    install_requires += ['pika==0.11.2', 'requests==2.19.1', ]
 else:
-    install_requires += ['pika==1.1.0', ]
+    install_requires += ['pika==1.1.0', 'requests>=2.25.0,<3.0.0', ]
 
 try:
     from collections import OrderedDict  # NOQA
@@ -50,7 +50,7 @@ except ImportError:
 
 setup(
     name='cloudify-common',
-    version='5.3.0.dev1',
+    version='6.1.0.dev1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     packages=find_packages(exclude=('dsl_parser.tests*',
@@ -73,7 +73,7 @@ setup(
         # for running workflows (in the mgmtworker and the cli), as opposed
         # to eg. just executing operations (in the agent)
         'dispatcher': [
-            'PyYAML==5.3.1',
+            'PyYAML==5.4.1',
             'networkx==1.9.1',
         ],
         # this is just a hack to allow running unittests on py26.

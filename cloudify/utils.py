@@ -14,9 +14,11 @@
 #    * limitations under the License.
 
 import os
+import re
 import ssl
 import sys
 import time
+import pytz
 import pika
 import shlex
 import random
@@ -30,6 +32,7 @@ import traceback
 import threading
 import subprocess
 
+from datetime import datetime, timedelta
 from contextlib import contextmanager, closing
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
@@ -914,3 +917,118 @@ def target_plugin_prefix(name, tenant_name, version=None, deployment_id=None):
     # declared always take precedence
     parts += [name, version or '0.0.0']
     return os.path.join(*parts)
+
+
+def parse_utc_datetime(time_expression, timezone=None):
+    """
+    :param time_expression: a string representing date a and time.
+        The following formats are possible: YYYY-MM-DD HH:MM, HH:MM,
+        or a time delta expression such as '+2 weeks' or '+1day+10min.
+    :param timezone: a string representing a timezone. Any timezone recognized
+        by UNIX can be used here, e.g. 'EST' or Asia/Jerusalem.
+    :return: A naive datetime object, in UTC time.
+    """
+    if not time_expression:
+        return None
+    if time_expression.startswith('+'):
+        return parse_utc_datetime_relative(time_expression)
+    return parse_utc_datetime_absolute(time_expression, timezone)
+
+
+def parse_utc_datetime_relative(time_expression, base_datetime=None):
+    """
+    :param time_expression: a string representing a relative time delta,
+        such as '+2 weeks' or '+1day+10min.
+    :param base_datetime: a datetime object representing the absolute date
+        and time to which we apply the time delta. By default: UTC now
+    :return: A naive datetime object, in UTC time.
+    """
+    if not time_expression:
+        return None
+    base_datetime = base_datetime or datetime.utcnow()
+    deltas = re.findall(r"(\+\d+\ ?[a-z]+\ ?)", time_expression)
+    if not deltas:
+        raise NonRecoverableError(
+            "{} is not a legal time delta".format(time_expression))
+    date_time = base_datetime.replace(second=0, microsecond=0)
+    for delta in deltas:
+        date_time = parse_and_apply_timedelta(
+            delta.rstrip().lstrip('+'), date_time)
+    return date_time
+
+
+def parse_utc_datetime_absolute(time_expression, timezone=None):
+    """
+    :param time_expression: a string representing an absolute date and time.
+        The following formats are possible: YYYY-MM-DD HH:MM, HH:MM
+    :param timezone: a string representing a timezone. Any timezone recognized
+        by UNIX can be used here, e.g. 'EST' or Asia/Jerusalem.
+    :return: A naive datetime object, in UTC time.
+    """
+    if not time_expression:
+        return None
+    date_time = parse_schedule_datetime_string(time_expression)
+    if timezone:
+        if timezone not in pytz.all_timezones:
+            raise NonRecoverableError(
+                "{} is not a recognized timezone".format(timezone))
+        return pytz.timezone(timezone).localize(date_time).astimezone(
+            pytz.utc).replace(tzinfo=None)
+    else:
+        ts = time.time()
+        return date_time - (datetime.fromtimestamp(ts) -
+                            datetime.utcfromtimestamp(ts))
+
+
+def unpack_timedelta_string(expr):
+    """
+    :param expr: a string representing a time delta, such as '+2 weeks',
+        '+1', or '+10min'.
+    :return: a tuple of int + period string, e.g. (2, 'weeks')
+    """
+    match = r"^(\d+)\ ?(min(ute)?|h(our)?|d(ay)?|w(eek)?|mo(nth)?|y(ear)?)s?$"
+    parsed = re.findall(match, expr)
+    if not parsed or len(parsed[0]) < 2:
+        raise NonRecoverableError("{} is not a legal time delta".format(expr))
+    return int(parsed[0][0]), parsed[0][1]
+
+
+def parse_and_apply_timedelta(expr, date_time):
+    """
+    :param expr: a string representing a time delta, such as '+2 weeks',
+        '+1', or '+10min'.
+    :param date_time: a datetime object
+    :return: a datetime object with added time delta
+    """
+    number, period = unpack_timedelta_string(expr)
+    if period in ['y', 'year']:
+        return date_time.replace(year=date_time.year + number)
+    if period in ['mo', 'month']:
+        new_month = (date_time.month + number) % 12
+        new_year = date_time.year + (date_time.month + number) // 12
+        new_day = date_time.day
+        date_time = date_time.replace(day=1, month=new_month, year=new_year)
+        return date_time + timedelta(days=new_day - 1)
+    if period in ['w', 'week']:
+        return date_time + timedelta(days=number * 7)
+    if period in ['d', 'day']:
+        return date_time + timedelta(days=number)
+    if period in ['h', 'hour']:
+        period = 'hours'
+    elif period in ['min', 'minute']:
+        period = 'minutes'
+    return date_time + timedelta(**{period: number})
+
+
+def parse_schedule_datetime_string(date_str):
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d %H:%M')
+    except ValueError:
+        pass
+    try:
+        return datetime.combine(
+            datetime.today(), datetime.strptime(date_str, '%H:%M').time())
+    except ValueError:
+        raise NonRecoverableError(
+            "{} is not a legal time format. accepted formats are "
+            "YYYY-MM-DD HH:MM | HH:MM".format(date_str))

@@ -15,7 +15,6 @@
 from cloudify.deployment_dependencies import (create_deployment_dependency,
                                               DEPENDENCY_CREATOR)
 
-
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -62,7 +61,8 @@ class InterDeploymentDependencyClient(object):
         )
 
     def create(self, dependency_creator, source_deployment, target_deployment,
-               external_source=None, external_target=None):
+               external_source=None, external_target=None,
+               target_deployment_func=None):
         """Creates an inter-deployment dependency.
 
         :param dependency_creator: a string representing the entity that
@@ -78,16 +78,35 @@ class InterDeploymentDependencyClient(object):
         :param external_target: if the source deployment uses an external
         resource as target, pass here a JSON containing the target deployment
         metadata, i.e. deployment name, tenant name, and the manager host(s).
+        :param target_deployment_func: a function used to determine the target
+        deployment.
         :return: an InterDeploymentDependency object.
         """
         data = create_deployment_dependency(dependency_creator,
                                             source_deployment,
                                             target_deployment,
+                                            target_deployment_func,
                                             external_source,
                                             external_target)
         response = self.api.put(
             '/{self._uri_prefix}'.format(self=self), data=data)
         return self._wrapper_cls(response)
+
+    def create_many(self, source_deployment_id, inter_deployment_dependencies):
+        """Creates a number of inter-deployment dependencies.
+
+        :param source_deployment_id: ID of the source deployment (the one which
+         depends on the target deployment).
+        :param inter_deployment_dependencies: a list of inter-deployment
+         dependencies descriptions, but without a source_deployment(_id).
+        :return: a list of created InterDeploymentDependencies IDs.
+        """
+        response = self.api.post(
+            '/{self._uri_prefix}'.format(self=self), data={
+                'source_deployment_id': source_deployment_id,
+                'inter_deployment_dependencies': inter_deployment_dependencies}
+        )
+        return self._wrap_list(response)
 
     def delete(self, dependency_creator, source_deployment, target_deployment,
                is_component_deletion=False, external_source=None,
@@ -115,8 +134,8 @@ class InterDeploymentDependencyClient(object):
         data = create_deployment_dependency(dependency_creator,
                                             source_deployment,
                                             target_deployment,
-                                            external_source,
-                                            external_target)
+                                            external_source=external_source,
+                                            external_target=external_target)
         data['is_component_deletion'] = is_component_deletion
         self.api.delete('/{self._uri_prefix}'.format(self=self), data=data)
 

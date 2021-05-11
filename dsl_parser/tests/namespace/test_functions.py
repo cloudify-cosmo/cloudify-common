@@ -570,7 +570,7 @@ outputs:
         value: { get_property: [test--node, key] }
 """
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             'value',
             plan[constants.OUTPUTS]['port']['value'])
@@ -605,7 +605,7 @@ outputs:
         value: { get_property: [test--middle_test--node, key] }
 """
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             'value',
             plan[constants.OUTPUTS]['port']['value'])
@@ -613,7 +613,7 @@ outputs:
     def test_node_template_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
     port:
         default: 90
@@ -631,8 +631,10 @@ node_templates:
 imports:
     - ns--blueprint:first_layer
 """
-        resolver = Resolver({'blueprint:first_layer': basic_yaml,
-                             'blueprint:second_layer': second_layer})
+        resolver = Resolver({
+            'blueprint:first_layer': basic_yaml,
+            'blueprint:second_layer': second_layer
+        }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - ns2--blueprint:second_layer
@@ -749,7 +751,7 @@ outputs:
         value: { get_attribute: [test--node, key] }
 """
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             {'get_attribute': ['test--node', 'key']},
             plan[constants.OUTPUTS]['port']['value'])
@@ -784,7 +786,7 @@ outputs:
         value: { get_attribute: [test--middle_test--node, key] }
 """
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             {'get_attribute': ['test--middle_test--node', 'key']},
             plan[constants.OUTPUTS]['port']['value'])
@@ -792,7 +794,7 @@ outputs:
     def test_node_template_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
     port:
         default: 90
@@ -810,8 +812,10 @@ node_templates:
 imports:
     - ns--blueprint:first_layer
 """
-        resolver = Resolver({'blueprint:first_layer': basic_yaml,
-                             'blueprint:second_layer': second_layer})
+        resolver = Resolver({
+            'blueprint:first_layer': basic_yaml,
+            'blueprint:second_layer': second_layer
+        }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - ns2--blueprint:second_layer
@@ -831,7 +835,7 @@ imports:
     def test_node_type_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 node_types:
   test:
     properties:
@@ -848,8 +852,10 @@ node_templates:
 imports:
     - ns--blueprint:first_layer
 """
-        resolver = Resolver({'blueprint:first_layer': basic_yaml,
-                             'blueprint:second_layer': second_layer})
+        resolver = Resolver({
+            'blueprint:first_layer': basic_yaml,
+            'blueprint:second_layer': second_layer
+        }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - ns2--blueprint:second_layer
@@ -884,7 +890,7 @@ imports:
     def test_node_template_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
     port:
         default: 90
@@ -898,8 +904,10 @@ node_templates:
 imports:
     - ns--blueprint:first_layer
 """
-        resolver = Resolver({'blueprint:first_layer': basic_yaml,
-                             'blueprint:second_layer': second_layer})
+        resolver = Resolver({
+            'blueprint:first_layer': basic_yaml,
+            'blueprint:second_layer': second_layer
+        }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - ns2--blueprint:second_layer
@@ -919,7 +927,7 @@ imports:
     def test_node_type_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
     port:
         default: 90
@@ -937,8 +945,10 @@ node_templates:
 imports:
     - ns--blueprint:first_layer
 """
-        resolver = Resolver({'blueprint:first_layer': basic_yaml,
-                             'blueprint:second_layer': second_layer})
+        resolver = Resolver({
+            'blueprint:first_layer': basic_yaml,
+            'blueprint:second_layer': second_layer
+        }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - ns2--blueprint:second_layer
@@ -954,7 +964,7 @@ imports:
     def test_outputs_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
     port:
         default: 90
@@ -966,8 +976,10 @@ outputs:
 imports:
     - ns--blueprint:first_layer
 """
-        resolver = Resolver({'blueprint:first_layer': basic_yaml,
-                             'blueprint:second_layer': second_layer})
+        resolver = Resolver({
+            'blueprint:first_layer': basic_yaml,
+            'blueprint:second_layer': second_layer
+        }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - ns2--blueprint:second_layer
@@ -1013,7 +1025,7 @@ imports:
     -   {0}--{1}
 """.format('test', import_file_name)
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             {'get_capability': ['dep_1', 'cap_a']},
             plan[constants.OUTPUTS]['test--port']['value'])
@@ -1037,7 +1049,7 @@ imports:
     -   {0}--{1}
 """.format('test', import_file_name)
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             8080,
             plan[constants.OUTPUTS]['test--port']['value'])
@@ -1065,7 +1077,7 @@ imports:
     -   {0}--{1}
 """.format('test', layer2_file_name)
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml))
         self.assertEqual(
             8080,
             plan[constants.OUTPUTS]['test--middle_test--port']['value'])
@@ -1073,7 +1085,7 @@ imports:
     def test_node_template_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
     port:
         default: 90
@@ -1087,8 +1099,10 @@ node_templates:
 imports:
     - ns--blueprint:first_layer
 """
-        resolver = Resolver({'blueprint:first_layer': basic_yaml,
-                             'blueprint:second_layer': second_layer})
+        resolver = Resolver({
+            'blueprint:first_layer': basic_yaml,
+            'blueprint:second_layer': second_layer
+        }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - ns2--blueprint:second_layer
@@ -1100,7 +1114,7 @@ imports:
     def test_node_type_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
     port:
         default: 90
@@ -1124,8 +1138,10 @@ node_templates:
 imports:
     - ns--blueprint:first_layer
 """
-        resolver = Resolver({'blueprint:first_layer': basic_yaml,
-                             'blueprint:second_layer': second_layer})
+        resolver = Resolver({
+            'blueprint:first_layer': basic_yaml,
+            'blueprint:second_layer': second_layer
+        }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - ns2--blueprint:second_layer
@@ -1143,7 +1159,7 @@ imports:
     def test_dsl_definitions_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.5/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
     port:
         default: 90
@@ -1173,8 +1189,10 @@ node_templates:
 imports:
     - ns--blueprint:first_layer
 """
-        resolver = Resolver({'blueprint:first_layer': basic_yaml,
-                             'blueprint:second_layer': second_layer})
+        resolver = Resolver({
+            'blueprint:first_layer': basic_yaml,
+            'blueprint:second_layer': second_layer
+        }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
     - ns2--blueprint:second_layer
@@ -1194,7 +1212,7 @@ imports:
     def test_node_template_defaults_from_data_type(self):
         blueprint_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
   test_config:
     type: my.test_config
@@ -1246,7 +1264,7 @@ node_templates:
     def test_node_template_incorrect_data_type(self):
         blueprint_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
   test_config:
     type: my.test_config
@@ -1289,7 +1307,7 @@ node_templates:
     def test_node_template_only_some_defaults_from_data_type(self):
         blueprint_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+  - http://local-test-resolver/types.yaml
 inputs:
   test_config:
     type: my.test_config
@@ -1346,7 +1364,7 @@ node_templates:
     def test_node_template_observe_required_param(self):
         blueprint_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+  - http://local-test-resolver/types.yaml
 
 inputs:
   test_config:
@@ -1381,8 +1399,7 @@ node_templates:
   test_node:
     type: my.node.type
 """
-        plan = prepare_deployment_plan(self.parse(blueprint_yaml),
-                                       self.get_secret)
+        plan = prepare_deployment_plan(self.parse(blueprint_yaml))
         self.assertEqual(
             None,
             plan[constants.INPUTS].get('test_config')
@@ -1395,7 +1412,7 @@ node_templates:
     def test_node_template_observe_data_type_required_param(self):
         blueprint_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.6/types.yaml
+  - http://local-test-resolver/types.yaml
 
 inputs:
   test_config:

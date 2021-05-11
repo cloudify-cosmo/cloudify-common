@@ -14,13 +14,15 @@
 #  * limitations under the License.
 
 from dsl_parser.constants import (NODES,
+                                  LABELS,
                                   INPUTS,
                                   OUTPUTS,
                                   POLICIES,
                                   OPERATIONS,
                                   PROPERTIES,
                                   CAPABILITIES,
-                                  SCALING_GROUPS)
+                                  SCALING_GROUPS,
+                                  DEPLOYMENT_SETTINGS)
 
 NODE_TEMPLATE_SCOPE = 'node_template'
 NODE_TEMPLATE_RELATIONSHIP_SCOPE = 'node_template_relationship'
@@ -28,6 +30,8 @@ OUTPUTS_SCOPE = 'outputs'
 POLICIES_SCOPE = 'policies'
 SCALING_GROUPS_SCOPE = 'scaling_groups'
 CAPABILITIES_SCOPE = 'capabilities'
+LABELS_SCOPE = 'labels'
+DEPLOYMENT_SETTINGS_SCOPE = 'deployment_settings'
 
 # Searching for secrets in the blueprint only one time of the few times
 # that scan_service_template is called
@@ -176,6 +180,20 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
                             CAPABILITIES,
                             capability_name),
                         replace=replace)
+    for label_key, label in plan.get('labels', {}).items():
+        scan_properties(label,
+                        handler,
+                        scope=LABELS_SCOPE,
+                        context=label,
+                        path='{0}.{1}'.format(LABELS, label_key),
+                        replace=replace)
+
+    scan_properties(plan['deployment_settings'],
+                    handler,
+                    scope=DEPLOYMENT_SETTINGS_SCOPE,
+                    context=plan,
+                    path=DEPLOYMENT_SETTINGS,
+                    replace=replace)
 
     if collect_secrets and len(secrets) > 0:
         plan['secrets'] = list(secrets)

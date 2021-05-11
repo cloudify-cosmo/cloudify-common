@@ -25,12 +25,16 @@ from cloudify_rest_client.constants import VisibilityState
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
+from .labels import Label
+
 
 class Blueprint(dict):
 
     def __init__(self, blueprint):
         super(Blueprint, self).__init__()
         self.update(blueprint)
+        if self.get('labels'):
+            self['labels'] = [Label(item) for item in self['labels']]
 
     @property
     def id(self):
@@ -87,6 +91,13 @@ class Blueprint(dict):
         """
         return self.get('state')
 
+    @property
+    def labels(self):
+        """
+        :return: The labels of this blueprint.
+        """
+        return self.get('labels')
+
 
 class BlueprintsClient(object):
 
@@ -100,11 +111,25 @@ class BlueprintsClient(object):
                              application_file_name,
                              visibility,
                              progress_callback,
-                             async_upload):
+                             async_upload,
+                             labels=None):
         query_params = {'visibility': visibility, 'async_upload': async_upload}
         if application_file_name is not None:
             query_params['application_file_name'] = \
                 urlquote(application_file_name)
+        if labels is not None:
+            labels_params = []
+            for label in labels:
+                if (not isinstance(label, dict)) or len(label) != 1:
+                    raise CloudifyClientError(
+                        'Labels must be a list of 1-entry dictionaries: '
+                        '[{<key1>: <value1>}, {<key2>: [<value2>, <value3>]}, '
+                        '...]')
+
+                [(key, value)] = label.items()
+                value = value.replace('=', '\\=').replace(',', '\\,')
+                labels_params.append('{0}={1}'.format(key, value))
+            query_params['labels'] = ','.join(labels_params)
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
@@ -128,13 +153,15 @@ class BlueprintsClient(object):
                 application_file_name=None,
                 visibility=VisibilityState.TENANT,
                 progress_callback=None,
-                async_upload=False):
+                async_upload=False,
+                labels=None):
         query_params, data = self._prepare_put_request(
             archive_location,
             application_file_name,
             visibility,
             progress_callback,
             async_upload,
+            labels
         )
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
         return self.api.put(
@@ -197,13 +224,17 @@ class BlueprintsClient(object):
         tar_path = utils.tar_blueprint(path, tempdir)
         return tar_path, os.path.basename(path)
 
-    def list(self, _include=None, sort=None, is_descending=False, **kwargs):
+    def list(self, _include=None, sort=None, is_descending=False,
+             filter_id=None, filter_rules=None, **kwargs):
         """
         Returns a list of currently stored blueprints.
 
         :param _include: List of fields to include in response.
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
+        :param filter_id: A filter ID to filter the blueprints list by
+        :param filter_rules: A list of filter rules to filter the
+               blueprints list by
         :param kwargs: Optional filter fields. For a list of available fields
                see the REST service's models.BlueprintState.fields
         :return: Blueprints list.
@@ -211,10 +242,17 @@ class BlueprintsClient(object):
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
+        if _include:
+            params['_include'] = ','.join(_include)
+        if filter_id:
+            params['_filter_id'] = filter_id
 
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                _include=_include,
-                                params=params)
+        if filter_rules:
+            response = self.api.post('/searches/blueprints', params=params,
+                                     data={'filter_rules': filter_rules})
+        else:
+            response = self.api.get('/{self._uri_prefix}'.format(self=self),
+                                    params=params)
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata']
@@ -226,7 +264,8 @@ class BlueprintsClient(object):
                         blueprint_filename=None,
                         visibility=VisibilityState.TENANT,
                         progress_callback=None,
-                        async_upload=False):
+                        async_upload=False,
+                        labels=None):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
@@ -235,6 +274,8 @@ class BlueprintsClient(object):
         :param visibility: The visibility of the blueprint, can be 'private',
                            'tenant' or 'global'.
         :param progress_callback: Progress bar callback method
+        :param labels: The blueprint's labels. A list of 1-entry
+            dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
         :return: Created blueprint.
 
         Archive file should contain a single directory in which there is a
@@ -251,7 +292,8 @@ class BlueprintsClient(object):
             application_file_name=blueprint_filename,
             visibility=visibility,
             progress_callback=progress_callback,
-            async_upload=async_upload)
+            async_upload=async_upload,
+            labels=labels)
         if not async_upload:
             return self._wrapper_cls(response)
 
@@ -271,7 +313,8 @@ class BlueprintsClient(object):
                visibility=VisibilityState.TENANT,
                progress_callback=None,
                skip_size_limit=True,
-               async_upload=False):
+               async_upload=False,
+               labels=None):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -282,6 +325,8 @@ class BlueprintsClient(object):
         :param progress_callback: Progress bar callback method
         :param skip_size_limit: Indicator whether to check size limit on
                            blueprint folder
+        :param labels: The blueprint's labels. A list of 1-entry
+            dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
         :return: Created response.
 
         Blueprint path should point to the main yaml file of the response
@@ -301,7 +346,8 @@ class BlueprintsClient(object):
                 application_file_name=application_file,
                 visibility=visibility,
                 progress_callback=progress_callback,
-                async_upload=async_upload)
+                async_upload=async_upload,
+                labels=labels)
             if not async_upload:
                 return self._wrapper_cls(response)
         finally:
@@ -442,10 +488,12 @@ class BlueprintsClient(object):
         :param update_dict: Dictionary of attributes and values to be updated.
         :return: The updated blueprint.
         """
-        return self.api.patch('/{self._uri_prefix}/{id}'.format(
+        response = self.api.patch('/{self._uri_prefix}/{id}'.format(
             self=self, id=blueprint_id),
             data=update_dict
         )
+
+        return self._wrapper_cls(response)
 
     def upload_archive(self, blueprint_id, archive_path):
         """

@@ -156,11 +156,11 @@ class TestDispatchTaskHandler(testtools.TestCase):
     @patch('cloudify.dispatch.get_rest_client')
     @patch('cloudify.dispatch.WorkflowHandler._workflow_cancelled')
     @patch('cloudify.dispatch.update_execution_status',
-           side_effect=[Exception('first loop'), Exception('second loop'),
-                        InvalidExecutionUpdateStatus('test invalid update')])
+           side_effect=[InvalidExecutionUpdateStatus('started')])
     def test_workflow_starting_with_execution_cancelled(
             self, mock_update_execution_status, mock_workflow_cancelled,
             *args, **kwargs):
+        """If the set-status-to-started call fails, execution is cancelled"""
         workflow_handler = dispatch.WorkflowHandler(
             cloudify_context={'task_name': 'test'},
             args=(), kwargs={})
@@ -186,7 +186,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
             mock_update_execution_status.assert_called_with(
                 'test_execution_id', 'started', None)
             mock_workflow_cancelled.assert_called_with()
-            self.assertEqual(3, mock_update_execution_status.call_count)
         finally:
             workflow_handler._func = _normal_func
             workflow_handler._ctx = _normal_ctx
@@ -196,8 +195,7 @@ class TestDispatchTaskHandler(testtools.TestCase):
     @patch('cloudify.dispatch.get_rest_client')
     @patch('cloudify.dispatch.WorkflowHandler._workflow_cancelled')
     @patch('cloudify.dispatch.update_execution_status',
-           side_effect=[Exception('first loop'), Exception('second loop'),
-                        InvalidExecutionUpdateStatus('test invalid update')])
+           side_effect=[InvalidExecutionUpdateStatus('started')])
     def test_workflow_starting_without_masked_tenant(
             self, mock_update_execution_status, mock_workflow_cancelled,
             mock_rest_client, *args, **kwargs):
@@ -233,8 +231,7 @@ class TestDispatchTaskHandler(testtools.TestCase):
     @patch('cloudify.dispatch.get_rest_client')
     @patch('cloudify.dispatch.WorkflowHandler._workflow_cancelled')
     @patch('cloudify.dispatch.update_execution_status',
-           side_effect=[Exception('first loop'), Exception('second loop'),
-                        InvalidExecutionUpdateStatus('test invalid update')])
+           side_effect=[InvalidExecutionUpdateStatus('test invalid update')])
     def test_workflow_starting_with_masked_tenant(
             self, mock_update_execution_status, mock_workflow_cancelled,
             mock_rest_client, *args, **kwargs):

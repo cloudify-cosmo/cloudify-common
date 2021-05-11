@@ -221,3 +221,20 @@ class NodesClient(object):
             return None
         else:
             return result[0]
+
+    def create_many(self, deployment_id, nodes):
+        """Create multiple nodes.
+
+        :param deployment_id: the new nodes belong to this deployment
+        :param nodes: list of dicts representing the nodes to be created.
+            Each node dict must contain at least the keys: id, type.
+        :return: None
+        """
+        self.api.post(
+            '/{self._uri_prefix}'.format(self=self),
+            data={
+                'deployment_id': deployment_id,
+                'nodes': nodes
+            },
+            expected_status_code=(201, 204),
+        )

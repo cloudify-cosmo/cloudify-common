@@ -135,6 +135,11 @@ class UsersClient(object):
         response = self.api.post('/users/{0}'.format(username), data=data)
         return User(response)
 
+    def set_show_getting_started(self, username, flag_value):
+        data = {'show_getting_started': flag_value}
+        response = self.api.post('/users/{0}'.format(username), data=data)
+        return User(response)
+
     def get(self, username, **kwargs):
         response = self.api.get(
             '/users/{0}'.format(username),

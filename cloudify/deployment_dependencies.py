@@ -16,21 +16,26 @@
 DEPENDENCY_CREATOR = 'dependency_creator'
 SOURCE_DEPLOYMENT = 'source_deployment'
 TARGET_DEPLOYMENT = 'target_deployment'
+TARGET_DEPLOYMENT_FUNC = 'target_deployment_func'
 EXTERNAL_SOURCE = 'external_source'
 EXTERNAL_TARGET = 'external_target'
 
 
 def create_deployment_dependency(dependency_creator,
-                                 source_deployment,
+                                 source_deployment=None,
                                  target_deployment=None,
+                                 target_deployment_func=None,
                                  external_source=None,
                                  external_target=None):
     dependency = {
         DEPENDENCY_CREATOR: dependency_creator,
-        SOURCE_DEPLOYMENT: source_deployment,
     }
+    if source_deployment:
+        dependency[SOURCE_DEPLOYMENT] = source_deployment
     if target_deployment:
         dependency[TARGET_DEPLOYMENT] = target_deployment
+    if target_deployment_func:
+        dependency[TARGET_DEPLOYMENT_FUNC] = target_deployment_func
     if external_source:
         dependency[EXTERNAL_SOURCE] = external_source
     if external_target:

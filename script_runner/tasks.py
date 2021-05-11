@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-
+import codecs
 import os
 import re
 import shutil
@@ -329,7 +329,10 @@ def process_ctx_request(proxy):
 
 def eval_script(script_path, ctx, process=None):
     eval_globals = eval_env.setup_env_and_globals(script_path)
-    exec(compile(open(script_path).read(), script_path, 'exec'), eval_globals)
+    with codecs.open(script_path, mode='r',
+                     encoding='utf-8', errors='replace') as f:
+        script_source = f.read()
+    exec(compile(script_source, script_path, 'exec'), eval_globals)
 
 
 def _get_target_path(source):

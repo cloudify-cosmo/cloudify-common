@@ -13,9 +13,10 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from dsl_parser import elements
+from dsl_parser import elements, exceptions
 from dsl_parser._compat import text_type
 from dsl_parser.elements import version as element_version
+from dsl_parser.elements.deployment_schedules import DeploymentSchedules
 from dsl_parser.framework.elements import (DictElement,
                                            DictNoDefaultElement,
                                            Element,
@@ -132,3 +133,82 @@ class NamespacesMapping(DictElement):
     namespaces.
     """
     schema = Dict(type=NamespaceMapping)
+
+
+class LabelValue(Element):
+    required = True
+    schema = Leaf(type=list)
+
+
+class BlueprintLabel(DictNoDefaultElement):
+    schema = {
+        'values': LabelValue
+    }
+
+    def validate(self, **kwargs):
+        """
+        A blueprint label's value cannot be an intrinsic function, as labels
+        are assigned to a blueprint while it's uploaded, and the intrinsic
+        functions are not yet processed.
+        """
+        type_err_msg = "The blueprint label's value must be a string. " \
+                       "Please modify the values of {0}"
+
+        for value in self.initial_value['values']:
+            if not isinstance(value, text_type):
+                raise exceptions.DSLParsingException(
+                    1, type_err_msg.format(self.name))
+
+
+class DeploymentLabel(DictNoDefaultElement):
+    schema = {
+        'values': LabelValue
+    }
+
+    def validate(self, **kwargs):
+        """
+        A label's value cannot be a runtime property, since labels are
+        assigned to deployment during its creation.
+        """
+        type_err_msg = "The label's value must be a string or an intrinsic " \
+                       "function. Please modify the values of {0}"
+        get_attr_err_msg = "The label's value cannot be a runtime property. " \
+                           "Please remove the `get_attribute` function from " \
+                           "the values of {0}"
+
+        for value in self.initial_value['values']:
+            if not isinstance(value, (dict, text_type)):
+                raise exceptions.DSLParsingException(
+                    1, type_err_msg.format(self.name))
+            if isinstance(value, dict) and 'get_attribute' in value:
+                raise exceptions.DSLParsingException(
+                    1, get_attr_err_msg.format(self.name))
+
+
+class Labels(DictElement):
+    schema = Dict(type=DeploymentLabel)
+
+
+class BlueprintLabels(DictElement):
+    schema = Dict(type=BlueprintLabel)
+
+
+class DeploymentGroups(Element):
+    schema = Leaf(list)
+
+
+class DeploymentIDTemplate(Element):
+    schema = Leaf(text_type)
+
+
+class DeploymentDisplayName(Element):
+    schema = Leaf(type=(text_type, dict))
+
+
+class DeploymentSettings(DictNoDefaultElement):
+    schema = {
+        'default_schedules': DeploymentSchedules,
+        'default_groups': DeploymentGroups,
+        'id_template': DeploymentIDTemplate,
+        'display_name': DeploymentDisplayName
+    }

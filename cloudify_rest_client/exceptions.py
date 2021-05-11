@@ -245,6 +245,28 @@ class MissingCloudifyLicense(CloudifyClientError):
     ERROR_CODE = 'missing_cloudify_license'
 
 
+class InvalidFilterRule(CloudifyClientError):
+    """
+    Raised when one of the provided filter rules is invalid
+    """
+    ERROR_CODE = 'invalid_filter_rule'
+
+    def __init__(self, message, server_traceback=None,
+                 status_code=-1, error_code=None, response=None):
+        super(InvalidFilterRule, self).__init__(
+            message, server_traceback, status_code, error_code, response)
+        self.err_filter_rule = response.json().get('err_filter_rule')
+        self.err_reason = response.json().get('err_reason')
+
+
+class DeploymentParentNotFound(CloudifyClientError):
+    """
+    Raised when  deployment reference parent that does not exist using
+    labels in blueprint dsl
+    """
+    ERROR_CODE = 'deployment_parent_not_found_error'
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -273,4 +295,7 @@ ERROR_MAPPING = dict([
         DeploymentPluginNotFound,
         IncompatibleClusterArchitectureError,
         MissingCloudifyLicense,
-        ExpiredCloudifyLicense]])
+        ExpiredCloudifyLicense,
+        InvalidFilterRule,
+        DeploymentParentNotFound,
+    ]])
