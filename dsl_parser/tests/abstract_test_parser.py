@@ -17,8 +17,6 @@ import tempfile
 import shutil
 import os
 import uuid
-from functools import wraps
-from multiprocessing import Process
 
 import testtools
 from mock import Mock
@@ -32,22 +30,6 @@ from dsl_parser.import_resolver.default_import_resolver import \
 from dsl_parser.version import DSL_VERSION_PREFIX
 from dsl_parser.multi_instance import (create_deployment_plan,
                                        modify_deployment)
-
-
-def timeout(seconds=10):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            process = Process(None, func, None, args, kwargs)
-            process.start()
-            process.join(seconds)
-            if process.is_alive():
-                process.terminate()
-                raise RuntimeError(
-                    'test timeout exceeded [timeout={0}]'.format(seconds))
-            if process.exitcode != 0:
-                raise RuntimeError()
-        return wraps(func)(wrapper)
-    return decorator
 
 
 class AbstractTestParser(testtools.TestCase):
