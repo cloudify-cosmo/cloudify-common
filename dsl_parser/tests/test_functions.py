@@ -17,7 +17,6 @@ from testtools import ExpectedException
 
 from dsl_parser import exceptions, functions
 from dsl_parser.tasks import prepare_deployment_plan
-from dsl_parser.tests.abstract_test_parser import timeout
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
@@ -603,7 +602,6 @@ node_templates:
             self.assertIn('index is out of range. Got 10 but list size is 3',
                           str(e))
 
-    @timeout(seconds=10)
     def test_not_circular_nested_property_path(self):
         yaml = """
 node_types:
@@ -627,7 +625,6 @@ node_templates:
 """
         prepare_deployment_plan(self.parse(yaml))
 
-    @timeout(seconds=10)
     def test_get_property_from_get_input(self):
         yaml = """
 inputs:
@@ -713,7 +710,6 @@ node_templates:
         )
         self.assertEqual('secret', evaluated['properties']['b'])
 
-    @timeout(seconds=10)
     def test_get_property_from_get_input_data_type(self):
         yaml = """
 inputs:
@@ -742,7 +738,6 @@ node_templates:
         plan = prepare_deployment_plan(self.parse_1_2(yaml))
         self.assertEqual('secret', plan['nodes'][0]['properties']['b'])
 
-    @timeout(seconds=10)
     def test_get_property_from_get_input_missing_key(self):
         yaml = """
 inputs:
@@ -764,7 +759,6 @@ node_templates:
             prepare_deployment_plan(
                 self.parse(yaml), inputs={'dict_input': {'other_key': 42}})
 
-    @timeout(seconds=10)
     def get_property_from_get_property(self):
         yaml = """
 node_types:
