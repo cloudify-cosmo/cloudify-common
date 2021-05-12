@@ -297,8 +297,9 @@ def process_operation(
 
     if (utils.is_valid_url(operation_mapping) or
         _is_local_script_resource_exists(resource_bases, operation_mapping) or
-        _is_remote_script_resource(operation_mapping,
-                                   remote_resources_namespaces)):
+        (not candidate_plugins and _is_remote_script_resource(
+            operation_mapping, remote_resources_namespaces))):
+
         operation_payload = copy.deepcopy(operation_payload or {})
         if constants.SCRIPT_PATH_PROPERTY in operation_payload:
             message = "Cannot define '{0}' property in '{1}' for {2} '{3}'" \
