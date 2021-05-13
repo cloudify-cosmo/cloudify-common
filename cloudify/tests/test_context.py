@@ -154,9 +154,8 @@ class CloudifyContextTest(testtools.TestCase):
     @mock.patch('cloudify.manager.get_rest_client')
     def test_download_resource_tried_urls(self, _):
         # check that download_resource tries the urls:
-        # - http://.../resources/deployments/
-        #                default_tenant/dep/updated_blueprint/file.txt
-        #   (deployment update resource)
+        # - http://...//resources/deployments/default_tenant/dep/file.txt
+        #   (deployment resource)
         # - http://.../resources/blueprints/default_tenant/bp/file.txt
         #   (blueprint resource)
         # - http://.../resources/file.txt'
@@ -178,7 +177,7 @@ class CloudifyContextTest(testtools.TestCase):
             os.environ[constants.REST_PORT_KEY]
         )
         self.assertEqual([args[0] for _c, args, _k in mock_get.mock_calls], [
-            '{0}/resources/deployments/{1}/{2}/updated_blueprint/{3}'.format(
+            '{0}/resources/deployments/{1}/{2}/{3}'.format(
                 base_url,
                 self.context.tenant_name,
                 self.context.deployment.id,
