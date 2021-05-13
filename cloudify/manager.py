@@ -306,7 +306,7 @@ def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path):
     """For the given resource_path, generate all firesever paths to try.
 
     Eg. for path of "foo.txt", generate:
-        - /resources/deployments/default_tenant/dep1/foo.txt
+        - /resources/deployments/default_tenant/dep1/updated_blueprint/foo.txt
         - /resources/blueprints/default_tenant/bp1/foo.txt
         - /foo.txt
     """
@@ -315,6 +315,7 @@ def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path):
             constants.FILE_SERVER_DEPLOYMENTS_FOLDER,
             tenant_name,
             deployment_id,
+            'updated_blueprint',
             resource_path
         ).replace('\\', '/')
 
