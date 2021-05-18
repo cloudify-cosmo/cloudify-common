@@ -999,14 +999,25 @@ class CloudifyWorkflowContext(
                 raw_nodes = storage.get_nodes()
                 raw_node_instances = storage.get_node_instances()
             elif self.deployment.id:
-                rest = get_rest_client()
-                raw_nodes = rest.nodes.list(
-                    deployment_id=self.deployment.id,
-                    _get_all_results=True,
-                    evaluate_functions=self.deployment.runtime_only_evaluation)
-                raw_node_instances = rest.node_instances.list(
-                    deployment_id=self.deployment.id,
-                    _get_all_results=True)
+                if self.workflow_id in ('create_deployment_environment',
+                                        'delete_deployment_environment'):
+                    # If creating a deployment environment, there are clearly
+                    # no nodes/instances yet.
+                    # If deleting it we don't care about the nodes/instances,
+                    # and trying to retrieve them might cause problems if
+                    # deployment environment creation had a really bad time.
+                    raw_nodes = []
+                    raw_node_instances = []
+                else:
+                    rest = get_rest_client()
+                    dep = self.deployment
+                    raw_nodes = rest.nodes.list(
+                        deployment_id=dep.id,
+                        _get_all_results=True,
+                        evaluate_functions=dep.runtime_only_evaluation)
+                    raw_node_instances = rest.node_instances.list(
+                        deployment_id=dep.id,
+                        _get_all_results=True)
             else:
                 # no deployment means no nodes
                 # this happens in eg. blueprint-upload
