@@ -1010,13 +1010,13 @@ class CloudifyWorkflowContext(
                     raw_node_instances = []
                 else:
                     rest = get_rest_client()
+                    dep = self.deployment
                     raw_nodes = rest.nodes.list(
-                        deployment_id=self.deployment.id,
+                        deployment_id=dep.id,
                         _get_all_results=True,
-                        evaluate_functions=\
-                            self.deployment.runtime_only_evaluation)
+                        evaluate_functions=dep.runtime_only_evaluation)
                     raw_node_instances = rest.node_instances.list(
-                        deployment_id=self.deployment.id,
+                        deployment_id=dep.id,
                         _get_all_results=True)
             else:
                 # no deployment means no nodes
