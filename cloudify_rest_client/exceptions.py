@@ -289,6 +289,10 @@ class DeploymentParentNotFound(CloudifyClientError):
     ERROR_CODE = 'deployment_parent_not_found_error'
 
 
+class ForbiddenWhileCancelling(CloudifyClientError):
+    ERROR_CODE = 'forbidden_while_cancelling'
+
+
 ERROR_MAPPING = dict([
     (error.ERROR_CODE, error)
     for error in [
@@ -322,4 +326,5 @@ ERROR_MAPPING = dict([
         ExpiredCloudifyLicense,
         InvalidFilterRule,
         DeploymentParentNotFound,
+        ForbiddenWhileCancelling,
     ]])
