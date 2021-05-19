@@ -127,10 +127,11 @@ def install(plugin, deployment_id=None, blueprint_id=None):
             args=args)
     else:
         platform, distro, release = _platform_and_distro()
+        name = plugin.get('package_name') or plugin.get('name')
         raise NonRecoverableError(
             'No source or managed plugin found for {0} '
             '[current platform={1}, distro={2}, release={3}]'
-            .format(plugin, platform, distro, release))
+            .format(name, platform, distro, release))
 
 
 def _make_virtualenv(path):
@@ -212,7 +213,7 @@ def _install_managed_plugin(plugin, args):
             tpe, value, tb = sys.exc_info()
             exc = NonRecoverableError(
                 'Failed installing managed plugin: {0} [{1}][{2}]'
-                .format(plugin.id, plugin, e))
+                .format(plugin.id, plugin.package_name, e))
             reraise(NonRecoverableError, exc, tb)
 
 
@@ -248,7 +249,7 @@ def _install_source_plugin(deployment_id, plugin, source, args):
     with _lock(dst_dir):
         if is_already_installed(dst_dir, 'source-{0}'.format(deployment_id)):
             ctx.logger.info(
-                'Using existing installation of source plugin: %s', plugin)
+                'Using existing installation of source plugin: %s', name)
             return
 
         ctx.logger.info('Installing plugin from source: %s', name)
