@@ -188,7 +188,7 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
                         path='{0}.{1}'.format(LABELS, label_key),
                         replace=replace)
 
-    scan_properties(plan['deployment_settings'],
+    scan_properties(plan.get('deployment_settings'),
                     handler,
                     scope=DEPLOYMENT_SETTINGS_SCOPE,
                     context=plan,
