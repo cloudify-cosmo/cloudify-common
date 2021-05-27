@@ -425,6 +425,14 @@ class NodeTemplate(Element):
             resource_base=resource_base,
             remote_resources_namespaces=namespaces_mapping)
 
+        rel_targets = [x['target_id'] for x in node[constants.RELATIONSHIPS]]
+
+        if len(rel_targets) > len(set(rel_targets)):
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_MULTIPLE_RELATIONSHIPS_SAME_TARGET,
+                "Node '{0}' contains multiple relationships with the same "
+                "target".format(node['name']))
+
         contained_in = self.child(NodeTemplateRelationships).provided[
             'contained_in']
         if self.child(NodeTemplateType).value in host_types:
