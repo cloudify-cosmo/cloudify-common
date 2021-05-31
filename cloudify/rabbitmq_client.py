@@ -15,7 +15,11 @@
 ############
 
 
-import ipaddress
+try:
+    import ipaddress
+except ImportError:
+    ipaddress = None
+
 import random
 import requests
 
@@ -43,6 +47,8 @@ class RabbitMQClient(object):
             self._target_host = "[{0}]".format(self._target_host)
         except ipaddress.AddressValueError:
             pass
+        except AttributeError:
+            raise RuntimeError('ipaddress not available')
 
     @property
     def base_url(self):
