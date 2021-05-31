@@ -15,6 +15,7 @@
 ############
 
 
+import ipaddress
 import random
 import requests
 
@@ -37,6 +38,11 @@ class RabbitMQClient(object):
         self._logger = logger
         request_kwargs.setdefault('auth', (username, password))
         self._request_kwargs = request_kwargs
+        try:
+            ipaddress.IPv6Address(self._target_host)
+            self._target_host = "[{0}]".format(self._target_host)
+        except ipaddress.AddressValueError:
+            pass
 
     @property
     def base_url(self):
