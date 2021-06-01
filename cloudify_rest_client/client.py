@@ -96,7 +96,7 @@ class HTTPClient(object):
                  username=None, password=None, token=None, tenant=None,
                  kerberos_env=None, timeout=None):
         self.port = port
-        self.host = host
+        self.host = ipv6_url_compat(host)
         self.protocol = protocol
         self.api_version = api_version
         self.kerberos_env = kerberos_env
@@ -114,8 +114,6 @@ class HTTPClient(object):
                          log_value=False)
         self._set_header(constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER, token)
         self._set_header(CLOUDIFY_TENANT_HEADER, tenant)
-        if isinstance(self.host, str):
-            self.host = ipv6_url_compat(self.host)
 
     @property
     def url(self):

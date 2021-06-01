@@ -31,8 +31,9 @@ class RabbitMQClient(object):
                  port=RABBITMQ_MANAGEMENT_PORT, scheme='https',
                  logger=None, **request_kwargs):
         self._hosts = list(hosts) if isinstance(hosts, list) else [hosts]
+        self._hosts = [ipv6_url_compat(h) for h in self._hosts]
         random.shuffle(self._hosts)
-        self._target_host = ipv6_url_compat(self._hosts.pop())
+        self._target_host = self._hosts.pop()
         self._port = port
         self._scheme = scheme
         self._logger = logger

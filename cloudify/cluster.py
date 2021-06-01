@@ -28,17 +28,17 @@ from cloudify_rest_client.exceptions import CloudifyClientError
 
 class ClusterHTTPClient(HTTPClient):
 
-    def __init__(self, *args, **kwargs):
-        super(ClusterHTTPClient, self).__init__(*args, **kwargs)
-        # from outside, we get self.host passed in as a list (optionally).
+    def __init__(self, host, *args, **kwargs):
+        # from outside, we get host passed in as a list (optionally).
         # But we still need self.host to be the currently-used manager,
         # and we can store the list as self.hosts
         # (copy the list so that outside mutations don't affect us)
-        hosts = list(self.host) if isinstance(self.host, list) else [self.host]
-        hosts = [ipv6_url_compat(host) for host in hosts]
+        hosts = list(host) if isinstance(host, list) else [host]
+        hosts = [ipv6_url_compat(h) for h in hosts]
         random.shuffle(hosts)
         self.hosts = itertools.cycle(hosts)
         self.host = hosts[0]
+        super(ClusterHTTPClient, self).__init__(self.host, *args, **kwargs)
         self.default_timeout_sec = self.default_timeout_sec or (5, None)
         self.retries = 30
         self.retry_interval = 3
