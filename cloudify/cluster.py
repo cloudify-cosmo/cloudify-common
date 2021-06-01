@@ -37,8 +37,7 @@ class ClusterHTTPClient(HTTPClient):
         hosts = [ipv6_url_compat(h) for h in hosts]
         random.shuffle(hosts)
         self.hosts = itertools.cycle(hosts)
-        self.host = hosts[0]
-        super(ClusterHTTPClient, self).__init__(self.host, *args, **kwargs)
+        super(ClusterHTTPClient, self).__init__(hosts[0], *args, **kwargs)
         self.default_timeout_sec = self.default_timeout_sec or (5, None)
         self.retries = 30
         self.retry_interval = 3
