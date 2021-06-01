@@ -19,6 +19,7 @@ import random
 import requests
 import itertools
 
+from cloudify.utils import ipv6_url_compat
 
 from cloudify_rest_client import CloudifyClient
 from cloudify_rest_client.client import HTTPClient
@@ -34,6 +35,7 @@ class ClusterHTTPClient(HTTPClient):
         # and we can store the list as self.hosts
         # (copy the list so that outside mutations don't affect us)
         hosts = list(self.host) if isinstance(self.host, list) else [self.host]
+        hosts = [ipv6_url_compat(host) for host in hosts]
         random.shuffle(hosts)
         self.hosts = itertools.cycle(hosts)
         self.host = hosts[0]
