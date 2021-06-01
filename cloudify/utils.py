@@ -34,13 +34,7 @@ import subprocess
 
 from datetime import datetime, timedelta
 from contextlib import contextmanager, closing
-
-try:
-    import ipaddress
-    socket = None
-except ImportError:
-    ipaddress = None
-    import socket
+import socket   # replace with ipaddress when this is py3-only
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
@@ -1043,16 +1037,9 @@ def parse_schedule_datetime_string(date_str):
 
 def is_ipv6(addr):
     """Verifies if `addr` is a valid IPv6 address."""
-    if ipaddress:
-        try:
-            ipaddress.IPv6Address(addr)
-        except ipaddress.AddressValueError:
-            return False
-    elif socket:
-        try:
-            socket.inet_pton(socket.AF_INET6, addr)
-        except socket.error:
-            return False
-    else:
+    # TODO replace socket with ipaddress once we're py3-only
+    try:
+        socket.inet_pton(socket.AF_INET6, addr)
+    except socket.error:
         return False
     return True
