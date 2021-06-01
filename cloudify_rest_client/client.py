@@ -22,7 +22,7 @@ from base64 import b64encode
 from requests.packages import urllib3
 
 from cloudify import constants
-from cloudify.utils import is_ipv6
+from cloudify.utils import ipv6_url_compat
 
 from .utils import is_kerberos_env
 from cloudify_rest_client import exceptions
@@ -96,7 +96,7 @@ class HTTPClient(object):
                  username=None, password=None, token=None, tenant=None,
                  kerberos_env=None, timeout=None):
         self.port = port
-        self.host = host
+        self.host = ipv6_url_compat(host)
         self.protocol = protocol
         self.api_version = api_version
         self.kerberos_env = kerberos_env
@@ -114,8 +114,6 @@ class HTTPClient(object):
                          log_value=False)
         self._set_header(constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER, token)
         self._set_header(CLOUDIFY_TENANT_HEADER, tenant)
-        if is_ipv6(self.host):
-            self.host = '[{0}]'.format(self.host)
 
     @property
     def url(self):

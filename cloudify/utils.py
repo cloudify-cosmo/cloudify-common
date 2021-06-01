@@ -1035,7 +1035,7 @@ def parse_schedule_datetime_string(date_str):
             "YYYY-MM-DD HH:MM | HH:MM".format(date_str))
 
 
-def is_ipv6(addr):
+def _is_ipv6(addr):
     """Verifies if `addr` is a valid IPv6 address."""
     # TODO replace socket with ipaddress once we're py3-only
     try:
@@ -1043,3 +1043,10 @@ def is_ipv6(addr):
     except socket.error:
         return False
     return True
+
+
+def ipv6_url_compat(addr):
+    """Return URL-compatible version of IPv6 address (or just an address)."""
+    if _is_ipv6(addr):
+        return '[{0}]'.format(addr)
+    return addr
