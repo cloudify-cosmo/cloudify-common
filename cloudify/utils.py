@@ -34,6 +34,7 @@ import subprocess
 
 from datetime import datetime, timedelta
 from contextlib import contextmanager, closing
+import socket   # replace with ipaddress when this is py3-only
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
@@ -1032,3 +1033,13 @@ def parse_schedule_datetime_string(date_str):
         raise NonRecoverableError(
             "{} is not a legal time format. accepted formats are "
             "YYYY-MM-DD HH:MM | HH:MM".format(date_str))
+
+
+def is_ipv6(addr):
+    """Verifies if `addr` is a valid IPv6 address."""
+    # TODO replace socket with ipaddress once we're py3-only
+    try:
+        socket.inet_pton(socket.AF_INET6, addr)
+    except socket.error:
+        return False
+    return True
