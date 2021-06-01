@@ -19,7 +19,7 @@ import random
 import requests
 
 from cloudify._compat import urlquote
-from cloudify.utils import is_ipv6
+from cloudify.utils import ipv6_url_compat
 
 
 RABBITMQ_MANAGEMENT_PORT = 15671
@@ -32,14 +32,12 @@ class RabbitMQClient(object):
                  logger=None, **request_kwargs):
         self._hosts = list(hosts) if isinstance(hosts, list) else [hosts]
         random.shuffle(self._hosts)
-        self._target_host = self._hosts.pop()
+        self._target_host = ipv6_url_compat(self._hosts.pop())
         self._port = port
         self._scheme = scheme
         self._logger = logger
         request_kwargs.setdefault('auth', (username, password))
         self._request_kwargs = request_kwargs
-        if is_ipv6(self._target_host):
-            self._target_host = "[{0}]".format(self._target_host)
 
     @property
     def base_url(self):
