@@ -203,7 +203,7 @@ def get_manager_file_server_url():
     port = get_manager_rest_service_port()
     scheme = get_manager_file_server_scheme()
     return [
-        '{0}://{1}:{2}/resources'.format(scheme, host, port)
+        '{0}://{1}:{2}/resources'.format(scheme, ipv6_url_compat(host), port)
         for host in get_manager_rest_service_host()
     ]
 
