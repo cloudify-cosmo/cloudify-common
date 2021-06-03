@@ -23,7 +23,7 @@ from dsl_parser import (exceptions,
                         functions,
                         utils,
                         holder)
-from dsl_parser.framework.requirements import Requirement
+from dsl_parser.framework.requirements import Requirement, sibling_predicate
 
 # Will mark elements that are being parsed, that there is no need to
 # add namespace to them. This is used in case of shared elements
@@ -439,6 +439,22 @@ class Context(object):
                         self.element_graph.add_edge(element, dep)
                     continue
 
+                if predicates == [sibling_predicate]:
+                    # These appear to be generally in order, which means
+                    # that we can cut parsing time by a massive amount for
+                    # plugins which have a lot of DSL elements.
+                    # If we don't do this, our time complexity is n**2 as
+                    # we compare all 'default' elements to all 'type'
+                    # elements (for example), when all we care about is if
+                    # they are siblings.
+                    for dependency in dependencies:
+                        for element in dependency.parent().children():
+                            if element in _elements:
+                                self.element_graph.add_edge(element,
+                                                            dependency)
+                                assert predicates[0](element, dependency)
+                    continue
+
                 for dependency in dependencies:
                     for element in _elements:
                         add_dependency = all([
@@ -596,8 +612,25 @@ class Parser(object):
             else:
                 if required_type == 'self':
                     required_type = type(element)
-                required_type_elements = context.element_type_to_elements.get(
-                    required_type, [])
+
+                if (
+                    len(requirements) == 1
+                    and requirements[0].predicate == sibling_predicate
+                ):
+                    # If we're only looking for siblings then we can get them
+                    # from the parent rather than looking at every element of
+                    # the type we care about. This cuts the parse time by
+                    # about 7 seconds on sufficiently large blueprints (e.g.
+                    # ones that use the AWS plugin).
+                    required_type_elements = [
+                        child for child in element.parent().children()
+                        if isinstance(child, required_type)]
+                else:
+                    required_type_elements = (
+                        context.element_type_to_elements.get(required_type,
+                                                             [])
+                    )
+
                 for requirement in requirements:
                     result = []
                     for required_element in required_type_elements:
