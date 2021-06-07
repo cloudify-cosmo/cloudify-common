@@ -23,7 +23,7 @@ from dsl_parser import (exceptions,
                         functions,
                         utils,
                         holder)
-from dsl_parser.framework.requirements import Requirement
+from dsl_parser.framework.requirements import Requirement, sibling_predicate
 
 # Will mark elements that are being parsed, that there is no need to
 # add namespace to them. This is used in case of shared elements
@@ -439,11 +439,23 @@ class Context(object):
                         self.element_graph.add_edge(element, dep)
                     continue
 
+                if predicates == [sibling_predicate]:
+                    # If we don't do this, our time complexity is n**2 as
+                    # we compare all 'default' elements to all 'type'
+                    # elements (for example), when all we care about is if
+                    # they are siblings.
+                    for dependency in dependencies:
+                        for element in dependency.parent().children():
+                            if element in _elements:
+                                self.element_graph.add_edge(element,
+                                                            dependency)
+                    continue
+
                 for dependency in dependencies:
                     for element in _elements:
-                        add_dependency = all([
+                        add_dependency = all(
                             predicate(element, dependency)
-                            for predicate in predicates])
+                            for predicate in predicates)
                         if add_dependency:
                             self.element_graph.add_edge(element, dependency)
         # we reverse the graph because only netorkx 1.9.1 has the reverse
@@ -596,8 +608,23 @@ class Parser(object):
             else:
                 if required_type == 'self':
                     required_type = type(element)
-                required_type_elements = context.element_type_to_elements.get(
-                    required_type, [])
+
+                if (
+                    len(requirements) == 1
+                    and requirements[0].predicate == sibling_predicate
+                ):
+                    # Similar to the other siblings predicate check above,
+                    # doing this saves a massive amount of time on larger
+                    # blueprints by avoiding n**2 time complexity.
+                    required_type_elements = [
+                        child for child in element.parent().children()
+                        if isinstance(child, required_type)]
+                else:
+                    required_type_elements = (
+                        context.element_type_to_elements.get(required_type,
+                                                             [])
+                    )
+
                 for requirement in requirements:
                     result = []
                     for required_element in required_type_elements:
