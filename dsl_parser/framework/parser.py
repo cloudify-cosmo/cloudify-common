@@ -453,9 +453,9 @@ class Context(object):
 
                 for dependency in dependencies:
                     for element in _elements:
-                        add_dependency = all([
+                        add_dependency = all(
                             predicate(element, dependency)
-                            for predicate in predicates])
+                            for predicate in predicates)
                         if add_dependency:
                             self.element_graph.add_edge(element, dependency)
         # we reverse the graph because only netorkx 1.9.1 has the reverse
