@@ -440,9 +440,6 @@ class Context(object):
                     continue
 
                 if predicates == [sibling_predicate]:
-                    # These appear to be generally in order, which means
-                    # that we can cut parsing time by a massive amount for
-                    # plugins which have a lot of DSL elements.
                     # If we don't do this, our time complexity is n**2 as
                     # we compare all 'default' elements to all 'type'
                     # elements (for example), when all we care about is if
@@ -452,7 +449,6 @@ class Context(object):
                             if element in _elements:
                                 self.element_graph.add_edge(element,
                                                             dependency)
-                                assert predicates[0](element, dependency)
                     continue
 
                 for dependency in dependencies:
@@ -617,11 +613,9 @@ class Parser(object):
                     len(requirements) == 1
                     and requirements[0].predicate == sibling_predicate
                 ):
-                    # If we're only looking for siblings then we can get them
-                    # from the parent rather than looking at every element of
-                    # the type we care about. This cuts the parse time by
-                    # about 7 seconds on sufficiently large blueprints (e.g.
-                    # ones that use the AWS plugin).
+                    # Similar to the other siblings predicate check above,
+                    # doing this saves a massive amount of time on larger
+                    # blueprints by avoiding n**2 time complexity.
                     required_type_elements = [
                         child for child in element.parent().children()
                         if isinstance(child, required_type)]
