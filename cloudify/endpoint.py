@@ -308,6 +308,7 @@ class LocalEndpoint(Endpoint):
                     'default': '127.0.0.1'
                 },
                 'ca_cert_content': '',
+                'management_host': '127.0.0.1',
             })
         ]
 
