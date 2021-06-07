@@ -94,7 +94,7 @@ class HTTPClient(object):
                  protocol=DEFAULT_PROTOCOL, api_version=DEFAULT_API_VERSION,
                  headers=None, query_params=None, cert=None, trust_all=False,
                  username=None, password=None, token=None, tenant=None,
-                 kerberos_env=None, timeout=None):
+                 kerberos_env=None, timeout=None, session=None):
         self.port = port
         self.host = ipv6_url_compat(host)
         self.protocol = protocol
@@ -114,6 +114,9 @@ class HTTPClient(object):
                          log_value=False)
         self._set_header(constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER, token)
         self._set_header(CLOUDIFY_TENANT_HEADER, tenant)
+        if session is None:
+            session = requests.Session()
+        self._session = session
 
     @property
     def url(self):
@@ -325,7 +328,7 @@ class HTTPClient(object):
             if not params:
                 params = {}
             params['_include'] = fields
-        return self.do_request(requests.get,
+        return self.do_request(self._session.get,
                                uri,
                                data=data,
                                params=params,
@@ -337,7 +340,7 @@ class HTTPClient(object):
 
     def put(self, uri, data=None, params=None, headers=None,
             expected_status_code=200, stream=False, timeout=None):
-        return self.do_request(requests.put,
+        return self.do_request(self._session.put,
                                uri,
                                data=data,
                                params=params,
@@ -348,7 +351,7 @@ class HTTPClient(object):
 
     def patch(self, uri, data=None, params=None, headers=None,
               expected_status_code=200, stream=False, timeout=None):
-        return self.do_request(requests.patch,
+        return self.do_request(self._session.patch,
                                uri,
                                data=data,
                                params=params,
@@ -359,7 +362,7 @@ class HTTPClient(object):
 
     def post(self, uri, data=None, params=None, headers=None,
              expected_status_code=200, stream=False, timeout=None):
-        return self.do_request(requests.post,
+        return self.do_request(self._session.post,
                                uri,
                                data=data,
                                params=params,
@@ -370,7 +373,7 @@ class HTTPClient(object):
 
     def delete(self, uri, data=None, params=None, headers=None,
                expected_status_code=(200, 204), stream=False, timeout=None):
-        return self.do_request(requests.delete,
+        return self.do_request(self._session.delete,
                                uri,
                                data=data,
                                params=params,
@@ -421,7 +424,7 @@ class CloudifyClient(object):
                  api_version=DEFAULT_API_VERSION, headers=None,
                  query_params=None, cert=None, trust_all=False,
                  username=None, password=None, token=None, tenant=None,
-                 kerberos_env=None, timeout=None):
+                 kerberos_env=None, timeout=None, session=None):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -441,6 +444,7 @@ class CloudifyClient(object):
         :param tenant: Cloudify Tenant name.
         :param timeout: Requests timeout value. If not set, will default to
                         (5, None)- 5 seconds connect timeout, no read timeout.
+        :param session: a requests.Session to use for all HTTP calls
         :return: Cloudify client instance.
         """
 
@@ -455,7 +459,8 @@ class CloudifyClient(object):
         self._client = self.client_class(host, port, protocol, api_version,
                                          headers, query_params, cert,
                                          trust_all, username, password,
-                                         token, tenant, kerberos_env, timeout)
+                                         token, tenant, kerberos_env, timeout,
+                                         session)
         self.blueprints = BlueprintsClient(self._client)
         self.permissions = PermissionsClient(self._client)
         self.snapshots = SnapshotsClient(self._client)
