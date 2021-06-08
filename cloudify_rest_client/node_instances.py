@@ -146,7 +146,8 @@ class NodeInstancesClient(object):
                node_instance_id,
                state=None,
                runtime_properties=None,
-               version=1):
+               version=1,
+               force=False):
         """
         Update node instance with the provided state & runtime_properties.
 
@@ -155,6 +156,7 @@ class NodeInstancesClient(object):
         :param runtime_properties: The updated runtime properties.
         :param version: Current version value of this node instance in
          Cloudify's storage (used for optimistic locking).
+        :param force: ignore the version check - use with caution
         :return: The updated node instance.
         """
         assert node_instance_id
@@ -164,7 +166,10 @@ class NodeInstancesClient(object):
             data['runtime_properties'] = runtime_properties
         if state is not None:
             data['state'] = state
-        response = self.api.patch(uri, data=data)
+        params = {}
+        if force:
+            params['force'] = True
+        response = self.api.patch(uri, params=params, data=data)
         return NodeInstance(response)
 
     def _create_filters(
