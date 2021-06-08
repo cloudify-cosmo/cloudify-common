@@ -25,7 +25,6 @@ from cloudify.manager import (
     get_rest_client,
     get_node_instance,
     update_execution_status,
-    update_node_instance
 )
 from cloudify.constants import (
     MGMTWORKER_QUEUE,
@@ -976,10 +975,11 @@ class _SetNodeInstanceStateTask(_LocalTask):
         }
 
     def remote(self):
-        node_instance = get_node_instance(self._node_instance_id)
-        node_instance.state = self._state
-        update_node_instance(node_instance)
-        return node_instance
+        get_rest_client().node_instances.update(
+            self._node_instance_id,
+            force=True,
+            state=self._state
+        )
 
     def local(self):
         self.storage.update_node_instance(
