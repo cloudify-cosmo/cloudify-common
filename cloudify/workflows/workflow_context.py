@@ -1293,7 +1293,6 @@ class CloudifyWorkflowContextHandler(object):
         raise NotImplementedError('Implemented by subclasses')
 
 
-
 class _WorkflowTaskHandler(object):
     def __init__(self, workflow_ctx):
         self._logger = logging.getLogger('dispatch')
@@ -1330,7 +1329,7 @@ class _WorkflowTaskHandler(object):
         try:
             response = json.loads(body.decode('utf-8'))
         except ValueError:
-            logger.error('Error parsing response: %s', body)
+            self._logger.error('Error parsing response: %s', body)
             channel.basic_ack(method.delivery_tag)
             return
         if properties.correlation_id in self._tasks:
