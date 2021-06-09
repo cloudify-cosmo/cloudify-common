@@ -468,6 +468,9 @@ class _WorkflowContextBase(object):
         # of handling the execution, the status was already STARTED
         self.resume = False
 
+    def cleanup(self, finished=True):
+        self.internal.handler.cleanup(finished)
+
     def graph_mode(self):
         """
         Switch the workflow context into graph mode
@@ -1223,6 +1226,9 @@ class CloudifyWorkflowContextHandler(object):
     def __init__(self, workflow_ctx):
         self.workflow_ctx = workflow_ctx
 
+    def cleanup(self, finished):
+        pass
+
     def get_context_logging_handler(self):
         raise NotImplementedError('Implemented by subclasses')
 
@@ -1349,6 +1355,9 @@ class _WorkflowTaskHandler(object):
             'routing_key': routing_key,
         })
 
+    def delete_queue(self):
+        self._connection.channel_method(
+            'queue_delete', queue=self._queue_name, if_empty=True, wait=True)
 
 
 class _TaskDispatcher(object):
@@ -1465,6 +1474,9 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         super(RemoteContextHandler, self).__init__(*args, **kwargs)
         self._dispatcher = _TaskDispatcher(self.workflow_ctx)
 
+    def cleanup(self, finished):
+        if finished:
+            self._dispatcher.cleanup()
 
     @property
     def bootstrap_context(self):
