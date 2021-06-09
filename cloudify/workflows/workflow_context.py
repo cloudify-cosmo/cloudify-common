@@ -1236,9 +1236,6 @@ class CloudifyWorkflowContextHandler(object):
     def get_send_task_event_func(self, task):
         raise NotImplementedError('Implemented by subclasses')
 
-    def get_task(self, workflow_task, queue=None, target=None, tenant=None):
-        raise NotImplementedError('Implemented by subclasses')
-
     @property
     def operation_cloudify_context(self):
         raise NotImplementedError('Implemented by subclasses')
@@ -1476,20 +1473,11 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def get_send_task_event_func(self, task):
         return events.send_task_event_func_remote
 
-    def get_task(self, workflow_task, queue=None, target=None, tenant=None):
-        # augment cloudify context with target and queue
-        tenant = tenant or workflow_task.cloudify_context.get('tenant')
+    def send_task(self, *args, **kwargs):
+        return self._dispatcher.send_task(*args, **kwargs)
 
-        # Remote task
-        return self._dispatcher.make_subtask(
-            tenant, target, task_id=workflow_task.id,
-            kwargs=workflow_task.kwargs, queue=queue)
-
-    def send_task(self, workflow_task, task):
-        return self._dispatcher.send_task(workflow_task, task)
-
-    def wait_for_result(self, result, workflow_task, task):
-        return self._dispatcher.wait_for_result(result, workflow_task, task)
+    def wait_for_result(self, *args, **kwargs):
+        return self._dispatcher.wait_for_result(*args, **kwargs)
 
     @property
     def operation_cloudify_context(self):
@@ -1673,9 +1661,6 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
 
     def get_send_task_event_func(self, task):
         return events.send_task_event_func_local
-
-    def get_task(self, workflow_task, queue=None, target=None, tenant=None):
-        raise NotImplementedError('Not implemented by local workflow tasks')
 
     @property
     def operation_cloudify_context(self):
