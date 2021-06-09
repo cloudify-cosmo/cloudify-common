@@ -195,9 +195,6 @@ class AMQPConnection(object):
         out_channel.confirm_delivery()
         for handler in self._handlers:
             handler.register(self, out_channel)
-            logger.info('Registered handler for {0} [{1}]'
-                        .format(handler.__class__.__name__,
-                                handler.routing_key))
         self.connect_wait.set()
         return out_channel
 
