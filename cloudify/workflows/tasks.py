@@ -468,16 +468,14 @@ class RemoteWorkflowTask(WorkflowTask):
             self.set_state(TASK_SENDING)
         try:
             self._set_queue_kwargs()
-            task = self.workflow_context.internal.handler.get_task(
-                self, queue=self._task_queue, target=self._task_target,
-                tenant=self._task_tenant)
             self.workflow_context.internal.handler.wait_for_result(
-                self.async_result, self, task)
+                self, self._task_target)
             if should_send:
                 self.workflow_context.internal.send_task_event(
                     TASK_SENDING, self)
                 self.set_state(TASK_SENT)
-                self.workflow_context.internal.handler.send_task(self, task)
+                self.workflow_context.internal.handler.send_task(
+                    self, self._task_target, self._task_queue)
         except (exceptions.NonRecoverableError,
                 exceptions.RecoverableError) as e:
             self.set_state(TASK_FAILED)

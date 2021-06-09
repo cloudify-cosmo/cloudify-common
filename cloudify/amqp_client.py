@@ -195,9 +195,6 @@ class AMQPConnection(object):
         out_channel.confirm_delivery()
         for handler in self._handlers:
             handler.register(self, out_channel)
-            logger.info('Registered handler for {0} [{1}]'
-                        .format(handler.__class__.__name__,
-                                handler.routing_key))
         self.connect_wait.set()
         return out_channel
 
@@ -532,8 +529,10 @@ class NoWaitSendHandler(SendHandler):
     wait_for_publish = False
 
 
-class _RequestResponseHandlerBase(TaskConsumer):
-    queue_exclusive = False
+class BlockingRequestResponseHandler(TaskConsumer):
+    def __init__(self, *args, **kwargs):
+        super(BlockingRequestResponseHandler, self).__init__(*args, **kwargs)
+        self._response = queue.Queue()
 
     def register(self, connection, channel):
         self._connection = connection
@@ -545,7 +544,7 @@ class _RequestResponseHandlerBase(TaskConsumer):
     def _declare_queue(self, queue_name):
         self._connection.channel_method(
             'queue_declare', queue=queue_name, durable=True,
-            exclusive=self.queue_exclusive)
+            exclusive=True)
         self._connection.channel_method(
             'queue_bind', queue=queue_name, exchange=self.exchange)
         if OLD_PIKA:
@@ -564,8 +563,12 @@ class _RequestResponseHandlerBase(TaskConsumer):
     def make_response_queue(self, correlation_id):
         self._declare_queue(self._queue_name(correlation_id))
 
-    def publish(self, message, correlation_id, routing_key='',
-                expiration=None):
+    def publish(self, message, correlation_id=None, routing_key='',
+                expiration=None, timeout=None):
+        if correlation_id is None:
+            correlation_id = uuid.uuid4().hex
+        self.make_response_queue(correlation_id)
+
         if expiration is not None:
             # rabbitmq wants it to be a string
             expiration = '{0}'.format(expiration)
@@ -578,28 +581,6 @@ class _RequestResponseHandlerBase(TaskConsumer):
                 expiration=expiration),
             'routing_key': routing_key
         })
-
-    def process(self, channel, method, properties, body):
-        raise NotImplementedError()
-
-
-class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
-    # when the process closes, a blockin handler's queues can be deleted,
-    # because there's no way to resume waiting on those
-    queue_exclusive = True
-
-    def __init__(self, *args, **kwargs):
-        super(BlockingRequestResponseHandler, self).__init__(*args, **kwargs)
-        self._response = queue.Queue()
-
-    def publish(self, message, *args, **kwargs):
-        timeout = kwargs.pop('timeout', None)
-        correlation_id = kwargs.pop('correlation_id', None)
-        if correlation_id is None:
-            correlation_id = uuid.uuid4().hex
-        self.make_response_queue(correlation_id)
-        super(BlockingRequestResponseHandler, self).publish(
-            message, correlation_id, *args, **kwargs)
 
         try:
             return json.loads(
@@ -618,36 +599,6 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
             self._queue_name(properties.correlation_id),
             wait=False, if_empty=False)
         self._response.put(body)
-
-
-class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
-    def __init__(self, *args, **kwargs):
-        super(CallbackRequestResponseHandler, self).__init__(*args, **kwargs)
-        self.callbacks = {}
-
-    def publish(self, message, *args, **kwargs):
-        callback = kwargs.pop('callback', None)
-        correlation_id = kwargs.pop('correlation_id', None)
-        if correlation_id is None:
-            correlation_id = uuid.uuid4().hex
-
-        if callback:
-            self.callbacks[correlation_id] = callback
-            self.make_response_queue(correlation_id)
-        super(CallbackRequestResponseHandler, self).publish(
-            message, correlation_id, *args, **kwargs)
-
-    def process(self, channel, method, properties, body):
-        if properties.correlation_id in self.callbacks:
-            try:
-                response = json.loads(body.decode('utf-8'))
-                self.callbacks[properties.correlation_id](response)
-            except ValueError:
-                logger.error('Error parsing response: {0}'.format(body))
-        channel.basic_ack(method.delivery_tag)
-        self.delete_queue(
-            self._queue_name(properties.correlation_id),
-            wait=False, if_empty=False)
 
 
 def get_client(amqp_host=None,

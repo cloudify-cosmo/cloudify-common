@@ -281,8 +281,9 @@ class TestDispatchTaskHandler(testtools.TestCase):
         workflow_handler._func = func2
         workflow_handler._ctx = type('MockWorkflowContext', (object,), {
             'local': False,
-            'logger': MagicMock(),
-            'internal': MagicMock(),
+            'logger': Mock(),
+            'cleanup': Mock(),
+            'internal': Mock(),
             'execution_id': 'test_execution_id',
             'workflow_id': 'test_workflow_id',
             'dry_run': False,

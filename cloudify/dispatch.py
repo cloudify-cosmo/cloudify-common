@@ -691,6 +691,7 @@ class WorkflowHandler(TaskHandler):
         )
 
     def _workflow_succeeded(self):
+        self.ctx.cleanup(finished=True)
         self._update_execution_status(Execution.TERMINATED)
         dry_run = ' (dry run)' if self.ctx.dry_run else ''
         self.ctx.internal.send_workflow_event(
@@ -701,6 +702,7 @@ class WorkflowHandler(TaskHandler):
         )
 
     def _workflow_failed(self, exception, error_traceback=None):
+        self.ctx.cleanup(finished=True)
         try:
             self.ctx.internal.send_workflow_event(
                 event_type='workflow_failed',
@@ -717,6 +719,7 @@ class WorkflowHandler(TaskHandler):
             raise exception
 
     def _workflow_cancelled(self):
+        self.ctx.cleanup(finished=False)
         self._update_execution_status(Execution.CANCELLED)
         self.ctx.internal.send_workflow_event(
             event_type='workflow_cancelled',
