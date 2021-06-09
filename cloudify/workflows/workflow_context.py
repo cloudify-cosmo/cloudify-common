@@ -1296,21 +1296,23 @@ class CloudifyWorkflowContextHandler(object):
 
 class _WorkflowTaskHandler(object):
     def __init__(self, workflow_ctx):
+        self._logger = logging.getLogger('dispatch')
         self.workflow_ctx = workflow_ctx
-        self._queue_name = 'response_{0}'.format(workflow_ctx.execution_id)
+        self._queue_name = 'execution_responses_{0}'.format(
+            workflow_ctx.execution_id)
         self._connection = None
-        self.callbacks = {}
         self._responses = {}
+        self._tasks = {}
         self._bound = set()
 
-    def add_callback(self, correlation_id, callback):
-        if correlation_id in self._responses:
-            response, delivery_tag = self._responses.pop(correlation_id)
-            callback(response)
+    def wait_for_task(self, task):
+        if task.id in self._responses:
+            response, delivery_tag = self._responses.pop(task.id)
+            self._task_callback(task, response)
             self._connection.channel_method(
                 'basic_ack', delivery_tag=delivery_tag)
         else:
-            self.callbacks[correlation_id] = callback
+            self._tasks[task.id] = task
 
     def register(self, connection, channel):
         self._connection = connection
@@ -1331,13 +1333,13 @@ class _WorkflowTaskHandler(object):
             logger.error('Error parsing response: %s', body)
             channel.basic_ack(method.delivery_tag)
             return
-        if properties.correlation_id in self.callbacks:
-            self.callbacks.pop(properties.correlation_id)(response)
+        if properties.correlation_id in self._tasks:
+            task = self._tasks.pop(properties.correlation_id)
+            self._task_callback(task, response)
             channel.basic_ack(method.delivery_tag)
         else:
             self._responses[properties.correlation_id] = \
                 (response, method.delivery_tag)
-
 
     def publish(self, target, message, correlation_id, routing_key):
         if target not in self._bound:
@@ -1359,11 +1361,44 @@ class _WorkflowTaskHandler(object):
         self._connection.channel_method(
             'queue_delete', queue=self._queue_name, if_empty=True, wait=True)
 
+    def _task_callback(self, task, response):
+        self._logger.debug('[%s] Response received - %s', task.id, response)
+        try:
+            if not response or task.is_terminated:
+                return
+
+            error = response.get('error')
+            if error:
+                exception = deserialize_known_exception(error)
+                if isinstance(exception, exceptions.OperationRetry):
+                    state = TASK_RESCHEDULED
+                else:
+                    state = TASK_FAILED
+                self._set_task_state(task, state)
+                task.async_result.result = exception
+            else:
+                state = TASK_SUCCEEDED
+                self._set_task_state(task, state, {
+                    'result': response.get('result')
+                })
+                task.async_result.result = response.get('result')
+        except Exception:
+            self._logger.error('Error occurred while processing task',
+                               exc_info=True)
+            raise
+
+    def _set_task_state(self, task, state, event=None):
+        with current_workflow_ctx.push(task.workflow_context):
+            task.set_state(state)
+            if event is not None:
+                events.send_task_event(
+                    state, task,
+                    events.send_task_event_func_remote, event)
+
 
 class _TaskDispatcher(object):
     def __init__(self, workflow_ctx):
         self.workflow_ctx = workflow_ctx
-        self._tasks = {}
         self._logger = logging.getLogger('dispatch')
         self._clients = {}
 
@@ -1409,64 +1444,9 @@ class _TaskDispatcher(object):
                         correlation_id=task.id)
         self._logger.debug('Task [%s] sent', task.id)
 
-    def wait_for_result(self, result, task, target):
+    def wait_for_result(self, task, target):
         client, handler = self.get_client(target)
-        callback = functools.partial(self._received, task.id, client)
-        self._tasks.setdefault(client, {})[task.id] = (task, result)
-        handler.add_callback(task.id, callback)
-        return result
-
-    def _set_task_state(self, workflow_task, state, event=None):
-        with current_workflow_ctx.push(workflow_task.workflow_context):
-            workflow_task.set_state(state)
-            if event is not None:
-                events.send_task_event(
-                    state, workflow_task,
-                    events.send_task_event_func_remote, event)
-
-    def _received(self, task_id, client, response):
-        self._logger.debug(
-            '[{0}] Response received - {1}'.format(task_id, response)
-        )
-        try:
-            if not response:
-                return
-            try:
-                workflow_task, result = self._tasks[client].pop(task_id)
-            except KeyError:
-                return
-            if workflow_task.is_terminated:
-                return
-
-            error = response.get('error')
-            if error:
-                exception = deserialize_known_exception(error)
-                if isinstance(exception, exceptions.OperationRetry):
-                    state = TASK_RESCHEDULED
-                else:
-                    state = TASK_FAILED
-                self._set_task_state(workflow_task, state)
-                result.result = exception
-            else:
-                state = TASK_SUCCEEDED
-                self._set_task_state(workflow_task, state, {
-                    'result': response.get('result')
-                })
-                result.result = response.get('result')
-
-            self._maybe_stop_client(client)
-        except Exception:
-            self._logger.error('Error occurred while processing task',
-                               exc_info=True)
-            raise
-
-    def _maybe_stop_client(self, client):
-        if self._tasks[client]:
-            return
-        self._tasks.pop(client)
-        # we are running in a callback - on the consumer thread. No reason to
-        # try and wait (join) for the thread we're running on to be closed
-        client.close(wait=False)
+        handler.wait_for_task(task)
 
 
 class RemoteContextHandler(CloudifyWorkflowContextHandler):

@@ -469,7 +469,7 @@ class RemoteWorkflowTask(WorkflowTask):
         try:
             self._set_queue_kwargs()
             self.workflow_context.internal.handler.wait_for_result(
-                self.async_result, self, self._task_target)
+                self, self._task_target)
             if should_send:
                 self.workflow_context.internal.send_task_event(
                     TASK_SENDING, self)
