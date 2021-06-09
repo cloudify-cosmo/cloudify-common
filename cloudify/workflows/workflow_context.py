@@ -16,9 +16,11 @@ from __future__ import absolute_import
 
 import functools
 import copy
+import json
 import uuid
 import threading
 import logging
+import pika
 
 from proxy_tools import proxy
 
@@ -1310,6 +1312,65 @@ class _TaskDispatcher(object):
         task.update({
             'client': client,
             'handler': handler
+class _WorkflowTaskHandler(object):
+    def __init__(self, workflow_ctx):
+        self.workflow_ctx = workflow_ctx
+        self._queue_name = 'response_{0}'.format(workflow_ctx.execution_id)
+        self._connection = None
+        self.callbacks = {}
+        self._responses = {}
+        self._bound = set()
+
+    def add_callback(self, correlation_id, callback):
+        if correlation_id in self._responses:
+            response, delivery_tag = self._responses.pop(correlation_id)
+            callback(response)
+            self._connection.channel_method(
+                'basic_ack', delivery_tag=delivery_tag)
+        else:
+            self.callbacks[correlation_id] = callback
+
+    def register(self, connection, channel):
+        self._connection = connection
+        channel.exchange_declare(exchange=MGMTWORKER_QUEUE,
+                                 auto_delete=False,
+                                 durable=True,
+                                 exchange_type='direct')
+        channel.queue_declare(
+            queue=self._queue_name, durable=True, auto_delete=False)
+
+        channel.basic_consume(
+            queue=self._queue_name, on_message_callback=self.process)
+
+    def process(self, channel, method, properties, body):
+        try:
+            response = json.loads(body.decode('utf-8'))
+        except ValueError:
+            logger.error('Error parsing response: %s', body)
+            channel.basic_ack(method.delivery_tag)
+            return
+        if properties.correlation_id in self.callbacks:
+            self.callbacks.pop(properties.correlation_id)(response)
+            channel.basic_ack(method.delivery_tag)
+        else:
+            self._responses[properties.correlation_id] = \
+                (response, method.delivery_tag)
+
+
+    def publish(self, target, message, correlation_id, routing_key):
+        if target not in self._bound:
+            self._bound.add(target)
+            self._connection.channel_method(
+                'queue_bind',
+                queue=self._queue_name, exchange=target,
+                routing_key=self._queue_name)
+        self._connection.publish({
+            'exchange': target,
+            'body': json.dumps(message),
+            'properties': pika.BasicProperties(
+                reply_to=self._queue_name,
+                correlation_id=correlation_id),
+            'routing_key': routing_key,
         })
         return task
 
