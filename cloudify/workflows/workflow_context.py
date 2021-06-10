@@ -1434,6 +1434,7 @@ class _TaskDispatcher(object):
                 client.add_handler(handler)
                 client.consume_in_thread()
                 self._clients[tenant.rabbitmq_vhost] = (client, handler)
+            client, handler = self._clients[tenant.rabbitmq_vhost]
         return client, handler
 
     def send_task(self, task, target, queue):
