@@ -680,6 +680,14 @@ class CloudifyContext(CommonContext):
         return self._target
 
     @property
+    def task_type(self):
+        """The kind of task this context is for
+
+        Possible values include: operation, workflow, or hook.
+        """
+        return self._context['type']
+
+    @property
     def type(self):
         """The type of this context.
 
@@ -694,6 +702,26 @@ class CloudifyContext(CommonContext):
         if self._instance:
             return NODE_INSTANCE
         return DEPLOYMENT
+
+    @property
+    def timeout(self):
+        """After this many seconds, the operation process will be killed"""
+        return self._context.get('timeout')
+
+    @property
+    def timeout_recoverable(self):
+        """If set, the operation timeouting will raise a RecoverableError
+
+        By default, if the operation is killed by a timeout,
+        NonRecoverableError is raised instead.
+        Recoverable allows for retries.
+        """
+        return self._context.get('timeout_recoverable', False)
+
+    @property
+    def execution_env(self):
+        """Additional envvars for the operation subprocess"""
+        return self._context.get('execution_env') or {}
 
     @property
     def execution_id(self):
@@ -1124,6 +1152,11 @@ class PluginContext(str):
     def package_version(self):
         """The plugin package version."""
         return self._plugin_context.get('package_version')
+
+    @property
+    def source(self):
+        """The source package of the plugin."""
+        return self._plugin_context.get('source')
 
     @property
     def prefix(self):
