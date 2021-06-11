@@ -18,12 +18,8 @@ import copy
 import json
 import logging
 import os
-import shutil
-import subprocess
 import sys
-import tempfile
 import threading
-from time import sleep
 import traceback
 
 from contextlib import contextmanager
@@ -41,15 +37,11 @@ from cloudify import context
 from cloudify import utils
 from cloudify import amqp_client_utils
 from cloudify import constants
-from cloudify import plugin_installer
-from cloudify._compat import queue, StringIO, PY2
+from cloudify._compat import queue, StringIO
 from cloudify.amqp_client_utils import AMQPWrappedThread
 from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.constants import LOGGING_CONFIG_FILE
-from cloudify.error_handling import (
-    serialize_known_exception,
-    deserialize_known_exception
-)
+from cloudify.error_handling import serialize_known_exception
 
 try:
     from cloudify.workflows import api
@@ -59,111 +51,8 @@ except ImportError:
     api = None
 
 
-ENV_ENCODING = 'utf-8'  # encoding for env variables
-CLOUDIFY_DISPATCH = 'CLOUDIFY_DISPATCH'
-
-SYSTEM_DEPLOYMENT = '__system__'
 DISPATCH_LOGGER_FORMATTER = logging.Formatter(
     '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
-PREINSTALLED_PLUGINS = [
-    'agent',
-    'diamond',  # Stub for back compat
-    'script',
-    'cfy_extensions',
-    'default_workflows',
-    'worker_installer',
-    'cloudify_system_workflows',
-    'agent_installer',
-]
-
-
-class LockedFile(object):
-    """Like a writable file object, but writes are under a lock.
-
-    Used for logging, so that multiple threads can write to the same logfile
-    safely (deployment.log).
-
-    We keep track of the number of users, so that we can close the file
-    only when the last one stops writing.
-    """
-    SETUP_LOGGER_LOCK = threading.Lock()
-    LOGFILES = {}
-
-    @classmethod
-    def open(cls, fn):
-        """Create a new LockedFile, or get a cached one if one for this
-        filename already exists.
-        """
-        with cls.SETUP_LOGGER_LOCK:
-            if fn not in cls.LOGFILES:
-                if not os.path.exists(os.path.dirname(fn)):
-                    os.mkdir(os.path.dirname(fn))
-                cls.LOGFILES[fn] = cls(fn)
-            rv = cls.LOGFILES[fn]
-            rv.users += 1
-        return rv
-
-    def __init__(self, filename):
-        self._filename = filename
-        self._f = None
-        self.users = 0
-        self._lock = threading.Lock()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc_info):
-        self.close()
-
-    def write(self, data):
-        with self._lock:
-            if self._f is None:
-                self._f = open(self._filename, 'ab')
-            self._f.write(data)
-            self._f.flush()
-
-    def close(self):
-        with self.SETUP_LOGGER_LOCK:
-            self.users -= 1
-            if self.users == 0:
-                if self._f:
-                    self._f.close()
-                self.LOGFILES.pop(self._filename)
-
-
-class TimeoutWrapper(object):
-    def __init__(self, cloudify_context, process):
-        self.timeout = cloudify_context.get('timeout')
-        self.timeout_recoverable = cloudify_context.get(
-            'timeout_recoverable', False)
-        self.timeout_encountered = False
-        self.process = process
-        self.timer = None
-        self.logger = logging.getLogger(__name__)
-
-    def _timer_func(self):
-        self.timeout_encountered = True
-        self.logger.warning("Terminating subprocess; PID=%d...",
-                            self.process.pid)
-        self.process.terminate()
-        for i in range(10):
-            if self.process.poll() is not None:
-                return
-            self.logger.warning("Subprocess still alive; waiting...")
-            sleep(0.5)
-        self.logger.warning("Subprocess still alive; sending KILL signal")
-        self.process.kill()
-        self.logger.warning("Subprocess killed")
-
-    def __enter__(self):
-        if self.timeout:
-            self.timer = threading.Timer(self.timeout, self._timer_func)
-            self.timer.start()
-        return self
-
-    def __exit__(self, *args):
-        if self.timer:
-            self.timer.cancel()
 
 
 class TaskHandler(object):
@@ -178,196 +67,8 @@ class TaskHandler(object):
         self._logfiles = {}
         self._process_registry = process_registry
 
-    def handle_or_dispatch_to_subprocess_if_remote(self):
-        if self.cloudify_context.get('task_target'):
-            return self.dispatch_to_subprocess()
-        else:
-            return self.handle()
-
     def handle(self):
         raise NotImplementedError('Implemented by subclasses')
-
-    def run_subprocess(self, *subprocess_args, **subprocess_kwargs):
-        subprocess_kwargs.setdefault('stderr', subprocess.STDOUT)
-        subprocess_kwargs.setdefault('stdout', subprocess.PIPE)
-        p = subprocess.Popen(*subprocess_args, **subprocess_kwargs)
-        if self._process_registry:
-            self._process_registry.register(self, p)
-
-        with TimeoutWrapper(self.cloudify_context, p) as timeout_wrapper:
-            with self.logfile() as f:
-                while True:
-                    line = p.stdout.readline()
-                    if line:
-                        f.write(line)
-                    if p.poll() is not None:
-                        break
-
-        cancelled = False
-        if self._process_registry:
-            cancelled = self._process_registry.is_cancelled(self)
-            self._process_registry.unregister(self, p)
-
-        if timeout_wrapper.timeout_encountered:
-            message = 'Process killed due to timeout of %d seconds' % \
-                      timeout_wrapper.timeout
-            if p.poll() is None:
-                message += ', however it has not stopped yet; please check ' \
-                           'process ID {0} manually'.format(p.pid)
-            exception_class = exceptions.RecoverableError if \
-                timeout_wrapper.timeout_recoverable else \
-                exceptions.NonRecoverableError
-            raise exception_class(message)
-
-        if p.returncode in (-15, -9):  # SIGTERM, SIGKILL
-            if cancelled:
-                raise exceptions.ProcessKillCancelled()
-            raise exceptions.NonRecoverableError('Process terminated (rc={0})'
-                                                 .format(p.returncode))
-        if p.returncode != 0:
-            raise exceptions.NonRecoverableError(
-                'Unhandled exception occurred in operation dispatch (rc={0})'
-                .format(p.returncode))
-
-    def logfile(self):
-        try:
-            handler_context = self.ctx.deployment.id
-        except AttributeError:
-            handler_context = SYSTEM_DEPLOYMENT
-        else:
-            # an operation may originate from a system wide workflow.
-            # in that case, the deployment id will be None
-            handler_context = handler_context or SYSTEM_DEPLOYMENT
-
-        log_name = os.path.join(os.environ.get('AGENT_LOG_DIR', ''), 'logs',
-                                '{0}.log'.format(handler_context))
-
-        return LockedFile.open(log_name)
-
-    def dispatch_to_subprocess(self):
-        # inputs.json, output.json and output are written to a temporary
-        # directory that only lives during the lifetime of the subprocess
-        split = self.cloudify_context['task_name'].split('.')
-        dispatch_dir = tempfile.mkdtemp(prefix='task-{0}.{1}-'.format(
-            split[0], split[-1]))
-
-        try:
-            with open(os.path.join(dispatch_dir, 'input.json'), 'w') as f:
-                json.dump({
-                    'cloudify_context': self.cloudify_context,
-                    'args': self.args,
-                    'kwargs': self.kwargs
-                }, f)
-            if self.cloudify_context.get('bypass_maintenance'):
-                os.environ[constants.BYPASS_MAINTENANCE] = 'True'
-            env = self._build_subprocess_env()
-
-            if self._uses_external_plugin():
-                plugin_dir = self._extract_plugin_dir()
-                if plugin_dir is None:
-                    self._install_plugin()
-                    plugin_dir = self._extract_plugin_dir()
-                if plugin_dir is None:
-                    raise RuntimeError(
-                        'Plugin was not installed: {0}'
-                        .format(self.cloudify_context['plugin']))
-                executable = utils.get_python_path(plugin_dir)
-            else:
-                executable = sys.executable
-
-            env['PATH'] = '{0}:{1}'.format(
-                os.path.dirname(executable), env['PATH'])
-            command_args = [executable, '-u', '-m', 'cloudify.dispatch',
-                            dispatch_dir]
-            self.run_subprocess(command_args,
-                                env=env,
-                                bufsize=1,
-                                close_fds=os.name != 'nt')
-            with open(os.path.join(dispatch_dir, 'output.json')) as f:
-                dispatch_output = json.load(f)
-            if dispatch_output['type'] == 'result':
-                return dispatch_output['payload']
-            elif dispatch_output['type'] == 'error':
-                e = dispatch_output['payload']
-                error = deserialize_known_exception(e)
-                error.causes.append({
-                    'message': e['message'],
-                    'type': e['exception_type'],
-                    'traceback': e.get('traceback')
-                })
-                raise error
-            else:
-                raise exceptions.NonRecoverableError(
-                    'Unexpected output type: {0}'
-                    .format(dispatch_output['type']))
-        finally:
-            shutil.rmtree(dispatch_dir, ignore_errors=True)
-
-    def _build_subprocess_env(self):
-        env = os.environ.copy()
-
-        # marker for code that only gets executed when inside the dispatched
-        # subprocess, see usage in the imports section of this module
-        env[CLOUDIFY_DISPATCH] = 'true'
-
-        # This is used to support environment variables configurations for
-        # central deployment based operations. See workflow_context to
-        # understand where this value gets set initially
-        # Note that this is received via json, so it is unicode. It must
-        # be encoded, because environment variables must be bytes.
-        execution_env = self.cloudify_context.get('execution_env') or {}
-        if PY2:
-            execution_env = dict((k.encode(ENV_ENCODING),
-                                  v.encode(ENV_ENCODING))
-                                 for k, v in execution_env.items())
-        env.update(execution_env)
-
-        if self.cloudify_context.get('bypass_maintenance'):
-            env[constants.BYPASS_MAINTENANCE] = 'True'
-
-        return env
-
-    def _uses_external_plugin(self):
-        """Whether this operation uses a plugin that is not built-in"""
-        plugin = self.cloudify_context.get('plugin')
-        if not plugin or not plugin.get('name'):
-            return False
-        if plugin['name'] in PREINSTALLED_PLUGINS:
-            return False
-        return True
-
-    def _install_plugin(self):
-        plugin = self.cloudify_context.get('plugin')
-        if plugin_installer is None:
-            raise RuntimeError(
-                "cloudify_agent's plugin_installer is not available, "
-                "cannot install plugin: {0}".format(plugin))
-        with state.current_ctx.push(self.ctx, self.kwargs):
-            # source plugins are per-deployment/blueprint, while non-source
-            # plugins are expected to be "managed", ie. uploaded to the manager
-            if plugin.get('source'):
-                dep_id = self.ctx.deployment.id
-                bp_id = self.ctx.blueprint.id
-            else:
-                dep_id = None
-                bp_id = None
-            plugin_installer.install(
-                plugin,
-                deployment_id=dep_id,
-                blueprint_id=bp_id)
-
-    def _extract_plugin_dir(self):
-        plugin = self.cloudify_context['plugin']
-        package_name = plugin.get('package_name') or plugin['name']
-        package_version = plugin.get('package_version')
-        deployment_id = self.cloudify_context.get('deployment_id')
-        tenant_name = self.cloudify_context['tenant']['name']
-
-        return utils.plugin_prefix(
-            name=package_name,
-            version=package_version,
-            deployment_id=deployment_id,
-            tenant_name=tenant_name)
 
     def setup_logging(self):
         logs.setup_subprocess_logger()
@@ -762,7 +463,7 @@ def dispatch(__cloudify_context, *args, **kwargs):
     handler = dispatch_handler_cls(cloudify_context=__cloudify_context,
                                    args=args,
                                    kwargs=kwargs)
-    return handler.handle_or_dispatch_to_subprocess_if_remote()
+    return handler.handle()
 
 
 def main():
