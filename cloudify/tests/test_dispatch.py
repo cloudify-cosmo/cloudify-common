@@ -13,29 +13,16 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import sys
-import os
-import shutil
-import logging
-import tempfile
-
 from mock import patch, MagicMock, Mock
 import testtools
 
-from cloudify import amqp_client, amqp_client_utils
 from cloudify import dispatch
 from cloudify import exceptions
-from cloudify import utils
 from cloudify.workflows import tasks
 from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
 
 
 class TestDispatchTaskHandler(testtools.TestCase):
-    def setUp(self):
-        super(TestDispatchTaskHandler, self).setUp()
-        self.temp_log_dir = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, self.temp_log_dir)
-
     @patch('cloudify.dispatch.amqp_client_utils')
     def test_dispatch_update_operation_resume(self, _):
         """When the operation was already started, we set resume=true
@@ -218,9 +205,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
         module = __name__
         if not local:
             module = module.split('.')[-1]
-        os.environ['AGENT_LOG_DIR'] = self.temp_log_dir
-        execution_env = execution_env or {}
-        execution_env['PYTHONPATH'] = os.path.dirname(__file__)
         return dispatch.OperationHandler(cloudify_context={
             'no_ctx_kwarg': True,
             'local': local,
@@ -228,18 +212,11 @@ class TestDispatchTaskHandler(testtools.TestCase):
             'task_name': '{0}.{1}'.format(module, func.__name__),
             'task_target': task_target,
             'type': 'operation',
-            'execution_env': execution_env,
             'socket_url': socket_url,
             'deployment_id': deployment_id,
             'tenant': {'name': 'default_tenant'}
         }, args=args or [], kwargs=kwargs or {},
             process_registry=process_registry)
-
-
-if os.environ.get('CLOUDIFY_DISPATCH'):
-    amqp_client.create_client = Mock()
-    amqp_client_utils.init_events_publisher = Mock()
-    amqp_client_utils.close_amqp_client = Mock()
 
 
 def func1(result):
@@ -248,53 +225,3 @@ def func1(result):
 
 def func2(*args, **kwargs):
     return args, kwargs
-
-
-def func3(keys):
-    return [os.environ.get(key) for key in keys]
-
-
-def func4(message):
-    logger = logging.getLogger(__name__)
-    logger.info(message)
-
-
-def func5(message):
-    non_json_serializable_thingy = object()
-    logger = logging.getLogger()
-    handler = logger.handlers[0]
-    handler._context = non_json_serializable_thingy
-    logger.info(message)
-
-
-def func6(args, known_exception=None, user_exception=None):
-    if user_exception:
-        raise globals()[user_exception](*args)
-    else:
-        raise getattr(exceptions, known_exception)(*args)
-
-
-def func7(message):
-    try:
-        raise RuntimeError(message)
-    except RuntimeError:
-        _, ex, tb = sys.exc_info()
-        raise NonRecoverableUserException(causes=[
-            utils.exception_to_error_cause(ex, tb)
-        ])
-
-
-def func8(message):
-    raise RuntimeError(message)
-
-
-class UserException(Exception):
-    pass
-
-
-class RecoverableUserException(exceptions.RecoverableError):
-    pass
-
-
-class NonRecoverableUserException(exceptions.NonRecoverableError):
-    pass
