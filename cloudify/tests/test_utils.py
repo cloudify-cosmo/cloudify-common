@@ -222,9 +222,7 @@ class TestDateTimeUtils(TestCase):
 
     def test_parse_utc_datetime_no_date(self):
         parsed_datetime = utils.parse_utc_datetime("12:00", "EST")
-        expected_datetime = datetime.utcnow().replace(
-            hour=17, minute=0, second=0, microsecond=0)
-        self.assertEqual(parsed_datetime, expected_datetime)
+        self.assertEqual(parsed_datetime.hour, 17)
 
     def test_parse_utc_datetime_bad_time_expressions(self):
         illegal_time_formats = ['blah', '15:33:18', '99:99',
