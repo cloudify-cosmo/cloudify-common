@@ -69,14 +69,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
                                     op_handler.handle)
         self.assertIn('not resumable', str(exc))
 
-    def test_dispatch_resume(self):
-        args = [1, 2]
-        kwargs = {'one': 1, 'two': 2}
-        op_handler = self._operation(
-            func2, task_target='stub', args=args, kwargs=kwargs)
-        result = op_handler.dispatch_to_subprocess()
-        self.assertEqual([args, kwargs], result)
-
     def test_dispatch_to_subprocess_env(self):
         existing_env_var_key = 'EXISTING_ENV_VAR'
         existing_env_var_value = 'existing_value'
