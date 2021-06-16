@@ -1162,7 +1162,7 @@ class PluginContext(str):
     def prefix(self):
         """The plugin prefix."""
         return utils.plugin_prefix(
-            name=self.package_name,
+            name=self.package_name or self.name,
             version=self.package_version,
             deployment_id=self._deployment_id,
             tenant_name=self._tenant_name)
