@@ -77,6 +77,18 @@ class EventsClient(object):
         response = self.api.get(uri, _include=_include, params=params)
         return ListResponse(response['items'], response['metadata'])
 
+    def create(self, events=None, logs=None):
+        """Create events & logs
+
+        :param events: List of events to be created
+        :param logs: List of logs to be created
+        :return: None
+        """
+        self.api.post('/events', data={
+            'events': events,
+            'logs': logs,
+        }, expected_status_code=(201, 204))
+
     def delete(self, deployment_id, include_logs=False, message=None,
                from_datetime=None, to_datetime=None, sort=None, **kwargs):
         """Delete events connected to a Deployment ID
