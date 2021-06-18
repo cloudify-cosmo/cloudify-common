@@ -274,9 +274,9 @@ def _pip_install(source, venv, args):
         ctx.logger.debug('Installing from directory: %s [args=%ss]',
                          plugin_dir, args)
         command = [
-            get_python_path(venv), '-m', 'pip', 'install'
+            get_python_path(venv), '-m', 'pip',
+            '--disable-pip-version-check', 'install'
         ] + args + [plugin_dir]
-
         runner.run(command=command, cwd=plugin_dir)
     except CommandExecutionException as e:
         ctx.logger.debug('Failed running pip install. Output:\n%s', e.output)
@@ -344,7 +344,8 @@ def extract_package_to_dir(package_url):
         # multi-threaded scenario (i.e snapshot restore).
         # We don't use `curl` because pip can handle different kinds of files,
         # including .git.
-        command = [sys.executable, '-m', 'pip', 'download', '-d',
+        command = [sys.executable, '-m', 'pip',
+                   '--disable-pip-version-check', 'download', '-d',
                    archive_dir, '--no-deps', package_url]
         runner.run(command=command)
         archive = _get_archive(archive_dir, package_url)
