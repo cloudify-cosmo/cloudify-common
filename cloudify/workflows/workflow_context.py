@@ -1384,26 +1384,21 @@ class _WorkflowTaskHandler(object):
                     state = TASK_RESCHEDULED
                 else:
                     state = TASK_FAILED
-                self._set_task_state(task, state)
+                self._set_task_state(task, state, exception=exception)
                 task.async_result.result = exception
             else:
                 state = TASK_SUCCEEDED
-                self._set_task_state(task, state, {
-                    'result': response.get('result')
-                })
-                task.async_result.result = response.get('result')
+                result = response.get('result')
+                self._set_task_state(task, state, result=result)
+                task.async_result.result = result
         except Exception:
             self._logger.error('Error occurred while processing task',
                                exc_info=True)
             raise
 
-    def _set_task_state(self, task, state, event=None):
+    def _set_task_state(self, task, state, **kwargs):
         with current_workflow_ctx.push(task.workflow_context):
-            task.set_state(state)
-            if event is not None:
-                events.send_task_event(
-                    state, task,
-                    events.send_task_event_func_remote, event)
+            task.set_state(state, **kwargs)
 
 
 class _TaskDispatcher(object):
