@@ -894,8 +894,10 @@ class _WorkflowContextBase(object):
     def get_operations(self, graph_id):
         return self.internal.handler.get_operations(graph_id)
 
-    def update_operation(self, operation_id, state):
-        return self.internal.handler.update_operation(operation_id, state)
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
+        return self.internal.handler.update_operation(
+            operation_id, state, result, exception)
 
     def get_tasks_graph(self, name):
         return self.internal.handler.get_tasks_graph(self.execution_id, name)
@@ -1284,7 +1286,8 @@ class CloudifyWorkflowContextHandler(object):
     def get_tasks_graph(self, execution_id, name):
         raise NotImplementedError('Implemented by subclasses')
 
-    def update_operation(self, operation_id, state):
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
         raise NotImplementedError('Implemented by subclasses')
 
     def store_tasks_graph(self, execution_id, name, operations):
@@ -1516,9 +1519,21 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
                 break
         return ops
 
-    def update_operation(self, operation_id, state):
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
         client = get_rest_client()
-        client.operations.update(operation_id, state=state)
+        exception_causes = None
+        try:
+            json.dumps(result)
+        except ValueError:
+            # it's not serializable! just store a null (as is back-compatible)
+            result = None
+        if exception is not None:
+            exception = str(exception)
+            exception_causes = getattr(exception, 'causes', None)
+        client.operations.update(
+            operation_id, state=state, result=result,
+            exception=exception, exception_causes=exception_causes)
 
     def get_tasks_graph(self, execution_id, name):
         client = get_rest_client()
@@ -1690,7 +1705,8 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
     def get_tasks_graph(self, execution_id, name):
         pass
 
-    def update_operation(self, operation_id, state):
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
         pass
 
     def store_tasks_graph(self, execution_id, name, operations):

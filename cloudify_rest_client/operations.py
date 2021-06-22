@@ -78,9 +78,15 @@ class OperationsClient(object):
         response = self.api.put(uri, data=data, expected_status_code=201)
         return Operation(response)
 
-    def update(self, operation_id, state):
+    def update(self, operation_id, state, result=None,
+               exception=None, exception_causes=None):
         uri = '/operations/{0}'.format(operation_id)
-        response = self.api.patch(uri, data={'state': state})
+        response = self.api.patch(uri, data={
+            'state': state,
+            'result': result,
+            'exception': exception,
+            'exception_causes': exception_causes,
+        })
         return Operation(response)
 
     def delete(self, operation_id):
