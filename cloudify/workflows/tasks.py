@@ -350,16 +350,6 @@ class WorkflowTask(object):
             elif isinstance(result, exceptions.RecoverableError):
                 handler_result.retry_after = result.retry_after
 
-        if not self.is_subgraph:
-            causes = []
-            if isinstance(result, (exceptions.RecoverableError,
-                                   exceptions.NonRecoverableError)):
-                causes = result.causes or []
-            self.workflow_context.internal.send_task_event(
-                state=self.get_state(),
-                task=self,
-                event={'exception': result, 'causes': causes})
-
         return handler_result
 
     def __str__(self):
