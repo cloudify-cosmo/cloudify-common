@@ -694,11 +694,15 @@ class LocalWorkflowTask(WorkflowTask):
         task_descr.parameters['task_kwargs']['local_task'] = local_task
         return super(LocalWorkflowTask, cls).restore(ctx, graph, task_descr)
 
-    def _update_stored_state(self, state):
-        # no need to store SENT - work up to it can safely be redone
-        if state == TASK_SENT:
+    def _update_stored_state(self, state, **kwargs):
+        # no need to store pre-run events, work up to it can safely
+        # be redone; but do save when running cfy local, because then
+        # regular plugin events are this class, and we want to display it
+        if state in (TASK_SENT, TASK_STARTED) \
+                and not self.workflow_context.local:
             return
-        return super(LocalWorkflowTask, self)._update_stored_state(state)
+        return super(LocalWorkflowTask, self)._update_stored_state(
+            state, **kwargs)
 
     @with_execute_after
     def apply_async(self):
@@ -708,20 +712,16 @@ class LocalWorkflowTask(WorkflowTask):
         """
         def local_task_wrapper():
             try:
-                self.workflow_context.internal.send_task_event(TASK_STARTED,
-                                                               self)
+                self.set_state(TASK_STARTED)
                 result = self.local_task(**self.kwargs)
-                self.workflow_context.internal.send_task_event(
-                    TASK_SUCCEEDED, self, event={'result': str(result)})
                 self.async_result.result = result
-                self.set_state(TASK_SUCCEEDED)
+                self.set_state(TASK_SUCCEEDED, result=result)
             except BaseException as e:
                 new_task_state = TASK_RESCHEDULED if isinstance(
                     e, exceptions.OperationRetry) else TASK_FAILED
-                self.set_state(new_task_state)
+                self.set_state(new_task_state, exception=e)
                 self.async_result.result = e
 
-        self.workflow_context.internal.send_task_event(TASK_SENDING, self)
         self.set_state(TASK_SENT)
         self.workflow_context.internal.add_local_task(local_task_wrapper)
         return self.async_result
