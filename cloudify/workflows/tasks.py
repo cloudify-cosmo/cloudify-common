@@ -714,8 +714,8 @@ class LocalWorkflowTask(WorkflowTask):
             try:
                 self.set_state(TASK_STARTED)
                 result = self.local_task(**self.kwargs)
-                self.async_result.result = result
                 self.set_state(TASK_SUCCEEDED, result=result)
+                self.async_result.result = result
             except BaseException as e:
                 new_task_state = TASK_RESCHEDULED if isinstance(
                     e, exceptions.OperationRetry) else TASK_FAILED
