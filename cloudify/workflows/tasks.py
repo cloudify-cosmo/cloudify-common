@@ -20,7 +20,7 @@ import types
 import uuid
 
 from cloudify import exceptions, logs
-from cloudify.workflows import api, events
+from cloudify.workflows import api
 from cloudify.manager import (
     get_rest_client,
     get_node_instance,
