@@ -17,9 +17,7 @@ import os
 import sys
 import logging.config
 import logging.handlers
-import json
 import datetime
-from functools import wraps
 
 from cloudify import constants, manager
 from cloudify import event as _event
@@ -29,7 +27,6 @@ from cloudify.utils import (get_execution_creator_username,
                             ENV_AGENT_LOG_DIR,
                             ENV_AGENT_LOG_MAX_BYTES,
                             ENV_AGENT_LOG_MAX_HISTORY)
-from cloudify.exceptions import ClosedAMQPClientException
 from cloudify._compat import text_type
 
 EVENT_CLASS = _event.Event
