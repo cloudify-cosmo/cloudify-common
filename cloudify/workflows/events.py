@@ -58,42 +58,38 @@ def _filter_task(task, state):
 
 
 def get_event_type(state):
-    if state == TASK_SENDING:
-        return 'sending_task'
-    elif state == TASK_STARTED:
-        return 'task_started'
-    elif state == TASK_SUCCEEDED:
-        return 'task_succeeded'
-    elif state == TASK_RESCHEDULED:
-        return 'task_rescheduled'
-    elif state == TASK_FAILED:
-        return 'task_failed'
-    else:
+    try:
+        return {
+            TASK_SENDING: 'sending_task',
+            TASK_STARTED: 'task_started',
+            TASK_SUCCEEDED: 'task_succeeded',
+            TASK_RESCHEDULED: 'task_rescheduled',
+            TASK_FAILED: 'task_failed'
+        }[state]
+    except KeyError:
         raise RuntimeError('unhandled event type: {0}'.format(state))
 
 
 def format_event_message(name, state, result=None, exception=None,
                          current_retries=0, total_retries=0):
     exception_str = utils.format_exception(exception) if exception else None
-    if state == TASK_SENDING:
-        message = "Sending task '{0}'".format(name)
-    elif state == TASK_STARTED:
-        message = "Task started '{0}'".format(name)
-    elif state == TASK_SUCCEEDED:
-        result = str(result)
-        suffix = ' ({0})'.format(result) if result not in ("'None'",
-                                                           'None') else ''
-        message = "Task succeeded '{0}{1}'".format(name, suffix)
-    elif state == TASK_RESCHEDULED:
-        message = "Task rescheduled '{0}'".format(name)
-        if exception_str:
-            message = '{0} -> {1}'.format(message, exception_str)
-    elif state == TASK_FAILED:
-        message = "Task failed '{0}'".format(name)
-        if exception_str:
-            message = "{0} -> {1}".format(message, exception_str)
-    else:
+    try:
+        message_template = {
+            TASK_SENDING: "Sending task '{name}'",
+            TASK_STARTED: "Task started '{name}'",
+            TASK_SUCCEEDED: "Task succeeded '{name}'",
+            TASK_RESCHEDULED: "Task rescheduled '{name}'",
+            TASK_FAILED: "Task failed '{name}'",
+        }[state]
+    except KeyError:
         raise RuntimeError('unhandled event type: {0}'.format(state))
+    message = message_template.format(name=name)
+
+    if state == TASK_SUCCEEDED and result is not None:
+        message = '{0} ({1})'.format(message, result)
+
+    if state in (TASK_RESCHEDULED, TASK_FAILED) and exception_str:
+        message = '{0} -> {1}'.format(message, exception_str)
 
     if current_retries > 0:
         retry = ' [retry {0}{1}]'.format(
