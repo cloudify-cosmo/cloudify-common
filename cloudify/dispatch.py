@@ -38,7 +38,6 @@ from cloudify import utils
 from cloudify import amqp_client_utils
 from cloudify import constants
 from cloudify._compat import queue, StringIO
-from cloudify.amqp_client_utils import AMQPWrappedThread
 from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.constants import LOGGING_CONFIG_FILE
 from cloudify.error_handling import serialize_known_exception
@@ -272,9 +271,10 @@ class WorkflowHandler(TaskHandler):
                 return api.EXECUTION_CANCELLED_RESULT
 
             result_queue = queue.Queue()
-            t = AMQPWrappedThread(target=self._remote_workflow_child_thread,
-                                  args=(result_queue,),
-                                  name='Workflow-Child')
+            t = threading.Thread(target=self._remote_workflow_child_thread,
+                                 args=(result_queue,),
+                                 name='Workflow-Child')
+            t.daemon = True
             t.start()
 
             # while the child thread is executing the workflow, the parent

@@ -51,7 +51,6 @@ from cloudify.state import current_workflow_ctx
 from cloudify.workflows import events
 from cloudify.error_handling import deserialize_known_exception
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
-from cloudify.amqp_client_utils import AMQPWrappedThread
 from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            CloudifyWorkflowNodeLoggingHandler,
                            SystemWideWorkflowLoggingHandler,
@@ -1192,23 +1191,15 @@ class LocalTasksProcessing(object):
         self._is_local_context = workflow_ctx.local
         for i in range(thread_pool_size):
             name = 'Task-Processor-{0}'.format(i + 1)
-            if self._is_local_context:
-                thread = threading.Thread(target=self._process_local_task,
-                                          name=name, args=(workflow_ctx, ))
-                thread.daemon = True
-            else:
-                # this is a remote workflow, use an AMQPWrappedThread
-                thread = AMQPWrappedThread(target=self._process_local_task,
-                                           name=name, args=(workflow_ctx, ))
+            thread = threading.Thread(target=self._process_local_task,
+                                      name=name, args=(workflow_ctx, ))
+            thread.daemon = True
             self._local_task_processing_pool.append(thread)
         self.stopped = False
 
     def start(self):
         for thread in self._local_task_processing_pool:
             thread.start()
-        if not self._is_local_context:
-            for thread in self._local_task_processing_pool:
-                thread.started_amqp_client.wait(timeout=30)
 
     def stop(self):
         self.stopped = True
