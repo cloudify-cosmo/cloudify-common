@@ -480,8 +480,6 @@ class RemoteWorkflowTask(WorkflowTask):
             self.workflow_context.internal.handler.wait_for_result(
                 self, self._task_target)
             if should_send:
-                self.workflow_context.internal.send_task_event(
-                    TASK_SENDING, self)
                 self.set_state(TASK_SENT)
                 self.workflow_context.internal.handler.send_task(
                     self, self._task_target, self._task_queue)
