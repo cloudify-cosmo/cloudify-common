@@ -20,7 +20,7 @@ import types
 import uuid
 
 from cloudify import exceptions, logs
-from cloudify.workflows import api
+from cloudify.workflows import api, events
 from cloudify.manager import (
     get_rest_client,
     get_node_instance,
@@ -50,6 +50,7 @@ DEFAULT_SUBGRAPH_TOTAL_RETRIES = 0
 
 DEFAULT_SEND_TASK_EVENTS = True
 DISPATCH_TASK = 'cloudify.dispatch.dispatch'
+_NOT_SET = object()
 
 
 def with_execute_after(f):
@@ -266,7 +267,7 @@ class WorkflowTask(object):
         """
         return self._state
 
-    def set_state(self, state):
+    def set_state(self, state, result=_NOT_SET, exception=None):
         """
         Set the task state
 
@@ -277,16 +278,33 @@ class WorkflowTask(object):
                          TASK_RESCHEDULED, TASK_SUCCEEDED, TASK_FAILED]:
             raise RuntimeError('Illegal state set on task: {0} '
                                '[task={1}]'.format(state, str(self)))
-        if self.stored:
-            self._update_stored_state(state)
         if self._state in TERMINATED_STATES:
             return
         self._state = state
+        if self.stored:
+            self._update_stored_state(
+                state, result=result, exception=exception)
+        if not self.stored:
+            event = {}
+            if result is not _NOT_SET:
+                event['result'] = result
+            elif exception:
+                event['exception'] = exception
+            try:
+                self.workflow_context.internal.send_task_event(
+                    state, self, event)
+            except RuntimeError:
+                pass
         if state in TERMINATED_STATES:
             self.is_terminated = True
 
-    def _update_stored_state(self, state):
-        self.workflow_context.update_operation(self.id, state=state)
+    def _update_stored_state(self, state, result=_NOT_SET, exception=None):
+        kwargs = {'state': state}
+        if result is not _NOT_SET:
+            kwargs['result'] = result
+        if exception is not None:
+            kwargs['exception'] = exception
+        self.workflow_context.update_operation(self.id, **kwargs)
 
     def handle_task_terminated(self):
         if self.get_state() in (TASK_FAILED, TASK_RESCHEDULED):
@@ -440,12 +458,13 @@ class RemoteWorkflowTask(WorkflowTask):
                 '__cloudify_context'].pop(skipped_field, None)
         return task
 
-    def _update_stored_state(self, state):
+    def _update_stored_state(self, state, **kwargs):
         # no need to store SENDING - all work after SENDING but before SENT
         # can safely be rerun
         if state == TASK_SENDING:
             return
-        return super(RemoteWorkflowTask, self)._update_stored_state(state)
+        return super(RemoteWorkflowTask, self)._update_stored_state(
+            state, **kwargs)
 
     @with_execute_after
     def apply_async(self):
@@ -740,7 +759,7 @@ class NOPLocalWorkflowTask(WorkflowTask):
         """The task name"""
         return 'NOP'
 
-    def _update_stored_state(self, state):
+    def _update_stored_state(self, state, **kwargs):
         # the task is always stored as pending - nothing to update
         pass
 
