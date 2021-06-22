@@ -23,8 +23,7 @@ from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
 
 
 class TestDispatchTaskHandler(testtools.TestCase):
-    @patch('cloudify.dispatch.amqp_client_utils')
-    def test_dispatch_update_operation_resume(self, _):
+    def test_dispatch_update_operation_resume(self):
         """When the operation was already started, we set resume=true
 
         (and the function fails because it's not resumable)
@@ -43,7 +42,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
         self.assertRaises(exceptions.NonRecoverableError,
                           dispatch.dispatch, context)
 
-    @patch('cloudify.dispatch.amqp_client_utils')
     @patch('cloudify.dispatch.get_rest_client')
     @patch('cloudify.dispatch.WorkflowHandler._workflow_cancelled')
     @patch('cloudify.dispatch.update_execution_status',
@@ -81,7 +79,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
             workflow_handler._func = _normal_func
             workflow_handler._ctx = _normal_ctx
 
-    @patch('cloudify.dispatch.amqp_client_utils')
     @patch('cloudify.dispatch.get_rest_client')
     @patch('cloudify.dispatch.WorkflowHandler._workflow_cancelled')
     @patch('cloudify.dispatch.update_execution_status',
@@ -116,7 +113,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
             workflow_handler._func = _normal_func
             workflow_handler._ctx = _normal_ctx
 
-    @patch('cloudify.dispatch.amqp_client_utils')
     @patch('cloudify.dispatch.get_rest_client')
     @patch('cloudify.dispatch.WorkflowHandler._workflow_cancelled')
     @patch('cloudify.dispatch.update_execution_status',
@@ -153,7 +149,6 @@ class TestDispatchTaskHandler(testtools.TestCase):
             workflow_handler._func = _normal_func
             workflow_handler._ctx = _normal_ctx
 
-    @patch('cloudify.dispatch.amqp_client_utils')
     @patch('cloudify.dispatch.get_rest_client')
     @patch('cloudify.dispatch.update_execution_status')
     def test_workflow_update_execution_status_set_to_false(
