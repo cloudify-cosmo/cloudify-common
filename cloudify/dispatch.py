@@ -367,7 +367,6 @@ class WorkflowHandler(TaskHandler):
 
     def _workflow_succeeded(self):
         self.ctx.cleanup(finished=True)
-        self._update_execution_status(Execution.TERMINATED)
         dry_run = ' (dry run)' if self.ctx.dry_run else ''
         self.ctx.internal.send_workflow_event(
             event_type='workflow_succeeded',
@@ -375,6 +374,7 @@ class WorkflowHandler(TaskHandler):
                 self.ctx.workflow_id, dry_run),
             additional_context=self._get_hook_params()
         )
+        self._update_execution_status(Execution.TERMINATED)
 
     def _workflow_failed(self, exception, error_traceback=None):
         self.ctx.cleanup(finished=True)
