@@ -17,12 +17,9 @@ import os
 import sys
 import logging.config
 import logging.handlers
-import json
 import datetime
-from functools import wraps
 
-from cloudify import constants
-from cloudify import amqp_client_utils
+from cloudify import constants, manager
 from cloudify import event as _event
 from cloudify.utils import (get_execution_creator_username,
                             is_management_environment,
@@ -30,7 +27,6 @@ from cloudify.utils import (get_execution_creator_username,
                             ENV_AGENT_LOG_DIR,
                             ENV_AGENT_LOG_MAX_BYTES,
                             ENV_AGENT_LOG_MAX_HISTORY)
-from cloudify.exceptions import ClosedAMQPClientException
 from cloudify._compat import text_type
 
 EVENT_CLASS = _event.Event
@@ -355,29 +351,12 @@ def create_event_message_prefix(event):
     return text_type(event_obj)
 
 
-def with_amqp_client(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        """Calls the wrapped func with an AMQP client instance."""
-        # call the wrapped func with the amqp client
-        with amqp_client_utils.global_management_events_publisher as client:
-            return func(client, *args, **kwargs)
-
-    return wrapper
-
-
-@with_amqp_client
-def _publish_message(client, message, message_type, logger):
-    try:
-        client.publish_message(message, message_type)
-    except ClosedAMQPClientException:
-        raise
-    except BaseException as e:
-        logger.warning(
-            'Error publishing {0} to RabbitMQ ({1})[message={2}]'
-            .format(message_type,
-                    '{0}: {1}'.format(type(e).__name__, e),
-                    json.dumps(message)))
+def _publish_message(message, message_type, logger):
+    client = manager.get_rest_client()
+    if message_type == 'log':
+        client.events.create(logs=[message])
+    else:
+        client.events.create(events=[message])
 
 
 def setup_logger_base(log_level, log_dir=None):

@@ -35,10 +35,8 @@ from cloudify import exceptions
 from cloudify import state
 from cloudify import context
 from cloudify import utils
-from cloudify import amqp_client_utils
 from cloudify import constants
 from cloudify._compat import queue, StringIO
-from cloudify.amqp_client_utils import AMQPWrappedThread
 from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.constants import LOGGING_CONFIG_FILE
 from cloudify.error_handling import serialize_known_exception
@@ -151,10 +149,9 @@ class OperationHandler(TaskHandler):
         with state.current_ctx.push(ctx, kwargs):
             # should be single `with` and comma-separate ctxmanagers,
             # but has to be nested for python 2.6 compat
-            with self._amqp_client():
-                with self._update_operation_state():
-                    self._validate_operation_resumable()
-                    result = self._run_operation_func(ctx, kwargs)
+            with self._update_operation_state():
+                self._validate_operation_resumable()
+                result = self._run_operation_func(ctx, kwargs)
 
             if ctx.operation._operation_retry:
                 raise ctx.operation._operation_retry
@@ -183,27 +180,6 @@ class OperationHandler(TaskHandler):
         finally:
             if store:
                 ctx.update_operation(constants.TASK_RESPONSE_SENT)
-
-    @contextmanager
-    def _amqp_client(self):
-        # initialize an amqp client only when needed, ie. if the task is
-        # not local
-        with_amqp = bool(self.ctx.task_target)
-        if with_amqp:
-            try:
-                amqp_client_utils.init_events_publisher()
-            except Exception:
-                _, ex, tb = sys.exc_info()
-                # This one should never (!) raise an exception.
-                amqp_client_utils.close_amqp_client()
-                raise exceptions.RecoverableError(
-                    'Failed initializing AMQP connection',
-                    causes=[utils.exception_to_error_cause(ex, tb)])
-        try:
-            yield
-        finally:
-            if with_amqp:
-                amqp_client_utils.close_amqp_client()
 
     def _run_operation_func(self, ctx, kwargs):
         try:
@@ -264,7 +240,6 @@ class WorkflowHandler(TaskHandler):
             self.ctx.resume = True
 
         try:
-            amqp_client_utils.init_events_publisher()
             try:
                 self._workflow_started()
             except InvalidExecutionUpdateStatus:
@@ -272,9 +247,10 @@ class WorkflowHandler(TaskHandler):
                 return api.EXECUTION_CANCELLED_RESULT
 
             result_queue = queue.Queue()
-            t = AMQPWrappedThread(target=self._remote_workflow_child_thread,
-                                  args=(result_queue,),
-                                  name='Workflow-Child')
+            t = threading.Thread(target=self._remote_workflow_child_thread,
+                                 args=(result_queue,),
+                                 name='Workflow-Child')
+            t.daemon = True
             t.start()
 
             # while the child thread is executing the workflow, the parent
@@ -341,8 +317,6 @@ class WorkflowHandler(TaskHandler):
         except BaseException as e:
             self._workflow_failed(e, traceback.format_exc())
             raise
-        finally:
-            amqp_client_utils.close_amqp_client()
 
     def _remote_workflow_child_thread(self, queue):
         # the actual execution of the workflow will run in another thread.
@@ -393,7 +367,6 @@ class WorkflowHandler(TaskHandler):
 
     def _workflow_succeeded(self):
         self.ctx.cleanup(finished=True)
-        self._update_execution_status(Execution.TERMINATED)
         dry_run = ' (dry run)' if self.ctx.dry_run else ''
         self.ctx.internal.send_workflow_event(
             event_type='workflow_succeeded',
@@ -401,6 +374,7 @@ class WorkflowHandler(TaskHandler):
                 self.ctx.workflow_id, dry_run),
             additional_context=self._get_hook_params()
         )
+        self._update_execution_status(Execution.TERMINATED)
 
     def _workflow_failed(self, exception, error_traceback=None):
         self.ctx.cleanup(finished=True)
