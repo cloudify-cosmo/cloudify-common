@@ -218,7 +218,7 @@ class ManagerEndpoint(Endpoint):
 
     def get_logging_handler(self):
         return CloudifyPluginLoggingHandler(self.ctx,
-                                            out_func=logs.amqp_log_out)
+                                            out_func=logs.manager_log_out)
 
     def send_plugin_event(self,
                           message=None,
@@ -228,7 +228,7 @@ class ManagerEndpoint(Endpoint):
                                message,
                                args,
                                additional_context,
-                               out_func=logs.amqp_event_out)
+                               out_func=logs.manager_event_out)
 
     def evaluate_functions(self, payload):
         client = manager.get_rest_client()

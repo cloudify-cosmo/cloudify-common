@@ -99,7 +99,7 @@ class CloudifyBaseLoggingHandler(logging.Handler):
     def __init__(self, ctx, out_func, message_context_builder):
         logging.Handler.__init__(self)
         self.context = message_context_builder(ctx)
-        self.out_func = out_func or amqp_log_out
+        self.out_func = out_func or manager_log_out
 
     def flush(self):
         pass
@@ -305,7 +305,7 @@ def _send_event(ctx, context_type, event_type,
             'arguments': args
         }
     }
-    out_func = out_func or amqp_event_out
+    out_func = out_func or manager_event_out
     out_func(event)
 
 
@@ -317,13 +317,13 @@ def populate_base_item(item, message_type):
     item['type'] = message_type
 
 
-def amqp_event_out(event):
+def manager_event_out(event):
     populate_base_item(event, 'cloudify_event')
     message_type = event['context'].get('message_type') or 'event'
     _publish_message(event, message_type, logging.getLogger('cloudify_events'))
 
 
-def amqp_log_out(log):
+def manager_log_out(log):
     populate_base_item(log, 'cloudify_log')
     _publish_message(log, 'log', logging.getLogger('cloudify_logs'))
 

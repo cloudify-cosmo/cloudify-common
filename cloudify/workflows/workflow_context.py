@@ -1556,12 +1556,12 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
     _scaling_groups = None
 
     def get_node_logging_handler(self, workflow_node_instance):
-        return CloudifyWorkflowNodeLoggingHandler(workflow_node_instance,
-                                                  out_func=logs.amqp_log_out)
+        return CloudifyWorkflowNodeLoggingHandler(
+            workflow_node_instance, out_func=logs.manager_log_out)
 
     def get_context_logging_handler(self):
         return CloudifyWorkflowLoggingHandler(self.workflow_ctx,
-                                              out_func=logs.amqp_log_out)
+                                              out_func=logs.manager_log_out)
 
     def download_deployment_resource(self,
                                      resource_path,
@@ -1611,7 +1611,7 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
                             message=message,
                             args=args,
                             additional_context=additional_context,
-                            out_func=logs.amqp_event_out)
+                            out_func=logs.manager_event_out)
 
     @property
     def scaling_groups(self):
@@ -1628,7 +1628,7 @@ class SystemWideWfRemoteContextHandler(RemoteContextHandler):
 
     def get_context_logging_handler(self):
         return SystemWideWorkflowLoggingHandler(self.workflow_ctx,
-                                                out_func=logs.amqp_log_out)
+                                                out_func=logs.manager_log_out)
 
     def send_workflow_event(self, event_type, message=None, args=None,
                             additional_context=None):
@@ -1637,7 +1637,7 @@ class SystemWideWfRemoteContextHandler(RemoteContextHandler):
                                message=message,
                                args=args,
                                additional_context=additional_context,
-                               out_func=logs.amqp_event_out)
+                               out_func=logs.manager_event_out)
 
 
 class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):

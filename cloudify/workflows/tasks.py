@@ -1032,7 +1032,7 @@ class _SendNodeEventTask(_LocalTask):
 
     # local/remote only differ by the used output function
     def remote(self):
-        self.send(out_func=logs.amqp_event_out)
+        self.send(out_func=logs.manager_event_out)
 
     def local(self):
         self.send(out_func=logs.stdout_event_out)

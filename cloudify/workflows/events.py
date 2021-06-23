@@ -26,7 +26,7 @@ from cloudify.constants import (
 def send_task_event_func_remote(task, event_type, message,
                                 additional_context=None):
     _send_task_event_func(task, event_type, message,
-                          out_func=logs.amqp_event_out,
+                          out_func=logs.manager_event_out,
                           additional_context=additional_context)
 
 
