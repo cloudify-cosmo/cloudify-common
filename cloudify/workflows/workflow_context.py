@@ -894,8 +894,10 @@ class _WorkflowContextBase(object):
     def get_operations(self, graph_id):
         return self.internal.handler.get_operations(graph_id)
 
-    def update_operation(self, operation_id, state):
-        return self.internal.handler.update_operation(operation_id, state)
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
+        return self.internal.handler.update_operation(
+            operation_id, state, result, exception)
 
     def get_tasks_graph(self, name):
         return self.internal.handler.get_tasks_graph(self.execution_id, name)
@@ -1284,7 +1286,8 @@ class CloudifyWorkflowContextHandler(object):
     def get_tasks_graph(self, execution_id, name):
         raise NotImplementedError('Implemented by subclasses')
 
-    def update_operation(self, operation_id, state):
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
         raise NotImplementedError('Implemented by subclasses')
 
     def store_tasks_graph(self, execution_id, name, operations):
@@ -1381,26 +1384,21 @@ class _WorkflowTaskHandler(object):
                     state = TASK_RESCHEDULED
                 else:
                     state = TASK_FAILED
-                self._set_task_state(task, state)
+                self._set_task_state(task, state, exception=exception)
                 task.async_result.result = exception
             else:
                 state = TASK_SUCCEEDED
-                self._set_task_state(task, state, {
-                    'result': response.get('result')
-                })
-                task.async_result.result = response.get('result')
+                result = response.get('result')
+                self._set_task_state(task, state, result=result)
+                task.async_result.result = result
         except Exception:
             self._logger.error('Error occurred while processing task',
                                exc_info=True)
             raise
 
-    def _set_task_state(self, task, state, event=None):
+    def _set_task_state(self, task, state, **kwargs):
         with current_workflow_ctx.push(task.workflow_context):
-            task.set_state(state)
-            if event is not None:
-                events.send_task_event(
-                    state, task,
-                    events.send_task_event_func_remote, event)
+            task.set_state(state, **kwargs)
 
 
 class _TaskDispatcher(object):
@@ -1516,9 +1514,21 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
                 break
         return ops
 
-    def update_operation(self, operation_id, state):
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
         client = get_rest_client()
-        client.operations.update(operation_id, state=state)
+        exception_causes = None
+        try:
+            json.dumps(result)
+        except ValueError:
+            # it's not serializable! just store a null (as is back-compatible)
+            result = None
+        if exception is not None:
+            exception = str(exception)
+            exception_causes = getattr(exception, 'causes', None)
+        client.operations.update(
+            operation_id, state=state, result=result,
+            exception=exception, exception_causes=exception_causes)
 
     def get_tasks_graph(self, execution_id, name):
         client = get_rest_client()
@@ -1690,7 +1700,8 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
     def get_tasks_graph(self, execution_id, name):
         pass
 
-    def update_operation(self, operation_id, state):
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
         pass
 
     def store_tasks_graph(self, execution_id, name, operations):

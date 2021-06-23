@@ -80,16 +80,14 @@ class TaskRetryEventContextTests(testtools.TestCase):
             except exceptions.NonRecoverableError:
                 pass
         events = [e for e in events if
-                  e.get('event_type', '').startswith('task_') or
-                  e.get('event_type', '').startswith('sending_task')]
+                  e.get('event_type', '').startswith('task_')]
         range_size = task_retries if task_retries > 0 else 1
         for i in range(range_size):
             # The following assertions are mostly here for sanity.
             # we generally want to make sure all task event contain
             # current_retries and total_retries so all tests try to go though
             # all event types.
-            self.assertEqual('sending_task', events[i*3 + 0]['event_type'])
-            self.assertEqual('task_started', events[i*3 + 1]['event_type'])
+            self.assertEqual('task_started', events[i * 2]['event_type'])
             if retry_type == 'retry':
                 if i < task_retries:
                     expected_type = 'task_rescheduled'
@@ -104,10 +102,9 @@ class TaskRetryEventContextTests(testtools.TestCase):
                 expected_type = 'task_failed'
             else:
                 raise RuntimeError('We should not have arrived here')
-            self.assertEqual(expected_type, events[i*3 + 2]['event_type'])
+            self.assertEqual(expected_type, events[i * 2 + 1]['event_type'])
 
             # The following are the actual test assertions
-            for j in range(3):
-                context = events[i*3 + j]['context']
-                self.assertEqual(i, context['task_current_retries'])
-                self.assertEqual(task_retries, context['task_total_retries'])
+            context = events[i * 2 + 1]['context']
+            self.assertEqual(i, context['task_current_retries'])
+            self.assertEqual(task_retries, context['task_total_retries'])

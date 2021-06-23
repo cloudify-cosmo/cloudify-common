@@ -57,7 +57,7 @@ class TestTasksGraphExecute(testtools.TestCase):
         """A single NOP task is executed within a single iteration of the
         tasks graph loop"""
         g = TaskDependencyGraph(MockWorkflowContext())
-        task = tasks.NOPLocalWorkflowTask(None)
+        task = tasks.NOPLocalWorkflowTask(mock.Mock())
         g.add_task(task)
         with limited_sleep_mock(limit=1):
             g.execute()
@@ -68,8 +68,8 @@ class TestTasksGraphExecute(testtools.TestCase):
         iteration of the graph loop.
         """
         g = TaskDependencyGraph(MockWorkflowContext())
-        task1 = tasks.NOPLocalWorkflowTask(None)
-        task2 = tasks.NOPLocalWorkflowTask(None)
+        task1 = tasks.NOPLocalWorkflowTask(mock.Mock())
+        task2 = tasks.NOPLocalWorkflowTask(mock.Mock())
         g.add_task(task1)
         g.add_task(task2)
         with limited_sleep_mock(limit=1):
@@ -151,7 +151,7 @@ class TestTasksGraphExecute(testtools.TestCase):
         # prepare the task seuqence
         seq_tasks = []
         for i in range(task_count):
-            t = Task(None)
+            t = Task(mock.Mock())
             seq_tasks.append(t)
             t.i = i
         g = TaskDependencyGraph(MockWorkflowContext())

@@ -50,6 +50,7 @@ DEFAULT_SUBGRAPH_TOTAL_RETRIES = 0
 
 DEFAULT_SEND_TASK_EVENTS = True
 DISPATCH_TASK = 'cloudify.dispatch.dispatch'
+_NOT_SET = object()
 
 
 def with_execute_after(f):
@@ -266,7 +267,7 @@ class WorkflowTask(object):
         """
         return self._state
 
-    def set_state(self, state):
+    def set_state(self, state, result=_NOT_SET, exception=None):
         """
         Set the task state
 
@@ -277,16 +278,33 @@ class WorkflowTask(object):
                          TASK_RESCHEDULED, TASK_SUCCEEDED, TASK_FAILED]:
             raise RuntimeError('Illegal state set on task: {0} '
                                '[task={1}]'.format(state, str(self)))
-        if self.stored:
-            self._update_stored_state(state)
         if self._state in TERMINATED_STATES:
             return
         self._state = state
+        if self.stored:
+            self._update_stored_state(
+                state, result=result, exception=exception)
+        if not self.stored:
+            event = {}
+            if result is not _NOT_SET:
+                event['result'] = result
+            elif exception:
+                event['exception'] = exception
+            try:
+                self.workflow_context.internal.send_task_event(
+                    state, self, event)
+            except RuntimeError:
+                pass
         if state in TERMINATED_STATES:
             self.is_terminated = True
 
-    def _update_stored_state(self, state):
-        self.workflow_context.update_operation(self.id, state=state)
+    def _update_stored_state(self, state, result=_NOT_SET, exception=None):
+        kwargs = {'state': state}
+        if result is not _NOT_SET:
+            kwargs['result'] = result
+        if exception is not None:
+            kwargs['exception'] = exception
+        self.workflow_context.update_operation(self.id, **kwargs)
 
     def handle_task_terminated(self):
         if self.get_state() in (TASK_FAILED, TASK_RESCHEDULED):
@@ -349,16 +367,6 @@ class WorkflowTask(object):
                 handler_result = HandlerResult.fail()
             elif isinstance(result, exceptions.RecoverableError):
                 handler_result.retry_after = result.retry_after
-
-        if not self.is_subgraph:
-            causes = []
-            if isinstance(result, (exceptions.RecoverableError,
-                                   exceptions.NonRecoverableError)):
-                causes = result.causes or []
-            self.workflow_context.internal.send_task_event(
-                state=self.get_state(),
-                task=self,
-                event={'exception': result, 'causes': causes})
 
         return handler_result
 
@@ -450,12 +458,13 @@ class RemoteWorkflowTask(WorkflowTask):
                 '__cloudify_context'].pop(skipped_field, None)
         return task
 
-    def _update_stored_state(self, state):
+    def _update_stored_state(self, state, **kwargs):
         # no need to store SENDING - all work after SENDING but before SENT
         # can safely be rerun
         if state == TASK_SENDING:
             return
-        return super(RemoteWorkflowTask, self)._update_stored_state(state)
+        return super(RemoteWorkflowTask, self)._update_stored_state(
+            state, **kwargs)
 
     @with_execute_after
     def apply_async(self):
@@ -471,8 +480,6 @@ class RemoteWorkflowTask(WorkflowTask):
             self.workflow_context.internal.handler.wait_for_result(
                 self, self._task_target)
             if should_send:
-                self.workflow_context.internal.send_task_event(
-                    TASK_SENDING, self)
                 self.set_state(TASK_SENT)
                 self.workflow_context.internal.handler.send_task(
                     self, self._task_target, self._task_queue)
@@ -687,11 +694,15 @@ class LocalWorkflowTask(WorkflowTask):
         task_descr.parameters['task_kwargs']['local_task'] = local_task
         return super(LocalWorkflowTask, cls).restore(ctx, graph, task_descr)
 
-    def _update_stored_state(self, state):
-        # no need to store SENT - work up to it can safely be redone
-        if state == TASK_SENT:
+    def _update_stored_state(self, state, **kwargs):
+        # no need to store pre-run events, work up to it can safely
+        # be redone; but do save when running cfy local, because then
+        # regular plugin events are this class, and we want to display it
+        if state in (TASK_SENT, TASK_STARTED) \
+                and not self.workflow_context.local:
             return
-        return super(LocalWorkflowTask, self)._update_stored_state(state)
+        return super(LocalWorkflowTask, self)._update_stored_state(
+            state, **kwargs)
 
     @with_execute_after
     def apply_async(self):
@@ -701,20 +712,16 @@ class LocalWorkflowTask(WorkflowTask):
         """
         def local_task_wrapper():
             try:
-                self.workflow_context.internal.send_task_event(TASK_STARTED,
-                                                               self)
+                self.set_state(TASK_STARTED)
                 result = self.local_task(**self.kwargs)
-                self.workflow_context.internal.send_task_event(
-                    TASK_SUCCEEDED, self, event={'result': str(result)})
+                self.set_state(TASK_SUCCEEDED, result=result)
                 self.async_result.result = result
-                self.set_state(TASK_SUCCEEDED)
             except BaseException as e:
                 new_task_state = TASK_RESCHEDULED if isinstance(
                     e, exceptions.OperationRetry) else TASK_FAILED
-                self.set_state(new_task_state)
+                self.set_state(new_task_state, exception=e)
                 self.async_result.result = e
 
-        self.workflow_context.internal.send_task_event(TASK_SENDING, self)
         self.set_state(TASK_SENT)
         self.workflow_context.internal.add_local_task(local_task_wrapper)
         return self.async_result
@@ -750,7 +757,7 @@ class NOPLocalWorkflowTask(WorkflowTask):
         """The task name"""
         return 'NOP'
 
-    def _update_stored_state(self, state):
+    def _update_stored_state(self, state, **kwargs):
         # the task is always stored as pending - nothing to update
         pass
 
@@ -778,14 +785,7 @@ class NOPLocalWorkflowTask(WorkflowTask):
 
 class DryRunLocalWorkflowTask(LocalWorkflowTask):
     def apply_async(self):
-        self.workflow_context.internal.send_task_event(TASK_SENDING, self)
-        self.workflow_context.internal.send_task_event(TASK_STARTED, self)
-        self.workflow_context.internal.send_task_event(
-            TASK_SUCCEEDED,
-            self,
-            event={'result': 'dry run'}
-        )
-        self.set_state(TASK_SUCCEEDED)
+        self.set_state(TASK_SUCCEEDED, result='dry run')
         self.async_result.result = None
         return self.async_result
 

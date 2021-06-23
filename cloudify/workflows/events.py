@@ -14,7 +14,13 @@
 #    * limitations under the License.
 
 from cloudify import logs, utils
-from cloudify.workflows import tasks as tasks_api
+from cloudify.constants import (
+    TASK_SENDING,
+    TASK_STARTED,
+    TASK_RESCHEDULED,
+    TASK_SUCCEEDED,
+    TASK_FAILED,
+)
 
 
 def send_task_event_func_remote(task, event_type, message,
@@ -48,7 +54,50 @@ def _send_task_event_func(task, event_type, message, out_func,
 
 
 def _filter_task(task, state):
-    return state != tasks_api.TASK_FAILED and not task.send_task_events
+    return state != TASK_FAILED and not task.send_task_events
+
+
+def get_event_type(state):
+    try:
+        return {
+            TASK_SENDING: 'sending_task',
+            TASK_STARTED: 'task_started',
+            TASK_SUCCEEDED: 'task_succeeded',
+            TASK_RESCHEDULED: 'task_rescheduled',
+            TASK_FAILED: 'task_failed'
+        }[state]
+    except KeyError:
+        raise RuntimeError('unhandled event type: {0}'.format(state))
+
+
+def format_event_message(name, state, result=None, exception=None,
+                         current_retries=0, total_retries=0):
+    exception_str = utils.format_exception(exception) if exception else None
+    try:
+        message_template = {
+            TASK_SENDING: "Sending task '{name}'",
+            TASK_STARTED: "Task started '{name}'",
+            TASK_SUCCEEDED: "Task succeeded '{name}'",
+            TASK_RESCHEDULED: "Task rescheduled '{name}'",
+            TASK_FAILED: "Task failed '{name}'",
+        }[state]
+    except KeyError:
+        raise RuntimeError('unhandled event type: {0}'.format(state))
+    message = message_template.format(name=name)
+
+    if state == TASK_SUCCEEDED and result is not None:
+        message = '{0} ({1})'.format(message, result)
+
+    if state in (TASK_RESCHEDULED, TASK_FAILED) and exception_str:
+        message = '{0} -> {1}'.format(message, exception_str)
+
+    if current_retries > 0:
+        retry = ' [retry {0}{1}]'.format(
+            current_retries,
+            '/{0}'.format(total_retries)
+            if total_retries >= 0 else '')
+        message = '{0}{1}'.format(message, retry)
+    return message
 
 
 def send_task_event(state, task, send_event_func, event):
@@ -68,55 +117,23 @@ def send_task_event(state, task, send_event_func, event):
     if _filter_task(task, state):
         return
 
-    if state in (tasks_api.TASK_FAILED, tasks_api.TASK_RESCHEDULED,
-                 tasks_api.TASK_SUCCEEDED) and event is None:
+    if state in (TASK_FAILED, TASK_RESCHEDULED, TASK_SUCCEEDED) \
+            and event is None:
         raise RuntimeError('Event for task {0} is None'.format(task.name))
 
-    if event and event.get('exception'):
-        exception_str = utils.format_exception(event.get('exception'))
-    else:
-        exception_str = None
-
-    if state == tasks_api.TASK_SENDING:
-        message = "Sending task '{0}'".format(task.name)
-        event_type = 'sending_task'
-    elif state == tasks_api.TASK_STARTED:
-        message = "Task started '{0}'".format(task.name)
-        event_type = 'task_started'
-    elif state == tasks_api.TASK_SUCCEEDED:
-        result = str(event.get('result'))
-        suffix = ' ({0})'.format(result) if result not in ("'None'",
-                                                           'None') else ''
-        message = "Task succeeded '{0}{1}'".format(task.name, suffix)
-        event_type = 'task_succeeded'
-    elif state == tasks_api.TASK_RESCHEDULED:
-        message = "Task rescheduled '{0}'".format(task.name)
-        if exception_str:
-            message = '{0} -> {1}'.format(message, exception_str)
-        event_type = 'task_rescheduled'
-        task.error = exception_str
-    elif state == tasks_api.TASK_FAILED:
-        message = "Task failed '{0}'".format(task.name)
-        if exception_str:
-            message = "{0} -> {1}".format(message, exception_str)
-        event_type = 'task_failed'
-        task.error = exception_str
-    else:
-        raise RuntimeError('unhandled event type: {0}'.format(state))
-
-    if task.current_retries > 0:
-        retry = ' [retry {0}{1}]'.format(
-            task.current_retries,
-            '/{0}'.format(task.total_retries)
-            if task.total_retries >= 0 else '')
-        message = '{0}{1}'.format(message, retry)
+    message = format_event_message(
+        task.name, state,
+        event.get('result'), event.get('exception'),
+        task.current_retries, task.total_retries
+    )
+    event_type = get_event_type(state)
 
     additional_context = {
         'task_current_retries': task.current_retries,
         'task_total_retries': task.total_retries
     }
 
-    if state in (tasks_api.TASK_FAILED, tasks_api.TASK_RESCHEDULED):
+    if state in (TASK_FAILED, TASK_RESCHEDULED):
         additional_context['task_error_causes'] = event.get('causes')
 
     send_event_func(task=task,
