@@ -31,7 +31,7 @@ import pika.exceptions
 from cloudify import exceptions
 from cloudify import broker_config
 from cloudify._compat import queue
-from cloudify.constants import EVENTS_EXCHANGE_NAME, LOGS_EXCHANGE_NAME
+from cloudify.constants import EVENTS_EXCHANGE_NAME
 
 # keep compat with both pika 0.11 and pika 1.1: switch the calls based
 # on this flag. We're keeping compat with 0.11 for the py2.6 agent on rhel6.
