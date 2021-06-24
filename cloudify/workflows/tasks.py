@@ -881,8 +881,7 @@ class HandlerResult(object):
 
 
 class _BuiltinTaskBase(WorkflowTask):
-    def __init__(self, task_kwargs, *args, **kwargs):
-        self.kwargs = task_kwargs
+    def __init__(self, *args, **kwargs):
         kwargs.update(send_task_events=False, total_retries=0)
         super(_BuiltinTaskBase, self).__init__(*args, **kwargs)
 
@@ -892,8 +891,8 @@ class _BuiltinTaskBase(WorkflowTask):
 
     def _duplicate(self):
         return self.__class__(
-            task_kwargs=self.kwargs,
             workflow_context=self.workflow_context
+            **self.kwargs,
         )
 
     @property
@@ -910,9 +909,7 @@ class _BuiltinTaskBase(WorkflowTask):
 
     def dump(self):
         serialized = super(_BuiltinTaskBase, self).dump()
-        # yes, double task_kwargs, because this class is initialized like
-        # cls(**task_kwargs), and we want a kwarg named also "task_kwargs"
-        serialized['parameters']['task_kwargs'] = {'task_kwargs': self.kwargs}
+        serialized['parameters']['task_kwargs'] = self.kwargs
         return serialized
 
     def apply_async(self):
@@ -926,6 +923,7 @@ class _BuiltinTaskBase(WorkflowTask):
             self.set_state(TASK_SUCCEEDED, result=result)
             self.async_result.result = result
         except BaseException as e:
+            self.workflow_context.logger.exception('error running %s', self)
             self.set_state(TASK_FAILED, exception=e)
             self.async_result.result = e
 
@@ -937,6 +935,10 @@ class _BuiltinTaskBase(WorkflowTask):
 
 
 class SetNodeInstanceStateTask(_BuiltinTaskBase):
+    def __init__(self, node_instance_id, state, *args, **kwargs):
+        self.kwargs = {'node_instance_id': node_instance_id, 'state': state}
+        super(SetNodeInstanceStateTask, self).__init__(*args, **kwargs)
+
     def remote(self):
         # no need to do anything - the server will update the state
         # automatically once we set this task state to SUCCEEDED
@@ -950,6 +952,10 @@ class SetNodeInstanceStateTask(_BuiltinTaskBase):
 
 
 class GetNodeInstanceStateTask(_BuiltinTaskBase):
+    def __init__(self, node_instance_id, *args, **kwargs):
+        self.kwargs = {'node_instance_id': node_instance_id}
+        super(GetNodeInstanceStateTask, self).__init__(*args, **kwargs)
+
     def remote(self):
         return get_node_instance(self.kwargs['node_instance_id']).state
 
@@ -959,6 +965,15 @@ class GetNodeInstanceStateTask(_BuiltinTaskBase):
 
 
 class SendNodeEventTask(_BuiltinTaskBase):
+    def __init__(self, node_instance_id, event, additional_context,
+                 *args, **kwargs):
+        self.kwargs = {
+            'node_instance_id': node_instance_id,
+            'event': event,
+            'additional_context': additional_context,
+        }
+        super(SendNodeEventTask, self).__init__(*args, **kwargs)
+
     # local/remote only differ by the used output function
     def remote(self):
         self.send(out_func=logs.manager_event_out)
@@ -978,12 +993,22 @@ class SendNodeEventTask(_BuiltinTaskBase):
 
 
 class SendWorkflowEventTask(_BuiltinTaskBase):
+    def __init__(self, event, event_type, event_args, additional_context,
+                 *args, **kwargs):
+        self.kwargs = {
+            'event': event,
+            'event_type': event_type,
+            'event_args': event_args,
+            'additional_context': additional_context,
+        }
+        super(SendWorkflowEventTask, self).__init__(*args, **kwargs)
+
     # remote and local are the same
     def remote(self):
         return workflow_ctx.internal.send_workflow_event(
             event_type=self.kwargs['event_type'],
             message=self.kwargs['event'],
-            args=self.kwargs['args'],
+            args=self.kwargs['event_args'],
             additional_context=self.kwargs['additional_context']
         )
 
@@ -992,6 +1017,10 @@ class SendWorkflowEventTask(_BuiltinTaskBase):
 
 
 class UpdateExecutionStatusTask(_BuiltinTaskBase):
+    def __init__(self, status, *args, **kwargs):
+        self.kwargs = {'status': status}
+        super(UpdateExecutionStatusTask, self).__init__(*args, **kwargs)
+
     def remote(self):
         update_execution_status(
             workflow_ctx.execution_id, self.kwargs['status'])

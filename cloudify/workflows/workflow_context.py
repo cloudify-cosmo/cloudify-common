@@ -237,7 +237,7 @@ class CloudifyWorkflowNodeInstance(object):
             return NOPLocalWorkflowTask(self.ctx)
 
         return self.ctx._process_task(SetNodeInstanceStateTask(
-            task_kwargs={'node_instance_id': self.id, 'state': state},
+            node_instance_id=self.id, state=state,
             workflow_context=self.ctx,
         ))
 
@@ -247,7 +247,7 @@ class CloudifyWorkflowNodeInstance(object):
         :return: The node-instance state
         """
         return self.ctx._process_task(GetNodeInstanceStateTask(
-            task_kwargs={'node_instance_id': self.id},
+            node_instance_id=self.id,
             workflow_context=self.ctx
         ))
 
@@ -259,11 +259,9 @@ class CloudifyWorkflowNodeInstance(object):
                context
         """
         return self.ctx._process_task(SendNodeEventTask(
-            task_kwargs={
-                'node_instance_id': self.id,
-                'event': event,
-                'additional_context': additional_context,
-            },
+            node_instance_id=self.id,
+            event=event,
+            additional_context=additional_context,
             workflow_context=self.ctx,
         ))
 
@@ -578,12 +576,10 @@ class _WorkflowContextBase(object):
                context
         """
         return self._process_task(SendWorkflowEventTask(
-            task_kwargs={
-                'event': event,
-                'event_type': event_type,
-                'args': args,
-                'additional_context': additional_context
-            },
+            event=event,
+            event_type=event_type,
+            event_args=args,
+            additional_context=additional_context,
             workflow_context=self,
         ))
 
@@ -711,8 +707,8 @@ class _WorkflowContextBase(object):
         after its run (whether the run succeeded or failed)
         """
         return self._process_task(UpdateExecutionStatusTask(
-            task_kwargs={'status': new_status},
-            workflow_context=self
+            status=new_status,
+            workflow_context=self,
         ))
 
     def _build_cloudify_context(self,
@@ -1185,6 +1181,7 @@ class LocalTasksProcessing(object):
     def __init__(self, workflow_ctx, thread_pool_size=1):
         self._local_tasks_queue = queue.Queue()
         self._local_task_processing_pool = []
+        self.workflow_ctx = workflow_ctx
         self._is_local_context = workflow_ctx.local
         for i in range(thread_pool_size):
             name = 'Task-Processor-{0}'.format(i + 1)
