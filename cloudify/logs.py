@@ -351,7 +351,25 @@ def create_event_message_prefix(event):
     return text_type(event_obj)
 
 
+def _log_message(logger, message):
+    level = message.get('level', 'info')
+    log_func = getattr(logger, level, logger.info)
+    exec_id = message.get('context', {}).get('execution_id')
+    execution_creator_username = message.get('context', {}).get(
+        'execution_creator_username')
+    text = message['message']['text']
+    if exec_id:
+        msg = u'[{0}] {1}'.format(exec_id, text)
+        if execution_creator_username:
+            msg = u'[{0}] '.format(execution_creator_username) + msg
+    else:
+        msg = text
+    log_func(msg)
+
+
 def _publish_message(message, message_type, logger):
+    if u'message' in message:
+        _log_message(logger, message)
     client = manager.get_rest_client()
     if message_type == 'log':
         client.events.create(logs=[message])
