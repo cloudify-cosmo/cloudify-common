@@ -31,7 +31,7 @@ import pika.exceptions
 from cloudify import exceptions
 from cloudify import broker_config
 from cloudify._compat import queue
-from cloudify.constants import EVENTS_EXCHANGE_NAME, LOGS_EXCHANGE_NAME
+from cloudify.constants import EVENTS_EXCHANGE_NAME
 
 # keep compat with both pika 0.11 and pika 1.1: switch the calls based
 # on this flag. We're keeping compat with 0.11 for the py2.6 agent on rhel6.
@@ -495,38 +495,12 @@ class SendHandler(object):
                                  exchange_type=self.exchange_type,
                                  **self.exchange_settings)
 
-    def _log_message(self, message):
-        level = message.get('level', 'info')
-        log_func = getattr(self.logger, level, self.logger.info)
-        exec_id = message.get('context', {}).get('execution_id')
-        execution_creator_username = message.get('context', {}).get(
-            'execution_creator_username')
-        text = message['message']['text']
-        if exec_id:
-            msg = u'[{0}] {1}'.format(exec_id, text)
-            if execution_creator_username:
-                msg = u'[{0}] '.format(execution_creator_username) + msg
-        else:
-            msg = text
-        log_func(msg)
-
     def publish(self, message, **kwargs):
-        if 'message' in message:
-            # message is textual, let's log it
-            self._log_message(message)
         self._connection.publish({
             'exchange': self.exchange,
             'body': json.dumps(message),
             'routing_key': self.routing_key
         }, wait=self.wait_for_publish)
-
-
-class NoWaitSendHandler(SendHandler):
-    """
-    A send handler that doesn't wait for the message to be sent.
-    This is useful for buffering cases like sending multiple logs at once.
-    """
-    wait_for_publish = False
 
 
 class BlockingRequestResponseHandler(TaskConsumer):
@@ -641,11 +615,6 @@ class CloudifyEventsPublisher(object):
 
     def __init__(self, amqp_params):
         self.handlers = {
-            'log': NoWaitSendHandler(LOGS_EXCHANGE_NAME,
-                                     exchange_type='fanout'),
-            'event': SendHandler(EVENTS_EXCHANGE_NAME,
-                                 exchange_type='topic',
-                                 routing_key='events'),
             'hook': SendHandler(EVENTS_EXCHANGE_NAME,
                                 exchange_type='topic',
                                 routing_key='events.hooks'),
