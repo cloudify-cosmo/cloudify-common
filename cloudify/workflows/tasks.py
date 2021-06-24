@@ -890,10 +890,9 @@ class _BuiltinTaskBase(WorkflowTask):
         return self.__class__.__name__
 
     def _duplicate(self):
-        return self.__class__(
-            workflow_context=self.workflow_context
-            **self.kwargs,
-        )
+        kwargs = {'workflow_context': self.workflow_context}
+        kwargs.update(self.kwargs)
+        return self.__class__(**kwargs)
 
     @property
     def cloudify_context(self):
