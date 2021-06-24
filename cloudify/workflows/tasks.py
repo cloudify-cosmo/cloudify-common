@@ -671,26 +671,14 @@ class LocalWorkflowTask(WorkflowTask):
 
     def dump(self):
         serialized = super(LocalWorkflowTask, self).dump()
-        if hasattr(self.local_task, 'dump'):
-            serialized_local_task = self.local_task.dump()
-        else:
-            serialized_local_task = None
-        serialized['parameters']['task_kwargs'] = {
-            'name': self._name,
-            'local_task': serialized_local_task
-        }
+        serialized['parameters']['task_kwargs'] = {'name': self._name}
         return serialized
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
-        local_task_descr = task_descr.parameters['task_kwargs'].get(
-            'local_task')
-        if local_task_descr:
-            local_task = _LocalTask.restore(local_task_descr)
-        else:
-            # task wasn't stored. Noqa because we do want to assign a lambda
-            # here, that is a noop.
-            local_task = lambda *a, **kw: None  # NOQA
+        # task wasn't stored. Noqa because we do want to assign a lambda
+        # here, that is a noop.
+        local_task = lambda *a, **kw: None  # NOQA
         task_descr.parameters['task_kwargs']['local_task'] = local_task
         return super(LocalWorkflowTask, cls).restore(ctx, graph, task_descr)
 
@@ -892,56 +880,25 @@ class HandlerResult(object):
         return HandlerResult(cls.HANDLER_IGNORE)
 
 
-# Local tasks implementation
-# A local task is a callable that will be passed to a LocalWorkflowTask,
-# and then executed in a separate thread (see LocalTasksProcessing). Those
-# tasks can implement .restore (classmethod) and .dump methods in order to
-# be resumable.
-# The user-facing interface for those tasks are node_instance.set_state,
-# .send_event, etc.
-
-class _LocalTask(object):
-    """Base class for local tasks, containing utilities."""
-
-    # all local task disable sending task events
-    workflow_task_config = {'send_task_events': False}
+class _BuiltinTaskBase(WorkflowTask):
+    def __init__(self, task_kwargs, *args, **kwargs):
+        self.kwargs = task_kwargs
+        kwargs.update(send_task_events=False, total_retries=0)
+        super(_BuiltinTaskBase, self).__init__(*args, **kwargs)
 
     @property
-    def __name__(self):
-        # utility, also making subclasses be similar to plain functions
+    def name(self):
         return self.__class__.__name__
 
-    # avoid calling .__subclasses__() many times
-    _subclass_cache = None
+    def _duplicate(self):
+        return self.__class__(
+            task_kwargs=self.kwargs,
+            workflow_context=self.workflow_context
+        )
 
-    @classmethod
-    def restore(cls, task_descr):
-        """Rehydrate a _LocalTask instance from a dict description.
-
-        The dict will contain a 'task' key and possibly a 'kwargs' key.
-        Choose the appropriate subclass and return an instance of it.
-        """
-        if cls._subclass_cache is None:
-            cls._subclass_cache = dict(
-                (subcls.__name__, subcls) for subcls in cls.__subclasses__()
-            )
-        task_class = cls._subclass_cache[task_descr['task']]
-        kwargs = task_descr.get('kwargs') or {}
-        return task_class(**kwargs)
-
-    # split local/remote on this level. This allows us to reuse implementation,
-    # avoiding the need for separate local/remote subclasses.
-    def __call__(self):
-        if workflow_ctx.local:
-            return self.local()
-        else:
-            return self.remote()
-
-    def local(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def remote(self):
-        raise NotImplementedError('Implemented by subclasses')
+    @property
+    def cloudify_context(self):
+        return {}
 
     @property
     def storage(self):
@@ -951,85 +908,59 @@ class _LocalTask(object):
         """
         return workflow_ctx.internal.handler.storage
 
-
-class _SetNodeInstanceStateTask(_LocalTask):
-    """A local task that sets a node instance state."""
-
-    def __init__(self, node_instance_id, state):
-        self._node_instance_id = node_instance_id
-        self._state = state
-
-    def __repr__(self):
-        return '<SetNodeInstanceState {0}: {1}>'.format(
-            self._node_instance_id, self._state)
-
     def dump(self):
-        return {
-            'task': self.__name__,
-            'kwargs': {
-                'node_instance_id': self._node_instance_id,
-                'state': self._state
-            }
-        }
+        serialized = super(_BuiltinTaskBase, self).dump()
+        # yes, double task_kwargs, because this class is initialized like
+        # cls(**task_kwargs), and we want a kwarg named also "task_kwargs"
+        serialized['parameters']['task_kwargs'] = {'task_kwargs': self.kwargs}
+        return serialized
+
+    def apply_async(self):
+        self.workflow_context.internal.add_local_task(self._run_task)
+        return self.async_result
+
+    def _run_task(self):
+        func = self.local if self.workflow_context.local else self.remote
+        try:
+            result = func()
+            self.set_state(TASK_SUCCEEDED, result=result)
+            self.async_result.result = result
+        except BaseException as e:
+            self.set_state(TASK_FAILED, exception=e)
+            self.async_result.result = e
 
     def remote(self):
+        pass
+
+    def local(self):
+        pass
+
+
+class SetNodeInstanceStateTask(_BuiltinTaskBase):
+    def remote(self):
         get_rest_client().node_instances.update(
-            self._node_instance_id,
+            self.kwargs['node_instance_id'],
             force=True,
-            state=self._state
+            state=self.kwargs['state']
         )
 
     def local(self):
         self.storage.update_node_instance(
-            self._node_instance_id,
-            state=self._state,
+            self.kwargs['node_instance_id'],
+            state=self.kwargs['state'],
             version=None)
 
 
-class _GetNodeInstanceStateTask(_LocalTask):
-    """A local task that gets a node instance state."""
-
-    def __init__(self, node_instance_id):
-        self._node_instance_id = node_instance_id
-
-    def dump(self):
-        return {
-            'task': self.__name__,
-            'kwargs': {
-                'node_instance_id': self._node_instance_id
-            }
-        }
-
+class GetNodeInstanceStateTask(_BuiltinTaskBase):
     def remote(self):
-        return get_node_instance(self._node_instance_id).state
+        return get_node_instance(self.kwargs['node_instance_id']).state
 
     def local(self):
-        instance = self.storage.get_node_instance(
-            self._node_instance_id)
-        return instance.state
+        return self.storage.get_node_instance(
+            self.kwargs['node_instance_id']).state
 
 
-class _SendNodeEventTask(_LocalTask):
-    """A local task that sends a node event."""
-    def __init__(self, node_instance_id, event, additional_context):
-        self._node_instance_id = node_instance_id
-        self._event = event
-        self._additional_context = additional_context
-
-    def __repr__(self):
-        return '<SendNodeEvent {0}: "{1}">'.format(
-            self._node_instance_id, self._event)
-
-    def dump(self):
-        return {
-            'task': self.__name__,
-            'kwargs': {
-                'node_instance_id': self._node_instance_id,
-                'event': self._event,
-                'additional_context': self._additional_context
-            }
-        }
-
+class SendNodeEventTask(_BuiltinTaskBase):
     # local/remote only differ by the used output function
     def remote(self):
         self.send(out_func=logs.manager_event_out)
@@ -1039,59 +970,33 @@ class _SendNodeEventTask(_LocalTask):
 
     def send(self, out_func):
         node_instance = workflow_ctx.get_node_instance(
-            self._node_instance_id)
+            self.kwargs['node_instance_id'])
         logs.send_workflow_node_event(
             ctx=node_instance,
             event_type='workflow_node_event',
-            message=self._event,
-            additional_context=self._additional_context,
+            message=self.kwargs['event'],
+            additional_context=self.kwargs['additional_context'],
             out_func=out_func)
 
 
-class _SendWorkflowEventTask(_LocalTask):
-    """A local task that sends a workflow event."""
-    def __init__(self, event, event_type, args, additional_context=None):
-        self._event = event
-        self._event_type = event_type
-        self._args = args
-        self._additional_context = additional_context
-
-    def dump(self):
-        return {
-            'task': self.__name__,
-            'kwargs': {
-                'event': self._event,
-                'event_type': self._event_type,
-                'args': self._args,
-                'additional_context': self._additional_context
-            }
-        }
-
-    def __call__(self):
+class SendWorkflowEventTask(_BuiltinTaskBase):
+    # remote and local are the same
+    def remote(self):
         return workflow_ctx.internal.send_workflow_event(
-            event_type=self._event_type,
-            message=self._event,
-            args=self._args,
-            additional_context=self._additional_context
+            event_type=self.kwargs['event_type'],
+            message=self.kwargs['event'],
+            args=self.kwargs['args'],
+            additional_context=self.kwargs['additional_context']
         )
 
+    def local(self):
+        return self.remote()
 
-class _UpdateExecutionStatusTask(_LocalTask):
-    """A local task that sets the execution status."""
-    def __init__(self, status):
-        self._status = status
 
-    def dump(self):
-        return {
-            'task': self.__class__.__name__,
-            'kwargs': {
-                'status': self._status,
-            }
-        }
-
+class UpdateExecutionStatusTask(_BuiltinTaskBase):
     def remote(self):
         update_execution_status(
-            workflow_ctx.execution_id, self._status)
+            workflow_ctx.execution_id, self.kwargs['status'])
 
     def local(self):
         raise NotImplementedError(
