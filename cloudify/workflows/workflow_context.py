@@ -40,11 +40,11 @@ from cloudify.workflows.tasks import (TASK_FAILED,
                                       DEFAULT_RETRY_INTERVAL,
                                       DEFAULT_SEND_TASK_EVENTS,
                                       DEFAULT_SUBGRAPH_TOTAL_RETRIES,
-                                      _SetNodeInstanceStateTask,
-                                      _GetNodeInstanceStateTask,
-                                      _SendNodeEventTask,
-                                      _SendWorkflowEventTask,
-                                      _UpdateExecutionStatusTask)
+                                      GetNodeInstanceStateTask,
+                                      SetNodeInstanceStateTask,
+                                      SendNodeEventTask,
+                                      SendWorkflowEventTask,
+                                      UpdateExecutionStatusTask)
 from cloudify.constants import MGMTWORKER_QUEUE
 from cloudify import utils, logs, exceptions
 from cloudify.state import current_workflow_ctx
@@ -227,48 +227,45 @@ class CloudifyWorkflowNodeInstance(object):
         self._logger = None
 
     def set_state(self, state):
-        """
-        Set the node state
+        """Set the node-instance state
 
-        :param state: The node state
-        :return: the state set
+        :param state: The new node-instance state
+        :return: a state-setting workflow task
         """
         # We don't want to alter the state of the instance during a dry run
         if self.ctx.dry_run:
             return NOPLocalWorkflowTask(self.ctx)
 
-        set_state_task = _SetNodeInstanceStateTask(self.id, state)
-
-        return self.ctx.local_task(
-            local_task=set_state_task,
-            node=self,
-            info=state)
+        return self.ctx._process_task(SetNodeInstanceStateTask(
+            task_kwargs={'node_instance_id': self.id, 'state': state},
+            workflow_context=self.ctx,
+        ))
 
     def get_state(self):
-        """
-        Get the node state
+        """Get the node-instance state
 
-        :return: The node state
+        :return: The node-instance state
         """
-        get_state_task = _GetNodeInstanceStateTask(self.id)
-        return self.ctx.local_task(
-            local_task=get_state_task,
-            node=self)
+        return self.ctx._process_task(GetNodeInstanceStateTask(
+            task_kwargs={'node_instance_id': self.id},
+            workflow_context=self.ctx
+        ))
 
     def send_event(self, event, additional_context=None):
-        """
-        Sends a workflow node event to RabbitMQ
+        """Sends a workflow node event.
 
         :param event: The event
         :param additional_context: additional context to be added to the
                context
         """
-        send_event_task = _SendNodeEventTask(
-            self.id, event, additional_context)
-        return self.ctx.local_task(
-            local_task=send_event_task,
-            node=self,
-            info=event)
+        return self.ctx._process_task(SendNodeEventTask(
+            task_kwargs={
+                'node_instance_id': self.id,
+                'event': event,
+                'additional_context': additional_context,
+            },
+            workflow_context=self.ctx,
+        ))
 
     def execute_operation(self,
                           operation,
@@ -571,10 +568,8 @@ class _WorkflowContextBase(object):
             target_path=target_path)
 
     def send_event(self, event, event_type='workflow_stage',
-                   args=None,
-                   additional_context=None):
-        """
-        Sends a workflow event to RabbitMQ
+                   args=None, additional_context=None):
+        """Sends a workflow event
 
         :param event: The event
         :param event_type: The event type
@@ -582,12 +577,15 @@ class _WorkflowContextBase(object):
         :param additional_context: additional context to be added to the
                context
         """
-
-        send_event_task = _SendWorkflowEventTask(
-            event, event_type, args, additional_context)
-        return self.local_task(
-            local_task=send_event_task,
-            info=event)
+        return self._process_task(SendWorkflowEventTask(
+            task_kwargs={
+                'event': event,
+                'event_type': event_type,
+                'args': args,
+                'additional_context': additional_context
+            },
+            workflow_context=self,
+        ))
 
     def _get_plugin(self, plugin):
         key = (plugin.get('package_name'), plugin.get('package_version'))
@@ -707,16 +705,15 @@ class _WorkflowContextBase(object):
         return result
 
     def update_execution_status(self, new_status):
-        """
-        Updates the execution status to new_status.
+        """Updates the execution status to new_status.
+
         Note that the workflow status gets automatically updated before and
         after its run (whether the run succeeded or failed)
         """
-        update_execution_status_task = _UpdateExecutionStatusTask(new_status)
-
-        return self.local_task(
-            local_task=update_execution_status_task,
-            info=new_status)
+        return self._process_task(UpdateExecutionStatusTask(
+            task_kwargs={'status': new_status},
+            workflow_context=self
+        ))
 
     def _build_cloudify_context(self,
                                 task_id,
