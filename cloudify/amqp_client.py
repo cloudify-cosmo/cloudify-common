@@ -503,14 +503,6 @@ class SendHandler(object):
         }, wait=self.wait_for_publish)
 
 
-class NoWaitSendHandler(SendHandler):
-    """
-    A send handler that doesn't wait for the message to be sent.
-    This is useful for buffering cases like sending multiple logs at once.
-    """
-    wait_for_publish = False
-
-
 class BlockingRequestResponseHandler(TaskConsumer):
     def __init__(self, *args, **kwargs):
         super(BlockingRequestResponseHandler, self).__init__(*args, **kwargs)
@@ -623,11 +615,6 @@ class CloudifyEventsPublisher(object):
 
     def __init__(self, amqp_params):
         self.handlers = {
-            'log': NoWaitSendHandler(LOGS_EXCHANGE_NAME,
-                                     exchange_type='fanout'),
-            'event': SendHandler(EVENTS_EXCHANGE_NAME,
-                                 exchange_type='topic',
-                                 routing_key='events'),
             'hook': SendHandler(EVENTS_EXCHANGE_NAME,
                                 exchange_type='topic',
                                 routing_key='events.hooks'),
