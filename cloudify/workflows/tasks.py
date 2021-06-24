@@ -938,11 +938,9 @@ class _BuiltinTaskBase(WorkflowTask):
 
 class SetNodeInstanceStateTask(_BuiltinTaskBase):
     def remote(self):
-        get_rest_client().node_instances.update(
-            self.kwargs['node_instance_id'],
-            force=True,
-            state=self.kwargs['state']
-        )
+        # no need to do anything - the server will update the state
+        # automatically once we set this task state to SUCCEEDED
+        pass
 
     def local(self):
         self.storage.update_node_instance(
