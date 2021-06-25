@@ -202,7 +202,7 @@ def send_workflow_event(ctx, event_type,
     """
     _send_event(
         message_context_from_workflow_context(ctx),
-        ctx, event_type, message, args, additional_context, out_func)
+        event_type, message, args, additional_context, out_func)
 
 
 def send_sys_wide_wf_event(ctx, event_type, message=None, args=None,
@@ -217,7 +217,7 @@ def send_sys_wide_wf_event(ctx, event_type, message=None, args=None,
     """
     _send_event(
         message_context_from_sys_wide_wf_context(ctx),
-        ctx, event_type, message, args, additional_context, out_func)
+        event_type, message, args, additional_context, out_func)
 
 
 def send_workflow_node_event(ctx, event_type,
@@ -235,7 +235,7 @@ def send_workflow_node_event(ctx, event_type,
     """
     _send_event(
         message_context_from_workflow_node_instance_context(ctx),
-        ctx, event_type, message, args, additional_context, out_func)
+        event_type, message, args, additional_context, out_func)
 
 
 def send_plugin_event(ctx,
@@ -252,7 +252,7 @@ def send_plugin_event(ctx,
     """
     _send_event(
         message_context_from_cloudify_context(ctx),
-        ctx, 'plugin_event', message, args, additional_context, out_func)
+        'plugin_event', message, args, additional_context, out_func)
 
 
 def send_task_event(cloudify_context,
@@ -275,19 +275,15 @@ def send_task_event(cloudify_context,
     ctx = CloudifyContext(cloudify_context)
     _send_event(
         message_context_from_cloudify_context(ctx),
-        ctx, event_type, message, args, additional_context, out_func)
+        event_type, message, args, additional_context, out_func)
 
 
-def _send_event(message_context, ctx, event_type,
+def _send_event(message_context, event_type,
                 message, args, additional_context,
                 out_func):
     additional_context = additional_context or {}
     message_context.update(additional_context)
 
-    if hasattr(ctx, 'execution_creator_username'):
-        if ctx.execution_creator_username:
-            message_context.update({'execution_creator_username':
-                                    ctx.execution_creator_username})
     event = {
         'event_type': event_type,
         'context': message_context,
