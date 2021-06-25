@@ -167,7 +167,7 @@ def init_cloudify_logger(handler, logger_name,
                          logging_level=logging.DEBUG):
     """
     Instantiate an amqp backed logger based on the provided handler
-    for sending log messages to RabbitMQ
+    for sending log messages
 
     :param handler: A logger handler based on the context
     :param logger_name: The logger name
@@ -192,7 +192,7 @@ def send_workflow_event(ctx, event_type,
                         args=None,
                         additional_context=None,
                         out_func=None):
-    """Send a workflow event to RabbitMQ
+    """Send a workflow event
 
     :param ctx: A CloudifyWorkflowContext instance
     :param event_type: The event type
@@ -200,13 +200,14 @@ def send_workflow_event(ctx, event_type,
     :param args: additional arguments that may be added to the message
     :param additional_context: additional context to be added to the context
     """
-    _send_event(ctx, 'workflow', event_type, message, args,
-                additional_context, out_func)
+    _send_event(
+        message_context_from_workflow_context(ctx),
+        event_type, message, args, additional_context, out_func)
 
 
 def send_sys_wide_wf_event(ctx, event_type, message=None, args=None,
                            additional_context=None, out_func=None):
-    """Send a workflow event to RabbitMQ
+    """Send a workflow event
 
     :param ctx: A CloudifySystemWideWorkflowContext instance
     :param event_type: The event type
@@ -214,8 +215,9 @@ def send_sys_wide_wf_event(ctx, event_type, message=None, args=None,
     :param args: additional arguments that may be added to the message
     :param additional_context: additional context to be added to the context
     """
-    _send_event(ctx, 'system_wide_workflow', event_type, message, args,
-                additional_context, out_func)
+    _send_event(
+        message_context_from_sys_wide_wf_context(ctx),
+        event_type, message, args, additional_context, out_func)
 
 
 def send_workflow_node_event(ctx, event_type,
@@ -223,7 +225,7 @@ def send_workflow_node_event(ctx, event_type,
                              args=None,
                              additional_context=None,
                              out_func=None):
-    """Send a workflow node event to RabbitMQ
+    """Send a workflow node event
 
     :param ctx: A CloudifyWorkflowNode instance
     :param event_type: The event type
@@ -231,8 +233,9 @@ def send_workflow_node_event(ctx, event_type,
     :param args: additional arguments that may be added to the message
     :param additional_context: additional context to be added to the context
     """
-    _send_event(ctx, 'workflow_node', event_type, message, args,
-                additional_context, out_func)
+    _send_event(
+        message_context_from_workflow_node_instance_context(ctx),
+        event_type, message, args, additional_context, out_func)
 
 
 def send_plugin_event(ctx,
@@ -247,8 +250,9 @@ def send_plugin_event(ctx,
     :param args: additional arguments that may be added to the message
     :param additional_context: additional context to be added to the context
     """
-    _send_event(ctx, 'plugin', 'plugin_event', message, args,
-                additional_context, out_func)
+    _send_event(
+        message_context_from_cloudify_context(ctx),
+        'plugin_event', message, args, additional_context, out_func)
 
 
 def send_task_event(cloudify_context,
@@ -257,7 +261,7 @@ def send_task_event(cloudify_context,
                     args=None,
                     additional_context=None,
                     out_func=None):
-    """Send a task event to RabbitMQ
+    """Send a task event
 
     :param cloudify_context: a __cloudify_context struct as passed to
                              operations
@@ -268,35 +272,18 @@ def send_task_event(cloudify_context,
     """
     # import here to avoid cyclic dependencies
     from cloudify.context import CloudifyContext
-    _send_event(CloudifyContext(cloudify_context),
-                'task', event_type, message, args,
-                additional_context,
-                out_func)
+    ctx = CloudifyContext(cloudify_context)
+    _send_event(
+        message_context_from_cloudify_context(ctx),
+        event_type, message, args, additional_context, out_func)
 
 
-def _send_event(ctx, context_type, event_type,
+def _send_event(message_context, event_type,
                 message, args, additional_context,
                 out_func):
-    if context_type in ['plugin', 'task']:
-        message_context = message_context_from_cloudify_context(
-            ctx)
-    elif context_type == 'workflow':
-        message_context = message_context_from_workflow_context(ctx)
-    elif context_type == 'workflow_node':
-        message_context = message_context_from_workflow_node_instance_context(
-            ctx)
-    elif context_type == 'system_wide_workflow':
-        message_context = message_context_from_sys_wide_wf_context(ctx)
-    else:
-        raise RuntimeError('Invalid context_type: {0}'.format(context_type))
-
     additional_context = additional_context or {}
     message_context.update(additional_context)
 
-    if hasattr(ctx, 'execution_creator_username'):
-        if ctx.execution_creator_username:
-            message_context.update({'execution_creator_username':
-                                    ctx.execution_creator_username})
     event = {
         'event_type': event_type,
         'context': message_context,
