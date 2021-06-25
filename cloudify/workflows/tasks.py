@@ -973,14 +973,12 @@ class SendNodeEventTask(_BuiltinTaskBase):
         }
         super(SendNodeEventTask, self).__init__(*args, **kwargs)
 
-    # local/remote only differ by the used output function
     def remote(self):
-        self.send(out_func=logs.manager_event_out)
+        # no need to do anything - the server will create the event
+        # automatically once we set this task state to SUCCEEDED
+        pass
 
     def local(self):
-        self.send(out_func=logs.stdout_event_out)
-
-    def send(self, out_func):
         node_instance = workflow_ctx.get_node_instance(
             self.kwargs['node_instance_id'])
         logs.send_workflow_node_event(
@@ -988,7 +986,7 @@ class SendNodeEventTask(_BuiltinTaskBase):
             event_type='workflow_node_event',
             message=self.kwargs['event'],
             additional_context=self.kwargs['additional_context'],
-            out_func=out_func)
+            out_func=logs.stdout_event_out)
 
 
 class SendWorkflowEventTask(_BuiltinTaskBase):
