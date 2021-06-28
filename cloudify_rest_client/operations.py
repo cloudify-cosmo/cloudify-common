@@ -81,13 +81,15 @@ class OperationsClient(object):
     def update(self, operation_id, state, result=None,
                exception=None, exception_causes=None):
         uri = '/operations/{0}'.format(operation_id)
-        response = self.api.patch(uri, data={
+        self.api.patch(uri, data={
             'state': state,
             'result': result,
             'exception': exception,
             'exception_causes': exception_causes,
-        })
-        return Operation(response)
+        }, expected_status_code=(
+            200,  # compat with pre-6.2 managers
+            204
+        ))
 
     def delete(self, operation_id):
         uri = '/operations/{0}'.format(operation_id)
