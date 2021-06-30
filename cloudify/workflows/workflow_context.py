@@ -1032,11 +1032,13 @@ class CloudifySystemWideWorkflowContext(_WorkflowContextBase):
 
     @property
     def deployments_contexts(self):
+        if self.local:
+            raise RuntimeError(
+                'deployment_contexts do not exist in local workflows')
         if self._dep_contexts is None:
             self._dep_contexts = {}
 
-            rest = get_rest_client(tenant=self.tenant_name)
-            deployments_list = rest.deployments.list(
+            deployments_list = self.handler.rest_client.deployments.list(
                 _include=['id', 'blueprint_id'],
                 _get_all_results=True
             )
