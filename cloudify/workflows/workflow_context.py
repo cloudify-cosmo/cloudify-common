@@ -990,6 +990,9 @@ class CloudifyWorkflowContext(
     """
 
     def __init__(self, ctx):
+        self.blueprint = context.BlueprintContext(ctx)
+        self.deployment = WorkflowDeploymentContext(ctx, self)
+
         with current_workflow_ctx.push(self):
             # Not using super() here, because
             # WorkflowNodesAndInstancesContainer's __init__() needs some data
@@ -998,39 +1001,9 @@ class CloudifyWorkflowContext(
             # _WorkflowContextBase, but the way it is now is self-explanatory.
             _WorkflowContextBase.__init__(self, ctx,
                                           RemoteCloudifyWorkflowContextHandler)
-            self.blueprint = context.BlueprintContext(self._context)
-            self.deployment = WorkflowDeploymentContext(self._context, self)
 
-            if self.local:
-                storage = self.internal.handler.storage
-                raw_nodes = storage.get_nodes()
-                raw_node_instances = storage.get_node_instances()
-            elif self.deployment.id:
-                if self.workflow_id in ('create_deployment_environment',
-                                        'delete_deployment_environment'):
-                    # If creating a deployment environment, there are clearly
-                    # no nodes/instances yet.
-                    # If deleting it we don't care about the nodes/instances,
-                    # and trying to retrieve them might cause problems if
-                    # deployment environment creation had a really bad time.
-                    raw_nodes = []
-                    raw_node_instances = []
-                else:
-                    rest = get_rest_client()
-                    dep = self.deployment
-                    raw_nodes = rest.nodes.list(
-                        deployment_id=dep.id,
-                        _get_all_results=True,
-                        evaluate_functions=dep.runtime_only_evaluation)
-                    raw_node_instances = rest.node_instances.list(
-                        deployment_id=dep.id,
-                        _get_all_results=True)
-            else:
-                # no deployment means no nodes
-                # this happens in eg. blueprint-upload
-                raw_nodes = []
-                raw_node_instances = []
-
+            raw_nodes = self.internal.handler.get_nodes()
+            raw_node_instances = self.internal.handler.get_node_instances()
             WorkflowNodesAndInstancesContainer.__init__(self, self, raw_nodes,
                                                         raw_node_instances)
 
@@ -1213,81 +1186,6 @@ class LocalTasksProcessing(object):
                 except Exception:
                     pass
 
-# Local/Remote Handlers
-
-
-class CloudifyWorkflowContextHandler(object):
-
-    def __init__(self, workflow_ctx):
-        self.workflow_ctx = workflow_ctx
-
-    def cleanup(self, finished):
-        pass
-
-    def get_context_logging_handler(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_node_logging_handler(self, workflow_node_instance):
-        raise NotImplementedError('Implemented by subclasses')
-
-    @property
-    def bootstrap_context(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_send_task_event_func(self, task):
-        raise NotImplementedError('Implemented by subclasses')
-
-    @property
-    def operation_cloudify_context(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def send_workflow_event(self, event_type, message=None, args=None,
-                            additional_context=None):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def download_deployment_resource(self,
-                                     resource_path,
-                                     target_path=None):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def start_deployment_modification(self, nodes):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def finish_deployment_modification(self, modification):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def rollback_deployment_modification(self, modification):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def list_deployment_modifications(self, status):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def scaling_groups(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_operations(self, graph_id):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_tasks_graph(self, execution_id, name):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def update_operation(self, operation_id, state,
-                         result=None, exception=None):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def store_tasks_graph(self, execution_id, name, operations):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def store_operation(self, graph_id, dependencies,
-                        id, name, type, parameters, **kwargs):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def remove_operation(self, operation_id):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_execution(self, execution_id):
-        raise NotImplementedError('Implemented by subclasses')
-
 
 class _WorkflowTaskHandler(object):
     def __init__(self, workflow_ctx):
@@ -1440,10 +1338,92 @@ class _TaskDispatcher(object):
         handler.wait_for_task(task)
 
 
+# Local/Remote Handlers
+
+class CloudifyWorkflowContextHandler(object):
+
+    def __init__(self, workflow_ctx):
+        self.workflow_ctx = workflow_ctx
+
+    def cleanup(self, finished):
+        pass
+
+    def get_context_logging_handler(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_node_logging_handler(self, workflow_node_instance):
+        raise NotImplementedError('Implemented by subclasses')
+
+    @property
+    def bootstrap_context(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_send_task_event_func(self, task):
+        raise NotImplementedError('Implemented by subclasses')
+
+    @property
+    def operation_cloudify_context(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def send_workflow_event(self, event_type, message=None, args=None,
+                            additional_context=None):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def download_deployment_resource(self,
+                                     resource_path,
+                                     target_path=None):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def start_deployment_modification(self, nodes):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def finish_deployment_modification(self, modification):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def rollback_deployment_modification(self, modification):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_deployment_modifications(self, status):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def scaling_groups(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_operations(self, graph_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_tasks_graph(self, execution_id, name):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def store_tasks_graph(self, execution_id, name, operations):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def store_operation(self, graph_id, dependencies,
+                        id, name, type, parameters, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def remove_operation(self, operation_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_execution(self, execution_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_nodes(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_node_instances(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
         super(RemoteContextHandler, self).__init__(*args, **kwargs)
         self._dispatcher = _TaskDispatcher(self.workflow_ctx)
+        self.rest_client = get_rest_client()
 
     def cleanup(self, finished):
         if finished:
@@ -1487,11 +1467,11 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
                                  logger=logger)
 
     def get_operations(self, graph_id):
-        client = get_rest_client()
         ops = []
         offset = 0
         while True:
-            operations = client.operations.list(graph_id, _offset=offset)
+            operations = self.rest_client.operations.list(
+                graph_id, _offset=offset)
             ops += operations.items
             if len(ops) < operations.metadata.pagination.total:
                 offset += operations.metadata.pagination.size
@@ -1501,7 +1481,6 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def update_operation(self, operation_id, state,
                          result=None, exception=None):
-        client = get_rest_client()
         exception_causes = None
         try:
             json.dumps(result)
@@ -1511,24 +1490,22 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         if exception is not None:
             exception = str(exception)
             exception_causes = getattr(exception, 'causes', None)
-        client.operations.update(
+        self.rest_client.operations.update(
             operation_id, state=state, result=result,
             exception=exception, exception_causes=exception_causes)
 
     def get_tasks_graph(self, execution_id, name):
-        client = get_rest_client()
-        graphs = client.tasks_graphs.list(execution_id, name)
+        graphs = self.rest_client.tasks_graphs.list(execution_id, name)
         if graphs:
             return graphs[0]
 
     def store_tasks_graph(self, execution_id, name, operations):
-        client = get_rest_client()
-        return client.tasks_graphs.create(execution_id, name, operations)
+        return self.rest_client.tasks_graphs.create(
+            execution_id, name, operations)
 
     def store_operation(self, graph_id, dependencies,
                         id, name, type, parameters, **kwargs):
-        client = get_rest_client()
-        client.operations.create(
+        self.rest_client.operations.create(
             operation_id=id,
             graph_id=graph_id,
             name=name,
@@ -1537,16 +1514,39 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             parameters=parameters)
 
     def remove_operation(self, operation_id):
-        client = get_rest_client()
-        client.operations.delete(operation_id)
+        self.rest_client.operations.delete(operation_id)
 
     def get_execution(self, execution_id):
-        client = get_rest_client()
-        return client.executions.get(execution_id)
+        return self.rest_client.executions.get(execution_id)
+
+    def get_nodes(self):
+        if self.workflow_ctx.workflow_id in ('create_deployment_environment',
+                                             'delete_deployment_environment'):
+            # If creating a deployment environment, there are clearly
+            # no nodes/instances yet.
+            # If deleting it we don't care about the nodes/instances,
+            # and trying to retrieve them might cause problems if
+            # deployment environment creation had a really bad time.
+            return []
+        dep = self.workflow_ctx.deployment
+        return self.rest_client.nodes.list(
+            deployment_id=dep.id,
+            _get_all_results=True,
+            evaluate_functions=dep.runtime_only_evaluation
+        )
+
+    def get_node_instances(self):
+        if self.workflow_ctx.workflow_id in ('create_deployment_environment',
+                                             'delete_deployment_environment'):
+            return []
+        dep = self.workflow_ctx.deployment
+        return self.rest_client.node_instances.list(
+            deployment_id=dep.id,
+            _get_all_results=True,
+        )
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
-
     _scaling_groups = None
 
     def get_node_logging_handler(self, workflow_node_instance):
@@ -1570,8 +1570,7 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
 
     def start_deployment_modification(self, nodes):
         deployment_id = self.workflow_ctx.deployment.id
-        client = get_rest_client()
-        modification = client.deployment_modifications.start(
+        modification = self.rest_client.deployment_modifications.start(
             deployment_id=deployment_id,
             nodes=nodes,
             context={
@@ -1583,17 +1582,14 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
         return Modification(self.workflow_ctx, modification)
 
     def finish_deployment_modification(self, modification):
-        client = get_rest_client()
-        client.deployment_modifications.finish(modification.id)
+        self.rest_client.deployment_modifications.finish(modification.id)
 
     def rollback_deployment_modification(self, modification):
-        client = get_rest_client()
-        client.deployment_modifications.rollback(modification.id)
+        self.rest_client.deployment_modifications.rollback(modification.id)
 
     def list_deployment_modifications(self, status):
         deployment_id = self.workflow_ctx.deployment.id
-        client = get_rest_client()
-        modifications = client.deployment_modifications.list(
+        modifications = self.rest_client.deployment_modifications.list(
             deployment_id=deployment_id,
             status=status)
         return [Modification(self.workflow_ctx, m) for m in modifications]
@@ -1611,8 +1607,7 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
     def scaling_groups(self):
         if not self._scaling_groups:
             deployment_id = self.workflow_ctx.deployment.id
-            client = get_rest_client()
-            deployment = client.deployments.get(
+            deployment = self.rest_client.deployments.get(
                 deployment_id, _include=['scaling_groups'])
             self._scaling_groups = deployment['scaling_groups']
         return self._scaling_groups
@@ -1701,6 +1696,12 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
 
     def get_execution(self, execution_id):
         return self.storage.get_execution(execution_id)
+
+    def get_nodes(self):
+        return self.storage.get_nodes()
+
+    def get_node_instances(self):
+        return self.storage.get_node_instances()
 
 
 class Modification(object):
