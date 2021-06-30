@@ -1001,36 +1001,8 @@ class CloudifyWorkflowContext(
             self.blueprint = context.BlueprintContext(self._context)
             self.deployment = WorkflowDeploymentContext(self._context, self)
 
-            if self.local:
-                storage = self.internal.handler.storage
-                raw_nodes = storage.get_nodes()
-                raw_node_instances = storage.get_node_instances()
-            elif self.deployment.id:
-                if self.workflow_id in ('create_deployment_environment',
-                                        'delete_deployment_environment'):
-                    # If creating a deployment environment, there are clearly
-                    # no nodes/instances yet.
-                    # If deleting it we don't care about the nodes/instances,
-                    # and trying to retrieve them might cause problems if
-                    # deployment environment creation had a really bad time.
-                    raw_nodes = []
-                    raw_node_instances = []
-                else:
-                    rest = get_rest_client()
-                    dep = self.deployment
-                    raw_nodes = rest.nodes.list(
-                        deployment_id=dep.id,
-                        _get_all_results=True,
-                        evaluate_functions=dep.runtime_only_evaluation)
-                    raw_node_instances = rest.node_instances.list(
-                        deployment_id=dep.id,
-                        _get_all_results=True)
-            else:
-                # no deployment means no nodes
-                # this happens in eg. blueprint-upload
-                raw_nodes = []
-                raw_node_instances = []
-
+            raw_nodes = self.internal.handler.get_nodes()
+            raw_node_instances = self.internal.handler.get_node_instances()
             WorkflowNodesAndInstancesContainer.__init__(self, self, raw_nodes,
                                                         raw_node_instances)
 
@@ -1439,6 +1411,12 @@ class CloudifyWorkflowContextHandler(object):
     def get_execution(self, execution_id):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_nodes(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_node_instances(self):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
@@ -1539,6 +1517,32 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def get_execution(self, execution_id):
         return self.rest_client.executions.get(execution_id)
+
+    def get_nodes(self):
+        if self.workflow_ctx.workflow_id in ('create_deployment_environment',
+                                             'delete_deployment_environment'):
+            # If creating a deployment environment, there are clearly
+            # no nodes/instances yet.
+            # If deleting it we don't care about the nodes/instances,
+            # and trying to retrieve them might cause problems if
+            # deployment environment creation had a really bad time.
+            return []
+        dep = self.workflow_ctx.deployment
+        return self.rest_client.nodes.list(
+            deployment_id=dep.id,
+            _get_all_results=True,
+            evaluate_functions=dep.runtime_only_evaluation
+        )
+
+    def get_node_instances(self):
+        if self.workflow_ctx.workflow_id in ('create_deployment_environment',
+                                             'delete_deployment_environment'):
+            return []
+        dep = self.workflow_ctx.deployment
+        return self.rest_client.node_instances.list(
+            deployment_id=dep.id,
+            _get_all_results=True,
+        )
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
@@ -1691,6 +1695,12 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
 
     def get_execution(self, execution_id):
         return self.storage.get_execution(execution_id)
+
+    def get_nodes(self):
+        return self.storage.get_nodes()
+
+    def get_node_instances(self):
+        return self.storage.get_node_instances()
 
 
 class Modification(object):
