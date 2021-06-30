@@ -1213,81 +1213,6 @@ class LocalTasksProcessing(object):
                 except Exception:
                     pass
 
-# Local/Remote Handlers
-
-
-class CloudifyWorkflowContextHandler(object):
-
-    def __init__(self, workflow_ctx):
-        self.workflow_ctx = workflow_ctx
-
-    def cleanup(self, finished):
-        pass
-
-    def get_context_logging_handler(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_node_logging_handler(self, workflow_node_instance):
-        raise NotImplementedError('Implemented by subclasses')
-
-    @property
-    def bootstrap_context(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_send_task_event_func(self, task):
-        raise NotImplementedError('Implemented by subclasses')
-
-    @property
-    def operation_cloudify_context(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def send_workflow_event(self, event_type, message=None, args=None,
-                            additional_context=None):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def download_deployment_resource(self,
-                                     resource_path,
-                                     target_path=None):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def start_deployment_modification(self, nodes):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def finish_deployment_modification(self, modification):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def rollback_deployment_modification(self, modification):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def list_deployment_modifications(self, status):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def scaling_groups(self):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_operations(self, graph_id):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_tasks_graph(self, execution_id, name):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def update_operation(self, operation_id, state,
-                         result=None, exception=None):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def store_tasks_graph(self, execution_id, name, operations):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def store_operation(self, graph_id, dependencies,
-                        id, name, type, parameters, **kwargs):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def remove_operation(self, operation_id):
-        raise NotImplementedError('Implemented by subclasses')
-
-    def get_execution(self, execution_id):
-        raise NotImplementedError('Implemented by subclasses')
-
 
 class _WorkflowTaskHandler(object):
     def __init__(self, workflow_ctx):
@@ -1438,6 +1363,81 @@ class _TaskDispatcher(object):
     def wait_for_result(self, task, target):
         client, handler = self.get_client(target)
         handler.wait_for_task(task)
+
+
+# Local/Remote Handlers
+
+class CloudifyWorkflowContextHandler(object):
+
+    def __init__(self, workflow_ctx):
+        self.workflow_ctx = workflow_ctx
+
+    def cleanup(self, finished):
+        pass
+
+    def get_context_logging_handler(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_node_logging_handler(self, workflow_node_instance):
+        raise NotImplementedError('Implemented by subclasses')
+
+    @property
+    def bootstrap_context(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_send_task_event_func(self, task):
+        raise NotImplementedError('Implemented by subclasses')
+
+    @property
+    def operation_cloudify_context(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def send_workflow_event(self, event_type, message=None, args=None,
+                            additional_context=None):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def download_deployment_resource(self,
+                                     resource_path,
+                                     target_path=None):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def start_deployment_modification(self, nodes):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def finish_deployment_modification(self, modification):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def rollback_deployment_modification(self, modification):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_deployment_modifications(self, status):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def scaling_groups(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_operations(self, graph_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_tasks_graph(self, execution_id, name):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_operation(self, operation_id, state,
+                         result=None, exception=None):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def store_tasks_graph(self, execution_id, name, operations):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def store_operation(self, graph_id, dependencies,
+                        id, name, type, parameters, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def remove_operation(self, operation_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_execution(self, execution_id):
+        raise NotImplementedError('Implemented by subclasses')
 
 
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
