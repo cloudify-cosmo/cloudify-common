@@ -919,6 +919,7 @@ class _WorkflowContextBase(object):
 class WorkflowNodesAndInstancesContainer(object):
 
     def __init__(self, workflow_context, raw_nodes, raw_node_instances):
+        self.workflow_context = workflow_context
         self._nodes = dict(
             (node.id, CloudifyWorkflowNode(workflow_context, node, self))
             for node in raw_nodes)
@@ -964,14 +965,7 @@ class WorkflowNodesAndInstancesContainer(object):
         return self._node_instances.get(node_instance_id)
 
     def refresh_node_instances(self):
-        if self.local:
-            storage = self.internal.handler.storage
-            raw_node_instances = storage.get_node_instances()
-        else:
-            rest = get_rest_client()
-            raw_node_instances = rest.node_instances.list(
-                deployment_id=self.deployment.id,
-                _get_all_results=True)
+        raw_node_instances = self.internal.handler.get_node_instances()
         self._node_instances = dict(
             (instance.id, CloudifyWorkflowNodeInstance(
                 self, self._nodes[instance.node_id], instance,
