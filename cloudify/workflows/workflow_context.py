@@ -1444,6 +1444,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
         super(RemoteContextHandler, self).__init__(*args, **kwargs)
         self._dispatcher = _TaskDispatcher(self.workflow_ctx)
+        self.rest_client = get_rest_client()
 
     def cleanup(self, finished):
         if finished:
@@ -1487,11 +1488,11 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
                                  logger=logger)
 
     def get_operations(self, graph_id):
-        client = get_rest_client()
         ops = []
         offset = 0
         while True:
-            operations = client.operations.list(graph_id, _offset=offset)
+            operations = self.rest_client.operations.list(
+                graph_id, _offset=offset)
             ops += operations.items
             if len(ops) < operations.metadata.pagination.total:
                 offset += operations.metadata.pagination.size
@@ -1501,7 +1502,6 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def update_operation(self, operation_id, state,
                          result=None, exception=None):
-        client = get_rest_client()
         exception_causes = None
         try:
             json.dumps(result)
@@ -1511,24 +1511,22 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         if exception is not None:
             exception = str(exception)
             exception_causes = getattr(exception, 'causes', None)
-        client.operations.update(
+        self.rest_client.operations.update(
             operation_id, state=state, result=result,
             exception=exception, exception_causes=exception_causes)
 
     def get_tasks_graph(self, execution_id, name):
-        client = get_rest_client()
-        graphs = client.tasks_graphs.list(execution_id, name)
+        graphs = self.rest_client.tasks_graphs.list(execution_id, name)
         if graphs:
             return graphs[0]
 
     def store_tasks_graph(self, execution_id, name, operations):
-        client = get_rest_client()
-        return client.tasks_graphs.create(execution_id, name, operations)
+        return self.rest_client.tasks_graphs.create(
+            execution_id, name, operations)
 
     def store_operation(self, graph_id, dependencies,
                         id, name, type, parameters, **kwargs):
-        client = get_rest_client()
-        client.operations.create(
+        self.rest_client.operations.create(
             operation_id=id,
             graph_id=graph_id,
             name=name,
@@ -1537,16 +1535,13 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             parameters=parameters)
 
     def remove_operation(self, operation_id):
-        client = get_rest_client()
-        client.operations.delete(operation_id)
+        self.rest_client.operations.delete(operation_id)
 
     def get_execution(self, execution_id):
-        client = get_rest_client()
-        return client.executions.get(execution_id)
+        return self.rest_client.executions.get(execution_id)
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
-
     _scaling_groups = None
 
     def get_node_logging_handler(self, workflow_node_instance):
@@ -1570,8 +1565,7 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
 
     def start_deployment_modification(self, nodes):
         deployment_id = self.workflow_ctx.deployment.id
-        client = get_rest_client()
-        modification = client.deployment_modifications.start(
+        modification = self.rest_client.deployment_modifications.start(
             deployment_id=deployment_id,
             nodes=nodes,
             context={
@@ -1583,17 +1577,14 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
         return Modification(self.workflow_ctx, modification)
 
     def finish_deployment_modification(self, modification):
-        client = get_rest_client()
-        client.deployment_modifications.finish(modification.id)
+        self.rest_client.deployment_modifications.finish(modification.id)
 
     def rollback_deployment_modification(self, modification):
-        client = get_rest_client()
-        client.deployment_modifications.rollback(modification.id)
+        self.rest_client.deployment_modifications.rollback(modification.id)
 
     def list_deployment_modifications(self, status):
         deployment_id = self.workflow_ctx.deployment.id
-        client = get_rest_client()
-        modifications = client.deployment_modifications.list(
+        modifications = self.rest_client.deployment_modifications.list(
             deployment_id=deployment_id,
             status=status)
         return [Modification(self.workflow_ctx, m) for m in modifications]
@@ -1611,8 +1602,7 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
     def scaling_groups(self):
         if not self._scaling_groups:
             deployment_id = self.workflow_ctx.deployment.id
-            client = get_rest_client()
-            deployment = client.deployments.get(
+            deployment = self.rest_client.deployments.get(
                 deployment_id, _include=['scaling_groups'])
             self._scaling_groups = deployment['scaling_groups']
         return self._scaling_groups
