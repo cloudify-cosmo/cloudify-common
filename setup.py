@@ -49,7 +49,7 @@ except ImportError:
 
 setup(
     name='cloudify-common',
-    version='5.2.3',
+    version='5.2.4.dev1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     packages=find_packages(exclude=('dsl_parser.tests*',
