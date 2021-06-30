@@ -440,7 +440,6 @@ class _WorkflowContextBase(object):
 
     def __init__(self, ctx, remote_ctx_handler_cls):
         self._context = ctx = ctx or {}
-        self._plugins_cache = {}
         self._local_task_thread_pool_size = ctx.get(
             'local_task_thread_pool_size',
             DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE)
@@ -583,19 +582,6 @@ class _WorkflowContextBase(object):
             workflow_context=self,
         ))
 
-    def _get_plugin(self, plugin):
-        key = (plugin.get('package_name'), plugin.get('package_version'))
-        if key not in self._plugins_cache:
-            client = get_rest_client()
-            filter_plugin = {'package_name': plugin.get('package_name'),
-                             'package_version': plugin.get('package_version')}
-            managed_plugins = client.plugins.list(**filter_plugin)
-            if managed_plugins:
-                plugin['visibility'] = managed_plugins[0]['visibility']
-                plugin['tenant_name'] = managed_plugins[0]['tenant_name']
-            self._plugins_cache[key] = plugin
-        return self._plugins_cache[key]
-
     def _execute_operation(self,
                            operation,
                            node_instance,
@@ -633,8 +619,8 @@ class _WorkflowContextBase(object):
         else:
             total_retries = operation_total_retries
 
-        if plugin and plugin['package_name'] and not self.local:
-            plugin = self._get_plugin(plugin)
+        if plugin and plugin['package_name']:
+            plugin = self.internal.handler.get_plugin(plugin)
 
         node_context = {
             'node_id': node_instance.id,
@@ -1414,12 +1400,16 @@ class CloudifyWorkflowContextHandler(object):
     def get_node_instances(self):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_plugin(self, plugin_spec):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
         super(RemoteContextHandler, self).__init__(*args, **kwargs)
         self._dispatcher = _TaskDispatcher(self.workflow_ctx)
         self.rest_client = get_rest_client()
+        self._plugins_cache = {}
 
     def cleanup(self, finished):
         if finished:
@@ -1540,6 +1530,18 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             deployment_id=dep.id,
             _get_all_results=True,
         )
+
+    def get_plugin(self, plugin):
+        key = (plugin.get('package_name'), plugin.get('package_version'))
+        if key not in self._plugins_cache:
+            filter_plugin = {'package_name': plugin.get('package_name'),
+                             'package_version': plugin.get('package_version')}
+            managed_plugins = self.rest_client.plugins.list(**filter_plugin)
+            if managed_plugins:
+                plugin['visibility'] = managed_plugins[0]['visibility']
+                plugin['tenant_name'] = managed_plugins[0]['tenant_name']
+            self._plugins_cache[key] = plugin
+        return self._plugins_cache[key]
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
@@ -1698,6 +1700,9 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
 
     def get_node_instances(self):
         return self.storage.get_node_instances()
+
+    def get_plugin(self, plugin):
+        return plugin
 
 
 class Modification(object):
