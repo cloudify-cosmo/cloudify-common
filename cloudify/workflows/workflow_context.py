@@ -990,6 +990,9 @@ class CloudifyWorkflowContext(
     """
 
     def __init__(self, ctx):
+        self.blueprint = context.BlueprintContext(ctx)
+        self.deployment = WorkflowDeploymentContext(ctx, self)
+
         with current_workflow_ctx.push(self):
             # Not using super() here, because
             # WorkflowNodesAndInstancesContainer's __init__() needs some data
@@ -998,8 +1001,6 @@ class CloudifyWorkflowContext(
             # _WorkflowContextBase, but the way it is now is self-explanatory.
             _WorkflowContextBase.__init__(self, ctx,
                                           RemoteCloudifyWorkflowContextHandler)
-            self.blueprint = context.BlueprintContext(self._context)
-            self.deployment = WorkflowDeploymentContext(self._context, self)
 
             raw_nodes = self.internal.handler.get_nodes()
             raw_node_instances = self.internal.handler.get_node_instances()
