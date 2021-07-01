@@ -164,7 +164,8 @@ class ManagerEndpoint(Endpoint):
 
     def get_node_instance(self, node_instance_id):
         return manager.get_node_instance(node_instance_id,
-                                         evaluate_functions=True)
+                                         evaluate_functions=True,
+                                         client=self.rest_client)
 
     def get_managers(self, network='default'):
         return [m for m in self.rest_client.manager.get_managers()
@@ -175,7 +176,8 @@ class ManagerEndpoint(Endpoint):
                 if network in broker.networks]
 
     def update_node_instance(self, node_instance):
-        return manager.update_node_instance(node_instance)
+        return manager.update_node_instance(
+            node_instance, client=self.rest_client)
 
     def get_resource(self,
                      blueprint_id,
@@ -210,10 +212,10 @@ class ManagerEndpoint(Endpoint):
             download=True)
 
     def get_provider_context(self):
-        return manager.get_provider_context()
+        return manager.get_provider_context(client=self.rest_client)
 
     def get_bootstrap_context(self):
-        return manager.get_bootstrap_context()
+        return manager.get_bootstrap_context(client=self.rest_client)
 
     def get_logging_handler(self):
         return CloudifyPluginLoggingHandler(self.ctx,
