@@ -426,9 +426,6 @@ def get_node_instance_ip(node_instance_id):
                                                     instance.id))
 
 
-# TODO: some nasty code duplication between these two methods
-
-
 def update_execution_status(execution_id, status, error=None):
     """
     Update the execution status of the execution denoted by ``execution_id``.
