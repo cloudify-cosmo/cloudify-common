@@ -367,15 +367,17 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
                         .format(resource_path))
 
 
-def get_node_instance(node_instance_id, evaluate_functions=False):
+def get_node_instance(node_instance_id, evaluate_functions=False, client=None):
     """
     Read node instance data from the storage.
 
     :param node_instance_id: the node instance id
     :param evaluate_functions: Evaluate intrinsic functions
+    :param client: a REST client to use
     :rtype: NodeInstance
     """
-    client = get_rest_client()
+    if client is None:
+        client = get_rest_client()
     instance = client.node_instances.get(
         node_instance_id,
         evaluate_functions=evaluate_functions
@@ -390,13 +392,15 @@ def get_node_instance(node_instance_id, evaluate_functions=False):
                         index=instance.index)
 
 
-def update_node_instance(node_instance):
+def update_node_instance(node_instance, client=None):
     """
     Update node instance data changes in the storage.
 
     :param node_instance: the node instance with the updated data
+    :param client: a REST client to use
     """
-    client = get_rest_client()
+    if client is None:
+        client = get_rest_client()
     client.node_instances.update(
         node_instance.id,
         state=node_instance.state,
@@ -404,12 +408,13 @@ def update_node_instance(node_instance):
         version=node_instance.version)
 
 
-def get_node_instance_ip(node_instance_id):
+def get_node_instance_ip(node_instance_id, client=None):
     """
     Get the IP address of the host the node instance denoted by
     ``node_instance_id`` is contained in.
     """
-    client = get_rest_client()
+    if client is None:
+        client = get_rest_client()
     instance = client.node_instances.get(node_instance_id)
     if instance.host_id is None:
         raise NonRecoverableError('node instance: {0} is missing host_id'
@@ -426,22 +431,21 @@ def get_node_instance_ip(node_instance_id):
                                                     instance.id))
 
 
-# TODO: some nasty code duplication between these two methods
-
-
-def update_execution_status(execution_id, status, error=None):
+def update_execution_status(execution_id, status, error=None, client=None):
     """
     Update the execution status of the execution denoted by ``execution_id``.
 
     :returns: The updated status
     """
-    client = get_rest_client()
+    if client is None:
+        client = get_rest_client()
     return client.executions.update(execution_id, status, error)
 
 
-def get_bootstrap_context():
+def get_bootstrap_context(client=None):
     """Read the manager bootstrap context."""
-    client = get_rest_client()
+    if client is None:
+        client = get_rest_client()
     context = client.manager.get_context()['context']
     context = context.get('cloudify', {})
     context.setdefault('workflows', {}).update(
@@ -450,9 +454,10 @@ def get_bootstrap_context():
     return context
 
 
-def get_provider_context():
+def get_provider_context(client=None):
     """Read the manager provider context."""
-    client = get_rest_client()
+    if client is None:
+        client = get_rest_client()
     context = client.manager.get_context()
     return context['context']
 

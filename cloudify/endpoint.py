@@ -154,29 +154,36 @@ class Endpoint(object):
 
 
 class ManagerEndpoint(Endpoint):
+    def __init__(self, *args, **kwargs):
+        super(ManagerEndpoint, self).__init__(*args, **kwargs)
+        self._rest_client = None
+
+    @property
+    def rest_client(self):
+        if self._rest_client is None:
+            self._rest_client = manager.get_rest_client()
+        return self._rest_client
+
     def get_node(self, node_id):
-        client = manager.get_rest_client()
-        return client.nodes.get(self.ctx.deployment.id, node_id,
-                                evaluate_functions=True)
+        return self.rest_client.nodes.get(
+            self.ctx.deployment.id, node_id, evaluate_functions=True)
 
     def get_node_instance(self, node_instance_id):
         return manager.get_node_instance(node_instance_id,
-                                         evaluate_functions=True)
+                                         evaluate_functions=True,
+                                         client=self.rest_client)
 
     def get_managers(self, network='default'):
-        client = manager.get_rest_client()
-
-        return [m for m in client.manager.get_managers()
+        return [m for m in self.rest_client.manager.get_managers()
                 if network in m.networks]
 
     def get_brokers(self, network='default'):
-        client = manager.get_rest_client()
-
-        return [broker for broker in client.manager.get_brokers()
+        return [broker for broker in self.rest_client.manager.get_brokers()
                 if network in broker.networks]
 
     def update_node_instance(self, node_instance):
-        return manager.update_node_instance(node_instance)
+        return manager.update_node_instance(
+            node_instance, client=self.rest_client)
 
     def get_resource(self,
                      blueprint_id,
@@ -211,10 +218,10 @@ class ManagerEndpoint(Endpoint):
             download=True)
 
     def get_provider_context(self):
-        return manager.get_provider_context()
+        return manager.get_provider_context(client=self.rest_client)
 
     def get_bootstrap_context(self):
-        return manager.get_bootstrap_context()
+        return manager.get_bootstrap_context(client=self.rest_client)
 
     def get_logging_handler(self):
         return CloudifyPluginLoggingHandler(self.ctx,
@@ -231,12 +238,9 @@ class ManagerEndpoint(Endpoint):
                                out_func=logs.manager_event_out)
 
     def evaluate_functions(self, payload):
-        client = manager.get_rest_client()
-
         def evaluate_functions_method(deployment_id, context, payload):
-            return client.evaluate.functions(deployment_id,
-                                             context,
-                                             payload)['payload']
+            return self.rest_client.evaluate.functions(
+                deployment_id, context, payload)['payload']
         return self._evaluate_functions_impl(payload,
                                              evaluate_functions_method)
 
@@ -255,20 +259,16 @@ class ManagerEndpoint(Endpoint):
             return base_workdir
 
     def get_config(self, name=None, scope=None):
-        client = manager.get_rest_client()
-        return client.manager.get_config(name=name, scope=scope)
+        return self.rest_client.manager.get_config(name=name, scope=scope)
 
     def get_operation(self, operation_id):
-        client = manager.get_rest_client()
-        return client.operations.get(operation_id)
+        return self.rest_client.operations.get(operation_id)
 
     def get_execution(self, execution_id):
-        client = manager.get_rest_client()
-        return client.executions.get(execution_id)
+        return self.rest_client.executions.get(execution_id)
 
     def update_operation(self, operation_id, state):
-        client = manager.get_rest_client()
-        client.operations.update(operation_id, state=state)
+        self.rest_client.operations.update(operation_id, state=state)
 
 
 class LocalEndpoint(Endpoint):
