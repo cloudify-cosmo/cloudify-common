@@ -156,7 +156,13 @@ class Endpoint(object):
 class ManagerEndpoint(Endpoint):
     def __init__(self, *args, **kwargs):
         super(ManagerEndpoint, self).__init__(*args, **kwargs)
-        self.rest_client = manager.get_rest_client()
+        self._rest_client = None
+
+    @property
+    def rest_client(self):
+        if self._rest_client is None:
+            self._rest_client = manager.get_rest_client()
+        return self._rest_client
 
     def get_node(self, node_id):
         return self.rest_client.nodes.get(
