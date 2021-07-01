@@ -38,6 +38,8 @@ def encrypt(data, key=None):
                 not provided, use the restservice config key
     :return: ciphertext, as unicode string
     """
+    if data is None:
+        return None
     key = key or _get_encryption_key()
     fernet = Fernet256(key)
     return fernet.encrypt(data.encode('utf-8')).decode('utf-8')
