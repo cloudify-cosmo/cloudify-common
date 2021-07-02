@@ -18,25 +18,10 @@ import testtools
 
 from cloudify import dispatch
 from cloudify import exceptions
-from cloudify.workflows import tasks
 from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
 
 
 class TestDispatchTaskHandler(testtools.TestCase):
-    def test_dispatch_update_operation_resume(self):
-        """When the operation was already started, we set resume=true
-
-        (and the function fails because it's not resumable)
-        """
-        args = [1]
-        op_handler = self._operation(
-            func1, task_target='stub', args=args)
-        with patch('cloudify.context.CloudifyContext.get_operation',
-                   return_value=Mock(state=tasks.TASK_STARTED)):
-            exc = self.assertRaises(exceptions.NonRecoverableError,
-                                    op_handler.handle)
-        self.assertIn('not resumable', str(exc))
-
     def test_dispatch_no_such_handler(self):
         context = {'type': 'unknown_type'}
         self.assertRaises(exceptions.NonRecoverableError,
