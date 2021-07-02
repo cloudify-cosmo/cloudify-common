@@ -38,6 +38,8 @@ def encrypt(data, key=None):
                 not provided, use the restservice config key
     :return: ciphertext, as unicode string
     """
+    if data is None:
+        return None
     key = key or _get_encryption_key()
     fernet = Fernet256(key)
     return fernet.encrypt(data.encode('utf-8')).decode('utf-8')
@@ -46,11 +48,13 @@ def encrypt(data, key=None):
 def decrypt(encrypted_data, key=None):
     """Decrypt the ciphertext using the given key.
 
-    :param data: ciphertext, as unicode string
+    :param encrypted_data: ciphertext, as unicode string
     :param key: encryption key - 64 url-safe base64-encoded bytes; if
                 not provided, use the restservice config key
     :return: decrypted data, as unicode script
     """
+    if encrypted_data is None:
+        return None
     key = key or _get_encryption_key()
     try:
         fernet = Fernet256(key)
@@ -60,6 +64,8 @@ def decrypt(encrypted_data, key=None):
 
 
 def decrypt128(encrypted_data, key=None):
+    if encrypted_data is None:
+        return None
     key = key or _get_encryption_key()
     fernet = Fernet(key)
     return fernet.decrypt(encrypted_data.encode('utf-8')).decode('utf-8')
