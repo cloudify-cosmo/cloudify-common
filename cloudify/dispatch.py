@@ -22,13 +22,8 @@ import sys
 import threading
 import traceback
 
-from contextlib import contextmanager
-
 from cloudify_rest_client.executions import Execution
-from cloudify_rest_client.exceptions import (
-    InvalidExecutionUpdateStatus,
-    CloudifyClientError
-)
+from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
 
 from cloudify import logs
 from cloudify import exceptions
@@ -147,39 +142,12 @@ class OperationHandler(TaskHandler):
             kwargs['ctx'] = ctx
 
         with state.current_ctx.push(ctx, kwargs):
-            # should be single `with` and comma-separate ctxmanagers,
-            # but has to be nested for python 2.6 compat
-            with self._update_operation_state():
-                self._validate_operation_resumable()
-                result = self._run_operation_func(ctx, kwargs)
+            self._validate_operation_resumable()
+            result = self._run_operation_func(ctx, kwargs)
 
             if ctx.operation._operation_retry:
                 raise ctx.operation._operation_retry
         return result
-
-    @contextmanager
-    def _update_operation_state(self):
-        ctx = self.ctx
-        store = True
-        try:
-            op = ctx.get_operation()
-        except CloudifyClientError as e:
-            if e.status_code == 404:
-                op = None
-                store = False
-            else:
-                raise
-        if op and op.state == constants.TASK_STARTED:
-            # this operation has been started before? that means we're
-            # resuming a re-delivered operation
-            ctx.resume = True
-        if store:
-            ctx.update_operation(constants.TASK_STARTED)
-        try:
-            yield
-        finally:
-            if store:
-                ctx.update_operation(constants.TASK_RESPONSE_SENT)
 
     def _run_operation_func(self, ctx, kwargs):
         try:
