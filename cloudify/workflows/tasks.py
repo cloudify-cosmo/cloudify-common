@@ -43,6 +43,18 @@ from cloudify.utils import get_func
 from cloudify.constants import TASK_RESPONSE_SENT  # noqa
 from cloudify.utils import INSPECT_TIMEOUT  # noqa
 
+try:
+    from functools import lru_cache
+except ImportError:
+    # py2.7 doesn't have lru_cache, but this is only used mgmtworker-side,
+    # on py3 only. Still, this module needs to be importable. Make a noop
+    # function that still has the same interface.
+    def lru_cache():
+        def _inner(f):
+            return f
+        return _inner
+
+
 INFINITE_TOTAL_RETRIES = -1
 DEFAULT_TOTAL_RETRIES = INFINITE_TOTAL_RETRIES
 DEFAULT_RETRY_INTERVAL = 30
@@ -545,6 +557,7 @@ class RemoteWorkflowTask(WorkflowTask):
         if rest_host:
             self.kwargs['__cloudify_context']['rest_host'] = rest_host
 
+    @lru_cache()
     def _get_agent_settings(self, node_instance_id, deployment_id,
                             tenant=None):
         """Get the cloudify_agent dict and the tenant dict of the agent.
