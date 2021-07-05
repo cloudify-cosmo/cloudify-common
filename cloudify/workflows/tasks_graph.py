@@ -513,5 +513,10 @@ OP_TYPES = {
     'RemoteWorkflowTask': tasks.RemoteWorkflowTask,
     'LocalWorkflowTask': tasks.LocalWorkflowTask,
     'NOPLocalWorkflowTask': tasks.NOPLocalWorkflowTask,
-    'SubgraphTask': SubgraphTask
+    'SubgraphTask': SubgraphTask,
+    'SetNodeInstanceStateTask': tasks.SetNodeInstanceStateTask,
+    'GetNodeInstanceStateTask': tasks.GetNodeInstanceStateTask,
+    'SendNodeEventTask': tasks.SendNodeEventTask,
+    'SendWorkflowEventTask': tasks.SendWorkflowEventTask,
+    'UpdateExecutionStatusTask': tasks.UpdateExecutionStatusTask,
 }
