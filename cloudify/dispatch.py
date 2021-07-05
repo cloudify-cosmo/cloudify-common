@@ -363,13 +363,13 @@ class WorkflowHandler(TaskHandler):
 
     def _workflow_cancelled(self):
         self.ctx.cleanup(finished=False)
-        self._update_execution_status(Execution.CANCELLED)
         self.ctx.internal.send_workflow_event(
             event_type='workflow_cancelled',
             message="'{0}' workflow execution cancelled".format(
                 self.ctx.workflow_id),
             additional_context=self._get_hook_params()
         )
+        self._update_execution_status(Execution.CANCELLED)
 
     def _get_hook_params(self):
         is_system_workflow = self.cloudify_context.get('is_system_workflow')
