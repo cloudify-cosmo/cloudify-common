@@ -1105,7 +1105,7 @@ class CloudifyWorkflowContextInternal(object):
         retry_interval = workflows.get(
             'task_retry_interval',
             self.workflow_context._task_retry_interval)
-        return dict(total_retries=total_retries,
+        return dict(total_retries=int(total_retries),
                     retry_interval=retry_interval)
 
     def get_subgraph_task_configuration(self):
