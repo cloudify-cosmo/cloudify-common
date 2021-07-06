@@ -919,6 +919,14 @@ class _BuiltinTaskBase(WorkflowTask):
         """
         return workflow_ctx.internal.handler.storage
 
+    @property
+    def rest_client(self):
+        """Shorthand for accessing the rest-client.
+
+        Only available in remote workflows.
+        """
+        return workflow_ctx.internal.handler.rest_client
+
     def dump(self):
         serialized = super(_BuiltinTaskBase, self).dump()
         serialized['parameters']['task_kwargs'] = self.kwargs
@@ -953,9 +961,15 @@ class SetNodeInstanceStateTask(_BuiltinTaskBase):
         self.info = state
 
     def remote(self):
-        # no need to do anything - the server will update the state
-        # automatically once we set this task state to SUCCEEDED
-        pass
+        if self.stored:
+            # no need to do anything - the server will update the state
+            # automatically once we set this task state to SUCCEEDED
+            return
+        self.rest_client.node_instances.update(
+            self.kwargs['node_instance_id'],
+            state=self.kwargs['state'],
+            force=True,
+        )
 
     def local(self):
         self.storage.update_node_instance(
