@@ -950,6 +950,7 @@ class SetNodeInstanceStateTask(_BuiltinTaskBase):
     def __init__(self, node_instance_id, state, *args, **kwargs):
         self.kwargs = {'node_instance_id': node_instance_id, 'state': state}
         super(SetNodeInstanceStateTask, self).__init__(*args, **kwargs)
+        self.info = state
 
     def remote(self):
         # no need to do anything - the server will update the state
@@ -967,6 +968,7 @@ class GetNodeInstanceStateTask(_BuiltinTaskBase):
     def __init__(self, node_instance_id, *args, **kwargs):
         self.kwargs = {'node_instance_id': node_instance_id}
         super(GetNodeInstanceStateTask, self).__init__(*args, **kwargs)
+        self.info = node_instance_id
 
     def remote(self):
         return get_node_instance(self.kwargs['node_instance_id']).state
@@ -985,6 +987,7 @@ class SendNodeEventTask(_BuiltinTaskBase):
             'additional_context': additional_context,
         }
         super(SendNodeEventTask, self).__init__(*args, **kwargs)
+        self.info = event
 
     def remote(self):
         # no need to do anything - the server will create the event
@@ -1012,6 +1015,7 @@ class SendWorkflowEventTask(_BuiltinTaskBase):
             'additional_context': additional_context,
         }
         super(SendWorkflowEventTask, self).__init__(*args, **kwargs)
+        self.info = event
 
     # remote and local are the same
     def remote(self):
@@ -1030,6 +1034,7 @@ class UpdateExecutionStatusTask(_BuiltinTaskBase):
     def __init__(self, status, *args, **kwargs):
         self.kwargs = {'status': status}
         super(UpdateExecutionStatusTask, self).__init__(*args, **kwargs)
+        self.info = status
 
     def remote(self):
         update_execution_status(
