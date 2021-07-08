@@ -468,6 +468,8 @@ class _WorkflowContextBase(object):
         # is this execution being resumed? set to True if at the beginning
         # of handling the execution, the status was already STARTED
         self.resume = False
+        # all amqp Handler instances used by this workflow
+        self.amqp_handlers = set()
 
     def cleanup(self, finished=True):
         self.internal.handler.cleanup(finished)
@@ -1305,6 +1307,7 @@ class _WorkflowTaskHandler(object):
     def __init__(self, workflow_ctx):
         self._logger = logging.getLogger('dispatch')
         self.workflow_ctx = workflow_ctx
+        workflow_ctx.amqp_handlers.add(self)
         self._queue_name = 'execution_responses_{0}'.format(
             workflow_ctx.execution_id)
         self._connection = None
@@ -1363,6 +1366,27 @@ class _WorkflowTaskHandler(object):
                 correlation_id=correlation_id),
             'routing_key': routing_key,
         })
+        if self._task_deletes_exchange(message):
+            self._clear_bound_exchanges_cache()
+
+    def _task_deletes_exchange(self, message):
+        """Does this task delete an amqp exchange?
+
+        Agent delete tasks are going to delete the agent's amqp exchange,
+        so we'll have to bind it again, if the agent is reinstalled
+        (eg. in a deployment-update workflow) - so we'll bust the ._bound
+        cache in that case.
+        """
+        try:
+            name = message['cloudify_task']['kwargs'][
+                '__cloudify_context']['operation']['name']
+            return name == 'cloudify.interfaces.cloudify_agent.delete'
+        except (KeyError, TypeError):
+            return False
+
+    def _clear_bound_exchanges_cache(self):
+        for handler in self.workflow_ctx.amqp_handlers:
+            handler._bound.clear()
 
     def delete_queue(self):
         self._connection.channel_method(
