@@ -77,16 +77,21 @@ class EventsClient(object):
         response = self.api.get(uri, _include=_include, params=params)
         return ListResponse(response['items'], response['metadata'])
 
-    def create(self, events=None, logs=None):
+    def create(self, events=None, logs=None, execution_id=None):
         """Create events & logs
 
         :param events: List of events to be created
         :param logs: List of logs to be created
+        :param execution_id: Create logs/events for this execution - only
+                             used if the request is not authenticated by an
+                             execution token (then, the token's execution
+                             takes precedence).
         :return: None
         """
         self.api.post('/events', data={
             'events': events,
             'logs': logs,
+            'execution_id': execution_id,
         }, expected_status_code=(201, 204))
 
     def delete(self, deployment_id, include_logs=False, message=None,

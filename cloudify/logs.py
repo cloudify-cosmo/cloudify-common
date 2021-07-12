@@ -22,6 +22,7 @@ import datetime
 from cloudify import constants, manager
 from cloudify import event as _event
 from cloudify.utils import (get_execution_creator_username,
+                            get_execution_id,
                             is_management_environment,
                             ENV_AGENT_LOG_LEVEL,
                             ENV_AGENT_LOG_DIR,
@@ -357,11 +358,12 @@ def _log_message(logger, message):
 def _publish_message(message, message_type, logger):
     if u'message' in message:
         _log_message(logger, message)
+    execution_id = get_execution_id()
     client = manager.get_rest_client()
     if message_type == 'log':
-        client.events.create(logs=[message])
+        client.events.create(logs=[message], execution_id=execution_id)
     else:
-        client.events.create(events=[message])
+        client.events.create(events=[message], execution_id=execution_id)
 
 
 def setup_logger_base(log_level, log_dir=None):
