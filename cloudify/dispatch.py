@@ -330,7 +330,6 @@ class WorkflowHandler(TaskHandler):
             event_type='workflow_started',
             message="{0} '{1}' workflow execution{2}".format(
                 start_resume, self.ctx.workflow_id, dry_run),
-            additional_context=self._get_hook_params()
         )
 
     def _workflow_succeeded(self):
@@ -340,7 +339,6 @@ class WorkflowHandler(TaskHandler):
             event_type='workflow_succeeded',
             message="'{0}' workflow execution succeeded{1}".format(
                 self.ctx.workflow_id, dry_run),
-            additional_context=self._get_hook_params()
         )
         self._update_execution_status(Execution.TERMINATED)
 
@@ -352,7 +350,6 @@ class WorkflowHandler(TaskHandler):
                 message="'{0}' workflow execution failed: {1}".format(
                     self.ctx.workflow_id, exception),
                 args={'error': error_traceback},
-                additional_context=self._get_hook_params()
             )
             self._update_execution_status(Execution.FAILED, error_traceback)
         except Exception:
@@ -367,21 +364,8 @@ class WorkflowHandler(TaskHandler):
             event_type='workflow_cancelled',
             message="'{0}' workflow execution cancelled".format(
                 self.ctx.workflow_id),
-            additional_context=self._get_hook_params()
         )
         self._update_execution_status(Execution.CANCELLED)
-
-    def _get_hook_params(self):
-        is_system_workflow = self.cloudify_context.get('is_system_workflow')
-        hook_params = {
-            'message_type': 'hook',
-            'is_system_workflow': is_system_workflow,
-            'rest_token': self.cloudify_context.get('rest_token')
-        }
-
-        if not is_system_workflow:
-            hook_params['execution_parameters'] = self.execution_parameters
-        return hook_params
 
     def _update_execution_status(self, status, error=None):
         if self.ctx.local or not self.update_execution_status:
