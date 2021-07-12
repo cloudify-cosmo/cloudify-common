@@ -306,6 +306,14 @@ def get_execution_token():
         return None
 
 
+def get_execution_id():
+    """The current execution ID"""
+    try:
+        return _get_current_context().execution_id
+    except RuntimeError:  # There is no context
+        return None
+
+
 def get_instances_of_node(rest_client,
                           deployment_id=None,
                           node_id=None,
