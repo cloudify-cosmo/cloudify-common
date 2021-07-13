@@ -476,7 +476,7 @@ class RemoteWorkflowTask(WorkflowTask):
 
         :return: a WorkflowTaskResult instance wrapping the async result
         """
-        should_send = self._state == TASK_PENDING
+        should_send = self._state in (TASK_PENDING, TASK_SENDING)
         if self._state == TASK_PENDING:
             self.set_state(TASK_SENDING)
         try:
