@@ -470,14 +470,6 @@ class RemoteWorkflowTask(WorkflowTask):
                 '__cloudify_context'].pop(skipped_field, None)
         return task
 
-    def _update_stored_state(self, state, **kwargs):
-        # no need to store SENDING - all work after SENDING but before SENT
-        # can safely be rerun
-        if state == TASK_SENDING:
-            return
-        return super(RemoteWorkflowTask, self)._update_stored_state(
-            state, **kwargs)
-
     @with_execute_after
     def apply_async(self):
         """Send the task to an agent.
