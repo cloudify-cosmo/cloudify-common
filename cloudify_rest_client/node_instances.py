@@ -228,3 +228,23 @@ class NodeInstancesClient(object):
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata']
         )
+
+    def search(self, ids):
+        """Search node instances by their IDs.
+
+        :param ids: list of ids to search by
+        :return: Node instances.
+        :rtype: list
+        """
+        response = self.api.post('/searches/node-instances', data={
+            'filter_rules': [{
+                'key': 'id',
+                'values': ids,
+                'operator': 'any_of',
+                'type': 'attribute'
+            }]
+        })
+        return ListResponse(
+            [self._wrapper_cls(item) for item in response['items']],
+            response['metadata']
+        )
