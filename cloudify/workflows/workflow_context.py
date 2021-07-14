@@ -1499,11 +1499,11 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             # it's not serializable! just store a null (as is back-compatible)
             result = None
         if exception is not None:
-            exception = str(exception)
+            exception_text = str(exception)
             exception_causes = getattr(exception, 'causes', None)
         self.rest_client.operations.update(
             operation_id, state=state, result=result,
-            exception=exception, exception_causes=exception_causes)
+            exception=exception_text, exception_causes=exception_causes)
 
     def get_tasks_graph(self, execution_id, name):
         graphs = self.rest_client.tasks_graphs.list(execution_id, name)
