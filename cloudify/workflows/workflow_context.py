@@ -1493,12 +1493,12 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def update_operation(self, operation_id, state,
                          result=None, exception=None):
         exception_causes = None
+        exception_text = None
         try:
             json.dumps(result)
         except ValueError:
             # it's not serializable! just store a null (as is back-compatible)
             result = None
-        exception_text = None
         if exception is not None:
             exception_text = str(exception)
             exception_causes = getattr(exception, 'causes', None)
