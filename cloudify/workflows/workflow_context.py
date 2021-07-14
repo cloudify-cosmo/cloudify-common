@@ -1493,6 +1493,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def update_operation(self, operation_id, state,
                          result=None, exception=None):
         exception_causes = None
+        exception_text = None
         try:
             json.dumps(result)
         except ValueError:
