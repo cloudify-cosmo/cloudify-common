@@ -1498,6 +1498,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         except ValueError:
             # it's not serializable! just store a null (as is back-compatible)
             result = None
+        exception_text = None
         if exception is not None:
             exception_text = str(exception)
             exception_causes = getattr(exception, 'causes', None)
