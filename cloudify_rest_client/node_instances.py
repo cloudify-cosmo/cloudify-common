@@ -229,13 +229,17 @@ class NodeInstancesClient(object):
             response['metadata']
         )
 
-    def search(self, ids):
+    def search(self, ids, all_tenants=False):
         """Search node instances by their IDs.
 
         :param ids: list of ids to search by
+        :param all_tenants: search node-instances of all tenants
         :return: Node instances.
         :rtype: list
         """
+        params = {}
+        if all_tenants:
+            params['_all_tenants'] = True
         response = self.api.post('/searches/node-instances', data={
             'filter_rules': [{
                 'key': 'id',
@@ -243,7 +247,7 @@ class NodeInstancesClient(object):
                 'operator': 'any_of',
                 'type': 'attribute'
             }]
-        })
+        }, params=params)
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata']
