@@ -171,62 +171,6 @@ class DeploymentUpdatesClient(object):
         response = self.api.get(uri, _include=_include)
         return DeploymentUpdate(response)
 
-    def update(self,
-               deployment_id,
-               blueprint_or_archive_path,
-               application_file_name=None,
-               inputs=None,
-               skip_install=False,
-               skip_uninstall=False,
-               workflow_id=None,
-               force=False,
-               ignore_failure=False,
-               install_first=True,
-               skip_reinstall=True,
-               runtime_only_evaluation=None):
-
-        # TODO better handle testing for a supported archive. in other commands
-        # it is done in the cli part (`commands.<command_name>)
-        if utils.is_supported_archive_type(blueprint_or_archive_path):
-            data_form, params = \
-                self._update_from_archive(deployment_id,
-                                          blueprint_or_archive_path,
-                                          application_file_name,
-                                          inputs=inputs)
-        else:
-            data_form, params = \
-                self._update_from_blueprint(deployment_id,
-                                            blueprint_or_archive_path,
-                                            inputs=inputs)
-
-        if workflow_id:
-            params['workflow_id'] = workflow_id
-        if skip_install:
-            params['skip_install'] = skip_install
-        if skip_uninstall:
-            params['skip_uninstall'] = skip_uninstall
-        if skip_reinstall is not None:
-            params['skip_reinstall'] = skip_reinstall
-        if force:
-            warnings.warn("The 'force' flag is deprecated", DeprecationWarning)
-        if ignore_failure:
-            params['ignore_failure'] = ignore_failure
-        if install_first:
-            params['install_first'] = install_first
-        if runtime_only_evaluation is not None:
-            params['runtime_only_evaluation'] = runtime_only_evaluation
-        data_and_headers = {}
-
-        if data_form:
-            data = MultipartEncoder(fields=data_form)
-            data_and_headers['data'] = data
-            data_and_headers['headers'] = {'Content-type': data.content_type}
-
-        uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
-        response = self.api.post(uri, params=params, **data_and_headers)
-
-        return DeploymentUpdate(response)
-
     def update_with_existing_blueprint(self,
                                        deployment_id,
                                        blueprint_id=None,
