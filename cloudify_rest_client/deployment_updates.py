@@ -208,7 +208,7 @@ class DeploymentUpdatesClient(object):
         if reevaluate_active_statuses is not None:
             data['reevaluate_active_statuses'] = reevaluate_active_statuses
         uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
-        response = self.api.put(uri, data=data)
+        response = self.api.post(uri, data=data)
         return DeploymentUpdate(response)
 
     def finalize_commit(self, update_id):
