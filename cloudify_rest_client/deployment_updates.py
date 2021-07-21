@@ -17,11 +17,8 @@ import os
 import json
 import shutil
 import tempfile
-import warnings
 
 from mimetypes import MimeTypes
-
-from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from cloudify_rest_client import utils
 from cloudify_rest_client._compat import urlquote, pathname2url, urlparse
@@ -215,7 +212,7 @@ class DeploymentUpdatesClient(object):
         return DeploymentUpdate(response)
 
     def finalize_commit(self, update_id):
-        """Finalize the commiting process
+        """Finalize the committing process
 
         :param update_id:
         :return:
