@@ -904,6 +904,36 @@ class GetEnvironmentCapability(Function):
         return handler.get_environment_capability(self.capability_path)
 
 
+@register(name='ctx', func_eval_type=RUNTIME_FUNC)
+class GetContext(Function):
+    def __init__(self, args, **kwargs):
+        self.context_path = None
+        super(GetContext, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, list) or len(args) < 1:
+            raise exceptions.FunctionValidationError(
+                'ctx',
+                '`ctx` function argument should be a non-empty list. '
+                'Instead, it is a {0} with value {1}'
+                .format(type(args), args)
+            )
+        for arg_index, arg in enumerate(args):
+            if not isinstance(arg, (text_type, int)):
+                raise ValueError(
+                    '`ctx` function accepts only string or integer arguments. '
+                    'Instead, the item with index {0} is {1} of type {2}'
+                    .format(arg_index, arg, type(arg))
+                )
+        self.context_path = args
+
+    def validate(self, plan):
+        pass
+
+    def evaluate(self, handler):
+        return handler.get_context(self.context_path, self.context)
+
+
 def _get_property_value(node_name,
                         properties,
                         property_path,
@@ -1153,6 +1183,7 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
         self._labels_cache = {}
         self._group_capabilities_cache = {}
         self._environment_capabilities_cache = {}
+        self._context_cache = {}
 
     def get_input(self, input_name):
         return self._storage.get_input(input_name)
@@ -1217,6 +1248,18 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             )
             self._environment_capabilities_cache[capability_id] = capability
         return self._environment_capabilities_cache[capability_id]
+
+    def get_context(self, context_path, context):
+        context_id = _convert_attribute_list_to_python_syntax_string(
+            context_path)
+        if context_id not in self._context_cache:
+            value = None
+            for key in context_path:
+                value = context.get(key)
+                if value is None:
+                    break
+            self._context_cache[context_id] = value
+        return self._context_cache[context_id]
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
