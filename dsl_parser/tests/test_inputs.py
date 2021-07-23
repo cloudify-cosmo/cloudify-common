@@ -762,6 +762,28 @@ node_templates:
             self.parse(yaml),
             inputs={'port': {'a': 2}})
 
+    def test_input_display_label(self):
+        yaml = """
+inputs:
+    ip:
+        display_label: IP address
+        default: 127.0.0.1
+    port:
+        display_label: Port number
+        default: 8080
+node_templates: {}
+"""
+        parsed = self.parse(yaml)
+        self.assertEqual(2, len(parsed[consts.INPUTS]))
+        self.assertEqual(
+            '127.0.0.1', parsed[consts.INPUTS]['ip'][consts.DEFAULT])
+        self.assertEqual(
+            8080, parsed[consts.INPUTS]['port'][consts.DEFAULT])
+        self.assertEqual(
+            'IP address', parsed[consts.INPUTS]['ip'][consts.DISPLAY_LABEL])
+        self.assertEqual(
+            'Port number', parsed[consts.INPUTS]['port'][consts.DISPLAY_LABEL])
+
 
 class TestInputsConstraints(AbstractTestParser):
     def test_constraints_successful(self):
