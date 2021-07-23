@@ -838,8 +838,7 @@ node_templates: {}
             True, parsed[consts.INPUTS]['ip'][consts.HIDDEN])
         self.assertEqual(
             False, parsed[consts.INPUTS]['port'][consts.HIDDEN])
-        self.assertEqual(
-            False, parsed[consts.INPUTS]['app_name'][consts.HIDDEN])
+        self.assertNotIn(consts.HIDDEN, parsed[consts.INPUTS]['app_name'])
 
 
 class TestInputsConstraints(AbstractTestParser):

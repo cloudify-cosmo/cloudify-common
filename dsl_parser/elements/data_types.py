@@ -143,9 +143,6 @@ class SchemaPropertyHidden(Element):
         'inputs': ['validate_version']
     }
 
-    def parse(self, *args, **kwargs):
-        return bool(self.initial_value)
-
     def validate(self, version, validate_version):
         if validate_version:
             self.validate_version(version, (1, 3))
