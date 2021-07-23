@@ -18,6 +18,7 @@ from dsl_parser.elements.data_types import (Schema,
                                             SchemaProperty,
                                             SchemaInputType,
                                             SchemaPropertyDefault,
+                                            SchemaPropertyDisplayLabel,
                                             SchemaPropertyRequired,
                                             SchemaPropertyDescription)
 from dsl_parser.framework.elements import Element, Leaf, List, Dict
@@ -92,7 +93,7 @@ class InputSchemaProperty(SchemaProperty):
         'description': SchemaPropertyDescription,
         'type': SchemaInputType,
         'constraints': Constraints,
-        'display_label': SchemaPropertyDescription,
+        'display_label': SchemaPropertyDisplayLabel,
     }
 
     def parse(self):
