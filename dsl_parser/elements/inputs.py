@@ -18,9 +18,11 @@ from dsl_parser.elements.data_types import (Schema,
                                             SchemaProperty,
                                             SchemaInputType,
                                             SchemaPropertyDefault,
+                                            SchemaPropertyDescription,
                                             SchemaPropertyDisplayLabel,
+                                            SchemaPropertyHidden,
                                             SchemaPropertyRequired,
-                                            SchemaPropertyDescription)
+                                            )
 from dsl_parser.framework.elements import Element, Leaf, List, Dict
 from dsl_parser.framework.requirements import Requirement, sibling_predicate
 
@@ -94,10 +96,20 @@ class InputSchemaProperty(SchemaProperty):
         'type': SchemaInputType,
         'constraints': Constraints,
         'display_label': SchemaPropertyDisplayLabel,
+        'hidden': SchemaPropertyHidden,
     }
 
     def parse(self):
         return self.build_dict_result(with_default=False)
+
+    def validate(self):
+        if self.initial_value.get('required', False) \
+                and self.initial_value.get('hidden', False) \
+                and 'default' not in self.initial_value:
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_HIDDEN_REQUIRED_INPUT_NO_DEFAULT,
+                "Input is both hidden and required thus it should have a "
+                "default value: '{0}'.".format(self.name))
 
 
 class Inputs(Schema):
