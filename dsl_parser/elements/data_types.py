@@ -133,6 +133,21 @@ class SchemaPropertyRequired(Element):
             self.validate_version(version, (1, 2))
 
 
+class SchemaPropertyHidden(Element):
+
+    schema = Leaf(type=bool)
+    add_namespace_to_schema_elements = False
+
+    requires = {
+        _version.ToscaDefinitionsVersion: ['version'],
+        'inputs': ['validate_version']
+    }
+
+    def validate(self, version, validate_version):
+        if validate_version:
+            self.validate_version(version, (1, 3))
+
+
 class SchemaProperty(Element):
 
     schema = {
