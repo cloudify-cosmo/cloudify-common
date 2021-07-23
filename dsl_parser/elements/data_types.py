@@ -36,6 +36,21 @@ class SchemaPropertyDescription(Element):
     add_namespace_to_schema_elements = False
 
 
+class SchemaPropertyDisplayLabel(Element):
+
+    schema = Leaf(type=text_type)
+    add_namespace_to_schema_elements = False
+
+    requires = {
+        _version.ToscaDefinitionsVersion: ['version'],
+        'inputs': ['validate_version']
+    }
+
+    def validate(self, version, validate_version):
+        if validate_version:
+            self.validate_version(version, (1, 3))
+
+
 class SchemaPropertyType(Element):
 
     schema = Leaf(type=text_type)

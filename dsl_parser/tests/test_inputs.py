@@ -762,8 +762,24 @@ node_templates:
             self.parse(yaml),
             inputs={'port': {'a': 2}})
 
+    def test_input_display_label_old_dsl(self):
+        yaml = """
+inputs:
+    ip:
+        display_label: IP address
+        default: 127.0.0.1
+    port:
+        display_label: Port number
+        default: 8080
+node_templates: {}
+"""
+        self.assertRaises(DSLParsingLogicException,
+                          self.parse,
+                          yaml)
+
     def test_input_display_label(self):
         yaml = """
+tosca_definitions_version: cloudify_dsl_1_3
 inputs:
     ip:
         display_label: IP address
