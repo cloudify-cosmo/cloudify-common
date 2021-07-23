@@ -91,7 +91,8 @@ class InputSchemaProperty(SchemaProperty):
         'default': InputSchemaPropertyDefault,
         'description': SchemaPropertyDescription,
         'type': SchemaInputType,
-        'constraints': Constraints
+        'constraints': Constraints,
+        'display_label': SchemaPropertyDescription,
     }
 
     def parse(self):
