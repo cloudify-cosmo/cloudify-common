@@ -800,6 +800,47 @@ node_templates: {}
         self.assertEqual(
             'Port number', parsed[consts.INPUTS]['port'][consts.DISPLAY_LABEL])
 
+    def test_input_hidden_property_old_dsl(self):
+        yaml = """
+inputs:
+    ip:
+        type: string
+        hidden: True
+    port:
+        type: integer
+        hidden: False
+    app_name:
+        type: string
+node_templates: {}
+"""
+        self.assertRaises(
+            DSLParsingLogicException,
+            self.parse,
+            yaml)
+
+    def test_input_hidden_property(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_3
+inputs:
+    ip:
+        type: string
+        hidden: True
+    port:
+        type: integer
+        hidden: False
+    app_name:
+        type: string
+node_templates: {}
+"""
+        parsed = self.parse(yaml)
+        self.assertEqual(3, len(parsed[consts.INPUTS]))
+        self.assertEqual(
+            True, parsed[consts.INPUTS]['ip'][consts.HIDDEN])
+        self.assertEqual(
+            False, parsed[consts.INPUTS]['port'][consts.HIDDEN])
+        self.assertEqual(
+            False, parsed[consts.INPUTS]['app_name'][consts.HIDDEN])
+
 
 class TestInputsConstraints(AbstractTestParser):
     def test_constraints_successful(self):
@@ -901,6 +942,40 @@ imports:
         parsed = self.parse(main_yaml)
         inputs = parsed[consts.INPUTS]
         self.assertEqual(5, len(inputs['some_input'][consts.CONSTRAINTS]))
+
+    def test_input_hidden_required_default_valid(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_3
+inputs:
+    ip:
+        type: string
+        hidden: True
+        required: True
+        default: 127.0.0.1
+    port:
+        type: integer
+        hidden: False
+        required: True
+    app_name:
+        type: string
+node_templates: {}
+"""
+        parsed = self.parse(yaml)
+        self.assertEqual(3, len(parsed[consts.INPUTS]))
+
+    def test_input_hidden_required_default_invalid(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_3
+inputs:
+    ip:
+        type: string
+        hidden: True
+        required: True
+node_templates: {}
+"""
+        self.assertRaises(DSLParsingLogicException,
+                          self.parse,
+                          yaml)
 
 
 class TestInputsTypeValidation(AbstractTestParser):

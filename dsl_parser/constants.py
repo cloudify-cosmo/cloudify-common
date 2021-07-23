@@ -47,6 +47,7 @@ BLUEPRINT_LABELS = 'blueprint_labels'
 DEFAULT_SCHEDULES = 'default_schedules'
 DEPLOYMENT_SETTINGS = 'deployment_settings'
 DISPLAY_LABEL = 'display_label'
+HIDDEN = 'hidden'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
