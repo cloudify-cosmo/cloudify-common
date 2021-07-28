@@ -778,7 +778,7 @@ class NOPLocalWorkflowTask(WorkflowTask):
 
 class DryRunLocalWorkflowTask(LocalWorkflowTask):
     def apply_async(self):
-        self.set_state(TASK_SUCCEEDED, result='dry run')
+        self.set_state(TASK_SUCCEEDED)
         self.async_result.result = None
         return self.async_result
 
@@ -996,11 +996,16 @@ class SendNodeEventTask(_BuiltinTaskBase):
         self.info = event
 
     def remote(self):
-        # no need to do anything - the server will create the event
-        # automatically once we set this task state to SUCCEEDED
-        pass
+        # only explicitly send the event if the task is not stored - if we do
+        # actually update the operation state, then the server will
+        # automatically add an event
+        if not self.stored:
+            self._send(out_func=logs.manager_event_out)
 
     def local(self):
+        self._send(out_func=logs.stdout_event_out)
+
+    def _send(self, out_func):
         node_instance = workflow_ctx.get_node_instance(
             self.kwargs['node_instance_id'])
         logs.send_workflow_node_event(
@@ -1008,7 +1013,7 @@ class SendNodeEventTask(_BuiltinTaskBase):
             event_type='workflow_node_event',
             message=self.kwargs['event'],
             additional_context=self.kwargs['additional_context'],
-            out_func=logs.stdout_event_out)
+            out_func=out_func)
 
 
 class SendWorkflowEventTask(_BuiltinTaskBase):
