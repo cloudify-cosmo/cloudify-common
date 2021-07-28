@@ -71,7 +71,7 @@ def get_event_type(state):
 
 
 def format_event_message(name, task_type, state, result=None, exception=None,
-                         current_retries=0, total_retries=0):
+                         current_retries=0, total_retries=0, postfix=None):
     exception_str = utils.format_exception(exception) if exception else None
     try:
         message_template = {
@@ -89,10 +89,13 @@ def format_event_message(name, task_type, state, result=None, exception=None,
     )
 
     if state == TASK_SUCCEEDED and result is not None:
-        message = '{0} ({1})'.format(message, result)
+        message = '{0} - {1}'.format(message, result)
 
     if state in (TASK_RESCHEDULED, TASK_FAILED) and exception_str:
         message = '{0} -> {1}'.format(message, exception_str)
+
+    if postfix:
+        message = '{0}{1}'.format(message, postfix)
 
     if current_retries > 0:
         retry = ' [retry {0}{1}]'.format(
@@ -127,7 +130,8 @@ def send_task_event(state, task, send_event_func, event):
     message = format_event_message(
         task.name, task.task_type, state,
         event.get('result'), event.get('exception'),
-        task.current_retries, task.total_retries
+        task.current_retries, task.total_retries,
+        postfix=' (dry run)' if task.workflow_context.dry_run else None
     )
     event_type = get_event_type(state)
 

@@ -778,7 +778,7 @@ class NOPLocalWorkflowTask(WorkflowTask):
 
 class DryRunLocalWorkflowTask(LocalWorkflowTask):
     def apply_async(self):
-        self.set_state(TASK_SUCCEEDED, result='dry run')
+        self.set_state(TASK_SUCCEEDED)
         self.async_result.result = None
         return self.async_result
 
