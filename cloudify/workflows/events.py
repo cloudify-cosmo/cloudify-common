@@ -70,20 +70,23 @@ def get_event_type(state):
         raise RuntimeError('unhandled event type: {0}'.format(state))
 
 
-def format_event_message(name, state, result=None, exception=None,
+def format_event_message(name, task_type, state, result=None, exception=None,
                          current_retries=0, total_retries=0):
     exception_str = utils.format_exception(exception) if exception else None
     try:
         message_template = {
             TASK_SENDING: "Sending task '{name}'",
-            TASK_STARTED: "Task started '{name}'",
-            TASK_SUCCEEDED: "Task succeeded '{name}'",
-            TASK_RESCHEDULED: "Task rescheduled '{name}'",
-            TASK_FAILED: "Task failed '{name}'",
+            TASK_STARTED: "{type} started '{name}'",
+            TASK_SUCCEEDED: "{type} succeeded '{name}'",
+            TASK_RESCHEDULED: "{type} rescheduled '{name}'",
+            TASK_FAILED: "{type} failed '{name}'",
         }[state]
     except KeyError:
-        raise RuntimeError('unhandled event type: {0}'.format(state))
-    message = message_template.format(name=name)
+        raise RuntimeError('unhandled task state: {0}'.format(state))
+    message = message_template.format(
+        name=name,
+        type='Subgraph' if task_type == 'SubgraphTask' else 'Task'
+    )
 
     if state == TASK_SUCCEEDED and result is not None:
         message = '{0} ({1})'.format(message, result)
@@ -122,7 +125,7 @@ def send_task_event(state, task, send_event_func, event):
         raise RuntimeError('Event for task {0} is None'.format(task.name))
 
     message = format_event_message(
-        task.name, state,
+        task.name, task.task_type, state,
         event.get('result'), event.get('exception'),
         task.current_retries, task.total_retries
     )
