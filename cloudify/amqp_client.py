@@ -571,7 +571,7 @@ class BlockingRequestResponseHandler(TaskConsumer):
         channel.basic_ack(method.delivery_tag)
         self.delete_queue(
             self._queue_name(properties.correlation_id),
-            wait=False, if_empty=False)
+            wait=True, if_empty=False)
         self._response.put(body)
 
 
