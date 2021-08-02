@@ -1298,8 +1298,9 @@ class _TaskDispatcher(object):
         self._clients = {}
 
     def cleanup(self):
-        for _client, handler in self._clients.values():
+        for client, handler in self._clients.values():
             handler.delete_queue()
+            client.close()
 
     def get_client(self, target):
         if target == MGMTWORKER_QUEUE:
