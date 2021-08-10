@@ -370,6 +370,7 @@ class WorkflowTask(object):
             # operation explicitly requested a retry, so we ignore
             # the handler set on the task.
             handler_result = HandlerResult.retry()
+            handler_result.retry_after = result.retry_after
         elif self.on_failure:
             handler_result = self.on_failure(self)
         else:
