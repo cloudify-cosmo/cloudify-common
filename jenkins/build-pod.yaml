@@ -55,10 +55,6 @@ spec:
         memory: 2Gi
   - name: rabbitmq374
     image: rabbitmq:3.7.4
-    resources:
-      limits:
-        cpu: 0.1
-        memory: 150Mi
   - name: awscli
     image: amazon/aws-cli
     command:
