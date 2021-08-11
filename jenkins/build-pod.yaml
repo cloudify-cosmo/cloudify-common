@@ -18,7 +18,7 @@ spec:
         privileged: true
     resources:
       requests:
-        cpu: 1
+        cpu: 0.9
         memory: 2Gi
       limits:
         cpu: 2
@@ -33,7 +33,7 @@ spec:
         privileged: true
     resources:
       requests:
-        cpu: 1
+        cpu: 0.9
         memory: 2Gi
       limits:
         cpu: 2
@@ -48,7 +48,7 @@ spec:
       privileged: true
     resources:
       requests:
-        cpu: 1
+        cpu: 0.9
         memory: 2Gi
       limits:
         cpu: 2.5
