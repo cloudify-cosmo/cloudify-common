@@ -18,7 +18,7 @@ spec:
         privileged: true
     resources:
       requests:
-        cpu: 0.9
+        cpu: 1
         memory: 2Gi
       limits:
         cpu: 2
@@ -33,7 +33,7 @@ spec:
         privileged: true
     resources:
       requests:
-        cpu: 0.9
+        cpu: 1
         memory: 2Gi
       limits:
         cpu: 2
@@ -48,7 +48,7 @@ spec:
       privileged: true
     resources:
       requests:
-        cpu: 0.9
+        cpu: 1
         memory: 2Gi
       limits:
         cpu: 2.5
@@ -71,4 +71,4 @@ spec:
   imagePullSecrets:
     - name: dockerhub
   nodeSelector:
-    instance-type: spot
+    instance-type: spot-xlarge
