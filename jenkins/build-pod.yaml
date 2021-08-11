@@ -6,7 +6,7 @@ spec:
     image: jenkins/inbound-agent:4.3-4
     resources:
       limits:
-        cpu: 0.3
+        cpu: 0.2
         memory: 256Mi
   - name: py26
     image: circleci/python:2.7-stretch
@@ -18,7 +18,7 @@ spec:
         privileged: true
     resources:
       requests:
-        cpu: 0.9
+        cpu: 1
         memory: 2Gi
       limits:
         cpu: 2
@@ -51,7 +51,7 @@ spec:
         cpu: 1
         memory: 2Gi
       limits:
-        cpu: 2
+        cpu: 2.5
         memory: 2Gi
   - name: rabbitmq374
     image: rabbitmq:3.7.4
@@ -67,7 +67,7 @@ spec:
     resources:
       limits:
         cpu: 0.2
-        memory: 200Mi
+        memory: 256Mi
   imagePullSecrets:
     - name: dockerhub
   nodeSelector:
