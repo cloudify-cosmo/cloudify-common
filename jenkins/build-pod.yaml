@@ -18,10 +18,10 @@ spec:
         privileged: true
     resources:
       requests:
-        cpu: 1
+        cpu: 0.5
         memory: 2Gi
       limits:
-        cpu: 2
+        cpu: 1
         memory: 2Gi
   - name: py27
     image: circleci/python:2.7
@@ -33,10 +33,10 @@ spec:
         privileged: true
     resources:
       requests:
-        cpu: 1
+        cpu: 0.5
         memory: 2Gi
       limits:
-        cpu: 2
+        cpu: 1
         memory: 2Gi
   - name: py36
     image: circleci/python:3.6
@@ -48,16 +48,16 @@ spec:
       privileged: true
     resources:
       requests:
-        cpu: 1
+        cpu: 0.5
         memory: 2Gi
       limits:
-        cpu: 2.5
+        cpu: 1
         memory: 2Gi
   - name: rabbitmq374
     image: rabbitmq:3.7.4
     resources:
       limits:
-        cpu: 0.3
+        cpu: 0.2
         memory: 256Mi
   - name: awscli
     image: amazon/aws-cli
@@ -71,4 +71,4 @@ spec:
   imagePullSecrets:
     - name: dockerhub
   nodeSelector:
-    instance-type: spot-xlarge
+    instance-type: spot
