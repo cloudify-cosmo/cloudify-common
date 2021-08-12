@@ -384,11 +384,11 @@ def _run_subgraph_before(subgraph_before, subgraph_after):
     also depend on the "before".
     """
     if subgraph_before.graph is not subgraph_after.graph:
-        raise RuntimeError('{0} and {1} belog to different graphs'
+        raise RuntimeError('{0} and {1} belong to different graphs'
                            .format(subgraph_before, subgraph_after))
     graph = subgraph_before.graph
     for dependency_id in graph._dependencies.get(subgraph_after.id, []):
-        graph.add_dependency(subgraph_before.id, graph.get_task(dependency_id))
+        graph.add_dependency(subgraph_before, graph.get_task(dependency_id))
     graph.add_dependency(subgraph_after, subgraph_before)
 
 
