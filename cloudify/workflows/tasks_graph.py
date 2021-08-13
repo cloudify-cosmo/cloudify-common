@@ -220,6 +220,8 @@ class TaskDependencyGraph(object):
         :param src_task: The source task
         :param dst_task: The target task
         """
+        if src_task == dst_task:
+            return
         if src_task.id not in self._tasks:
             raise RuntimeError('src not in graph: {0!r}'.format(src_task))
         if dst_task.id not in self._tasks:
