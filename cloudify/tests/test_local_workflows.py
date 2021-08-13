@@ -881,14 +881,6 @@ class LocalWorkflowTest(BaseWorkflowTest):
         self.assertRaises(KeyError,
                           storage.get_node, 'node_that_does_not_exist')
 
-    def test_execute_non_existent_operation(self):
-        def flow(ctx, **_):
-            instance = _instance(ctx, 'node')
-            instance.execute_operation('non_existent')
-        with testtools.testcase.ExpectedException(RuntimeError,
-                                                  ".*does not exist.*"):
-            self._execute_workflow(flow)
-
     def test_operation_retry_configuration(self):
         self._test_retry_configuration_impl(
             global_retries=100,
