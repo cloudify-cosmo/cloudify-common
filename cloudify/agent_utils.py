@@ -83,6 +83,18 @@ def _get_rabbitmq_client():
                           logger=ctx.logger)
 
 
+def get_agent_rabbitmq_user(cloudify_agent):
+    # Proxy agents are not being installed
+    if _is_proxied(cloudify_agent):
+        return
+    # Get the rabbitmq user of the agent
+    username = USERNAME_PATTERN.format(cloudify_agent['name'])
+    rabbitmq_client = _get_rabbitmq_client()
+    for user in rabbitmq_client.get_users():
+        if user['name'] == username:
+            return user
+
+
 def delete_agent_rabbitmq_user(cloudify_agent):
     # Proxy agents are not being installed
     if _is_proxied(cloudify_agent):
