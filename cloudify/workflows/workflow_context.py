@@ -593,12 +593,8 @@ class _WorkflowContextBase(object):
                            allow_kwargs_override=False,
                            send_task_events=DEFAULT_SEND_TASK_EVENTS):
         kwargs = kwargs or {}
-        op_struct = operations.get(operation)
-        if op_struct is None:
-            raise RuntimeError('{0} operation of node instance {1} does '
-                               'not exist'.format(operation,
-                                                  node_instance.id))
-        if not op_struct['operation']:
+        op_struct = operations.get(operation, {})
+        if not op_struct.get('operation'):
             return NOPLocalWorkflowTask(self)
         plugin_name = op_struct['plugin']
         # could match two plugins with different executors, one is enough
