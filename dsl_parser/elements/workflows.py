@@ -44,7 +44,7 @@ class Constraint(Element):
         if len(constraint_op_keys) > 1:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,
-                "Each constraint operator dict must be in it's own list item.")
+                "Each constraint operator dict must be in its own list item.")
         constraint_name = constraint_op_keys[0]
         if constraint_name not in constraints.CONSTRAINTS:
             raise exceptions.DSLParsingLogicException(
