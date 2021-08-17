@@ -285,3 +285,35 @@ imports:
         self.assertEqual(1, len(workflow_plugins_to_install))
         self.assertEqual('test--test_plugin',
                          workflow_plugins_to_install[0]['name'])
+
+    def test_workflow_parameters_constraints(self):
+        yaml_content = self.BASIC_VERSION_SECTION_DSL_1_3 + """
+plugins:
+    script:
+        executor: central_deployment_agent
+        install: false
+
+workflows:
+    sleep:
+        mapping: stub.py
+        parameters:
+            key:
+                description: a parameter
+                default: hi
+                type: string
+                constraints:
+                  - max_length: 2
+                  - min_length: 1
+                  - valid_values: [ 'hi', 'ho' ]
+                  - pattern: \w+
+"""  # noqa
+        yaml_path = self.make_file_with_name(content=yaml_content,
+                                             filename='stub.py')
+        parsed = self.parse_from_path(yaml_path)
+        params = parsed[constants.WORKFLOWS]['sleep'][constants.PARAMETERS]
+        constraints = params['key']['constraints']
+        self.assertEqual(4, len(constraints))
+        self.assertIn({'min_length': 1}, constraints)
+        self.assertIn({'max_length': 2}, constraints)
+        self.assertIn({'valid_values': ['hi', 'ho']}, constraints)
+        self.assertIn({'pattern': r'\w+'}, constraints)
