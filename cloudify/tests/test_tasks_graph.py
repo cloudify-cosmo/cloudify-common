@@ -48,8 +48,14 @@ def limited_sleep_mock(limit=100):
             yield mock_sleep, mock_time
 
 
-class MockWorkflowContext(object):
+class MockWorkflowContext(_WorkflowContextBase):
     wait_after_fail = 600
+    dry_run = False
+    resume = False
+
+    def __init__(self):
+        super(MockWorkflowContext, self).__init__({}, lambda *a: mock.Mock())
+        self.internal.handler.operation_cloudify_context = {}
 
 
 class TestTasksGraphExecute(testtools.TestCase):
