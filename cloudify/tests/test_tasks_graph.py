@@ -25,6 +25,15 @@ from cloudify.workflows import api
 from cloudify.workflows import tasks
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
 
+from cloudify.state import current_workflow_ctx
+from cloudify.plugins.lifecycle import LifecycleProcessor
+from cloudify.workflows.workflow_context import (
+    _WorkflowContextBase,
+    WorkflowNodesAndInstancesContainer
+)
+from cloudify_rest_client.node_instances import NodeInstance
+from cloudify_rest_client.nodes import Node
+
 
 @contextmanager
 def limited_sleep_mock(limit=100):
@@ -48,8 +57,14 @@ def limited_sleep_mock(limit=100):
             yield mock_sleep, mock_time
 
 
-class MockWorkflowContext(object):
+class MockWorkflowContext(_WorkflowContextBase):
     wait_after_fail = 600
+    dry_run = False
+    resume = False
+
+    def __init__(self):
+        super(MockWorkflowContext, self).__init__({}, lambda *a: mock.Mock())
+        self.internal.handler.operation_cloudify_context = {}
 
 
 class TestTasksGraphExecute(testtools.TestCase):
@@ -317,3 +332,228 @@ class TestTaskGraphRestore(testtools.TestCase):
             is subgraphs[0]
 
         assert len(subgraphs[0].tasks) == 2
+
+
+class NonExecutingGraph(TaskDependencyGraph):
+    """A TaskDependencyGraph that never actually executes anything"""
+    def execute(self):
+        return
+
+    def store(self, name=None):
+        pass
+
+
+class TestLifecycleGraphs(testtools.TestCase):
+    def _make_ctx_and_graph(self):
+        ctx = MockWorkflowContext()
+        graph = NonExecutingGraph(ctx)
+        ctx.get_tasks_graph = mock.Mock(return_value=None)
+        ctx.get_operations = mock.Mock(return_value=[])
+        ctx.internal.graph_mode = True
+        return ctx, graph
+
+    def _make_node(self, **kwargs):
+        node = {
+            'id': 'node1',
+            'relationships': [],
+            'operations': {},
+            'id': 'node1',
+            'type_hierarchy': []
+        }
+        node.update(kwargs)
+        return Node(node)
+
+    def _make_instance(self, **kwargs):
+        instance = {
+            'id': 'node1_1',
+            'node_id': 'node1',
+            'relationships': [],
+        }
+        instance.update(kwargs)
+        return NodeInstance(instance)
+
+    def _make_operation(self, **kwargs):
+        operation = {
+            'operation': 'plugin1.op1',
+            'plugin': 'plugin1',
+            'has_intrinsic_functions': False,
+            'executor': 'host_agent',
+            'max_retries': 10,
+            'retry_interval': 10,
+        }
+        operation.update(kwargs)
+        return operation
+
+    def _make_lifecycle_processor(self, ctx, graph, nodes, instances):
+        container = WorkflowNodesAndInstancesContainer(
+            ctx, nodes, instances)
+        return LifecycleProcessor(
+            graph,
+            node_instances=list(container.node_instances)
+        )
+
+    def _make_plugin(self, name='plugin1'):
+        return {'name': name, 'package_name': name}
+
+    def test_install_empty(self):
+        """No instances - no operations"""
+        ctx, graph = self._make_ctx_and_graph()
+        pr = LifecycleProcessor(graph)
+        with current_workflow_ctx.push(ctx):
+            pr.install()
+        assert graph.tasks == []
+
+    def test_install_empty_instance(self):
+        """Instance without interfaces - still set to started"""
+        ctx, graph = self._make_ctx_and_graph()
+        pr = self._make_lifecycle_processor(
+            ctx, graph,
+            nodes=[self._make_node()],
+            instances=[self._make_instance()]
+        )
+        with current_workflow_ctx.push(ctx):
+            pr.install()
+        assert any(
+            task.name == 'SetNodeInstanceStateTask'
+            and task.info == 'started'
+            for task in graph.tasks
+        )
+
+    def test_install_create_operation(self):
+        """Instance with a create interface - the operation is called"""
+        ctx, graph = self._make_ctx_and_graph()
+
+        pr = self._make_lifecycle_processor(
+            ctx, graph,
+            nodes=[self._make_node(
+                operations={
+                    'cloudify.interfaces.lifecycle.create':
+                    self._make_operation()
+                },
+                plugins=[self._make_plugin()]
+            )],
+            instances=[self._make_instance()]
+        )
+        with current_workflow_ctx.push(ctx):
+            pr.install()
+        assert any(
+            task.name == 'plugin1.op1'
+            for task in graph.tasks
+        )
+        assert any(
+            task.name == 'SetNodeInstanceStateTask'
+            and task.info == 'started'
+            for task in graph.tasks
+        )
+
+    def test_update_resumed_install(self):
+        """When resuming an interrupted install, the instance is deleted first
+        """
+        ctx, graph = self._make_ctx_and_graph()
+
+        node = self._make_node(
+            operations={
+                'cloudify.interfaces.lifecycle.create':
+                self._make_operation(operation='plugin1.op1'),
+                'cloudify.interfaces.lifecycle.delete':
+                self._make_operation(operation='plugin1.op2')
+            },
+            plugins=[{'name': 'plugin1', 'package_name': 'plugin1'}]
+        )
+        instance = self._make_instance()
+        pr = self._make_lifecycle_processor(
+            ctx, graph,
+            nodes=[node],
+            instances=[instance]
+        )
+        with current_workflow_ctx.push(ctx):
+            pr.install()
+
+        # after creating the install graph, resume it - it should first
+        # delete the instance, before re-installing it
+        ctx.resume = True
+        instance['state'] = 'creating'
+        pr._update_resumed_install(graph)
+
+        delete_task_index = None
+        install_task_index = None
+        for ix, task in enumerate(graph.linearize()):
+            if task.name == 'plugin1.op1':
+                install_task_index = ix
+            elif task.name == 'plugin1.op2':
+                delete_task_index = ix
+
+        assert install_task_index is not None
+        assert delete_task_index is not None
+        assert delete_task_index < install_task_index
+
+    def test_update_resumed_install_dependency(self):
+        """Similar to test_update_resumed_install, but with a relationship too
+        """
+        ctx, graph = self._make_ctx_and_graph()
+
+        node1 = self._make_node(
+            operations={
+                'cloudify.interfaces.lifecycle.create':
+                self._make_operation(operation='plugin1.n1_create'),
+                'cloudify.interfaces.lifecycle.delete':
+                self._make_operation(operation='plugin1.n1_delete')
+            },
+            plugins=[self._make_plugin()]
+        )
+        node2 = self._make_node(
+            relationships=[{
+                'target_id': 'node1',
+                'type_hierarchy': ['cloudify.relationships.depends_on']
+            }],
+            id='node2',
+            operations={
+                'cloudify.interfaces.lifecycle.create':
+                self._make_operation(operation='plugin1.n2_create'),
+                'cloudify.interfaces.lifecycle.delete':
+                self._make_operation(operation='plugin1.n2_delete')
+            },
+            plugins=[self._make_plugin()]
+        )
+        ni1 = self._make_instance()
+        ni2 = self._make_instance(
+            relationships=[{
+                'target_id': 'node1_1',
+                'target_name': 'node1'
+            }],
+            node_id='node2',
+            id='node2_1'
+        )
+        pr = self._make_lifecycle_processor(
+            ctx, graph,
+            nodes=[node1, node2],
+            instances=[ni1, ni2]
+        )
+        with current_workflow_ctx.push(ctx):
+            pr.install()
+
+        # resume an install, with one node that was interrupted in creating
+        ni1['state'] = 'creating'
+        ctx.resume = True
+        pr._update_resumed_install(graph)
+
+        # to check that the operations happened in the desired order, examine
+        # their position in the linearized graph
+        task_indexes = {
+            'n1_create': None,
+            'n1_delete': None,
+            'n2_create': None,
+            'n2_delete': None,
+        }
+        for ix, task in enumerate(graph.linearize()):
+            name = task.name.replace('plugin1.', '')
+            if name in task_indexes:
+                task_indexes[name] = ix
+
+        # delete happened before create - reinstall
+        assert task_indexes['n1_delete'] < task_indexes['n1_create']
+        # dependency installed before the dependent
+        assert task_indexes['n1_create'] < task_indexes['n2_create']
+
+        # n2 didnt need to be deleted, because it wasn't in the creating state
+        assert task_indexes['n2_delete'] is None
