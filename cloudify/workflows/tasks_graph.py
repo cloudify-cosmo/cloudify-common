@@ -78,6 +78,32 @@ class TaskDependencyGraph(object):
         self._tasks_wait = threading.Event()
         self._finished_tasks = {}
 
+    def linearize(self):
+        """Traverse the graph, and return tasks in dependency order.
+
+        This makes sure that if task A depends on task B, then A is
+        going to be after B in the resulting list. Ordering of tasks
+        that are not related by dependencies is undefined.
+
+        This is useful for logging, debugging, and testing.
+        """
+        dependencies_copy = {k: set(v) for k, v in self._dependencies.items()}
+        ordered = []
+        ready = [
+            task for task in self._tasks.values()
+            if not dependencies_copy.get(task)
+        ]
+        while ready:
+            new_ready = []
+            for task in ready:
+                ordered.append(task)
+                for dependent_task in self._dependents[task]:
+                    dependencies_copy[dependent_task].discard(task)
+                    if not dependencies_copy.get(dependent_task):
+                        new_ready.append(dependent_task)
+            ready = new_ready
+        return ordered
+
     def _restore_dependencies(self, ops):
         """Set dependencies between this graph's tasks according to ops.
 
