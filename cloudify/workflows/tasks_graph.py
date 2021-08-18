@@ -554,16 +554,3 @@ class SubgraphTask(tasks.WorkflowTask):
 
 def _on_failure_handler_fail(task):
     return tasks.HandlerResult.fail()
-
-
-OP_TYPES = {
-    'RemoteWorkflowTask': tasks.RemoteWorkflowTask,
-    'LocalWorkflowTask': tasks.LocalWorkflowTask,
-    'NOPLocalWorkflowTask': tasks.NOPLocalWorkflowTask,
-    'SubgraphTask': SubgraphTask,
-    'SetNodeInstanceStateTask': tasks.SetNodeInstanceStateTask,
-    'GetNodeInstanceStateTask': tasks.GetNodeInstanceStateTask,
-    'SendNodeEventTask': tasks.SendNodeEventTask,
-    'SendWorkflowEventTask': tasks.SendWorkflowEventTask,
-    'UpdateExecutionStatusTask': tasks.UpdateExecutionStatusTask,
-}
