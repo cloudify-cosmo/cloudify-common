@@ -351,6 +351,7 @@ class TestTaskGraphRestore(testtools.TestCase):
         # ..but we didn't just get the same object back, it was restored indeed
         assert graph.tasks[0] is not task
 
+
 class NonExecutingGraph(TaskDependencyGraph):
     """A TaskDependencyGraph that never actually executes anything"""
     def execute(self):
