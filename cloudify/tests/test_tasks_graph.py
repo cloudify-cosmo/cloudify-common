@@ -195,6 +195,12 @@ class TestTasksGraphExecute(testtools.TestCase):
         self.assertFalse(task.cancel.called)
 
 
+class _CustomRestorableTask(tasks.WorkflowTask):
+    """A custom user-provided task, that can be restored"""
+    name = '_CustomRestorableTask'
+    task_type = 'cloudify.tests.test_tasks_graph._CustomRestorableTask'
+
+
 class TestTaskGraphRestore(testtools.TestCase):
     def _remote_task(self):
         """Make a RemoteWorkflowTask mock for use in tests"""
@@ -332,6 +338,18 @@ class TestTaskGraphRestore(testtools.TestCase):
             is subgraphs[0]
 
         assert len(subgraphs[0].tasks) == 2
+
+    def test_restore_custom(self):
+        task = _CustomRestorableTask(None)
+        serialized = task.dump()
+        # dependencies are added by the graph normally, not by task.dump
+        serialized['dependencies'] = []
+
+        graph = self._restore_graph([serialized])
+        assert len(graph.tasks) == 1
+        assert isinstance(graph.tasks[0], _CustomRestorableTask)
+        # ..but we didn't just get the same object back, it was restored indeed
+        assert graph.tasks[0] is not task
 
 
 class NonExecutingGraph(TaskDependencyGraph):

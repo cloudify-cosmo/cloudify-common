@@ -19,6 +19,7 @@ import threading
 from collections import defaultdict
 from functools import wraps
 
+from cloudify.utils import get_func
 from cloudify.exceptions import WorkflowFailed
 from cloudify.workflows import api
 from cloudify.workflows import tasks
@@ -77,6 +78,7 @@ class TaskDependencyGraph(object):
         self._waiting_for = set()
         self._tasks_wait = threading.Event()
         self._finished_tasks = {}
+        self._op_types_cache = {}
 
     def linearize(self):
         """Traverse the graph, and return tasks in dependency order.
@@ -181,8 +183,25 @@ class TaskDependencyGraph(object):
         restored = self.get_task(op_descr.id)
         if restored is not None:
             return restored
-        return OP_TYPES[op_descr.type].restore(
+        op_cls = self._get_operation_class(op_descr.type)
+        return op_cls.restore(
             self.ctx._get_current_object(), self, op_descr)
+
+    def _get_operation_class(self, task_type):
+        if task_type in self._op_types_cache:
+            return self._op_types_cache[task_type]
+        if task_type == 'SubgraphTask':
+            op_cls = SubgraphTask
+        elif '.' in task_type:
+            op_cls = get_func(task_type)
+        else:
+            op_cls = getattr(tasks, task_type)
+
+        if not issubclass(op_cls, tasks.WorkflowTask):
+            raise RuntimeError('{0} is not a subclass of WorkflowTask'
+                               .format(task_type))
+        self._op_types_cache[task_type] = op_cls
+        return op_cls
 
     def store(self, name):
         serialized_tasks = []
@@ -535,16 +554,3 @@ class SubgraphTask(tasks.WorkflowTask):
 
 def _on_failure_handler_fail(task):
     return tasks.HandlerResult.fail()
-
-
-OP_TYPES = {
-    'RemoteWorkflowTask': tasks.RemoteWorkflowTask,
-    'LocalWorkflowTask': tasks.LocalWorkflowTask,
-    'NOPLocalWorkflowTask': tasks.NOPLocalWorkflowTask,
-    'SubgraphTask': SubgraphTask,
-    'SetNodeInstanceStateTask': tasks.SetNodeInstanceStateTask,
-    'GetNodeInstanceStateTask': tasks.GetNodeInstanceStateTask,
-    'SendNodeEventTask': tasks.SendNodeEventTask,
-    'SendWorkflowEventTask': tasks.SendWorkflowEventTask,
-    'UpdateExecutionStatusTask': tasks.UpdateExecutionStatusTask,
-}
