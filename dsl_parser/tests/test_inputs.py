@@ -806,6 +806,7 @@ inputs:
     ip:
         type: string
         hidden: True
+        required: False
     port:
         type: integer
         hidden: False
@@ -825,6 +826,7 @@ inputs:
     ip:
         type: string
         hidden: True
+        required: False
     port:
         type: integer
         hidden: False
@@ -839,6 +841,33 @@ node_templates: {}
         self.assertEqual(
             False, parsed[consts.INPUTS]['port'][consts.HIDDEN])
         self.assertNotIn(consts.HIDDEN, parsed[consts.INPUTS]['app_name'])
+
+    def test_input_hidden_required(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_3
+inputs:
+    ip:
+        type: string
+        hidden: True
+        required: True
+        default: 127.0.0.1
+"""
+        parsed = self.parse(yaml)
+        self.assertEqual(1, len(parsed[consts.INPUTS]))
+        self.assertEqual(
+            '127.0.0.1', parsed[consts.INPUTS]['ip'][consts.DEFAULT])
+
+    def test_input_required_by_default(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_3
+inputs:
+    ip:
+        type: string
+        hidden: True
+"""
+        with self.assertRaisesRegex(DSLParsingException,
+                                    r'should have a default value: \'ip\''):
+            self.parse(yaml)
 
 
 class TestInputsConstraints(AbstractTestParser):
