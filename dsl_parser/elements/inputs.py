@@ -103,7 +103,7 @@ class InputSchemaProperty(SchemaProperty):
         return self.build_dict_result(with_default=False)
 
     def validate(self):
-        if self.initial_value.get('required', False) \
+        if self.initial_value.get('required', True) \
                 and self.initial_value.get('hidden', False) \
                 and 'default' not in self.initial_value:
             raise exceptions.DSLParsingLogicException(
