@@ -213,6 +213,22 @@ class Deployment(dict):
         """
         return self.get('display_name')
 
+    @property
+    def policy_types(self):
+        return self.get('policy_types')
+
+    @property
+    def policy_triggers(self):
+        return self.get('policy_triggers')
+
+    @property
+    def groups(self):
+        return self.get('groups')
+
+    @property
+    def scaling_groups(self):
+        return self.get('scaling_groups')
+
 
 class Workflow(dict):
 

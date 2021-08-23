@@ -70,6 +70,14 @@ class DeploymentUpdate(dict):
     def created_at(self):
         return self['created_at']
 
+    @property
+    def runtime_only_evaluation(self):
+        return self['runtime_only_evaluation']
+
+    @property
+    def deployment_plan(self):
+        return self['deployment_plan']
+
 
 class DeploymentUpdatesClient(object):
 
