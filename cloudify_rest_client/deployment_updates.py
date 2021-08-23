@@ -70,11 +70,41 @@ class DeploymentUpdate(dict):
     def created_at(self):
         return self['created_at']
 
+    @property
+    def runtime_only_evaluation(self):
+        return self['runtime_only_evaluation']
+
+    @property
+    def deployment_plan(self):
+        return self['deployment_plan']
+
 
 class DeploymentUpdatesClient(object):
 
     def __init__(self, api):
         self.api = api
+
+    def create(self, update_id, deployment_id, inputs=None):
+        """Create a deployment-update object.
+
+        This is only useful from within the deployment-update workflow.
+        Do not use this otherwise.
+        """
+        url = '/deployment-updates/{0}'.format(update_id)
+        response = self.api.put(url, data={
+            'deployment_id': deployment_id,
+            'inputs': inputs,
+        })
+        return DeploymentUpdate(response)
+
+    def set_attributes(self, update_id, **kwargs):
+        """Update a deployment-update object with the given attributes.
+
+        This is only useful from within the deployment-update workflow.
+        Do not use this otherwise.
+        """
+        url = '/deployment-updates/{0}'.format(update_id)
+        self.api.patch(url, data=kwargs)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """List deployment updates
