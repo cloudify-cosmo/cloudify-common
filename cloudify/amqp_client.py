@@ -405,7 +405,7 @@ class TaskConsumer(object):
 
     def process(self, channel, method, properties, body):
         try:
-            full_task = json.loads(body)
+            full_task = json.loads(body.decode('utf-8'))
         except ValueError:
             logger.error('Error parsing task: {0}'.format(body))
             return
@@ -637,7 +637,9 @@ class BlockingRequestResponseHandler(_RequestResponseHandlerBase):
             message, correlation_id, *args, **kwargs)
 
         try:
-            return json.loads(self._response.get(timeout=timeout))
+            return json.loads(
+                self._response.get(timeout=timeout).decode('utf-8')
+            )
         except queue.Empty:
             raise RuntimeError('No response received for task {0}'
                                .format(correlation_id))
@@ -673,7 +675,7 @@ class CallbackRequestResponseHandler(_RequestResponseHandlerBase):
     def process(self, channel, method, properties, body):
         if properties.correlation_id in self.callbacks:
             try:
-                response = json.loads(body)
+                response = json.loads(body.decode('utf-8'))
                 self.callbacks[properties.correlation_id](response)
             except ValueError:
                 logger.error('Error parsing response: {0}'.format(body))
