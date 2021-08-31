@@ -238,3 +238,21 @@ class NodesClient(object):
             },
             expected_status_code=(201, 204),
         )
+
+    def update(self, deployment_id, node_id, **kwargs):
+        """Update a node with new attributes.
+
+        This is only useful from the deployment-update workflow: updating
+        node attributes will do nothing else by itself (it won't re-install
+        the existing instances, or re-establish relationships, etc.)
+
+        :param deployment_id: The deployment the node belongs to
+        :param node_id: The node id within the given deployment
+        :param kwargs: The new node attributes
+        """
+        self.api.patch(
+            '/{self._uri_prefix}/{deployment_id}/{node_id}'
+            .format(self=self, deployment_id=deployment_id, node_id=node_id),
+            data=kwargs,
+            expected_status_code=204,
+        )
