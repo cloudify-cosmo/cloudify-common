@@ -119,8 +119,8 @@ node_templates:
 
         attributes_list = result['a']
         assert len(attributes_list) == 5
-        for value in ('never', 'gonna', 'give', 'you', 'up'):
-            assert value in attributes_list
+        assert all(value in attributes_list
+                   for value in ('never', 'gonna', 'give', 'you', 'up'))
 
     def test_get_attributes_list_missing_value(self):
         node_instances = [
