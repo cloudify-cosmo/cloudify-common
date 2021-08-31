@@ -949,10 +949,15 @@ class WorkflowNodesAndInstancesContainer(object):
         return self._node_instances.get(node_instance_id)
 
     def refresh_node_instances(self):
+        raw_nodes = self.internal.handler.get_nodes()
+        self._nodes = dict(
+            (node.id, CloudifyWorkflowNode(self.workflow_context, node, self))
+            for node in raw_nodes)
+
         raw_node_instances = self.internal.handler.get_node_instances()
         self._node_instances = dict(
             (instance.id, CloudifyWorkflowNodeInstance(
-                self, self._nodes[instance.node_id], instance,
+                self.workflow_context, self._nodes[instance.node_id], instance,
                 self))
             for instance in raw_node_instances)
 
