@@ -116,7 +116,6 @@ node_templates:
         payload = {'a': {'get_attributes_list': ['goodnode', 'sing']}}
         context = {}
         result = functions.evaluate_functions(payload.copy(), context, storage)
-        print(result)
 
         attributes_list = result['a']
         assert len(attributes_list) == 5
