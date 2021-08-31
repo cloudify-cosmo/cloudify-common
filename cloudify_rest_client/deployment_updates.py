@@ -84,17 +84,18 @@ class DeploymentUpdatesClient(object):
     def __init__(self, api):
         self.api = api
 
-    def create(self, update_id, deployment_id, inputs=None):
+    def create(self, update_id, deployment_id, **kwargs):
         """Create a deployment-update object.
 
         This is only useful from within the deployment-update workflow.
         Do not use this otherwise.
         """
         url = '/deployment-updates/{0}'.format(update_id)
-        response = self.api.put(url, data={
+        data = {
             'deployment_id': deployment_id,
-            'inputs': inputs,
-        })
+        }
+        data.update(kwargs)
+        response = self.api.put(url, data=data)
         return DeploymentUpdate(response)
 
     def set_attributes(self, update_id, **kwargs):
