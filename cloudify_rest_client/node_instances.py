@@ -147,7 +147,8 @@ class NodeInstancesClient(object):
                state=None,
                runtime_properties=None,
                version=1,
-               force=False):
+               force=False,
+               relationships=None):
         """
         Update node instance with the provided state & runtime_properties.
 
@@ -157,6 +158,10 @@ class NodeInstancesClient(object):
         :param version: Current version value of this node instance in
          Cloudify's storage (used for optimistic locking).
         :param force: ignore the version check - use with caution
+        :param relationships: New relationships to set for the node-instance.
+            This is only useful when called from deployment-update: otherwise,
+            just setting relationships will not do anything else by itself
+            (eg. it won't run the relationships establish operations)
         :return: The updated node instance.
         """
         assert node_instance_id
@@ -166,6 +171,8 @@ class NodeInstancesClient(object):
             data['runtime_properties'] = runtime_properties
         if state is not None:
             data['state'] = state
+        if relationships is not None:
+            data['relationships'] = relationships
         params = {}
         if force:
             params['force'] = True
