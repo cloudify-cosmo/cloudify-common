@@ -118,9 +118,9 @@ node_templates:
         result = functions.evaluate_functions(payload.copy(), context, storage)
 
         attributes_list = result['a']
-        assert len(attributes_list) == 5
-        assert all(value in attributes_list
-                   for value in ('never', 'gonna', 'give', 'you', 'up'))
+        # We expect this to be returned in the same order the node instances
+        # were retrieved from the storage manager
+        assert attributes_list == ['never', 'gonna', 'give', 'you', 'up']
 
     def test_get_attributes_list_missing_value(self):
         node_instances = [
