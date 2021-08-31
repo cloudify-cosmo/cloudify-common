@@ -577,30 +577,24 @@ def _validate_no_functions_in_args(node_name, attribute_path, path, name,
     args = [node_name] + attribute_path
     if any(is_function(x) for x in args):
         return
-    if scope == scan.OUTPUTS_SCOPE and node_name in [SELF,
-                                                     SOURCE,
-                                                     TARGET]:
-        raise ValueError('{0} cannot be used with {1} function in '
-                         '{2}.'.format(node_name,
-                                       name,
-                                       path))
-    if scope == scan.NODE_TEMPLATE_SCOPE and \
-            node_name in [SOURCE, TARGET]:
-        raise ValueError('{0} cannot be used with {1} function in '
-                         '{2}.'.format(node_name,
-                                       name,
-                                       path))
-    if scope == scan.NODE_TEMPLATE_RELATIONSHIP_SCOPE and \
-            node_name == SELF:
-        raise ValueError('{0} cannot be used with {1} function in '
-                         '{2}.'.format(node_name,
-                                       name,
-                                       path))
-    if node_name not in [SELF, SOURCE, TARGET]:
+
+    if node_name in [SELF, SOURCE, TARGET]:
+        scope_invalidity = {
+            scan.OUTPUTS_SCOPE: [SELF, SOURCE, TARGET],
+            scan.NODE_TEMPLATE_RELATIONSHIP_SCOPE: [SELF],
+            scan.NODE_TEMPLATE_SCOPE: [SOURCE, TARGET],
+        }
+        if node_name in scope_invalidity[scope]:
+            raise ValueError(
+                '{} cannot be used with {} function in {}'.format(
+                    node_name, name, path,
+                )
+            )
+    else:
         if not any(node_name == template['id']
                    for template in plan.node_templates):
             raise KeyError(
-                "{0} function node reference '{1}' does not exist.".format(
+                "{} function node reference '{}' does not exist.".format(
                     name, node_name))
 
 
