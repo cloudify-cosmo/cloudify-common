@@ -305,7 +305,7 @@ workflows:
                   - max_length: 2
                   - min_length: 1
                   - valid_values: [ 'hi', 'ho' ]
-                  - pattern: \w+
+                  - pattern: \\w+
 """  # noqa
         yaml_path = self.make_file_with_name(content=yaml_content,
                                              filename='stub.py')
