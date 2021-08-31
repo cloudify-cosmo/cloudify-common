@@ -597,9 +597,8 @@ def _validate_no_functions_in_args(node_name, attribute_path, path, name,
                                        name,
                                        path))
     if node_name not in [SELF, SOURCE, TARGET]:
-        found = [
-            x for x in plan.node_templates if node_name == x['id']]
-        if not found:
+        if not any(node_name == template['id']
+                   for template in plan.node_templates):
             raise KeyError(
                 "{0} function node reference '{1}' does not exist.".format(
                     name, node_name))
