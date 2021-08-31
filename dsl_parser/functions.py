@@ -586,7 +586,7 @@ def _validate_no_functions_in_args(node_name, attribute_path, path, name,
         }
         if node_name in scope_invalidity[scope]:
             raise ValueError(
-                '{} cannot be used with {} function in {}'.format(
+                '{0} cannot be used with {1} function in {2}'.format(
                     node_name, name, path,
                 )
             )
@@ -594,7 +594,7 @@ def _validate_no_functions_in_args(node_name, attribute_path, path, name,
         if not any(node_name == template['id']
                    for template in plan.node_templates):
             raise KeyError(
-                "{} function node reference '{}' does not exist.".format(
+                "{0} function node reference '{1}' does not exist.".format(
                     name, node_name))
 
 
