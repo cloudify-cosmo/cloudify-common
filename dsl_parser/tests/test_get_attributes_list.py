@@ -340,3 +340,32 @@ node_templates:
         result = functions.evaluate_functions(payload, context, storage)
 
         assert result['a'] == ['this', 'corrosion']
+
+    def test_get_attributes_list_concat(self):
+        node_instances = [
+            {
+                'id': 'badnode_51573r',
+                'node_id': 'badnode',
+                'runtime_properties': {'sing': 'forget'},
+            },
+            {
+                'id': 'goodnode_aa0faa',
+                'node_id': 'goodnode',
+                'runtime_properties': {'sing': 'this'},
+            },
+            {
+                'id': 'goodnode_m3rcya',
+                'node_id': 'goodnode',
+                'runtime_properties': {'sing': 'corrosion'},
+            },
+        ]
+        nodes = [
+            {'id': 'badnode'},
+            {'id': 'goodnode'},
+        ]
+        storage = self._mock_evaluation_storage(node_instances, nodes)
+
+        payload = {'a': {'concat': {'get_attributes_list': ['SELF', 'sing']}}}
+        context = {'self': 'goodnode'}
+        result = functions.evaluate_functions(payload, context, storage)
+        assert result['a'] == 'thiscorrosion'
