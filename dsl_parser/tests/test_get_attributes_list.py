@@ -148,7 +148,7 @@ node_templates:
         result = functions.evaluate_functions(payload, {}, storage)
 
         attributes_list = result['a']
-        assert attributes_list == ['gonna']
+        assert attributes_list == ['gonna', None]
 
     def test_get_attributes_list_no_values(self):
         node_instances = [
@@ -171,7 +171,7 @@ node_templates:
         result = functions.evaluate_functions(payload, {}, storage)
 
         attributes_list = result['a']
-        assert attributes_list == []
+        assert attributes_list == [None]
 
     def test_get_attributes_list_one_value(self):
         node_instances = [
