@@ -627,10 +627,8 @@ class GetAttributesList(Function):
         results = []
 
         for ni in node_instances:
-            value = _get_attribute_from_node_instance(
-                ni, node, self.attribute_path, self.path)
-            if value:
-                results.append(value)
+            results.append(_get_attribute_from_node_instance(
+                ni, node, self.attribute_path, self.path))
 
         return results
 
