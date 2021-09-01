@@ -260,3 +260,83 @@ node_templates:
 
         attributes_list = result['a']
         assert attributes_list == ['goodnode_45713y', 'goodnode_r0113d']
+
+    def test_get_attributes_list_relationship(self):
+        node_instances = [
+            {
+                'id': 'acre_4m4d34',
+                'node_id': 'acre',
+                'runtime_properties': {},
+            },
+            {
+                'id': 'acre_8r00k5',
+                'node_id': 'acre',
+                'runtime_properties': {'thing': 'hello'},
+            },
+            {
+                'id': 'mandel_aa50f7',
+                'node_id': 'mandel',
+                'runtime_properties': {'thing': 'wave'},
+            },
+            {
+                'id': 'mandel_c311aa',
+                'node_id': 'mandel',
+                'runtime_properties': {},
+            },
+        ]
+        nodes = [
+            {
+                'id': 'acre',
+                'properties': {'thing': 'say'},
+            },
+            {
+                'id': 'mandel',
+                'properties': {'thing': 'goodbye'},
+            },
+        ]
+        storage = self._mock_evaluation_storage(node_instances, nodes)
+
+        payload = {
+            'src': {'get_attributes_list': ['SOURCE', 'thing']},
+            'trg': {'get_attributes_list': ['TARGET', 'thing']},
+        }
+
+        context = {
+            'source': 'acre',
+            'target': 'mandel',
+        }
+
+        result = functions.evaluate_functions(payload, context, storage)
+
+        assert result['src'] == ['say', 'hello']
+        assert result['trg'] == ['wave', 'goodbye']
+
+    def test_get_attributes_list_self(self):
+        node_instances = [
+            {
+                'id': 'badnode_51573r',
+                'node_id': 'badnode',
+                'runtime_properties': {'sing': 'forget'},
+            },
+            {
+                'id': 'goodnode_aa0faa',
+                'node_id': 'goodnode',
+                'runtime_properties': {'sing': 'this'},
+            },
+            {
+                'id': 'goodnode_m3rcya',
+                'node_id': 'goodnode',
+                'runtime_properties': {'sing': 'corrosion'},
+            },
+        ]
+        nodes = [
+            {'id': 'badnode'},
+            {'id': 'goodnode'},
+        ]
+        storage = self._mock_evaluation_storage(node_instances, nodes)
+
+        payload = {'a': {'get_attributes_list': ['SELF', 'sing']}}
+        context = {'self': 'goodnode'}
+        result = functions.evaluate_functions(payload, context, storage)
+
+        assert result['a'] == ['this', 'corrosion']
