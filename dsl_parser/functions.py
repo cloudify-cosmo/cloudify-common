@@ -380,17 +380,10 @@ class GetAttribute(Function):
                                        self.path, self.name, self.scope, plan)
 
     def evaluate(self, handler):
-        if self.node_name == SELF:
-            node_instance_id = self.context.get('self')
-            self._validate_ref(node_instance_id, SELF)
-            node_instance = handler.get_node_instance(node_instance_id)
-        elif self.node_name == SOURCE:
-            node_instance_id = self.context.get('source')
-            self._validate_ref(node_instance_id, SOURCE)
-            node_instance = handler.get_node_instance(node_instance_id)
-        elif self.node_name == TARGET:
-            node_instance_id = self.context.get('target')
-            self._validate_ref(node_instance_id, TARGET)
+        if self.node_name in [SELF, SOURCE, TARGET]:
+            node_instance_id = self.context.get(self.node_name.lower())
+            _validate_ref(node_instance_id, self.node_name, self.name,
+                          self.path, self.attribute_path)
             node_instance = handler.get_node_instance(node_instance_id)
         else:
             try:
@@ -537,14 +530,15 @@ class GetAttribute(Function):
 
         return None
 
-    def _validate_ref(self, ref, ref_name):
-        if not ref:
-            raise exceptions.FunctionEvaluationError(
-                self.name,
-                '{0} is missing in request context in {1} for '
-                'attribute {2}'.format(ref_name,
-                                       self.path,
-                                       self.attribute_path))
+
+def _validate_ref(ref, ref_name, name, path, attribute_path):
+    if not ref:
+        raise exceptions.FunctionEvaluationError(
+            name,
+            '{0} is missing in request context in {1} for '
+            'attribute {2}'.format(ref_name,
+                                   path,
+                                   attribute_path))
 
 
 def _get_attribute_from_node_instance(ni, node, attribute_path, path):
@@ -621,7 +615,12 @@ class GetAttributesList(Function):
                                        self.path, self.name, self.scope, plan)
 
     def evaluate(self, handler):
-        node_id = self.node_name
+        if self.node_name in [SELF, SOURCE, TARGET]:
+            node_id = self.context.get(self.node_name.lower())
+            _validate_ref(node_id, self.node_name, self.name,
+                          self.path, self.attribute_path)
+        else:
+            node_id = self.node_name
         node = handler.get_node(node_id)
         node_instances = handler.get_node_instances(node_id)
 
