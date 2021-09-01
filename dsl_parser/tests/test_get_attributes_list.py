@@ -369,3 +369,31 @@ node_templates:
         context = {'self': 'goodnode'}
         result = functions.evaluate_functions(payload, context, storage)
         assert result['a'] == 'thiscorrosion'
+
+    def test_get_attributes_list_nested(self):
+        node_instances = [
+            {
+                'id': 'badnode_w08813',
+                'node_id': 'badnode',
+                'runtime_properties': {'sing': 'forget'},
+            },
+            {
+                'id': 'goodnode_d3p3ch',
+                'node_id': 'goodnode',
+                'runtime_properties': {'sing': {'song': 'faith'}},
+            },
+            {
+                'id': 'goodnode_m0d3aa',
+                'node_id': 'goodnode',
+                'runtime_properties': {'sing': {'song': 'devotion'}},
+            },
+        ]
+        nodes = [
+            {'id': 'badnode'},
+            {'id': 'goodnode'},
+        ]
+        storage = self._mock_evaluation_storage(node_instances, nodes)
+
+        payload = {'a': {'get_attributes_list': ['goodnode', 'sing', 'song']}}
+        result = functions.evaluate_functions(payload, {}, storage)
+        assert result['a'] == ['faith', 'devotion']
