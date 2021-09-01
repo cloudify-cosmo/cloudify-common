@@ -633,6 +633,79 @@ class GetAttributesList(Function):
         return results
 
 
+@register(name='get_attributes_dict', func_eval_type=RUNTIME_FUNC)
+class GetAttributesDict(Function):
+
+    def __init__(self, args, **kwargs):
+        self.node_name = None
+        self.attribute_path = None
+        super(GetAttributesDict, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        self.node_name = args[0]
+        self.attribute_paths = args[1:]
+        for pos, attribute_path in enumerate(self.attribute_paths):
+            # These must all be lists due to the way the attribute_path
+            # processing functions work
+            if not isinstance(attribute_path, list):
+                self.attribute_paths[pos] = [attribute_path]
+
+        for attribute_path in self.attribute_paths:
+            check = [self.node_name] + attribute_path
+            if not _is_legal_nested_attribute_path(check):
+                raise ValueError(
+                    'Illegal arguments passed to {0} function. Expected: '
+                    '[ node_name\\function, list of attribute_name\\function '
+                    'or [attribute_name\\function, '
+                    'nested-attribute-1\\function], ... ] '
+                    'but got: {1}.'.format(self.name, args))
+
+        duplicate_or_ambiguous_check = [
+            self._convert_to_identifier(attribute_path)
+            for attribute_path in self.attribute_paths
+        ]
+        duplicated_or_ambiguous = [
+            item for item in duplicate_or_ambiguous_check
+            if duplicate_or_ambiguous_check.count(item) > 1
+        ]
+        if duplicated_or_ambiguous:
+            raise exceptions.FunctionEvaluationError(
+                'One or more duplicated or ambiguous attribute paths found: '
+                '{}'.format(', '.join(duplicated_or_ambiguous))
+            )
+
+    def validate(self, plan):
+        _validate_no_functions_in_args(self.node_name, self.attribute_paths,
+                                       self.path, self.name, self.scope, plan)
+
+    def evaluate(self, handler):
+        if self.node_name in [SELF, SOURCE, TARGET]:
+            node_id = self.context.get(self.node_name.lower())
+            _validate_ref(node_id, self.node_name, self.name,
+                          self.path, self.attribute_paths)
+        else:
+            node_id = self.node_name
+        node = handler.get_node(node_id)
+        node_instances = handler.get_node_instances(node_id)
+
+        results = {}
+
+        for ni in node_instances:
+            ni_result = {}
+            for attribute_path in self.attribute_paths:
+                identifier = self._convert_to_identifier(attribute_path)
+                ni_result[identifier] = _get_attribute_from_node_instance(
+                    ni, node, attribute_path, self.path)
+            results[ni['id']] = ni_result
+
+        return results
+
+    def _convert_to_identifier(self, attribute_path):
+        if isinstance(attribute_path, list):
+            return '.'.join(attribute_path)
+        return attribute_path
+
+
 @register(name='get_secret', func_eval_type=RUNTIME_FUNC)
 class GetSecret(Function):
     def __init__(self, args, **kwargs):
