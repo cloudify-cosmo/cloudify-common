@@ -345,8 +345,8 @@ plugins:
         source: dummy
 """
         result = self.parse(yaml)
-        self.assertEqual(1,
-                          len(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]))
+        self.assertEqual(
+            1, len(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL]))
 
     def test_same_plugin_one_two_nodes(self):
         yaml = """

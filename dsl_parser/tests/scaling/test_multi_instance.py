@@ -181,9 +181,9 @@ class TestMultiInstance(scaling.BaseTestMultiInstance):
         webserver_db_rel = self._relationships_by_target_name(
             webserver_relationships, 'db')[0]
         self.assertEqual(host2['id'],
-                          webserver_host_rel['target_id'])
+                         webserver_host_rel['target_id'])
         self.assertEqual(db['id'],
-                          webserver_db_rel['target_id'])
+                         webserver_db_rel['target_id'])
 
         db_dependent_relationships = db_dependent['relationships']
         self.assertEqual(2, len(db_dependent_relationships))
@@ -192,9 +192,9 @@ class TestMultiInstance(scaling.BaseTestMultiInstance):
         db_dependent_host_rel = self._relationships_by_target_name(
             db_dependent_relationships, 'host1')[0]
         self.assertEqual(db['id'],
-                          db_dependent_db_rel['target_id'])
+                         db_dependent_db_rel['target_id'])
         self.assertEqual(host1['id'],
-                          db_dependent_host_rel['target_id'])
+                         db_dependent_host_rel['target_id'])
 
     def test_prepare_deployment_plan_single_none_host_node(self):
 

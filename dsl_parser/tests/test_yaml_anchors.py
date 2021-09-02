@@ -58,8 +58,8 @@ node_templates:
         }
 
         for node, expected_value in expected_node_properties.items():
-            self.assertEqual(expected_value,
-                              self._get_node_properties(parsed_plan, node))
+            self.assertEqual(
+                expected_value, self._get_node_properties(parsed_plan, node))
 
     def test_anchors_override(self):
         bp_yaml = """
@@ -98,4 +98,4 @@ node_templates:
 
         for node_id, expected_value in expected_node_properties.items():
             self.assertEqual(expected_value,
-                              self._get_node_properties(parsed_plan, node_id))
+                             self._get_node_properties(parsed_plan, node_id))
