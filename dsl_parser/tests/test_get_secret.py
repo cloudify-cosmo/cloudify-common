@@ -274,7 +274,7 @@ class TestEvaluateFunctions(AbstractTestParser):
         }
 
         functions.evaluate_functions(
-            payload, {}, self._mock_evaluation_storage())
+            payload, {}, self.mock_evaluation_storage())
 
         self.assertEqual(payload['a'], 'id_a_value')
         self.assertEqual(payload['b'], 'id_b_value')
@@ -302,14 +302,14 @@ node_templates:
                          node['properties']['property'])
 
         functions.evaluate_functions(
-            parsed, {}, self._mock_evaluation_storage())
+            parsed, {}, self.mock_evaluation_storage())
         self.assertEqual(node['properties']['property'], 'secret_value')
 
 
 class TestNestedGetSecret(AbstractTestParser):
     def setUp(self):
         super(TestNestedGetSecret, self).setUp()
-        self.mock_storage = self._mock_evaluation_storage(
+        self.mock_storage = self.mock_evaluation_storage(
             secrets={
                 'no_parse_secret': '}',
                 'hello_secret': '{"hello": "test"}',

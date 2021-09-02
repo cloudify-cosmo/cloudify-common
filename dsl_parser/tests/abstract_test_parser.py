@@ -251,12 +251,10 @@ imports:"""
 
         return ordered_nodes
 
-    @property
-    def _mock_evaluation_storage(self):
-        return _MockRuntimeEvaluationStorage
+    mock_evaluation_storage = _MockRuntimeEvaluationStorage
 
     def get_secret(self, secret_name):
-        return self._mock_evaluation_storage().get_secret(secret_name)
+        return self.mock_evaluation_storage().get_secret(secret_name)
 
 
 class _MockRuntimeEvaluationStorage(object):

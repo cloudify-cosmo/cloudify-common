@@ -119,8 +119,8 @@ class TestEvaluateFunctions(AbstractTestParser):
            {'id': 'node4'},
         ]
 
-        storage = self._mock_evaluation_storage(node_instances=node_instances,
-                                                nodes=nodes)
+        storage = self.mock_evaluation_storage(
+            node_instances=node_instances, nodes=nodes)
         payload = {
             'a': {'get_attribute': ['SELF', 'a']},
             'b': {'get_attribute': ['node2', 'b']},
@@ -175,7 +175,7 @@ class TestEvaluateFunctions(AbstractTestParser):
         ]
 
         nodes = [{'id': 'node1'}, {'id': 'node2'}]
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             node_instances=node_instances, nodes=nodes)
 
         payload = {'a': {'get_attribute': ['node2', 'key']}}
@@ -186,7 +186,7 @@ class TestEvaluateFunctions(AbstractTestParser):
 
         # sanity
         node_instances[0]['relationships'] = []
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             node_instances=node_instances, nodes=nodes)
         self.assertRaises(
             exceptions.FunctionEvaluationError,
@@ -319,7 +319,7 @@ class TestEvaluateFunctions(AbstractTestParser):
                     for r in node_instance.get('relationships', [])],
 
             }
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             node_instances=node_instances, nodes=list(nodes_by_id.values()))
         payload = {'a': {'get_attribute': ['node6', 'key']}}
         functions.evaluate_functions(payload, context, storage)
@@ -341,7 +341,7 @@ class TestEvaluateFunctions(AbstractTestParser):
                 'd': 'd_val',
             }
         }]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {
             'a': {'get_attribute': ['SELF', 'a']},
             'b': {'get_attribute': ['webserver', 'b']},
@@ -369,7 +369,7 @@ class TestEvaluateFunctions(AbstractTestParser):
             'runtime_properties': {}
         }]
         nodes = [{'id': 'node'}]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attribute': ['node', 'a']}}
         functions.evaluate_functions(payload, {}, storage)
         self.assertIsNone(payload['a'])
@@ -380,7 +380,7 @@ class TestEvaluateFunctions(AbstractTestParser):
                 exceptions.FunctionEvaluationError,
                 '.*SELF is missing.*'):
             functions.evaluate_functions(
-                payload, {}, self._mock_evaluation_storage())
+                payload, {}, self.mock_evaluation_storage())
 
     def test_missing_source_ref(self):
         payload = {'a': {'get_attribute': ['SOURCE', 'a']}}
@@ -388,7 +388,7 @@ class TestEvaluateFunctions(AbstractTestParser):
                 exceptions.FunctionEvaluationError,
                 '.*SOURCE is missing.*'):
             functions.evaluate_functions(
-                payload, {}, self._mock_evaluation_storage())
+                payload, {}, self.mock_evaluation_storage())
 
     def test_missing_target_ref(self):
         payload = {'a': {'get_attribute': ['TARGET', 'a']}}
@@ -396,7 +396,7 @@ class TestEvaluateFunctions(AbstractTestParser):
                 exceptions.FunctionEvaluationError,
                 '.*TARGET is missing.*'):
             functions.evaluate_functions(
-                payload, {}, self._mock_evaluation_storage())
+                payload, {}, self.mock_evaluation_storage())
 
     def test_no_instances(self):
         payload = {'a': {'get_attribute': ['node', 'a']}}
@@ -404,14 +404,14 @@ class TestEvaluateFunctions(AbstractTestParser):
                 exceptions.FunctionEvaluationError,
                 '.*has no instances.*'):
             functions.evaluate_functions(
-                payload, {}, self._mock_evaluation_storage())
+                payload, {}, self.mock_evaluation_storage())
 
     def test_too_many_instances(self):
         instances = [
             {'id': '1', 'node_id': 'node'},
             {'id': '2', 'node_id': 'node'}
         ]
-        storage = self._mock_evaluation_storage(instances)
+        storage = self.mock_evaluation_storage(instances)
         payload = {'a': {'get_attribute': ['node', 'a']}}
         with testtools.testcase.ExpectedException(
                 exceptions.FunctionEvaluationError,

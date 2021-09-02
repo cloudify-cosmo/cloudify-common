@@ -110,7 +110,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode', 'properties': {'sing': 'give'}},
         ]
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             node_instances=node_instances, nodes=nodes)
 
         payload = {'a': {'get_attributes_list': ['goodnode', 'sing']}}
@@ -143,7 +143,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_list': ['goodnode', 'sing']}}
         result = functions.evaluate_functions(payload, {}, storage)
 
@@ -166,7 +166,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_list': ['goodnode', 'sing']}}
         result = functions.evaluate_functions(payload, {}, storage)
 
@@ -190,7 +190,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_list': ['goodnode', 'sing']}}
         result = functions.evaluate_functions(payload, {}, storage)
 
@@ -209,7 +209,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_list': ['goodnode', 'sing']}}
         result = functions.evaluate_functions(payload, {}, storage)
 
@@ -227,7 +227,7 @@ node_templates:
         nodes = [
             {'id': 'badnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_list': ['goodnode', 'sing']}}
         with testtools.testcase.ExpectedException(
                 KeyError,
@@ -253,7 +253,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {
             'a': {'get_attributes_list': ['goodnode', 'node_instance_id']}}
         result = functions.evaluate_functions(payload, {}, storage)
@@ -294,7 +294,7 @@ node_templates:
                 'properties': {'thing': 'goodbye'},
             },
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {
             'src': {'get_attributes_list': ['SOURCE', 'thing']},
@@ -333,7 +333,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {'a': {'get_attributes_list': ['SELF', 'sing']}}
         context = {'self': 'goodnode'}
@@ -363,7 +363,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {'a': {'concat': {'get_attributes_list': ['SELF', 'sing']}}}
         context = {'self': 'goodnode'}
@@ -392,7 +392,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {'a': {'get_attributes_list': ['goodnode', 'sing', 'song']}}
         result = functions.evaluate_functions(payload, {}, storage)
