@@ -114,7 +114,7 @@ blueprint_labels:
 class TestGetLabel(AbstractTestParser):
     def setUp(self):
         super(TestGetLabel, self).setUp()
-        self.mock_storage = self._mock_evaluation_storage(
+        self.mock_storage = self.mock_evaluation_storage(
             capabilities={'dep_1': {'cap_a': 'value_a_1'}},
             labels={
                 'key1': ['val1', 'val2'],
