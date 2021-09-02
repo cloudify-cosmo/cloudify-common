@@ -129,12 +129,12 @@ class TestSchemaValidation(testtools.TestCase):
 
     def assert_invalid(self, value, element_cls, strict=True,
                        error_code=1):
-        exc = self.assertRaises(exceptions.DSLParsingException,
-                                parser.parse,
-                                value=value,
-                                element_cls=element_cls,
-                                strict=strict)
-        self.assertEqual(exc.err_code, error_code)
+        with self.assertRaises(exceptions.DSLParsingException) as cm:
+            parser.parse(
+                value=value,
+                element_cls=element_cls,
+                strict=strict)
+        self.assertEqual(cm.exception.err_code, error_code)
 
     def test_primitive_leaf_element_type_schema_validation(self):
         class TestStrLeaf(elements.Element):

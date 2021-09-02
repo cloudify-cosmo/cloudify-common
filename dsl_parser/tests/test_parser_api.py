@@ -318,11 +318,10 @@ imports:
                                                     import_type):
         main_yaml = self._create_importable_yaml_for_version_1_3_and_above(
             importable)
-        ex = self.assertRaises(
-            exceptions.DSLParsingLogicException,
-            self.parse_1_2, main_yaml)
+        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
+            self.parse_1_2(main_yaml)
         self.assertIn("Import failed: non-mergeable field: '{0}'".format(
-            import_type), str(ex))
+            import_type), str(cm.exception))
 
     def _verify_1_3_and_above_mergeable_imports(self, importable):
         main_yaml = self._create_importable_yaml_for_version_1_3_and_above(

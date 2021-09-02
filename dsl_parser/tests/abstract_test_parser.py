@@ -291,7 +291,9 @@ imports:"""
                 parsing_method(dsl)
             ex = cm.exception
         else:
-            ex = self.assertRaises(exception_type, parsing_method, dsl)
+            with self.assertRaises(exception_type) as cm:
+                parsing_method(dsl)
+            ex = cm.exception
         self.assertEqual(ex.err_code, expected_error_code)
         return ex
 
