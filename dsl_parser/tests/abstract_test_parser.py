@@ -187,6 +187,10 @@ node_types:
         shutil.rmtree(self._temp_dir)
         super(AbstractTestParser, self).tearDown()
 
+    def assertRaisesRegex(self, *args, **kwargs):
+        # py2.7-compat
+        return self.assertRaisesRegexp(*args, **kwargs)
+
     def make_file_with_name(self, content, filename, base_dir=None):
         base_dir = os.path.join(self._temp_dir, base_dir) \
             if base_dir else self._temp_dir
