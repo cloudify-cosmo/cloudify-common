@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools
+import unittest
 from dsl_parser.interfaces.constants import NO_OP
 
 from dsl_parser.interfaces.interfaces_parser import (
@@ -26,7 +26,7 @@ from dsl_parser.elements import operation
 from dsl_parser.tests.interfaces import validate
 
 
-class InterfacesParserTest(testtools.TestCase):
+class InterfacesParserTest(unittest.TestCase):
 
     def _validate_type_interfaces(self, interfaces):
         validate(interfaces, operation.NodeTypeInterfaces)

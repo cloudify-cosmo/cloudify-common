@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools
+import unittest
 
 from dsl_parser import utils
 from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
@@ -67,7 +67,7 @@ failed_custom_resolver_class_path = "%s:%s" % (
     FailedToInitializeCustomImportResolver.__name__)
 
 
-class CreateImportResolverTests(testtools.TestCase):
+class CreateImportResolverTests(unittest.TestCase):
 
     def _test_create_import_resolver(self,
                                      resolver_configuration=None,

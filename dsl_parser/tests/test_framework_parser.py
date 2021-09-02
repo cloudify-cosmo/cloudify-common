@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools
+import unittest
 
 from dsl_parser._compat import text_type
 from dsl_parser import exceptions
@@ -23,7 +23,7 @@ from dsl_parser.framework import (parser,
                                   requirements)
 
 
-class TestSchemaSchemaValidation(testtools.TestCase):
+class TestSchemaSchemaValidation(unittest.TestCase):
 
     def assert_invalid(self, element_cls):
         self.assertRaises(exceptions.DSLParsingSchemaAPIException,
@@ -119,7 +119,7 @@ class TestSchemaSchemaValidation(testtools.TestCase):
         self.assert_invalid(TestList)
 
 
-class TestSchemaValidation(testtools.TestCase):
+class TestSchemaValidation(unittest.TestCase):
 
     def assert_valid(self, value, element_cls, strict=True):
         self.assertEqual(parser.parse(value=value,

@@ -17,8 +17,8 @@ import tempfile
 import shutil
 import os
 import uuid
+import unittest
 
-import testtools
 from mock import Mock
 
 from dsl_parser._compat import pathname2url, urljoin
@@ -91,7 +91,7 @@ class _MockRuntimeEvaluationStorage(object):
         return self.get_capability(capability_path)
 
 
-class AbstractTestParser(testtools.TestCase):
+class AbstractTestParser(unittest.TestCase):
     BASIC_VERSION_SECTION_DSL_1_0 = """
 tosca_definitions_version: cloudify_dsl_1_0
     """
