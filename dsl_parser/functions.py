@@ -14,6 +14,7 @@
 #  * limitations under the License.
 
 import abc
+import collections
 import pkg_resources
 import json
 
@@ -376,49 +377,14 @@ class GetAttribute(Function):
         self.attribute_path = args[1:]
 
     def validate(self, plan):
-        # If any of the arguments are functions don't validate
-        args = [self.node_name] + self.attribute_path
-        if any(is_function(x) for x in args):
-            return
-        if self.scope == scan.OUTPUTS_SCOPE and self.node_name in [SELF,
-                                                                   SOURCE,
-                                                                   TARGET]:
-            raise ValueError('{0} cannot be used with {1} function in '
-                             '{2}.'.format(self.node_name,
-                                           self.name,
-                                           self.path))
-        if self.scope == scan.NODE_TEMPLATE_SCOPE and \
-                self.node_name in [SOURCE, TARGET]:
-            raise ValueError('{0} cannot be used with {1} function in '
-                             '{2}.'.format(self.node_name,
-                                           self.name,
-                                           self.path))
-        if self.scope == scan.NODE_TEMPLATE_RELATIONSHIP_SCOPE and \
-                self.node_name == SELF:
-            raise ValueError('{0} cannot be used with {1} function in '
-                             '{2}.'.format(self.node_name,
-                                           self.name,
-                                           self.path))
-        if self.node_name not in [SELF, SOURCE, TARGET]:
-            found = [
-                x for x in plan.node_templates if self.node_name == x['id']]
-            if not found:
-                raise KeyError(
-                    "{0} function node reference '{1}' does not exist.".format(
-                        self.name, self.node_name))
+        _validate_no_functions_in_args(self.node_name, self.attribute_path,
+                                       self.path, self.name, self.scope, plan)
 
     def evaluate(self, handler):
-        if self.node_name == SELF:
-            node_instance_id = self.context.get('self')
-            self._validate_ref(node_instance_id, SELF)
-            node_instance = handler.get_node_instance(node_instance_id)
-        elif self.node_name == SOURCE:
-            node_instance_id = self.context.get('source')
-            self._validate_ref(node_instance_id, SOURCE)
-            node_instance = handler.get_node_instance(node_instance_id)
-        elif self.node_name == TARGET:
-            node_instance_id = self.context.get('target')
-            self._validate_ref(node_instance_id, TARGET)
+        if self.node_name in [SELF, SOURCE, TARGET]:
+            node_instance_id = self.context.get(self.node_name.lower())
+            _validate_ref(node_instance_id, self.node_name, self.name,
+                          self.path, self.attribute_path)
             node_instance = handler.get_node_instance(node_instance_id)
         else:
             try:
@@ -431,26 +397,9 @@ class GetAttribute(Function):
                     raise
                 return '<ERROR: {0}>'.format(e)
 
-        value = _get_property_value(node_instance['node_id'],
-                                    node_instance['runtime_properties'],
-                                    self.attribute_path,
-                                    self.path,
-                                    raise_if_not_found=False)
-        # attribute not found in instance runtime properties
-        if value is None:
-            # special case for { get_attribute: [..., node_instance_id] }
-            # returns the node-instance-id
-            if len(self.attribute_path) == 1\
-                    and self.attribute_path[0] == 'node_instance_id':
-                value = node_instance_id
-        # still nothing? look in node properties
-        if value is None:
-            node = handler.get_node(node_instance['node_id'])
-            value = _get_property_value(node['id'],
-                                        node.get('properties', {}),
-                                        self.attribute_path,
-                                        self.path,
-                                        raise_if_not_found=False)
+        node = handler.get_node(node_instance['node_id'])
+        value = _get_attribute_from_node_instance(
+            node_instance, node, self.attribute_path, self.path)
         return value
 
     def _resolve_node_instance_by_name(self, handler):
@@ -582,14 +531,180 @@ class GetAttribute(Function):
 
         return None
 
-    def _validate_ref(self, ref, ref_name):
-        if not ref:
+
+def _validate_ref(ref, ref_name, name, path, attribute_path):
+    if not ref:
+        raise exceptions.FunctionEvaluationError(
+            name,
+            '{0} is missing in request context in {1} for '
+            'attribute {2}'.format(ref_name,
+                                   path,
+                                   attribute_path))
+
+
+def _get_attribute_from_node_instance(ni, node, attribute_path, path):
+    value = _get_property_value(ni['node_id'],
+                                ni.get('runtime_properties'),
+                                attribute_path,
+                                path,
+                                raise_if_not_found=False)
+    if value is None:
+        # attribute not found in instance runtime properties
+        # special case for { get_attributes_list: [
+        #                        ..., node_instance_id] }
+        # returns the node-instance-id
+        if len(attribute_path) == 1\
+                and attribute_path[0] == 'node_instance_id':
+            value = ni['id']
+    # still nothing? look in node properties
+    if value is None:
+        value = _get_property_value(node['id'],
+                                    node.get('properties', {}),
+                                    attribute_path,
+                                    path,
+                                    raise_if_not_found=False)
+    return value
+
+
+def _validate_no_functions_in_args(node_name, attribute_path, path, name,
+                                   scope, plan):
+    # If any of the arguments are functions don't validate
+    args = [node_name] + attribute_path
+    if any(is_function(x) for x in args):
+        return
+
+    if node_name in [SELF, SOURCE, TARGET]:
+        scope_invalidity = {
+            scan.OUTPUTS_SCOPE: [SELF, SOURCE, TARGET],
+            scan.NODE_TEMPLATE_RELATIONSHIP_SCOPE: [SELF],
+            scan.NODE_TEMPLATE_SCOPE: [SOURCE, TARGET],
+        }
+        if node_name in scope_invalidity[scope]:
+            raise ValueError(
+                '{0} cannot be used with {1} function in {2}'.format(
+                    node_name, name, path,
+                )
+            )
+    else:
+        if not any(node_name == template['id']
+                   for template in plan.node_templates):
+            raise KeyError(
+                "{0} function node reference '{1}' does not exist.".format(
+                    name, node_name))
+
+
+@register(name='get_attributes_list', func_eval_type=RUNTIME_FUNC)
+class GetAttributesList(Function):
+
+    def __init__(self, args, **kwargs):
+        self.node_name = None
+        self.attribute_path = None
+        super(GetAttributesList, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if not _is_legal_nested_attribute_path(args):
+            raise ValueError(
+                'Illegal arguments passed to {0} function. Expected: '
+                '[ node_name\\function, attribute_name\\function '
+                '[, nested-attribute-1\\function, ... ] '
+                'but got: {1}.'.format(self.name, args))
+        self.node_name = args[0]
+        self.attribute_path = args[1:]
+
+    def validate(self, plan):
+        _validate_no_functions_in_args(self.node_name, self.attribute_path,
+                                       self.path, self.name, self.scope, plan)
+
+    def evaluate(self, handler):
+        if self.node_name in [SELF, SOURCE, TARGET]:
+            node_id = self.context.get(self.node_name.lower())
+            _validate_ref(node_id, self.node_name, self.name,
+                          self.path, self.attribute_path)
+        else:
+            node_id = self.node_name
+        node = handler.get_node(node_id)
+        node_instances = handler.get_node_instances(node_id)
+
+        results = []
+
+        for ni in node_instances:
+            results.append(_get_attribute_from_node_instance(
+                ni, node, self.attribute_path, self.path))
+
+        return results
+
+
+@register(name='get_attributes_dict', func_eval_type=RUNTIME_FUNC)
+class GetAttributesDict(Function):
+
+    def __init__(self, args, **kwargs):
+        self.node_name = None
+        self.attribute_path = None
+        super(GetAttributesDict, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        self.node_name = args[0]
+        self.attribute_paths = args[1:]
+        for pos, attribute_path in enumerate(self.attribute_paths):
+            # These must all be lists due to the way the attribute_path
+            # processing functions work
+            if not isinstance(attribute_path, list):
+                self.attribute_paths[pos] = [attribute_path]
+
+        for attribute_path in self.attribute_paths:
+            check = [self.node_name] + attribute_path
+            if not _is_legal_nested_attribute_path(check):
+                raise ValueError(
+                    'Illegal arguments passed to {0} function. Expected: '
+                    '[ node_name\\function, list of attribute_name\\function '
+                    'or [attribute_name\\function, '
+                    'nested-attribute-1\\function], ... ] '
+                    'but got: {1}.'.format(self.name, args))
+
+        duplicate_or_ambiguous_check = collections.Counter([
+            self._convert_to_identifier(attribute_path)
+            for attribute_path in self.attribute_paths
+        ])
+        duplicated_or_ambiguous = [
+            item for item in duplicate_or_ambiguous_check
+            if duplicate_or_ambiguous_check[item] > 1
+        ]
+        if duplicated_or_ambiguous:
             raise exceptions.FunctionEvaluationError(
-                self.name,
-                '{0} is missing in request context in {1} for '
-                'attribute {2}'.format(ref_name,
-                                       self.path,
-                                       self.attribute_path))
+                'One or more duplicated or ambiguous attribute paths found: '
+                '{}'.format(', '.join(duplicated_or_ambiguous))
+            )
+
+    def validate(self, plan):
+        _validate_no_functions_in_args(self.node_name, self.attribute_paths,
+                                       self.path, self.name, self.scope, plan)
+
+    def evaluate(self, handler):
+        if self.node_name in [SELF, SOURCE, TARGET]:
+            node_id = self.context.get(self.node_name.lower())
+            _validate_ref(node_id, self.node_name, self.name,
+                          self.path, self.attribute_paths)
+        else:
+            node_id = self.node_name
+        node = handler.get_node(node_id)
+        node_instances = handler.get_node_instances(node_id)
+
+        results = {}
+
+        for ni in node_instances:
+            ni_result = {}
+            for attribute_path in self.attribute_paths:
+                identifier = self._convert_to_identifier(attribute_path)
+                ni_result[identifier] = _get_attribute_from_node_instance(
+                    ni, node, attribute_path, self.path)
+            results[ni['id']] = ni_result
+
+        return results
+
+    def _convert_to_identifier(self, attribute_path):
+        if isinstance(attribute_path, list):
+            return '.'.join(attribute_path)
+        return attribute_path
 
 
 @register(name='get_secret', func_eval_type=RUNTIME_FUNC)

@@ -103,13 +103,24 @@ class TestEvaluateFunctions(AbstractTestParser):
             }
 
         node_instances = [
-            _node_instance('node1', {'a': 'a_val'}),
-            _node_instance('node2', {'b': 'b_val'}),
-            _node_instance('node3', {'c': 'c_val'}),
-            _node_instance('node4', {'d': 'd_val'}),
+            _node_instance('node1', {'a': 'a_val',
+                                     'node_id': 'node1'}),
+            _node_instance('node2', {'b': 'b_val',
+                                     'node_id': 'node2'}),
+            _node_instance('node3', {'c': 'c_val',
+                                     'node_id': 'node3'}),
+            _node_instance('node4', {'d': 'd_val',
+                                     'node_id': 'node4'}),
+        ]
+        nodes = [
+           {'id': 'node1'},
+           {'id': 'node2'},
+           {'id': 'node3'},
+           {'id': 'node4'},
         ]
 
-        storage = self._mock_evaluation_storage(node_instances=node_instances)
+        storage = self._mock_evaluation_storage(node_instances=node_instances,
+                                                nodes=nodes)
         payload = {
             'a': {'get_attribute': ['SELF', 'a']},
             'b': {'get_attribute': ['node2', 'b']},
