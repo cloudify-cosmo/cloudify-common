@@ -81,7 +81,7 @@ node_templates:
                 'id': 'goodnode_r1ck00',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': 'never',
-                                       'eat': 'drømekage'},
+                                       'eat': 'dromekage'},
             },
             {
                 'id': 'badnode_0hn011',
@@ -139,7 +139,7 @@ node_templates:
                 'id': 'goodnode_r1ck00',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': 'never',
-                                       'eat': 'drømekage'},
+                                       'eat': 'dromekage'},
             },
             {
                 'id': 'badnode_0hn011',
@@ -185,7 +185,7 @@ node_templates:
         attributes_list = result['a']
         assert attributes_list == {
             'goodnode_r1ck00': {'sing': 'never',
-                                'eat': 'drømekage'},
+                                'eat': 'dromekage'},
             'goodnode_45713y': {'sing': 'gonna',
                                 'eat': 'chip'},
             'goodnode_r0113d': {'sing': 'give',
@@ -211,7 +211,7 @@ node_templates:
             {
                 'id': 'goodnode_r0113d',
                 'node_id': 'goodnode',
-                'runtime_properties': {'eat': 'æbleskive'},
+                'runtime_properties': {'eat': 'aebleskive'},
             },
         ]
         nodes = [
@@ -227,7 +227,7 @@ node_templates:
             'goodnode_45713y': {'sing': 'gonna',
                                 'eat': None},
             'goodnode_r0113d': {'sing': None,
-                                'eat': 'æbleskive'},
+                                'eat': 'aebleskive'},
         }
 
     def test_get_attributes_dict_no_values(self):
@@ -392,13 +392,13 @@ node_templates:
                 'id': 'goodnode_d3p3ch',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': {'song': 'faith'},
-                                       'eat': 'rødgrød'},
+                                       'eat': 'rodgrod'},
             },
             {
                 'id': 'goodnode_m0d3aa',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': {'song': 'devotion'},
-                                       'eat': 'fløde'},
+                                       'eat': 'flode'},
             },
         ]
         nodes = [
@@ -411,8 +411,8 @@ node_templates:
                                                  ['sing', 'song'], 'eat']}}
         result = functions.evaluate_functions(payload, {}, storage)
         assert result['a'] == {
-            'goodnode_d3p3ch': {'sing.song': 'faith', 'eat': 'rødgrød'},
-            'goodnode_m0d3aa': {'sing.song': 'devotion', 'eat': 'fløde'},
+            'goodnode_d3p3ch': {'sing.song': 'faith', 'eat': 'rodgrod'},
+            'goodnode_m0d3aa': {'sing.song': 'devotion', 'eat': 'flode'},
         }
 
     def test_get_attributess_dict_nested_ambiguous_not_requested(self):
@@ -426,13 +426,13 @@ node_templates:
                 'id': 'goodnode_d3p3ch',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': {'song': 'faith'},
-                                       'sing.song': 'rødgrød'},
+                                       'sing.song': 'rodgrod'},
             },
             {
                 'id': 'goodnode_m0d3aa',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': {'song': 'devotion'},
-                                       'sing.song': 'fløde'},
+                                       'sing.song': 'flode'},
             },
         ]
         nodes = [
@@ -460,13 +460,13 @@ node_templates:
                 'id': 'goodnode_d3p3ch',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': {'song': 'faith'},
-                                       'sing.song': 'rødgrød'},
+                                       'sing.song': 'rodgrod'},
             },
             {
                 'id': 'goodnode_m0d3aa',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': {'song': 'devotion'},
-                                       'sing.song': 'fløde'},
+                                       'sing.song': 'flode'},
             },
         ]
         nodes = [
@@ -494,13 +494,13 @@ node_templates:
                 'id': 'goodnode_d3p3ch',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': {'song': 'faith'},
-                                       'sing.song': 'rødgrød'},
+                                       'sing.song': 'rodgrod'},
             },
             {
                 'id': 'goodnode_m0d3aa',
                 'node_id': 'goodnode',
                 'runtime_properties': {'sing': {'song': 'devotion'},
-                                       'sing.song': 'fløde'},
+                                       'sing.song': 'flode'},
             },
         ]
         nodes = [
