@@ -14,6 +14,7 @@
 #  * limitations under the License.
 
 import abc
+import collections
 import pkg_resources
 import json
 
@@ -660,13 +661,13 @@ class GetAttributesDict(Function):
                     'nested-attribute-1\\function], ... ] '
                     'but got: {1}.'.format(self.name, args))
 
-        duplicate_or_ambiguous_check = [
+        duplicate_or_ambiguous_check = collections.Counter([
             self._convert_to_identifier(attribute_path)
             for attribute_path in self.attribute_paths
-        ]
+        ])
         duplicated_or_ambiguous = [
             item for item in duplicate_or_ambiguous_check
-            if duplicate_or_ambiguous_check.count(item) > 1
+            if duplicate_or_ambiguous_check[item] > 1
         ]
         if duplicated_or_ambiguous:
             raise exceptions.FunctionEvaluationError(
