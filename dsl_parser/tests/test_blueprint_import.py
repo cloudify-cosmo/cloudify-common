@@ -13,6 +13,8 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import pytest
+
 from dsl_parser import constants, exceptions
 from dsl_parser.tests.utils import ResolverWithBlueprintSupport
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
@@ -128,6 +130,7 @@ namespaces_mapping:
   ns: blueprint
 """
 
+    @pytest.mark.xfail(reason='RD-3097')
     def test_merging_namespaces_mapping(self):
         resolver = ResolverWithBlueprintSupport({
             'blueprint:test': self.blueprint_imported
@@ -150,16 +153,16 @@ imports:
 """.format('test', layer2_import_path, 'other_test')
         parsed_yaml = self.parse(main_yaml, resolver=resolver)
         namespaces_mapping = parsed_yaml[constants.NAMESPACES_MAPPING]
-        self.assertItemsEqual({'other_test--test1--namespace': 'test',
-                               'test--test1--namespace': 'test',
-                               'other_test--test1--namespace--ns': 'blueprint',
-                               'test--test1--namespace--ns': 'blueprint',
-                               'other_test--namespace--ns': 'blueprint',
-                               'test--namespace': 'blueprint',
-                               'other_test--namespace': 'blueprint',
-                               'test--namespace--ns': 'blueprint'
-                               },
-                              namespaces_mapping)
+        self.assertItemsEqual({
+            'other_test--test1--namespace': 'test',
+            'test--test1--namespace': 'test',
+            'other_test--test1--namespace--ns': 'blueprint',
+            'test--test1--namespace--ns': 'blueprint',
+            'other_test--namespace--ns': 'blueprint',
+            'test--namespace': 'blueprint',
+            'other_test--namespace': 'blueprint',
+            'test--namespace--ns': 'blueprint'
+          }, namespaces_mapping)
 
     def test_blueprints_imports_with_the_same_import(self):
         resolver = ResolverWithBlueprintSupport({
