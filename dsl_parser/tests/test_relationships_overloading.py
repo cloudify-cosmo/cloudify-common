@@ -22,7 +22,7 @@ class TestRelationshipsOverloading(AbstractTestParser):
     def verify_relationships(self, relationships, expected_rels):
         source_rels = [(rel['target_id'], rel['type'])
                        for rel in relationships]
-        self.assertItemsEqual(source_rels, expected_rels)
+        self.assertEqual(source_rels, expected_rels)
 
     def validate_expected_relationships(self, main_yaml,
                                         test_node_name,

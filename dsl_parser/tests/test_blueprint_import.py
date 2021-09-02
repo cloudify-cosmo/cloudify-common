@@ -108,11 +108,9 @@ imports:
         parsed_yaml = self.parse(main_yaml, resolver=resolver)
         imported_blueprints = parsed_yaml[constants.IMPORTED_BLUEPRINTS]
         self.assertEqual(len(imported_blueprints), 3)
-        self.assertItemsEqual(
-            ['other_test',
-             'test',
-             'another_test'],
-            imported_blueprints)
+        self.assertEqual(
+            {'other_test', 'test', 'another_test'},
+            set(imported_blueprints))
 
     def test_not_valid_blueprint_import(self):
         yaml = """
