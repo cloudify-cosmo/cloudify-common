@@ -1,5 +1,3 @@
-import testtools.testcase
-
 from dsl_parser import functions
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
@@ -229,9 +227,7 @@ node_templates:
         ]
         storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_list': ['goodnode', 'sing']}}
-        with testtools.testcase.ExpectedException(
-                KeyError,
-                '.*Node not found.*'):
+        with self.assertRaisesRegex(KeyError, 'Node not found'):
             functions.evaluate_functions(payload, {}, storage)
 
     def test_get_attributes_list_node_instance_ids(self):

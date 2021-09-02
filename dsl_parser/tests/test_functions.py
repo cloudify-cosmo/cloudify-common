@@ -13,8 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from testtools import ExpectedException
-
 from dsl_parser import exceptions, functions
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
@@ -964,8 +962,8 @@ node_templates:
         properties:
             property: { concat: [1, 2] }
 """
-        with ExpectedException(exceptions.FunctionValidationError,
-                               '.*version 1_1 or greater.*'):
+        with self.assertRaisesRegex(
+                exceptions.FunctionValidationError, 'version 1_1 or greater'):
             prepare_deployment_plan(self.parse(
                 yaml,
                 dsl_version=self.BASIC_VERSION_SECTION_DSL_1_0))
@@ -982,7 +980,7 @@ node_templates:
         properties:
             property: { concat: 1 }
 """
-        with ExpectedException(ValueError, '.*Illegal.*concat.*'):
+        with self.assertRaisesRegex(ValueError, 'Illegal.*concat'):
             prepare_deployment_plan(self.parse_1_1(yaml))
 
     def test_node_template_properties_simple(self):
@@ -1231,8 +1229,8 @@ node_templates:
         properties:
             property: { merge: [{}, {}] }
 """
-        with ExpectedException(exceptions.FunctionValidationError,
-                               '.*version 1_3 or greater.*'):
+        with self.assertRaisesRegex(
+                exceptions.FunctionValidationError, 'version 1_3 or greater'):
             prepare_deployment_plan(self.parse(
                 yaml,
                 dsl_version=self.BASIC_VERSION_SECTION_DSL_1_0))
@@ -1249,7 +1247,7 @@ node_templates:
         properties:
             property: { merge: 1 }
 """
-        with ExpectedException(ValueError, '.*Illegal.*merge.*'):
+        with self.assertRaisesRegex(ValueError, 'Illegal.*merge'):
             prepare_deployment_plan(self.parse_1_3(yaml))
 
     def test_node_template_properties_simple(self):
