@@ -32,6 +32,65 @@ from dsl_parser.multi_instance import (create_deployment_plan,
                                        modify_deployment)
 
 
+class _MockRuntimeEvaluationStorage(object):
+    def __init__(self, node_instances=None, nodes=None, inputs=None,
+                 secrets=None, capabilities=None, labels=None,
+                 group_capabilities=None):
+        self._node_instances = node_instances or []
+        self._nodes = nodes or []
+        self._inputs = inputs or {}
+        self._secrets = secrets or {}
+        self._capabilities = capabilities or {}
+        self._labels = labels or {}
+        self._group_capabilities = group_capabilities or {}
+
+    def get_input(self, input_name):
+        return self._inputs[input_name]
+
+    def get_node_instances(self, node_id=None):
+        if not node_id:
+            return self._node_instances()
+        return [ni for ni in self._node_instances
+                if ni.get('node_id') == node_id]
+
+    def get_node_instance(self, node_instance_id):
+        for node_instance in self._node_instances:
+            if node_instance['id'] == node_instance_id:
+                return node_instance
+        else:
+            raise KeyError('Instance not found: {0}'.format(node_instance_id))
+
+    def get_node(self, node_name):
+        for node in self._nodes:
+            if node['id'] == node_name:
+                return node
+        else:
+            raise KeyError('Node not found: {0}'.format(node_name))
+
+    def get_secret(self, secret_id):
+        if self._secrets:
+            return Mock(value=self._secrets[secret_id])
+        return Mock(value=secret_id + '_value')
+
+    def get_capability(self, capability_path):
+        dep_id, cap_id = capability_path[0], capability_path[1]
+        return self._capabilities[dep_id][cap_id]
+
+    def get_label(self, label_key, values_list_index):
+        if values_list_index is not None:
+            return self._labels[label_key][values_list_index]
+        return self._labels[label_key]
+
+    def get_group_capability(self, capability_path):
+        group_id, cap_id = capability_path[0], capability_path[1]
+        return self._group_capabilities[group_id][cap_id]
+
+    def get_environment_capability(self, capability_path):
+        label_value = self.get_label('csys-obj-parent', 0)
+        capability_path = [label_value] + capability_path
+        return self.get_capability(capability_path)
+
+
 class AbstractTestParser(testtools.TestCase):
     BASIC_VERSION_SECTION_DSL_1_0 = """
 tosca_definitions_version: cloudify_dsl_1_0
@@ -251,68 +310,7 @@ imports:"""
 
         return ordered_nodes
 
-    @property
-    def _mock_evaluation_storage(self):
-        return _MockRuntimeEvaluationStorage
+    mock_evaluation_storage = _MockRuntimeEvaluationStorage
 
     def get_secret(self, secret_name):
-        return self._mock_evaluation_storage().get_secret(secret_name)
-
-
-class _MockRuntimeEvaluationStorage(object):
-    def __init__(self, node_instances=None, nodes=None, inputs=None,
-                 secrets=None, capabilities=None, labels=None,
-                 group_capabilities=None):
-        self._node_instances = node_instances or []
-        self._nodes = nodes or []
-        self._inputs = inputs or {}
-        self._secrets = secrets or {}
-        self._capabilities = capabilities or {}
-        self._labels = labels or {}
-        self._group_capabilities = group_capabilities or {}
-
-    def get_input(self, input_name):
-        return self._inputs[input_name]
-
-    def get_node_instances(self, node_id=None):
-        if not node_id:
-            return self._node_instances()
-        return [ni for ni in self._node_instances
-                if ni.get('node_id') == node_id]
-
-    def get_node_instance(self, node_instance_id):
-        for node_instance in self._node_instances:
-            if node_instance['id'] == node_instance_id:
-                return node_instance
-        else:
-            raise KeyError('Instance not found: {0}'.format(node_instance_id))
-
-    def get_node(self, node_name):
-        for node in self._nodes:
-            if node['id'] == node_name:
-                return node
-        else:
-            raise KeyError('Node not found: {0}'.format(node_name))
-
-    def get_secret(self, secret_id):
-        if self._secrets:
-            return Mock(value=self._secrets[secret_id])
-        return Mock(value=secret_id + '_value')
-
-    def get_capability(self, capability_path):
-        dep_id, cap_id = capability_path[0], capability_path[1]
-        return self._capabilities[dep_id][cap_id]
-
-    def get_label(self, label_key, values_list_index):
-        if values_list_index is not None:
-            return self._labels[label_key][values_list_index]
-        return self._labels[label_key]
-
-    def get_group_capability(self, capability_path):
-        group_id, cap_id = capability_path[0], capability_path[1]
-        return self._group_capabilities[group_id][cap_id]
-
-    def get_environment_capability(self, capability_path):
-        label_value = self.get_label('csys-obj-parent', 0)
-        capability_path = [label_value] + capability_path
-        return self.get_capability(capability_path)
+        return self.mock_evaluation_storage().get_secret(secret_name)

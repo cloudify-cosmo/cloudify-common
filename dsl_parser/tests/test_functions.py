@@ -676,7 +676,7 @@ node_templates:
 
         evaluated = functions.evaluate_node_functions(
             plan['nodes'][0],
-            self._mock_evaluation_storage(inputs=inputs)
+            self.mock_evaluation_storage(inputs=inputs)
         )
         self.assertEqual('secret', evaluated['properties']['b'])
 
@@ -695,7 +695,7 @@ node_templates:
             secret1_value: secret
             b: {get_property: [SELF, {get_secret: secret1} ]}
 """
-        storage = self._mock_evaluation_storage()
+        storage = self.mock_evaluation_storage()
         plan = prepare_deployment_plan(
             self.parse(yaml),
             get_secret_method=storage.get_secret,
@@ -824,7 +824,7 @@ node_templates:
         self.assertEqual(plan_node['properties']['a'],
                          {'get_property': ['vm2', 'c']})
         node = functions.evaluate_node_functions(
-            plan_node, self._mock_evaluation_storage(nodes=plan['nodes']))
+            plan_node, self.mock_evaluation_storage(nodes=plan['nodes']))
         self.assertEqual(node['properties']['a'], 'secret2')
 
 
@@ -1897,7 +1897,7 @@ node_templates:
         plan = prepare_deployment_plan(self.parse(yaml))
         plan_node = next(n for n in plan['nodes'] if n['name'] == 'vm1')
         node = functions.evaluate_node_functions(
-            plan_node, self._mock_evaluation_storage(
+            plan_node, self.mock_evaluation_storage(
                 nodes=plan['nodes'],
                 group_capabilities={
                     'a': {'b': 'capability value'}

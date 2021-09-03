@@ -138,7 +138,7 @@ outputs:
         func = functions.parse(outputs['port']['value'])
         self.assertTrue(isinstance(func, functions.GetSecret))
         self.assertEqual('secret_key', func.secret_id)
-        storage = self._mock_evaluation_storage()
+        storage = self.mock_evaluation_storage()
         prepared = prepare_deployment_plan(parsed, storage.get_secret)
         self.assertEqual(parsed['outputs'], prepared['outputs'])
 
@@ -211,7 +211,7 @@ outputs:
             }
         }]
         nodes = [{'id': 'webserver'}]
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             instances, nodes, capabilities={'dep_1': {'cap_a': 'value_a_1'}})
 
         parsed = prepare_deployment_plan(self.parse_1_1(yaml),
@@ -241,7 +241,7 @@ outputs:
         parsed = self.parse(yaml)
 
         outputs = functions.evaluate_outputs(
-            parsed['outputs'], self._mock_evaluation_storage())
+            parsed['outputs'], self.mock_evaluation_storage())
         self.assertIn('Node webserver has no instances', outputs['port'])
         self.assertIn('webserver', outputs['port'])
 
@@ -264,7 +264,7 @@ outputs:
             'node_id': 'webserver',
             'runtime_properties': {'port': 8080}
         }
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             node_instances=[instance, instance],
             nodes=[{'id': 'webserver'}])
         outputs = functions.evaluate_outputs(parsed['outputs'], storage)
@@ -300,7 +300,7 @@ outputs:
                 }
             }
         }
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             node_instances=[node_instance], nodes=[{'id': 'webserver'}])
         outputs = functions.evaluate_outputs(parsed['outputs'], storage)
         self.assertEqual(8080, outputs['port'])
@@ -341,7 +341,7 @@ outputs:
                 }
             }
         }
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             node_instances=[node_instance], nodes=[{'id': 'webserver'}])
         outputs = functions.evaluate_outputs(parsed['outputs'], storage)
 

@@ -117,7 +117,7 @@ node_templates:
             {'id': 'goodnode', 'properties': {'sing': 'give',
                                               'eat': 'marshmallow'}},
         ]
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             node_instances=node_instances, nodes=nodes)
 
         payload = {'a': {'get_attributes_dict': ['goodnode', 'sing']}}
@@ -175,7 +175,7 @@ node_templates:
             {'id': 'goodnode', 'properties': {'sing': 'give',
                                               'eat': 'marshmallow'}},
         ]
-        storage = self._mock_evaluation_storage(
+        storage = self.mock_evaluation_storage(
             node_instances=node_instances, nodes=nodes)
 
         payload = {'a': {'get_attributes_dict': ['goodnode', 'sing', 'eat']}}
@@ -218,7 +218,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_dict': ['goodnode', 'sing', 'eat']}}
         result = functions.evaluate_functions(payload, {}, storage)
 
@@ -246,7 +246,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_dict': ['goodnode', 'sing', 'eat']}}
         result = functions.evaluate_functions(payload, {}, storage)
 
@@ -267,7 +267,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_dict': ['goodnode', 'sing', 'eat']}}
         result = functions.evaluate_functions(payload, {}, storage)
 
@@ -285,7 +285,7 @@ node_templates:
         nodes = [
             {'id': 'badnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_dict': ['goodnode', 'sing', 'eat']}}
         with testtools.testcase.ExpectedException(
                 KeyError,
@@ -325,7 +325,7 @@ node_templates:
                 'properties': {'thing': 'goodbye'},
             },
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {
             'src': {'get_attributes_dict': ['SOURCE', 'thing']},
@@ -370,7 +370,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {'a': {'get_attributes_dict': ['SELF', 'sing']}}
         context = {'self': 'goodnode'}
@@ -405,7 +405,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {'a': {'get_attributes_dict': ['goodnode',
                                                  ['sing', 'song'], 'eat']}}
@@ -439,7 +439,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {'a': {'get_attributes_dict': ['goodnode',
                                                  ['sing', 'song']]}}
@@ -473,7 +473,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {'a': {'get_attributes_dict': ['goodnode',
                                                  ['sing', 'song'],
@@ -507,7 +507,7 @@ node_templates:
             {'id': 'badnode'},
             {'id': 'goodnode'},
         ]
-        storage = self._mock_evaluation_storage(node_instances, nodes)
+        storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {'a': {'get_attributes_dict': ['goodnode', 'sing', 'sing']}}
         with testtools.testcase.ExpectedException(
