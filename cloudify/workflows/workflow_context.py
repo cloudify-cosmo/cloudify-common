@@ -599,8 +599,11 @@ class _WorkflowContextBase(object):
         plugin_name = op_struct['plugin']
         # could match two plugins with different executors, one is enough
         # for our purposes (extract package details)
-        plugin = [p for p in node_instance.node.plugins
-                  if p['name'] == plugin_name][0]
+        try:
+            plugin = [p for p in node_instance.node.plugins
+                      if p['name'] == plugin_name][0]
+        except IndexError:
+            raise RuntimeError('Plugin not found: {0}'.format(plugin_name))
         operation_mapping = op_struct['operation']
         has_intrinsic_functions = op_struct['has_intrinsic_functions']
         operation_properties = op_struct.get('inputs', {})
