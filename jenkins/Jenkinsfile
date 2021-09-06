@@ -106,50 +106,6 @@ pipeline {
     }
     stage('tests'){
       parallel{
-        stage('test_py26'){
-          steps{
-            sh script: "mkdir -p ${env.WORKSPACE}/test-py26 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py26", label: "copying repo to seperate workspace"
-            container('py26'){
-              dir("${env.WORKSPACE}/test-py26") {
-                echo 'setup_py26 - Install and set python version with pyenv'
-                sh '''
-                #!/bin/bash
-                set -eux
-                git clone https://github.com/yyuu/pyenv.git ~/.pyenv
-                export PYENV_ROOT="$HOME/.pyenv"
-                export PATH="$PYENV_ROOT/bin:$PATH"
-                echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.bashrc
-                sudo apt-get install -y build-essential libssl1.0-dev zlib1g-dev xz-utils
-                echo 'if [ -e $SHLVL = 1 ]; then
-                  echo 'eval "\$(pyenv init -)"' >> ~/.bashrc
-                  echo 'eval "\$(pyenv virtualenv-init -)"' >> ~/.bashrc
-                  fi'
-                echo 'Restoring Python 2.6.9 installation'
-                curl -Lo /tmp/pyenv-2.6.9.tar https://cloudify-release-eu.s3-eu-west-1.amazonaws.com/cloudify/envs/pyenv-2.6.9.tar
-                curl -Lo /tmp/pip-wheels.tar https://cloudify-release-eu.s3-eu-west-1.amazonaws.com/cloudify/envs/pip-wheels.tar
-                mkdir /tmp/pip-wheels
-                tar xvf /tmp/pyenv-2.6.9.tar -C /
-                tar xvf /tmp/pip-wheels.tar -C /tmp/pip-wheels
-                pyenv global 2.6.9
-                '''
-                // py26 uses py26-only-compatible versions of libs: pyyaml 4.2b4, hence the specialcased [dispatcher_py26]
-                sh '''#!/bin/bash
-                pip install -r dev-requirements.txt -f /tmp/pip-wheels --user
-                pip install -r test-requirements.txt -f /tmp/pip-wheels --user
-                pip install -e '.[dispatcher_py26]' -f /tmp/pip-wheels --user
-                '''
-                pytest('dsl_parser')
-                pytest('script_runner')
-                pytest('cloudify')
-              }
-            }
-          }
-          post {
-            always {
-              junit '**/test-results/*.xml'
-            }
-          }
-        }
         stage('test_py27'){
           steps{
             sh script: "mkdir -p ${env.WORKSPACE}/test-py27 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py27", label: "copying repo to seperate workspace"

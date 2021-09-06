@@ -8,21 +8,6 @@ spec:
       limits:
         cpu: 0.2
         memory: 256Mi
-  - name: py26
-    image: circleci/python:2.7-stretch
-    command:
-    - cat
-    tty: true
-    securityContext:
-        runAsUser: 0
-        privileged: true
-    resources:
-      requests:
-        cpu: 1
-        memory: 2Gi
-      limits:
-        cpu: 2
-        memory: 2Gi
   - name: py27
     image: circleci/python:2.7
     command:
@@ -33,7 +18,7 @@ spec:
         privileged: true
     resources:
       requests:
-        cpu: 1
+        cpu: 1.5
         memory: 2Gi
       limits:
         cpu: 2
@@ -48,7 +33,7 @@ spec:
       privileged: true
     resources:
       requests:
-        cpu: 1
+        cpu: 1.5
         memory: 2Gi
       limits:
         cpu: 2.5
