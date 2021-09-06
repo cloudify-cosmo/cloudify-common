@@ -1012,8 +1012,10 @@ plugins:
         self.assertEqual('test_plugin', plugin1['name'])
         self.assertEqual(1, len(compute['plugins_to_install']))
         self.assertEqual(1, len(othercompute['plugins_to_install']))
-        self.assertEqual(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
-                         [plugin1, plugin2])
+        self.assertEqual(
+            2, len(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL]))
+        self.assertIn(plugin1, result[constants.HOST_AGENT_PLUGINS_TO_INSTALL])
+        self.assertIn(plugin2, result[constants.HOST_AGENT_PLUGINS_TO_INSTALL])
         self.assertEqual(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL],
                          [])
         self.assertEqual(result[constants.WORKFLOW_PLUGINS_TO_INSTALL],

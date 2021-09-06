@@ -22,7 +22,7 @@ class TestRelationshipsOverloading(AbstractTestParser):
     def verify_relationships(self, relationships, expected_rels):
         source_rels = [(rel['target_id'], rel['type'])
                        for rel in relationships]
-        self.assertEqual(source_rels, expected_rels)
+        self.assertEqual(set(source_rels), set(expected_rels))
 
     def validate_expected_relationships(self, main_yaml,
                                         test_node_name,
@@ -568,12 +568,11 @@ imports:
     -   test--{1}
 """.format(import_file_name, side_import_file_name)
 
-        self.validate_expected_relationships(
-            main_yaml,
-            'test--test_node',
-            [('test--other_node', 'cloudify.relationships.depends_on'),
-             ('test--other_node', 'cloudify.relationships.depends_on'),
-             ('test--some_node', 'cloudify.relationships.depends_on')])
+        self.validate_expected_relationships(main_yaml, 'test--test_node', [
+            ('test--other_node', 'cloudify.relationships.depends_on'),
+            ('test--other_node', 'cloudify.relationships.depends_on'),
+            ('test--some_node', 'cloudify.relationships.depends_on'),
+        ])
 
     def test_side_import_not_expending_relationships_failure(self):
         side_blueprint = """
