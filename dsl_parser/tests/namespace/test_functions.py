@@ -647,8 +647,8 @@ imports:
         else:
             raise RuntimeError('No node "ip" found')
         self.assertEqual(ip['id'], 'ns2--ns--ip')
-        self.assertEquals(ip['properties']['port'],
-                          {'get_property': ['ns2--ns--node', 'port']})
+        self.assertEqual(ip['properties']['port'],
+                         {'get_property': ['ns2--ns--node', 'port']})
 
 
 class TestGetAttribute(AbstractTestParser):
@@ -829,8 +829,8 @@ imports:
         else:
             raise RuntimeError('No node "ip" found')
         self.assertEqual(ip['id'], 'ns2--ns--ip')
-        self.assertEquals(ip['properties']['port'],
-                          {'get_attribute': ['ns2--ns--node', 'port']})
+        self.assertEqual(ip['properties']['port'],
+                         {'get_attribute': ['ns2--ns--node', 'port']})
 
     def test_node_type_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -920,9 +920,9 @@ imports:
         else:
             raise RuntimeError('No node "ip" found')
         self.assertEqual(ip['id'], 'ns2--ns--ip')
-        self.assertEquals(ip['properties']['port'],
-                          {'concat':
-                            ['one', {'get_input': 'ns2--ns--port'}, 'three']})
+        self.assertEqual(ip['properties']['port'],
+                         {'concat':
+                           ['one', {'get_input': 'ns2--ns--port'}, 'three']})
 
     def test_node_type_properties_with_blueprint_import(self):
         basic_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """

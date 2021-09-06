@@ -13,14 +13,14 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools
+import unittest
 from mock import patch, MagicMock
 
 from dsl_parser import exceptions
 from dsl_parser import constraints
 
 
-class TestGeneralUtilFunctions(testtools.TestCase):
+class TestGeneralUtilFunctions(unittest.TestCase):
     def test_validate_args_raises(self):
         validation_funcs = {'some_type': lambda _: False}
         with patch('dsl_parser.constraints.VALIDATION_FUNCTIONS',
@@ -121,7 +121,7 @@ class TestGeneralUtilFunctions(testtools.TestCase):
             self.assertEqual(f(), validation_funcs['type2']())
 
 
-class TestConstraint(testtools.TestCase):
+class TestConstraint(unittest.TestCase):
     def test_str(self):
         class DummyConstraint(constraints.Constraint):
             name = 'name'
@@ -137,7 +137,7 @@ class TestConstraint(testtools.TestCase):
         self.assertEqual('name(arg1, 123) operator', str(constraint))
 
 
-class TestEqual(testtools.TestCase):
+class TestEqual(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.Equal(3)
@@ -153,7 +153,7 @@ class TestEqual(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestGreaterThan(testtools.TestCase):
+class TestGreaterThan(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.GreaterThan(3)
@@ -169,7 +169,7 @@ class TestGreaterThan(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestGreaterOrEqual(testtools.TestCase):
+class TestGreaterOrEqual(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.GreaterOrEqual(3)
@@ -185,7 +185,7 @@ class TestGreaterOrEqual(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestLessThan(testtools.TestCase):
+class TestLessThan(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.LessThan(3)
@@ -201,7 +201,7 @@ class TestLessThan(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestLessOrEqual(testtools.TestCase):
+class TestLessOrEqual(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.LessOrEqual(3)
@@ -217,7 +217,7 @@ class TestLessOrEqual(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestInRange(testtools.TestCase):
+class TestInRange(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.InRange([0, 5])
@@ -236,7 +236,7 @@ class TestInRange(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestValidValues(testtools.TestCase):
+class TestValidValues(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.ValidValues([0, 2])
@@ -252,7 +252,7 @@ class TestValidValues(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestLength(testtools.TestCase):
+class TestLength(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.Length(1)
@@ -268,7 +268,7 @@ class TestLength(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestMinLength(testtools.TestCase):
+class TestMinLength(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.MinLength(1)
@@ -284,7 +284,7 @@ class TestMinLength(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestMaxLength(testtools.TestCase):
+class TestMaxLength(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.MaxLength(1)
@@ -300,7 +300,7 @@ class TestMaxLength(testtools.TestCase):
         self.assertRaises(exceptions.ConstraintException, dummy.predicate, A())
 
 
-class TestPattern(testtools.TestCase):
+class TestPattern(unittest.TestCase):
 
     def test_successful(self):
         dummy = constraints.Pattern('a{3}b{1}c+')

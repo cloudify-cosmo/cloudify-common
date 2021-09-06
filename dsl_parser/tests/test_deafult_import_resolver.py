@@ -15,8 +15,7 @@
 
 import mock
 import requests
-
-import testtools
+import unittest
 
 from dsl_parser.exceptions import DSLParsingLogicException
 from dsl_parser.import_resolver.default_import_resolver import \
@@ -46,7 +45,7 @@ RETRY_URL = 'retry_url'
 RETRY_DELAY = 0
 
 
-class TestDefaultResolver(testtools.TestCase):
+class TestDefaultResolver(unittest.TestCase):
 
     def test_several_matching_rules(self):
         rules = [
@@ -271,7 +270,7 @@ class TestDefaultResolver(testtools.TestCase):
             self.assertEqual(MAX_NUMBER_RETRIES + 1, len(number_of_attempts))
 
 
-class TestDefaultResolverValidations(testtools.TestCase):
+class TestDefaultResolverValidations(unittest.TestCase):
 
     def test_illegal_default_resolver_rules_type(self):
         # wrong rules configuration - string instead of list

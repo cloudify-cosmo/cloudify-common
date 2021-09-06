@@ -69,33 +69,33 @@ def workflow_op_struct(plugin_name,
 class BaseParserApiTest(AbstractTestParser):
     def _assert_blueprint(self, result):
         node = result['nodes'][0]
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_type', node['type'])
         plugin_props = [p for p in node['plugins']
                         if p['name'] == 'test_plugin'][0]
-        self.assertEquals(11, len(plugin_props))
-        self.assertEquals('test_plugin',
-                          plugin_props[constants.PLUGIN_NAME_KEY])
+        self.assertEqual(11, len(plugin_props))
+        self.assertEqual('test_plugin',
+                         plugin_props[constants.PLUGIN_NAME_KEY])
         operations = node['operations']
-        self.assertEquals(op_struct('test_plugin', 'install',
-                                    executor='central_deployment_agent'),
-                          operations['install'])
-        self.assertEquals(op_struct('test_plugin', 'install',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface1.install'])
-        self.assertEquals(op_struct('test_plugin', 'terminate',
-                                    executor='central_deployment_agent'),
-                          operations['terminate'])
-        self.assertEquals(op_struct('test_plugin', 'terminate',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface1.terminate'])
+        self.assertEqual(op_struct('test_plugin', 'install',
+                                   executor='central_deployment_agent'),
+                         operations['install'])
+        self.assertEqual(op_struct('test_plugin', 'install',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface1.install'])
+        self.assertEqual(op_struct('test_plugin', 'terminate',
+                                   executor='central_deployment_agent'),
+                         operations['terminate'])
+        self.assertEqual(op_struct('test_plugin', 'terminate',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface1.terminate'])
 
     def _assert_minimal_blueprint(self, result, expected_type='test_type'):
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_node', node['name'])
-        self.assertEquals(expected_type, node['type'])
-        self.assertEquals('val', node['properties']['key'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_node', node['name'])
+        self.assertEqual(expected_type, node['type'])
+        self.assertEqual('val', node['properties']['key'])
 
 
 class TestParserApi(BaseParserApiTest):
@@ -162,7 +162,7 @@ node_types:
             constants.PLUGIN_DISTRIBUTION_VERSION: None,
             constants.PLUGIN_DISTRIBUTION_RELEASE: None
         }]
-        self.assertEquals(parsed_plugins, expected_plugins)
+        self.assertEqual(parsed_plugins, expected_plugins)
 
     def test_type_with_interface_and_plugin_with_install_args(self):
         yaml = self.PLUGIN_WITH_INTERFACES_AND_PLUGINS_WITH_INSTALL_ARGS
@@ -184,7 +184,7 @@ node_types:
             constants.PLUGIN_DISTRIBUTION_VERSION: None,
             constants.PLUGIN_DISTRIBUTION_RELEASE: None
         }]
-        self.assertEquals(parsed_plugins, expected_plugins)
+        self.assertEqual(parsed_plugins, expected_plugins)
 
     def test_dsl_with_type_with_operation_mappings(self):
         yaml = self.create_yaml_with_imports(
@@ -219,18 +219,18 @@ plugins:
         self._assert_blueprint(result)
 
         operations = node['operations']
-        self.assertEquals(op_struct('other_test_plugin', 'start',
-                                    executor='central_deployment_agent'),
-                          operations['start'])
-        self.assertEquals(op_struct('other_test_plugin', 'start',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.start'])
-        self.assertEquals(op_struct('other_test_plugin', 'shutdown',
-                                    executor='central_deployment_agent'),
-                          operations['shutdown'])
-        self.assertEquals(op_struct('other_test_plugin', 'shutdown',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.shutdown'])
+        self.assertEqual(op_struct('other_test_plugin', 'start',
+                                   executor='central_deployment_agent'),
+                         operations['start'])
+        self.assertEqual(op_struct('other_test_plugin', 'start',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.start'])
+        self.assertEqual(op_struct('other_test_plugin', 'shutdown',
+                                   executor='central_deployment_agent'),
+                         operations['shutdown'])
+        self.assertEqual(op_struct('other_test_plugin', 'shutdown',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.shutdown'])
 
     def test_recursive_imports(self):
         bottom_level_yaml = self.BASIC_TYPE
@@ -269,14 +269,14 @@ description: sample description
         result = self.parse(yaml)
         self._assert_minimal_blueprint(result)
         self.assertIn('description', result)
-        self.assertEquals('sample description', result['description'])
+        self.assertEqual('sample description', result['description'])
 
     def test_blueprint_description_field_omitted(self):
         yaml = self.MINIMAL_BLUEPRINT + self.BASIC_VERSION_SECTION_DSL_1_2
         result = self.parse(yaml)
         self._assert_minimal_blueprint(result)
         self.assertIn('description', result)
-        self.assertEquals(None, result['description'])
+        self.assertEqual(None, result['description'])
 
     def test_diamond_imports(self):
         bottom_level_yaml = self.BASIC_TYPE
@@ -318,11 +318,10 @@ imports:
                                                     import_type):
         main_yaml = self._create_importable_yaml_for_version_1_3_and_above(
             importable)
-        ex = self.assertRaises(
-            exceptions.DSLParsingLogicException,
-            self.parse_1_2, main_yaml)
+        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
+            self.parse_1_2(main_yaml)
         self.assertIn("Import failed: non-mergeable field: '{0}'".format(
-            import_type), str(ex))
+            import_type), str(cm.exception))
 
     def _verify_1_3_and_above_mergeable_imports(self, importable):
         main_yaml = self._create_importable_yaml_for_version_1_3_and_above(
@@ -376,7 +375,7 @@ node_types:
         # this will also check property "key" = "val"
         self._assert_minimal_blueprint(result)
         node = result['nodes'][0]
-        self.assertEquals('val2', node['properties']['key2'])
+        self.assertEqual('val2', node['properties']['key2'])
 
     def test_type_properties_empty_properties(self):
         yaml = """
@@ -388,11 +387,11 @@ node_types:
         properties: {}
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_node', node['name'])
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_node', node['name'])
+        self.assertEqual('test_type', node['type'])
 
     def test_type_properties_empty_property(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
@@ -402,12 +401,12 @@ node_types:
             key: {}
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_node', node['name'])
-        self.assertEquals('test_type', node['type'])
-        self.assertEquals('val', node['properties']['key'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_node', node['name'])
+        self.assertEqual('test_type', node['type'])
+        self.assertEqual('val', node['properties']['key'])
         # TODO: assert node-type's default and description values once
         # 'node_types' is part of the parser's output
 
@@ -420,12 +419,12 @@ node_types:
                 description: property_desc
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_node', node['name'])
-        self.assertEquals('test_type', node['type'])
-        self.assertEquals('val', node['properties']['key'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_node', node['name'])
+        self.assertEqual('test_type', node['type'])
+        self.assertEqual('val', node['properties']['key'])
         # TODO: assert type's default and description values once 'type' is
         # part of the parser's output
 
@@ -440,12 +439,12 @@ node_types:
                 type: string
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_node', node['name'])
-        self.assertEquals('test_type', node['type'])
-        self.assertEquals('val', node['properties']['key'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_node', node['name'])
+        self.assertEqual('test_type', node['type'])
+        self.assertEqual('val', node['properties']['key'])
         # TODO: assert type's default and description values once 'type' is
         # part of the parser's output
 
@@ -473,8 +472,8 @@ node_types:
         # this will also check property "key" = "val"
         self._assert_minimal_blueprint(result)
         node = result['nodes'][0]
-        self.assertEquals('val2', node['properties']['key2'])
-        self.assertEquals('val3_parent', node['properties']['key3'])
+        self.assertEqual('val2', node['properties']['key2'])
+        self.assertEqual('val3_parent', node['properties']['key3'])
 
     def test_empty_types_hierarchy_in_node(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
@@ -568,9 +567,9 @@ node_types:
         # this will also check property "key" = "val"
         self._assert_minimal_blueprint(result)
         node = result['nodes'][0]
-        self.assertEquals('val2', node['properties']['key2'])
-        self.assertEquals('val3_grandparent', node['properties']['key3'])
-        self.assertEquals('val4_parent', node['properties']['key4'])
+        self.assertEqual('val2', node['properties']['key2'])
+        self.assertEqual('val3_grandparent', node['properties']['key3'])
+        self.assertEqual('val4_parent', node['properties']['key4'])
 
     def test_type_interface_derivation(self):
         yaml = self.create_yaml_with_imports(
@@ -640,32 +639,32 @@ plugins:
         self._assert_blueprint(result)
         node = result['nodes'][0]
         operations = node['operations']
-        self.assertEquals(12, len(operations))
-        self.assertEquals(op_struct('test_plugin2', 'start',
-                                    executor='central_deployment_agent'),
-                          operations['start'])
-        self.assertEquals(op_struct('test_plugin2', 'start',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.start'])
-        self.assertEquals(op_struct('test_plugin2', 'stop',
-                                    executor='central_deployment_agent'),
-                          operations['stop'])
-        self.assertEquals(op_struct('test_plugin2', 'stop',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.stop'])
-        self.assertEquals(op_struct('test_plugin3', 'op',
-                                    executor='central_deployment_agent'),
-                          operations['op1'])
-        self.assertEquals(op_struct('test_plugin3', 'op',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface3.op1'])
-        self.assertEquals(op_struct('test_plugin4', 'op2',
-                                    executor='central_deployment_agent'),
-                          operations['op2'])
-        self.assertEquals(op_struct('test_plugin4', 'op2',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface4.op2'])
-        self.assertEquals(4, len(node['plugins']))
+        self.assertEqual(12, len(operations))
+        self.assertEqual(op_struct('test_plugin2', 'start',
+                                   executor='central_deployment_agent'),
+                         operations['start'])
+        self.assertEqual(op_struct('test_plugin2', 'start',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.start'])
+        self.assertEqual(op_struct('test_plugin2', 'stop',
+                                   executor='central_deployment_agent'),
+                         operations['stop'])
+        self.assertEqual(op_struct('test_plugin2', 'stop',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.stop'])
+        self.assertEqual(op_struct('test_plugin3', 'op',
+                                   executor='central_deployment_agent'),
+                         operations['op1'])
+        self.assertEqual(op_struct('test_plugin3', 'op',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface3.op1'])
+        self.assertEqual(op_struct('test_plugin4', 'op2',
+                                   executor='central_deployment_agent'),
+                         operations['op2'])
+        self.assertEqual(op_struct('test_plugin4', 'op2',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface4.op2'])
+        self.assertEqual(4, len(node['plugins']))
 
     def test_type_interface_recursive_derivation(self):
         yaml = self.create_yaml_with_imports(
@@ -713,20 +712,20 @@ plugins:
         self._assert_blueprint(result)
         node = result['nodes'][0]
         operations = node['operations']
-        self.assertEquals(8, len(operations))
-        self.assertEquals(op_struct('test_plugin2', 'start',
-                                    executor='central_deployment_agent'),
-                          operations['start'])
-        self.assertEquals(op_struct('test_plugin2', 'start',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.start'])
-        self.assertEquals(op_struct('test_plugin2', 'stop',
-                                    executor='central_deployment_agent'),
-                          operations['stop'])
-        self.assertEquals(op_struct('test_plugin2', 'stop',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.stop'])
-        self.assertEquals(2, len(node['plugins']))
+        self.assertEqual(8, len(operations))
+        self.assertEqual(op_struct('test_plugin2', 'start',
+                                   executor='central_deployment_agent'),
+                         operations['start'])
+        self.assertEqual(op_struct('test_plugin2', 'start',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.start'])
+        self.assertEqual(op_struct('test_plugin2', 'stop',
+                                   executor='central_deployment_agent'),
+                         operations['stop'])
+        self.assertEqual(op_struct('test_plugin2', 'stop',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.stop'])
+        self.assertEqual(2, len(node['plugins']))
 
     def test_two_explicit_interfaces_with_same_operation_name(self):
         yaml = self.create_yaml_with_imports(
@@ -757,27 +756,27 @@ plugins:
 """
         result = self.parse(yaml)
         node = result['nodes'][0]
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_type', node['type'])
         operations = node['operations']
-        self.assertEquals(op_struct('test_plugin', 'install',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface1.install'])
-        self.assertEquals(op_struct('test_plugin', 'terminate',
-                                    executor='central_deployment_agent'),
-                          operations['terminate'])
-        self.assertEquals(op_struct('test_plugin', 'terminate',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface1.terminate'])
-        self.assertEquals(op_struct('other_test_plugin', 'install',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.install'])
-        self.assertEquals(op_struct('other_test_plugin', 'shutdown',
-                                    executor='central_deployment_agent'),
-                          operations['shutdown'])
-        self.assertEquals(op_struct('other_test_plugin', 'shutdown',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.shutdown'])
-        self.assertEquals(6, len(operations))
+        self.assertEqual(op_struct('test_plugin', 'install',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface1.install'])
+        self.assertEqual(op_struct('test_plugin', 'terminate',
+                                   executor='central_deployment_agent'),
+                         operations['terminate'])
+        self.assertEqual(op_struct('test_plugin', 'terminate',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface1.terminate'])
+        self.assertEqual(op_struct('other_test_plugin', 'install',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.install'])
+        self.assertEqual(op_struct('other_test_plugin', 'shutdown',
+                                   executor='central_deployment_agent'),
+                         operations['shutdown'])
+        self.assertEqual(op_struct('other_test_plugin', 'shutdown',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.shutdown'])
+        self.assertEqual(6, len(operations))
 
     def test_relative_path_import(self):
         bottom_level_yaml = self.BASIC_TYPE
@@ -860,7 +859,7 @@ node_types:
             key: {}
             """
         result = self.parse(yaml)
-        self.assertEquals('test_node', result['nodes'][0]['host_id'])
+        self.assertEqual('test_node', result['nodes'][0]['host_id'])
 
     def test_node_host_id_field_via_relationship(self):
         yaml = """
@@ -885,8 +884,8 @@ relationships:
     cloudify.relationships.contained_in: {}
             """
         result = self.parse(yaml)
-        self.assertEquals('test_node1', result['nodes'][1]['host_id'])
-        self.assertEquals('test_node1', result['nodes'][2]['host_id'])
+        self.assertEqual('test_node1', result['nodes'][1]['host_id'])
+        self.assertEqual('test_node1', result['nodes'][2]['host_id'])
 
     def test_node_host_id_field_via_node_supertype(self):
         yaml = """
@@ -899,7 +898,7 @@ node_types:
         derived_from: cloudify.nodes.Compute
             """
         result = self.parse(yaml)
-        self.assertEquals('test_node1', result['nodes'][0]['host_id'])
+        self.assertEqual('test_node1', result['nodes'][0]['host_id'])
 
     def test_node_host_id_field_via_relationship_derived_from_inheritance(
             self):
@@ -921,7 +920,7 @@ relationships:
         derived_from: cloudify.relationships.contained_in
             """
         result = self.parse(yaml)
-        self.assertEquals('test_node1', result['nodes'][1]['host_id'])
+        self.assertEqual('test_node1', result['nodes'][1]['host_id'])
 
     def test_node_type_operation_override(self):
         yaml = """
@@ -1010,15 +1009,17 @@ plugins:
             othercompute, compute = result['nodes']
         plugin1 = compute['plugins_to_install'][0]
         plugin2 = othercompute['plugins_to_install'][0]
-        self.assertEquals('test_plugin', plugin1['name'])
-        self.assertEquals(1, len(compute['plugins_to_install']))
-        self.assertEquals(1, len(othercompute['plugins_to_install']))
-        self.assertItemsEqual(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
-                              [plugin1, plugin2])
-        self.assertEquals(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL],
-                          [])
-        self.assertEquals(result[constants.WORKFLOW_PLUGINS_TO_INSTALL],
-                          [])
+        self.assertEqual('test_plugin', plugin1['name'])
+        self.assertEqual(1, len(compute['plugins_to_install']))
+        self.assertEqual(1, len(othercompute['plugins_to_install']))
+        self.assertEqual(
+            2, len(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL]))
+        self.assertIn(plugin1, result[constants.HOST_AGENT_PLUGINS_TO_INSTALL])
+        self.assertIn(plugin2, result[constants.HOST_AGENT_PLUGINS_TO_INSTALL])
+        self.assertEqual(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL],
+                         [])
+        self.assertEqual(result[constants.WORKFLOW_PLUGINS_TO_INSTALL],
+                         [])
 
     def test_deployment_plugins_to_install_in_plan(self):
         yaml = """
@@ -1040,13 +1041,13 @@ plugins:
 """
         result = self.parse(yaml)
         plugin = result['nodes'][0]['deployment_plugins_to_install'][0]
-        self.assertEquals('test_plugin', plugin['name'])
-        self.assertEquals(1, len(result['nodes'][0][
+        self.assertEqual('test_plugin', plugin['name'])
+        self.assertEqual(1, len(result['nodes'][0][
                                      'deployment_plugins_to_install']))
-        self.assertEquals(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
-                          [])
-        self.assertEquals(result[constants.WORKFLOW_PLUGINS_TO_INSTALL],
-                          [])
+        self.assertEqual(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
+                         [])
+        self.assertEqual(result[constants.WORKFLOW_PLUGINS_TO_INSTALL],
+                         [])
 
     def test_workflow_plugins_to_install_in_plan(self):
         yaml = self.BASIC_PLUGIN + """
@@ -1057,10 +1058,10 @@ workflows:
         workflow_plugins_to_install = result['workflow_plugins_to_install']
         self.assertEqual(1, len(workflow_plugins_to_install))
         self.assertEqual('test_plugin', workflow_plugins_to_install[0]['name'])
-        self.assertEquals(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
-                          [])
-        self.assertEquals(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL],
-                          [])
+        self.assertEqual(result[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
+                         [])
+        self.assertEqual(result[constants.DEPLOYMENT_PLUGINS_TO_INSTALL],
+                         [])
 
     def test_executor_override_node_types(self):
         yaml = """
@@ -1091,8 +1092,8 @@ plugins:
 """
         result = self.parse(yaml)
         plugin = result['nodes'][0]['plugins_to_install'][0]
-        self.assertEquals('test_plugin', plugin['name'])
-        self.assertEquals(1, len(result['nodes'][0]['plugins_to_install']))
+        self.assertEqual('test_plugin', plugin['name'])
+        self.assertEqual(1, len(result['nodes'][0]['plugins_to_install']))
 
     def test_executor_override_plugin_declaration(self):
         yaml = """
@@ -1115,8 +1116,8 @@ plugins:
 """
         result = self.parse(yaml)
         plugin = result['nodes'][0]['deployment_plugins_to_install'][0]
-        self.assertEquals('test_plugin', plugin['name'])
-        self.assertEquals(1, len(result['nodes'][0][
+        self.assertEqual('test_plugin', plugin['name'])
+        self.assertEqual(1, len(result['nodes'][0][
             'deployment_plugins_to_install']))
 
     def test_executor_override_type_declaration(self):
@@ -1146,8 +1147,8 @@ plugins:
 """
         result = self.parse(yaml)
         plugin = result['nodes'][0]['plugins_to_install'][0]
-        self.assertEquals('test_plugin', plugin['name'])
-        self.assertEquals(1, len(result['nodes'][0][
+        self.assertEqual('test_plugin', plugin['name'])
+        self.assertEqual(1, len(result['nodes'][0][
             'plugins_to_install']))
 
     def test_import_resources(self):
@@ -1217,11 +1218,11 @@ node_types:
             key: {}
         """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         self.assertFalse('host_id' in nodes[0])
-        self.assertEquals('test_node2', nodes[1]['host_id'])
+        self.assertEqual('test_node2', nodes[1]['host_id'])
 
     def test_multiple_instances(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -1229,12 +1230,12 @@ node_types:
             deploy: 2
             """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_type', node['type'])
-        self.assertEquals('val', node['properties']['key'])
-        self.assertEquals(2, node['instances']['deploy'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_type', node['type'])
+        self.assertEqual('val', node['properties']['key'])
+        self.assertEqual(2, node['instances']['deploy'])
 
     def test_import_types_combination(self):
         yaml = self.create_yaml_with_imports([self.MINIMAL_BLUEPRINT + """
@@ -1246,18 +1247,18 @@ node_types:
         """
 
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         node1 = nodes[0]
         node2 = nodes[1]
-        self.assertEquals('test_node', node1['id'])
-        self.assertEquals('test_type', node1['type'])
-        self.assertEquals('val', node1['properties']['key'])
-        # self.assertEquals(1, node1['instances']['deploy'])
-        self.assertEquals('test_node2', node2['id'])
-        self.assertEquals('test_type2', node2['type'])
-        # self.assertEquals(1, node2['instances']['deploy'])
+        self.assertEqual('test_node', node1['id'])
+        self.assertEqual('test_type', node1['type'])
+        self.assertEqual('val', node1['properties']['key'])
+        # self.assertEqual(1, node1['instances']['deploy'])
+        self.assertEqual('test_node2', node2['id'])
+        self.assertEqual('test_type2', node2['type'])
+        # self.assertEqual(1, node2['instances']['deploy'])
 
     def test_relationship_operation_mapping_with_properties_injection(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -1280,7 +1281,7 @@ plugins:
         source: dummy
 """
         result = self.parse(yaml)
-        self.assertEquals(2, len(result['nodes']))
+        self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
                                                           'test_node2'])
         relationship1 = nodes[1]['relationships'][0]
@@ -1296,7 +1297,7 @@ plugins:
 
     def test_no_workflows(self):
         result = self.parse(self.MINIMAL_BLUEPRINT)
-        self.assertEquals(result['workflows'], {})
+        self.assertEqual(result['workflows'], {})
 
     def test_empty_workflows(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -1398,12 +1399,12 @@ workflows:
         parameters: {}
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_type', node['type'])
         workflow = result['workflows']['test_workflow']
-        self.assertEquals({}, workflow['parameters'])
+        self.assertEqual({}, workflow['parameters'])
 
     def test_workflow_parameters_empty_parameter(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
@@ -1414,12 +1415,12 @@ workflows:
             key: {}
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_type', node['type'])
         workflow = result['workflows']['test_workflow']
-        self.assertEquals({'key': {}}, workflow['parameters'])
+        self.assertEqual({'key': {}}, workflow['parameters'])
 
     def test_workflow_parameters_parameter_with_description_only(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
@@ -1431,13 +1432,13 @@ workflows:
                 description: parameter_desc
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_type', node['type'])
         workflow = result['workflows']['test_workflow']
-        self.assertEquals({'key': {'description': 'parameter_desc'}},
-                          workflow['parameters'])
+        self.assertEqual({'key': {'description': 'parameter_desc'}},
+                         workflow['parameters'])
 
     def test_workflow_parameters_standard_parameter(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
@@ -1451,12 +1452,12 @@ workflows:
                 type: string
 """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_node', node['id'])
+        self.assertEqual('test_type', node['type'])
         workflow = result['workflows']['test_workflow']
-        self.assertEquals(
+        self.assertEqual(
             {'key': {'default': 'val', 'description': 'parameter_desc',
                      'type': 'string'}},
             workflow['parameters'])
@@ -1668,13 +1669,13 @@ node_types:
 """
         result = self.parse(yaml)
         node = result['nodes'][0]
-        self.assertEquals('test_type', node['type'])
+        self.assertEqual('test_type', node['type'])
         operations = node['operations']
-        self.assertEquals(
+        self.assertEqual(
             op_struct('test_plugin', 'install', {'key': 'value'},
                       executor='central_deployment_agent'),
             operations['install'])
-        self.assertEquals(
+        self.assertEqual(
             op_struct('test_plugin', 'install', {'key': 'value'},
                       executor='central_deployment_agent'),
             operations['test_interface1.install'])
@@ -1711,18 +1712,18 @@ node_types:
         self._assert_blueprint(result)
 
         operations = node['operations']
-        self.assertEquals(op_struct('other_test_plugin', 'start',
-                                    executor='central_deployment_agent'),
-                          operations['start'])
-        self.assertEquals(op_struct('other_test_plugin', 'start',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.start'])
-        self.assertEquals(op_struct('other_test_plugin', 'shutdown',
-                                    executor='central_deployment_agent'),
-                          operations['shutdown'])
-        self.assertEquals(op_struct('other_test_plugin', 'shutdown',
-                                    executor='central_deployment_agent'),
-                          operations['test_interface2.shutdown'])
+        self.assertEqual(op_struct('other_test_plugin', 'start',
+                                   executor='central_deployment_agent'),
+                         operations['start'])
+        self.assertEqual(op_struct('other_test_plugin', 'start',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.start'])
+        self.assertEqual(op_struct('other_test_plugin', 'shutdown',
+                                   executor='central_deployment_agent'),
+                         operations['shutdown'])
+        self.assertEqual(op_struct('other_test_plugin', 'shutdown',
+                                   executor='central_deployment_agent'),
+                         operations['test_interface2.shutdown'])
 
     def test_node_interfaces_operation_mapping(self):
         yaml = self.BASIC_PLUGIN + self.BASIC_NODE_TEMPLATES_SECTION + """
@@ -1754,9 +1755,9 @@ inputs:
     x: {}
         """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
+        self.assertEqual('test_node', node['id'])
 
     def test_property_schema_type_property(self):
         yaml = """
@@ -1849,9 +1850,9 @@ node_types:
                 type: regex
             """
         result = self.parse(yaml)
-        self.assertEquals(1, len(result['nodes']))
+        self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
-        self.assertEquals('test_node', node['id'])
+        self.assertEqual('test_node', node['id'])
         self.assertEqual(node['properties'], {
             'boolean4': False,
             'boolean5': True,

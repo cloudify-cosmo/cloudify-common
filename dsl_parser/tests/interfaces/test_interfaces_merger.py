@@ -13,14 +13,14 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools
+import unittest
 
 from dsl_parser.interfaces.interfaces_merger import InterfaceMerger
 from dsl_parser.interfaces.interfaces_merger import InterfacesMerger
 from dsl_parser.interfaces.operation_merger import OperationMerger
 
 
-class InterfaceMergerTest(testtools.TestCase):
+class InterfaceMergerTest(unittest.TestCase):
 
     def _assert_interface(self,
                           overriding_interface,
@@ -81,7 +81,7 @@ class InterfaceMergerTest(testtools.TestCase):
         )
 
 
-class InterfacesMergerTest(testtools.TestCase):
+class InterfacesMergerTest(unittest.TestCase):
 
     def _assert_interfaces(self,
                            overriding_interfaces,

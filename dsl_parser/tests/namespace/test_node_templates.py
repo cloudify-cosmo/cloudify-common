@@ -33,12 +33,12 @@ imports:
     -   {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
-        self.assertEquals(1, len(parsed_yaml[constants.NODES]))
+        self.assertEqual(1, len(parsed_yaml[constants.NODES]))
         node = parsed_yaml[constants.NODES][0]
-        self.assertEquals('test--test_node', node['id'])
-        self.assertEquals('test--test_type', node['type'])
-        self.assertEquals('val', node[constants.PROPERTIES]['key'])
-        self.assertEquals(2, node['instances']['deploy'])
+        self.assertEqual('test--test_node', node['id'])
+        self.assertEqual('test--test_type', node['type'])
+        self.assertEqual('val', node[constants.PROPERTIES]['key'])
+        self.assertEqual(2, node['instances']['deploy'])
 
     def test_namespaced_script_plugin_interface_use(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
@@ -223,15 +223,15 @@ imports:
 
         multi_plan = self.parse_multi(main_yaml)
         nodes_instances = multi_plan[constants.NODE_INSTANCES]
-        self.assertEquals(2, len(nodes_instances))
-        self.assertEquals(2, len(set(self._node_ids(nodes_instances))))
+        self.assertEqual(2, len(nodes_instances))
+        self.assertEqual(2, len(set(self._node_ids(nodes_instances))))
 
         self.assertIn('host_', nodes_instances[0]['id'])
         self.assertIn('host_', nodes_instances[1]['id'])
-        self.assertEquals(nodes_instances[0]['id'],
-                          nodes_instances[0]['host_id'])
-        self.assertEquals(nodes_instances[1]['id'],
-                          nodes_instances[1]['host_id'])
+        self.assertEqual(nodes_instances[0]['id'],
+                         nodes_instances[0]['host_id'])
+        self.assertEqual(nodes_instances[1]['id'],
+                         nodes_instances[1]['host_id'])
         node = multi_plan[constants.NODES][0]
         node_props = node[constants.CAPABILITIES]['scalable']['properties']
         self.assertEqual(1, node_props['min_instances'])

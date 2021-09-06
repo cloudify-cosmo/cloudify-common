@@ -1,5 +1,3 @@
-import testtools.testcase
-
 from dsl_parser import exceptions
 from dsl_parser import functions
 from dsl_parser.tasks import prepare_deployment_plan
@@ -287,9 +285,7 @@ node_templates:
         ]
         storage = self.mock_evaluation_storage(node_instances, nodes)
         payload = {'a': {'get_attributes_dict': ['goodnode', 'sing', 'eat']}}
-        with testtools.testcase.ExpectedException(
-                KeyError,
-                '.*Node not found.*'):
+        with self.assertRaisesRegex(KeyError, 'Node not found'):
             functions.evaluate_functions(payload, {}, storage)
 
     def test_get_attributes_dict_relationship(self):
@@ -478,9 +474,8 @@ node_templates:
         payload = {'a': {'get_attributes_dict': ['goodnode',
                                                  ['sing', 'song'],
                                                  'sing.song']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*ambiguous.*'):
+        with self.assertRaisesRegex(
+                exceptions.FunctionEvaluationError, 'ambiguous'):
             functions.evaluate_functions(payload, {}, storage)
 
     def test_get_attributess_dict_nested_duplicate_requested(self):
@@ -510,7 +505,6 @@ node_templates:
         storage = self.mock_evaluation_storage(node_instances, nodes)
 
         payload = {'a': {'get_attributes_dict': ['goodnode', 'sing', 'sing']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*duplicated.*'):
+        with self.assertRaisesRegex(
+                exceptions.FunctionEvaluationError, 'duplicated'):
             functions.evaluate_functions(payload, {}, storage)

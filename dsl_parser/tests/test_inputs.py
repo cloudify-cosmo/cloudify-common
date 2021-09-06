@@ -190,29 +190,23 @@ node_templates:
             name: { get_input: name_i }
             name2: { get_input: [name_j, attr1, 0] }
 """
-        e = self.assertRaises(
-            MissingRequiredInputError,
-            prepare_deployment_plan,
-            self.parse(yaml),
-            inputs={'port': '8080'}
-        )
+        with self.assertRaises(MissingRequiredInputError) as cm:
+            prepare_deployment_plan(
+                self.parse(yaml), inputs={'port': '8080'})
 
-        msg = str(e).split('-')[0]  # get first part of message
-        self.assertTrue('name_i' in msg)
-        self.assertTrue('name_j' in msg)
-        self.assertFalse('port' in msg)
+        msg = str(cm.exception).split('-')[0]  # get first part of message
+        self.assertIn('name_i', msg)
+        self.assertIn('name_j', msg)
+        self.assertNotIn('port', msg)
 
-        e = self.assertRaises(
-            MissingRequiredInputError,
-            prepare_deployment_plan,
-            self.parse(yaml),
-            inputs={}
-        )
+        with self.assertRaises(MissingRequiredInputError) as cm:
+            prepare_deployment_plan(
+                self.parse(yaml), inputs={})
 
-        msg = str(e).split('-')[0]  # get first part of message
-        self.assertTrue('name_j' in msg)
-        self.assertTrue('name_i' in msg)
-        self.assertTrue('port' in msg)
+        msg = str(cm.exception).split('-')[0]  # get first part of message
+        self.assertIn('name_j', msg)
+        self.assertIn('name_i', msg)
+        self.assertIn('port', msg)
 
     def test_inputs_default_value(self):
         yaml = """
@@ -269,16 +263,14 @@ node_templates:
             inputs={'unknown_input_1': 'a'}
         )
 
-        e = self.assertRaises(
-            UnknownInputError,
-            prepare_deployment_plan,
-            self.parse(yaml),
-            inputs={'unknown_input_1': 'a', 'unknown_input_2': 'b'}
-        )
+        with self.assertRaises(UnknownInputError) as cm:
+            prepare_deployment_plan(
+                self.parse(yaml),
+                inputs={'unknown_input_1': 'a', 'unknown_input_2': 'b'})
 
-        msg = str(e)
-        self.assertTrue('unknown_input_1' in msg)
-        self.assertTrue('unknown_input_2' in msg)
+        msg = str(cm.exception)
+        self.assertIn('unknown_input_1', msg)
+        self.assertIn('unknown_input_2', msg)
 
     def test_get_input_in_nested_property(self):
         yaml = """

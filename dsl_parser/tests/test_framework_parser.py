@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools
+import unittest
 
 from dsl_parser._compat import text_type
 from dsl_parser import exceptions
@@ -23,7 +23,7 @@ from dsl_parser.framework import (parser,
                                   requirements)
 
 
-class TestSchemaSchemaValidation(testtools.TestCase):
+class TestSchemaSchemaValidation(unittest.TestCase):
 
     def assert_invalid(self, element_cls):
         self.assertRaises(exceptions.DSLParsingSchemaAPIException,
@@ -119,7 +119,7 @@ class TestSchemaSchemaValidation(testtools.TestCase):
         self.assert_invalid(TestList)
 
 
-class TestSchemaValidation(testtools.TestCase):
+class TestSchemaValidation(unittest.TestCase):
 
     def assert_valid(self, value, element_cls, strict=True):
         self.assertEqual(parser.parse(value=value,
@@ -129,12 +129,12 @@ class TestSchemaValidation(testtools.TestCase):
 
     def assert_invalid(self, value, element_cls, strict=True,
                        error_code=1):
-        exc = self.assertRaises(exceptions.DSLParsingException,
-                                parser.parse,
-                                value=value,
-                                element_cls=element_cls,
-                                strict=strict)
-        self.assertEqual(exc.err_code, error_code)
+        with self.assertRaises(exceptions.DSLParsingException) as cm:
+            parser.parse(
+                value=value,
+                element_cls=element_cls,
+                strict=strict)
+        self.assertEqual(cm.exception.err_code, error_code)
 
     def test_primitive_leaf_element_type_schema_validation(self):
         class TestStrLeaf(elements.Element):

@@ -17,8 +17,8 @@ import tempfile
 import shutil
 import os
 import uuid
+import unittest
 
-import testtools
 from mock import Mock
 
 from dsl_parser._compat import pathname2url, urljoin
@@ -91,7 +91,7 @@ class _MockRuntimeEvaluationStorage(object):
         return self.get_capability(capability_path)
 
 
-class AbstractTestParser(testtools.TestCase):
+class AbstractTestParser(unittest.TestCase):
     BASIC_VERSION_SECTION_DSL_1_0 = """
 tosca_definitions_version: cloudify_dsl_1_0
     """
@@ -291,7 +291,9 @@ imports:"""
                 parsing_method(dsl)
             ex = cm.exception
         else:
-            ex = self.assertRaises(exception_type, parsing_method, dsl)
+            with self.assertRaises(exception_type) as cm:
+                parsing_method(dsl)
+            ex = cm.exception
         self.assertEqual(ex.err_code, expected_error_code)
         return ex
 
@@ -314,3 +316,9 @@ imports:"""
 
     def get_secret(self, secret_name):
         return self.mock_evaluation_storage().get_secret(secret_name)
+
+
+# 2.7 compat
+if not hasattr(AbstractTestParser, 'assertRaisesRegex'):
+    AbstractTestParser.assertRaisesRegex = \
+        AbstractTestParser.assertRaisesRegexp
