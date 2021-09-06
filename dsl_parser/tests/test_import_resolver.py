@@ -212,3 +212,9 @@ class CreateImportResolverTests(unittest.TestCase):
             resolver_configuration=resolver_configuration,
             err_msg_regex=r'Failed to instantiate resolver '
                           r'\(wrong class path\).*Invalid class path')
+
+
+# 2.7 compat
+if not hasattr(CreateImportResolverTests, 'assertRaisesRegex'):
+    CreateImportResolverTests.assertRaisesRegex = \
+        CreateImportResolverTests.assertRaisesRegexp
