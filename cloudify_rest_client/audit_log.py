@@ -33,7 +33,7 @@ class AuditLog(dict):
 
     @property
     def execution_id(self):
-        """Execution ID which performed the `operation`."""
+        """Execution ID which performed the `operation` (if any)."""
         return self['execution_id']
 
     @property
