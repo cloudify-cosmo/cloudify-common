@@ -317,6 +317,7 @@ imports:"""
     def get_secret(self, secret_name):
         return self.mock_evaluation_storage().get_secret(secret_name)
 
+
 # 2.7 compat
 if not hasattr(AbstractTestParser, 'assertRaisesRegex'):
     AbstractTestParser.assertRaisesRegex = \
