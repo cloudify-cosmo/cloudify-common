@@ -595,10 +595,10 @@ def _extract_contained(node, node_instance):
     # node_instance['relationships'] contains only one of them, which makes
     # this function always fail for those node_instances.  Let's try to create
     # a relationship dictionary based on node['relationships'] in this case.
-    for node_relationship in node['relationships']:
-        if (node_relationship['type'] ==
-                contained_node_relationship['type']):
-            if rel_node_instance_id:
+    if rel_node_instance_id:
+        for node_relationship in node['relationships']:
+            if (node_relationship['type'] ==
+                    contained_node_relationship['type']):
                 return _relationship_instance_copy(
                     relationship=node_relationship,
                     target_node_instance_id=rel_node_instance_id)
