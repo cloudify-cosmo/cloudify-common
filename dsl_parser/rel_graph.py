@@ -585,10 +585,23 @@ def _extract_contained(node, node_instance):
             break
     else:
         return None
+    rel_node_instance_id = None
     for node_instance_relationship in node_instance['relationships']:
+        rel_node_instance_id = node_instance_relationship['target_id']
         if (node_instance_relationship['type'] ==
                 contained_node_relationship['type']):
             return node_instance_relationship
+    # In case there are two or more relationships to the same target,
+    # node_instance['relationships'] contains only one of them, which makes
+    # this function always fail for those node_instances.  Let's try to create
+    # a relationship dictionary based on node['relationships'] in this case.
+    for node_relationship in node['relationships']:
+        if (node_relationship['type'] ==
+                contained_node_relationship['type']):
+            if rel_node_instance_id:
+                return _relationship_instance_copy(
+                    relationship=node_relationship,
+                    target_node_instance_id=rel_node_instance_id)
     raise RuntimeError("Failed extracting contained node instance "
                        "relationships for node instance '{0}'"
                        .format(node_instance['id']))
