@@ -98,6 +98,13 @@ class Blueprint(dict):
         """
         return self.get('labels')
 
+    @property
+    def upload_execution(self):
+        """
+        :return: upload executions for this blueprint.
+        """
+        return self.get('upload_execution')
+
 
 class BlueprintsClient(object):
 
