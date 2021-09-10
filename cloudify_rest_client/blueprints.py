@@ -101,7 +101,7 @@ class Blueprint(dict):
     @property
     def upload_execution(self):
         """
-        :return: upload executions for this blueprint.
+        :return: The upload_blueprint execution that parsed this blueprint.
         """
         return self.get('upload_execution')
 
