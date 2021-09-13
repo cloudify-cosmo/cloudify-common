@@ -1,4 +1,4 @@
-from cloudify_rest_client.responses import ListResponse
+from cloudify_rest_client.responses import ExecutionResponse, ListResponse
 
 
 class AuditLog(dict):
@@ -50,8 +50,8 @@ class AuditLogClient(object):
         """
         Returns a list of AuditLogs.
 
-        :param kwargs: Optional filter fields. for a list of available fields
-               see the REST service's models.AuditLog.fields
+        :param kwargs: Optional filter fields.  For a list of available fields
+                       see the REST service's models.AuditLog.fields.
         :return: AuditLogs list.
         """
         params = kwargs
@@ -60,3 +60,17 @@ class AuditLogClient(object):
         return ListResponse(
             [AuditLog(item) for item in response['items']],
             response['metadata'])
+
+    def post(self, action, **kwargs):
+        """
+        Perform an 'action' on AuditLogs.
+
+        :param action: What kind of operation should be executed.
+        :param kwargs: Filter fields.  For truncation the required parameter is
+                       'before', while 'creator_name' and 'execution_id' are
+                       optional.
+        :return:       ExecutionResponse describing 'status' of the execution
+                       and a number of records 'processed'.
+        """
+        response = self.api.post('/audit/{0}'.format(action), data=kwargs)
+        return ExecutionResponse(**response)

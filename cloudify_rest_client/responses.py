@@ -76,3 +76,13 @@ class ListResponse(object):
         if cmp is not None:
             raise TypeError('cmp is not supported. Use key instead.')
         return self.items.sort(key=key, reverse=reverse)
+
+
+class ExecutionResponse(object):
+    """
+    Describes outcome of an execution: its 'status' and a number of records
+    'processed'.
+    """
+    def __init__(self, status, processed):
+        self.status = status
+        self.processed = processed
