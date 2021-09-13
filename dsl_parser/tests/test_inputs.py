@@ -861,6 +861,21 @@ inputs:
                                     r'should have a default value: \'ip\''):
             self.parse(yaml)
 
+    def test_input_secret(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_3
+inputs:
+    foo:
+        type: secret
+        default: "blah-blah-blah"
+"""
+        parsed = self.parse(yaml)
+        self.assertEqual(1, len(parsed[consts.INPUTS]))
+        self.assertEqual(
+            'secret', parsed[consts.INPUTS]['foo'][consts.TYPE])
+        self.assertEqual(
+            'blah-blah-blah', parsed[consts.INPUTS]['foo'][consts.DEFAULT])
+
 
 class TestInputsConstraints(AbstractTestParser):
     def test_constraints_successful(self):
