@@ -1,4 +1,4 @@
-from cloudify_rest_client.responses import ExecutionResponse, ListResponse
+from cloudify_rest_client.responses import DeletedResponse, ListResponse
 
 
 class AuditLog(dict):
@@ -54,23 +54,20 @@ class AuditLogClient(object):
                        see the REST service's models.AuditLog.fields.
         :return: AuditLogs list.
         """
-        params = kwargs
-        response = self.api.get('/audit', params=params)
+        response = self.api.get('/audit', params=kwargs)
 
         return ListResponse(
             [AuditLog(item) for item in response['items']],
             response['metadata'])
 
-    def post(self, action, **kwargs):
+    def delete(self, **kwargs):
         """
-        Perform an 'action' on AuditLogs.
+        Delete (some) of the AuditLogs.
 
-        :param action: What kind of operation should be executed.
-        :param kwargs: Filter fields.  For truncation the required parameter is
-                       'before', while 'creator_name' and 'execution_id' are
-                       optional.
-        :return:       ExecutionResponse describing 'status' of the execution
-                       and a number of records 'processed'.
+        :param kwargs: Filter fields, 'before' is a required parameter, while
+                       'creator_name' and 'execution_id' are optional.
+        :return:       DeletedResponse describing deletion outcome - a number
+                       of 'deleted' records.
         """
-        response = self.api.post('/audit/{0}'.format(action), data=kwargs)
-        return ExecutionResponse(**response)
+        response = self.api.delete('/audit', params=kwargs)
+        return DeletedResponse(**response)

@@ -78,11 +78,9 @@ class ListResponse(object):
         return self.items.sort(key=key, reverse=reverse)
 
 
-class ExecutionResponse(object):
+class DeletedResponse(object):
     """
-    Describes outcome of an execution: its 'status' and a number of records
-    'processed'.
+    Describes outcome of a deletion: number of 'deleted' records.
     """
-    def __init__(self, status, processed):
-        self.status = status
-        self.processed = processed
+    def __init__(self, deleted):
+        self.deleted = deleted
