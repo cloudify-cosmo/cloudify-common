@@ -76,3 +76,11 @@ class ListResponse(object):
         if cmp is not None:
             raise TypeError('cmp is not supported. Use key instead.')
         return self.items.sort(key=key, reverse=reverse)
+
+
+class DeletedResponse(object):
+    """
+    Describes outcome of a deletion: number of 'deleted' records.
+    """
+    def __init__(self, deleted):
+        self.deleted = deleted
