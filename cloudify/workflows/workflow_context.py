@@ -167,6 +167,11 @@ class CloudifyWorkflowRelationship(object):
         self._relationship = relationship
 
     @property
+    def type(self):
+        """The type of this relationship"""
+        return self._relationship.get('type')
+
+    @property
     def target_id(self):
         """The relationship target node id"""
         return self._relationship.get('target_id')
