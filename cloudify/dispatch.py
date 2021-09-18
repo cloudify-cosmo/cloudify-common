@@ -202,11 +202,6 @@ class WorkflowHandler(TaskHandler):
         tenant = self.ctx._context['tenant'].get('original_name',
                                                  self.ctx.tenant_name)
         rest = get_rest_client(tenant=tenant)
-        execution = rest.executions.get(self.ctx.execution_id,
-                                        _include=['status'])
-        if execution.status == Execution.STARTED:
-            self.ctx.resume = True
-
         try:
             try:
                 self._workflow_started()
