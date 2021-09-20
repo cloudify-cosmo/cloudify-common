@@ -465,7 +465,7 @@ class _WorkflowContextBase(object):
         self._internal = CloudifyWorkflowContextInternal(self, handler)
         # is this execution being resumed? set to True if at the beginning
         # of handling the execution, the status was already STARTED
-        self.resume = False
+        self.resume = ctx.get('resume', False)
         # all amqp Handler instances used by this workflow
         self.amqp_handlers = set()
 
