@@ -594,7 +594,8 @@ class DeploymentsClient(object):
                site_name=None,
                runtime_only_evaluation=False,
                labels=None,
-               display_name=None):
+               display_name=None,
+               async_create=None):
         """
         Creates a new deployment for the provided blueprint id and
         deployment id.
@@ -615,6 +616,8 @@ class DeploymentsClient(object):
         :param labels: The deployment's labels. A list of 1-entry
             dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
         :param display_name: The deployment's display name.
+        :param async_create: if True, do not wait for the deployment
+            environment to finish creating
         :return: The created deployment.
         """
         assert blueprint_id
@@ -631,7 +634,12 @@ class DeploymentsClient(object):
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
-        response = self.api.put(uri, data, expected_status_code=201)
+        params = {}
+        if async_create is not None:
+            # if it's None, we just keep the server's default behaviour
+            params['async_create'] = async_create
+        response = self.api.put(
+            uri, data, params=params, expected_status_code=201)
         return Deployment(response)
 
     def delete(self, deployment_id,
