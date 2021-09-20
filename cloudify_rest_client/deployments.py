@@ -636,6 +636,7 @@ class DeploymentsClient(object):
         uri = '/deployments/{0}'.format(deployment_id)
         params = {}
         if async_create is not None:
+            # if it's None, we just keep the server's default behaviour
             params['async_create'] = async_create
         response = self.api.put(
             uri, data, params=params, expected_status_code=201)
