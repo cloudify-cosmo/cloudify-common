@@ -46,15 +46,30 @@ class AuditLogClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, **kwargs):
+    def list(self, get_all=False, **kwargs):
         """
         Returns a list of AuditLogs.
 
-        :param kwargs: Optional filter fields.  For a list of available fields
-                       see the REST service's models.AuditLog.fields.
-        :return: AuditLogs list.
+        :param get_all: A flag which disables pagination and causes all results
+                        to be returned in a single call.
+        :param kwargs:  Optional query parameters, which fall in 3 categories:
+                        `order_by` and `desc` define sorting, if not provided,
+                        results returned are ordered by ``created_at asc``;
+                        `offset` and `size` define a single page size in case
+                        `get_all` is False, ``size = 0`` means no pagination
+                        and all the results will be returned in a single
+                        response, if not provided, defaults are ``offset = 0``
+                        and ``size = 100``; other parameters will be used to
+                        define a filter, for a list of available fields see
+                        the REST service's ``models.AuditLog.fields``.
+        :return:        ``ListResponse`` with of ``AuditLog`` items and
+                        response metadata.
         """
-        response = self.api.get('/audit', params=kwargs)
+        params = kwargs.copy()
+        if get_all:
+            params['size'] = 0
+            params['offset'] = 0
+        response = self.api.get('/audit', params=params)
 
         return ListResponse(
             [AuditLog(item) for item in response['items']],
