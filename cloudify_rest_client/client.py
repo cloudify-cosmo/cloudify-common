@@ -24,6 +24,7 @@ from requests.packages import urllib3
 from cloudify import constants
 from cloudify.utils import ipv6_url_compat
 
+from ._compat import PY2
 from .utils import is_kerberos_env
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.ldap import LdapClient
@@ -77,6 +78,11 @@ except Exception:
     # pykerberos require krb5-devel, which isn't python lib.
     # Kerberos users will need to manually install it.
     HTTPKerberosAuth = None
+
+if PY2:
+    AuditLogAsyncClient = None
+else:
+    from cloudify_async_client.audit_log import AuditLogAsyncClient
 
 DEFAULT_PORT = 80
 SECURED_PORT = 443
@@ -502,4 +508,7 @@ class CloudifyClient(object):
         self.deployments_labels = DeploymentsLabelsClient(self._client)
         self.blueprints_labels = BlueprintsLabelsClient(self._client)
         self.workflows = WorkflowsClient(self._client)
-        self.auditlog = AuditLogClient(self._client)
+        if AuditLogAsyncClient is None:
+            self.auditlog = AuditLogClient(self._client)
+        else:
+            self.auditlog = AuditLogAsyncClient(self._client)
