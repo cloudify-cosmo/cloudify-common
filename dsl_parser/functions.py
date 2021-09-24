@@ -339,6 +339,10 @@ class GetProperty(Function):
                 node = handler.get_node(target_node)
         else:
             node = handler.get_node(self.node_name)
+            # we're getting a different node - switch the context to that, so
+            # that the EvaluationHandler can use the new node as the context,
+            # in case there's another get_property call in the result
+            self.context = node
         self._get_property_value(node)
         return node
 
@@ -451,6 +455,11 @@ class GetAttribute(Function):
                                         self.attribute_path,
                                         self.path,
                                         raise_if_not_found=False)
+
+            if self.context.get('self') and \
+                    self.context['self'] != node_instance['id']:
+                self.context = self.context.copy()
+                self.context['self'] = node_instance['id']
         return value
 
     def _resolve_node_instance_by_name(self, handler):
@@ -945,6 +954,7 @@ class _EvaluationHandler(object):
                 break
             previous_evaluated_value = evaluated_value
             evaluated_value = self.evaluate_function(func)
+            context = func.context
             if scanned and previous_evaluated_value == evaluated_value:
                 break
             scanned = True
