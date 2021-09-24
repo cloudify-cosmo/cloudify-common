@@ -18,8 +18,6 @@ class AuditLogAsyncClient(AuditLogClient):
         response = await client.get('audit/stream',
                                     timeout=timeout,
                                     params=kwargs)
-        assert response.status == 200
-        assert response.headers.get('Content-Type') == 'text/event-stream'
         return response
 
     async def async_client(self):
