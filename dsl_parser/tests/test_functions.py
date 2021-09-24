@@ -833,6 +833,38 @@ node_templates:
             plan_node, self._mock_evaluation_storage(nodes=plan['nodes']))
         self.assertEqual(node['properties']['a'], 'secret2')
 
+    def test_context_switching(self):
+        """get_property calling get_property that has SELF, uses the new node
+
+        x.properties.x references y.properties.y - but y.properties.y calls
+        SELF.z - check that the SELF is then resolved to the y node indeed,
+        not to the x node
+        """
+        yaml = """
+node_types:
+  type1:
+    properties:
+      x: {}
+  type2:
+    properties:
+      y:
+        default: {get_property: [SELF, z]}
+      z:
+        default: 5
+node_templates:
+  x:
+    type: type1
+    properties:
+      x: {get_property: [y, y]}
+  y:
+    type: type2
+"""
+        plan = prepare_deployment_plan(self.parse(yaml))
+        x_node = self.get_node_by_name(plan, 'x')
+        y_node = self.get_node_by_name(plan, 'y')
+        self.assertEqual(y_node['properties']['y'], 5)
+        self.assertEqual(x_node['properties']['x'], 5)
+
 
 class TestGetAttribute(AbstractTestParser):
 
