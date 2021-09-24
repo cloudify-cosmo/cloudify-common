@@ -70,6 +70,7 @@ pipeline {
                 rm dsl_parser/_compat.py
                 rm cloudify_rest_client/_compat.py
                 rm cloudify/ctx_wrappers/ctx-py.py
+                rm -rf cloudify_async_client/
                 '''
                 py3Compat()
               }
@@ -97,7 +98,7 @@ pipeline {
               echo 'install flake 8'
               sh "pip install flake8 --user"
               echo 'run flake8'
-              sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client"
+              sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client cloudify_async_client"
               }
             }
           }
