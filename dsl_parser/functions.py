@@ -402,6 +402,10 @@ class GetAttribute(Function):
                 return '<ERROR: {0}>'.format(e)
 
         node = handler.get_node(node_instance['node_id'])
+        if self.context.get('self') and \
+                self.context['self'] != node_instance['id']:
+            self.context = self.context.copy()
+            self.context['self'] = node_instance['id']
         value = _get_attribute_from_node_instance(
             node_instance, node, self.attribute_path, self.path)
         return value
