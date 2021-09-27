@@ -27,9 +27,19 @@ class CloudifyAsyncClient:
 
     def get(self, url, **kwargs):
         timeout = kwargs.pop('timeout', 300)
+        if timeout is None:
+            timeout = 300
         if isinstance(timeout, int) or isinstance(timeout, float):
             timeout = aiohttp.ClientTimeout(total=timeout)
+
+        # Format query parameters
+        params = kwargs.copy()
+        p = {k: str(v) for k, v in params.pop('params', {}).items()
+             if v is not None}
+        if p:
+            params['params'] = p
+
         return self.session.get(f"{self.url}/{url}",
                                 ssl=self.ssl,
                                 timeout=timeout,
-                                **kwargs)
+                                **params)
