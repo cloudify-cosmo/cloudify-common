@@ -16,8 +16,8 @@ class AuditLogAsyncClient(AuditLogClient):
         """
         client = await self.async_client()
         response = await client.get('audit/stream',
-                                    timeout=timeout,
-                                    params=kwargs)
+                                    params=kwargs,
+                                    timeout=timeout)
         return response
 
     async def async_client(self):
