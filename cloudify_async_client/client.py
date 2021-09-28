@@ -25,10 +25,7 @@ class CloudifyAsyncClient:
         return '{0}://{1}:{2}/api/{3}'.format(self.protocol, self.host,
                                               self.port, self.api_version)
 
-    def get(self, url, params=None, **kwargs):
-        timeout = kwargs.pop('timeout', 300)
-        if timeout is None:
-            timeout = 300
+    def get(self, url, params=None, timeout=300, **kwargs):
         if isinstance(timeout, int) or isinstance(timeout, float):
             timeout = aiohttp.ClientTimeout(total=timeout)
 
