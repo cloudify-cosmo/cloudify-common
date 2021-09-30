@@ -256,3 +256,15 @@ class NodesClient(object):
             data=kwargs,
             expected_status_code=204,
         )
+
+    def delete(self, deployment_id, node_id):
+        """Delete a node
+
+        :param deployment_id: The deployment the node belongs to
+        :param node_id: The node id within the given deployment
+        """
+        self.api.delete(
+            '/{self._uri_prefix}/{deployment_id}/{node_id}'
+            .format(self=self, deployment_id=deployment_id, node_id=node_id),
+            expected_status_code=204,
+        )
