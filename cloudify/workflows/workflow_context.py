@@ -977,13 +977,12 @@ class CloudifyWorkflowContext(_WorkflowContextBase):
     """
 
     def __init__(self, ctx):
+        super(CloudifyWorkflowContext, self).__init__(
+            ctx, RemoteCloudifyWorkflowContextHandler)
         self.blueprint = context.BlueprintContext(ctx)
         self.deployment = WorkflowDeploymentContext(ctx, self)
 
         with current_workflow_ctx.push(self):
-            super(CloudifyWorkflowContext, self).__init__(
-                ctx, RemoteCloudifyWorkflowContextHandler)
-
             raw_nodes = self.internal.handler.get_nodes()
             raw_node_instances = self.internal.handler.get_node_instances()
             self._nodes_and_instances = WorkflowNodesAndInstancesContainer(
@@ -1021,11 +1020,10 @@ class CloudifyWorkflowContext(_WorkflowContextBase):
 class CloudifySystemWideWorkflowContext(_WorkflowContextBase):
 
     def __init__(self, ctx):
-        with current_workflow_ctx.push(self):
-            super(CloudifySystemWideWorkflowContext, self).__init__(
-                ctx,
-                SystemWideWfRemoteContextHandler
-            )
+        super(CloudifySystemWideWorkflowContext, self).__init__(
+            ctx,
+            SystemWideWfRemoteContextHandler
+        )
         self._dep_contexts = None
 
     class _ManagedCloudifyWorkflowContext(CloudifyWorkflowContext):
@@ -1450,9 +1448,15 @@ class CloudifyWorkflowContextHandler(object):
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
         super(RemoteContextHandler, self).__init__(*args, **kwargs)
+        self._rest_client = None
         self._dispatcher = _TaskDispatcher(self.workflow_ctx)
-        self.rest_client = get_rest_client()
         self._plugins_cache = {}
+
+    @property
+    def rest_client(self):
+        if self._rest_client is None:
+            self._rest_client = get_rest_client()
+        return self._rest_client
 
     def cleanup(self, finished):
         if finished:
