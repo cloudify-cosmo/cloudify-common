@@ -955,12 +955,13 @@ class WorkflowNodesAndInstancesContainer(object):
         return self._node_instances.get(node_instance_id)
 
     def refresh_node_instances(self):
-        raw_nodes = self.internal.handler.get_nodes()
+        raw_nodes = self.workflow_context.internal.handler.get_nodes()
         self._nodes = dict(
             (node.id, CloudifyWorkflowNode(self.workflow_context, node, self))
             for node in raw_nodes)
 
-        raw_node_instances = self.internal.handler.get_node_instances()
+        raw_node_instances = \
+            self.workflow_context.internal.handler.get_node_instances()
         self._node_instances = dict(
             (instance.id, CloudifyWorkflowNodeInstance(
                 self.workflow_context, self._nodes[instance.node_id], instance,
@@ -968,10 +969,7 @@ class WorkflowNodesAndInstancesContainer(object):
             for instance in raw_node_instances)
 
 
-class CloudifyWorkflowContext(
-    _WorkflowContextBase,
-    WorkflowNodesAndInstancesContainer
-):
+class CloudifyWorkflowContext(_WorkflowContextBase):
     """
     A context used in workflow operations
 
@@ -983,18 +981,13 @@ class CloudifyWorkflowContext(
         self.deployment = WorkflowDeploymentContext(ctx, self)
 
         with current_workflow_ctx.push(self):
-            # Not using super() here, because
-            # WorkflowNodesAndInstancesContainer's __init__() needs some data
-            # to be prepared before calling it. It would be possible to
-            # overcome this by using kwargs + super(...).__init__() in
-            # _WorkflowContextBase, but the way it is now is self-explanatory.
-            _WorkflowContextBase.__init__(self, ctx,
-                                          RemoteCloudifyWorkflowContextHandler)
+            super(CloudifyWorkflowContext, self).__init__(
+                ctx, RemoteCloudifyWorkflowContextHandler)
 
             raw_nodes = self.internal.handler.get_nodes()
             raw_node_instances = self.internal.handler.get_node_instances()
-            WorkflowNodesAndInstancesContainer.__init__(self, self, raw_nodes,
-                                                        raw_node_instances)
+            self._nodes_and_instances = WorkflowNodesAndInstancesContainer(
+                self, raw_nodes, raw_node_instances)
 
     def _build_cloudify_context(self, *args):
         context = super(
@@ -1006,6 +999,23 @@ class CloudifyWorkflowContext(
             'deployment_id': self.deployment.id
         })
         return context
+
+    @property
+    def nodes(self):
+        return self._nodes_and_instances.nodes
+
+    @property
+    def node_instances(self):
+        return self._nodes_and_instances.node_instances
+
+    def get_node(self, *args, **kwargs):
+        return self._nodes_and_instances.get_node(*args, **kwargs)
+
+    def get_node_instance(self, *args, **kwargs):
+        return self._nodes_and_instances.get_node_instance(*args, **kwargs)
+
+    def refresh_node_instances(self, *args, **kwargs):
+        return self._nodes_and_instances.refresh_node_instances(*args, **kwargs)
 
 
 class CloudifySystemWideWorkflowContext(_WorkflowContextBase):
