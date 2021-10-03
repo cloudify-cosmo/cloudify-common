@@ -907,16 +907,24 @@ class _WorkflowContextBase(object):
 
 
 class WorkflowNodesAndInstancesContainer(object):
-
-    def __init__(self, workflow_context, raw_nodes, raw_node_instances):
+    def __init__(self, workflow_context, raw_nodes=None, raw_instances=None):
         self.workflow_context = workflow_context
+        self._nodes = None
+        self._node_instances = None
+        if raw_nodes:
+            self._load_nodes(raw_nodes)
+        if raw_instances:
+            self._load_instances(raw_instances)
+
+    def _load_nodes(self, raw_nodes):
         self._nodes = dict(
-            (node.id, CloudifyWorkflowNode(workflow_context, node, self))
+            (node.id, CloudifyWorkflowNode(self.workflow_context, node, self))
             for node in raw_nodes)
 
+    def _load_instances(self, raw_node_instances):
         self._node_instances = dict(
             (instance.id, CloudifyWorkflowNodeInstance(
-                workflow_context, self._nodes[instance.node_id], instance,
+                self.workflow_context, self._nodes[instance.node_id], instance,
                 self))
             for instance in raw_node_instances)
 
@@ -956,17 +964,10 @@ class WorkflowNodesAndInstancesContainer(object):
 
     def refresh_node_instances(self):
         raw_nodes = self.workflow_context.internal.handler.get_nodes()
-        self._nodes = dict(
-            (node.id, CloudifyWorkflowNode(self.workflow_context, node, self))
-            for node in raw_nodes)
-
         raw_node_instances = \
             self.workflow_context.internal.handler.get_node_instances()
-        self._node_instances = dict(
-            (instance.id, CloudifyWorkflowNodeInstance(
-                self.workflow_context, self._nodes[instance.node_id], instance,
-                self))
-            for instance in raw_node_instances)
+        self._load_nodes(raw_nodes)
+        self._load_instances(raw_node_instances)
 
 
 class CloudifyWorkflowContext(_WorkflowContextBase):
@@ -981,12 +982,9 @@ class CloudifyWorkflowContext(_WorkflowContextBase):
             ctx, RemoteCloudifyWorkflowContextHandler)
         self.blueprint = context.BlueprintContext(ctx)
         self.deployment = WorkflowDeploymentContext(ctx, self)
-
+        self._nodes_and_instances = WorkflowNodesAndInstancesContainer(self)
         with current_workflow_ctx.push(self):
-            raw_nodes = self.internal.handler.get_nodes()
-            raw_node_instances = self.internal.handler.get_node_instances()
-            self._nodes_and_instances = WorkflowNodesAndInstancesContainer(
-                self, raw_nodes, raw_node_instances)
+            self._nodes_and_instances.refresh_node_instances()
 
     def _build_cloudify_context(self, *args):
         context = super(
