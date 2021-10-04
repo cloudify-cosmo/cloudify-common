@@ -81,8 +81,7 @@ def node_operation_retry(ctx, **kwargs):
             'is {1}'.format(expected_max_retries, ctx.operation.max_retries))
     ctx.instance.runtime_properties['counter'] = counter + 1
     if ctx.operation.retry_number < ctx.operation.max_retries:
-        return ctx.operation.retry(message='Operation will be retried',
-                                   retry_after=3)
+        return ctx.operation.retry(message='Operation will be retried')
 
 
 @decorators.workflow
