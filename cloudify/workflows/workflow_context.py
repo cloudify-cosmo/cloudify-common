@@ -478,7 +478,7 @@ class _WorkflowContextBase(object):
 
     @property
     def bootstrap_context(self):
-        return self.internal._bootstrap_context
+        return self.internal.bootstrap_context
 
     @property
     def internal(self):
@@ -1074,8 +1074,7 @@ class CloudifyWorkflowContextInternal(object):
             thread_pool_size=thread_pool_size)
 
     def get_task_configuration(self):
-        bootstrap_context = self._get_bootstrap_context()
-        workflows = bootstrap_context.get('workflows', {})
+        workflows = self.bootstrap_context.get('workflows', {})
         total_retries = workflows.get(
             'task_retries',
             self.workflow_context._task_retries)
@@ -1086,15 +1085,15 @@ class CloudifyWorkflowContextInternal(object):
                     retry_interval=retry_interval)
 
     def get_subgraph_task_configuration(self):
-        bootstrap_context = self._get_bootstrap_context()
-        workflows = bootstrap_context.get('workflows', {})
+        workflows = self.bootstrap_context.get('workflows', {})
         subgraph_retries = workflows.get(
             'subgraph_retries',
             self.workflow_context._subgraph_retries
         )
         return dict(total_retries=subgraph_retries)
 
-    def _get_bootstrap_context(self):
+    @property
+    def bootstrap_context(self):
         if self._bootstrap_context is None:
             self._bootstrap_context = self.handler.bootstrap_context
         return self._bootstrap_context

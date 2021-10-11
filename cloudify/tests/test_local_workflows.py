@@ -536,7 +536,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
 
     def test_workflow_bootstrap_context(self):
         def bootstrap_context(ctx, **_):
-            bootstrap_context = ctx.internal._get_bootstrap_context()
+            bootstrap_context = ctx.internal.bootstrap_context
             self.assertEqual(bootstrap_context, {})
         self._execute_workflow(bootstrap_context)
 
