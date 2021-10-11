@@ -19,20 +19,15 @@ import copy
 import json
 import uuid
 import threading
-import logging
-import pika
 
 from proxy_tools import proxy
 
-from cloudify import amqp_client, context
+from cloudify import context
 from cloudify._compat import queue
 from cloudify.manager import (get_bootstrap_context,
                               get_rest_client,
                               download_resource)
-from cloudify.workflows.tasks import (TASK_FAILED,
-                                      TASK_SUCCEEDED,
-                                      TASK_RESCHEDULED,
-                                      RemoteWorkflowTask,
+from cloudify.workflows.tasks import (RemoteWorkflowTask,
                                       LocalWorkflowTask,
                                       NOPLocalWorkflowTask,
                                       DryRunLocalWorkflowTask,
@@ -45,12 +40,12 @@ from cloudify.workflows.tasks import (TASK_FAILED,
                                       SendNodeEventTask,
                                       SendWorkflowEventTask,
                                       UpdateExecutionStatusTask)
-from cloudify.constants import MGMTWORKER_QUEUE
-from cloudify import utils, logs, exceptions
+
+from cloudify import utils, logs
 from cloudify.state import current_workflow_ctx
 from cloudify.workflows import events
-from cloudify.error_handling import deserialize_known_exception
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
+from cloudify.workflows.amqp_dispatcher import TaskDispatcher
 from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            CloudifyWorkflowNodeLoggingHandler,
                            SystemWideWorkflowLoggingHandler,
@@ -58,8 +53,6 @@ from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            send_workflow_event,
                            send_sys_wide_wf_event)
 from cloudify.models_states import DeploymentModificationState
-
-from cloudify.utils import is_agent_alive
 
 
 try:
@@ -1012,7 +1005,8 @@ class CloudifyWorkflowContext(_WorkflowContextBase):
         return self._nodes_and_instances.get_node_instance(*args, **kwargs)
 
     def refresh_node_instances(self, *args, **kwargs):
-        return self._nodes_and_instances.refresh_node_instances(*args, **kwargs)
+        return self._nodes_and_instances.refresh_node_instances(
+            *args, **kwargs)
 
 
 class CloudifySystemWideWorkflowContext(_WorkflowContextBase):
@@ -1185,180 +1179,6 @@ class LocalTasksProcessing(object):
                     pass
 
 
-class _WorkflowTaskHandler(object):
-    def __init__(self, workflow_ctx):
-        self._logger = logging.getLogger('dispatch')
-        self.workflow_ctx = workflow_ctx
-        workflow_ctx.amqp_handlers.add(self)
-        self._queue_name = 'execution_responses_{0}'.format(
-            workflow_ctx.execution_id)
-        self._connection = None
-        self._responses = {}
-        self._tasks = {}
-        self._bound = set()
-
-    def wait_for_task(self, task):
-        if task.id in self._responses:
-            response, delivery_tag = self._responses.pop(task.id)
-            self._task_callback(task, response)
-            self._connection.channel_method(
-                'basic_ack', delivery_tag=delivery_tag)
-        else:
-            self._tasks[task.id] = task
-
-    def register(self, connection, channel):
-        self._connection = connection
-        channel.exchange_declare(exchange=MGMTWORKER_QUEUE,
-                                 auto_delete=False,
-                                 durable=True,
-                                 exchange_type='direct')
-        channel.queue_declare(
-            queue=self._queue_name, durable=True, auto_delete=False)
-
-        channel.basic_consume(
-            queue=self._queue_name, on_message_callback=self.process)
-
-    def process(self, channel, method, properties, body):
-        try:
-            response = json.loads(body.decode('utf-8'))
-        except ValueError:
-            self._logger.error('Error parsing response: %s', body)
-            channel.basic_ack(method.delivery_tag)
-            return
-        if properties.correlation_id in self._tasks:
-            task = self._tasks.pop(properties.correlation_id)
-            self._task_callback(task, response)
-            channel.basic_ack(method.delivery_tag)
-        else:
-            self._responses[properties.correlation_id] = \
-                (response, method.delivery_tag)
-
-    def publish(self, target, message, correlation_id, routing_key):
-        if target not in self._bound:
-            self._bound.add(target)
-            self._connection.channel_method(
-                'queue_bind',
-                queue=self._queue_name, exchange=target,
-                routing_key=self._queue_name)
-        self._connection.publish({
-            'exchange': target,
-            'body': json.dumps(message),
-            'properties': pika.BasicProperties(
-                reply_to=self._queue_name,
-                correlation_id=correlation_id),
-            'routing_key': routing_key,
-        })
-        if self._task_deletes_exchange(message):
-            self._clear_bound_exchanges_cache()
-
-    def _task_deletes_exchange(self, message):
-        """Does this task delete an amqp exchange?
-
-        Agent delete tasks are going to delete the agent's amqp exchange,
-        so we'll have to bind it again, if the agent is reinstalled
-        (eg. in a deployment-update workflow) - so we'll bust the ._bound
-        cache in that case.
-        """
-        try:
-            name = message['cloudify_task']['kwargs'][
-                '__cloudify_context']['operation']['name']
-            return name == 'cloudify.interfaces.cloudify_agent.delete'
-        except (KeyError, TypeError):
-            return False
-
-    def _clear_bound_exchanges_cache(self):
-        for handler in self.workflow_ctx.amqp_handlers:
-            handler._bound.clear()
-
-    def delete_queue(self):
-        self._connection.channel_method(
-            'queue_delete', queue=self._queue_name, if_empty=True, wait=True)
-
-    def _task_callback(self, task, response):
-        self._logger.debug('[%s] Response received - %s', task.id, response)
-        try:
-            if not response or task.is_terminated:
-                return
-
-            error = response.get('error')
-            if error:
-                exception = deserialize_known_exception(error)
-                if isinstance(exception, exceptions.OperationRetry):
-                    state = TASK_RESCHEDULED
-                else:
-                    state = TASK_FAILED
-                self._set_task_state(task, state, exception=exception)
-                task.async_result.result = exception
-            else:
-                state = TASK_SUCCEEDED
-                result = response.get('result')
-                self._set_task_state(task, state, result=result)
-                task.async_result.result = result
-        except Exception:
-            self._logger.error('Error occurred while processing task',
-                               exc_info=True)
-            raise
-
-    def _set_task_state(self, task, state, **kwargs):
-        with current_workflow_ctx.push(task.workflow_context):
-            task.set_state(state, **kwargs)
-
-
-class _TaskDispatcher(object):
-    def __init__(self, workflow_ctx):
-        self.workflow_ctx = workflow_ctx
-        self._logger = logging.getLogger('dispatch')
-        self._clients = {}
-
-    def cleanup(self):
-        for client, handler in self._clients.values():
-            handler.delete_queue()
-            client.close()
-
-    def get_client(self, target):
-        if target == MGMTWORKER_QUEUE:
-            if None not in self._clients:
-                client = amqp_client.get_client()
-                handler = _WorkflowTaskHandler(self.workflow_ctx)
-                client.add_handler(handler)
-                client.consume_in_thread()
-                self._clients[None] = (client, handler)
-            client, handler = self._clients[None]
-        else:
-            tenant = utils.get_tenant()
-            if tenant.rabbitmq_vhost not in self._clients:
-                client = amqp_client.get_client(
-                    amqp_user=tenant.rabbitmq_username,
-                    amqp_pass=tenant.rabbitmq_password,
-                    amqp_vhost=tenant.rabbitmq_vhost
-                )
-                handler = _WorkflowTaskHandler(self.workflow_ctx)
-                client.add_handler(handler)
-                client.consume_in_thread()
-                self._clients[tenant.rabbitmq_vhost] = (client, handler)
-            client, handler = self._clients[tenant.rabbitmq_vhost]
-        return client, handler
-
-    def send_task(self, task, target, queue):
-        client, handler = self.get_client(target)
-        if target != MGMTWORKER_QUEUE and \
-                not is_agent_alive(target, client, connect=False):
-            raise exceptions.RecoverableError(
-                'Timed out waiting for agent: {0}'.format(target))
-
-        message = {
-            'id': task.id,
-            'cloudify_task': {'kwargs': task.kwargs}
-        }
-        handler.publish(queue, message, routing_key='operation',
-                        correlation_id=task.id)
-        self._logger.debug('Task [%s] sent', task.id)
-
-    def wait_for_result(self, task, target):
-        client, handler = self.get_client(target)
-        handler.wait_for_task(task)
-
-
 # Local/Remote Handlers
 
 class CloudifyWorkflowContextHandler(object):
@@ -1447,7 +1267,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
         super(RemoteContextHandler, self).__init__(*args, **kwargs)
         self._rest_client = None
-        self._dispatcher = _TaskDispatcher(self.workflow_ctx)
+        self._dispatcher = TaskDispatcher(self.workflow_ctx)
         self._plugins_cache = {}
 
     @property
