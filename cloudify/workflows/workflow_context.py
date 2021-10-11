@@ -1066,14 +1066,8 @@ class CloudifyWorkflowContextInternal(object):
         self.handler = handler
         self._bootstrap_context = None
         self._graph_mode = False
-        # the graph is always created internally for events to work properly
-        # when graph mode is turned on this instance is returned to the user.
-        subgraph_task_config = self.get_subgraph_task_configuration()
-        self._task_graph = TaskDependencyGraph(
-            workflow_context=workflow_context,
-            default_subgraph_task_config=subgraph_task_config)
+        self._task_graph = None
 
-        # local task processing
         thread_pool_size = self.workflow_context._local_task_thread_pool_size
         self.local_tasks_processor = LocalTasksProcessing(
             self.workflow_context,
@@ -1107,6 +1101,12 @@ class CloudifyWorkflowContextInternal(object):
 
     @property
     def task_graph(self):
+        if self._task_graph is None:
+            subgraph_task_config = self.get_subgraph_task_configuration()
+            self._task_graph = TaskDependencyGraph(
+                workflow_context=self.workflow_context,
+                default_subgraph_task_config=subgraph_task_config)
+
         return self._task_graph
 
     @property
