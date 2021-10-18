@@ -1387,7 +1387,8 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         )
 
     def get_node_instances(self):
-        if self.workflow_ctx.workflow_id in ('create_deployment_environment',
+        if self.workflow_ctx.workflow_id in ('upload_blueprint',
+                                             'create_deployment_environment',
                                              'delete_deployment_environment'):
             return []
         dep = self.workflow_ctx.deployment
