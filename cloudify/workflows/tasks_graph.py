@@ -560,9 +560,9 @@ def _on_failure_handler_fail(task):
 def _task_error_causes_text(task):
     if not hasattr(task, 'error') or not isinstance(task.error, dict):
         return ''
-    return "\n".join([
+    return "\n".join(
         "{0} `{1}`\n{2}".format(c['type'], c['message'],
                                 c['traceback'].strip())
         for c in
            task.error.get('known_exception_type_kwargs', {}).get('causes')
-    ])
+    )
