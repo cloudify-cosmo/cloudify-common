@@ -373,7 +373,8 @@ class TaskDependencyGraph(object):
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
-            message = "Task failed '{0}'".format(task.name)
+            message = "Task failed '{0}': {1} ".format(
+                task.name, _task_error_causes_text(task))
             if result and not isinstance(result, tasks.HandlerResult):
                 message = '{0} -> {1}'.format(message, result)
             if self._error is None:
@@ -554,3 +555,14 @@ class SubgraphTask(tasks.WorkflowTask):
 
 def _on_failure_handler_fail(task):
     return tasks.HandlerResult.fail()
+
+
+def _task_error_causes_text(task):
+    if not hasattr(task, 'error') or not isinstance(task.error, dict):
+        return ''
+    return "\n".join(
+        "{0} `{1}`\n{2}".format(c['type'], c['message'],
+                                c['traceback'].strip())
+        for c in
+           task.error.get('known_exception_type_kwargs', {}).get('causes')
+    )

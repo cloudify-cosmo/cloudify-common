@@ -371,7 +371,12 @@ class WorkflowTask(object):
             # the handler set on the task.
             handler_result = HandlerResult.retry()
             handler_result.retry_after = result.retry_after
-        elif self.on_failure:
+            return handler_result
+
+        if self.is_subgraph:
+            self.error = self.failed_task.error
+
+        if self.on_failure:
             handler_result = self.on_failure(self)
         else:
             handler_result = HandlerResult.retry()
