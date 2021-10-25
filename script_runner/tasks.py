@@ -77,8 +77,11 @@ def run(script_path, process=None, ssl_cert_content=None, **kwargs):
                                     ssl_cert_content)
     os.chmod(script_path, 0o755)
     script_func = get_run_script_func(script_path, process)
-    script_result = process_execution(script_func, script_path, ctx, process)
-    os.remove(script_path)
+    try:
+        script_result = process_execution(script_func, script_path, ctx,
+                                          process)
+    finally:
+        os.remove(script_path)
     return script_result
 
 
@@ -88,8 +91,10 @@ def execute_workflow(script_path, ssl_cert_content=None, **kwargs):
     script_path = download_resource(
         ctx.internal.handler.download_deployment_resource, script_path,
         ssl_cert_content)
-    script_result = process_execution(eval_script, script_path, ctx)
-    os.remove(script_path)
+    try:
+        script_result = process_execution(eval_script, script_path, ctx)
+    finally:
+        os.remove(script_path)
     return script_result
 
 
