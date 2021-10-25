@@ -4,11 +4,6 @@ import aiohttp
 
 
 class CloudifyAsyncClient:
-    host: str
-    port: int
-    protocol: str
-    headers: dict
-    cert: str
 
     def __init__(self, **kwargs):
         self.host = kwargs.pop('host', 'localhost')
