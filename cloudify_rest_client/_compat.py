@@ -19,6 +19,7 @@
 
 import sys
 PY2 = sys.version_info[0] == 2
+PY36PLUS = sys.version_info >= (3, 6)
 
 
 if PY2:
@@ -29,4 +30,4 @@ else:
     from urllib.request import pathname2url
 
 
-__all__ = ['PY2', 'urlquote', 'pathname2url', 'urlparse']
+__all__ = ['PY2', 'PY36PLUS', 'urlquote', 'pathname2url', 'urlparse']
