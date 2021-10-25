@@ -55,6 +55,8 @@ class _WorkflowTaskHandler(object):
             return
         if properties.correlation_id in self._tasks:
             task = self._tasks.pop(properties.correlation_id)
+            if not response['ok']:
+                task.error = response.get('error')
             self._task_callback(task, response)
             channel.basic_ack(method.delivery_tag)
         else:

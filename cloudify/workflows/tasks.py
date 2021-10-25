@@ -373,6 +373,9 @@ class WorkflowTask(object):
             handler_result.retry_after = result.retry_after
         elif self.on_failure:
             handler_result = self.on_failure(self)
+            if hasattr(self, 'failed_task') and \
+                    hasattr(self.failed_task, 'error'):
+                self.error = self.failed_task.error
         else:
             handler_result = HandlerResult.retry()
 
