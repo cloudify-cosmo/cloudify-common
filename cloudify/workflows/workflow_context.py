@@ -904,9 +904,9 @@ class WorkflowNodesAndInstancesContainer(object):
         self.workflow_context = workflow_context
         self._nodes = None
         self._node_instances = None
-        if raw_nodes:
+        if raw_nodes is not None:
             self._load_nodes(raw_nodes)
-        if raw_instances:
+        if raw_instances is not None:
             self._load_instances(raw_instances)
 
     def _load_nodes(self, raw_nodes):
