@@ -527,8 +527,6 @@ class BlueprintsClient(object):
         """
         Upload an icon for an existing a blueprint.
 
-        Used for uploading the blueprint's icon.
-
         :param blueprint_id: Blueprint's id to update.
         :param icon_path: Path of a local file containing a icon for
             the blueprint.
@@ -539,4 +537,14 @@ class BlueprintsClient(object):
         self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
             self=self, id=blueprint_id),
             data=icon_data
+        )
+
+    def remove_icon(self, blueprint_id):
+        """
+        Request removal of the icon for an existing a blueprint.
+
+        :param blueprint_id: Blueprint's id to update.
+        """
+        self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
+            self=self, id=blueprint_id),
         )
