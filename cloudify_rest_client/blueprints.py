@@ -536,7 +536,7 @@ class BlueprintsClient(object):
         icon_data = bytes_stream_utils.request_data_file_stream(
             icon_path,
             client=self.api)
-        self.api.put('/{self._uri_prefix}/{id}/icon'.format(
+        self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
             self=self, id=blueprint_id),
             data=icon_data
         )
