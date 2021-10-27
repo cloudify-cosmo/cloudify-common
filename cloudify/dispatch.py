@@ -57,25 +57,6 @@ class TaskHandler(object):
     def handle(self):
         raise NotImplementedError('Implemented by subclasses')
 
-    def setup_logging(self):
-        logs.setup_subprocess_logger()
-        self._update_logging_level()
-
-    @staticmethod
-    def _update_logging_level():
-        if not os.path.isfile(LOGGING_CONFIG_FILE):
-            return
-        with open(LOGGING_CONFIG_FILE, 'r') as config_file:
-            config_lines = config_file.readlines()
-        for line in config_lines:
-            if not line.strip() or line.startswith('#'):
-                continue
-            level_name, logger_name = line.split()
-            level_id = logging.getLevelName(level_name.upper())
-            if not isinstance(level_id, int):
-                continue
-            logging.getLogger(logger_name).setLevel(level_id)
-
     @property
     def ctx_cls(self):
         raise NotImplementedError('implemented by subclasses')
@@ -381,6 +362,26 @@ def dispatch(__cloudify_context, *args, **kwargs):
     return handler.handle()
 
 
+def _setup_logging():
+    logs.setup_subprocess_logger()
+    _update_logging_level()
+
+
+def _update_logging_level():
+    if not os.path.isfile(LOGGING_CONFIG_FILE):
+        return
+    with open(LOGGING_CONFIG_FILE, 'r') as config_file:
+        config_lines = config_file.readlines()
+    for line in config_lines:
+        if not line.strip() or line.startswith('#'):
+            continue
+        level_name, logger_name = line.split()
+        level_id = logging.getLevelName(level_name.upper())
+        if not isinstance(level_id, int):
+            continue
+        logging.getLogger(logger_name).setLevel(level_id)
+
+
 def main():
     dispatch_dir = sys.argv[1]
     with open(os.path.join(dispatch_dir, 'input.json')) as f:
@@ -396,7 +397,7 @@ def main():
         handler = handler_cls(cloudify_context=cloudify_context,
                               args=args,
                               kwargs=kwargs)
-        handler.setup_logging()
+        _setup_logging()
         payload = handler.handle()
         payload_type = 'result'
     except BaseException as e:
