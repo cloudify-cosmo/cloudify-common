@@ -249,9 +249,6 @@ class WorkflowHandler(TaskHandler):
             else:
                 self._workflow_succeeded()
             return result
-        except exceptions.WorkflowFailed as e:
-            self._workflow_failed(e, traceback.format_exc())
-            raise
         except BaseException as e:
             self._workflow_failed(e, traceback.format_exc())
             raise
