@@ -392,11 +392,9 @@ def main():
     dispatch_type = cloudify_context['type']
     threading.current_thread().setName('Dispatch-{0}'.format(dispatch_type))
     handler_cls = TASK_HANDLERS[dispatch_type]
-    handler = None
+    handler = handler_cls(
+        cloudify_context=cloudify_context, args=args, kwargs=kwargs)
     try:
-        handler = handler_cls(cloudify_context=cloudify_context,
-                              args=args,
-                              kwargs=kwargs)
         _setup_logging()
         payload = handler.handle()
         payload_type = 'result'
