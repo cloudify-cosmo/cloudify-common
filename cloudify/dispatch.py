@@ -44,10 +44,6 @@ except ImportError:
     api = None
 
 
-DISPATCH_LOGGER_FORMATTER = logging.Formatter(
-    '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
-
-
 class TaskHandler(object):
     NOTSET = object()
 
@@ -57,8 +53,6 @@ class TaskHandler(object):
         self.kwargs = kwargs
         self._ctx = None
         self._func = self.NOTSET
-        self._logfiles = {}
-        self._process_registry = process_registry
 
     def handle(self):
         raise NotImplementedError('Implemented by subclasses')
