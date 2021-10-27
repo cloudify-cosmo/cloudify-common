@@ -141,7 +141,6 @@ class WorkflowHandler(TaskHandler):
         if workflow_context is None or api is None:
             raise RuntimeError('Dispatcher not installed')
         super(WorkflowHandler, self).__init__(*args, **kwargs)
-        self.execution_parameters = copy.deepcopy(self.kwargs)
 
     @property
     def ctx_cls(self):
