@@ -336,11 +336,11 @@ class BaseWorkflowTest(object):
         logs = []
 
         # Provide same interface as other log/event functions
-        def mock_stdout_event(event):
+        def mock_stdout_event(event, **kwargs):
             events.append(event)
 
         # Provide same interface as other log/event functions
-        def mock_stdout_log(log):
+        def mock_stdout_log(log, **kwargs):
             logs.append(log)
 
         o_stdout_event = cloudify.logs.stdout_event_out
