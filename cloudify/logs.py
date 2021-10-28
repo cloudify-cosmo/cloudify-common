@@ -225,7 +225,8 @@ def send_workflow_node_event(ctx, event_type,
                              message=None,
                              args=None,
                              additional_context=None,
-                             out_func=None):
+                             out_func=None,
+                             skip_send=False):
     """Send a workflow node event
 
     :param ctx: A CloudifyWorkflowNode instance
@@ -233,10 +234,13 @@ def send_workflow_node_event(ctx, event_type,
     :param message: The message
     :param args: additional arguments that may be added to the message
     :param additional_context: additional context to be added to the context
+    :param skip_send: Only for internal use - do not send the event to the
+                      manager, but log it to the logfile
     """
     _send_event(
         message_context_from_workflow_node_instance_context(ctx),
-        event_type, message, args, additional_context, out_func)
+        event_type, message, args, additional_context, out_func,
+        skip_send=skip_send)
 
 
 def send_plugin_event(ctx,
@@ -281,7 +285,7 @@ def send_task_event(cloudify_context,
 
 def _send_event(message_context, event_type,
                 message, args, additional_context,
-                out_func):
+                out_func, **kwargs):
     additional_context = additional_context or {}
     message_context.update(additional_context)
 
@@ -294,7 +298,7 @@ def _send_event(message_context, event_type,
         }
     }
     out_func = out_func or manager_event_out
-    out_func(event)
+    out_func(event, **kwargs)
 
 
 def populate_base_item(item, message_type):
@@ -305,18 +309,19 @@ def populate_base_item(item, message_type):
     item['type'] = message_type
 
 
-def manager_event_out(event):
+def manager_event_out(event, **kwargs):
     populate_base_item(event, 'cloudify_event')
     message_type = event['context'].get('message_type') or 'event'
-    _publish_message(event, message_type, logging.getLogger('cloudify_events'))
+    _publish_message(
+        event, message_type, logging.getLogger('cloudify_events'), **kwargs)
 
 
-def manager_log_out(log):
+def manager_log_out(log, **kwargs):
     populate_base_item(log, 'cloudify_log')
-    _publish_message(log, 'log', logging.getLogger('cloudify_logs'))
+    _publish_message(log, 'log', logging.getLogger('cloudify_logs'), **kwargs)
 
 
-def stdout_event_out(event):
+def stdout_event_out(event, **kwargs):
     populate_base_item(event, 'cloudify_event')
     output = create_event_message_prefix(event)
     if output:
@@ -324,7 +329,7 @@ def stdout_event_out(event):
         sys.stdout.flush()
 
 
-def stdout_log_out(log):
+def stdout_log_out(log, **kwargs):
     populate_base_item(log, 'cloudify_log')
     output = create_event_message_prefix(log)
     if output:
@@ -355,9 +360,11 @@ def _log_message(logger, message):
     log_func(msg)
 
 
-def _publish_message(message, message_type, logger):
+def _publish_message(message, message_type, logger, skip_send=False):
     if u'message' in message:
         _log_message(logger, message)
+    if skip_send:
+        return
     execution_id = get_execution_id()
     client = manager.get_rest_client()
     if message_type == 'log':
