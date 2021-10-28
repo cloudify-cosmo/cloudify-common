@@ -44,10 +44,6 @@ except ImportError:
     api = None
 
 
-DISPATCH_LOGGER_FORMATTER = logging.Formatter(
-    '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
-
-
 class TaskHandler(object):
     NOTSET = object()
 
@@ -57,30 +53,9 @@ class TaskHandler(object):
         self.kwargs = kwargs
         self._ctx = None
         self._func = self.NOTSET
-        self._logfiles = {}
-        self._process_registry = process_registry
 
     def handle(self):
         raise NotImplementedError('Implemented by subclasses')
-
-    def setup_logging(self):
-        logs.setup_subprocess_logger()
-        self._update_logging_level()
-
-    @staticmethod
-    def _update_logging_level():
-        if not os.path.isfile(LOGGING_CONFIG_FILE):
-            return
-        with open(LOGGING_CONFIG_FILE, 'r') as config_file:
-            config_lines = config_file.readlines()
-        for line in config_lines:
-            if not line.strip() or line.startswith('#'):
-                continue
-            level_name, logger_name = line.split()
-            level_id = logging.getLevelName(level_name.upper())
-            if not isinstance(level_id, int):
-                continue
-            logging.getLogger(logger_name).setLevel(level_id)
 
     @property
     def ctx_cls(self):
@@ -166,7 +141,6 @@ class WorkflowHandler(TaskHandler):
         if workflow_context is None or api is None:
             raise RuntimeError('Dispatcher not installed')
         super(WorkflowHandler, self).__init__(*args, **kwargs)
-        self.execution_parameters = copy.deepcopy(self.kwargs)
 
     @property
     def ctx_cls(self):
@@ -274,9 +248,6 @@ class WorkflowHandler(TaskHandler):
             else:
                 self._workflow_succeeded()
             return result
-        except exceptions.WorkflowFailed as e:
-            self._workflow_failed(e, traceback.format_exc())
-            raise
         except BaseException as e:
             self._workflow_failed(e, traceback.format_exc())
             raise
@@ -387,6 +358,26 @@ def dispatch(__cloudify_context, *args, **kwargs):
     return handler.handle()
 
 
+def _setup_logging():
+    logs.setup_subprocess_logger()
+    _update_logging_level()
+
+
+def _update_logging_level():
+    if not os.path.isfile(LOGGING_CONFIG_FILE):
+        return
+    with open(LOGGING_CONFIG_FILE, 'r') as config_file:
+        config_lines = config_file.readlines()
+    for line in config_lines:
+        if not line.strip() or line.startswith('#'):
+            continue
+        level_name, logger_name = line.split()
+        level_id = logging.getLevelName(level_name.upper())
+        if not isinstance(level_id, int):
+            continue
+        logging.getLogger(logger_name).setLevel(level_id)
+
+
 def main():
     dispatch_dir = sys.argv[1]
     with open(os.path.join(dispatch_dir, 'input.json')) as f:
@@ -397,12 +388,10 @@ def main():
     dispatch_type = cloudify_context['type']
     threading.current_thread().setName('Dispatch-{0}'.format(dispatch_type))
     handler_cls = TASK_HANDLERS[dispatch_type]
-    handler = None
+    handler = handler_cls(
+        cloudify_context=cloudify_context, args=args, kwargs=kwargs)
     try:
-        handler = handler_cls(cloudify_context=cloudify_context,
-                              args=args,
-                              kwargs=kwargs)
-        handler.setup_logging()
+        _setup_logging()
         payload = handler.handle()
         payload_type = 'result'
     except BaseException as e:

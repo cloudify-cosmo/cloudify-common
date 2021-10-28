@@ -1002,11 +1002,7 @@ class SendNodeEventTask(_BuiltinTaskBase):
         self.info = event
 
     def remote(self):
-        # only explicitly send the event if the task is not stored - if we do
-        # actually update the operation state, then the server will
-        # automatically add an event
-        if not self.stored:
-            self._send(out_func=logs.manager_event_out)
+        self._send(out_func=logs.manager_event_out)
 
     def local(self):
         self._send(out_func=logs.stdout_event_out)
@@ -1019,7 +1015,11 @@ class SendNodeEventTask(_BuiltinTaskBase):
             event_type='workflow_node_event',
             message=self.kwargs['event'],
             additional_context=self.kwargs['additional_context'],
-            out_func=out_func)
+            out_func=out_func,
+            # if this operation is stored, we don't need to send the log,
+            # because updating the operation state will insert the log
+            # automatically, on the manager side
+            skip_send=self.stored)
 
 
 class SendWorkflowEventTask(_BuiltinTaskBase):
