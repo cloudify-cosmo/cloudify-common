@@ -522,3 +522,29 @@ class BlueprintsClient(object):
             self=self, id=blueprint_id),
             data=archive_data
         )
+
+    def upload_icon(self, blueprint_id, icon_path):
+        """
+        Upload an icon for an existing a blueprint.
+
+        :param blueprint_id: Blueprint's id to update.
+        :param icon_path: Path of a local file containing a icon for
+            the blueprint.
+        """
+        icon_data = bytes_stream_utils.request_data_file_stream(
+            icon_path,
+            client=self.api)
+        self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
+            self=self, id=blueprint_id),
+            data=icon_data
+        )
+
+    def remove_icon(self, blueprint_id):
+        """
+        Request removal of the icon for an existing a blueprint.
+
+        :param blueprint_id: Blueprint's id to update.
+        """
+        self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
+            self=self, id=blueprint_id),
+        )
