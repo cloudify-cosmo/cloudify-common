@@ -350,13 +350,16 @@ def _log_message(logger, message):
     exec_id = message.get('context', {}).get('execution_id')
     execution_creator_username = message.get('context', {}).get(
         'execution_creator_username')
-    text = message['message']['text']
+    msg = message['message']['text']
+    try:
+        node_id = message['context']['node_id']
+        msg = u'[{0}] {1}'.format(node_id, msg)
+    except KeyError:
+        pass
     if exec_id:
-        msg = u'[{0}] {1}'.format(exec_id, text)
+        msg = u'[{0}] {1}'.format(exec_id, msg)
         if execution_creator_username:
             msg = u'[{0}] '.format(execution_creator_username) + msg
-    else:
-        msg = text
     log_func(msg)
 
 
