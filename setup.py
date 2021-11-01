@@ -33,7 +33,7 @@ else:
     install_requires += ['pika==1.1.0', 'requests>=2.25.0,<3.0.0', ]
 
 if sys.version_info[:2] >= (3, 6):
-    install_requires += ['aiohttp>=3.7.4.post0,<4.0.0']
+    install_requires += ['aiohttp==3.7.4.post0']
 
 try:
     from collections import OrderedDict  # NOQA
