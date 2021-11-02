@@ -120,8 +120,10 @@ class UsersClient(object):
         return ListResponse([User(item) for item in response['items']],
                             response['metadata'])
 
-    def create(self, username, password, role):
+    def create(self, username, password, role, is_prehashed=None):
         data = {'username': username, 'password': password, 'role': role}
+        if is_prehashed is not None:
+            data['is_prehashed'] = is_prehashed
         response = self.api.put('/users', data=data, expected_status_code=201)
         return User(response)
 
