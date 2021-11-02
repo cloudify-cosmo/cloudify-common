@@ -212,12 +212,13 @@ class CloudifyWorkflowNodeInstance(object):
         self._node_instance = node_instance
         # Directly contained node instances. Filled in the context's __init__()
         self._contained_instances = []
-        self._relationship_instances = OrderedDict(
-            (relationship_instance['target_id'],
-                CloudifyWorkflowRelationshipInstance(
-                    self.ctx, self, nodes_and_instances,
-                    relationship_instance))
-            for relationship_instance in node_instance.relationships)
+        self._relationship_instances = OrderedDict()
+        for relationship in node_instance.relationships:
+            target_id = relationship['target_id']
+            rel_instance = CloudifyWorkflowRelationshipInstance(
+                self.ctx, self, nodes_and_instances, relationship)
+            if rel_instance.relationship is not None:
+                self._relationship_instances[target_id] = rel_instance
 
         # adding the node instance to the node instances map
         node._node_instances[self.id] = self
