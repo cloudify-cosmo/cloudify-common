@@ -108,6 +108,26 @@ class InterDeploymentDependencyClient(object):
         )
         return self._wrap_list(response)
 
+    def update_all(self, source_deployment_id, inter_deployment_dependencies):
+        """Update (i.e. rewrite all) inter-deployment dependencies for
+        a given deployment.
+
+        :param source_deployment_id: ID of the source deployment (the one which
+         depends on the target deployment).
+        :param inter_deployment_dependencies: a list of inter-deployment
+         dependencies descriptions, but without a source_deployment(_id).
+        :return: a list of created InterDeploymentDependencies IDs.
+        """
+        # from celery.contrib import rdb; rdb.set_trace()  # noqa
+        response = self.api.put(
+            '/deployments/{0}/inter-deployment-dependencies'.format(
+                source_deployment_id),
+            data={
+                'inter_deployment_dependencies': inter_deployment_dependencies,
+            },
+        )
+        return self._wrap_list(response)
+
     def delete(self, dependency_creator, source_deployment, target_deployment,
                is_component_deletion=False, external_source=None,
                external_target=None):
