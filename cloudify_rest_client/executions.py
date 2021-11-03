@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2014-2019 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import warnings
 
 from cloudify_rest_client.responses import ListResponse
@@ -371,9 +356,7 @@ class ExecutionsClient(object):
         response = self.api.patch(uri, data=params)
         return Execution(response)
 
-    def start(self, deployment_id, workflow_id, parameters=None,
-              allow_custom_parameters=False, force=False, dry_run=False,
-              queue=False, schedule=None, wait_after_fail=600):
+    def start(self, *args, **kwargs):
         """Starts a deployment's workflow execution whose id is provided.
 
         :param deployment_id: The deployment's id to execute a workflow for.
@@ -396,8 +379,16 @@ class ExecutionsClient(object):
         :raises: IllegalExecutionParametersError
         :return: The created execution.
         """
-        assert deployment_id
-        assert workflow_id
+        return self.create(*args, **kwargs)
+
+    def create(self, deployment_id, workflow_id, parameters=None,
+               allow_custom_parameters=False, force=False, dry_run=False,
+               queue=False, schedule=None, force_status=None,
+               wait_after_fail=600):
+        """Creates an execution on a deployment.
+        If force_status is provided, the execution will not be started.
+        Otherwise, parameters and return value are identical to 'start'.
+        """
         if schedule:
             warnings.warn("The 'schedule' flag is deprecated. Please use "
                           "`cfy deployments schedule create instead`",
@@ -411,7 +402,8 @@ class ExecutionsClient(object):
             'dry_run': str(dry_run).lower(),
             'queue': str(queue).lower(),
             'scheduled_time': schedule,
-            'wait_after_fail': wait_after_fail
+            'wait_after_fail': wait_after_fail,
+            'force_status': force_status,
         }
         uri = '/executions'
         response = self.api.post(uri,
