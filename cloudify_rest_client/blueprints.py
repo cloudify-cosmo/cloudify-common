@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import os
 import tempfile
 import shutil
@@ -119,7 +104,9 @@ class BlueprintsClient(object):
                              visibility,
                              progress_callback,
                              async_upload,
-                             labels=None):
+                             labels=None,
+                             created_at=None,
+                             owner=None):
         query_params = {'visibility': visibility, 'async_upload': async_upload}
         if application_file_name is not None:
             query_params['application_file_name'] = \
@@ -137,6 +124,10 @@ class BlueprintsClient(object):
                 value = value.replace('=', '\\=').replace(',', '\\,')
                 labels_params.append('{0}={1}'.format(key, value))
             query_params['labels'] = ','.join(labels_params)
+        if created_at:
+            query_params['created_at'] = created_at
+        if owner:
+            query_params['owner'] = owner
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
@@ -161,14 +152,18 @@ class BlueprintsClient(object):
                 visibility=VisibilityState.TENANT,
                 progress_callback=None,
                 async_upload=False,
-                labels=None):
+                labels=None,
+                created_at=None,
+                owner=None):
         query_params, data = self._prepare_put_request(
             archive_location,
             application_file_name,
             visibility,
             progress_callback,
             async_upload,
-            labels
+            labels,
+            created_at,
+            owner,
         )
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
         return self.api.put(
@@ -272,7 +267,9 @@ class BlueprintsClient(object):
                         visibility=VisibilityState.TENANT,
                         progress_callback=None,
                         async_upload=False,
-                        labels=None):
+                        labels=None,
+                        created_at=None,
+                        owner=None):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
@@ -300,7 +297,9 @@ class BlueprintsClient(object):
             visibility=visibility,
             progress_callback=progress_callback,
             async_upload=async_upload,
-            labels=labels)
+            labels=labels,
+            created_at=created_at,
+            owner=owner)
         if not async_upload:
             return self._wrapper_cls(response)
 
@@ -321,7 +320,9 @@ class BlueprintsClient(object):
                progress_callback=None,
                skip_size_limit=True,
                async_upload=False,
-               labels=None):
+               labels=None,
+               created_at=None,
+               owner=None):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -354,7 +355,9 @@ class BlueprintsClient(object):
                 visibility=visibility,
                 progress_callback=progress_callback,
                 async_upload=async_upload,
-                labels=labels)
+                labels=labels,
+                created_at=created_at,
+                owner=owner)
             if not async_upload:
                 return self._wrapper_cls(response)
         finally:
