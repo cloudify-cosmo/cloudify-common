@@ -162,7 +162,8 @@ class HTTPClient(object):
                 error_msg,
                 status_code=response.status_code,
                 response=response)
-        message = result['message']
+        # this can be changed after RD-3539
+        message = result.get('message') or result.get('detail')
         code = result.get('error_code')
         server_traceback = result.get('server_traceback')
         self._prepare_and_raise_exception(
