@@ -47,8 +47,7 @@ class AuditLogClient(object):
         self.api = api
 
     def list(self, get_all=False, **kwargs):
-        """
-        Returns a list of AuditLogs.
+        """Returns a list of AuditLogs.
 
         :param get_all: A flag which disables pagination and causes all results
                         to be returned in a single call.
@@ -76,8 +75,7 @@ class AuditLogClient(object):
             response['metadata'])
 
     def delete(self, **kwargs):
-        """
-        Delete (some) of the AuditLogs.
+        """Delete (some) of the AuditLogs.
 
         :param kwargs: Filter fields, 'before' is a required parameter, while
                        'creator_name' and 'execution_id' are optional.
@@ -86,3 +84,10 @@ class AuditLogClient(object):
         """
         response = self.api.delete('/audit', params=kwargs)
         return DeletedResponse(**response)
+
+    def inject(self, logs):
+        """Inject audit logs. Intended for internal use only.
+
+        :param logs: List of dict log entries to inject.
+        """
+        self.api.post('/audit', data=logs)
