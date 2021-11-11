@@ -59,19 +59,26 @@ class SitesClient(object):
         self._uri_prefix = 'sites'
         self._wrapper_cls = Site
 
-    def create(self, name, location=None, visibility=VisibilityState.TENANT):
+    def create(self, name, location=None, visibility=VisibilityState.TENANT,
+               creator=None, created_at=None):
         """
         Create a new site.
 
-        :param name: The name of the site
+        :param name: The name of the site.
         :param location: The location of the site : "latitude,longitude".
         :param visibility: The visibility of the site, can be 'private',
                            'tenant' or 'global'
+        :param creator: Override the creator. Internal use only.
+        :param created_at: Override the creation timestamp. Internal use only.
         :return: The created site.
         """
         data = {'visibility': visibility}
         if location:
             data['location'] = location
+        if creator:
+            data['creator'] = creator
+        if created_at:
+            data['created_at'] = created_at
         response = self.api.put(
             '/{self._uri_prefix}/{name}'.format(self=self, name=name),
             data=data
