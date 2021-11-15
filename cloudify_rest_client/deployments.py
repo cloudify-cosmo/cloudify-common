@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import warnings
 
 from cloudify_rest_client.responses import ListResponse
@@ -342,7 +327,8 @@ class DeploymentGroupsClient(object):
     def put(self, group_id, visibility=VisibilityState.TENANT,
             description=None, blueprint_id=None, default_inputs=None,
             labels=None, filter_id=None, deployment_ids=None,
-            new_deployments=None, deployments_from_group=None):
+            new_deployments=None, deployments_from_group=None,
+            creator=None, created_at=None):
         """Create or update the specified deployment group.
 
         Setting group deployments using this method (via either filter_id
@@ -366,21 +352,27 @@ class DeploymentGroupsClient(object):
             keys "id", "inputs", "labels"
         :param deployments_from_group: add all deployments belonging to the
             group given by this id
+        :param creator: Override the creator. Internal use only.
+        :param created_at: Override the creation timestamp. Internal use only.
         :return: the created deployment group
         """
+        data = {
+            'visibility': visibility,
+            'description': description,
+            'blueprint_id': blueprint_id,
+            'default_inputs': default_inputs,
+            'labels': labels,
+            'filter_id': filter_id,
+            'deployment_ids': deployment_ids,
+            'new_deployments': new_deployments,
+            'deployments_from_group': deployments_from_group,
+        }
+        if created_at:
+            data['created_at'] = created_at
+        if creator:
+            data['creator'] = creator
         response = self.api.put(
-            '/deployment-groups/{0}'.format(group_id),
-            data={
-                'visibility': visibility,
-                'description': description,
-                'blueprint_id': blueprint_id,
-                'default_inputs': default_inputs,
-                'labels': labels,
-                'filter_id': filter_id,
-                'deployment_ids': deployment_ids,
-                'new_deployments': new_deployments,
-                'deployments_from_group': deployments_from_group,
-            }
+            '/deployment-groups/{0}'.format(group_id), data=data,
         )
         return DeploymentGroup(response)
 
