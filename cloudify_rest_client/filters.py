@@ -48,7 +48,9 @@ class FiltersClient(object):
     def create(self,
                filter_id,
                filter_rules,
-               visibility=VisibilityState.TENANT):
+               visibility=VisibilityState.TENANT,
+               created_at=None,
+               creator=None):
         """Creates a new filter.
 
         :param filter_id: The filter ID
@@ -61,12 +63,18 @@ class FiltersClient(object):
                    type: <FilterRuleType>
               }
         :param visibility: The filter's visibility
+        :param creator: Override the creator. Internal use only.
+        :param created_at: Override the creation timestamp. Internal use only.
         :return: The created filter
         """
         data = {
             'filter_rules': filter_rules,
-            'visibility': visibility
+            'visibility': visibility,
         }
+        if created_at:
+            data['created_at'] = created_at
+        if creator:
+            data['creator'] = creator
         response = self.api.put('{0}/{1}'.format(self.uri, filter_id),
                                 data=data)
         return Filter(response)
