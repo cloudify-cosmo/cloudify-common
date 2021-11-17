@@ -102,14 +102,6 @@ class ParameterSchemaProperty(data_types.SchemaProperty):
     def parse(self):
         return self.build_dict_result(with_default=False)
 
-    def validate(self):
-        if self.initial_value.get('required', False) \
-                and 'default' not in self.initial_value:
-            raise exceptions.DSLParsingLogicException(
-                exceptions.ERROR_HIDDEN_REQUIRED_INPUT_NO_DEFAULT,
-                "Input is required thus it should have a default value: "
-                "'{0}'.".format(self.name))
-
 
 class WorkflowMapping(Element):
 
