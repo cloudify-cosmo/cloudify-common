@@ -127,12 +127,17 @@ class TasksGraphClient(object):
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata'])
 
-    def create(self, execution_id, name, operations=None):
+    def create(self, execution_id, name, operations=None, created_at=None,
+               graph_id=None):
         params = {
             'name': name,
             'execution_id': execution_id,
             'operations': operations
         }
+        if created_at:
+            params['created_at'] = created_at
+        if graph_id:
+            params['graph_id'] = graph_id
         uri = '/{self._uri_prefix}/tasks_graphs'.format(self=self)
         response = self.api.post(uri, data=params, expected_status_code=201)
         return TasksGraph(response)
