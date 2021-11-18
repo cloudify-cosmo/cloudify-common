@@ -167,7 +167,7 @@ class ExecutionSchedulesClient(object):
 
     def update(self, schedule_id, deployment_id, since=None, until=None,
                recurrence=None, count=None, weekdays=None, rrule=None,
-               slip=None, stop_on_fail=None, enabled=None):
+               slip=None, stop_on_fail=None, enabled=None, workflow_id=None):
         """Updates scheduling parameters of an existing execution schedule
         whose id is provided.
 
@@ -196,6 +196,7 @@ class ExecutionSchedulesClient(object):
             the scheduler won't make further attempts to run it.
         :param enabled: Set to false to make the scheduler ignore this
             schedule, until set to true again.
+        :param workflow_id: The new workflow that this schedule is going to run
 
         :return: The updated execution schedule.
         """
@@ -210,7 +211,8 @@ class ExecutionSchedulesClient(object):
             'rrule': rrule,
             'slip': slip,
             'enabled': enabled,
-            'stop_on_fail': stop_on_fail
+            'stop_on_fail': stop_on_fail,
+            'workflow_id': workflow_id,
         }
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.patch(uri,
