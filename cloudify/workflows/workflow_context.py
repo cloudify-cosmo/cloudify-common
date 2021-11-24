@@ -987,7 +987,9 @@ class CloudifyWorkflowContext(_WorkflowContextBase):
         )._build_cloudify_context(*args)
         context.update({
             'blueprint_id': self.blueprint.id,
-            'deployment_id': self.deployment.id
+            'deployment_id': self.deployment.id,
+            'deployment_display_name': self.deployment.display_name,
+            'deployment_creator': self.deployment.creator,
         })
         return context
 

@@ -283,6 +283,14 @@ class DeploymentContext(EntityContext):
     def runtime_only_evaluation(self):
         return self._context.get('runtime_only_evaluation')
 
+    @property
+    def display_name(self):
+        return self._context.get('deployment_display_name')
+
+    @property
+    def creator(self):
+        return self._context.get('deployment_creator')
+
 
 class NodeContext(EntityContext):
 
