@@ -1,18 +1,3 @@
-#########
-# Copyright (c) 2019 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
-
 import warnings
 
 from cloudify_rest_client.responses import ListResponse
@@ -105,6 +90,26 @@ class PluginsUpdateClient(object):
                                 _include=_include,
                                 params=params)
         return self._wrap_list(response)
+
+    def inject(self, blueprint_id, force=False,
+               creator=None, created_at=None,
+               execution_id=None, state=None,
+               update_id=None, affected_deployments=None,
+               temp_blueprint_id=None):
+        return PluginsUpdate(self.api.post(
+            '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
+                                                            self=self),
+            data=_data_from_kwargs(
+                force=force,
+                creator=creator,
+                created_at=created_at,
+                execution_id=execution_id,
+                state=state,
+                update_id=update_id,
+                affected_deployments=affected_deployments,
+                temp_blueprint_id=temp_blueprint_id,
+            ),
+        ))
 
     def update_plugins(self, blueprint_id, force=False, plugin_names=None,
                        to_latest=None, all_to_latest=True,
