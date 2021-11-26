@@ -39,7 +39,8 @@ class NodeInstance(object):
                  version=None,
                  host_id=None,
                  relationships=None,
-                 index=None):
+                 index=None,
+                 scaling_groups=None):
         self.id = node_instance_id
         self._node_id = node_id
         self._runtime_properties = \
@@ -49,6 +50,7 @@ class NodeInstance(object):
         self._host_id = host_id
         self._relationships = relationships
         self._index = index
+        self._scaling_groups = scaling_groups
 
     def get(self, key):
         return self._runtime_properties.get(key)
@@ -123,6 +125,10 @@ class NodeInstance(object):
     @property
     def index(self):
         return self._index
+
+    @property
+    def scaling_groups(self):
+        return self._scaling_groups
 
 
 def get_rest_client(tenant=None, api_token=None):
@@ -389,7 +395,8 @@ def get_node_instance(node_instance_id, evaluate_functions=False, client=None):
                         version=instance.version,
                         host_id=instance.host_id,
                         relationships=instance.relationships,
-                        index=instance.index)
+                        index=instance.index,
+                        scaling_groups=instance.scaling_groups)
 
 
 def update_node_instance(node_instance, client=None):

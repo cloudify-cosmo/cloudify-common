@@ -335,6 +335,11 @@ class NodeContext(EntityContext):
         self._get_node_if_needed()
         return self._node.type_hierarchy
 
+    @property
+    def number_of_instances(self):
+        self._get_node_if_needed()
+        return self._node.number_of_instances
+
 
 class NodeInstanceContext(EntityContext):
     def __init__(self, *args, **kwargs):
@@ -345,6 +350,7 @@ class NodeInstanceContext(EntityContext):
         self._node_instance = None
         self._host_ip = None
         self._relationships = None
+        self._scaling_groups = []
 
     def _get_node_instance(self):
         self._node_instance = self._endpoint.get_node_instance(self.id)
@@ -375,6 +381,11 @@ class NodeInstanceContext(EntityContext):
         """
         self._get_node_instance_if_needed()
         return self._node_instance.runtime_properties
+
+    @property
+    def scaling_groups(self):
+        self._get_node_instance_if_needed()
+        return self._node_instance.scaling_groups
 
     @runtime_properties.setter
     def runtime_properties(self, new_properties):
