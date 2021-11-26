@@ -128,7 +128,7 @@ class NodeInstance(object):
 
     @property
     def scaling_groups(self):
-        return self._scaling_groups
+        return {g['id']: g['name'] for g in self._scaling_groups}
 
 
 def get_rest_client(tenant=None, api_token=None):
