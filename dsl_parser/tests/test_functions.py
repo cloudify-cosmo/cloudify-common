@@ -1950,3 +1950,54 @@ node_templates:
         yaml = self.BLUEPRINT.format('{get_group_capability: 1}')
         with self.assertRaisesRegex(ValueError, 'should be a list'):
             self.parse(yaml)
+
+
+class TestGetResults(AbstractTestParser):
+
+    def test_error_non_existent_dict_function(self):
+        yaml = """
+deployment_settings:
+    display_name: {get_results: ['non_existent_function', {'foo': 'bar'}]}
+    """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'non_existent_function$'):
+            self.parse(yaml)
+
+    def test_error_non_existent_string_function(self):
+        yaml = """
+deployment_settings:
+    display_name: {get_results: ['non_existent_function', 'foo bar']}
+    """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'non_existent_function$'):
+            self.parse(yaml)
+
+    def test_error_invalid_input_type(self):
+        yaml = """
+deployment_settings:
+    display_name: {get_results: ['string_split', 11]}
+"""
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'inputs$'):
+            self.parse(yaml)
+
+    def test_allow_any_list_input(self):
+        yaml = """
+deployment_settings:
+    display_name: {get_results: ['string_find', []]}
+"""
+        parsed = self.parse(yaml)
+        display_name = parsed['deployment_settings']['display_name']
+        assert display_name['get_results']
+        assert len(display_name['get_results']) > 1
+
+    def test_error_message(self):
+        yaml = """
+deployment_settings:
+    display_name: {get_results: ['string_split', 'foo.bar', '.', 0]}
+"""
+        parsed = self.parse(yaml)
+        with self.assertRaisesRegex(exceptions.GetResultsException,
+                                    'get_results intrinsic function failed '
+                                    'with the following exception'):
+            prepare_deployment_plan(parsed)
