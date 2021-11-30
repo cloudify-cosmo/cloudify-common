@@ -106,8 +106,11 @@ class BlueprintsClient(object):
                              async_upload,
                              labels=None,
                              created_at=None,
-                             owner=None):
-        query_params = {'visibility': visibility, 'async_upload': async_upload}
+                             owner=None,
+                             state=None,
+                             skip_execution=False):
+        query_params = {'visibility': visibility, 'async_upload': async_upload,
+                        'skip_execution': skip_execution}
         if application_file_name is not None:
             query_params['application_file_name'] = \
                 urlquote(application_file_name)
@@ -128,6 +131,8 @@ class BlueprintsClient(object):
             query_params['created_at'] = created_at
         if owner:
             query_params['owner'] = owner
+        if state:
+            query_params['state'] = state
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
@@ -154,7 +159,9 @@ class BlueprintsClient(object):
                 async_upload=False,
                 labels=None,
                 created_at=None,
-                owner=None):
+                owner=None,
+                state=None,
+                skip_execution=False):
         query_params, data = self._prepare_put_request(
             archive_location,
             application_file_name,
@@ -164,6 +171,8 @@ class BlueprintsClient(object):
             labels,
             created_at,
             owner,
+            state,
+            skip_execution,
         )
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
         return self.api.put(
@@ -322,7 +331,9 @@ class BlueprintsClient(object):
                async_upload=False,
                labels=None,
                created_at=None,
-               owner=None):
+               owner=None,
+               state=None,
+               skip_execution=False):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -357,7 +368,9 @@ class BlueprintsClient(object):
                 async_upload=async_upload,
                 labels=labels,
                 created_at=created_at,
-                owner=owner)
+                owner=owner,
+                state=state,
+                skip_execution=skip_execution)
             if not async_upload:
                 return self._wrapper_cls(response)
         finally:
