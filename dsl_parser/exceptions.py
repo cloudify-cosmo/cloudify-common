@@ -161,6 +161,15 @@ class UnsupportedAllToOneInGroup(Exception):
     pass
 
 
+class GetResultsException(Exception):
+    def __str__(self):
+        return '{0}: {1}'.format(
+            'get_results intrinsic function failed '
+            'with the following exception',
+            super(GetResultsException, self).__str__()
+        )
+
+
 ERROR_CODE_CYCLE = 100
 ERROR_CODE_ILLEGAL_VALUE_ACCESS = 101
 ERROR_CODE_DSL_DEFINITIONS_VERSION_MISMATCH = 102

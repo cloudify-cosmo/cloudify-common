@@ -336,6 +336,69 @@ class GetSys(Function):
         return handler.get_sys(self.entity, self.property)
 
 
+@register(name='get_results', func_eval_type=HYBRID_FUNC)
+class GetResults(Function):
+    STRING_FUNCTIONS = ['string_find', 'string_replace', 'string_split',
+                        'string_capitalize']
+    DICT_FUNCTIONS = ['dict_update']
+
+    def __init__(self, args, **kwargs):
+        self.fn = None
+        self.input = None
+        self.params = None
+        super(GetResults, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        self.fn, self.input = args[0], args[1]
+        if len(args) > 2:
+            self.params = args[2:]
+
+    def validate(self, plan):
+        self._validate_input()
+        self._validate_fn()
+
+    def evaluate(self, handler):
+        raise exceptions.GetResultsException('Not yet implemented')
+
+    def _validate_input(self):
+        if isinstance(self.input, list):
+            # maybe it's another intrinsic function e.g.
+            # get_results: ['string_split', [get_input: an_input] , ',', 1]
+            # let's pretend it's valid for now
+            return
+        if isinstance(self.input, str) or isinstance(self.input, dict):
+            return
+        raise exceptions.FunctionValidationError(
+            'get_results',
+            'function does not work with {0} inputs'.format(type(self.input)))
+
+    def _validate_fn(self):
+        if isinstance(self.input, list):
+            # maybe it's another intrinsic function (see the comment above)
+            if self.fn not in self.STRING_FUNCTIONS and \
+                    self.fn not in self.DICT_FUNCTIONS:
+                raise exceptions.FunctionValidationError(
+                    'get_results',
+                    'function not implemented: {0}'.format(self.fn))
+        elif isinstance(self.input, str):
+            if self.fn not in self.STRING_FUNCTIONS:
+                raise exceptions.FunctionValidationError(
+                    'get_results',
+                    'function not implemented to operate on string inputs '
+                    '({0}): {1}'.format(self.input, self.fn))
+        elif isinstance(self.input, dict):
+            if self.fn not in self.DICT_FUNCTIONS:
+                raise exceptions.FunctionValidationError(
+                    'get_results',
+                    'function not implemented to operate on dict inputs '
+                    '({0}): {1}'.format(self.input, self.fn))
+        else:
+            raise exceptions.FunctionValidationError(
+                'get_results',
+                'function not implemented to operate on {0} inputs ({1}): {2}'
+                .format(type(self.input), self.input, self.fn))
+
+
 @register(name='get_property', func_eval_type=HYBRID_FUNC)
 class GetProperty(Function):
 
