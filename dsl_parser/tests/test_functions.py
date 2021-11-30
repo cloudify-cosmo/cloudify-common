@@ -1950,3 +1950,37 @@ node_templates:
         yaml = self.BLUEPRINT.format('{get_group_capability: 1}')
         with self.assertRaisesRegex(ValueError, 'should be a list'):
             self.parse(yaml)
+
+
+class TestStringFind(AbstractTestParser):
+
+    def test_correct(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_find: ['Quick fox jumps', 'fox']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 6
+
+    def test_not_found(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_find: ['Quick fox jumps', 'dog']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == -1
+
+    def test_with_get_input(self):
+        yaml = """
+inputs:
+  quick:
+    type: string
+    default: Quick fox jumps
+deployment_settings:
+    display_name: {string_find: [{get_input: quick}, 'fox']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 6
