@@ -366,7 +366,7 @@ class GetResults(Function):
             # get_results: ['string_split', [get_input: an_input] , ',', 1]
             # let's pretend it's valid for now
             return
-        if isinstance(self.input, str) or isinstance(self.input, dict):
+        if isinstance(self.input, text_type) or isinstance(self.input, dict):
             return
         raise exceptions.FunctionValidationError(
             'get_results',
@@ -380,7 +380,7 @@ class GetResults(Function):
                 raise exceptions.FunctionValidationError(
                     'get_results',
                     'function not implemented: {0}'.format(self.fn))
-        elif isinstance(self.input, str):
+        elif isinstance(self.input, text_type):
             if self.fn not in self.STRING_FUNCTIONS:
                 raise exceptions.FunctionValidationError(
                     'get_results',
