@@ -122,7 +122,7 @@ class SecretsClient(object):
         kwargs.update({
             'value': value,
             'visibility': visibility,
-            'is_hidden': is_hidden_value
+            'is_hidden_value': is_hidden_value
         })
         data = dict((k, v) for k, v in kwargs.items() if v is not None)
         response = self.api.patch('/secrets/{0}'.format(key), data=data)
