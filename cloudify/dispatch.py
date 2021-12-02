@@ -13,6 +13,21 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+"""Cloudify operation executor
+
+This module is the subprocess entry-point: the mgmtworker & agents will
+run this module in a subprocess.
+This reads the inputs & context from the specified input.json file, runs
+the operation, and emits outputs to the output.json file.
+
+To run the task, create an instance of a TaskHandler; this will create
+a context, load the target function, and run it.
+
+Note that this runs both workflow functions (in the mgmtworker) and operation
+functions (in the mgmtworker and the agents).
+
+This module will normally run from a plugin-specific virtualenv.
+"""
 
 import copy
 import json
@@ -69,6 +84,13 @@ class TaskHandler(object):
 
     @property
     def func(self):
+        """The target task function.
+
+        Load and return the operation/workflow function defined in the
+        context. This must be a python executable, available in the
+        current virtualenv. This function is most often defined in a
+        plugin.
+        """
         if self._func is self.NOTSET:
             try:
                 self._func = self.get_func()
@@ -173,6 +195,15 @@ class WorkflowHandler(TaskHandler):
         return self.cloudify_context.get('update_execution_status', True)
 
     def _handle_remote_workflow(self):
+        """Run the workflow function.
+
+        This runs the workflow in a background thread. The main thread will
+        wait for the background thread to finish, and poll the execution
+        status, to check if the execution was cancelled. If so, the cancel
+        flag is set, which allows the workflow function to clean up.
+        If the force-cancel flag is set, then this function will return
+        early, without waiting for the background thread to finish.
+        """
         tenant = self.ctx._context['tenant'].get('original_name',
                                                  self.ctx.tenant_name)
         rest = get_rest_client(tenant=tenant)

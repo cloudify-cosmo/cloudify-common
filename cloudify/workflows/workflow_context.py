@@ -12,6 +12,15 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
+"""Cloudify workflow context
+
+This module defines the WorkflowContext, which is available as workflow_ctx
+in workflow functions.
+The main uses of a workflow context are:
+  - being an interface to all the data stored (in the Manager)
+  - exposing a way to run operations
+"""
+
 from __future__ import absolute_import
 
 import functools
