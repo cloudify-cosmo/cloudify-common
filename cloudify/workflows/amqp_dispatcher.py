@@ -1,3 +1,13 @@
+"""AMQP dispatcher: send tasks to remote mgmtworkers/agents
+
+This makes an AMQP connection to the vhost defined by the task, and sends
+the task encoded as JSON over it.
+The task is received and executed by the remote agent/mgmtworker, and the
+response is received here, based on the correlation-id.
+When the response is received, the task's WorkflowTaskResult receives the
+result and fires the callbacks.
+"""
+
 import json
 import logging
 import pika
@@ -14,6 +24,13 @@ from cloudify.workflows.tasks import (
 
 
 class _WorkflowTaskHandler(object):
+    """An AMQP handler to be used with the AMQPConnection for sending tasks
+
+    This is the amqp-level component that sends the given task over AMQP,
+    and reads incoming responses. The responses are going to be correlated
+    with waited-for tasks, and if found, the result will be set.
+    Only one of these handlers should be attached to any given AMQPConnection.
+    """
     def __init__(self, workflow_ctx):
         self._logger = logging.getLogger('dispatch')
         self.workflow_ctx = workflow_ctx
@@ -170,6 +187,12 @@ class TaskDispatcher(object):
         return client, handler
 
     def send_task(self, task, target, queue):
+        """Send the given RemoteWorkflowTask to the target, over the queue.
+
+        The task is going to be encoded into json, and sent to AMQP
+        together with a unique correlation-id (which is then a way to
+        figure out which response message ties to which task).
+        """
         client, handler = self.get_client(target)
         if target != MGMTWORKER_QUEUE and \
                 not utils.is_agent_alive(target, client, connect=False):
@@ -185,5 +208,11 @@ class TaskDispatcher(object):
         self._logger.debug('Task [%s] sent', task.id)
 
     def wait_for_result(self, task, target):
+        """Register the task to receive a result
+
+        This registers the given RemoteWorkflowTask with the AMQP connection,
+        so that when a response comes in, the RemoteWorkflowTask's result
+        is set.
+        """
         client, handler = self.get_client(target)
         handler.wait_for_task(task)

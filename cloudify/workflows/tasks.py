@@ -90,7 +90,18 @@ def with_execute_after(f):
 
 
 class WorkflowTask(object):
-    """A base class for workflow tasks"""
+    """A base class for workflow tasks
+
+    A WorkflowTask represents an operation to be executed by the mgmtworker
+    or an agent.
+
+    There's two main kinds of WorkflowTasks - a remote kind, to be sent
+    to a remote mgmtworker/agent and executed there; and a local kind, to
+    be executed in the current process, in a background thread.
+
+    The interface of a WorkflowTask is its apply_async method, which
+    returns a WorkflowTaskResult.
+    """
 
     def __init__(self,
                  workflow_context,
@@ -426,7 +437,10 @@ class WorkflowTask(object):
 
 
 class RemoteWorkflowTask(WorkflowTask):
-    """A WorkflowTask wrapping an AMQP based task"""
+    """A WorkflowTask wrapping an AMQP based task
+
+    This WorkflowTask will be sent via AMQP to a remote mgmtworker/agent.
+    """
     def __init__(self,
                  kwargs,
                  cloudify_context,
@@ -790,6 +804,12 @@ class DryRunLocalWorkflowTask(LocalWorkflowTask):
 
 
 class WorkflowTaskResult(object):
+    """Deferred result of a WorkiflowTask
+
+    This is returned by the WorkflowTask, and will eventually have
+    the actual result set, when the task finishes. Use the on_result method
+    to register callbacks to be called when the task result is set.
+    """
     _NOT_SET = object()
 
     def __init__(self, task):
