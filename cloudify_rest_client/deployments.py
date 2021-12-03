@@ -693,7 +693,8 @@ class DeploymentsClient(object):
             data=data
         )
 
-    def update_labels(self, deployment_id, labels):
+    def update_labels(self, deployment_id, labels, creator=None,
+                      created_at=None):
         """
         Updates the deployment's labels.
 
@@ -703,6 +704,10 @@ class DeploymentsClient(object):
         :return: The deployment
         """
         data = {'labels': labels}
+        if creator:
+            data['creator'] = creator
+        if created_at:
+            data['created_at'] = created_at
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=data)
         return Deployment(updated_dep)
