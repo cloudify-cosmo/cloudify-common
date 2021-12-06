@@ -20,6 +20,8 @@ import json
 
 from functools import wraps
 
+from cloudify.workflows.workflow_context import current_workflow_ctx
+
 from dsl_parser import exceptions, scan, constants
 from dsl_parser._compat import ABC, text_type
 from dsl_parser.constants import (OUTPUTS,
@@ -289,6 +291,51 @@ class GetInput(Function):
                         _convert_attribute_list_to_python_syntax_string(
                             self.input_value[:index + 1]), attr))
         return value
+
+
+@register(name='get_sys', func_eval_type=HYBRID_FUNC)
+class GetSys(Function):
+    VALID_PROPERTIES = [('tenant', 'name'),
+                        ('deployment', 'id'),
+                        ('deployment', 'blueprint'),
+                        ('deployment', 'owner')]
+
+    def __init__(self, args, **kwargs):
+        self.entity = None
+        self.property = None
+        super(GetSys, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if isinstance(args, list) \
+                and len(args) >= 2 \
+                and _contains_legal_nested_attribute_path_items(args):
+            self.entity, self.property = args[0], args[1]
+        else:
+            raise ValueError(
+                "Illegal argument(s) passed to {0} function. Expected a "
+                "2-element list identifying an entity and its requested "
+                "property (e.g. [tenant, name] or [deployment, id]) "
+                "but got {1}".format(self.name, args))
+
+    def validate(self, plan):
+        known_entities = set(p[0] for p in self.VALID_PROPERTIES)
+        if is_function(self.entity):
+            return
+        if not isinstance(self.entity, text_type) \
+                or self.entity not in known_entities:
+            raise exceptions.UnknownSysEntityError(
+                "{0} function unable to determine entity: {1}"
+                .format(self.name, self.entity))
+        if is_function(self.property):
+            return
+        if not isinstance(self.property, text_type) \
+                or (self.entity, self.property) not in self.VALID_PROPERTIES:
+            raise exceptions.UnknownSysPropertyError(
+                "{0} function unable to determine property: {1} {2}"
+                .format(self.name, self.entity, self.property))
+
+    def evaluate(self, handler):
+        return handler.get_sys(self.entity, self.property)
 
 
 @register(name='get_property', func_eval_type=HYBRID_FUNC)
@@ -1265,6 +1312,23 @@ class _PlanEvaluationHandler(_EvaluationHandler):
         else:
             raise KeyError('Node {0} does not exist'.format(node_name))
 
+    def get_sys(self, entity, prop):
+        if not isinstance(entity, text_type) \
+                or not isinstance(prop, text_type):
+            raise exceptions.FunctionEvaluationError(
+                "get_sys found an unresolved entity's property: {0} {1} "
+                "(consider using runtime-only-evaluation)"
+                .format(entity, prop))
+        ctx = current_workflow_ctx.get_ctx()
+        if (entity, prop) == ('tenant', 'name'):
+            return ctx.tenant['name']
+        elif (entity, prop) == ('deployment', 'blueprint'):
+            return ctx.blueprint.id
+        elif (entity, prop) == ('deployment', 'id'):
+            return ctx.deployment.id
+        elif (entity, prop) == ('deployment', 'owner'):
+            return ctx.deployment.creator
+
 
 class _RuntimeEvaluationHandler(_EvaluationHandler):
     def __init__(self, storage):
@@ -1341,6 +1405,9 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             )
             self._environment_capabilities_cache[capability_id] = capability
         return self._environment_capabilities_cache[capability_id]
+
+    def get_sys(self, entity, prop):
+        return self._storage.get_sys(entity, prop)
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
