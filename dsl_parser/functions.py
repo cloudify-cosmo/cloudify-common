@@ -20,8 +20,6 @@ import json
 
 from functools import wraps
 
-from cloudify.workflows.workflow_context import current_workflow_ctx
-
 from dsl_parser import exceptions, scan, constants
 from dsl_parser._compat import ABC, text_type
 from dsl_parser.constants import (OUTPUTS,
@@ -293,7 +291,7 @@ class GetInput(Function):
         return value
 
 
-@register(name='get_sys', func_eval_type=HYBRID_FUNC)
+@register(name='get_sys', func_eval_type=RUNTIME_FUNC)
 class GetSys(Function):
     VALID_PROPERTIES = [('tenant', 'name'),
                         ('deployment', 'id'),
@@ -1313,21 +1311,8 @@ class _PlanEvaluationHandler(_EvaluationHandler):
             raise KeyError('Node {0} does not exist'.format(node_name))
 
     def get_sys(self, entity, prop):
-        if not isinstance(entity, text_type) \
-                or not isinstance(prop, text_type):
-            raise exceptions.FunctionEvaluationError(
-                "get_sys found an unresolved entity's property: {0} {1} "
-                "(consider using runtime-only-evaluation)"
-                .format(entity, prop))
-        ctx = current_workflow_ctx.get_ctx()
-        if (entity, prop) == ('tenant', 'name'):
-            return ctx.tenant['name']
-        elif (entity, prop) == ('deployment', 'blueprint'):
-            return ctx.blueprint.id
-        elif (entity, prop) == ('deployment', 'id'):
-            return ctx.deployment.id
-        elif (entity, prop) == ('deployment', 'owner'):
-            return ctx.deployment.creator
+        raise exceptions.FunctionEvaluationError(
+            "`get_sys` should be evaluated at runtime only")
 
 
 class _RuntimeEvaluationHandler(_EvaluationHandler):
