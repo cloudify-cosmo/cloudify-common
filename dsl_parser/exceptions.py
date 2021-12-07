@@ -89,6 +89,22 @@ class EvaluationRecursionLimitReached(Exception):
     pass
 
 
+class UnknownSysEntityError(Exception):
+    """
+    An error raised when a deployment is created and the get_sys intrinsic
+    function is run for unsupported entity.
+    """
+    pass
+
+
+class UnknownSysPropertyError(Exception):
+    """
+    An error raised when a deployment is created and the get_sys intrinsic
+    function is run for unsupported property of a valid entity.
+    """
+    pass
+
+
 class DSLParsingException(Exception):
     def __init__(self, err_code, *args):
         super(DSLParsingException, self).__init__(*args)
