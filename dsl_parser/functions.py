@@ -1080,7 +1080,7 @@ class StringFind(Function):
         super(StringFind, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if len(args) < 2:
+        if len(args) != 2:
             raise exceptions.FunctionValidationError(
                 "{0} function should be called with exactly two parameters: "
                 "an input and a substring to find".format(self.name))
