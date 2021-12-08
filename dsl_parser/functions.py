@@ -1072,12 +1072,27 @@ class GetEnvironmentCapability(Function):
         return handler.get_environment_capability(self.capability_path)
 
 
+class ValidateArgumentMixin(object):
+    def _validate_argument(self, argument_name, accept_functions=False):
+        value = getattr(self, argument_name)
+        if is_function(value):
+            if accept_functions:
+                return
+            raise exceptions.FunctionEvaluationError(
+                '{0}: found an unresolved argument ({1}): {2}'
+                .format(self.name, argument_name, value))
+        if not isinstance(value, text_type):
+            raise exceptions.FunctionValidationError(
+                "{0} function unable to determine its argument ({1}): {2}"
+                .format(self.name, argument_name, value))
+
+
 @register(name='string_find', func_eval_type=HYBRID_FUNC)
-class StringFind(Function):
-    def __init__(self, args, **kwargs):
+class StringFind(Function, ValidateArgumentMixin):
+    def __init__(self, *args, **kwargs):
         self.haystack = None
         self.needle = None
-        super(StringFind, self).__init__(args, **kwargs)
+        super(StringFind, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
         if len(args) != 2:
@@ -1087,29 +1102,42 @@ class StringFind(Function):
         self.haystack, self.needle = args[0], args[1]
 
     def validate(self, plan):
-        if is_function(self.haystack):
-            return
-        if not isinstance(self.haystack, text_type):
-            raise exceptions.FunctionValidationError(
-                "{0} function unable to determine its input: {1}"
-                .format(self.name, self.haystack))
-        if is_function(self.needle):
-            return
-        if not isinstance(self.needle, text_type):
-            raise exceptions.FunctionValidationError(
-                "{0} function unable to determine a substring to look for: {1}"
-                .format(self.name, self.needle))
+        self._validate_argument('haystack', accept_functions=True)
+        self._validate_argument('needle', accept_functions=True)
 
     def evaluate(self, handler):
-        self._validate_argument(self.haystack)
-        self._validate_argument(self.needle)
+        self._validate_argument('haystack')
+        self._validate_argument('needle')
         return self.haystack.find(self.needle)
 
-    def _validate_argument(self, value):
-        if is_function(value):
-            raise exceptions.FunctionEvaluationError(
-                '{0}: found an unresolved argument: {1}'
-                .format(self.name, value))
+
+@register(name='string_replace', func_eval_type=HYBRID_FUNC)
+class StringReplace(Function, ValidateArgumentMixin):
+    def __init__(self, *args, **kwargs):
+        self.haystack = None
+        self.needle = None
+        self.replacement = None
+        super(StringReplace, self).__init__(*args, **kwargs)
+
+    def parse_args(self, args):
+        if len(args) != 3:
+            raise exceptions.FunctionValidationError(
+                "{0} function should be called with exactly three parameters: "
+                "an input, a substring to find and a replacement"
+                .format(self.name))
+        self.haystack, self.needle, self.replacement = \
+            args[0], args[1], args[2]
+
+    def validate(self, plan):
+        self._validate_argument('haystack', accept_functions=True)
+        self._validate_argument('needle', accept_functions=True)
+        self._validate_argument('replacement', accept_functions=True)
+
+    def evaluate(self, handler):
+        self._validate_argument('haystack')
+        self._validate_argument('needle')
+        self._validate_argument('replacement')
+        return self.haystack.replace(self.needle, self.replacement)
 
 
 def _get_property_value(node_name,
