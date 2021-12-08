@@ -1073,7 +1073,10 @@ class GetEnvironmentCapability(Function):
 
 
 class ValidateArgumentMixin(object):
-    def _validate_argument(self, argument_name, accept_functions=False):
+    def _validate_argument(self,
+                           argument_name,
+                           argument_type=text_type,
+                           accept_functions=False):
         value = getattr(self, argument_name)
         if is_function(value):
             if accept_functions:
@@ -1081,7 +1084,7 @@ class ValidateArgumentMixin(object):
             raise exceptions.FunctionEvaluationError(
                 '{0}: found an unresolved argument ({1}): {2}'
                 .format(self.name, argument_name, value))
-        if not isinstance(value, text_type):
+        if not isinstance(value, argument_type):
             raise exceptions.FunctionValidationError(
                 "{0} function unable to determine its argument ({1}): {2}"
                 .format(self.name, argument_name, value))
@@ -1138,6 +1141,43 @@ class StringReplace(Function, ValidateArgumentMixin):
         self._validate_argument('needle')
         self._validate_argument('replacement')
         return self.haystack.replace(self.needle, self.replacement)
+
+
+@register(name='string_split', func_eval_type=HYBRID_FUNC)
+class StringSplit(Function, ValidateArgumentMixin):
+    def __init__(self, *args, **kwargs):
+        self.input = None
+        self.separator = None
+        self.index = None
+        super(StringSplit, self).__init__(*args, **kwargs)
+
+    def parse_args(self, args):
+        if not 2 <= len(args) <= 3:
+            raise exceptions.FunctionValidationError(
+                "{0} function should be called with exactly two or three "
+                " parameters: an input, a separator and (optionally) an index"
+                .format(self.name))
+        self.input, self.separator = args[0], args[1]
+        if len(args) == 3:
+            self.index = args[2]
+
+    def validate(self, plan):
+        self._validate_argument('input', accept_functions=True)
+        self._validate_argument('separator', accept_functions=True)
+        if self.index is not None:
+            self._validate_argument('index',
+                                    argument_type=int,
+                                    accept_functions=True)
+
+    def evaluate(self, handler):
+        self._validate_argument('input')
+        self._validate_argument('separator')
+        if self.index:
+            self._validate_argument('index', argument_type=int)
+        result = self.input.split(self.separator)
+        if self.index is not None:
+            return result[self.index]
+        return result
 
 
 @register(name='string_lower', func_eval_type=HYBRID_FUNC)
