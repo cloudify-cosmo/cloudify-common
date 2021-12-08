@@ -1094,10 +1094,10 @@ class StringFunction(object):
 
 @register(name='string_find', func_eval_type=HYBRID_FUNC)
 class StringFind(Function, StringFunction):
-    def __init__(self, args, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.haystack = None
         self.needle = None
-        super(StringFind, self).__init__(args, **kwargs)
+        super(StringFind, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
         if len(args) != 2:
@@ -1118,11 +1118,11 @@ class StringFind(Function, StringFunction):
 
 @register(name='string_replace', func_eval_type=HYBRID_FUNC)
 class StringReplace(Function, StringFunction):
-    def __init__(self, args, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.haystack = None
         self.needle = None
         self.replacement = None
-        super(StringReplace, self).__init__(args, **kwargs)
+        super(StringReplace, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
         if len(args) != 3:
