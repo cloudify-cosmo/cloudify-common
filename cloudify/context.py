@@ -285,10 +285,12 @@ class DeploymentContext(EntityContext):
 
     @property
     def display_name(self):
+        """The deployment's display_name used e.g. in Cloudify UI."""
         return self._context.get('deployment_display_name')
 
     @property
     def creator(self):
+        """The name of the user who owns the deployment."""
         return self._context.get('deployment_creator')
 
 
@@ -337,6 +339,7 @@ class NodeContext(EntityContext):
 
     @property
     def number_of_instances(self):
+        """The number of instances of that node."""
         self._get_node_if_needed()
         return self._node.number_of_instances
 
@@ -384,6 +387,7 @@ class NodeInstanceContext(EntityContext):
 
     @property
     def scaling_groups(self):
+        """The list of scaling group instances this node instance belongs to"""
         self._get_node_instance_if_needed()
         return self._node_instance.scaling_groups
 

@@ -291,6 +291,51 @@ class GetInput(Function):
         return value
 
 
+@register(name='get_sys', func_eval_type=RUNTIME_FUNC)
+class GetSys(Function):
+    VALID_PROPERTIES = [('tenant', 'name'),
+                        ('deployment', 'id'),
+                        ('deployment', 'blueprint'),
+                        ('deployment', 'owner')]
+
+    def __init__(self, args, **kwargs):
+        self.entity = None
+        self.property = None
+        super(GetSys, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if isinstance(args, list) \
+                and len(args) >= 2 \
+                and _contains_legal_nested_attribute_path_items(args):
+            self.entity, self.property = args[0], args[1]
+        else:
+            raise ValueError(
+                "Illegal argument(s) passed to {0} function. Expected a "
+                "2-element list identifying an entity and its requested "
+                "property (e.g. [tenant, name] or [deployment, id]) "
+                "but got {1}".format(self.name, args))
+
+    def validate(self, plan):
+        known_entities = set(p[0] for p in self.VALID_PROPERTIES)
+        if is_function(self.entity):
+            return
+        if not isinstance(self.entity, text_type) \
+                or self.entity not in known_entities:
+            raise exceptions.UnknownSysEntityError(
+                "{0} function unable to determine entity: {1}"
+                .format(self.name, self.entity))
+        if is_function(self.property):
+            return
+        if not isinstance(self.property, text_type) \
+                or (self.entity, self.property) not in self.VALID_PROPERTIES:
+            raise exceptions.UnknownSysPropertyError(
+                "{0} function unable to determine property: {1} {2}"
+                .format(self.name, self.entity, self.property))
+
+    def evaluate(self, handler):
+        return handler.get_sys(self.entity, self.property)
+
+
 @register(name='get_property', func_eval_type=HYBRID_FUNC)
 class GetProperty(Function):
 
@@ -1265,6 +1310,10 @@ class _PlanEvaluationHandler(_EvaluationHandler):
         else:
             raise KeyError('Node {0} does not exist'.format(node_name))
 
+    def get_sys(self, entity, prop):
+        raise exceptions.FunctionEvaluationError(
+            "`get_sys` should be evaluated at runtime only")
+
 
 class _RuntimeEvaluationHandler(_EvaluationHandler):
     def __init__(self, storage):
@@ -1341,6 +1390,9 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
             )
             self._environment_capabilities_cache[capability_id] = capability
         return self._environment_capabilities_cache[capability_id]
+
+    def get_sys(self, entity, prop):
+        return self._storage.get_sys(entity, prop)
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
