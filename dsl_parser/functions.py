@@ -1072,6 +1072,46 @@ class GetEnvironmentCapability(Function):
         return handler.get_environment_capability(self.capability_path)
 
 
+@register(name='string_find', func_eval_type=HYBRID_FUNC)
+class StringFind(Function):
+    def __init__(self, args, **kwargs):
+        self.haystack = None
+        self.needle = None
+        super(StringFind, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if len(args) != 2:
+            raise exceptions.FunctionValidationError(
+                "{0} function should be called with exactly two parameters: "
+                "an input and a substring to find".format(self.name))
+        self.haystack, self.needle = args[0], args[1]
+
+    def validate(self, plan):
+        if is_function(self.haystack):
+            return
+        if not isinstance(self.haystack, text_type):
+            raise exceptions.FunctionValidationError(
+                "{0} function unable to determine its input: {1}"
+                .format(self.name, self.haystack))
+        if is_function(self.needle):
+            return
+        if not isinstance(self.needle, text_type):
+            raise exceptions.FunctionValidationError(
+                "{0} function unable to determine a substring to look for: {1}"
+                .format(self.name, self.needle))
+
+    def evaluate(self, handler):
+        self._validate_argument(self.haystack)
+        self._validate_argument(self.needle)
+        return self.haystack.find(self.needle)
+
+    def _validate_argument(self, value):
+        if is_function(value):
+            raise exceptions.FunctionEvaluationError(
+                '{0}: found an unresolved argument: {1}'
+                .format(self.name, value))
+
+
 def _get_property_value(node_name,
                         properties,
                         property_path,
