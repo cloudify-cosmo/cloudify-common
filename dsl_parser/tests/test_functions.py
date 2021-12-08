@@ -1985,6 +1985,15 @@ deployment_settings:
         display_name = plan['deployment_settings']['display_name']
         assert display_name == 6
 
+    def test_invalid_number_of_params(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_find: ['Quick fox jumps']}
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'string_find.*exactly two parameters'):
+            prepare_deployment_plan(self.parse(yaml))
+
 
 class TestStringReplace(AbstractTestParser):
 
@@ -2018,3 +2027,12 @@ deployment_settings:
         plan = prepare_deployment_plan(self.parse(yaml))
         display_name = plan['deployment_settings']['display_name']
         assert display_name == 'Quick racoon jumps'
+
+    def test_invalid_number_of_params(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_replace: ['Quick fox jumps', 'fox', 'racoon', 'hen']}
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'string_replace.*exactly three'):
+            prepare_deployment_plan(self.parse(yaml))
