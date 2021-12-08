@@ -1072,7 +1072,7 @@ class GetEnvironmentCapability(Function):
         return handler.get_environment_capability(self.capability_path)
 
 
-class StringFunction:
+class StringFunction(object):
     name = 'string_*'
 
     def __init__(self, _, **kwargs):
