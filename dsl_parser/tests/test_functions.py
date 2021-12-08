@@ -2038,6 +2038,36 @@ deployment_settings:
             prepare_deployment_plan(self.parse(yaml))
 
 
+class TestStringSplit(AbstractTestParser):
+
+    def test_correct_with_index(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_split: ['Quick fox jumps', ' ', 1]}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'fox'
+
+    def test_correct_no_index(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_split: ['Quick fox jumps', ' ']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == ['Quick', 'fox', 'jumps']
+
+    def test_correct_invalid_index(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_split: ['Quick fox jumps', ' ', 'invalid-index']}
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'string_split.*index'):
+            prepare_deployment_plan(self.parse(yaml))
+
+
 class TestStringLowerAndUpper(AbstractTestParser):
 
     def test_lower_correct(self):
