@@ -1140,6 +1140,50 @@ class StringReplace(Function, ValidateArgumentMixin):
         return self.haystack.replace(self.needle, self.replacement)
 
 
+@register(name='string_lower', func_eval_type=HYBRID_FUNC)
+class StringLower(Function, ValidateArgumentMixin):
+    def __init__(self, *args, **kwargs):
+        self.input = None
+        super(StringLower, self).__init__(*args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, text_type):
+            raise exceptions.FunctionValidationError(
+                "{0} function should be called with exactly one parameter: "
+                "a string to be made lowercase"
+                .format(self.name))
+        self.input = args
+
+    def validate(self, plan):
+        self._validate_argument('input', accept_functions=True)
+
+    def evaluate(self, handler):
+        self._validate_argument('input')
+        return self.input.lower()
+
+
+@register(name='string_upper', func_eval_type=HYBRID_FUNC)
+class StringUpper(Function, ValidateArgumentMixin):
+    def __init__(self, *args, **kwargs):
+        self.input = None
+        super(StringUpper, self).__init__(*args, **kwargs)
+
+    def parse_args(self, args):
+        if not isinstance(args, text_type):
+            raise exceptions.FunctionValidationError(
+                "{0} function should be called with exactly one parameter: "
+                "a string to be made uppercase"
+                .format(self.name))
+        self.input = args
+
+    def validate(self, plan):
+        self._validate_argument('input', accept_functions=True)
+
+    def evaluate(self, handler):
+        self._validate_argument('input')
+        return self.input.upper()
+
+
 def _get_property_value(node_name,
                         properties,
                         property_path,
