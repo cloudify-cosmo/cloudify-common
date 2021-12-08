@@ -243,10 +243,14 @@ def execute(script_path, ctx, process):
     stdout_consumer = stderr_consumer = None
 
     if log_stdout:
-        stdout_consumer = OutputConsumer(process.stdout, ctx.logger, '<out> ')
+        stdout_consumer = OutputConsumer(
+            process.stdout, ctx.logger, '<out> ',
+            ctx=operation_ctx._get_current_object())
         ctx.logger.debug('Started consumer thread for stdout')
     if consume_stderr:
-        stderr_consumer = OutputConsumer(process.stderr, ctx.logger, '<err> ')
+        stderr_consumer = OutputConsumer(
+            process.stderr, ctx.logger, '<err> ',
+            ctx=operation_ctx._get_current_object())
         ctx.logger.debug('Started consumer thread for stderr')
 
     log_counter = 0

@@ -39,7 +39,7 @@ import socket   # replace with ipaddress when this is py3-only
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
 from cloudify import constants
-from cloudify.state import workflow_parameters, workflow_ctx, ctx
+from cloudify.state import workflow_parameters, workflow_ctx, ctx, current_ctx
 from cloudify._compat import StringIO, parse_version
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.amqp_client import BlockingRequestResponseHandler
@@ -796,16 +796,24 @@ def wait_for(callable_obj,
 
 
 class OutputConsumer(object):
-    def __init__(self, out, logger, prefix):
+    def __init__(self, out, logger, prefix, ctx=None):
         self.out = out
         self.output = []
         self.logger = logger
         self.prefix = prefix
+        self.ctx = ctx
         self.consumer = threading.Thread(target=self.consume_output)
         self.consumer.daemon = True
         self.consumer.start()
 
     def consume_output(self):
+        if self.ctx is not None:
+            with current_ctx.push(self.ctx):
+                self._do_consume()
+        else:
+            self._do_consume()
+
+    def _do_consume(self):
         for line in self.out:
             line = line.decode('utf-8', 'replace')
             self.output.append(line)
