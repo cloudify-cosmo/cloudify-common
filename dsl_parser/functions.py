@@ -1072,12 +1072,7 @@ class GetEnvironmentCapability(Function):
         return handler.get_environment_capability(self.capability_path)
 
 
-class StringFunction(object):
-    name = 'string_*'
-
-    def __init__(self, _, **kwargs):
-        pass
-
+class ValidateArgumentMixin(object):
     def _validate_argument(self, argument_name, accept_functions=False):
         value = getattr(self, argument_name)
         if is_function(value):
@@ -1093,7 +1088,7 @@ class StringFunction(object):
 
 
 @register(name='string_find', func_eval_type=HYBRID_FUNC)
-class StringFind(Function, StringFunction):
+class StringFind(Function, ValidateArgumentMixin):
     def __init__(self, *args, **kwargs):
         self.haystack = None
         self.needle = None
@@ -1117,7 +1112,7 @@ class StringFind(Function, StringFunction):
 
 
 @register(name='string_replace', func_eval_type=HYBRID_FUNC)
-class StringReplace(Function, StringFunction):
+class StringReplace(Function, ValidateArgumentMixin):
     def __init__(self, *args, **kwargs):
         self.haystack = None
         self.needle = None
