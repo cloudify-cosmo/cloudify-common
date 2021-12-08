@@ -2036,3 +2036,42 @@ deployment_settings:
         with self.assertRaisesRegex(exceptions.FunctionValidationError,
                                     'string_replace.*exactly three'):
             prepare_deployment_plan(self.parse(yaml))
+
+
+class TestStringLowerAndUpper(AbstractTestParser):
+
+    def test_lower_correct(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_lower: 'Schnell Fuchs springt'}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'schnell fuchs springt'
+
+    def test_upper_correct(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_upper: 'Schnell Fuchs springt'}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'SCHNELL FUCHS SPRINGT'
+
+    def test_lower_invalid_number_of_params(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_lower: ['Quick fox jumps', 'fox', 'racoon', 'hen']}
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'string_lower.*exactly one'):
+            prepare_deployment_plan(self.parse(yaml))
+
+    def test_upper_invalid_type(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_upper: True}
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'string_upper.*exactly one'):
+            prepare_deployment_plan(self.parse(yaml))
