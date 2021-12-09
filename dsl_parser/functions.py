@@ -1187,11 +1187,6 @@ class StringLower(Function, ValidateArgumentMixin):
         super(StringLower, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, text_type):
-            raise exceptions.FunctionValidationError(
-                "{0} function should be called with exactly one parameter: "
-                "a string to be made lowercase"
-                .format(self.name))
         self.input = args
 
     def validate(self, plan):
@@ -1209,11 +1204,6 @@ class StringUpper(Function, ValidateArgumentMixin):
         super(StringUpper, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, text_type):
-            raise exceptions.FunctionValidationError(
-                "{0} function should be called with exactly one parameter: "
-                "a string to be made uppercase"
-                .format(self.name))
         self.input = args
 
     def validate(self, plan):
