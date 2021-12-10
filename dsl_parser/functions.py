@@ -1123,24 +1123,35 @@ class StringReplace(Function, ValidateArgumentMixin):
         self.haystack = None
         self.needle = None
         self.replacement = None
+        self.count = None
         super(StringReplace, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        if not isinstance(args, list) or len(args) != 3:
+        if not isinstance(args, list) or not 3 <= len(args) <= 4:
             raise exceptions.FunctionValidationError(
-                self.name, 'should be called with exactly three parameters')
+                self.name, 'should be called with three or four parameters')
         self.haystack, self.needle, self.replacement = \
             args[0], args[1], args[2]
+        if len(args) > 3:
+            self.count = args[3]
 
     def validate(self, plan):
         self._validate_argument('haystack', validation_only=True)
         self._validate_argument('needle', validation_only=True)
         self._validate_argument('replacement', validation_only=True)
+        if self.count is not None:
+            self._validate_argument('count',
+                                    argument_type=int,
+                                    validation_only=True)
 
     def evaluate(self, handler):
         self._validate_argument('haystack')
         self._validate_argument('needle')
         self._validate_argument('replacement')
+        if self.count is not None:
+            self._validate_argument('count', argument_type=int)
+            return self.haystack.replace(self.needle, self.replacement,
+                                         self.count)
         return self.haystack.replace(self.needle, self.replacement)
 
 
