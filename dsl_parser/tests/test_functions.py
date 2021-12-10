@@ -2028,13 +2028,42 @@ deployment_settings:
         display_name = plan['deployment_settings']['display_name']
         assert display_name == 'Quick racoon jumps'
 
-    def test_invalid_number_of_params(self):
+    def test_correct_with_count(self):
         yaml = """
 deployment_settings:
-    display_name: {string_replace: ['Quick fox jumps', 'fox', 'racoon', 'hen']}
+    display_name:
+        string_replace:
+            - "Buzz fox is the best fox in the fox town"
+            - "fox"
+            - "dog"
+            - 2
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'Buzz dog is the best dog in the fox town'
+
+    def test_invalid_param_type(self):
+        yaml = """
+deployment_settings:
+    display_name:
+        string_replace:
+            - "Quick fox jumps"
+            - "fox"
+            - "racoon"
+            - "hen"
         """
         with self.assertRaisesRegex(exceptions.FunctionValidationError,
-                                    'string_replace.*exactly three'):
+                                    r"string_replace.*count.*should be of "
+                                    r"type.*'int'"):
+            prepare_deployment_plan(self.parse(yaml))
+
+    def test_invalid_param_number(self):
+        yaml = """
+deployment_settings:
+    display_name: { string_replace: [ "Quick fox jumps", "fox" ] }
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    "string_replace.*three or four"):
             prepare_deployment_plan(self.parse(yaml))
 
 
