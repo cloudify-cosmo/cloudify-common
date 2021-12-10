@@ -1076,18 +1076,22 @@ class ValidateArgumentMixin(object):
     def _validate_argument(self,
                            argument_name,
                            argument_type=text_type,
-                           accept_functions=False):
+                           validation_only=False):
+        exception_cls = exceptions.FunctionValidationError if validation_only \
+            else exceptions.FunctionEvaluationError
         value = getattr(self, argument_name)
         if is_function(value):
-            if accept_functions:
+            if validation_only:
                 return
-            raise exceptions.FunctionEvaluationError(
-                '{0}: found an unresolved argument ({1}): {2}'
-                .format(self.name, argument_name, value))
+            raise exception_cls(
+                self.name,
+                'argument `{0}` should not be a function ({1})'
+                .format(argument_name, value))
         if not isinstance(value, argument_type):
-            raise exceptions.FunctionValidationError(
-                "{0} function unable to determine its argument ({1}): {2}"
-                .format(self.name, argument_name, value))
+            raise exception_cls(
+                self.name,
+                'argument `{0}` should be of type {1} but is {2} ({3})'
+                .format(argument_name, argument_type, type(value), value))
 
 
 @register(name='string_find', func_eval_type=HYBRID_FUNC)
@@ -1098,15 +1102,14 @@ class StringFind(Function, ValidateArgumentMixin):
         super(StringFind, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        if len(args) != 2:
+        if not isinstance(args, list) or len(args) != 2:
             raise exceptions.FunctionValidationError(
-                "{0} function should be called with exactly two parameters: "
-                "an input and a substring to find".format(self.name))
+                self.name, 'should be called with exactly two parameters')
         self.haystack, self.needle = args[0], args[1]
 
     def validate(self, plan):
-        self._validate_argument('haystack', accept_functions=True)
-        self._validate_argument('needle', accept_functions=True)
+        self._validate_argument('haystack', validation_only=True)
+        self._validate_argument('needle', validation_only=True)
 
     def evaluate(self, handler):
         self._validate_argument('haystack')
@@ -1123,18 +1126,16 @@ class StringReplace(Function, ValidateArgumentMixin):
         super(StringReplace, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        if len(args) != 3:
+        if not isinstance(args, list) or len(args) != 3:
             raise exceptions.FunctionValidationError(
-                "{0} function should be called with exactly three parameters: "
-                "an input, a substring to find and a replacement"
-                .format(self.name))
+                self.name, 'should be called with exactly three parameters')
         self.haystack, self.needle, self.replacement = \
             args[0], args[1], args[2]
 
     def validate(self, plan):
-        self._validate_argument('haystack', accept_functions=True)
-        self._validate_argument('needle', accept_functions=True)
-        self._validate_argument('replacement', accept_functions=True)
+        self._validate_argument('haystack', validation_only=True)
+        self._validate_argument('needle', validation_only=True)
+        self._validate_argument('replacement', validation_only=True)
 
     def evaluate(self, handler):
         self._validate_argument('haystack')
@@ -1152,22 +1153,20 @@ class StringSplit(Function, ValidateArgumentMixin):
         super(StringSplit, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        if not 2 <= len(args) <= 3:
+        if not isinstance(args, list) or not 2 <= len(args) <= 3:
             raise exceptions.FunctionValidationError(
-                "{0} function should be called with exactly two or three "
-                " parameters: an input, a separator and (optionally) an index"
-                .format(self.name))
+                self.name, 'should be called with two or three parameters')
         self.input, self.separator = args[0], args[1]
         if len(args) == 3:
             self.index = args[2]
 
     def validate(self, plan):
-        self._validate_argument('input', accept_functions=True)
-        self._validate_argument('separator', accept_functions=True)
+        self._validate_argument('input', validation_only=True)
+        self._validate_argument('separator', validation_only=True)
         if self.index is not None:
             self._validate_argument('index',
                                     argument_type=int,
-                                    accept_functions=True)
+                                    validation_only=True)
 
     def evaluate(self, handler):
         self._validate_argument('input')
@@ -1187,10 +1186,15 @@ class StringLower(Function, ValidateArgumentMixin):
         super(StringLower, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        self.input = args
+        if isinstance(args, text_type) \
+                or (isinstance(args, dict) and len(args) == 1):
+            self.input = args
+        else:
+            raise exceptions.FunctionValidationError(
+                self.name, 'should be called with exactly one parameter')
 
     def validate(self, plan):
-        self._validate_argument('input', accept_functions=True)
+        self._validate_argument('input', validation_only=True)
 
     def evaluate(self, handler):
         self._validate_argument('input')
@@ -1204,10 +1208,15 @@ class StringUpper(Function, ValidateArgumentMixin):
         super(StringUpper, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        self.input = args
+        if isinstance(args, text_type) \
+                or (isinstance(args, dict) and len(args) == 1):
+            self.input = args
+        else:
+            raise exceptions.FunctionValidationError(
+                self.name, 'should be called with exactly one parameter')
 
     def validate(self, plan):
-        self._validate_argument('input', accept_functions=True)
+        self._validate_argument('input', validation_only=True)
 
     def evaluate(self, handler):
         self._validate_argument('input')
