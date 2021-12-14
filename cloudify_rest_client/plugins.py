@@ -379,3 +379,9 @@ class PluginsClient(object):
             data['error'] = error
         response = self.api.put('/plugins/{0}'.format(plugin_id), data=data)
         return Plugin(response)
+
+    def set_owner(self, plugin_id, creator):
+        """Change ownership of the plugin."""
+        response = self.api.patch('/plugins/{0}'.format(plugin_id),
+                                  data={'creator': creator})
+        return Plugin(response)
