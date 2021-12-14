@@ -555,7 +555,8 @@ class DeploymentsClient(object):
     def get(self,
             deployment_id,
             _include=None,
-            all_sub_deployments=True
+            all_sub_deployments=True,
+            include_workdir=False,
             ):
         """
         Returns a deployment by its id.
@@ -573,7 +574,8 @@ class DeploymentsClient(object):
         response = self.api.get(
             uri,
             _include=_include,
-            params={'all_sub_deployments': all_sub_deployments}
+            params={'all_sub_deployments': all_sub_deployments,
+                    'include_workdir': include_workdir}
         )
         return Deployment(response)
 
