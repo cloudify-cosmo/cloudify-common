@@ -589,7 +589,8 @@ class DeploymentsClient(object):
                runtime_only_evaluation=False,
                labels=None,
                display_name=None,
-               async_create=None):
+               async_create=None,
+               _workdir_zip=None):
         """
         Creates a new deployment for the provided blueprint id and
         deployment id.
@@ -612,6 +613,7 @@ class DeploymentsClient(object):
         :param display_name: The deployment's display name.
         :param async_create: if True, do not wait for the deployment
             environment to finish creating
+        :param _workdir_zip: Internal only.
         :return: The created deployment.
         """
         assert blueprint_id
@@ -625,6 +627,8 @@ class DeploymentsClient(object):
             data['labels'] = labels
         if display_name:
             data['display_name'] = display_name
+        if _workdir_zip:
+            data['workdir_zip'] = _workdir_zip
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
