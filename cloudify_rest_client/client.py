@@ -27,6 +27,7 @@ from cloudify.utils import ipv6_url_compat
 from ._compat import PY36PLUS
 from .utils import is_kerberos_env
 from cloudify_rest_client import exceptions
+from cloudify_rest_client.idp import IdentityProviderClient
 from cloudify_rest_client.ldap import LdapClient
 from cloudify_rest_client.nodes import NodesClient
 from cloudify_rest_client.users import UsersClient
@@ -470,6 +471,7 @@ class CloudifyClient(object):
                                          token, tenant, kerberos_env, timeout,
                                          session)
         self.blueprints = BlueprintsClient(self._client)
+        self.idp = IdentityProviderClient(self._client)
         self.permissions = PermissionsClient(self._client)
         self.snapshots = SnapshotsClient(self._client)
         self.deployments = DeploymentsClient(self._client)
