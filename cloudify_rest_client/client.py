@@ -71,6 +71,7 @@ from cloudify_rest_client.filters import (DeploymentsFiltersClient,
                                           BlueprintsFiltersClient)
 from cloudify_rest_client.workflows import WorkflowsClient
 from cloudify_rest_client.audit_log import AuditLogClient
+from cloudify_rest_client.environments import EnvironmentsClient
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -511,6 +512,7 @@ class CloudifyClient(object):
         self.deployments_labels = DeploymentsLabelsClient(self._client)
         self.blueprints_labels = BlueprintsLabelsClient(self._client)
         self.workflows = WorkflowsClient(self._client)
+        self.environments = EnvironmentsClient(self._client)
         if AuditLogAsyncClient is None:
             self.auditlog = AuditLogClient(self._client)
         else:
