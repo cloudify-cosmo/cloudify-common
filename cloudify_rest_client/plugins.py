@@ -303,8 +303,23 @@ class PluginsClient(object):
         a progress bar
         :return: The file path of the downloaded plugin.
         """
-        assert plugin_id
         uri = '/plugins/{0}/archive'.format(plugin_id)
+        with contextlib.closing(self.api.get(uri, stream=True)) as response:
+            output_file = bytes_stream_utils.write_response_stream_to_file(
+                response, output_file, progress_callback=progress_callback)
+
+            return output_file
+
+    def download_yaml(self, plugin_id, output_file, progress_callback=None):
+        """Downloads a previously uploaded plugin archive from the manager
+
+        :param plugin_id: The plugin ID of the plugin yaml to be downloaded.
+        :param output_file: The file path of the downloaded plugin yaml file
+        :param progress_callback: Callback function - can be used to print
+        a progress bar
+        :return: The file path of the downloaded plugin yaml.
+        """
+        uri = '/plugins/{0}/yaml'.format(plugin_id)
         with contextlib.closing(self.api.get(uri, stream=True)) as response:
             output_file = bytes_stream_utils.write_response_stream_to_file(
                 response, output_file, progress_callback=progress_callback)
