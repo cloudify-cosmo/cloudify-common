@@ -908,6 +908,26 @@ class _WorkflowContextBase(object):
             execution_id = self.execution_id
         return self.internal.handler.get_execution(execution_id)
 
+    def update_node_instance(
+        self,
+        node_instance_id,
+        version=None,
+        state=None,
+        runtime_properties=None,
+        system_properties=None,
+        relationships=None,
+        force=False,
+    ):
+        return self.internal.handler.update_node_instance(
+            node_instance_id=node_instance_id,
+            version=version,
+            state=state,
+            runtime_properties=runtime_properties,
+            system_properties=system_properties,
+            relationships=relationships,
+            force=force,
+        )
+
 
 class WorkflowNodesAndInstancesContainer(object):
     def __init__(self, workflow_context, raw_nodes=None, raw_instances=None):
@@ -1273,6 +1293,18 @@ class CloudifyWorkflowContextHandler(object):
     def get_plugin(self, plugin_spec):
         raise NotImplementedError('Implemented by subclasses')
 
+    def update_node_instance(
+        self,
+        node_instance_id,
+        version,
+        state=None,
+        runtime_properties=None,
+        system_properties=None,
+        relationships=None,
+        force=False,
+    ):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
@@ -1280,6 +1312,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         self._rest_client = None
         self._dispatcher = TaskDispatcher(self.workflow_ctx)
         self._plugins_cache = {}
+        self._bootstrap_context = None
 
     @property
     def rest_client(self):
@@ -1293,7 +1326,9 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     @property
     def bootstrap_context(self):
-        return get_bootstrap_context()
+        if self._bootstrap_context is None:
+            self._bootstrap_context = get_bootstrap_context()
+        return self._bootstrap_context
 
     def get_send_task_event_func(self, task):
         return events.send_task_event_func_remote
@@ -1420,6 +1455,9 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
                 plugin['tenant_name'] = managed_plugins[0]['tenant_name']
             self._plugins_cache[key] = plugin
         return self._plugins_cache[key]
+
+    def update_node_instance(self, *args, **kwargs):
+        return self.rest_client.node_instances.update(*args, **kwargs)
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
@@ -1581,6 +1619,9 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
 
     def get_plugin(self, plugin):
         return plugin
+
+    def update_node_instance(self, *args, **kwargs):
+        return self.storage.update_node_instance(*args, **kwargs)
 
 
 class Modification(object):

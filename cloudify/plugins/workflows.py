@@ -21,6 +21,7 @@ from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
 from cloudify.manager import get_rest_client
 from cloudify.workflows.tasks_graph import make_or_get_graph
+from cloudify.workflows.tasks import HandlerResult
 from cloudify.utils import add_plugins_to_install, add_plugins_to_uninstall
 
 
@@ -689,6 +690,104 @@ def execute_operation(ctx, operation, *args, **kwargs):
     name = 'execute_operation_{0}'.format(operation)
     graph = _make_execute_operation_graph(
         ctx, operation, name=name, *args, **kwargs)
+    graph.execute()
+
+
+def check_status_on_success(task):
+    """check_status success handler
+
+    This runs when the check_status operation succeeded. Figure out the
+    node-instance based on the given task.info, and store the result into
+    the node-instance's system-properties.
+    """
+    task.workflow_context.update_node_instance(
+        task.info['instance_id'],
+        force=True,
+        system_properties={'ok': True},
+
+    )
+    return HandlerResult.cont()
+
+
+def check_status_on_failure(task):
+    """check_status failure handler
+
+    Similar to check_status_on_success, but runs when the check_status
+    task fails.
+    """
+    task.workflow_context.update_node_instance(
+        task.info['instance_id'],
+        force=True,
+        system_properties={'ok': False},
+    )
+    return HandlerResult.fail()
+
+
+@make_or_get_graph
+def _make_check_status_graph(
+    ctx,
+    run_by_dependency_order=False,
+    type_names=None,
+    node_ids=None,
+    node_instance_ids=None
+):
+    """Make the graph for the check_status workflow
+
+    This is very similar to execute_operation, but a bit simpler, because
+    we only run a single operation from here.
+    """
+    graph = ctx.graph_mode()
+    tasks = {}
+    filtered_node_instances = _filter_node_instances(
+        ctx=ctx,
+        node_ids=node_ids,
+        node_instance_ids=node_instance_ids,
+        type_names=type_names)
+
+    if run_by_dependency_order:
+        filtered_node_instances_ids = set(inst.id for inst in
+                                          filtered_node_instances)
+        for instance in ctx.node_instances:
+            if instance.id not in filtered_node_instances_ids:
+                tasks[instance.id] = graph.subgraph(instance.id)
+
+    # registering actual tasks to sequences
+    for instance in filtered_node_instances:
+        task = instance.execute_operation(
+            operation='cloudify.interfaces.validation.check_status'
+        )
+        task.info = {'instance_id': instance.id}
+        task.on_success = check_status_on_success
+        task.on_failure = check_status_on_failure
+        graph.add_task(task)
+        tasks[instance.id] = task
+
+    # adding tasks dependencies if required
+    if run_by_dependency_order:
+        for instance in ctx.node_instances:
+            for rel in instance.relationships:
+                graph.add_dependency(tasks[instance.id],
+                                     tasks[rel.target_id])
+    return graph
+
+
+@workflow(resumable=True)
+def check_status(ctx, *args, **kwargs):
+    """Run the check_status operation on all node-instances, and store results
+
+    This will store the check results into each node-instance
+    system_properties.
+    """
+    # never retry the check_status task by default. If users want to retry
+    # some specific check_status for a given node, then can still override
+    # it, in the interfaces declaration
+    workflows = ctx.internal.bootstrap_context.setdefault('workflows', {})
+    workflows['task_retries'] = 0
+    graph = _make_check_status_graph(
+        ctx,
+        name='check_status',
+        *args,
+        **kwargs)
     graph.execute()
 
 
