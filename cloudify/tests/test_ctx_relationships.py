@@ -224,14 +224,14 @@ class TestContextRelationship(testtools.TestCase):
         self._assert_node2_rel(instance.runtime_properties['result'])
 
     @workflow_test(context_blueprint_path)
-    def test_source_interfaces(self, cfy_local):
+    def test_source_relationship(self, cfy_local):
         with warnings.catch_warnings(record=True):
-            self._run(cfy_local, 'assert_interfaces', 'source')
+            self._run(cfy_local, 'assert_operations', 'source')
 
     @workflow_test(context_blueprint_path)
-    def test_target_interfaces(self, cfy_local):
+    def test_target_relationship(self, cfy_local):
         with warnings.catch_warnings(record=True):
-            self._run(cfy_local, 'assert_interfaces', 'target')
+            self._run(cfy_local, 'assert_operations', 'target')
 
     def _run(self, cfy_local, op, rel, node='node1', kwargs=None):
         kwargs = kwargs or {}
@@ -391,6 +391,6 @@ def asset_2_hops(**_):
 
 
 @operation
-def assert_interfaces(rel=None, **_):
-    iface = operation_ctx.operation.interface
+def assert_operations(rel=None, **_):
+    iface = operation_ctx.operation.relationship
     assert iface == rel

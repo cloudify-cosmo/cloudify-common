@@ -32,8 +32,8 @@ relationships:
                     implementation: mock.cloudify.tests.test_ctx_relationships.assert_relationships
                 assert_capabilities:
                     implementation: mock.cloudify.tests.test_ctx_relationships.assert_capabilities
-                assert_interfaces:
-                    implementation: mock.cloudify.tests.test_ctx_relationships.assert_interfaces
+                assert_operations:
+                    implementation: mock.cloudify.tests.test_ctx_relationships.assert_operations
 
         target_interfaces:
             test:
@@ -45,8 +45,8 @@ relationships:
                     implementation: mock.cloudify.tests.test_ctx_relationships.assert_relationships
                 assert_capabilities:
                     implementation: mock.cloudify.tests.test_ctx_relationships.assert_capabilities
-                assert_interfaces:
-                    implementation: mock.cloudify.tests.test_ctx_relationships.assert_interfaces
+                assert_operations:
+                    implementation: mock.cloudify.tests.test_ctx_relationships.assert_operations
 
     cloudify.relationships.contained_in2:
         derived_from: cloudify.relationships.contained_in
@@ -70,8 +70,8 @@ node_types:
                     implementation: mock.cloudify.tests.test_ctx_relationships.assert_immutable_properties
                 assert_capabilities:
                     implementation: mock.cloudify.tests.test_ctx_relationships.assert_capabilities
-                assert_interfaces:
-                    implementation: mock.cloudify.tests.test_ctx_relationships.assert_interfaces
+                assert_operations:
+                    implementation: mock.cloudify.tests.test_ctx_relationships.assert_operations
                 asset_2_hops:
                     implementation: mock.cloudify.tests.test_ctx_relationships.asset_2_hops
         properties:

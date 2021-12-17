@@ -664,7 +664,7 @@ class _WorkflowContextBase(object):
                 'node_name': related_node_instance.node_id,
                 'is_target': related_node_instance.id in relationships
             }
-            node_context['operation']['interface'] = \
+            node_context['operation']['relationship'] = \
                 'source' if related_node_instance.id in relationships \
                 else 'target'
 
