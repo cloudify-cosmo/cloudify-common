@@ -664,6 +664,9 @@ class _WorkflowContextBase(object):
                 'node_name': related_node_instance.node_id,
                 'is_target': related_node_instance.id in relationships
             }
+            node_context['operation']['interface'] = \
+                'source' if related_node_instance.id in relationships \
+                else 'target'
 
         final_kwargs = self._merge_dicts(merged_from=kwargs,
                                          merged_into=operation_properties,

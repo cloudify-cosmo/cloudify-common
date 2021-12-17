@@ -1080,6 +1080,10 @@ class OperationContext(object):
         """The maximum number of retries the operation can have."""
         return self._operation_context.get('max_retries')
 
+    @property
+    def interface(self):
+        return self._operation_context.get('interface')
+
     def retry(self, message=None, retry_after=None):
         """Specifies that this operation should be retried.
 
