@@ -146,6 +146,7 @@ class NodeInstancesClient(object):
                node_instance_id,
                state=None,
                runtime_properties=None,
+               system_properties=None,
                version=1,
                force=False,
                relationships=None):
@@ -155,6 +156,8 @@ class NodeInstancesClient(object):
         :param node_instance_id: The identifier of the node instance to update.
         :param state: The updated state.
         :param runtime_properties: The updated runtime properties.
+        :param system_properties: Like runtime_properties, but only managed
+            by Cloudify itself internally.
         :param version: Current version value of this node instance in
          Cloudify's storage (used for optimistic locking).
         :param force: ignore the version check - use with caution
@@ -169,6 +172,8 @@ class NodeInstancesClient(object):
         data = {'version': version}
         if runtime_properties is not None:
             data['runtime_properties'] = runtime_properties
+        if system_properties is not None:
+            data['system_properties'] = system_properties
         if state is not None:
             data['state'] = state
         if relationships is not None:
