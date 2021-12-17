@@ -1624,7 +1624,6 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
         return self.storage.update_node_instance(*args, **kwargs)
 
 
-
 class Modification(object):
 
     def __init__(self, workflow_ctx, modification):
