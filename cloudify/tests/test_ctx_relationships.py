@@ -223,6 +223,16 @@ class TestContextRelationship(testtools.TestCase):
         instance = [i for i in node_instances if i.node_id == 'node1'][0]
         self._assert_node2_rel(instance.runtime_properties['result'])
 
+    @workflow_test(context_blueprint_path)
+    def test_source_relationship(self, cfy_local):
+        with warnings.catch_warnings(record=True):
+            self._run(cfy_local, 'assert_operations', 'source')
+
+    @workflow_test(context_blueprint_path)
+    def test_target_relationship(self, cfy_local):
+        with warnings.catch_warnings(record=True):
+            self._run(cfy_local, 'assert_operations', 'target')
+
     def _run(self, cfy_local, op, rel, node='node1', kwargs=None):
         kwargs = kwargs or {}
         cfy_local.execute('execute_operation',
@@ -378,3 +388,9 @@ def asset_2_hops(**_):
         for relationship2 in relationship.target.instance.relationships:
             result.append(_extract_relationship(relationship2))
     operation_ctx.instance.runtime_properties['result'] = result
+
+
+@operation
+def assert_operations(rel=None, **_):
+    iface = operation_ctx.operation.relationship
+    assert iface == rel
