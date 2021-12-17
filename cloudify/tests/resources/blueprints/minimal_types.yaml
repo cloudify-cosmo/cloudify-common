@@ -293,3 +293,6 @@ workflows:
         type: boolean
         description: >
           Whether rollback to resolved state or full uninstall.
+
+  check_status:
+    mapping: default_workflows.cloudify.plugins.workflows.check_status
