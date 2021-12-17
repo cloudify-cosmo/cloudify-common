@@ -237,6 +237,7 @@ def _prepare_nodes_and_instances(nodes, node_instances, ignored_modules):
     for node_instance in node_instances:
         node_instance['version'] = 0
         node_instance['runtime_properties'] = {}
+        node_instance['system_properties'] = {}
         node_instance['node_id'] = node_instance['name']
         if 'relationships' not in node_instance:
             node_instance['relationships'] = []
@@ -401,10 +402,13 @@ class _Storage(object):
                              node_instance_id,
                              version,
                              runtime_properties=None,
-                             state=None):
+                             system_properties=None,
+                             state=None,
+                             relationships=None,
+                             force=False):
         with self._lock(node_instance_id):
             instance = self.get_node_instance(node_instance_id)
-            if state is None and version != instance['version']:
+            if not force and state is None and version != instance['version']:
                 raise StorageConflictError('version {0} does not match '
                                            'current version of '
                                            'node instance {1} which is {2}'
@@ -415,6 +419,8 @@ class _Storage(object):
                 instance['version'] += 1
             if runtime_properties is not None:
                 instance['runtime_properties'] = runtime_properties
+            if system_properties is not None:
+                instance['system_properties'] = system_properties
             if state is not None:
                 instance['state'] = state
             self._store_instance(instance)
