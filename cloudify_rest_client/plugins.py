@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import os
 import contextlib
 
@@ -251,7 +236,10 @@ class PluginsClient(object):
                plugin_path,
                plugin_title=None,
                visibility=VisibilityState.TENANT,
-               progress_callback=None):
+               progress_callback=None,
+               _plugin_id=None,
+               _uploaded_at=None,
+               _created_by=None):
         """Uploads a plugin archive to the manager
 
         :param plugin_path: Path to plugin archive.
@@ -260,10 +248,18 @@ class PluginsClient(object):
         :param visibility: The visibility of the plugin, can be 'private',
                            'tenant' or 'global'
         :param progress_callback: Progress bar callback method
+        :param _plugin_id: Internal use only
+        :param _uploaded_at: Internal use only
+        :param _created_by: Internal use only
         :return: Plugin object
         """
-        assert plugin_path
         query_params = {'visibility': visibility}
+        if _plugin_id:
+            query_params['id'] = _plugin_id
+        if _uploaded_at:
+            query_params['uploaded_at'] = _uploaded_at
+        if _created_by:
+            query_params['created_by'] = _created_by
         if plugin_title:
             query_params['title'] = plugin_title
         timeout = self.api.default_timeout_sec
