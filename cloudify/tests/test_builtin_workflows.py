@@ -15,6 +15,7 @@
 
 
 import time
+import unittest
 from os import path
 
 import mock
@@ -658,6 +659,68 @@ class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):
 
     def _get_node_instance(self, node_id):
         return self.env.storage.get_node_instances(node_id=node_id)[0]
+
+
+class TestCheckStatus(unittest.TestCase):
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-check-status.yaml'))
+    def test_all_nodes_run(self, cfy_local):
+        self.assertRaises(
+            exceptions.WorkflowFailed,
+            cfy_local.execute, 'check_status'
+        )
+        pass_instances = cfy_local.storage.get_node_instances(
+            node_id='node_passing')
+        fail_instances = cfy_local.storage.get_node_instances(
+            node_id='node_failing')
+        noop_instances = cfy_local.storage.get_node_instances(
+            node_id='node_undefined')
+        assert len(pass_instances) == 1
+        assert len(fail_instances) == 1
+        assert len(noop_instances) == 1
+
+        pass_instance = pass_instances[0]
+        assert pass_instance['system_properties']
+        assert pass_instance['system_properties']['ok']
+
+        # the noop instance did run, even though it depends on a failing one
+        noop_instance = noop_instances[0]
+        assert noop_instance['system_properties']
+        assert noop_instance['system_properties']['ok']
+
+        fail_instance = fail_instances[0]
+        assert fail_instance['system_properties']
+        assert not fail_instance['system_properties']['ok']
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-check-status.yaml'))
+    def test_by_dependency_order(self, cfy_local):
+        self.assertRaises(
+            exceptions.WorkflowFailed,
+            cfy_local.execute, 'check_status', parameters={
+                'run_by_dependency_order': True,
+            },
+            allow_custom_parameters=True
+        )
+        fail_instances = cfy_local.storage.get_node_instances(
+            node_id='node_failing')
+        noop_instances = cfy_local.storage.get_node_instances(
+            node_id='node_undefined')
+        assert len(fail_instances) == 1
+        assert len(noop_instances) == 1
+
+        fail_instance = fail_instances[0]
+        assert fail_instance['system_properties']
+        assert not fail_instance['system_properties']['ok']
+
+        # with run_by_dependency_order, the noop instance didnt even run,
+        # because it depends on a failing task
+        noop_instance = noop_instances[0]
+        assert not noop_instance['system_properties']
 
 
 class TestRollbackWorkflow(LifecycleBaseTest):
