@@ -51,35 +51,9 @@ except ImportError as e:
 
 class _Environment(object):
 
-    def __init__(self,
-                 storage,
-                 blueprint_path=None,
-                 name='local',
-                 inputs=None,
-                 load_existing=False,
-                 ignored_modules=None,
-                 provider_context=None,
-                 resolver=None,
-                 validate_version=True):
+    def __init__(self, storage):
         self.storage = storage
         self.storage.env = self
-
-        if load_existing:
-            self.storage.load(name)
-        else:
-            plan, nodes, node_instances = _parse_plan(blueprint_path,
-                                                      inputs,
-                                                      ignored_modules,
-                                                      resolver,
-                                                      validate_version)
-            storage.init(
-                name=name,
-                plan=plan,
-                nodes=nodes,
-                inputs=plan.inputs,
-                node_instances=node_instances,
-                blueprint_path=blueprint_path,
-                provider_context=provider_context)
 
     @property
     def plan(self):
@@ -157,22 +131,29 @@ def init_env(blueprint_path,
              validate_version=True):
     if storage is None:
         storage = InMemoryStorage()
-    return _Environment(storage=storage,
-                        blueprint_path=blueprint_path,
-                        name=name,
-                        inputs=inputs,
-                        load_existing=False,
-                        ignored_modules=ignored_modules,
-                        provider_context=provider_context,
-                        resolver=resolver,
-                        validate_version=validate_version)
+
+    plan, nodes, node_instances = _parse_plan(
+        blueprint_path,
+        inputs,
+        ignored_modules,
+        resolver,
+        validate_version
+    )
+    storage.init(
+        name=name,
+        plan=plan,
+        nodes=nodes,
+        inputs=plan.inputs,
+        node_instances=node_instances,
+        blueprint_path=blueprint_path,
+        provider_context=provider_context
+    )
+    return _Environment(storage=storage)
 
 
 def load_env(name, storage, resolver=None):
-    return _Environment(storage=storage,
-                        name=name,
-                        load_existing=True,
-                        resolver=resolver)
+    storage.load(name)
+    return _Environment(storage=storage)
 
 
 def _parse_plan(blueprint_path, inputs, ignored_modules, resolver,
