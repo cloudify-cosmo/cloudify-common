@@ -72,6 +72,13 @@ class NodeInstance(dict):
         return self.get('runtime_properties')
 
     @property
+    def system_properties(self):
+        """
+        :return: The system properties of the node instance.
+        """
+        return self.get('system_properties')
+
+    @property
     def state(self):
         """
         :return: The current state of the node instance.
