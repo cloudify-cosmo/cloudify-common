@@ -914,7 +914,7 @@ class _WorkflowContextBase(object):
     def update_node_instance(
         self,
         node_instance_id,
-        version=None,
+        version=0,
         state=None,
         runtime_properties=None,
         system_properties=None,
