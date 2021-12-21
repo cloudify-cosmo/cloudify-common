@@ -15,13 +15,14 @@
 
 import numbers
 from itertools import chain
+from datetime import datetime
 
 from cloudify import constants, utils
 from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
 from cloudify.manager import get_rest_client
 from cloudify.workflows.tasks_graph import make_or_get_graph
-from cloudify.workflows.tasks import HandlerResult
+from cloudify.workflows.tasks import HandlerResult, TASK_SUCCEEDED
 from cloudify.utils import add_plugins_to_install, add_plugins_to_uninstall
 
 
@@ -693,6 +694,36 @@ def execute_operation(ctx, operation, *args, **kwargs):
     graph.execute()
 
 
+def _set_node_instance_status(task):
+    workflow_context = task.workflow_context
+    instance_id = task.info['instance_id']
+    new_status = _format_check_status_report(task)
+
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    previous_status = system_properties.get('status')
+    system_properties['previous_status'] = previous_status
+    system_properties['status'] = new_status
+
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties
+    )
+
+
+def _format_check_status_report(task):
+    result = task.async_result.result
+    if isinstance(result, Exception):
+        result = str(result)
+    return {
+        'ok': task.get_state() == TASK_SUCCEEDED,
+        'timestamp': datetime.utcnow().isoformat(),
+        'task': None if task.is_nop() else task.name,
+        'result': result
+    }
+
+
 def check_status_on_success(task):
     """check_status success handler
 
@@ -700,12 +731,7 @@ def check_status_on_success(task):
     node-instance based on the given task.info, and store the result into
     the node-instance's system-properties.
     """
-    task.workflow_context.update_node_instance(
-        task.info['instance_id'],
-        force=True,
-        system_properties={'ok': True},
-
-    )
+    _set_node_instance_status(task)
     return HandlerResult.cont()
 
 
@@ -715,11 +741,7 @@ def check_status_on_failure(task):
     Similar to check_status_on_success, but runs when the check_status
     task fails.
     """
-    task.workflow_context.update_node_instance(
-        task.info['instance_id'],
-        force=True,
-        system_properties={'ok': False},
-    )
+    _set_node_instance_status(task)
     return HandlerResult.fail()
 
 

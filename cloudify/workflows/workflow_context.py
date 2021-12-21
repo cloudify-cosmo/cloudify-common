@@ -327,6 +327,10 @@ class CloudifyWorkflowNodeInstance(object):
         return self._node_instance.get('scaling_groups', [])
 
     @property
+    def system_properties(self):
+        return self._node_instance.get('system_properties', {})
+
+    @property
     def logger(self):
         """A logger for this workflow node"""
         if self._logger is None:
