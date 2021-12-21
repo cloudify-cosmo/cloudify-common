@@ -682,17 +682,16 @@ class TestCheckStatus(unittest.TestCase):
         assert len(noop_instances) == 1
 
         pass_instance = pass_instances[0]
-        assert pass_instance['system_properties']
-        assert pass_instance['system_properties']['ok']
+        assert pass_instance['system_properties']['status']['ok']
 
         # the noop instance did run, even though it depends on a failing one
         noop_instance = noop_instances[0]
-        assert noop_instance['system_properties']
-        assert noop_instance['system_properties']['ok']
+        assert 'status' in noop_instance['system_properties']
+        assert noop_instance['system_properties']['status']['ok']
 
         fail_instance = fail_instances[0]
-        assert fail_instance['system_properties']
-        assert not fail_instance['system_properties']['ok']
+        assert 'status' in fail_instance['system_properties']
+        assert not fail_instance['system_properties']['status']['ok']
 
     @workflow_test(path.join(
         'resources',
