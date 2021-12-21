@@ -713,13 +713,13 @@ class TestCheckStatus(unittest.TestCase):
         assert len(noop_instances) == 1
 
         fail_instance = fail_instances[0]
-        assert fail_instance['system_properties']
-        assert not fail_instance['system_properties']['ok']
+        assert fail_instance['system_properties']['status']
+        assert not fail_instance['system_properties']['status']['ok']
 
         # with run_by_dependency_order, the noop instance didnt even run,
         # because it depends on a failing task
         noop_instance = noop_instances[0]
-        assert not noop_instance['system_properties']
+        assert 'status' not in noop_instance['system_properties']
 
 
 class TestRollbackWorkflow(LifecycleBaseTest):
