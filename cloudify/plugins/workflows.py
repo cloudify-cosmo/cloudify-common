@@ -716,7 +716,7 @@ def _format_check_status_report(task):
     return {
         'ok': task.get_state() == TASK_SUCCEEDED,
         'timestamp': datetime.utcnow().isoformat(),
-        'task': task.name,
+        'task': None if task.is_nop() else task.name,
         'result': task.async_result.result
     }
 
