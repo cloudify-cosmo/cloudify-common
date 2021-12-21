@@ -713,11 +713,14 @@ def _set_node_instance_status(task):
 
 
 def _format_check_status_report(task):
+    result = task.async_result.result
+    if isinstance(result, Exception):
+        result = str(result)
     return {
         'ok': task.get_state() == TASK_SUCCEEDED,
         'timestamp': datetime.utcnow().isoformat(),
         'task': None if task.is_nop() else task.name,
-        'result': task.async_result.result
+        'result': result
     }
 
 
