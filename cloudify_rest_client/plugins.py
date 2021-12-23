@@ -170,6 +170,27 @@ class Plugin(dict):
         """
         return self.get('installation_state')
 
+    @property
+    def blueprint_labels(self):
+        """
+        :return: blueprint_labels declared for that plugin.
+        """
+        return self.get('blueprint_labels')
+
+    @property
+    def labels(self):
+        """
+        :return: labels declared for that plugin.
+        """
+        return self.get('labels')
+
+    @property
+    def resource_tags(self):
+        """
+        :return: resource_tags declared for that plugin.
+        """
+        return self.get('resource_tags')
+
 
 class PluginsClient(object):
     """
