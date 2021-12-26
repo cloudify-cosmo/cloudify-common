@@ -197,6 +197,31 @@ class ExecutionGroupsClient(object):
             '/execution-groups/{0}'.format(execution_group_id))
         return ExecutionGroup(response)
 
+    def create(self, deployment_group_id, workflow_id, executions,
+               force=False, default_parameters=None, parameters=None,
+               concurrency=5, owner=None, created_at=None):
+        """Create an exec group without running it.
+        Internal use only.
+        """
+        if not executions:
+            raise RuntimeError('Executions must be provided when '
+                               'creating an exec group without running it.')
+        args = {
+            'force': force,
+            'deployment_group_id': deployment_group_id,
+            'workflow_id': workflow_id,
+            'parameters': parameters,
+            'default_parameters': default_parameters,
+            'concurrency': concurrency,
+            'associated_executions': executions,
+        }
+        if owner:
+            args['owner'] = owner
+        if created_at:
+            args['created_at'] = created_at
+        response = self.api.post('/execution-groups', data=args)
+        return ExecutionGroup(response)
+
     def start(self, deployment_group_id, workflow_id, force=False,
               default_parameters=None, parameters=None,
               concurrency=5):
