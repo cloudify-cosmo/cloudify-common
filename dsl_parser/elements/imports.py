@@ -395,6 +395,10 @@ def _build_ordered_imports(parsed_dsl_holder,
                                       "(via '{1}')"
                                       .format(another_import, import_url),
                         filename=import_url)
+                if utils.is_plugin_import(import_url):
+                    utils.remove_dsl_keys(
+                        imported_dsl,
+                        constants.PLUGIN_DSL_KEYS_READ_FROM_DB)
                 cloudify_basic_types = is_cloudify_basic_types(imported_dsl)
                 validate_import_namespace(namespace,
                                           cloudify_basic_types,
