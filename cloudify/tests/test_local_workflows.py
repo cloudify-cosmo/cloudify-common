@@ -917,7 +917,8 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
             pass
         self._execute_workflow(stub_workflow, name=self._testMethodName)
         self.assertTrue(os.path.isdir(
-            os.path.join(self.storage_dir, self._testMethodName)))
+            os.path.join(
+                self.storage_dir, 'blueprints', self._testMethodName)))
 
     def test_persistency(self):
         bootstrap_context = {'stub': 'prop'}
@@ -983,8 +984,11 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
         def op0(ctx, **_):
             self.assertEquals(
                 ctx.plugin.workdir,
-                os.path.join(self.storage_dir, self._testMethodName,
-                             'workdir', 'plugins', 'p'))
+                os.path.join(
+                    self.storage_dir, 'deployments', self._testMethodName,
+                    'workdir', 'plugins', 'p'
+                )
+            )
 
             work_file = os.path.join(ctx.plugin.workdir, 'work_file')
             self.assertFalse(os.path.exists(work_file))
