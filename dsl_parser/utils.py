@@ -418,3 +418,10 @@ def remove_dsl_keys(dsl_holder, keys_to_remove):
     for key in list(dsl_holder.value.keys()):
         if key.value in keys_to_remove:
             del dsl_holder.value[key]
+
+
+def add_values_node_description(data):
+    result = {}
+    for k, v in data.items():
+        result[k] = {'values': v}
+    return result
