@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import abc
 import os
 import tempfile
 import copy
@@ -23,6 +24,8 @@ import json
 import time
 import threading
 import sys
+import weakref
+
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -30,7 +33,7 @@ from cloudify_rest_client.nodes import Node
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.node_instances import NodeInstance
 
-from cloudify._compat import StringIO
+from cloudify._compat import StringIO, ABC
 from cloudify import dispatch, utils
 from cloudify.workflows.workflow_context import (
     DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE)
@@ -50,36 +53,9 @@ except ImportError as e:
 
 
 class _Environment(object):
-
-    def __init__(self,
-                 storage,
-                 blueprint_path=None,
-                 name='local',
-                 inputs=None,
-                 load_existing=False,
-                 ignored_modules=None,
-                 provider_context=None,
-                 resolver=None,
-                 validate_version=True):
+    def __init__(self, storage):
         self.storage = storage
         self.storage.env = self
-
-        if load_existing:
-            self.storage.load(name)
-        else:
-            plan, nodes, node_instances = _parse_plan(blueprint_path,
-                                                      inputs,
-                                                      ignored_modules,
-                                                      resolver,
-                                                      validate_version)
-            storage.init(
-                name=name,
-                plan=plan,
-                nodes=nodes,
-                inputs=plan.inputs,
-                node_instances=node_instances,
-                blueprint_path=blueprint_path,
-                provider_context=provider_context)
 
     @property
     def plan(self):
@@ -133,7 +109,6 @@ class _Environment(object):
             'local_task_thread_pool_size': task_thread_pool_size,
             'task_name': workflow['operation']
         }
-
         merged_parameters = _merge_and_validate_execution_parameters(
             workflow, workflow_name, parameters, allow_custom_parameters)
         self.storage.store_execution(execution_id, ctx, merged_parameters)
@@ -157,36 +132,37 @@ def init_env(blueprint_path,
              validate_version=True):
     if storage is None:
         storage = InMemoryStorage()
-    return _Environment(storage=storage,
-                        blueprint_path=blueprint_path,
-                        name=name,
-                        inputs=inputs,
-                        load_existing=False,
-                        ignored_modules=ignored_modules,
-                        provider_context=provider_context,
-                        resolver=resolver,
-                        validate_version=validate_version)
+
+    storage.create_blueprint(
+        name,
+        blueprint_path,
+        provider_context=provider_context,
+        resolver=resolver,
+        validate_version=validate_version
+    )
+    storage.create_deployment(
+        name,
+        blueprint_name=name,
+        inputs=inputs,
+        ignored_modules=ignored_modules,
+    )
+    deployment_storage = storage.load(name)
+    return _Environment(storage=deployment_storage)
 
 
 def load_env(name, storage, resolver=None):
-    return _Environment(storage=storage,
-                        name=name,
-                        load_existing=True,
-                        resolver=resolver)
+    deployment_storage = storage.load(name)
+    return _Environment(storage=deployment_storage)
 
 
-def _parse_plan(blueprint_path, inputs, ignored_modules, resolver,
-                validate_version):
+def _parse_plan(blueprint_plan, inputs, ignored_modules):
     if dsl_parser is None:
         raise ImportError('cloudify-dsl-parser must be installed to '
                           'execute local workflows. '
                           '(e.g. "pip install cloudify-dsl-parser") [{0}]'
                           .format(_import_error))
     plan = dsl_tasks.prepare_deployment_plan(
-        dsl_parser.parse_from_path(
-            dsl_file_path=blueprint_path,
-            resolver=resolver,
-            validate_version=validate_version),
+        blueprint_plan,
         inputs=inputs)
     nodes = [Node(node) for node in plan['nodes']]
     node_instances = [NodeInstance(instance)
@@ -354,39 +330,42 @@ def _merge_and_validate_execution_parameters(
     return merged_parameters
 
 
-class _Storage(object):
+class DeploymentStorage(object):
+    def __init__(self, storage, deployment):
+        self.name = deployment['id']
+        self.blueprint_name = deployment['blueprint_id']
+        self.deployment = deployment
+        self._storage = storage
+        self._main_instances_lock = threading.RLock()
+        self._instance_locks = weakref.WeakValueDictionary()
 
-    def __init__(self):
-        self.name = None
-        self.resources_root = None
-        self.plan = None
-        self._nodes = None
-        self._locks = None
-        self.env = None
-        self._provider_context = None
-        self.created_at = None
-        self.inputs = {}
+    @contextmanager
+    def _lock(self, instance_id):
+        with self._main_instances_lock:
+            if instance_id not in self._instance_locks:
+                instance_lock = threading.RLock()
+                self._instance_locks[instance_id] = instance_lock
+            else:
+                instance_lock = self._instance_locks[instance_id]
+        with instance_lock:
+            yield
 
-    def init(self, name, plan, nodes, inputs, node_instances, blueprint_path,
-             provider_context):
-        self.name = name
-        self.created_at = datetime.now()
-        self.resources_root = os.path.dirname(os.path.abspath(blueprint_path))
-        self.plan = plan
-        self.inputs = inputs or {}
-        self._provider_context = provider_context or {}
-        self._init_locks_and_nodes(nodes)
+    def get_workdir(self):
+        return self._storage.get_workdir(self.name)
 
-    def _init_locks_and_nodes(self, nodes):
-        self._nodes = dict((node.id, node) for node in nodes)
-        self._locks = dict((instance_id, threading.RLock()) for instance_id
-                           in self._instance_ids())
+    @property
+    def plan(self):
+        return self.deployment['plan']
 
-    def load(self, name):
-        raise NotImplementedError()
+    def get_blueprint(self):
+        return self._storage.get_blueprint(self.blueprint_name)
 
     def get_resource(self, resource_path):
-        with open(os.path.join(self.resources_root, resource_path), 'rb') as f:
+        resource_path = os.path.join(
+            self.get_blueprint()['resources'],
+            resource_path,
+        )
+        with open(resource_path, 'rb') as f:
             return f.read()
 
     def download_resource(self, resource_path, target_path=None):
@@ -397,6 +376,22 @@ class _Storage(object):
         with open(target_path, 'wb') as f:
             f.write(resource)
         return target_path
+
+    def get_node_instance(self, node_instance_id, evaluate_functions=False):
+        with self._lock(node_instance_id):
+            instance = self._storage.load_instance(self.name, node_instance_id)
+        if instance is None:
+            raise KeyError('Instance {0} does not exist'
+                           .format(node_instance_id))
+        instance = copy.deepcopy(instance)
+        if evaluate_functions:
+            dsl_functions.evaluate_node_instance_functions(
+                instance, self)
+        return instance
+
+    def store_instance(self, instance):
+        with self._lock(instance['id']):
+            self._storage.store_instance(self.name, instance)
 
     def update_node_instance(self,
                              node_instance_id,
@@ -423,21 +418,10 @@ class _Storage(object):
                 instance['system_properties'] = system_properties
             if state is not None:
                 instance['state'] = state
-            self._store_instance(instance)
-
-    def get_node_instance(self, node_instance_id, evaluate_functions=False):
-        instance = self._load_instance(node_instance_id)
-        if instance is None:
-            raise KeyError('Instance {0} does not exist'
-                           .format(node_instance_id))
-        instance = copy.deepcopy(instance)
-        if evaluate_functions:
-            dsl_functions.evaluate_node_instance_functions(
-                instance, self)
-        return instance
+            self.store_instance(instance)
 
     def get_node(self, node_id, evaluate_functions=False):
-        node = self._nodes.get(node_id)
+        node = self._storage.load_node(self.name, node_id)
         if node is None:
             raise KeyError('Node {0} does not exist'.format(node_id))
         node = copy.deepcopy(node)
@@ -446,51 +430,25 @@ class _Storage(object):
         return node
 
     def get_nodes(self, evaluate_functions=False):
-        nodes = copy.deepcopy(list(self._nodes.values()))
+        nodes = copy.deepcopy(
+            list(self._storage.get_nodes(self.name).values()))
         if not evaluate_functions:
             return nodes
         for node in nodes:
             dsl_functions.evaluate_node_functions(node, self)
         return nodes
 
-    def get_provider_context(self):
-        return copy.deepcopy(self._provider_context)
-
-    def _load_instance(self, node_instance_id):
-        raise NotImplementedError()
-
-    def _store_instance(self, node_instance):
-        raise NotImplementedError()
-
-    def get_input(self, input_name):
-        return self.inputs[input_name]
-
-    def get_node_instances(self, node_id=None):
-        raise NotImplementedError()
-
-    def _instance_ids(self):
-        raise NotImplementedError()
-
-    def _lock(self, node_instance_id):
-        return self._locks[node_instance_id]
-
-    def get_workdir(self):
-        raise NotImplementedError()
-
-    def get_secret(self):
-        raise NotImplementedError()
-
-    def get_label(self):
-        raise NotImplementedError()
-
-    def get_environment_capability(self):
-        raise NotImplementedError()
+    def get_node_instances(self, node_id=None, evaluate_functions=False):
+        instances = copy.deepcopy(self._storage.get_node_instances(
+            self.name, node_id=node_id))
+        if evaluate_functions:
+            for instance in instances:
+                dsl_functions.evaluate_node_instance_functions(
+                    instance, self)
+        return instances
 
     def get_executions(self):
-        raise NotImplementedError()
-
-    def store_executions(self, executions):
-        raise NotImplementedError()
+        return self._storage.get_executions(self.name)
 
     def get_execution(self, execution_id):
         for execution in self.get_executions():
@@ -513,7 +471,7 @@ class _Storage(object):
             'created_at': start_time,
             'started_at': start_time
         })
-        self.store_executions(executions)
+        self._storage.store_executions(self.name, executions)
 
     def execution_ended(self, execution_id, error=None):
         ended_at = datetime.now()
@@ -530,205 +488,346 @@ class _Storage(object):
                     'ended_at': ended_at,
                     'error': utils.format_exception(error) if error else None
                 })
-        self.store_executions(executions)
+        self._storage.store_executions(self.name, executions)
 
     def _get_status_display(self, status):
         return {
             Execution.TERMINATED: 'completed'
         }.get(status, status)
 
+    def get_provider_context(self):
+        bp = self.get_blueprint()
+        return copy.deepcopy(bp['provider_context'])
 
-class InMemoryStorage(_Storage):
+    def get_input(self, input_name):
+        return self.deployment['inputs'][input_name]
 
-    def __init__(self):
-        super(InMemoryStorage, self).__init__()
-        self._node_instances = None
-        self._executions = []
+    def get_environment_capability(self):
+        raise NotImplementedError()
 
-    def init(self, name, plan, nodes, inputs, node_instances, blueprint_path,
-             provider_context):
-        self.plan = plan
-        self._executions = []
-        self._node_instances = dict((instance.id, instance)
-                                    for instance in node_instances)
-        super(InMemoryStorage, self).init(
-            name, plan, nodes, inputs, node_instances, blueprint_path,
-            provider_context)
+    def get_secret(self):
+        raise NotImplementedError()
+
+    def get_label(self):
+        raise NotImplementedError()
+
+
+class _Storage(ABC):
+    def create_blueprint(self, name, blueprint_path, provider_context=None,
+                         resolver=None, validate_version=True):
+        plan = dsl_parser.parse_from_path(
+            dsl_file_path=blueprint_path,
+            resolver=resolver,
+            validate_version=validate_version)
+
+        blueprint_filename = os.path.basename(os.path.abspath(blueprint_path))
+        blueprint = {
+            'id': name,
+            'plan': plan,
+            'resources': os.path.dirname(os.path.abspath(blueprint_path)),
+            'blueprint_filename': blueprint_filename,
+            'blueprint_path': blueprint_path,
+            'created_at': datetime.utcnow(),
+            'provider_context': provider_context or {}
+        }
+        self.store_blueprint(name, blueprint)
+
+    def create_deployment(self, name, blueprint_name, inputs=None,
+                          ignored_modules=None):
+        blueprint = self.get_blueprint(blueprint_name)
+        deployment_plan, nodes, node_instances = _parse_plan(
+            blueprint['plan'], inputs, ignored_modules)
+        deployment = {
+            'id': name,
+            'blueprint_id': blueprint['id'],
+            'plan': deployment_plan,
+            'nodes': {n.id: n for n in nodes},
+            'created_at': datetime.utcnow(),
+            'inputs': inputs,
+        }
+        self.store_deployment(name, deployment)
+        for instance in node_instances:
+            self.store_instance(name, NodeInstance(instance))
 
     def load(self, name):
-        raise NotImplementedError('load is not implemented by memory storage')
+        dep = self.get_deployment(name)
+        if dep is None:
+            return None
+        return DeploymentStorage(self, dep)
 
-    def _load_instance(self, node_instance_id):
-        return self._node_instances.get(node_instance_id)
+    @abc.abstractmethod
+    def blueprint_ids(self):
+        raise NotImplementedError()
 
-    def _store_instance(self, node_instance):
-        self._node_instances[node_instance.id] = node_instance
+    @abc.abstractmethod
+    def get_blueprint(self, name):
+        raise NotImplementedError()
 
-    def get_node_instances(self, node_id=None, evaluate_functions=False):
-        instances = list(self._node_instances.values())
+    @abc.abstractmethod
+    def store_blueprint(self, name, blueprint):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def remove_blueprint(self, name):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_deployment(self, name):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def store_deployment(self, name, deployment):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def remove_deployment(self, name):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_nodes(self):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def load_node(self, deployment_id, node_id):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def load_instance(self, deployment_id, node_instance_id):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def store_instance(self, deployment_id, node_instance):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_node_instances(self, deployment_id, node_id=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_workdir(self, deployment_id):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_executions(self, deployment_id):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def store_executions(self, deployment_id, executions):
+        raise NotImplementedError()
+
+
+class InMemoryStorage(_Storage):
+    def __init__(self):
+        super(InMemoryStorage, self).__init__()
+        self._node_instances = {}
+        self._executions = {}
+        self._blueprints = {}
+        self._deployments = {}
+
+    def store_blueprint(self, name, blueprint):
+        self._blueprints[name] = blueprint
+
+    def blueprint_ids(self):
+        raise list(self._blueprints.keys())
+
+    def get_blueprint(self, name):
+        return self._blueprints[name]
+
+    def remove_blueprint(self, name):
+        del self._blueprints[name]
+
+    def get_deployment(self, name):
+        return self._deployments[name]
+
+    def store_deployment(self, name, deployment):
+        self._deployments[name] = deployment
+        self._node_instances[name] = {}
+
+    def remove_deployment(self, name):
+        del self._deployments[name]
+        self._executions.pop(name, None)
+        self._node_instances.pop(name, None)
+
+    def load_node(self, deployment_id, node_id):
+        dep = self.get_deployment(deployment_id)
+        return Node(dep['nodes'][node_id])
+
+    def load_instance(self, deployment_id, node_instance_id):
+        return self._node_instances.get(deployment_id).get(node_instance_id)
+
+    def store_instance(self, deployment_id, node_instance):
+        self._node_instances[deployment_id][node_instance.id] = node_instance
+
+    def get_nodes(self, deployment_id):
+        dep = self.get_deployment(deployment_id)
+        return {node_id: Node(n) for node_id, n in dep['nodes'].items()}
+
+    def get_node_instances(self, deployment_id, node_id=None):
+        instances = list(self._node_instances.get(deployment_id, {}).values())
         if node_id:
             instances = [i for i in instances if i.node_id == node_id]
-        instances = copy.deepcopy(instances)
-        if evaluate_functions:
-            for instance in instances:
-                dsl_functions.evaluate_node_instance_functions(
-                    instance, self)
         return instances
 
-    def _instance_ids(self):
-        return self._node_instances.keys()
-
-    def get_workdir(self):
+    def get_workdir(self, deployment_id):
         raise NotImplementedError('get_workdir is not implemented by memory '
                                   'storage')
 
-    def get_capability(self):
-        raise NotImplementedError('get_capability is not implemented by '
-                                  'memory storage')
+    def get_executions(self, deployment_id):
+        return self._executions.get(deployment_id, [])
 
-    def get_executions(self):
-        return self._executions
-
-    def store_executions(self, executions):
-        self._executions = executions
+    def store_executions(self, deployment_id, executions):
+        self._executions[deployment_id] = executions
 
 
 class FileStorage(_Storage):
-
     def __init__(self, storage_dir='/tmp/cloudify-workflows'):
         super(FileStorage, self).__init__()
         self._root_storage_dir = os.path.join(storage_dir)
-        self._storage_dir = None
-        self._workdir = None
-        self._instances_dir = None
-        self._data_path = None
-        self._payload_path = None
-        self._blueprint_path = None
-        self._executions_path = None
 
-    def init(self, name, plan, nodes, inputs, node_instances, blueprint_path,
-             provider_context):
-        self.created_at = datetime.now()
-        storage_dir = os.path.join(self._root_storage_dir, name)
-        workdir = os.path.join(storage_dir, 'work')
-        instances_dir = os.path.join(storage_dir, 'node-instances')
-        data_path = os.path.join(storage_dir, 'data')
-        payload_path = os.path.join(storage_dir, 'payload')
-        executions_path = os.path.join(storage_dir, 'executions')
-        os.makedirs(storage_dir)
-        os.mkdir(instances_dir)
-        os.mkdir(workdir)
-        with open(payload_path, 'w') as f:
-            f.write(json.dumps({}, cls=JSONEncoderWithDatetime))
-        with open(executions_path, 'w') as f:
-            f.write(json.dumps([], cls=JSONEncoderWithDatetime))
-
-        blueprint_filename = os.path.basename(os.path.abspath(blueprint_path))
-        with open(data_path, 'w') as f:
-            f.write(json.dumps({
-                'plan': plan,
-                'blueprint_filename': blueprint_filename,
-                'nodes': nodes,
-                'inputs': inputs,
-                'provider_context': provider_context or {},
-                'created_at': self.created_at
-            }, cls=JSONEncoderWithDatetime))
-        resources_root = os.path.dirname(os.path.abspath(blueprint_path))
-        self.resources_root = os.path.join(storage_dir, 'resources')
+    def store_blueprint(self, name, blueprint):
+        blueprint_dir = os.path.join(
+            self._root_storage_dir, 'blueprints', name)
+        os.makedirs(blueprint_dir)
 
         def ignore(src, names):
-            return names if os.path.abspath(self.resources_root) == src \
+            return names if os.path.abspath(resources_target) == src \
                 else set()
-        shutil.copytree(resources_root, self.resources_root, ignore=ignore)
-        self._instances_dir = instances_dir
-        for instance in node_instances:
-            self._store_instance(instance, lock=False)
-        self.load(name)
+        resources_source = blueprint['resources']
+        resources_target = os.path.join(blueprint_dir, 'resources')
+        shutil.copytree(resources_source, resources_target, ignore=ignore)
+        blueprint['resources'] = resources_target
 
-    def load(self, name):
-        self.name = name
-        self._storage_dir = os.path.join(self._root_storage_dir, name)
-        self._workdir = os.path.join(self._storage_dir, 'workdir')
-        self._instances_dir = os.path.join(self._storage_dir, 'node-instances')
-        self._payload_path = os.path.join(self._storage_dir, 'payload')
-        self._executions_path = os.path.join(self._storage_dir, 'executions')
-        self._data_path = os.path.join(self._storage_dir, 'data')
-        with open(self._data_path) as f:
-            data = json.loads(f.read(), object_hook=load_datetime)
-        self.plan = data['plan']
-        self.resources_root = os.path.join(self._storage_dir, 'resources')
-        self._blueprint_path = os.path.join(self.resources_root,
-                                            data['blueprint_filename'])
-        self._provider_context = data.get('provider_context', {})
-        self.created_at = data.get('created_at')
-        self.inputs = data.get('inputs', {})
-        nodes = [Node(node) for node in data['nodes']]
-        self._init_locks_and_nodes(nodes)
+        with open(os.path.join(blueprint_dir, 'blueprint.json'), 'w') as f:
+            json.dump(blueprint, f, indent=4, cls=JSONEncoderWithDatetime)
+
+    def blueprint_ids(self):
+        return os.listdir(os.path.join(self._root_storage_dir, 'blueprints'))
+
+    def get_blueprint(self, name):
+        blueprint_dir = os.path.join(
+            self._root_storage_dir, 'blueprints', name)
+        try:
+            with open(os.path.join(blueprint_dir, 'blueprint.json')) as f:
+                return json.load(f, object_hook=load_datetime)
+        except IOError:
+            return None
+
+    def remove_blueprint(self, name):
+        blueprint_dir = os.path.join(
+            self._root_storage_dir, 'blueprints', name)
+        shutil.rmtree(blueprint_dir)
+
+    def get_deployment(self, name):
+        deployment_dir = os.path.join(
+            self._root_storage_dir, 'deployments', name)
+        try:
+            with open(os.path.join(deployment_dir, 'deployment.json')) as f:
+                return json.load(f, object_hook=load_datetime)
+        except IOError:
+            return None
+
+    def store_deployment(self, name, deployment):
+        deployment_dir = os.path.join(
+            self._root_storage_dir, 'deployments', name)
+        os.makedirs(deployment_dir)
+        os.mkdir(os.path.join(deployment_dir, 'node-instances'))
+        os.mkdir(os.path.join(deployment_dir, 'nodes'))
+        os.mkdir(os.path.join(deployment_dir, 'workdir'))
+
+        with open(os.path.join(deployment_dir, 'deployment.json'), 'w') as f:
+            json.dump(deployment, f, indent=4, cls=JSONEncoderWithDatetime)
+
+    def remove_deployment(self, name):
+        deployment_dir = os.path.join(
+            self._root_storage_dir, 'deployments', name)
+        shutil.rmtree(deployment_dir)
 
     @contextmanager
     def payload(self):
-        with open(self._payload_path, 'r') as f:
-            payload = json.load(f, object_hook=load_datetime)
-            yield payload
-        with open(self._payload_path, 'w') as f:
-            json.dump(payload, f, indent=2, cls=JSONEncoderWithDatetime)
+        payload_path = os.path.join(self._root_storage_dir, 'payload')
+        try:
+            with open(payload_path, 'r') as f:
+                payload = json.load(f, object_hook=load_datetime)
+        except IOError:
+            payload = {}
+        yield payload
+        with open(payload_path, 'w') as f:
+            json.dump(payload, f, indent=4, cls=JSONEncoderWithDatetime)
             f.write(os.linesep)
 
-    def get_blueprint_path(self):
-        return self._blueprint_path
+    def load_node(self, deployment_id, node_id):
+        dep = self.get_deployment(deployment_id)
+        return Node(dep['nodes'][node_id])
 
-    def _load_instance(self, node_instance_id):
-        with self._lock(node_instance_id):
-            with open(self._instance_path(node_instance_id)) as f:
-                return NodeInstance(json.loads(f.read(),
-                                               object_hook=load_datetime))
+    def load_instance(self, deployment_id, node_instance_id):
+        with open(self._instance_path(deployment_id, node_instance_id)) as f:
+            return NodeInstance(json.load(f, object_hook=load_datetime))
 
-    def _store_instance(self, node_instance, lock=True):
-        instance_lock = None
-        if lock:
-            instance_lock = self._lock(node_instance.id)
-            instance_lock.acquire()
-        try:
-            with open(self._instance_path(node_instance.id), 'w') as f:
-                f.write(json.dumps(node_instance, cls=JSONEncoderWithDatetime))
-        finally:
-            if lock and instance_lock:
-                instance_lock.release()
+    def store_instance(self, deployment_id, instance):
+        with open(self._instance_path(deployment_id, instance.id), 'w') as f:
+            f.write(json.dumps(instance, cls=JSONEncoderWithDatetime))
 
-    def _instance_path(self, node_instance_id):
-        return os.path.join(self._instances_dir, node_instance_id)
+    def _instance_path(self, deployment_id, node_instance_id):
+        return os.path.join(
+            self._root_storage_dir,
+            'deployments',
+            deployment_id,
+            'node-instances',
+            '{0}.json'.format(node_instance_id)
+        )
 
-    def get_node_instances(self, node_id=None, evaluate_functions=False):
-        instances = [self.get_node_instance(instance_id)
-                     for instance_id in self._instance_ids()]
+    def get_nodes(self, deployment_id):
+        return {
+            node_id: Node(n) for node_id, n in
+            self.get_deployment(deployment_id)['nodes'].items()
+        }
+
+    def get_node_instances(self, deployment_id, node_id=None):
+        instances = [self.load_instance(deployment_id, instance_id)
+                     for instance_id in self._instance_ids(deployment_id)]
         if node_id:
             instances = [i for i in instances if i.node_id == node_id]
-        if evaluate_functions:
-            for instance in instances:
-                dsl_functions.evaluate_node_instance_functions(
-                    instance, self)
         return instances
 
-    def _instance_ids(self):
-        return os.listdir(self._instances_dir)
+    def _instance_ids(self, deployment_id):
+        instances_dir = os.path.join(
+            self._root_storage_dir,
+            'deployments',
+            deployment_id,
+            'node-instances',
+        )
+        return [os.path.splitext(fn)[0] for fn in os.listdir(instances_dir)]
 
-    def get_workdir(self):
-        return self._workdir
+    def get_workdir(self, deployment_id):
+        return os.path.join(
+            self._root_storage_dir,
+            'deployments',
+            deployment_id,
+            'workdir',
+        )
 
-    def get_capability(self):
-        raise NotImplementedError('get_capability is not implemented by '
-                                  'memory storage')
-
-    def get_executions(self):
+    def get_executions(self, deployment_id):
+        executions_path = os.path.join(
+            self._root_storage_dir,
+            'deployments',
+            deployment_id,
+            'executions.json',
+        )
         try:
-            with open(self._executions_path) as f:
+            with open(executions_path) as f:
                 return json.load(f, object_hook=load_datetime)
         except (IOError, ValueError):
             return []
 
-    def store_executions(self, executions):
-        with open(self._executions_path, 'w') as f:
-            json.dump(executions, f, indent=2, cls=JSONEncoderWithDatetime)
+    def store_executions(self, deployment_id, executions):
+        executions_path = os.path.join(
+            self._root_storage_dir,
+            'deployments',
+            deployment_id,
+            'executions.json',
+        )
+        with open(executions_path, 'w') as f:
+            json.dump(executions, f, indent=4, cls=JSONEncoderWithDatetime)
 
 
 class JSONEncoderWithDatetime(json.JSONEncoder):

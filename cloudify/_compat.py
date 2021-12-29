@@ -21,6 +21,7 @@ PY2 = sys.version_info[0] == 2
 
 
 if PY2:
+    from abc import ABCMeta
     import httplib
     import xmlrpclib
     import Queue as queue
@@ -42,7 +43,11 @@ def exec_(code, globs):
     exec code in globs
 """)
 
+    class ABC:
+        __metaclass__ = ABCMeta
+
 else:
+    from abc import ABC
     import builtins
     import queue
     import xmlrpc.client as xmlrpclib
@@ -70,5 +75,5 @@ __all__ = [
     'PY2', 'queue', 'StringIO', 'reraise', 'text_type', 'urlquote',
     'urlparse', 'exec_', 'urljoin', 'urlopen', 'pathname2url', 'parse_qs'
     'urlencode', 'unquote', 'httplib', 'SafeConfigParser', 'xmlrpclib',
-    'parse_version'
+    'parse_version', 'ABC'
 ]
