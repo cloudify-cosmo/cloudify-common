@@ -17,6 +17,8 @@ import os
 
 import networkx as nx
 
+from cloudify.exceptions import InvalidBlueprintImport
+
 from dsl_parser import (exceptions,
                         constants,
                         version as _version,
@@ -47,7 +49,10 @@ MERGEABLE_FROM_DSL_VERSION_1_3 = [
     constants.INPUTS,
     constants.OUTPUTS,
     constants.NODE_TEMPLATES,
-    constants.CAPABILITIES
+    constants.CAPABILITIES,
+    constants.BLUEPRINT_LABELS,
+    constants.LABELS,
+    constants.RESOURCE_TAGS,
 ]
 
 DONT_OVERWRITE = set([
@@ -395,6 +400,25 @@ def _build_ordered_imports(parsed_dsl_holder,
                                       "(via '{1}')"
                                       .format(another_import, import_url),
                         filename=import_url)
+                try:
+                    plugin = resolver.retrieve_plugin(import_url)
+                except InvalidBlueprintImport:
+                    plugin = None
+                if plugin:
+                    # If it is a plugin, then use labels and tags from the DB
+                    utils.remove_dsl_keys(
+                        imported_dsl,
+                        constants.PLUGIN_DSL_KEYS_NOT_FROM_YAML)
+                    for key, value in plugin.items():
+                        if key not in constants.PLUGIN_DSL_KEYS_READ_FROM_DB \
+                                or value is None:
+                            continue
+                        dsl_value = utils.add_values_node_description(value)
+                        _merge_into_dict_or_throw_on_duplicate(
+                            Holder.of({key: dsl_value}),
+                            imported_dsl,
+                            key,
+                            namespace)
                 cloudify_basic_types = is_cloudify_basic_types(imported_dsl)
                 validate_import_namespace(namespace,
                                           cloudify_basic_types,
@@ -609,6 +633,9 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                 key_name,
                 to_dict_holder.value[key_holder],
                 value_holder)
+        elif key_name in constants.PLUGIN_DSL_KEYS_READ_FROM_DB:
+            # Allow blueprint_labels, labels and resource_tags to be merged
+            continue
         else:
             raise exceptions.DSLParsingLogicException(
                 4, "Import failed: Could not merge '{0}' due to conflict "

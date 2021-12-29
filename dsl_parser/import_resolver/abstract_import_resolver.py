@@ -50,6 +50,10 @@ class AbstractImportResolver(ABC):
             return self.resolve(import_url)
         return read_import(import_url)
 
+    @abc.abstractmethod
+    def retrieve_plugin(self, import_url):
+        raise NotImplementedError
+
 
 def read_import(import_url):
     error_str = 'Import failed: Unable to open import url'
