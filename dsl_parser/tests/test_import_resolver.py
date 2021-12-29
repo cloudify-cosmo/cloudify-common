@@ -39,6 +39,9 @@ class CustomImportResolver(AbstractImportResolver):
     def resolve(self, import_url):
         pass
 
+    def retrieve_plugin(self, import_url):
+        pass
+
 
 custom_resolver_class_path = "%s:%s" % (
     CustomImportResolver.__module__, CustomImportResolver.__name__)
@@ -46,6 +49,9 @@ custom_resolver_class_path = "%s:%s" % (
 
 class CustomImportResolverWithoutInit(AbstractImportResolver):
     def resolve(self, import_url):
+        pass
+
+    def retrieve_plugin(self, import_url):
         pass
 
 
@@ -59,6 +65,9 @@ class FailedToInitializeCustomImportResolver(AbstractImportResolver):
         raise MockCustomImportResolverException('mock exception')
 
     def resolve(self, import_url):
+        pass
+
+    def retrieve_plugin(self, import_url):
         pass
 
 
