@@ -17,6 +17,8 @@ import os
 
 import networkx as nx
 
+from cloudify.exceptions import InvalidBlueprintImport
+
 from dsl_parser import (exceptions,
                         constants,
                         version as _version,
@@ -398,12 +400,15 @@ def _build_ordered_imports(parsed_dsl_holder,
                                       "(via '{1}')"
                                       .format(another_import, import_url),
                         filename=import_url)
-                plugin = resolver.retrieve_plugin(import_url)
+                try:
+                    plugin = resolver.retrieve_plugin(import_url)
+                except InvalidBlueprintImport:
+                    plugin = None
                 if plugin:
                     # If it is a plugin, then use labels and tags from the DB
                     utils.remove_dsl_keys(
                         imported_dsl,
-                        constants.PLUGIN_DSL_KEYS_READ_FROM_DB)
+                        constants.PLUGIN_DSL_KEYS_NOT_FROM_YAML)
                     for key, value in plugin.items():
                         if key not in constants.PLUGIN_DSL_KEYS_READ_FROM_DB \
                                 or value is None:
