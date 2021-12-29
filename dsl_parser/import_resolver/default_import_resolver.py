@@ -154,3 +154,6 @@ class DefaultImportResolver(AbstractImportResolver):
                     'Each rule must be a dictionary with one (key,value) pair '
                     'but the rule [{0}] has {1} keys.'
                     .format(rule, len(rule)))
+
+    def retrieve_plugin(self, import_url):
+        pass

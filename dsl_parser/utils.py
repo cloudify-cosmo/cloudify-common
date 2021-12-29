@@ -401,9 +401,27 @@ def is_blueprint_import(import_url):
     return import_url.startswith(constants.BLUEPRINT_IMPORT)
 
 
+def is_plugin_import(import_url):
+    return import_url.startswith(constants.PLUGIN_PREFIX)
+
+
 def remove_blueprint_import_prefix(import_url):
     return import_url.replace(constants.BLUEPRINT_IMPORT, '')
 
 
 def find_suffix_matches_in_list(sub_str, items):
     return [item for item in items if item.endswith(sub_str)]
+
+
+def remove_dsl_keys(dsl_holder, keys_to_remove):
+    """Remove `keys_to_remove` keys from `dsl_holder`."""
+    for key in list(dsl_holder.value.keys()):
+        if key.value in keys_to_remove:
+            del dsl_holder.value[key]
+
+
+def add_values_node_description(data):
+    result = {}
+    for k, v in data.items():
+        result[k] = {'values': v}
+    return result

@@ -48,6 +48,7 @@ DEFAULT_SCHEDULES = 'default_schedules'
 DEPLOYMENT_SETTINGS = 'deployment_settings'
 DISPLAY_LABEL = 'display_label'
 HIDDEN = 'hidden'
+RESOURCE_TAGS = 'resource_tags'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
@@ -96,6 +97,8 @@ RESLOVER_PARAMETERS_KEY = 'parameters'
 
 USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean', 'list',
                         'dict', 'regex', 'secret']
+PLUGIN_DSL_KEYS_NOT_FROM_YAML = ['blueprint_labels', 'labels', 'resource_tags']
+PLUGIN_DSL_KEYS_READ_FROM_DB = ['blueprint_labels', 'labels']
 
 UNBOUNDED_LITERAL = 'UNBOUNDED'
 UNBOUNDED = -1
@@ -105,6 +108,7 @@ SCALING_GROUPS = 'scaling_groups'
 NAMESPACE_DELIMITER = '--'
 CLOUDIFY_TYPE_PREFIX = 'cloudify.'
 BLUEPRINT_IMPORT = 'blueprint:'
+PLUGIN_PREFIX = 'plugin:'
 
 ADDED_AND_RELATED = 'added_and_related'
 REMOVED_AND_RELATED = 'removed_and_related'
