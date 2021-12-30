@@ -185,6 +185,10 @@ class DeploymentLabel(DictNoDefaultElement):
                     1, get_attr_err_msg.format(self.name))
 
 
+class ResourceTag(Element):
+    schema = Leaf(type=text_type)
+
+
 class Labels(DictElement):
     schema = Dict(type=DeploymentLabel)
 
@@ -212,3 +216,7 @@ class DeploymentSettings(DictNoDefaultElement):
         'id_template': DeploymentIDTemplate,
         'display_name': DeploymentDisplayName
     }
+
+
+class ResourceTags(DictElement):
+    schema = Dict(type=ResourceTag)
