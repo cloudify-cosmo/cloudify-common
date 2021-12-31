@@ -1026,6 +1026,7 @@ class CloudifyWorkflowContext(_WorkflowContextBase):
             'deployment_id': self.deployment.id,
             'deployment_display_name': self.deployment.display_name,
             'deployment_creator': self.deployment.creator,
+            'deployment_resource_tags': self.deployment.resource_tags,
         })
         return context
 
