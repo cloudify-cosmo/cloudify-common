@@ -293,6 +293,11 @@ class DeploymentContext(EntityContext):
         """The name of the user who owns the deployment."""
         return self._context.get('deployment_creator')
 
+    @property
+    def resource_tags(self):
+        """The name of the user who owns the deployment."""
+        return self._context.get('deployment_resource_tags')
+
 
 class NodeContext(EntityContext):
 
