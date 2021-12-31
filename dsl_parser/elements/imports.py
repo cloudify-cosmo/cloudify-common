@@ -409,13 +409,14 @@ def _build_ordered_imports(parsed_dsl_holder,
                     utils.remove_dsl_keys(
                         imported_dsl,
                         constants.PLUGIN_DSL_KEYS_NOT_FROM_YAML)
-                    for key, value in plugin.items():
-                        if key not in constants.PLUGIN_DSL_KEYS_READ_FROM_DB \
-                                or value is None:
+                    for key in constants.PLUGIN_DSL_KEYS_READ_FROM_DB:
+                        if not plugin.get(key):
                             continue
-                        dsl_value = utils.add_values_node_description(value)
+                        value = plugin[key]
+                        if key in constants.PLUGIN_DSL_KEYS_ADD_VALUES_NODE:
+                            value = utils.add_values_node_description(value)
                         _merge_into_dict_or_throw_on_duplicate(
-                            Holder.of({key: dsl_value}),
+                            Holder.of({key: value}),
                             imported_dsl,
                             key,
                             namespace)
