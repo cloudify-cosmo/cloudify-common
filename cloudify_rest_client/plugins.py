@@ -417,3 +417,8 @@ class PluginsClient(object):
         response = self.api.patch('/plugins/{0}'.format(plugin_id),
                                   data={'creator': creator})
         return Plugin(response)
+
+    def update(self, plugin_id, **kwargs):
+        response = self.api.patch('/plugins/{0}'.format(plugin_id),
+                                  data=kwargs)
+        return Plugin(response)
