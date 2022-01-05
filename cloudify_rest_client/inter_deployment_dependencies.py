@@ -62,7 +62,7 @@ class InterDeploymentDependencyClient(object):
 
     def create(self, dependency_creator, source_deployment, target_deployment,
                external_source=None, external_target=None,
-               target_deployment_func=None):
+               target_deployment_func=None, tenant_name=None):
         """Creates an inter-deployment dependency.
 
         :param dependency_creator: a string representing the entity that
@@ -80,6 +80,8 @@ class InterDeploymentDependencyClient(object):
         metadata, i.e. deployment name, tenant name, and the manager host(s).
         :param target_deployment_func: a function used to determine the target
         deployment.
+        :param tenant_name: name of a tenant that's going to be used to look
+        for source/target deployments.
         :return: an InterDeploymentDependency object.
         """
         data = create_deployment_dependency(dependency_creator,
@@ -87,7 +89,8 @@ class InterDeploymentDependencyClient(object):
                                             target_deployment,
                                             target_deployment_func,
                                             external_source,
-                                            external_target)
+                                            external_target,
+                                            tenant_name)
         response = self.api.put(
             '/{self._uri_prefix}'.format(self=self), data=data)
         return self._wrapper_cls(response)
@@ -118,7 +121,6 @@ class InterDeploymentDependencyClient(object):
          dependencies descriptions, but without a source_deployment(_id).
         :return: a list of created InterDeploymentDependencies IDs.
         """
-        # from celery.contrib import rdb; rdb.set_trace()  # noqa
         response = self.api.put(
             '/deployments/{0}/inter-deployment-dependencies'.format(
                 source_deployment_id),
