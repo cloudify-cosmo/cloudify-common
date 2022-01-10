@@ -935,6 +935,70 @@ class _WorkflowContextBase(object):
             force=force,
         )
 
+    def set_deployment_attributes(self, deployment_id, **kwargs):
+        self.internal.handler.set_deployment_attributes(
+            deployment_id, **kwargs)
+
+    def get_deployment_update(self, update_id):
+        return self.internal.handler.get_deployment_update(update_id)
+
+    def set_deployment_update_attributes(self, update_id, **kwargs):
+        self.internal.handler.set_deployment_update_attributes(
+            update_id, **kwargs)
+
+    def get_blueprint(self, blueprint_id):
+        return self.internal.handler.get_blueprint(blueprint_id)
+
+    def get_deployment(self, deployment_id):
+        return self.internal.handler.get_deployment(deployment_id)
+
+    def list_nodes(self, **kwargs):
+        return self.internal.handler.list_nodes(**kwargs)
+
+    def list_node_instances(self, **kwargs):
+        return self.internal.handler.list_node_instances(**kwargs)
+
+    def update_node(self, deployment_id, node_id, **kwargs):
+        return self.internal.handler.update_node(
+            deployment_id, node_id, **kwargs)
+
+    def delete_node(self, deployment_id, node_id):
+        self.internal.handler.delete_node(deployment_id, node_id)
+
+    def create_nodes(self, deployment_id, nodes):
+        self.internal.handler.create_nodes(deployment_id, nodes)
+
+    def create_node_instances(self, deployment_id, node_instances):
+        self.internal.handler.create_node_instances(
+            deployment_id, node_instances)
+
+    def list_execution_schedules(self, **kwargs):
+        return self.internal.handler.list_execution_schedules(**kwargs)
+
+    def update_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        self.internal.handler.update_execution_schedule(
+            schedule_id, deployment_id, **kwargs)
+
+    def create_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        self.internal.handler.create_execution_schedule(
+            schedule_id, deployment_id, **kwargs)
+
+    def get_managers(self):
+        return self.internal.handler.get_managers()
+
+    def list_idds(self, **kwargs):
+        return self.internal.handler.list_idds(**kwargs)
+
+    def update_idds(self, deployment_id, idds):
+        return self.internal.handler.update_idds(deployment_id, idds)
+
+    def get_secret(self, key):
+        return self.internal.handler.get_secret(key)
+
+    def start_execution(self, deployment_id, workflow_id, **kwargs):
+        return self.internal.handler.start_execution(
+            deployment_id, workflow_id, **kwargs)
+
 
 class WorkflowNodesAndInstancesContainer(object):
     def __init__(self, workflow_context, raw_nodes=None, raw_instances=None):
@@ -1313,6 +1377,60 @@ class CloudifyWorkflowContextHandler(object):
     ):
         raise NotImplementedError('Implemented by subclasses')
 
+    def set_deployment_attributes(self, deployment_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_deployment_update(self, update_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def set_deployment_update_attributes(self, update_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_blueprint(self, blueprint_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_deployment(self, deployment_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_nodes(self, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_node_instances(self, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_node(self, deployment_id, node_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def delete_node(self, deployment_id, node_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def create_nodes(self, deployment_id, nodes):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def create_node_instances(self, deployment_id, node_instances):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_execution_schedules(self, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def create_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_managers(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_idds(self, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_idds(self, deployment_id, idds):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def start_execution(self, deployment_id, workflow_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
@@ -1466,6 +1584,71 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def update_node_instance(self, *args, **kwargs):
         return self.rest_client.node_instances.update(*args, **kwargs)
+
+    def set_deployment_attributes(self, deployment_id, **kwargs):
+        self.rest_client.deployments.set_attributes(deployment_id, **kwargs)
+
+    def get_deployment_update(self, update_id):
+        return self.rest_client.deployment_updates.get(update_id)
+
+    def set_deployment_update_attributes(self, update_id, **kwargs):
+        self.rest_client.deployment_updates.set_attributes(update_id, **kwargs)
+
+    def get_blueprint(self, blueprint_id):
+        return self.rest_client.blueprints.get(blueprint_id)
+
+    def get_deployment(self, deployment_id):
+        return self.rest_client.deployments.get(deployment_id)
+
+    def list_nodes(self, **kwargs):
+        return self.rest_client.nodes.list(**kwargs)
+
+    def list_node_instances(self, **kwargs):
+        return self.rest_client.node_instances.list(**kwargs)
+
+    def update_node(self, deployment_id, node_id, **kwargs):
+        self.rest_client.nodes.update(deployment_id, node_id, **kwargs)
+
+    def delete_node(self, deployment_id, node_id):
+        self.rest_client.nodes.delete(deployment_id, node_id)
+
+    def create_nodes(self, deployment_id, nodes):
+        self.rest_client.nodes.create_many(deployment_id, nodes)
+
+    def create_node_instances(self, deployment_id, node_instances):
+        self.rest_client.node_instances.create_many(
+            deployment_id, node_instances)
+
+    def list_execution_schedules(self, **kwargs):
+        return self.rest_client.execution_schedules.list(**kwargs)
+
+    def update_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        self.rest_client.execution_schedules.update(
+            schedule_id, deployment_id, **kwargs)
+
+    def create_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        self.rest_client.execution_schedules.create(
+            schedule_id, deployment_id, **kwargs)
+
+    def get_managers(self):
+        return self.rest_client.manager.get_managers()
+
+    def list_idds(self, **kwargs):
+        return self.rest_client.inter_deployment_dependencies.list(**kwargs)
+
+    def update_idds(self, deployment_id, idds):
+        return self.rest_client.inter_deployment_dependencies.update_all(
+            deployment_id, idds)
+
+    def get_secret(self, key):
+        return self.rest_client.secrets.get(key)
+
+    def start_execution(self, deployment_id, workflow_id, **kwargs):
+        return self.rest_client.executions.start(
+            deployment_id,
+            workflow_id,
+            **kwargs
+        )
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
