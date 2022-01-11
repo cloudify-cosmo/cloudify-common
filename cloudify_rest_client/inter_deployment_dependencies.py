@@ -132,7 +132,7 @@ class InterDeploymentDependencyClient(object):
 
     def delete(self, dependency_creator, source_deployment, target_deployment,
                is_component_deletion=False, external_source=None,
-               external_target=None):
+               external_target=None, tenant_name=None):
         """Deletes an inter-deployment dependency.
 
         :param dependency_creator: a string representing the entity that
@@ -151,13 +151,16 @@ class InterDeploymentDependencyClient(object):
         :param external_target: if the source deployment uses an external
         resource as target, pass here a JSON containing the target deployment
         metadata, i.e. deployment name, tenant name, and the manager host(s).
+        :param tenant_name: name of a tenant that's going to be used to look
+        for source/target deployments.
         :return: an InterDeploymentDependency object.
         """
         data = create_deployment_dependency(dependency_creator,
                                             source_deployment,
                                             target_deployment,
                                             external_source=external_source,
-                                            external_target=external_target)
+                                            external_target=external_target,
+                                            tenant_name=tenant_name)
         data['is_component_deletion'] = is_component_deletion
         self.api.delete('/{self._uri_prefix}'.format(self=self), data=data)
 
