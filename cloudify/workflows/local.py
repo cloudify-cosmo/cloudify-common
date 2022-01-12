@@ -30,8 +30,11 @@ from datetime import datetime
 from contextlib import contextmanager
 
 from cloudify_rest_client.nodes import Node
+from cloudify_rest_client.blueprints import Blueprint
+from cloudify_rest_client.deployments import Deployment
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.node_instances import NodeInstance
+from cloudify_rest_client.deployment_updates import DeploymentUpdate
 
 from cloudify._compat import StringIO, ABC
 from cloudify import dispatch, utils
@@ -152,6 +155,8 @@ def init_env(blueprint_path,
 
 def load_env(name, storage, resolver=None):
     deployment_storage = storage.load(name)
+    if deployment_storage is None:
+        return None
     return _Environment(storage=deployment_storage)
 
 
@@ -357,8 +362,10 @@ class DeploymentStorage(object):
     def plan(self):
         return self.deployment['plan']
 
-    def get_blueprint(self):
-        return self._storage.get_blueprint(self.blueprint_name)
+    def get_blueprint(self, blueprint_name=None):
+        if blueprint_name is None:
+            blueprint_name = self.blueprint_name
+        return self._storage.get_blueprint(blueprint_name)
 
     def get_resource(self, resource_path):
         resource_path = os.path.join(
@@ -438,9 +445,12 @@ class DeploymentStorage(object):
             dsl_functions.evaluate_node_functions(node, self)
         return nodes
 
-    def get_node_instances(self, node_id=None, evaluate_functions=False):
+    def get_node_instances(self, node_id=None, evaluate_functions=False,
+                           deployment_id=None):
+        if deployment_id is None:
+            deployment_id = self.name
         instances = copy.deepcopy(self._storage.get_node_instances(
-            self.name, node_id=node_id))
+            deployment_id, node_id=node_id))
         if evaluate_functions:
             for instance in instances:
                 dsl_functions.evaluate_node_instance_functions(
@@ -511,6 +521,9 @@ class DeploymentStorage(object):
     def get_label(self):
         raise NotImplementedError()
 
+    def __getattr__(self, name):
+        return getattr(self._storage, name)
+
 
 class _Storage(ABC):
     def create_blueprint(self, name, blueprint_path, provider_context=None,
@@ -537,6 +550,11 @@ class _Storage(ABC):
         blueprint = self.get_blueprint(blueprint_name)
         deployment_plan, nodes, node_instances = _parse_plan(
             blueprint['plan'], inputs, ignored_modules)
+        workflows = []
+        for wf_name, wf in deployment_plan.get('workflows', {}).items():
+            wf = wf.copy()
+            wf['name'] = wf_name
+            workflows.append(wf)
         deployment = {
             'id': name,
             'blueprint_id': blueprint['id'],
@@ -544,6 +562,8 @@ class _Storage(ABC):
             'nodes': {n.id: n for n in nodes},
             'created_at': datetime.utcnow(),
             'inputs': inputs,
+            'workflows': workflows,
+            'scaling_groups': deployment_plan['scaling_groups'],
         }
         self.store_deployment(name, deployment)
         for instance in node_instances:
@@ -576,6 +596,10 @@ class _Storage(ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def set_deployment_attributes(self, name, **attrs):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def store_deployment(self, name, deployment):
         raise NotImplementedError()
 
@@ -592,11 +616,27 @@ class _Storage(ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def update_node(self, deployment_id, node_id, **attrs):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def delete_node(self, deployment_id, node_id):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def create_nodes(self, deployment_id, nodes):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def load_instance(self, deployment_id, node_instance_id):
         raise NotImplementedError()
 
     @abc.abstractmethod
     def store_instance(self, deployment_id, node_instance):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def create_node_instances(self, deployment_id, node_instances):
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -615,6 +655,19 @@ class _Storage(ABC):
     def store_executions(self, deployment_id, executions):
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def create_deployment_update(self, deployment_id, update_id, update):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_deployment_update(self, deployment_id, update_id):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def set_deployment_update_attributes(
+            self, deployment_id, update_id, **attrs):
+        raise NotImplementedError()
+
 
 class InMemoryStorage(_Storage):
     def __init__(self):
@@ -623,6 +676,7 @@ class InMemoryStorage(_Storage):
         self._executions = {}
         self._blueprints = {}
         self._deployments = {}
+        self._deployment_updates = {}
 
     def store_blueprint(self, name, blueprint):
         self._blueprints[name] = blueprint
@@ -631,13 +685,16 @@ class InMemoryStorage(_Storage):
         raise list(self._blueprints.keys())
 
     def get_blueprint(self, name):
-        return self._blueprints[name]
+        return Blueprint(self._blueprints[name])
 
     def remove_blueprint(self, name):
         del self._blueprints[name]
 
     def get_deployment(self, name):
-        return self._deployments[name]
+        return Deployment(self._deployments[name])
+
+    def set_deployment_attributes(self, name, **attrs):
+        self._deployments[name].update(attrs)
 
     def store_deployment(self, name, deployment):
         self._deployments[name] = deployment
@@ -652,11 +709,29 @@ class InMemoryStorage(_Storage):
         dep = self.get_deployment(deployment_id)
         return Node(dep['nodes'][node_id])
 
+    def update_node(self, deployment_id, node_id, **attrs):
+        dep = self.get_deployment(deployment_id)
+        dep['nodes'][node_id].update(attrs)
+
+    def delete_node(self, deployment_id, node_id):
+        dep = self.get_deployment(deployment_id)
+        del dep['nodes'][node_id]
+
+    def create_nodes(self, deployment_id, nodes):
+        dep = self.get_deployment(deployment_id)
+        for node in nodes:
+            node_id = node['id']
+            dep['nodes'][node_id] = node
+
     def load_instance(self, deployment_id, node_instance_id):
         return self._node_instances.get(deployment_id).get(node_instance_id)
 
     def store_instance(self, deployment_id, node_instance):
         self._node_instances[deployment_id][node_instance.id] = node_instance
+
+    def create_node_instances(self, deployment_id, node_instances):
+        for instance in node_instances:
+            self.store_instance(deployment_id, instance)
 
     def get_nodes(self, deployment_id):
         dep = self.get_deployment(deployment_id)
@@ -677,6 +752,17 @@ class InMemoryStorage(_Storage):
 
     def store_executions(self, deployment_id, executions):
         self._executions[deployment_id] = executions
+
+    def create_deployment_update(self, deployment_id, update_id, update):
+        self._deployment_updates[(deployment_id, update_id)] = update
+
+    def get_deployment_update(self, deployment_id, update_id):
+        return DeploymentUpdate(
+            self._deployment_updates[(deployment_id, update_id)])
+
+    def set_deployment_update_attributes(
+            self, deployment_id, update_id, **attrs):
+        self._deployment_updates[(deployment_id, update_id)].update(attrs)
 
 
 class FileStorage(_Storage):
@@ -708,7 +794,7 @@ class FileStorage(_Storage):
             self._root_storage_dir, 'blueprints', name)
         try:
             with open(os.path.join(blueprint_dir, 'blueprint.json')) as f:
-                return json.load(f, object_hook=load_datetime)
+                return Blueprint(json.load(f, object_hook=load_datetime))
         except IOError:
             return None
 
@@ -722,9 +808,17 @@ class FileStorage(_Storage):
             self._root_storage_dir, 'deployments', name)
         try:
             with open(os.path.join(deployment_dir, 'deployment.json')) as f:
-                return json.load(f, object_hook=load_datetime)
+                return Deployment(json.load(f, object_hook=load_datetime))
         except IOError:
             return None
+
+    def set_deployment_attributes(self, name, **attrs):
+        deployment_storage = os.path.join(
+            self._root_storage_dir, 'deployments', name, 'deployment.json')
+        deployment = self.get_deployment(name)
+        deployment.update(attrs)
+        with open(deployment_storage, 'w') as f:
+            json.dump(deployment, f, indent=4, cls=JSONEncoderWithDatetime)
 
     def store_deployment(self, name, deployment):
         deployment_dir = os.path.join(
@@ -733,6 +827,7 @@ class FileStorage(_Storage):
         os.mkdir(os.path.join(deployment_dir, 'node-instances'))
         os.mkdir(os.path.join(deployment_dir, 'nodes'))
         os.mkdir(os.path.join(deployment_dir, 'workdir'))
+        os.mkdir(os.path.join(deployment_dir, 'updates'))
 
         with open(os.path.join(deployment_dir, 'deployment.json'), 'w') as f:
             json.dump(deployment, f, indent=4, cls=JSONEncoderWithDatetime)
@@ -759,6 +854,23 @@ class FileStorage(_Storage):
         dep = self.get_deployment(deployment_id)
         return Node(dep['nodes'][node_id])
 
+    def update_node(self, deployment_id, node_id, **attrs):
+        dep = self.get_deployment(deployment_id)
+        dep['nodes'][node_id].update(attrs)
+        self.set_deployment_attributes(deployment_id, nodes=dep['nodes'])
+
+    def delete_node(self, deployment_id, node_id):
+        dep = self.get_deployment(deployment_id)
+        del dep['nodes'][node_id]
+        self.set_deployment_attributes(deployment_id, nodes=dep['nodes'])
+
+    def create_nodes(self, deployment_id, nodes):
+        dep = self.get_deployment(deployment_id)
+        for node in nodes:
+            node_id = node['id']
+            dep['nodes'][node_id] = node
+        self.set_deployment_attributes(deployment_id, nodes=dep['nodes'])
+
     def load_instance(self, deployment_id, node_instance_id):
         with open(self._instance_path(deployment_id, node_instance_id)) as f:
             return NodeInstance(json.load(f, object_hook=load_datetime))
@@ -766,6 +878,10 @@ class FileStorage(_Storage):
     def store_instance(self, deployment_id, instance):
         with open(self._instance_path(deployment_id, instance.id), 'w') as f:
             f.write(json.dumps(instance, cls=JSONEncoderWithDatetime))
+
+    def create_node_instances(self, deployment_id, node_instances):
+        for instance in node_instances:
+            self.store_instance(deployment_id, instance)
 
     def _instance_path(self, deployment_id, node_instance_id):
         return os.path.join(
@@ -828,6 +944,42 @@ class FileStorage(_Storage):
         )
         with open(executions_path, 'w') as f:
             json.dump(executions, f, indent=4, cls=JSONEncoderWithDatetime)
+
+    def create_deployment_update(self, deployment_id, update_id, update):
+        updates_dir = os.path.join(
+            self._root_storage_dir,
+            'deployments',
+            deployment_id,
+            'updates',
+        )
+        if not os.path.exist(updates_dir):
+            os.makedirs(updates_dir)
+        update_path = os.path.join(updates_dir, '{0}.json'.format(update_id))
+        with open(update_path, 'w') as f:
+            json.dump(update, f, indent=4, cls=JSONEncoderWithDatetime)
+
+    def get_deployment_update(self, deployment_id, update_id):
+        update_path = os.path.join(
+            self._root_storage_dir,
+            'deployments',
+            deployment_id,
+            'updates',
+            update_id,
+        )
+        try:
+            with open(update_path) as f:
+                return DeploymentUpdate(
+                    json.load(f, object_hook=load_datetime))
+        except IOError:
+            return None
+
+    def set_deployment_update_attributes(
+            self, deployment_id, update_id, **attrs):
+        dep_up = self.get_deployment_update(deployment_id, update_id)
+        if dep_up is None:
+            raise RuntimeError('Dep-update {0} not found'.format(update_id))
+        dep_up.update(attrs)
+        self.create_deployment_update(deployment_id, update_id, dep_up)
 
 
 class JSONEncoderWithDatetime(json.JSONEncoder):

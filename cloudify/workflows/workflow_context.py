@@ -1814,6 +1814,81 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
     def update_node_instance(self, *args, **kwargs):
         return self.storage.update_node_instance(*args, **kwargs)
 
+    def set_deployment_attributes(self, deployment_id, **kwargs):
+        if 'workflows' in kwargs:
+            workflows = []
+            for name, wf in kwargs['workflows'].items():
+                wf = wf.copy()
+                wf['name'] = name
+                workflows.append(wf)
+            kwargs['workflows'] = workflows
+        self.storage.set_deployment_attributes(deployment_id, **kwargs)
+
+    def get_deployment_update(self, update_id):
+        return self.storage.get_deployment_update(
+            self.workflow_ctx.deployment.id, update_id)
+
+    def set_deployment_update_attributes(self, update_id, **kwargs):
+        if 'plan' in kwargs:
+            kwargs['deployment_plan'] = kwargs.pop('plan')
+        if 'nodes' in kwargs:
+            kwargs['deployment_update_nodes'] = kwargs.pop('nodes')
+        if 'node_instances' in kwargs:
+            kwargs['deployment_update_node_instances'] = \
+                kwargs.pop('node_instances')
+        self.storage.set_deployment_update_attributes(
+            self.workflow_ctx.deployment.id, update_id, **kwargs)
+
+    def get_blueprint(self, blueprint_id):
+        return self.storage.get_blueprint(blueprint_id)
+
+    def get_deployment(self, deployment_id):
+        return self.storage.get_deployment(deployment_id)
+
+    def list_nodes(self, **kwargs):
+        deployment_id = kwargs.pop('deployment_id')
+        return self.storage.get_nodes(deployment_id)
+
+    def list_node_instances(self, **kwargs):
+        deployment_id = kwargs.pop('deployment_id')
+        node_id = kwargs.pop('node_id', None)
+        return self.storage.get_node_instances(
+            deployment_id=deployment_id, node_id=node_id)
+
+    def update_node(self, deployment_id, node_id, **kwargs):
+        self.storage.update_node(deployment_id, node_id, **kwargs)
+
+    def delete_node(self, deployment_id, node_id):
+        self.storage.delete_node(deployment_id, node_id)
+
+    def create_nodes(self, deployment_id, nodes):
+        self.storage.create_nodes(deployment_id, nodes)
+
+    def create_node_instances(self, deployment_id, node_instances):
+        self.storage.create_node_instances(deployment_id, node_instances)
+
+    def list_execution_schedules(self, **kwargs):
+        return []
+
+    def update_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        pass
+
+    def create_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        pass
+
+    def get_managers(self):
+        return []
+
+    def list_idds(self, **kwargs):
+        return []
+
+    def update_idds(self, deployment_id, idds):
+        pass
+
+    def start_execution(self, deployment_id, workflow_id, **kwargs):
+        raise RuntimeError('Starting executions from executions is not '
+                           'implemented for local workflows')
+
 
 class Modification(object):
 
