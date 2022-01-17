@@ -70,6 +70,7 @@ class AMQPParams(object):
                  amqp_vhost=None,
                  ssl_enabled=None,
                  ssl_cert_path=None,
+                 ssl_cert_data=None,
                  socket_timeout=3,
                  heartbeat_interval=None):
         super(AMQPParams, self).__init__()
@@ -92,6 +93,9 @@ class AMQPParams(object):
             'socket_timeout': socket_timeout
         }
         if OLD_PIKA:
+            if ssl_cert_data:
+                raise RuntimeError(
+                    'Passing in cert content is incompatible with old pika')
             self._amqp_params['ssl'] = ssl_enabled
             if ssl_enabled:
                 self._amqp_params['ssl_options'] = {
@@ -102,9 +106,17 @@ class AMQPParams(object):
                 self._amqp_params['ssl_options'] = {}
         else:
             if ssl_enabled:
-                self._amqp_params['ssl_options'] = pika.SSLOptions(
-                    ssl.create_default_context(
-                        cafile=ssl_cert_path))
+                if ssl_cert_data:
+                    ssl_context = ssl.create_default_context(
+                        cadata=ssl_cert_data)
+                elif ssl_cert_path:
+                    ssl_context = ssl.create_default_context(
+                        cafile=ssl_cert_path)
+                else:
+                    raise RuntimeError(
+                        'When ssl is enabled, ssl_cert_path or ssl_cert_data '
+                        'must be provided')
+                self._amqp_params['ssl_options'] = pika.SSLOptions(ssl_context)
 
     def as_pika_params(self):
         return pika.ConnectionParameters(**self._amqp_params)
@@ -581,6 +593,7 @@ def get_client(amqp_host=None,
                amqp_vhost=None,
                ssl_enabled=None,
                ssl_cert_path=None,
+               ssl_cert_data=None,
                name=None,
                connect_timeout=10,
                cls=AMQPConnection):
@@ -597,7 +610,8 @@ def get_client(amqp_host=None,
         amqp_port,
         amqp_vhost,
         ssl_enabled,
-        ssl_cert_path
+        ssl_cert_path,
+        ssl_cert_data,
     )
 
     return cls(handlers=[], amqp_params=amqp_params, name=name,
@@ -662,7 +676,8 @@ def create_events_publisher(amqp_host=None,
                             amqp_port=None,
                             amqp_vhost=None,
                             ssl_enabled=None,
-                            ssl_cert_path=None):
+                            ssl_cert_path=None,
+                            ssl_cert_data=None):
     thread = threading.current_thread()
 
     amqp_params = AMQPParams(
@@ -672,7 +687,8 @@ def create_events_publisher(amqp_host=None,
         amqp_port,
         amqp_vhost,
         ssl_enabled,
-        ssl_cert_path
+        ssl_cert_path,
+        ssl_cert_data,
     )
 
     try:
