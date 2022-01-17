@@ -69,16 +69,6 @@ class _BrokerConfig(object):
         return BROKER_PORT_SSL if self.broker_ssl_enabled \
             else BROKER_PORT_NO_SSL
 
-    @property
-    def broker_ssl_options(self):
-        if self.broker_ssl_enabled:
-            return {
-                'ca_certs': self.broker_cert_path,
-                'cert_reqs': ssl.CERT_REQUIRED,
-            }
-        else:
-            return {}
-
 
 broker_config = _BrokerConfig()
 broker_config.load_broker_config()

@@ -76,20 +76,13 @@ class AMQPParams(object):
         username = amqp_user or broker_config.broker_username
         password = amqp_pass or broker_config.broker_password
         heartbeat = heartbeat_interval or broker_config.broker_heartbeat
+        ssl_enabled = ssl_enabled or broker_config.broker_ssl_enabled
+        ssl_cert_path = ssl_cert_path or broker_config.broker_cert_path
         credentials = pika.credentials.PlainCredentials(
             username=username,
             password=password,
         )
 
-        broker_ssl_options = {}
-        if ssl_enabled:
-            broker_ssl_options = {
-                'ca_certs': ssl_cert_path,
-                'cert_reqs': ssl.CERT_REQUIRED,
-            }
-        if not broker_ssl_options:
-            broker_ssl_options = broker_config.broker_ssl_options
-            ssl_enabled = ssl_enabled or broker_config.broker_ssl_enabled
         self.raw_host = amqp_host or broker_config.broker_hostname
         self._amqp_params = {
             'port': amqp_port or broker_config.broker_port,
@@ -100,12 +93,18 @@ class AMQPParams(object):
         }
         if OLD_PIKA:
             self._amqp_params['ssl'] = ssl_enabled
-            self._amqp_params['ssl_options'] = broker_ssl_options
+            if ssl_enabled:
+                self._amqp_params['ssl_options'] = {
+                'cert_reqs': ssl.CERT_REQUIRED,
+                    'ca_certs': ssl_cert_path,
+                }
+            else:
+                self._amqp_params['ssl_options'] = {}
         else:
             if ssl_enabled:
                 self._amqp_params['ssl_options'] = pika.SSLOptions(
                     ssl.create_default_context(
-                        cafile=broker_ssl_options['ca_certs']))
+                        cafile=ssl_cert_path))
 
     def as_pika_params(self):
         return pika.ConnectionParameters(**self._amqp_params)
