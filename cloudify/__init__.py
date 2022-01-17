@@ -15,7 +15,6 @@
 
 import json
 import os
-import ssl
 
 from cloudify.constants import BROKER_PORT_SSL, BROKER_PORT_NO_SSL
 

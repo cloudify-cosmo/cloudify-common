@@ -99,7 +99,7 @@ class AMQPParams(object):
             self._amqp_params['ssl'] = ssl_enabled
             if ssl_enabled:
                 self._amqp_params['ssl_options'] = {
-                'cert_reqs': ssl.CERT_REQUIRED,
+                    'cert_reqs': ssl.CERT_REQUIRED,
                     'ca_certs': ssl_cert_path,
                 }
             else:
