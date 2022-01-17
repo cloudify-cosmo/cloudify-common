@@ -14,9 +14,10 @@
 # limitations under the License.
 ############
 
-
+import os
 import random
 import requests
+import tempfile
 
 from cloudify._compat import urlquote
 from cloudify.utils import ipv6_url_compat
@@ -29,7 +30,7 @@ USERNAME_PATTERN = 'rabbitmq_user_{0}'
 class RabbitMQClient(object):
     def __init__(self, hosts, username, password,
                  port=RABBITMQ_MANAGEMENT_PORT, scheme='https',
-                 logger=None, **request_kwargs):
+                 logger=None, cadata=None, **request_kwargs):
         self._hosts = list(hosts) if isinstance(hosts, list) else [hosts]
         self._hosts = [ipv6_url_compat(h) for h in self._hosts]
         random.shuffle(self._hosts)
@@ -37,6 +38,7 @@ class RabbitMQClient(object):
         self._port = port
         self._scheme = scheme
         self._logger = logger
+        self._cadata = cadata
         request_kwargs.setdefault('auth', (username, password))
         self._request_kwargs = request_kwargs
 
@@ -53,6 +55,13 @@ class RabbitMQClient(object):
         request_kwargs.update(kwargs)
         request_kwargs.setdefault('headers', {})\
             .setdefault('Content-Type', 'application/json',)
+
+        ca_path = None
+        if self._cadata is not None:
+            with tempfile.NamedTemporaryFile(delete=False, mode='w') as f:
+                f.write(self._cadata)
+            ca_path = f.name
+            request_kwargs['verify'] = ca_path
 
         while True:
             full_url = '{0}/api/{1}'.format(self.base_url, url)
@@ -83,7 +92,11 @@ class RabbitMQClient(object):
                         self._logger.error(
                             base_message + 'No healthy hosts found.'
                         )
+                    if ca_path:
+                        os.unlink(ca_path)
                     raise
+        if ca_path:
+            os.unlink(ca_path)
         return response
 
     def get_vhost_names(self):
