@@ -115,40 +115,6 @@ class TestTasksGraphExecute(testtools.TestCase):
         self.assertTrue(task1.is_terminated)
         self.assertFalse(task2.apply_async.called)
 
-    def test_wait_after_fail(self):
-        """When a task fails, the already-running tasks are waited for"""
-        class FailedTask(tasks.WorkflowTask):
-            """Task that fails 1 second after starting"""
-            name = 'failtask'
-
-            def apply_async(self):
-                self.set_state(tasks.TASK_FAILED)
-                self.async_result.result = tasks.HandlerResult.fail()
-                return self.async_result
-
-            def handle_task_terminated(self):
-                rv = super(FailedTask, self).handle_task_terminated()
-                task2.set_state(tasks.TASK_SUCCEEDED)
-                task2.async_result.result = None
-                return rv
-
-        class DelayedTask(tasks.WorkflowTask):
-            """Task that succeeds 3 seconds after starting"""
-            name = 'delayedtask'
-            handle_task_terminated = mock.Mock()
-
-        task1 = FailedTask(mock.Mock(), total_retries=0)
-        task2 = DelayedTask(mock.Mock())
-
-        g = TaskDependencyGraph(MockWorkflowContext())
-        g.add_task(task1)
-        g.add_task(task2)
-        self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
-
-        # even though the workflow failed 1 second in, the other task was
-        # still waited for and completed
-        task2.handle_task_terminated.assert_called()
-
     def test_task_sequence(self):
         """Tasks in a sequence are called in order"""
 
