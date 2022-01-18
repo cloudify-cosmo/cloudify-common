@@ -373,17 +373,7 @@ class TaskDependencyGraph(object):
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
-            message = "Task failed '{0}'".format(task.name)
-            causes_text = _task_error_causes_text(task)
-            if causes_text:
-                message = '{0}: {1}'.format(message, causes_text)
-            if result and not isinstance(result, tasks.HandlerResult):
-                result = str(result)
-                if result:
-                    message = '{0} -> {1}'.format(message, result)
-            if self._error is None:
-                self._error = WorkflowFailed(message)
-                self._error_time = time.time()
+            result = self._task_error(result, task)
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
             if self.id is not None:
@@ -400,6 +390,20 @@ class TaskDependencyGraph(object):
 
         self.remove_task(task)
         self._tasks_wait.set()
+
+    def _task_error(self, result, task):
+        message = "Task failed '{0}'".format(task.name)
+        causes_text = _task_error_causes_text(task)
+        if causes_text:
+            message = '{0}: {1}'.format(message, causes_text)
+        if result and not isinstance(result, tasks.HandlerResult):
+            result = str(result)
+            if result:
+                message = '{0} -> {1}'.format(message, result)
+        if self._error is None:
+            self._error = WorkflowFailed(message)
+            self._error_time = time.time()
+        return result
 
 
 class forkjoin(object):
