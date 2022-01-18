@@ -15,7 +15,6 @@
 
 import json
 import os
-import ssl
 
 from cloudify.constants import BROKER_PORT_SSL, BROKER_PORT_NO_SSL
 
@@ -68,16 +67,6 @@ class _BrokerConfig(object):
     def broker_port(self):
         return BROKER_PORT_SSL if self.broker_ssl_enabled \
             else BROKER_PORT_NO_SSL
-
-    @property
-    def broker_ssl_options(self):
-        if self.broker_ssl_enabled:
-            return {
-                'ca_certs': self.broker_cert_path,
-                'cert_reqs': ssl.CERT_REQUIRED,
-            }
-        else:
-            return {}
 
 
 broker_config = _BrokerConfig()
