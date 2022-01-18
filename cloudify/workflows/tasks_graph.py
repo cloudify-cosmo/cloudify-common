@@ -403,6 +403,9 @@ class TaskDependencyGraph(object):
         if self._error is None:
             self._error = WorkflowFailed(message)
             self._error_time = time.time()
+            self._waiting_for = {
+                t for t in self._waiting_for if not t.is_subgraph
+            }
         return result
 
 
