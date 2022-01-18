@@ -348,7 +348,7 @@ class TaskDependencyGraph(object):
             if not self._waiting_for:
                 return True
             deadline = self._error_time + self.ctx.wait_after_fail
-            if deadline > time.time():
+            if time.time() > deadline:
                 return True
             else:
                 self._wake_after_fail = threading.Timer(
