@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 import numbers
+import threading
 from itertools import chain
 from datetime import datetime
 
@@ -697,7 +698,7 @@ def execute_operation(ctx, operation, *args, **kwargs):
 def _set_node_instance_status(task):
     workflow_context = task.workflow_context
     instance_id = task.info['instance_id']
-    new_status = _format_check_status_report(task)
+    new_status = _format_system_task_result(task)
 
     ni = workflow_context.get_node_instance(instance_id)
     system_properties = ni.system_properties or {}
@@ -712,7 +713,7 @@ def _set_node_instance_status(task):
     )
 
 
-def _format_check_status_report(task):
+def _format_system_task_result(task):
     result = task.async_result.result
     if isinstance(result, Exception):
         result = str(result)
@@ -808,6 +809,122 @@ def check_status(ctx, *args, **kwargs):
     graph = _make_check_status_graph(
         ctx,
         name='check_status',
+        *args,
+        **kwargs)
+    graph.execute()
+
+
+@make_or_get_graph
+def _make_check_drift_graph(
+    ctx,
+    run_by_dependency_order=False,
+    type_names=None,
+    node_ids=None,
+    node_instance_ids=None
+):
+    """Make the graph for the check_status workflow
+
+    This is very similar to execute_operation, but a bit simpler, because
+    we only run a single operation from here.
+    """
+    graph = ctx.graph_mode()
+    tasks = {}
+    filtered_node_instances = _filter_node_instances(
+        ctx=ctx,
+        node_ids=node_ids,
+        node_instance_ids=node_instance_ids,
+        type_names=type_names)
+
+    if run_by_dependency_order:
+        filtered_node_instances_ids = set(inst.id for inst in
+                                          filtered_node_instances)
+        for instance in ctx.node_instances:
+            if instance.id not in filtered_node_instances_ids:
+                tasks[instance.id] = graph.subgraph(instance.id)
+
+    # registering actual tasks to sequences
+    for instance in filtered_node_instances:
+        task = instance.execute_operation(
+            operation='cloudify.interfaces.lifecycle.check_drift'
+        )
+        task.info = {'instance_id': instance.id}
+        task.on_success = check_drift_on_success
+        task.on_failure = check_drift_on_failure
+        graph.add_task(task)
+        tasks[instance.id] = task
+        for rel in instance.relationships:
+            source_task = rel.execute_source_operation(
+                'cloudify.interfaces.relationship_lifecycle.check_drift')
+            target_task = rel.execute_target_operation(
+                'cloudify.interfaces.relationship_lifecycle.check_drift')
+            source_task.on_success = check_drift_on_success
+            source_task.on_failure = check_drift_on_failure
+            graph.add_task(source_task)
+            graph.add_dependency(source_task, task)
+            source_task.info = {
+                'instance_id': instance.id,
+                'prefix': 'source_relationships_'
+            }
+
+            target_task.on_success = check_drift_on_success
+            target_task.on_failure = check_drift_on_failure
+            graph.add_task(target_task)
+            graph.add_dependency(target_task, task)
+            target_task.info = {
+                'instance_id': rel.target_id,
+                'prefix': 'target_relationships_'
+            }
+
+
+
+    # adding tasks dependencies if required
+    if run_by_dependency_order:
+        for instance in ctx.node_instances:
+            for rel in instance.relationships:
+                graph.add_dependency(tasks[instance.id],
+                                     tasks[rel.target_id])
+    return graph
+
+
+# check_drift might attempt to update the same instance multiple times
+# concurrently, let's just make the update 100% serialized for now
+_instances_update_lock = threading.Lock()
+
+
+def _set_node_instance_drift(task):
+    with _instances_update_lock:
+        workflow_context = task.workflow_context
+        instance_id = task.info['instance_id']
+        prefix = task.info.get('prefix')
+        target_attr = 'configuration_drift'
+        if prefix:
+            target_attr = prefix + target_attr
+        ni = workflow_context.get_node_instance(instance_id)
+        system_properties = ni.system_properties or {}
+        system_properties[target_attr] = _format_system_task_result(task)
+
+        workflow_context.update_node_instance(
+            instance_id,
+            force=True,
+            system_properties=system_properties
+        )
+
+
+def check_drift_on_success(task):
+    _set_node_instance_drift(task)
+    return HandlerResult.ignore()
+
+
+def check_drift_on_failure(task):
+    _set_node_instance_drift(task)
+    return HandlerResult.fail()
+
+
+@workflow(resumable=True)
+def check_drift(ctx, *args, **kwargs):
+    graph = _make_check_drift_graph(
+        ctx,
+        name='check_drift',
         *args,
         **kwargs)
     graph.execute()
