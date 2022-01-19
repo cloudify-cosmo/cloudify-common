@@ -1533,7 +1533,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def store_operation(self, graph_id, dependencies,
                         id, name, type, parameters, **kwargs):
-        self.rest_client.operations.create(
+        return self.rest_client.operations.create(
             operation_id=id,
             graph_id=graph_id,
             name=name,
