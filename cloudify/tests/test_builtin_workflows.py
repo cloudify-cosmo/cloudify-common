@@ -741,14 +741,14 @@ class TestCheckDrift(unittest.TestCase):
         assert len(pass_instances) == 1
         assert len(fail_instances) == 1
         assert len(relation_instances) == 1
-        assert pass_instances[0].system_properties.keys() == {
+        assert set(pass_instances[0].system_properties.keys()) == {
             'configuration_drift'
         }
-        assert fail_instances[0].system_properties.keys() == {
+        assert set(fail_instances[0].system_properties.keys()) == {
             'configuration_drift',
             'target_relationships_configuration_drift'
         }
-        assert relation_instances[0].system_properties.keys() == {
+        assert set(relation_instances[0].system_properties.keys()) == {
             'configuration_drift',
             'source_relationships_configuration_drift'
         }
