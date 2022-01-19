@@ -160,6 +160,36 @@ class TestTasksGraphExecute(testtools.TestCase):
         self.assertFalse(task.apply_async.called)
         self.assertFalse(task.cancel.called)
 
+    def test_task_on_success(self):
+        """If a task has a success callback, dependent tasks still run"""
+        wctx = MockWorkflowContext()
+        g = TaskDependencyGraph(wctx)
+        record = []
+
+        class Task(tasks.WorkflowTask):
+            name = 'task'
+
+            def apply_async(self):
+                record.append(self.i)
+                self.set_state(tasks.TASK_SUCCEEDED)
+                self.async_result.result = None
+                return self.async_result
+
+        def on_success(task):
+            record.append('success')
+            return tasks.HandlerResult.cont()
+
+        t1 = Task(wctx)
+        t1.i = 1
+        t2 = Task(wctx)
+        t1.on_success = on_success
+        t2.i = 2
+        g.add_task(t1)
+        g.add_task(t2)
+        g.add_dependency(t2, t1)
+        g.execute()
+        assert record == [1, 'success', 2]
+
 
 class _CustomRestorableTask(tasks.WorkflowTask):
     """A custom user-provided task, that can be restored"""
