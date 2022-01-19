@@ -722,6 +722,38 @@ class TestCheckStatus(unittest.TestCase):
         assert 'status' not in noop_instance['system_properties']
 
 
+class TestCheckDrift(unittest.TestCase):
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-check-drift.yaml'))
+    def test_all_nodes_run(self, cfy_local):
+        self.assertRaises(
+            exceptions.WorkflowFailed,
+            cfy_local.execute, 'check_drift'
+        )
+        pass_instances = cfy_local.storage.get_node_instances(
+            node_id='node_passing')
+        fail_instances = cfy_local.storage.get_node_instances(
+            node_id='node_failing')
+        relation_instances = cfy_local.storage.get_node_instances(
+            node_id='node_related')
+        assert len(pass_instances) == 1
+        assert len(fail_instances) == 1
+        assert len(relation_instances) == 1
+        assert set(pass_instances[0].system_properties.keys()) == {
+            'configuration_drift'
+        }
+        assert set(fail_instances[0].system_properties.keys()) == {
+            'configuration_drift',
+            'target_relationships_configuration_drift'
+        }
+        assert set(relation_instances[0].system_properties.keys()) == {
+            'configuration_drift',
+            'source_relationships_configuration_drift'
+        }
+
+
 class TestRollbackWorkflow(LifecycleBaseTest):
 
     @workflow_test(path.join(

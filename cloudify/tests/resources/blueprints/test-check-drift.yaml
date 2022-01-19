@@ -1,0 +1,32 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - minimal_types.yaml
+
+plugins:
+    mock:
+        executor: central_deployment_agent
+        install: false
+
+node_templates:
+  node_failing:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        check_drift: mock.cloudify.tests.test_builtin_workflows.fail_op
+  node_passing:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        check_drift: mock.cloudify.tests.test_builtin_workflows.node_operation
+  node_related:
+    type: cloudify.nodes.Root
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: node_failing
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            check_drift: mock.cloudify.tests.test_builtin_workflows.source_operation
+        target_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            check_drift: mock.cloudify.tests.test_builtin_workflows.target_operation

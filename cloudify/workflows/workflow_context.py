@@ -925,7 +925,7 @@ class _WorkflowContextBase(object):
         relationships=None,
         force=False,
     ):
-        return self.internal.handler.update_node_instance(
+        updated_instance = self.internal.handler.update_node_instance(
             node_instance_id=node_instance_id,
             version=version,
             state=state,
@@ -934,6 +934,10 @@ class _WorkflowContextBase(object):
             relationships=relationships,
             force=force,
         )
+        wctx_instance = self.get_node_instance(node_instance_id)
+        if wctx_instance:
+            wctx_instance._node_instance.update(updated_instance)
+        return updated_instance
 
     def set_deployment_attributes(self, deployment_id, **kwargs):
         self.internal.handler.set_deployment_attributes(

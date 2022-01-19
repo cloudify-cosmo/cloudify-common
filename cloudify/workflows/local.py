@@ -398,7 +398,7 @@ class DeploymentStorage(object):
 
     def store_instance(self, instance):
         with self._lock(instance['id']):
-            self._storage.store_instance(self.name, instance)
+            return self._storage.store_instance(self.name, instance)
 
     def update_node_instance(self,
                              node_instance_id,
@@ -425,7 +425,7 @@ class DeploymentStorage(object):
                 instance['system_properties'] = system_properties
             if state is not None:
                 instance['state'] = state
-            self.store_instance(instance)
+            return self.store_instance(instance)
 
     def get_node(self, node_id, evaluate_functions=False):
         node = self._storage.load_node(self.name, node_id)
@@ -728,6 +728,7 @@ class InMemoryStorage(_Storage):
 
     def store_instance(self, deployment_id, node_instance):
         self._node_instances[deployment_id][node_instance.id] = node_instance
+        return node_instance
 
     def create_node_instances(self, deployment_id, node_instances):
         for instance in node_instances:
@@ -878,6 +879,7 @@ class FileStorage(_Storage):
     def store_instance(self, deployment_id, instance):
         with open(self._instance_path(deployment_id, instance.id), 'w') as f:
             f.write(json.dumps(instance, cls=JSONEncoderWithDatetime))
+        return instance
 
     def create_node_instances(self, deployment_id, node_instances):
         for instance in node_instances:
