@@ -296,3 +296,6 @@ workflows:
 
   check_status:
     mapping: default_workflows.cloudify.plugins.workflows.check_status
+
+  check_drift:
+    mapping: default_workflows.cloudify.plugins.workflows.check_drift
