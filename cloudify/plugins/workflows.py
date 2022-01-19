@@ -910,7 +910,7 @@ def _set_node_instance_drift(task):
 
 def check_drift_on_success(task):
     _set_node_instance_drift(task)
-    return HandlerResult.ignore()
+    return HandlerResult.cont()
 
 
 def check_drift_on_failure(task):
