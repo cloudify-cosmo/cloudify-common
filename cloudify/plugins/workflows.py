@@ -875,8 +875,6 @@ def _make_check_drift_graph(
                 'prefix': 'target_relationships_'
             }
 
-
-
     # adding tasks dependencies if required
     if run_by_dependency_order:
         for instance in ctx.node_instances:

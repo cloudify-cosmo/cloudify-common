@@ -721,6 +721,7 @@ class TestCheckStatus(unittest.TestCase):
         noop_instance = noop_instances[0]
         assert 'status' not in noop_instance['system_properties']
 
+
 class TestCheckDrift(unittest.TestCase):
     @workflow_test(path.join(
         'resources',
@@ -740,7 +741,9 @@ class TestCheckDrift(unittest.TestCase):
         assert len(pass_instances) == 1
         assert len(fail_instances) == 1
         assert len(relation_instances) == 1
-        assert pass_instances[0].system_properties.keys() == {'configuration_drift'}
+        assert pass_instances[0].system_properties.keys() == {
+            'configuration_drift'
+        }
         assert fail_instances[0].system_properties.keys() == {
             'configuration_drift',
             'target_relationships_configuration_drift'
