@@ -238,7 +238,6 @@ class WorkflowTask(object):
                 'Cannot deserialize: {0!r}'.format(data))
 
     def dump(self):
-        self.stored = True
         return {
             'id': self.id,
             'name': self.name,

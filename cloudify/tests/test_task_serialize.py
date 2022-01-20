@@ -88,12 +88,6 @@ class TestSerialize(TestCase):
             'execution_token': 'mock_token'
         })
 
-    def test_marks_as_stored(self):
-        task = _make_remote_task()
-        self.assertFalse(task.stored)
-        task.dump()
-        self.assertTrue(task.stored)
-
     def test_handler_serialize_func(self):
         task = _make_remote_task()
         task.on_success = _on_success_func

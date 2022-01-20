@@ -215,6 +215,8 @@ class TaskDependencyGraph(object):
         if stored_graph:
             self.id = stored_graph['id']
             self._stored = True
+            for task in self._tasks.values():
+                task.stored = True
 
     @property
     def tasks(self):
@@ -377,11 +379,12 @@ class TaskDependencyGraph(object):
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
             if self.id is not None:
-                self.ctx.store_operation(
+                stored = self.ctx.store_operation(
                     new_task,
                     [dep.id for dep in self._dependencies[task]],
                     self.id)
-                new_task.stored = True
+                if stored:
+                    new_task.stored = True
             self.add_task(new_task)
             for dependency in self._dependencies[task]:
                 self.add_dependency(new_task, self.get_task(dependency))
