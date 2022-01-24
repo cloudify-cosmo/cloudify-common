@@ -863,7 +863,7 @@ def _make_check_drift_graph(
             graph.add_dependency(source_task, task)
             source_task.info = {
                 'instance_id': instance.id,
-                'prefix': 'source_relationships_'
+                'relationship_target': rel.target_id,
             }
 
             target_task.on_success = check_drift_on_success
@@ -872,7 +872,7 @@ def _make_check_drift_graph(
             graph.add_dependency(target_task, task)
             target_task.info = {
                 'instance_id': rel.target_id,
-                'prefix': 'target_relationships_'
+                'relationship_source': instance.id,
             }
 
     # adding tasks dependencies if required
@@ -890,16 +890,24 @@ _instances_update_lock = threading.Lock()
 
 
 def _set_node_instance_drift(task):
+    formatted_result = _format_system_task_result(task)
+    workflow_context = task.workflow_context
+    instance_id = task.info['instance_id']
+    relationship_source = task.info.get('relationship_source')
+    relationship_target = task.info.get('relationship_target')
     with _instances_update_lock:
-        workflow_context = task.workflow_context
-        instance_id = task.info['instance_id']
-        prefix = task.info.get('prefix')
-        target_attr = 'configuration_drift'
-        if prefix:
-            target_attr = prefix + target_attr
         ni = workflow_context.get_node_instance(instance_id)
         system_properties = ni.system_properties or {}
-        system_properties[target_attr] = _format_system_task_result(task)
+        if relationship_source:
+            targets = system_properties.setdefault(
+                'target_relationships_configuration_drift', {})
+            targets[relationship_source] = formatted_result
+        elif relationship_target:
+            sources = system_properties.setdefault(
+                'source_relationships_configuration_drift', {})
+            sources[relationship_target] = formatted_result
+        else:
+            system_properties['configuration_drift'] = formatted_result
 
         workflow_context.update_node_instance(
             instance_id,
