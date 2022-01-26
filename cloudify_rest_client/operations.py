@@ -91,6 +91,21 @@ class OperationsClient(object):
             204
         ))
 
+    def _update_operation_inputs(self, deployment_id=None, node_id=None, operation=None, key=None, rel_index=None):
+        """Update stored operations
+
+        This is internal and is only called in deployment-update, to
+        update stored operations' inputs.
+        """
+        self.api.post('/operations', data={
+            'action': 'update-stored',
+            'deployment_id': deployment_id,
+            'node_id': node_id,
+            'operation': operation,
+            'key': key,
+            'rel_index': rel_index,
+        }, expected_status_code=(200, 204))
+
     def delete(self, operation_id):
         uri = '/operations/{0}'.format(operation_id)
         self.api.delete(uri)
