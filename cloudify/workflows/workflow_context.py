@@ -891,6 +891,15 @@ class _WorkflowContextBase(object):
         return self.internal.handler.update_operation(
             operation_id, state, result, exception)
 
+    def _update_operation_inputs(self, *args, **kwargs):
+        """Update stored operations with new inputs.
+
+        This is internal, and is only called from within deployment-update,
+        to update stored operations, to allow for using new operation inputs
+        in executions resumed after the update.
+        """
+        return self.internal.handler._update_operation_inputs(*args, **kwargs)
+
     def get_tasks_graph(self, name):
         return self.internal.handler.get_tasks_graph(self.execution_id, name)
 
@@ -1347,6 +1356,9 @@ class CloudifyWorkflowContextHandler(object):
                          result=None, exception=None):
         raise NotImplementedError('Implemented by subclasses')
 
+    def _update_operation_inputs(self, *args, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
     def store_tasks_graph(self, execution_id, name, operations):
         raise NotImplementedError('Implemented by subclasses')
 
@@ -1521,6 +1533,9 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         self.rest_client.operations.update(
             operation_id, state=state, result=result,
             exception=exception_text, exception_causes=exception_causes)
+
+    def _update_operation_inputs(self, *args, **kwargs):
+        self.rest_client.operations._update_operation_inputs(*args, **kwargs)
 
     def get_tasks_graph(self, execution_id, name):
         graphs = self.rest_client.tasks_graphs.list(execution_id, name)
@@ -1791,6 +1806,9 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
 
     def update_operation(self, operation_id, state,
                          result=None, exception=None):
+        pass
+
+    def _update_operation_inputs(self, *args, **kwargs):
         pass
 
     def store_tasks_graph(self, execution_id, name, operations):
