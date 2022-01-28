@@ -22,7 +22,6 @@ import mock
 import testtools
 
 from cloudify import exceptions
-from cloudify.plugins import lifecycle
 from cloudify.decorators import operation
 from cloudify.test_utils import workflow_test
 from cloudify.workflows.workflow_context import (Modification,
@@ -532,51 +531,6 @@ class TestSubgraphWorkflowLogic(testtools.TestCase):
             invocations = instance.runtime_properties.get('invocations', [])
             all_invocations += invocations
         self.assertEqual(4, len(all_invocations))
-
-
-def mock_uninstall(graph, node_instances, ignore_failure, related_nodes=None):
-    raise RuntimeError('Test - ignore_failure is: ' + str(ignore_failure))
-
-
-class TestUpdateIgnoreFailure(testtools.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestUpdateIgnoreFailure, self).__init__(*args, **kwargs)
-        self.original_uninstall = lifecycle.uninstall_node_instances
-
-    def setUp(self):
-        super(TestUpdateIgnoreFailure, self).setUp()
-        lifecycle.uninstall_node_instances = mock_uninstall
-
-    def tearDown(self):
-        lifecycle.uninstall_node_instances = self.original_uninstall
-        super(TestUpdateIgnoreFailure, self).tearDown()
-
-    @workflow_test(path.join(
-        'resources', 'blueprints', 'test-blueprint-ignore-failure.yaml'))
-    def test_update_ignore_failure_false(self, env):
-        try:
-            env.execute('update', parameters={
-                'ignore_failure': False,
-                'modified_entity_ids': {'relationship': ''}
-            })
-        except RuntimeError as e:
-            self.assertEqual('Test - ignore_failure is: False', str(e))
-        else:
-            fail()
-
-    @workflow_test(path.join(
-        'resources', 'blueprints', 'test-blueprint-ignore-failure.yaml'))
-    def test_update_ignore_failure_true(self, env):
-        try:
-            env.execute('update', parameters={
-                'ignore_failure': True,
-                'modified_entity_ids': {'relationship': ''}
-            })
-        except RuntimeError as e:
-            self.assertEqual('Test - ignore_failure is: True', str(e))
-        else:
-            fail()
 
 
 class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):
