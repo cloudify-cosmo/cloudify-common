@@ -336,6 +336,31 @@ class GetSys(Function):
         return handler.get_sys(self.entity, self.property)
 
 
+@register(name='get_consumers', func_eval_type=RUNTIME_FUNC)
+class GetConsumers(Function):
+    VALID_PROPERTIES = ['ids', 'names', 'count']
+
+    def __init__(self, args, **kwargs):
+        self.property = None
+        super(GetConsumers, self).__init__(args, **kwargs)
+
+    def parse_args(self, args):
+        if isinstance(args, text_type) and args in self.VALID_PROPERTIES:
+            self.property = args
+        else:
+            raise ValueError(
+                "Illegal argument passed to {name} function. Expected a "
+                "property string (one of: {props}), but got {args}".format(
+                    name=self.name, props=', '.join(self.VALID_PROPERTIES),
+                    args=args))
+
+    def validate(self, plan):
+        pass
+
+    def evaluate(self, handler):
+        return handler.get_consumers(self.property)
+
+
 @register(name='get_property', func_eval_type=HYBRID_FUNC)
 class GetProperty(Function):
 
@@ -1476,6 +1501,10 @@ class _PlanEvaluationHandler(_EvaluationHandler):
         raise exceptions.FunctionEvaluationError(
             "`get_sys` should be evaluated at runtime only")
 
+    def get_consumers(self, prop):
+        raise exceptions.FunctionEvaluationError(
+            "`get_consumers` should be evaluated at runtime only")
+
 
 class _RuntimeEvaluationHandler(_EvaluationHandler):
     def __init__(self, storage):
@@ -1555,6 +1584,9 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
 
     def get_sys(self, entity, prop):
         return self._storage.get_sys(entity, prop)
+
+    def get_consumers(self, prop):
+        return self._storage.get_consumers(prop)
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):

@@ -35,7 +35,7 @@ from dsl_parser.multi_instance import (create_deployment_plan,
 class _MockRuntimeEvaluationStorage(object):
     def __init__(self, node_instances=None, nodes=None, inputs=None,
                  secrets=None, capabilities=None, labels=None,
-                 group_capabilities=None):
+                 group_capabilities=None, id=None, consumers=None):
         self._node_instances = node_instances or []
         self._nodes = nodes or []
         self._inputs = inputs or {}
@@ -43,6 +43,8 @@ class _MockRuntimeEvaluationStorage(object):
         self._capabilities = capabilities or {}
         self._labels = labels or {}
         self._group_capabilities = group_capabilities or {}
+        self._consumers = consumers or {}
+        self._deployment_id = id or None
 
     def get_input(self, input_name):
         return self._inputs[input_name]
@@ -89,6 +91,19 @@ class _MockRuntimeEvaluationStorage(object):
         label_value = self.get_label('csys-obj-parent', 0)
         capability_path = [label_value] + capability_path
         return self.get_capability(capability_path)
+
+    def get_sys(self, entity, prop):
+        if (entity, prop) == ('deployment', 'id'):
+            return self._deployment_id
+
+    def get_consumers(self, prop):
+        consumers_list = list(self._consumers.keys())
+        if prop == 'ids':
+            return consumers_list
+        if prop == 'count':
+            return len(consumers_list)
+        if prop == 'names':
+            return list(self._consumers.values())
 
 
 class AbstractTestParser(unittest.TestCase):
