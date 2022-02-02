@@ -126,6 +126,12 @@ class DeploymentUpdatesClient(object):
         items = [DeploymentUpdate(item) for item in response['items']]
         return ListResponse(items, response['metadata'])
 
+    def bulk_insert(self, updates):
+        """Bulk insert deployment updates. For internal use only."""
+        uri = '/deployment-updates'
+        self.api.post(uri, {'deployment_updates': updates},
+                      expected_status_code=[201, 204])
+
     def _update_from_blueprint(self,
                                deployment_id,
                                blueprint_path,
