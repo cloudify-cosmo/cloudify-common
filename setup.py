@@ -19,21 +19,35 @@ from setuptools import setup, find_packages
 install_requires = [
     'retrying==1.3.3',
     'proxy_tools==0.1.0',
-    'bottle==0.12.18',
-    'jinja2>=2.10,<2.11',
-    'requests_toolbelt==0.8.0',
+    'bottle==0.12.19',
+    'jinja2==2.11.3',
+    'requests_toolbelt==0.9.1',
     'wagon>0.10',
-    'fasteners==0.16.0',
-    'pytz==2021.1'
+    'pytz==2021.3'
 ]
 
 if sys.version_info[:3] < (2, 7, 9):
-    install_requires += ['pika==0.11.2', 'requests==2.19.1', ]
+    install_requires += [
+        'pika==0.11.2',
+        'requests==2.19.1',
+        'fasteners==0.16.3',
+    ]
+    pyyaml_version = '5.4.1'
+elif sys.version_info[:2] < (3, 6):
+    install_requires += [
+        'pika==1.1.0',
+        'requests>=2.27.1,<3.0.0',
+        'fasteners==0.16.3',
+    ]
+    pyyaml_version = '5.4.1'
 else:
-    install_requires += ['pika==1.1.0', 'requests>=2.25.0,<3.0.0', ]
-
-if sys.version_info[:2] >= (3, 6):
-    install_requires += ['aiohttp==3.7.4.post0']
+    install_requires += [
+        'pika==1.1.0',
+        'requests>=2.27.1,<3.0.0',
+        'fasteners==0.17.3',
+        'aiohttp==3.8.1',
+    ]
+    pyyaml_version = '6.0'
 
 try:
     from collections import OrderedDict  # NOQA
@@ -48,7 +62,7 @@ except ImportError:
 try:
     import argparse  # NOQA
 except ImportError:
-    install_requires.append('argparse==1.2.2')
+    install_requires.append('argparse==1.4.0')
 
 
 setup(
@@ -76,8 +90,8 @@ setup(
         # for running workflows (in the mgmtworker and the cli), as opposed
         # to eg. just executing operations (in the agent)
         'dispatcher': [
-            'PyYAML==5.4.1',
-            'networkx==1.9.1',
+            'PyYAML=={0}'.format(pyyaml_version),
+            'networkx==1.11',
         ],
         # this is just a hack to allow running unittests on py26.
         # DO NOT USE THIS ANYWHERE ELSE.
