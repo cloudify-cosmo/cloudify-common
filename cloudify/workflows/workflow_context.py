@@ -978,6 +978,9 @@ class _WorkflowContextBase(object):
     def delete_node(self, deployment_id, node_id):
         self.internal.handler.delete_node(deployment_id, node_id)
 
+    def delete_node_instance(self, node_id):
+        self.internal.handler.delete_node_instance(node_id)
+
     def create_nodes(self, deployment_id, nodes):
         self.internal.handler.create_nodes(deployment_id, nodes)
 
@@ -1420,6 +1423,9 @@ class CloudifyWorkflowContextHandler(object):
     def delete_node(self, deployment_id, node_id):
         raise NotImplementedError('Implemented by subclasses')
 
+    def delete_node_instance(self, instance_id):
+        raise NotImplementedError('Implemented by subclasses')
+
     def create_nodes(self, deployment_id, nodes):
         raise NotImplementedError('Implemented by subclasses')
 
@@ -1630,6 +1636,9 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def delete_node(self, deployment_id, node_id):
         self.rest_client.nodes.delete(deployment_id, node_id)
+
+    def delete_node_instance(self, instance_id):
+        self.rest_client.node_instances.delete(instance_id)
 
     def create_nodes(self, deployment_id, nodes):
         self.rest_client.nodes.create_many(deployment_id, nodes)
@@ -1882,6 +1891,9 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
 
     def delete_node(self, deployment_id, node_id):
         self.storage.delete_node(deployment_id, node_id)
+
+    def delete_node_instance(self, instance_id):
+        raise NotImplementedError('Not implemented yet')
 
     def create_nodes(self, deployment_id, nodes):
         self.storage.create_nodes(deployment_id, nodes)
