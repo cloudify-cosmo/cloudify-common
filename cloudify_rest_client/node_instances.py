@@ -271,3 +271,18 @@ class NodeInstancesClient(object):
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata']
         )
+
+    def delete(self, instance_id):
+        """Delete a node-instance
+
+        This is only useful from within deployment-update. You don't want
+        to delete node-instances otherwise: the state of the deployment
+        could be made inconsistent.
+
+        :param instance_id: ID of the instance to be deleted
+        """
+        self.api.delete(
+            '/{self._uri_prefix}/{instance_id}'
+            .format(self=self, instance_id=instance_id),
+            expected_status_code=204,
+        )
