@@ -47,7 +47,7 @@ else:
         'fasteners==0.17.3',
         'aiohttp==3.7.4.post0',
     ]
-    pyyaml_version = '6.0'
+    pyyaml_version = '5.4.1'
 
 try:
     from collections import OrderedDict  # NOQA
