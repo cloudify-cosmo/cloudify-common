@@ -36,7 +36,7 @@ if sys.version_info[:3] < (2, 7, 9):
 elif sys.version_info[:2] < (3, 6):
     install_requires += [
         'pika==1.1.0',
-        'requests>=2.27.1,<3.0.0',
+        'requests==2.25.1',
         'fasteners==0.16.3',
     ]
     pyyaml_version = '5.4.1'
