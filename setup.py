@@ -32,14 +32,12 @@ if sys.version_info[:3] < (2, 7, 9):
         'requests==2.19.1',
         'fasteners==0.16.3',
     ]
-    pyyaml_version = '5.4.1'
 elif sys.version_info[:2] < (3, 6):
     install_requires += [
         'pika==1.1.0',
         'requests==2.25.1',
         'fasteners==0.16.3',
     ]
-    pyyaml_version = '5.4.1'
 else:
     install_requires += [
         'pika==1.1.0',
@@ -47,7 +45,6 @@ else:
         'fasteners==0.17.3',
         'aiohttp==3.7.4.post0',
     ]
-    pyyaml_version = '6.0'
 
 try:
     from collections import OrderedDict  # NOQA
@@ -90,7 +87,7 @@ setup(
         # for running workflows (in the mgmtworker and the cli), as opposed
         # to eg. just executing operations (in the agent)
         'dispatcher': [
-            'PyYAML=={0}'.format(pyyaml_version),
+            'PyYAML==5.4.1',
             'networkx==1.11',
         ],
         # this is just a hack to allow running unittests on py26.
