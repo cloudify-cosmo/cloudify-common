@@ -186,7 +186,7 @@ class DeploymentLabel(DictNoDefaultElement):
 
 
 class ResourceTag(Element):
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=elements.PRIMITIVE_TYPES)
 
 
 class Labels(DictElement):
