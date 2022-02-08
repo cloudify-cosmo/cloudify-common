@@ -31,6 +31,7 @@ import threading
 
 from proxy_tools import proxy
 
+from dsl_parser import functions as dsl_functions
 from cloudify import context
 from cloudify._compat import queue
 from cloudify.manager import (get_bootstrap_context,
@@ -1259,6 +1260,9 @@ class CloudifyWorkflowContextInternal(object):
     def add_local_task(self, task):
         self.local_tasks_processor.add_task(task)
 
+    def evaluate_functions(self, deployment_id, ctx, payload):
+        return self.handler.evaluate_functions(deployment_id, ctx, payload)
+
 
 class LocalTasksProcessing(object):
 
@@ -1451,6 +1455,9 @@ class CloudifyWorkflowContextHandler(object):
         raise NotImplementedError('Implemented by subclasses')
 
     def start_execution(self, deployment_id, workflow_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def evaluate_functions(self, deployment_id, ctx, payload):
         raise NotImplementedError('Implemented by subclasses')
 
 
@@ -1677,6 +1684,11 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             workflow_id,
             **kwargs
         )
+
+    def evaluate_functions(self, deployment_id, ctx, payload):
+        result = \
+            self.rest_client.evaluate.functions(deployment_id, ctx, payload)
+        return result.get('payload')
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
@@ -1923,6 +1935,10 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
         raise RuntimeError('Starting executions from executions is not '
                            'implemented for local workflows')
 
+    def evaluate_functions(self, deployment_id, ctx, payload):
+        return dsl_functions.evaluate_functions(
+            payload=payload, context=ctx, storage=self.storage)
+
 
 class Modification(object):
 
@@ -2001,6 +2017,7 @@ class WorkflowDeploymentContext(context.DeploymentContext):
     def __init__(self, cloudify_context, workflow_ctx):
         super(WorkflowDeploymentContext, self).__init__(cloudify_context)
         self.workflow_ctx = workflow_ctx
+        self._resource_tags = None
 
     def start_modification(self, nodes):
         """Start deployment modification process
@@ -2027,6 +2044,17 @@ class WorkflowDeploymentContext(context.DeploymentContext):
     @property
     def scaling_groups(self):
         return self.workflow_ctx.internal.handler.scaling_groups
+
+    @property
+    def resource_tags(self):
+        """Resource tags associated wth this deployment."""
+        if self._resource_tags is None and self.workflow_ctx.internal:
+            self._resource_tags = \
+                self.workflow_ctx.internal.evaluate_functions(
+                    self.id,
+                    self._context,
+                    self._context.get('deployment_resource_tags'))
+        return self._resource_tags
 
 
 def task_config(fn=None, **arguments):
