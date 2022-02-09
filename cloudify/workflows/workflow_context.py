@@ -2037,11 +2037,16 @@ class WorkflowDeploymentContext(context.DeploymentContext):
     def resource_tags(self):
         """Resource tags associated wth this deployment."""
         if self._resource_tags is None and self.workflow_ctx.internal:
-            self._resource_tags = \
-                self.workflow_ctx.internal.evaluate_functions(
+            raw_tags = self._context.get('deployment_resource_tags')
+            if raw_tags:
+                evaluated = self.workflow_ctx.internal.evaluate_functions(
                     self.id,
                     self._context,
-                    self._context.get('deployment_resource_tags'))
+                    raw_tags,
+                )
+            else:
+                evaluated = {}
+            self._resource_tags = evaluated
         return self._resource_tags
 
 
