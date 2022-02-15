@@ -144,7 +144,8 @@ node_templates:
                             inputs:
                                 a: { get_secret: target_op_secret_id }
 """
-        parsed = prepare_deployment_plan(self.parse(yaml), self.get_secret)
+        parsed = prepare_deployment_plan(self.parse(yaml),
+                                         get_secret_method=self.get_secret)
         webserver_node = None
         for node in parsed.node_templates:
             if node['id'] == 'webserver':
@@ -165,7 +166,7 @@ node_templates:
     def test_validate_secrets_all_valid(self):
         get_secret_mock = Mock(return_value='secret_value')
         parsed = prepare_deployment_plan(self.parse_1_3(self.secrets_yaml),
-                                         get_secret_mock)
+                                         get_secret_method=get_secret_mock)
         self.assertTrue(get_secret_mock.called)
         self.assertFalse(hasattr(parsed, 'secrets'))
 
@@ -183,7 +184,7 @@ node_templates:
                                expected_message,
                                prepare_deployment_plan,
                                self.parse_1_3(self.secrets_yaml),
-                               get_secret_not_found)
+                               get_secret_method=get_secret_not_found)
 
     def test_validate_secrets_unexpected_exception(self):
         get_secret_exception = Mock(side_effect=TypeError)
@@ -207,7 +208,7 @@ node_templates:
                                expected_message,
                                prepare_deployment_plan,
                                self.parse_1_3(self.secrets_yaml),
-                               fake_get_secret)
+                               get_secret_method=fake_get_secret)
 
     def test_validate_secrets_without_secrets(self):
         no_secrets_yaml = """
@@ -248,7 +249,7 @@ node_templates:
 """
         get_secret_mock = Mock(return_value='secret_value')
         parsed = prepare_deployment_plan(self.parse_1_3(no_secrets_yaml),
-                                         get_secret_mock)
+                                         get_secret_method=get_secret_mock)
         self.assertFalse(get_secret_mock.called)
         self.assertFalse(hasattr(parsed, 'secrets'))
 
@@ -296,7 +297,7 @@ node_templates:
             property: { get_secret: secret }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml),
-                                         self.get_secret)
+                                         get_secret_method=self.get_secret)
         node = self.get_node_by_name(parsed, 'node')
         self.assertEqual({'get_secret': 'secret'},
                          node['properties']['property'])
@@ -348,7 +349,8 @@ outputs:
         get_secret_not_found = Mock(side_effect=NotFoundException)
         with self.assertRaisesRegex(exceptions.UnknownSecretError,
                                     "Required secret.*missing_secret.*"):
-            prepare_deployment_plan(parsed, get_secret_not_found)
+            prepare_deployment_plan(parsed,
+                                    get_secret_method=get_secret_not_found)
 
     def test_get_secret_not_json_parseable(self):
         payload = {
