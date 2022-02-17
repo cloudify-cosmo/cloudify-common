@@ -139,7 +139,8 @@ outputs:
         self.assertTrue(isinstance(func, functions.GetSecret))
         self.assertEqual('secret_key', func.secret_id)
         storage = self.mock_evaluation_storage()
-        prepared = prepare_deployment_plan(parsed, storage.get_secret)
+        prepared = prepare_deployment_plan(
+            parsed, get_secret_method=storage.get_secret)
         self.assertEqual(parsed['outputs'], prepared['outputs'])
 
     def test_invalid_nested_get_attribute(self):
@@ -215,7 +216,7 @@ outputs:
             instances, nodes, capabilities={'dep_1': {'cap_a': 'value_a_1'}})
 
         parsed = prepare_deployment_plan(self.parse_1_1(yaml),
-                                         storage.get_secret)
+                                         get_secret_method=storage.get_secret)
         concatenated = parsed['outputs']['concatenated']['value']['concat']
         assertion(concatenated)
 

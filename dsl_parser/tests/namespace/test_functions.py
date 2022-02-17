@@ -1006,7 +1006,8 @@ imports:
     -   {0}--{1}
 """.format('test', import_file_name)
 
-        plan = prepare_deployment_plan(self.parse(main_yaml), self.get_secret)
+        plan = prepare_deployment_plan(self.parse(main_yaml),
+                                       get_secret_method=self.get_secret)
         self.assertEqual(
             {'get_secret': 'secret'},
             plan[constants.OUTPUTS]['test--port']['value'])
@@ -1247,7 +1248,7 @@ node_templates:
     type: my.node.type
 """
         plan = prepare_deployment_plan(self.parse(blueprint_yaml),
-                                       self.get_secret)
+                                       get_secret_method=self.get_secret)
         self.assertEqual(
             {'get_secret': 'test_base_url'},
             plan[constants.INPUTS].get('test_config').get('base_url')
@@ -1345,7 +1346,7 @@ node_templates:
         username: Benoit
 """
         plan = prepare_deployment_plan(self.parse(blueprint_yaml),
-                                       self.get_secret)
+                                       get_secret_method=self.get_secret)
         self.assertEqual(1, len(plan[constants.NODES]))
         plan_properties = plan[constants.NODES][0][constants.PROPERTIES]
         self.assertEqual(
@@ -1451,7 +1452,7 @@ node_templates:
     type: my.node.type
 """
         plan = prepare_deployment_plan(self.parse(blueprint_yaml),
-                                       self.get_secret)
+                                       get_secret_method=self.get_secret)
         self.assertEqual(1, len(plan[constants.NODES]))
         plan_properties = plan[constants.NODES][0][constants.PROPERTIES]
         self.assertEqual(

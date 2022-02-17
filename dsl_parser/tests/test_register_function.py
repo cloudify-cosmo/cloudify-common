@@ -80,7 +80,8 @@ outputs:
             node_instances, nodes,
             capabilities={'dep_1': {'cap_a': 'value_a_1'}})
 
-        parsed = prepare_deployment_plan(self.parse(yaml), storage.get_secret)
+        parsed = prepare_deployment_plan(self.parse(yaml),
+                                         get_secret_method=storage.get_secret)
 
         outputs = parsed['outputs']
         self.assertEqual('FIRST', outputs['output1']['value'])

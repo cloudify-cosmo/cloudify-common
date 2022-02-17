@@ -199,7 +199,7 @@ def parse_value(
     elif type_name == 'boolean':
         if isinstance(value, bool):
             return value
-    elif type_name in ('string', 'secret'):
+    elif type_name in ('string', 'secret', 'deployment_id'):
         return value
     elif type_name == 'regex':
         if isinstance(value, text_type):

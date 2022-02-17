@@ -118,7 +118,6 @@ class InterDeploymentDependencyClient(object):
          dependencies descriptions, but without a source_deployment(_id).
         :return: a list of created InterDeploymentDependencies IDs.
         """
-        # from celery.contrib import rdb; rdb.set_trace()  # noqa
         response = self.api.put(
             '/deployments/{0}/inter-deployment-dependencies'.format(
                 source_deployment_id),
