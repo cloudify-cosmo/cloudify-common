@@ -187,8 +187,9 @@ def _validate_secrets(plan, get_secret_method):
         )
 
 
-def prepare_deployment_plan(plan, inputs=None, runtime_only_evaluation=False,
-                            auto_correct_types=False, get_secret_method=None,
+def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
+                            runtime_only_evaluation=False,
+                            auto_correct_types=False,
                             get_deployments_method=None, **_):
     """
     Prepare a plan for deployment
