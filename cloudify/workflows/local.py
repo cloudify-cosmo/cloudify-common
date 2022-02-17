@@ -347,11 +347,10 @@ class DeploymentStorage(object):
     @contextmanager
     def _lock(self, instance_id):
         with self._main_instances_lock:
-            if instance_id not in self._instance_locks:
+            instance_lock = self._instance_locks.get(instance_id)
+            if instance_lock is None:
                 instance_lock = threading.RLock()
                 self._instance_locks[instance_id] = instance_lock
-            else:
-                instance_lock = self._instance_locks[instance_id]
         with instance_lock:
             yield
 
