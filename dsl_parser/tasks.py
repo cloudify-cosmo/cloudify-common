@@ -46,7 +46,7 @@ def parse_dsl(dsl_location,
         additional_resource_sources=additional_resources)
 
 
-def _set_plan_inputs(plan, inputs=None, auto_correct_types=False):
+def _set_plan_inputs(plan, inputs, auto_correct_types, get_deployments_method):
     inputs = inputs if inputs else {}
     # Verify inputs satisfied
     missing_inputs = []
@@ -100,8 +100,20 @@ def _set_plan_inputs(plan, inputs=None, auto_correct_types=False):
             if auto_correct_types:
                 inputs[input_name] = utils.cast_to_type(
                     inputs[input_name], input_def.get(TYPE, None))
+
+            if input_def.get(TYPE) == 'deployment_id':
+                if get_deployments_method:
+                    get_method = get_deployments_method
+                else:
+                    raise exceptions.InputEvaluationError(
+                        "Get deployments method must be provided to validate "
+                        "inputs of data type 'deployment_id'.")
+            else:
+                get_method = None
+
             constraints.validate_input_value(
-                input_name, input_constraints, inputs[input_name])
+                input_name, input_constraints, inputs[input_name],
+                input_def.get(TYPE), get_method)
             inputs_complete = inputs[input_name]
             try:
                 inputs_complete = utils.parse_value(
@@ -175,15 +187,14 @@ def _validate_secrets(plan, get_secret_method):
         )
 
 
-def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
-                            runtime_only_evaluation=False,
-                            auto_correct_types=False,
-                            **_):
+def prepare_deployment_plan(plan, inputs=None, runtime_only_evaluation=False,
+                            auto_correct_types=False, get_secret_method=None,
+                            get_deployments_method=None, **_):
     """
     Prepare a plan for deployment
     """
     plan = models.Plan(copy.deepcopy(plan))
-    _set_plan_inputs(plan, inputs, auto_correct_types)
+    _set_plan_inputs(plan, inputs, auto_correct_types, get_deployments_method)
     _process_functions(plan, runtime_only_evaluation)
     _validate_secrets(plan, get_secret_method)
     return multi_instance.create_deployment_plan(plan)

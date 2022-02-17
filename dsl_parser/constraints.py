@@ -21,7 +21,8 @@ from dsl_parser import functions, exceptions
 from dsl_parser.constants import (
     INPUTS,
     DEFAULT,
-    CONSTRAINTS as CONSTRAINT_CONST
+    CONSTRAINTS as CONSTRAINT_CONST,
+    TYPE,
 )
 
 _NOT_COMPARABLE_ERROR_MSG = "Value is not comparable, the Constraint " \
@@ -31,13 +32,15 @@ _NO_LENGTH_ERROR_MSG = "Value's length could not be computed. Value " \
 
 # Constraint types:
 #  scalar (int/float/long), dual scalar (list/tuple), sequence (list/tuple),
-#  regex (string)
+#  regex (string), string (string), dict (dictionary/hashmap)
 # A few examples:
 # - dual scalar: [ -0.5, 2 ] or it could be ( 1, 10 ) or any sequence of two
 #                scalars
 # - sequence: ( 1, 0, 'something', False ) or it could
 #             be [ 1, 0, 'something', False ]
-_SCALAR, _DUAL_SCALAR, _SEQUENCE, _REGEX = [0, 1, 2, 3]
+# - string: 'Quick brown fox jumps over the lazy dog'
+# - dict: {'one': 1, 'two': [2, 22], 'three': 3.14}
+_SCALAR, _DUAL_SCALAR, _SEQUENCE, _REGEX, _STRING, _DICT = [0, 1, 2, 3, 4, 5]
 
 CONSTRAINTS = {}
 VALIDATION_FUNCTIONS = {}
@@ -99,10 +102,13 @@ class Constraint(object):
         """
         self.args = args
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         """Value compliance hook.
 
         :param value: value to check the constraint with.
+        :param data_type: data type to check the constraint for.
+        :param get_method: method to retrieve entities related to data_type by
+                           their identifier.
         :return: whether the value complies with this constraint.
         """
         raise NotImplementedError()
@@ -116,7 +122,7 @@ class Constraint(object):
 
 @register_constraint(name='equal', constraint_data_type=_SCALAR)
 class Equal(Constraint):
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: value == self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -126,7 +132,7 @@ class Equal(Constraint):
 @register_constraint(name='greater_than', constraint_data_type=_SCALAR)
 class GreaterThan(Constraint):
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: value > self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -136,7 +142,7 @@ class GreaterThan(Constraint):
 @register_constraint(name='greater_or_equal', constraint_data_type=_SCALAR)
 class GreaterOrEqual(Constraint):
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: value >= self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -146,7 +152,7 @@ class GreaterOrEqual(Constraint):
 @register_constraint(name='less_than', constraint_data_type=_SCALAR)
 class LessThan(Constraint):
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: value < self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -156,7 +162,7 @@ class LessThan(Constraint):
 @register_constraint(name='less_or_equal', constraint_data_type=_SCALAR)
 class LessOrEqual(Constraint):
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: value <= self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -166,7 +172,7 @@ class LessOrEqual(Constraint):
 @register_constraint(name='in_range', constraint_data_type=_DUAL_SCALAR)
 class InRange(Constraint):
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: self.args[0] <= value <= self.args[1],
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -176,7 +182,7 @@ class InRange(Constraint):
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
 class ValidValues(Constraint):
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: value in self.args,
             "Value cannot be searched in the given "
@@ -188,7 +194,7 @@ class ValidValues(Constraint):
 @register_constraint(name='length', constraint_data_type=_SCALAR)
 class Length(Constraint):
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: len(value) == self.args,
             _NO_LENGTH_ERROR_MSG.format(
@@ -198,7 +204,7 @@ class Length(Constraint):
 @register_constraint(name='min_length', constraint_data_type=_SCALAR)
 class MinLength(Constraint):
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: len(value) >= self.args,
             _NO_LENGTH_ERROR_MSG.format(type(value).__name__))
@@ -207,7 +213,7 @@ class MinLength(Constraint):
 @register_constraint(name='max_length', constraint_data_type=_SCALAR)
 class MaxLength(Constraint):
 
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
             lambda: len(value) <= self.args,
             _NO_LENGTH_ERROR_MSG.format(type(value).__name__))
@@ -218,12 +224,70 @@ class Pattern(Constraint):
     # This class represents a regex constraint.
     # E.g. if self.args = 'abc' then calling `predicate` will only return True
     # when value = "abc".
-    def predicate(self, value):
+    def predicate(self, value, data_type=None, get_method=None):
         if not isinstance(value, text_type):
             raise exceptions.ConstraintException(
                 "Value must be of type string, got type "
                 "'{0}'".format(type(value).__name__))
         return bool(re.match(self.args, value))
+
+
+class TypedConstraint(Constraint):
+    SUPPORTED_DATA_TYPES = []
+
+    def predicate(self, value, data_type=None, get_method=None):
+        if data_type not in self.SUPPORTED_DATA_TYPES:
+            raise exceptions.ConstraintException(
+                "'{0}' constraint is not defined for "
+                "'{1}' data types".format(self.name, data_type))
+        if not get_method:
+            raise exceptions.ConstraintException(
+                "Filter constraint requires a get_method "
+                "to retrieve related entities.")
+        if data_type == 'deployment_id':
+            return self.validate_deployment_id(value, get_method)
+        raise exceptions.ConstraintException(
+            "'{0}' filter not implemented for data type '{1}'"
+            .format(self.name, data_type))
+
+    def validate_deployment_id(self, constraint, deployments):
+        raise NotImplementedError('Should be implemented in child classes')
+
+
+@register_constraint(name='filter_id', constraint_data_type=_STRING)
+class FilterId(TypedConstraint):
+    SUPPORTED_DATA_TYPES = ['deployment_id']
+
+    def validate_deployment_id(self, value, get_method):
+        entities = get_method(value, filter_id=self.args)
+        return len(entities) > 0
+
+
+@register_constraint(name='labels', constraint_data_type=_SEQUENCE)
+class Labels(TypedConstraint):
+    SUPPORTED_DATA_TYPES = ['deployment_id']
+
+    def validate_deployment_id(self, value, get_method):
+        entities = get_method(value, labels=self.args)
+        return len(entities) > 0
+
+
+@register_constraint(name='tenants', constraint_data_type=_SEQUENCE)
+class Tenants(TypedConstraint):
+    SUPPORTED_DATA_TYPES = ['deployment_id']
+
+    def validate_deployment_id(self, value, get_method):
+        entities = get_method(value, tenants=self.args)
+        return len(entities) > 0
+
+
+@register_constraint(name='name_pattern', constraint_data_type=_DICT)
+class NamePattern(TypedConstraint):
+    SUPPORTED_DATA_TYPES = ['deployment_id']
+
+    def validate_deployment_id(self, value, get_method):
+        entities = get_method(value, display_name_specs=self.args)
+        return len(entities) > 0
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
@@ -252,6 +316,16 @@ def is_valid_regex(arg):
         return True
     except re.error:
         return False
+
+
+@register_validation_func(constraint_data_type=_STRING)
+def is_string(arg):
+    return isinstance(arg, text_type)
+
+
+@register_validation_func(constraint_data_type=_DICT)
+def is_dict(arg):
+    return isinstance(arg, dict)
 
 
 def validate_args(constraint_cls, args, ancestor):
@@ -283,7 +357,8 @@ def parse(definition):
     return constraint_cls(args)
 
 
-def validate_input_value(input_name, input_constraints, input_value):
+def validate_input_value(input_name, input_constraints, input_value,
+                         type_name, get_method):
     if input_constraints and functions.is_function(input_value):
         raise exceptions.DSLParsingException(
             exceptions.ERROR_INPUT_WITH_FUNCS_AND_CONSTRAINTS,
@@ -291,7 +366,7 @@ def validate_input_value(input_name, input_constraints, input_value):
             'function and also have '
             'constraints.'.format(input_value, input_name))
     for c in input_constraints:
-        if not c.predicate(input_value):
+        if not c.predicate(input_value, type_name, get_method):
             raise exceptions.ConstraintException(
                 "Value {0} of input {1} violates constraint "
                 "{2}.".format(input_value, input_name, c))
@@ -305,8 +380,8 @@ def validate_input_defaults(plan):
             continue
         input_default_value = input_def[DEFAULT]
         input_constraints = extract_constraints(input_def)
-        validate_input_value(
-            input_name, input_constraints, input_default_value)
+        validate_input_value(input_name, input_constraints,
+                             input_default_value, input_def.get(TYPE), None)
 
 
 def extract_constraints(input_def):
