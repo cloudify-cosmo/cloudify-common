@@ -278,7 +278,8 @@ class BlueprintsClient(object):
                         async_upload=False,
                         labels=None,
                         created_at=None,
-                        owner=None):
+                        owner=None,
+                        skip_execution=False):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
@@ -308,7 +309,8 @@ class BlueprintsClient(object):
             async_upload=async_upload,
             labels=labels,
             created_at=created_at,
-            owner=owner)
+            owner=owner,
+            skip_execution=skip_execution)
         if not async_upload:
             return self._wrapper_cls(response)
 
