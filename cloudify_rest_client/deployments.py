@@ -312,9 +312,13 @@ class DeploymentGroupsClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self):
+    def list(self, _include=None, **kwargs):
         """List all deployment groups."""
-        response = self.api.get('/deployment-groups')
+        params = kwargs
+        if _include:
+            params['_include'] = ','.join(_include)
+
+        response = self.api.get('/deployment-groups', params=params)
         return ListResponse(
             [DeploymentGroup(item) for item in response['items']],
             response['metadata'])
