@@ -242,51 +242,72 @@ class TypedConstraint(Constraint):
                 "'{1}' data types".format(self.name, data_type))
         if not get_method:
             raise exceptions.ConstraintException(
-                "Filter constraint requires a get_method "
-                "to retrieve related entities.")
+                "'{0}' constraint requires a get_method "
+                "to retrieve related entities".format(self.name))
         if data_type == 'deployment_id':
             return self.validate_deployment_id(value, get_method)
+        if data_type == 'blueprint_id':
+            return self.validate_blueprint_id(value, get_method)
         raise exceptions.ConstraintException(
             "'{0}' filter not implemented for data type '{1}'"
             .format(self.name, data_type))
 
-    def validate_deployment_id(self, constraint, deployments):
+    def validate_deployment_id(self, value, get_method):
+        raise NotImplementedError('Should be implemented in child classes')
+
+    def validate_blueprint_id(self, value, get_method):
         raise NotImplementedError('Should be implemented in child classes')
 
 
 @register_constraint(name='filter_id', constraint_data_type=_STRING)
 class FilterId(TypedConstraint):
-    SUPPORTED_DATA_TYPES = ['deployment_id']
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
     def validate_deployment_id(self, value, get_method):
+        entities = get_method(value, filter_id=self.args)
+        return len(entities) > 0
+
+    def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, filter_id=self.args)
         return len(entities) > 0
 
 
 @register_constraint(name='labels', constraint_data_type=_SEQUENCE)
 class Labels(TypedConstraint):
-    SUPPORTED_DATA_TYPES = ['deployment_id']
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
     def validate_deployment_id(self, value, get_method):
+        entities = get_method(value, labels=self.args)
+        return len(entities) > 0
+
+    def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, labels=self.args)
         return len(entities) > 0
 
 
 @register_constraint(name='tenants', constraint_data_type=_SEQUENCE)
 class Tenants(TypedConstraint):
-    SUPPORTED_DATA_TYPES = ['deployment_id']
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
     def validate_deployment_id(self, value, get_method):
+        entities = get_method(value, tenants=self.args)
+        return len(entities) > 0
+
+    def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, tenants=self.args)
         return len(entities) > 0
 
 
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
 class NamePattern(TypedConstraint):
-    SUPPORTED_DATA_TYPES = ['deployment_id']
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
     def validate_deployment_id(self, value, get_method):
         entities = get_method(value, display_name_specs=self.args)
+        return len(entities) > 0
+
+    def validate_blueprint_id(self, value, get_method):
+        entities = get_method(value, id_specs=self.args)
         return len(entities) > 0
 
 

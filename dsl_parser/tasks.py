@@ -46,7 +46,8 @@ def parse_dsl(dsl_location,
         additional_resource_sources=additional_resources)
 
 
-def _set_plan_inputs(plan, inputs, auto_correct_types, get_deployments_method):
+def _set_plan_inputs(plan, inputs, auto_correct_types, get_deployments_method,
+                     get_blueprints_method):
     inputs = inputs if inputs else {}
     # Verify inputs satisfied
     missing_inputs = []
@@ -63,7 +64,7 @@ def _set_plan_inputs(plan, inputs, auto_correct_types, get_deployments_method):
         elif DEFAULT in input_def and input_def[DEFAULT] is not None:
             inputs[input_name] = input_def[DEFAULT]
         else:
-            # Try to get some defaults from the data_type maybe or in another
+            # Try to get some defaults from the data_type maybe or in other
             # words just try to parse the value before validating it.
             try:
                 parsed_value = utils.parse_value(
@@ -108,6 +109,13 @@ def _set_plan_inputs(plan, inputs, auto_correct_types, get_deployments_method):
                     raise exceptions.InputEvaluationError(
                         "Get deployments method must be provided to validate "
                         "inputs of data type 'deployment_id'.")
+            elif input_def.get(TYPE) == 'blueprint_id':
+                if get_blueprints_method:
+                    get_method = get_blueprints_method
+                else:
+                    raise exceptions.InputEvaluationError(
+                        "Get blueprints method must be provided to validate "
+                        "inputs of data type 'blueprint_id'.")
             else:
                 get_method = None
 
@@ -190,12 +198,14 @@ def _validate_secrets(plan, get_secret_method):
 def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
                             runtime_only_evaluation=False,
                             auto_correct_types=False,
-                            get_deployments_method=None, **_):
+                            get_deployments_method=None,
+                            get_blueprints_method=None, **_):
     """
     Prepare a plan for deployment
     """
     plan = models.Plan(copy.deepcopy(plan))
-    _set_plan_inputs(plan, inputs, auto_correct_types, get_deployments_method)
+    _set_plan_inputs(plan, inputs, auto_correct_types,
+                     get_deployments_method, get_blueprints_method)
     _process_functions(plan, runtime_only_evaluation)
     _validate_secrets(plan, get_secret_method)
     return multi_instance.create_deployment_plan(plan)
