@@ -199,7 +199,9 @@ def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
                             runtime_only_evaluation=False,
                             auto_correct_types=False,
                             get_deployments_method=None,
-                            get_blueprints_method=None, **_):
+                            get_blueprints_method=None,
+                            existing_ni_ids=None,
+                            **_):
     """
     Prepare a plan for deployment
     """
@@ -208,4 +210,4 @@ def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
                      get_deployments_method, get_blueprints_method)
     _process_functions(plan, runtime_only_evaluation)
     _validate_secrets(plan, get_secret_method)
-    return multi_instance.create_deployment_plan(plan)
+    return multi_instance.create_deployment_plan(plan, existing_ni_ids)

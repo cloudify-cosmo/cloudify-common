@@ -32,6 +32,8 @@ GROUP_CONTAINED_IN_REL_TYPE = '__group_contained_in__'
 CONNECTION_TYPE = 'connection_type'
 ALL_TO_ALL = 'all_to_all'
 ALL_TO_ONE = 'all_to_one'
+NI_ID_LEN = 6
+NI_ID_ALPHABET = ascii_lowercase + digits
 
 
 def build_node_graph(nodes, scaling_groups):
@@ -198,7 +200,8 @@ def build_previous_deployment_node_graph(plan_node_graph,
 def build_deployment_node_graph(plan_node_graph,
                                 previous_deployment_node_graph=None,
                                 previous_deployment_contained_graph=None,
-                                modified_nodes=None):
+                                modified_nodes=None,
+                                existing_ni_ids=None):
 
     _verify_no_unsupported_relationships(plan_node_graph)
 
@@ -208,17 +211,18 @@ def build_deployment_node_graph(plan_node_graph,
         deployment_node_graph=deployment_node_graph,
         previous_deployment_node_graph=previous_deployment_node_graph,
         previous_deployment_contained_graph=previous_deployment_contained_graph,  # noqa
-        modified_nodes=modified_nodes)
+        modified_nodes=modified_nodes,
+        existing_node_instance_ids=existing_ni_ids)
 
     _handle_contained_in(ctx)
 
-    ctx.node_instance_ids.clear()
-    ctx.node_ids_to_node_instance_ids.clear()
+    ctx.node_instance_ids = existing_ni_ids or collections.defaultdict(set)
+    ctx.deployment_node_instance_ids.clear()
     for node_instance_id, data in deployment_node_graph.nodes_iter(
             data=True):
-        ctx.node_instance_ids.add(node_instance_id)
         node_id = _node_id_from_node_instance(data['node'])
-        ctx.node_ids_to_node_instance_ids[node_id].add(node_instance_id)
+        ctx.node_instance_ids[node_id].add(node_instance_id)
+        ctx.deployment_node_instance_ids[node_id].add(node_instance_id)
 
     _handle_connected_to_and_depends_on(ctx)
 
@@ -458,7 +462,7 @@ def _build_and_update_node_instances(ctx,
     new_instances_num = 0
     previous_containers = []
     if ctx.is_modification:
-        all_previous_node_instance_ids = ctx.node_ids_to_node_instance_ids[
+        all_previous_node_instance_ids = ctx.deployment_node_instance_ids[
             node_id]
         previous_node_instance_ids = [
             instance_id for instance_id in all_previous_node_instance_ids
@@ -498,6 +502,12 @@ def _build_and_update_node_instances(ctx,
         new_instances_num = current_instances_num
 
     new_containers = []
+    max_ni_ids = len(NI_ID_ALPHABET)**NI_ID_LEN
+    if len(ctx.node_instance_ids[node_id]) + new_instances_num > max_ni_ids:
+        raise RuntimeError(
+             "Failed generating node instance ids for node `{0}` - total node "
+             "instance number exceeds {1}".format(node_id, max_ni_ids))
+
     for _ in range(int(new_instances_num)):
         node_instance_id = _node_instance_id(node_id, ctx)
         node_instance = _node_instance_copy(
@@ -628,9 +638,9 @@ def _handle_connected_to_and_depends_on(ctx):
         relationship = edge_data['relationship']
         index = edge_data['index']
         connection_type = _verify_and_get_connection_type(relationship)
-        source_node_instance_ids = ctx.node_ids_to_node_instance_ids[
+        source_node_instance_ids = ctx.deployment_node_instance_ids[
             source_node_id]
-        target_node_instance_ids = ctx.node_ids_to_node_instance_ids[
+        target_node_instance_ids = ctx.deployment_node_instance_ids[
             target_node_id]
         _add_connected_to_and_depends_on_relationships(
             ctx=ctx,
@@ -780,14 +790,14 @@ def _build_scaling_groups_map(ctx, node_instance_ids, group):
 
 def _node_instance_id(node_id, ctx):
     new_node_instance_id = '{0}_{1}'.format(node_id, _generate_id())
-    while new_node_instance_id in ctx.node_instance_ids:
+    while new_node_instance_id in ctx.node_instance_ids[node_id]:
         new_node_instance_id = '{0}_{1}'.format(node_id, _generate_id())
-    ctx.node_instance_ids.add(new_node_instance_id)
+    ctx.node_instance_ids[node_id].add(new_node_instance_id)
     return new_node_instance_id
 
 
-def _generate_id(id_len=6):
-    return ''.join(choice(digits + ascii_lowercase) for _ in range(id_len))
+def _generate_id():
+    return ''.join(choice(NI_ID_ALPHABET) for _ in range(NI_ID_LEN))
 
 
 def _node_instance_copy(node, node_instance_id):
@@ -859,7 +869,8 @@ class Context(object):
                  deployment_node_graph,
                  previous_deployment_node_graph=None,
                  previous_deployment_contained_graph=None,
-                 modified_nodes=None):
+                 modified_nodes=None,
+                 existing_node_instance_ids=None):
         self.plan_node_graph = plan_node_graph
         self.plan_contained_graph = self._build_contained_in_graph(
             plan_node_graph)
@@ -871,15 +882,14 @@ class Context(object):
         self.previous_deployment_contained_graph = (
             previous_deployment_contained_graph)
         self.modified_nodes = modified_nodes
-        self.node_ids_to_node_instance_ids = collections.defaultdict(set)
-        self.node_instance_ids = set()
+        self.node_instance_ids = \
+            existing_node_instance_ids or collections.defaultdict(set)
+        self.deployment_node_instance_ids = collections.defaultdict(set)
         if self.is_modification:
             for node_instance_id, data in \
                     self.previous_deployment_node_graph.nodes_iter(data=True):
-                self.node_instance_ids.add(node_instance_id)
-                node_instance = data['node']
-                self.node_ids_to_node_instance_ids[
-                    _node_id_from_node_instance(node_instance)].add(
+                self.deployment_node_instance_ids[
+                    _node_id_from_node_instance(data['node'])].add(
                     node_instance_id)
 
     def get_group_member_mapping(self):
