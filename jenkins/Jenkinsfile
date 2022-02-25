@@ -1,31 +1,29 @@
 def install_test_dependencies(String cache_prefix) {
-  sh '''#!/bin/bash
-  pip install -r dev-requirements.txt --user
+  sh script: '''#!/bin/bash
   pip install -r test-requirements.txt --user
   pip install -e '.[dispatcher]' --user
-  '''
+  ''', label: "install test dependencies"
 }
 def pytest(String target){
-  echo "running pytest << ${target} >>"
-  sh """#!/bin/bash
+  sh script: """#!/bin/bash
   pytest \
     -n auto \
-    --cov-report term-missing \
+    --cov-report term \
     --cov=${target} \
+    --cov-fail-under 60 \
     ${target}/tests \
     --junitxml=test-results/${target}.xml
-  """
+  """, label: "pytest << ${target} >>"
 }
 def build_docs(String project){
-  echo "build docs for ${project}"
-  sh """
+  sh script: """
   #!/bin/bash
   sphinx-build \
     -d _build/doctrees \
     -D version="\$(python setup.py --version)" \
     docs/${project} \
     docs/${project}/_build/html
-  """
+  """, label: "build docs for ${project}"
 }
 def upload_docs(String project, String path){
   echo "upload docs to S3 for ${project}"

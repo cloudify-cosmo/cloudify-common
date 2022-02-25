@@ -21,9 +21,8 @@ from collections import namedtuple
 
 import requests
 import testtools
-from testfixtures import log_capture
 from mock import patch
-from pytest import mark
+import pytest
 
 from . import string_in_log
 
@@ -35,10 +34,7 @@ from cloudify.workflows import ctx as workflow_ctx
 from cloudify.mocks import MockCloudifyContext
 from cloudify.exceptions import (NonRecoverableError,
                                  RecoverableError)
-from cloudify.proxy.server import (UnixCtxProxy,
-                                   TCPCtxProxy,
-                                   HTTPCtxProxy,
-                                   StubCtxProxy)
+from cloudify.proxy.server import HTTPCtxProxy, StubCtxProxy
 
 from script_runner import tasks
 from script_runner.tasks import ILLEGAL_CTX_OPERATION_ERROR
@@ -47,6 +43,9 @@ IS_WINDOWS = os.name == 'nt'
 
 
 class BaseScriptRunner(object):
+    @pytest.fixture(autouse=True)
+    def _inject_caplog(self, caplog):
+        self._caplog = caplog
 
     def _get_temp_path(self):
         """Create a temporary file and return its absolute pathname.
@@ -398,8 +397,7 @@ subprocess.Popen(
         self.assertRaises(NonRecoverableError,
                           self._run, script_path=None)
 
-    @log_capture('ctx')
-    def test_script_error(self, capture):
+    def test_script_error(self):
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             echo 123123
@@ -418,12 +416,11 @@ subprocess.Popen(
 
             self.assertIn(os.path.basename(script_path), e.command)
             self.assertEqual(e.exit_code, expected_exit_code)
-            self.assertTrue(string_in_log('123123', capture))
+            self.assertTrue(string_in_log('123123', self._caplog))
             self.assertTrue(string_in_log('command_that_does_not_exist',
-                                          capture))
+                                          self._caplog))
 
-    @log_capture('ctx')
-    def test_script_error_from_bad_ctx_request(self, capture):
+    def test_script_error_from_bad_ctx_request(self):
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
             ctx property_that_does_not_exist
@@ -437,9 +434,9 @@ subprocess.Popen(
         except tasks.ProcessException as e:
             self.assertIn(os.path.basename(script_path), e.command)
             self.assertEqual(e.exit_code, 1)
-            self.assertTrue(string_in_log('RequestError', capture))
+            self.assertTrue(string_in_log('RequestError', self._caplog))
             self.assertTrue(string_in_log('property_that_does_not_exist',
-                                          capture))
+                                          self._caplog))
 
     def test_python_script(self):
         script = '''
@@ -522,8 +519,7 @@ if __name__ == '__main__':
         test(u'override')
         test({u'key': u'value'})
 
-    @log_capture('ctx')
-    def test_get_nonexistent_runtime_property(self, capture):
+    def test_get_nonexistent_runtime_property(self):
         """Accessing a nonexistent runtime property throws an error."""
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
@@ -538,11 +534,10 @@ if __name__ == '__main__':
 
         self.assertIn(os.path.basename(script_path), e.command)
         self.assertEqual(e.exit_code, 1)
-        self.assertTrue(string_in_log('RequestError', capture))
-        self.assertTrue(string_in_log('nonexistent', capture))
+        self.assertTrue(string_in_log('RequestError', self._caplog))
+        self.assertTrue(string_in_log('nonexistent', self._caplog))
 
-    @log_capture('ctx')
-    def test_get_nonexistent_runtime_property_json(self, capture):
+    def test_get_nonexistent_runtime_property_json(self):
         """Getting an undefined runtime property as json throws an error."""
         script_path = self._create_script(
             linux_script='''#! /bin/bash -e
@@ -557,8 +552,8 @@ if __name__ == '__main__':
 
         self.assertIn(os.path.basename(script_path), e.command)
         self.assertEqual(e.exit_code, 1)
-        self.assertTrue(string_in_log('RequestError', capture))
-        self.assertTrue(string_in_log('nonexistent', capture))
+        self.assertTrue(string_in_log('RequestError', self._caplog))
+        self.assertTrue(string_in_log('nonexistent', self._caplog))
 
     def test_tempdir_no_override(self):
         script_path = self._create_script(
@@ -602,21 +597,6 @@ if __name__ == '__main__':
         return os.path.normpath(os.path.normcase(path))
 
 
-@mark.skipif(IS_WINDOWS, reason='Test skipped on Windows')
-class TestScriptRunnerUnixCtxProxy(BaseScriptRunner, testtools.TestCase):
-
-    def setUp(self):
-        super(TestScriptRunnerUnixCtxProxy, self).setUp()
-        self.ctx_proxy_type = 'unix'
-
-
-class TestScriptRunnerTCPCtxProxy(BaseScriptRunner, testtools.TestCase):
-
-    def setUp(self):
-        super(TestScriptRunnerTCPCtxProxy, self).setUp()
-        self.ctx_proxy_type = 'tcp'
-
-
 class TestScriptRunnerHTTPCtxProxy(BaseScriptRunner, testtools.TestCase):
 
     def setUp(self):
@@ -625,16 +605,8 @@ class TestScriptRunnerHTTPCtxProxy(BaseScriptRunner, testtools.TestCase):
 
 
 class TestCtxProxyType(testtools.TestCase):
-
     def test_http_ctx_type(self):
         self.assert_valid_ctx_proxy('http', HTTPCtxProxy)
-
-    def test_tcp_ctx_type(self):
-        self.assert_valid_ctx_proxy('tcp', TCPCtxProxy)
-
-    @mark.skipif(IS_WINDOWS, reason='Skipped on windows')
-    def test_unix_ctx_type(self):
-        self.assert_valid_ctx_proxy('unix', UnixCtxProxy)
 
     def test_none_ctx_type(self):
         self.assert_valid_ctx_proxy('none', StubCtxProxy)
@@ -651,15 +623,11 @@ class TestCtxProxyType(testtools.TestCase):
         self._test_auto_type(explicit=False)
 
     def _test_auto_type(self, explicit):
-        if IS_WINDOWS:
-            expected_type = TCPCtxProxy
-        else:
-            expected_type = UnixCtxProxy
         if explicit:
             ctx_proxy_type = 'auto'
         else:
             ctx_proxy_type = None
-        self.assert_valid_ctx_proxy(ctx_proxy_type, expected_type)
+        self.assert_valid_ctx_proxy(ctx_proxy_type, HTTPCtxProxy)
 
     def assert_valid_ctx_proxy(self, ctx_proxy_type, expected_type):
         process = {}
