@@ -8,8 +8,9 @@ def pytest(String target){
   sh script: """#!/bin/bash
   pytest \
     -n auto \
-    --cov-report term-missing \
+    --cov-report term \
     --cov=${target} \
+    --cov-fail-under 60 \
     ${target}/tests \
     --junitxml=test-results/${target}.xml
   """, label: "pytest << ${target} >>"
