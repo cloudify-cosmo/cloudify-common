@@ -20,15 +20,11 @@ import time
 import sys
 
 import testtools
-from pytest import mark
 
 from cloudify._compat import StringIO
 from cloudify.mocks import MockCloudifyContext
 from cloudify.proxy import client
-from cloudify.proxy.server import (UnixCtxProxy,
-                                   TCPCtxProxy,
-                                   HTTPCtxProxy,
-                                   PathDictAccess)
+from cloudify.proxy.server import HTTPCtxProxy, PathDictAccess
 
 IS_WINDOWS = os.name == 'nt'
 
@@ -191,19 +187,6 @@ class CtxProxyTestBase(object):
         args = ['stub_method', 1, 2]
         response = self.request(*args)
         self.assertEqual(args[1:], response)
-
-
-@mark.skipif(IS_WINDOWS, reason='Test skipped on Windows')
-class TestUnixCtxProxy(CtxProxyTestBase, testtools.TestCase):
-
-    def setUp(self):
-        super(TestUnixCtxProxy, self).setUp(UnixCtxProxy)
-
-
-class TestTCPCtxProxy(CtxProxyTestBase, testtools.TestCase):
-
-    def setUp(self):
-        super(TestTCPCtxProxy, self).setUp(TCPCtxProxy)
 
 
 class TestHTTPCtxProxy(CtxProxyTestBase, testtools.TestCase):

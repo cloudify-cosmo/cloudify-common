@@ -17,8 +17,8 @@ import os
 import shutil
 import tempfile
 
+import pytest
 import testtools
-from testfixtures import log_capture
 
 from . import string_in_log
 
@@ -32,6 +32,9 @@ BLUEPRINT_DIR = os.path.join(os.path.dirname(__file__), 'wrapper_blueprint')
 
 
 class PythonWrapperTests(testtools.TestCase):
+    @pytest.fixture(autouse=True)
+    def _inject_caplog(self, caplog):
+        self._caplog = caplog
 
     @classmethod
     def setUpClass(cls):
@@ -113,24 +116,21 @@ class PythonWrapperTests(testtools.TestCase):
         result = self._run(script)
         self.assertEqual(result['key'], 'value')
 
-    @log_capture('ctx')
-    def test_direct_bad_ctx_call(self, capture):
+    def test_direct_bad_ctx_call(self):
         script = ('ctx("bad_call")')
         self.assertRaises(ProcessException, self._run, script)
         self.assertTrue(string_in_log(
             'RuntimeError: bad_call cannot be processed in',
-            capture))
+            self._caplog))
 
-    @log_capture('ctx')
-    def test_direct_ctx_call_missing_property(self, capture):
+    def test_direct_ctx_call_missing_property(self):
         script = ('ctx("node properties missing_node_property")')
         self.assertRaises(ProcessException, self._run, script)
         self.assertTrue(string_in_log(
             'illegal path: missing_node_property',
-            capture))
+            self._caplog))
 
-    @log_capture('ctx')
-    def test_logger(self, capture):
+    def test_logger(self):
         script = ('ctx.logger.debug("debug_message")\n'
                   'ctx.logger.info("info_message")\n'
                   'ctx.logger.warn("warning_message")\n'
@@ -146,7 +146,7 @@ class PythonWrapperTests(testtools.TestCase):
         ]
         self._run(script)
         # skip messages that are unrelated to the test
-        records = [r for r in capture.records
+        records = [r for r in self._caplog.records
                    if any(msg in r.msg for msg in expected_msgs)]
         for m in range(1, len(expected_levels)):
             self.assertEqual(
@@ -296,14 +296,13 @@ class PythonWrapperTests(testtools.TestCase):
             script=script,
             expected_content='test_node')
 
-    @log_capture('ctx')
-    def test_download_missing_resource(self, capture):
+    def test_download_missing_resource(self):
         script = ('path = ctx.download_resource("missing_resource")\n'
                   'ctx.returns(path)')
         self.assertRaises(ProcessException, self._run, script)
         self.assertTrue(string_in_log(
             '[Errno 2] No such file or directory:',
-            capture))
+            self._caplog))
 
     def test_abort_operation(self):
         script = ('ctx.abort_operation("abort_message")')

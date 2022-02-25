@@ -14,7 +14,6 @@
 #  * limitations under the License.
 
 import traceback
-import tempfile
 import re
 import collections
 import json
@@ -137,49 +136,6 @@ class HTTPCtxProxy(CtxProxy):
                 body=response,
                 status=200,
                 headers={'content-type': 'application/json'})
-
-
-class ZMQCtxProxy(CtxProxy):
-
-    def __init__(self, ctx, socket_url):
-        super(ZMQCtxProxy, self).__init__(ctx, socket_url)
-        import zmq
-        self.z_context = zmq.Context(io_threads=1)
-        self.sock = self.z_context.socket(zmq.REP)
-        self.sock.bind(self.socket_url)
-        self.poller = zmq.Poller()
-        self.poller.register(self.sock, zmq.POLLIN)
-
-    def poll_and_process(self, timeout=1):
-        import zmq
-        state = dict(self.poller.poll(1000 * timeout)).get(self.sock)
-        if not state == zmq.POLLIN:
-            return False
-        request = self.sock.recv()
-        response = self.process(request)
-        self.sock.send_string(response)
-        return True
-
-    def close(self):
-        self.sock.close()
-        self.z_context.term()
-
-
-class UnixCtxProxy(ZMQCtxProxy):
-
-    def __init__(self, ctx, socket_path=None):
-        if not socket_path:
-            socket_path = tempfile.mktemp(prefix='ctx-', suffix='.socket')
-        socket_url = 'ipc://{0}'.format(socket_path)
-        super(UnixCtxProxy, self).__init__(ctx, socket_url)
-
-
-class TCPCtxProxy(ZMQCtxProxy):
-
-    def __init__(self, ctx, ip='127.0.0.1', port=None):
-        port = port or get_unused_port()
-        socket_url = 'tcp://{0}:{1}'.format(ip, port)
-        super(TCPCtxProxy, self).__init__(ctx, socket_url)
 
 
 class StubCtxProxy(object):

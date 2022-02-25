@@ -3,6 +3,4 @@ testtools==2.4.0
 pytest
 pytest-cov
 pytest-xdist==1.34.0
-testfixtures==6.18.3
 coverage==5.5
-decorator==4.4.2
