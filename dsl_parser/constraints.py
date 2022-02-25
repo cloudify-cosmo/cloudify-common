@@ -265,11 +265,13 @@ class FilterId(TypedConstraint):
 
     def validate_deployment_id(self, value, get_method):
         entities = get_method(value, filter_id=self.args)
-        return len(entities) > 0
+        return len([e for e in entities
+                    if entity_id_matches_value(e, value)]) > 0
 
     def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, filter_id=self.args)
-        return len(entities) > 0
+        return len([e for e in entities
+                    if entity_id_matches_value(e, value)]) > 0
 
 
 @register_constraint(name='labels', constraint_data_type=_SEQUENCE)
@@ -278,11 +280,13 @@ class Labels(TypedConstraint):
 
     def validate_deployment_id(self, value, get_method):
         entities = get_method(value, labels=self.args)
-        return len(entities) > 0
+        return len([e for e in entities
+                    if entity_id_matches_value(e, value)]) > 0
 
     def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, labels=self.args)
-        return len(entities) > 0
+        return len([e for e in entities
+                    if entity_id_matches_value(e, value)]) > 0
 
 
 @register_constraint(name='tenants', constraint_data_type=_SEQUENCE)
@@ -291,11 +295,13 @@ class Tenants(TypedConstraint):
 
     def validate_deployment_id(self, value, get_method):
         entities = get_method(value, tenants=self.args)
-        return len(entities) > 0
+        return len([e for e in entities
+                    if entity_id_matches_value(e, value)]) > 0
 
     def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, tenants=self.args)
-        return len(entities) > 0
+        return len([e for e in entities
+                    if entity_id_matches_value(e, value)]) > 0
 
 
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
@@ -304,11 +310,13 @@ class NamePattern(TypedConstraint):
 
     def validate_deployment_id(self, value, get_method):
         entities = get_method(value, display_name_specs=self.args)
-        return len(entities) > 0
+        return len([e for e in entities
+                    if entity_id_matches_value(e, value)]) > 0
 
     def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, id_specs=self.args)
-        return len(entities) > 0
+        return len([e for e in entities
+                    if entity_id_matches_value(e, value)]) > 0
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
@@ -386,6 +394,15 @@ def validate_input_value(input_name, input_constraints, input_value,
             'Input value {0}, of input {1}, cannot contain an intrinsic '
             'function and also have '
             'constraints.'.format(input_value, input_name))
+
+    if type_name in ['deployment_id', 'blueprint_id']:
+        entities = get_method(input_value)
+        if len([e for e in entities
+                if entity_id_matches_value(e, input_value)]) < 1:
+            raise exceptions.ConstraintException(
+                "Value {0} of input {1} is not a valid data type of "
+                "{2}.".format(input_value, input_name, type_name))
+
     for c in input_constraints:
         if not c.predicate(input_value, type_name, get_method):
             raise exceptions.ConstraintException(
@@ -412,3 +429,17 @@ def extract_constraints(input_def):
     input definition.
     """
     return [parse(c) for c in input_def.get(CONSTRAINT_CONST, [])]
+
+
+def entity_id_matches_value(obj, value):
+    try:
+        return obj['id'] == value
+    except TypeError:
+        pass
+    try:
+        return obj.id == value
+    except AttributeError:
+        pass
+    raise exceptions.ConstraintException(
+        "Cannot find a way to match '{0}' object with identifier "
+        "value of {1}".format(obj, value))
