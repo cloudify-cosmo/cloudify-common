@@ -34,19 +34,10 @@ from cloudify.workflows import ctx as workflows_ctx
 from cloudify.decorators import operation, workflow
 from cloudify.exceptions import NonRecoverableError
 from cloudify.proxy.client import CTX_SOCKET_URL
-from cloudify.proxy.server import (UnixCtxProxy,
-                                   TCPCtxProxy,
-                                   HTTPCtxProxy,
-                                   StubCtxProxy)
+from cloudify.proxy.server import HTTPCtxProxy, StubCtxProxy
 
 from script_runner import eval_env
 from script_runner import constants
-
-try:
-    import zmq  # noqa
-    HAS_ZMQ = True
-except ImportError:
-    HAS_ZMQ = False
 
 try:
     from cloudify.proxy.client import ScriptException
@@ -307,19 +298,7 @@ def execute(script_path, ctx, process):
 
 def start_ctx_proxy(ctx, process):
     ctx_proxy_type = process.get('ctx_proxy_type')
-    if not ctx_proxy_type or ctx_proxy_type == 'auto':
-        if HAS_ZMQ:
-            if IS_WINDOWS:
-                return TCPCtxProxy(ctx)
-            else:
-                return UnixCtxProxy(ctx)
-        else:
-            return HTTPCtxProxy(ctx)
-    elif ctx_proxy_type == 'unix':
-        return UnixCtxProxy(ctx)
-    elif ctx_proxy_type == 'tcp':
-        return TCPCtxProxy(ctx)
-    elif ctx_proxy_type == 'http':
+    if not ctx_proxy_type or ctx_proxy_type in ('auto', 'http'):
         return HTTPCtxProxy(ctx)
     elif ctx_proxy_type == 'none':
         return StubCtxProxy()

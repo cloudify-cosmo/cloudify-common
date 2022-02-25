@@ -35,10 +35,7 @@ from cloudify.workflows import ctx as workflow_ctx
 from cloudify.mocks import MockCloudifyContext
 from cloudify.exceptions import (NonRecoverableError,
                                  RecoverableError)
-from cloudify.proxy.server import (UnixCtxProxy,
-                                   TCPCtxProxy,
-                                   HTTPCtxProxy,
-                                   StubCtxProxy)
+from cloudify.proxy.server import HTTPCtxProxy, StubCtxProxy
 
 from script_runner import tasks
 from script_runner.tasks import ILLEGAL_CTX_OPERATION_ERROR
@@ -602,21 +599,6 @@ if __name__ == '__main__':
         return os.path.normpath(os.path.normcase(path))
 
 
-@mark.skipif(IS_WINDOWS, reason='Test skipped on Windows')
-class TestScriptRunnerUnixCtxProxy(BaseScriptRunner, testtools.TestCase):
-
-    def setUp(self):
-        super(TestScriptRunnerUnixCtxProxy, self).setUp()
-        self.ctx_proxy_type = 'unix'
-
-
-class TestScriptRunnerTCPCtxProxy(BaseScriptRunner, testtools.TestCase):
-
-    def setUp(self):
-        super(TestScriptRunnerTCPCtxProxy, self).setUp()
-        self.ctx_proxy_type = 'tcp'
-
-
 class TestScriptRunnerHTTPCtxProxy(BaseScriptRunner, testtools.TestCase):
 
     def setUp(self):
@@ -625,16 +607,8 @@ class TestScriptRunnerHTTPCtxProxy(BaseScriptRunner, testtools.TestCase):
 
 
 class TestCtxProxyType(testtools.TestCase):
-
     def test_http_ctx_type(self):
         self.assert_valid_ctx_proxy('http', HTTPCtxProxy)
-
-    def test_tcp_ctx_type(self):
-        self.assert_valid_ctx_proxy('tcp', TCPCtxProxy)
-
-    @mark.skipif(IS_WINDOWS, reason='Skipped on windows')
-    def test_unix_ctx_type(self):
-        self.assert_valid_ctx_proxy('unix', UnixCtxProxy)
 
     def test_none_ctx_type(self):
         self.assert_valid_ctx_proxy('none', StubCtxProxy)
@@ -651,15 +625,11 @@ class TestCtxProxyType(testtools.TestCase):
         self._test_auto_type(explicit=False)
 
     def _test_auto_type(self, explicit):
-        if IS_WINDOWS:
-            expected_type = TCPCtxProxy
-        else:
-            expected_type = UnixCtxProxy
         if explicit:
             ctx_proxy_type = 'auto'
         else:
             ctx_proxy_type = None
-        self.assert_valid_ctx_proxy(ctx_proxy_type, expected_type)
+        self.assert_valid_ctx_proxy(ctx_proxy_type, HTTPCtxProxy)
 
     def assert_valid_ctx_proxy(self, ctx_proxy_type, expected_type):
         process = {}
