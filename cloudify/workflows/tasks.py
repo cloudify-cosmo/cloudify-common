@@ -431,6 +431,16 @@ class WorkflowTask(object):
         raise NotImplementedError('Implemented by subclasses')
 
     @property
+    def short_description(self):
+        """Short summary of the task.
+
+        This is a human-readable representation of the task, should be
+        clear and unambiguous enough for the operation to be able to
+        uniquely identify the task.
+        """
+        return self.name
+
+    @property
     def is_subgraph(self):
         return False
 
@@ -533,6 +543,18 @@ class RemoteWorkflowTask(WorkflowTask):
     def name(self):
         """The task name"""
         return self.cloudify_context['task_name']
+
+    @property
+    def short_description(self):
+        try:
+            node_id = self.cloudify_context['node_id']
+        except KeyError:
+            node_id = '<unknown node>'
+        try:
+            operation_name = self.cloudify_context['operation']['name']
+        except KeyError:
+            operation_name = '<unknown operation>'
+        return '{0} ({1}:{2})'.format(self.name, node_id, operation_name)
 
     @property
     def cloudify_context(self):

@@ -395,7 +395,7 @@ class TaskDependencyGraph(object):
         self._tasks_wait.set()
 
     def _task_error(self, result, task):
-        message = "Task failed '{0}'".format(task.name)
+        message = "Task failed: {0}".format(task.short_description)
         causes_text = _task_error_causes_text(task)
         if causes_text:
             message = '{0}: {1}'.format(message, causes_text)
