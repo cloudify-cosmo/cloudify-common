@@ -51,11 +51,11 @@ class OperationsClient(object):
     def list(
         self,
         graph_id=None,
+        _offset=None,
+        _size=None,
         execution_id=None,
         state=None,
         skip_internal=False,
-        _offset=None,
-        _size=None,
     ):
         """List operations for the given graph or execution.
 
