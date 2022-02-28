@@ -389,8 +389,7 @@ def validate_input_value(input_name, input_constraints, input_value,
 
     if type_name in ['deployment_id', 'blueprint_id']:
         entities = get_method(input_value)
-        if len([e for e in entities
-                if entity_id_matches_value(e, input_value)]) < 1:
+        if not any(entity_id_matches_value(e, input_value) for e in entities):
             raise exceptions.ConstraintException(
                 "Value {0} of input {1} is not a valid data type of "
                 "{2}.".format(input_value, input_name, type_name))
