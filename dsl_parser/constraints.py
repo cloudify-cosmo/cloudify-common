@@ -265,13 +265,11 @@ class FilterId(TypedConstraint):
 
     def validate_deployment_id(self, value, get_method):
         entities = get_method(value, filter_id=self.args)
-        return len([e for e in entities
-                    if entity_id_matches_value(e, value)]) > 0
+        return any(entity_id_matches_value(e, value) for e in entities)
 
     def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, filter_id=self.args)
-        return len([e for e in entities
-                    if entity_id_matches_value(e, value)]) > 0
+        return any(entity_id_matches_value(e, value) for e in entities)
 
 
 @register_constraint(name='labels', constraint_data_type=_SEQUENCE)
@@ -280,13 +278,11 @@ class Labels(TypedConstraint):
 
     def validate_deployment_id(self, value, get_method):
         entities = get_method(value, labels=self.args)
-        return len([e for e in entities
-                    if entity_id_matches_value(e, value)]) > 0
+        return any(entity_id_matches_value(e, value) for e in entities)
 
     def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, labels=self.args)
-        return len([e for e in entities
-                    if entity_id_matches_value(e, value)]) > 0
+        return any(entity_id_matches_value(e, value) for e in entities)
 
 
 @register_constraint(name='tenants', constraint_data_type=_SEQUENCE)
@@ -295,13 +291,11 @@ class Tenants(TypedConstraint):
 
     def validate_deployment_id(self, value, get_method):
         entities = get_method(value, tenants=self.args)
-        return len([e for e in entities
-                    if entity_id_matches_value(e, value)]) > 0
+        return any(entity_id_matches_value(e, value) for e in entities)
 
     def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, tenants=self.args)
-        return len([e for e in entities
-                    if entity_id_matches_value(e, value)]) > 0
+        return any(entity_id_matches_value(e, value) for e in entities)
 
 
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
@@ -310,13 +304,11 @@ class NamePattern(TypedConstraint):
 
     def validate_deployment_id(self, value, get_method):
         entities = get_method(value, display_name_specs=self.args)
-        return len([e for e in entities
-                    if entity_id_matches_value(e, value)]) > 0
+        return any(entity_id_matches_value(e, value) for e in entities)
 
     def validate_blueprint_id(self, value, get_method):
         entities = get_method(value, id_specs=self.args)
-        return len([e for e in entities
-                    if entity_id_matches_value(e, value)]) > 0
+        return any(entity_id_matches_value(e, value) for e in entities)
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
