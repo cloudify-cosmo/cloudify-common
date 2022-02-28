@@ -48,8 +48,39 @@ class OperationsClient(object):
         self._uri_prefix = 'operations'
         self._wrapper_cls = Operation
 
-    def list(self, graph_id, _offset=None, _size=None):
-        params = {'graph_id': graph_id}
+    def list(
+        self,
+        graph_id=None,
+        _offset=None,
+        _size=None,
+        execution_id=None,
+        state=None,
+        skip_internal=False,
+    ):
+        """List operations for the given graph or execution.
+
+        :param graph_id: list operations for this graph
+        :param execution_id: list operations for all graphs of this execution.
+            Mutually exclusive with graph_id.
+        :param state: only list operations in this state
+        :param skip_internal: skip "uninteresting" internal operations; this
+            will skip all local tasks and NOP tasks, and only return remote
+            and subgraph tasks
+        :param _offset: pagination offset
+        :param _size: pagination size
+        """
+        params = {}
+        if graph_id and execution_id:
+            raise RuntimeError(
+                'Pass either graph_id or execution_id, not both')
+        if graph_id:
+            params['graph_id'] = graph_id
+        if execution_id:
+            params['execution_id'] = execution_id
+        if state:
+            params['state'] = state
+        if skip_internal:
+            params['skip_internal'] = True
         if _offset is not None:
             params['_offset'] = _offset
         if _size is not None:
