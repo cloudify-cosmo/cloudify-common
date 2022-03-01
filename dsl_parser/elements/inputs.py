@@ -88,6 +88,31 @@ class Constraints(Element):
     schema = List(type=Constraint)
 
 
+class DisplayRows(Element):
+    schema = Leaf(type=int)
+
+
+class DisplayHints(Element):
+    schema = {
+        'rows': DisplayRows,
+    }
+
+    def validate(self, **kwargs):
+        if not self.children():
+            return
+
+        data_type = self.sibling(SchemaInputType)
+        if data_type.initial_value == 'textarea':
+            return
+
+        parent = self.ancestor(InputSchemaProperty)
+        raise exceptions.DSLParsingInputTypeException(
+            exceptions.ERROR_DISPLAY_FOR_INVALID_TYPE,
+            '`display` property defined for unsupported input type ({0}) '
+            'for input `{1}`.'
+            .format(data_type.initial_value, parent.name))
+
+
 class InputSchemaProperty(SchemaProperty):
     schema = {
         'required': SchemaPropertyRequired,
@@ -97,6 +122,7 @@ class InputSchemaProperty(SchemaProperty):
         'constraints': Constraints,
         'display_label': SchemaPropertyDisplayLabel,
         'hidden': SchemaPropertyHidden,
+        'display': DisplayHints,
     }
 
     def parse(self):
