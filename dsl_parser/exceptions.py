@@ -187,3 +187,5 @@ ERROR_INPUT_WITH_FUNCS_AND_CONSTRAINTS = 213
 ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA = 214
 # A hidden and required input does not have a default value
 ERROR_HIDDEN_REQUIRED_INPUT_NO_DEFAULT = 215
+# A `display` attribute is declared for invalid type
+ERROR_DISPLAY_FOR_INVALID_TYPE = 216

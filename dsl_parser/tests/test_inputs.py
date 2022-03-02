@@ -25,7 +25,10 @@ from dsl_parser.exceptions import (UnknownInputError,
                                    DSLParsingLogicException,
                                    MissingRequiredInputError,
                                    ERROR_VALUE_DOES_NOT_MATCH_TYPE,
-                                   ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA)
+                                   ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA,
+                                   DSLParsingInputTypeException,
+                                   ERROR_DISPLAY_FOR_INVALID_TYPE,
+                                   )
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
 
@@ -860,6 +863,32 @@ inputs:
         with self.assertRaisesRegex(DSLParsingException,
                                     r'should have a default value: \'ip\''):
             self.parse(yaml)
+
+    def test_input_display_invalid_type(self):
+        yaml = """
+        tosca_definitions_version: cloudify_dsl_1_3
+        inputs:
+            ta:
+                type: string
+                display:
+                    rows: 10
+        """
+        with self.assertRaises(DSLParsingInputTypeException) as ex:
+            self.parse(yaml)
+            assert ex.err_code == ERROR_DISPLAY_FOR_INVALID_TYPE
+
+    def test_input_textarea_with_display_hints(self):
+        yaml = """
+        tosca_definitions_version: cloudify_dsl_1_3
+        inputs:
+            ta:
+                type: textarea
+                display:
+                    rows: 10
+        """
+        parsed = self.parse(yaml)
+        self.assertEqual(1, len(parsed[consts.INPUTS]))
+        self.assertEqual(10, parsed[consts.INPUTS]['ta']['display']['rows'])
 
 
 class TestInputsConstraints(AbstractTestParser):
