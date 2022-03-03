@@ -153,10 +153,10 @@ class NodeInstancesClient(object):
                node_instance_id,
                state=None,
                runtime_properties=None,
-               system_properties=None,
                version=1,
                force=False,
-               relationships=None):
+               relationships=None,
+               system_properties=None):
         """
         Update node instance with the provided state & runtime_properties.
 
