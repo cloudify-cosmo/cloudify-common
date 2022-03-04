@@ -97,7 +97,7 @@ RESLOVER_PARAMETERS_KEY = 'parameters'
 
 USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean', 'list',
                         'dict', 'regex', 'secret', 'textarea',
-                        'deployment_id', 'blueprint_id']
+                        'deployment_id', 'blueprint_id', 'capability_value']
 PLUGIN_DSL_KEYS_NOT_FROM_YAML = ['blueprint_labels', 'labels', 'resource_tags']
 PLUGIN_DSL_KEYS_READ_FROM_DB = PLUGIN_DSL_KEYS_NOT_FROM_YAML
 PLUGIN_DSL_KEYS_ADD_VALUES_NODE = ['blueprint_labels', 'labels']
