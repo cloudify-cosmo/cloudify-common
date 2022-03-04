@@ -235,27 +235,18 @@ class Pattern(Constraint):
 class TypedConstraint(Constraint):
     SUPPORTED_DATA_TYPES = []
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value, data_type=None, entity_getter=None):
         if data_type not in self.SUPPORTED_DATA_TYPES:
             raise exceptions.ConstraintException(
                 "'{0}' constraint is not defined for "
                 "'{1}' data types".format(self.name, data_type))
-        if not get_method:
+        if not entity_getter:
             raise exceptions.ConstraintException(
-                "'{0}' constraint requires a get_method "
+                "'{0}' constraint requires a getter object "
                 "to retrieve related entities".format(self.name))
-        if data_type == 'deployment_id':
-            return self.validate_deployment_id(value, get_method)
-        if data_type == 'blueprint_id':
-            return self.validate_blueprint_id(value, get_method)
-        raise exceptions.ConstraintException(
-            "'{0}' filter not implemented for data type '{1}'"
-            .format(self.name, data_type))
+        return self.validate(value, data_type, entity_getter)
 
-    def validate_deployment_id(self, value, get_method):
-        raise NotImplementedError('Should be implemented in child classes')
-
-    def validate_blueprint_id(self, value, get_method):
+    def validate(self, value, data_type, entity_getter):
         raise NotImplementedError('Should be implemented in child classes')
 
 
@@ -263,12 +254,8 @@ class TypedConstraint(Constraint):
 class FilterId(TypedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
-    def validate_deployment_id(self, value, get_method):
-        entities = get_method(value, filter_id=self.args)
-        return any(entity_id_matches_value(e, value) for e in entities)
-
-    def validate_blueprint_id(self, value, get_method):
-        entities = get_method(value, filter_id=self.args)
+    def validate(self, value, data_type, entity_getter):
+        entities = entity_getter.get(data_type, value, filter_id=self.args)
         return any(entity_id_matches_value(e, value) for e in entities)
 
 
@@ -276,12 +263,8 @@ class FilterId(TypedConstraint):
 class Labels(TypedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
-    def validate_deployment_id(self, value, get_method):
-        entities = get_method(value, labels=self.args)
-        return any(entity_id_matches_value(e, value) for e in entities)
-
-    def validate_blueprint_id(self, value, get_method):
-        entities = get_method(value, labels=self.args)
+    def validate(self, value, data_type, entity_getter):
+        entities = entity_getter.get(data_type, value, labels=self.args)
         return any(entity_id_matches_value(e, value) for e in entities)
 
 
@@ -289,12 +272,8 @@ class Labels(TypedConstraint):
 class Tenants(TypedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
-    def validate_deployment_id(self, value, get_method):
-        entities = get_method(value, tenants=self.args)
-        return any(entity_id_matches_value(e, value) for e in entities)
-
-    def validate_blueprint_id(self, value, get_method):
-        entities = get_method(value, tenants=self.args)
+    def validate(self, value, data_type, entity_getter):
+        entities = entity_getter.get(data_type, value, tenants=self.args)
         return any(entity_id_matches_value(e, value) for e in entities)
 
 
@@ -302,12 +281,15 @@ class Tenants(TypedConstraint):
 class NamePattern(TypedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
-    def validate_deployment_id(self, value, get_method):
-        entities = get_method(value, display_name_specs=self.args)
-        return any(entity_id_matches_value(e, value) for e in entities)
-
-    def validate_blueprint_id(self, value, get_method):
-        entities = get_method(value, id_specs=self.args)
+    def validate(self, value, data_type, entity_getter):
+        if data_type == 'blueprint_id':
+            kwargs = {'id_specs': self.args}
+        elif data_type == 'deployment_id':
+            kwargs = {'display_name_specs': self.args}
+        else:
+            raise NotImplementedError("'name_pattern' constraint is not "
+                                      "for data type '{0}'".format(data_type))
+        entities = entity_getter.get(data_type, value, **kwargs)
         return any(entity_id_matches_value(e, value) for e in entities)
 
 
@@ -379,7 +361,7 @@ def parse(definition):
 
 
 def validate_input_value(input_name, input_constraints, input_value,
-                         type_name, get_method):
+                         type_name, entity_getter):
     if input_constraints and functions.is_function(input_value):
         raise exceptions.DSLParsingException(
             exceptions.ERROR_INPUT_WITH_FUNCS_AND_CONSTRAINTS,
@@ -387,15 +369,16 @@ def validate_input_value(input_name, input_constraints, input_value,
             'function and also have '
             'constraints.'.format(input_value, input_name))
 
-    if type_name in ['deployment_id', 'blueprint_id']:
-        entities = get_method(input_value)
-        if not any(entity_id_matches_value(e, input_value) for e in entities):
+    if type_name in ['deployment_id', 'blueprint_id', 'capability_value']:
+        entities = entity_getter.get(type_name, input_value)
+        if not any(entity_id_matches_value(e, input_value)
+                   for e in entities or []):
             raise exceptions.ConstraintException(
                 "Value {0} of input {1} is not a valid data type of "
                 "{2}.".format(input_value, input_name, type_name))
 
     for c in input_constraints:
-        if not c.predicate(input_value, type_name, get_method):
+        if not c.predicate(input_value, type_name, entity_getter):
             raise exceptions.ConstraintException(
                 "Value {0} of input {1} violates constraint "
                 "{2}.".format(input_value, input_name, c))
