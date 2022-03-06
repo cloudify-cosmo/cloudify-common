@@ -60,7 +60,8 @@ class InterDeploymentDependencyClient(object):
             response['metadata']
         )
 
-    def create(self, dependency_creator, source_deployment, target_deployment,
+    def create(self, dependency_creator, source_deployment,
+               target_deployment=None,
                external_source=None, external_target=None,
                target_deployment_func=None):
         """Creates an inter-deployment dependency.
