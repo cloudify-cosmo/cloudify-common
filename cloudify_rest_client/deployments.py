@@ -525,7 +525,7 @@ class DeploymentsClient(object):
         self.capabilities = DeploymentCapabilitiesClient(api)
 
     def list(self, _include=None, sort=None, is_descending=False,
-             filter_id=None, filter_rules=None, **kwargs):
+             filter_id=None, filter_rules=None, constraints=None, **kwargs):
         """
         Returns a list of all deployments.
 
@@ -535,10 +535,16 @@ class DeploymentsClient(object):
         :param filter_id: A filter ID to filter the deployments list by
         :param filter_rules: A list of filter rules to filter the
                deployments list by
+        :param constraints: A list of DSL constraints for deployment_id data
+               type.  The purpose is similar to the `filter_rules`, but syntax
+               differs.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.Deployment.fields
         :return: Deployments list.
         """
+        if constraints and (filter_id or filter_rules):
+            raise ValueError('provide either DSL constraints or '
+                             'filter_id/filter_rules, not both')
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
@@ -550,6 +556,9 @@ class DeploymentsClient(object):
         if filter_rules:
             response = self.api.post('/searches/deployments', params=params,
                                      data={'filter_rules': filter_rules})
+        elif constraints:
+            response = self.api.post('/searches/deployments', params=params,
+                                     data={'constraints': constraints})
         else:
             response = self.api.get('/deployments', params=params)
 
