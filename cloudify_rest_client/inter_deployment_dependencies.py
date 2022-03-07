@@ -128,7 +128,8 @@ class InterDeploymentDependencyClient(object):
         )
         return self._wrap_list(response)
 
-    def delete(self, dependency_creator, source_deployment, target_deployment,
+    def delete(self, dependency_creator, source_deployment,
+               target_deployment=None,
                is_component_deletion=False, external_source=None,
                external_target=None):
         """Deletes an inter-deployment dependency.
