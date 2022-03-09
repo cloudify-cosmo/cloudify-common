@@ -1,12 +1,19 @@
+from base64 import b64encode
+
 from . import MockClient
 
 
 def test_username_password():
-    client = MockClient(username='testuser', password='testpassword')
+    username = 'testuser'
+    password = 'testpassword'
+    client = MockClient(username=username, password=password)
 
     client.manager.get_status()
 
-    expected = 'Basic dGVzdHVzZXI6dGVzdHBhc3N3b3Jk'
+    auth_b64 = b64encode(
+        '{}:{}'.format(username, password).encode('utf-8')).decode('utf-8')
+    expected = 'Basic {}'.format(auth_b64)
+
     client.check_last_auth_headers(auth=expected)
 
 
