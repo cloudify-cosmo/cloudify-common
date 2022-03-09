@@ -114,6 +114,7 @@ pipeline {
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
+                pytest('cloudify_rest_client')
               }
             }
           }
@@ -132,6 +133,7 @@ pipeline {
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
+                pytest('cloudify_rest_client')
               }
             }
           }
