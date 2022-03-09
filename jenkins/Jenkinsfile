@@ -4,7 +4,7 @@ def install_test_dependencies(String cache_prefix) {
   pip install -e '.[dispatcher]' --user
   ''', label: "install test dependencies"
 }
-def pytest(String target, Int cov_target=60){
+def pytest(String target, int cov_target=60){
   sh script: """#!/bin/bash
   pytest \
     -n auto \
