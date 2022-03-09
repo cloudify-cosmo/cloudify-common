@@ -516,6 +516,31 @@ class DeploymentCapabilitiesClient(object):
         response = self.api.get(uri)
         return DeploymentCapabilities(response)
 
+    def list(self, deployment_id, _include=None, constraints=None, **kwargs):
+        """
+        Returns a list of deployment's capabilities matching constraints.
+
+        :param deployment_id: An identifier of a deployment which capabilities
+               are going to be searched.
+        :param _include: List of fields to include in response.
+        :param constraints: A list of DSL constraints for capability_value
+               data type to filter the capabilities by.
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.Deployment.fields
+        :return: Deployments list.
+        """
+        params = kwargs
+        params['_deployment_id'] = deployment_id
+        if _include:
+            params['_include'] = ','.join(_include)
+
+        response = self.api.post('/searches/capabilities', params=params,
+                                 data={'constraints': constraints})
+        return ListResponse(
+            items=[DeploymentCapabilities(item) for item in response['items']],
+            metadata=response['metadata']
+        )
+
 
 class DeploymentsClient(object):
 
