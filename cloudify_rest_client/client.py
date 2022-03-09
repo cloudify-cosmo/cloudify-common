@@ -58,7 +58,7 @@ from cloudify_rest_client.permissions import PermissionsClient
 from cloudify_rest_client.maintenance import MaintenanceModeClient
 from cloudify_rest_client.plugins_update import PluginsUpdateClient
 from cloudify_rest_client.node_instances import NodeInstancesClient
-from cloudify_rest_client.tokens import TokensClient, UserTokensClient
+from cloudify_rest_client.tokens import TokensClient
 from cloudify_rest_client.deployment_updates import DeploymentUpdatesClient
 from cloudify_rest_client.operations import OperationsClient, TasksGraphClient
 from cloudify_rest_client.deployment_modifications import (
@@ -498,7 +498,6 @@ class CloudifyClient(object):
         self.secrets = SecretsClient(self._client)
         self.agents = AgentsClient(self._client)
         self.summary = SummariesClient(self._client)
-        self.user_tokens = UserTokensClient(self._client)
         self.operations = OperationsClient(self._client)
         self.tasks_graphs = TasksGraphClient(self._client)
         self.license = LicenseClient(self._client)
