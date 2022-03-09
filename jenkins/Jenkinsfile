@@ -4,13 +4,13 @@ def install_test_dependencies(String cache_prefix) {
   pip install -e '.[dispatcher]' --user
   ''', label: "install test dependencies"
 }
-def pytest(String target){
+def pytest(String target, Int cov_target=60){
   sh script: """#!/bin/bash
   pytest \
     -n auto \
     --cov-report term \
     --cov=${target} \
-    --cov-fail-under 60 \
+    --cov-fail-under ${cov_target} \
     ${target}/tests \
     --junitxml=test-results/${target}.xml
   """, label: "pytest << ${target} >>"
@@ -114,7 +114,7 @@ pipeline {
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
-                pytest('cloudify_rest_client')
+                pytest('cloudify_rest_client', 43)
               }
             }
           }
@@ -133,7 +133,7 @@ pipeline {
                 pytest('dsl_parser')
                 pytest('script_runner')
                 pytest('cloudify')
-                pytest('cloudify_rest_client')
+                pytest('cloudify_rest_client', 43)
               }
             }
           }
