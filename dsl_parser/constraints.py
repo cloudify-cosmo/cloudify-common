@@ -119,6 +119,9 @@ class Constraint(object):
             ', '.join(str(arg) for arg in self.args)
             if isinstance(self.args, (list, tuple)) else self.args)
 
+    def data_based(self, data_type=None):
+        return False
+
 
 @register_constraint(name='equal', constraint_data_type=_SCALAR)
 class Equal(Constraint):
@@ -181,6 +184,7 @@ class InRange(Constraint):
 
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
 class ValidValues(Constraint):
+    SUPPORTED_DATA_TYPES = ['capability_value']
 
     def predicate(self, value, data_type=None, get_method=None):
         return _try_predicate_func(
@@ -189,6 +193,20 @@ class ValidValues(Constraint):
             "valid values. Constraint argument type "
             "is '{0}' but value type is "
             "'{1}'.".format(type(self.args).__name__, type(value).__name__))
+
+    def data_based(self, data_type=None):
+        if data_type in self.SUPPORTED_DATA_TYPES:
+            return True
+        return super(ValidValues, self).data_based(data_type)
+
+    def type_check(self, data_type):
+        if data_type not in self.SUPPORTED_DATA_TYPES:
+            raise exceptions.ConstraintException(
+                "'{0}' constraint is not defined for "
+                "'{1}' data types".format(self.name, data_type))
+
+    def query_param(self, data_type=None):
+        return self.name
 
 
 @register_constraint(name='length', constraint_data_type=_SCALAR)
@@ -235,62 +253,59 @@ class Pattern(Constraint):
 class TypedConstraint(Constraint):
     SUPPORTED_DATA_TYPES = []
 
-    def predicate(self, value, data_type=None, entity_getter=None):
+    def data_based(self, data_type=None):
+        return True
+
+    def type_check(self, data_type):
         if data_type not in self.SUPPORTED_DATA_TYPES:
             raise exceptions.ConstraintException(
                 "'{0}' constraint is not defined for "
                 "'{1}' data types".format(self.name, data_type))
-        if not entity_getter:
-            raise exceptions.ConstraintException(
-                "'{0}' constraint requires a getter object "
-                "to retrieve related entities".format(self.name))
-        return self.validate(value, data_type, entity_getter)
 
-    def validate(self, value, data_type, entity_getter):
-        raise NotImplementedError('Should be implemented in child classes')
+    def query_param(self, data_type=None):
+        return self.name
+
+    def predicate(self, value, data_type=None, entity_getter=None):
+        pass
 
 
 @register_constraint(name='filter_id', constraint_data_type=_STRING)
 class FilterId(TypedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
-    def validate(self, value, data_type, entity_getter):
-        entities = entity_getter.get(data_type, value, filter_id=self.args)
-        return any(entity_id_matches_value(e, value) for e in entities)
-
 
 @register_constraint(name='labels', constraint_data_type=_SEQUENCE)
 class Labels(TypedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
-
-    def validate(self, value, data_type, entity_getter):
-        entities = entity_getter.get(data_type, value, labels=self.args)
-        return any(entity_id_matches_value(e, value) for e in entities)
 
 
 @register_constraint(name='tenants', constraint_data_type=_SEQUENCE)
 class Tenants(TypedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
-    def validate(self, value, data_type, entity_getter):
-        entities = entity_getter.get(data_type, value, tenants=self.args)
-        return any(entity_id_matches_value(e, value) for e in entities)
-
 
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
 class NamePattern(TypedConstraint):
-    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id',
+                            'capability_value']
 
-    def validate(self, value, data_type, entity_getter):
+    def query_param(self, data_type=None):
         if data_type == 'blueprint_id':
-            kwargs = {'id_specs': self.args}
+            return 'id_specs'
         elif data_type == 'deployment_id':
-            kwargs = {'display_name_specs': self.args}
+            return 'display_name_specs'
+        elif data_type == 'capability_value':
+            return 'capability_key_specs'
         else:
-            raise NotImplementedError("'name_pattern' constraint is not "
-                                      "for data type '{0}'".format(data_type))
-        entities = entity_getter.get(data_type, value, **kwargs)
-        return any(entity_id_matches_value(e, value) for e in entities)
+            raise NotImplementedError(
+                "'{0}' constraint is not implemented for data type '{1}'"
+                .format(self.name, data_type)
+            )
+
+
+@register_constraint(name='deployment_id', constraint_data_type=_STRING)
+class DeploymentId(TypedConstraint):
+    SUPPORTED_DATA_TYPES = ['capability_value']
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
@@ -369,7 +384,7 @@ def validate_input_value(input_name, input_constraints, input_value,
             'function and also have '
             'constraints.'.format(input_value, input_name))
 
-    if type_name in ['deployment_id', 'blueprint_id', 'capability_value']:
+    if type_name in ['deployment_id', 'blueprint_id']:
         entities = entity_getter.get(type_name, input_value)
         if not any(entity_id_matches_value(e, input_value)
                    for e in entities or []):
@@ -377,11 +392,39 @@ def validate_input_value(input_name, input_constraints, input_value,
                 "Value {0} of input {1} is not a valid data type of "
                 "{2}.".format(input_value, input_name, type_name))
 
+    data_based_constraints = []
     for c in input_constraints:
+        if c.data_based(type_name):
+            data_based_constraints.append(c)
+            continue
         if not c.predicate(input_value, type_name, entity_getter):
             raise exceptions.ConstraintException(
                 "Value {0} of input {1} violates constraint "
                 "{2}.".format(input_value, input_name, c))
+    if data_based_constraints and \
+            not predicate_many(input_value,
+                               type_name,
+                               entity_getter,
+                               data_based_constraints):
+        raise exceptions.ConstraintException(
+            "Value {0} of input {1} violates at least one of constraints: {2}."
+            .format(input_value, input_name,
+                    ", ".join(str(c) for c in data_based_constraints))
+        )
+
+
+def build_data_based_constraints_query(type_name, constraints):
+    params = {}
+    for c in constraints:
+        c.type_check(type_name)
+        params[c.query_param(type_name)] = c.args
+    return params
+
+
+def predicate_many(input_value, type_name, entity_getter, constraints):
+    params = build_data_based_constraints_query(type_name, constraints)
+    entities = entity_getter.get(type_name, input_value, **params)
+    return any(entity_id_matches_value(e, input_value) for e in entities or [])
 
 
 def validate_input_defaults(plan):
