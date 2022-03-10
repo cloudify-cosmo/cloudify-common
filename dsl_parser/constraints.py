@@ -102,13 +102,10 @@ class Constraint(object):
         """
         self.args = args
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         """Value compliance hook.
 
         :param value: value to check the constraint with.
-        :param data_type: data type to check the constraint for.
-        :param get_method: method to retrieve entities related to data_type by
-                           their identifier.
         :return: whether the value complies with this constraint.
         """
         raise NotImplementedError()
@@ -123,9 +120,28 @@ class Constraint(object):
         return False
 
 
+class DataBasedConstraint(Constraint):
+    SUPPORTED_DATA_TYPES = []
+
+    def predicate(self, value):
+        raise NotImplementedError()
+
+    def data_based(self, data_type=None):
+        return True
+
+    def type_check(self, data_type):
+        if data_type not in self.SUPPORTED_DATA_TYPES:
+            raise exceptions.ConstraintException(
+                "'{0}' constraint is not defined for "
+                "'{1}' data types".format(self.name, data_type))
+
+    def query_param(self, data_type=None):
+        return self.name
+
+
 @register_constraint(name='equal', constraint_data_type=_SCALAR)
 class Equal(Constraint):
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: value == self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -135,7 +151,7 @@ class Equal(Constraint):
 @register_constraint(name='greater_than', constraint_data_type=_SCALAR)
 class GreaterThan(Constraint):
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: value > self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -145,7 +161,7 @@ class GreaterThan(Constraint):
 @register_constraint(name='greater_or_equal', constraint_data_type=_SCALAR)
 class GreaterOrEqual(Constraint):
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: value >= self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -155,7 +171,7 @@ class GreaterOrEqual(Constraint):
 @register_constraint(name='less_than', constraint_data_type=_SCALAR)
 class LessThan(Constraint):
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: value < self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -165,7 +181,7 @@ class LessThan(Constraint):
 @register_constraint(name='less_or_equal', constraint_data_type=_SCALAR)
 class LessOrEqual(Constraint):
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: value <= self.args,
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -175,7 +191,7 @@ class LessOrEqual(Constraint):
 @register_constraint(name='in_range', constraint_data_type=_DUAL_SCALAR)
 class InRange(Constraint):
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: self.args[0] <= value <= self.args[1],
             _NOT_COMPARABLE_ERROR_MSG.format(
@@ -183,10 +199,10 @@ class InRange(Constraint):
 
 
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
-class ValidValues(Constraint):
+class ValidValues(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['capability_value']
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: value in self.args,
             "Value cannot be searched in the given "
@@ -197,7 +213,7 @@ class ValidValues(Constraint):
     def data_based(self, data_type=None):
         if data_type in self.SUPPORTED_DATA_TYPES:
             return True
-        return super(ValidValues, self).data_based(data_type)
+        return False
 
     def type_check(self, data_type):
         if data_type not in self.SUPPORTED_DATA_TYPES:
@@ -212,7 +228,7 @@ class ValidValues(Constraint):
 @register_constraint(name='length', constraint_data_type=_SCALAR)
 class Length(Constraint):
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: len(value) == self.args,
             _NO_LENGTH_ERROR_MSG.format(
@@ -222,7 +238,7 @@ class Length(Constraint):
 @register_constraint(name='min_length', constraint_data_type=_SCALAR)
 class MinLength(Constraint):
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: len(value) >= self.args,
             _NO_LENGTH_ERROR_MSG.format(type(value).__name__))
@@ -231,7 +247,7 @@ class MinLength(Constraint):
 @register_constraint(name='max_length', constraint_data_type=_SCALAR)
 class MaxLength(Constraint):
 
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         return _try_predicate_func(
             lambda: len(value) <= self.args,
             _NO_LENGTH_ERROR_MSG.format(type(value).__name__))
@@ -242,7 +258,7 @@ class Pattern(Constraint):
     # This class represents a regex constraint.
     # E.g. if self.args = 'abc' then calling `predicate` will only return True
     # when value = "abc".
-    def predicate(self, value, data_type=None, get_method=None):
+    def predicate(self, value):
         if not isinstance(value, text_type):
             raise exceptions.ConstraintException(
                 "Value must be of type string, got type "
@@ -250,42 +266,23 @@ class Pattern(Constraint):
         return bool(re.match(self.args, value))
 
 
-class TypedConstraint(Constraint):
-    SUPPORTED_DATA_TYPES = []
-
-    def data_based(self, data_type=None):
-        return True
-
-    def type_check(self, data_type):
-        if data_type not in self.SUPPORTED_DATA_TYPES:
-            raise exceptions.ConstraintException(
-                "'{0}' constraint is not defined for "
-                "'{1}' data types".format(self.name, data_type))
-
-    def query_param(self, data_type=None):
-        return self.name
-
-    def predicate(self, value, data_type=None, entity_getter=None):
-        pass
-
-
 @register_constraint(name='filter_id', constraint_data_type=_STRING)
-class FilterId(TypedConstraint):
+class FilterId(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
 
 @register_constraint(name='labels', constraint_data_type=_SEQUENCE)
-class Labels(TypedConstraint):
+class Labels(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
 
 @register_constraint(name='tenants', constraint_data_type=_SEQUENCE)
-class Tenants(TypedConstraint):
+class Tenants(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
 
 
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
-class NamePattern(TypedConstraint):
+class NamePattern(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id',
                             'capability_value']
 
@@ -304,7 +301,7 @@ class NamePattern(TypedConstraint):
 
 
 @register_constraint(name='deployment_id', constraint_data_type=_STRING)
-class DeploymentId(TypedConstraint):
+class DeploymentId(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['capability_value']
 
 
@@ -376,7 +373,7 @@ def parse(definition):
 
 
 def validate_input_value(input_name, input_constraints, input_value,
-                         type_name, entity_getter):
+                         type_name, value_getter):
     if input_constraints and functions.is_function(input_value):
         raise exceptions.DSLParsingException(
             exceptions.ERROR_INPUT_WITH_FUNCS_AND_CONSTRAINTS,
@@ -384,10 +381,9 @@ def validate_input_value(input_name, input_constraints, input_value,
             'function and also have '
             'constraints.'.format(input_value, input_name))
 
-    if type_name in ['deployment_id', 'blueprint_id']:
-        entities = entity_getter.get(type_name, input_value)
-        if not any(entity_id_matches_value(e, input_value)
-                   for e in entities or []):
+    if value_getter and type_name in ['deployment_id', 'blueprint_id']:
+        matching_values = value_getter.get(type_name, input_value)
+        if not any(v == input_value for v in matching_values or []):
             raise exceptions.ConstraintException(
                 "Value {0} of input {1} is not a valid data type of "
                 "{2}.".format(input_value, input_name, type_name))
@@ -397,14 +393,14 @@ def validate_input_value(input_name, input_constraints, input_value,
         if c.data_based(type_name):
             data_based_constraints.append(c)
             continue
-        if not c.predicate(input_value, type_name, entity_getter):
+        if not c.predicate(input_value):
             raise exceptions.ConstraintException(
                 "Value {0} of input {1} violates constraint "
                 "{2}.".format(input_value, input_name, c))
     if data_based_constraints and \
             not predicate_many(input_value,
                                type_name,
-                               entity_getter,
+                               value_getter,
                                data_based_constraints):
         raise exceptions.ConstraintException(
             "Value {0} of input {1} violates at least one of constraints: {2}."
@@ -421,10 +417,10 @@ def build_data_based_constraints_query(type_name, constraints):
     return params
 
 
-def predicate_many(input_value, type_name, entity_getter, constraints):
+def predicate_many(input_value, type_name, value_getter, constraints):
     params = build_data_based_constraints_query(type_name, constraints)
-    entities = entity_getter.get(type_name, input_value, **params)
-    return any(entity_id_matches_value(e, input_value) for e in entities or [])
+    matching_values = value_getter.get(type_name, input_value, **params)
+    return any(v == input_value for v in matching_values or [])
 
 
 def validate_input_defaults(plan):
@@ -446,17 +442,3 @@ def extract_constraints(input_def):
     input definition.
     """
     return [parse(c) for c in input_def.get(CONSTRAINT_CONST, [])]
-
-
-def entity_id_matches_value(obj, value):
-    try:
-        return obj['id'] == value
-    except TypeError:
-        pass
-    try:
-        return obj.id == value
-    except AttributeError:
-        pass
-    raise exceptions.ConstraintException(
-        "Cannot find a way to match '{0}' object with identifier "
-        "value of {1}".format(obj, value))
