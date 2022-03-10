@@ -42,6 +42,11 @@ class Token(dict):
         """:returns: The last time the token was used."""
         return self.get('last_used')
 
+    @property
+    def id(self):
+        """:returns: The ID of the token."""
+        return self.get('id')
+
 
 class TokensClient(object):
 
