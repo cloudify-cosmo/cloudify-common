@@ -236,7 +236,7 @@ class BlueprintsClient(object):
         return tar_path, os.path.basename(path)
 
     def list(self, _include=None, sort=None, is_descending=False,
-             filter_id=None, filter_rules=None, **kwargs):
+             filter_id=None, filter_rules=None, constraints=None, **kwargs):
         """
         Returns a list of currently stored blueprints.
 
@@ -246,10 +246,16 @@ class BlueprintsClient(object):
         :param filter_id: A filter ID to filter the blueprints list by
         :param filter_rules: A list of filter rules to filter the
                blueprints list by
+        :param constraints: A list of DSL constraints for blueprint_id data
+               type.  The purpose is similar to the `filter_rules`, but syntax
+               differs.
         :param kwargs: Optional filter fields. For a list of available fields
                see the REST service's models.BlueprintState.fields
         :return: Blueprints list.
         """
+        if constraints and (filter_id or filter_rules):
+            raise ValueError('provide either DSL constraints or '
+                             'filter_id/filter_rules, not both')
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
@@ -261,6 +267,9 @@ class BlueprintsClient(object):
         if filter_rules:
             response = self.api.post('/searches/blueprints', params=params,
                                      data={'filter_rules': filter_rules})
+        elif constraints:
+            response = self.api.post('/searches/blueprints', params=params,
+                                     data={'constraints': constraints})
         else:
             response = self.api.get('/{self._uri_prefix}'.format(self=self),
                                     params=params)
