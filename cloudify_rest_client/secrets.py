@@ -166,22 +166,39 @@ class SecretsClient(object):
         response = self.api.post('/secrets/share/import', data=data)
         return response
 
-    def list(self, sort=None, is_descending=False, **kwargs):
+    def list(self, sort=None, is_descending=False,
+             filter_rules=None, constraints=None, **kwargs):
         """
         Returns a list of currently stored secrets.
 
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
+        :param filter_rules: A list of filter rules to filter the secrets
+               list by
+        :param constraints: A list of DSL constraints for secret_id data
+               type.  The purpose is similar to the `filter_rules`, but syntax
+               differs.
         :param kwargs: Optional filter fields. For a list of available fields
                see the REST service's models.Secret.fields
         :return: Secrets list.
         """
+        if constraints and filter_rules:
+            raise ValueError('provide either DSL constraints or '
+                             'filter_id/filter_rules, not both')
 
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/secrets', params=params)
+        if filter_rules:
+            response = self.api.post('/searches/secrets', params=params,
+                                     data={'filter_rules': filter_rules})
+        elif constraints:
+            response = self.api.post('/searches/secrets', params=params,
+                                     data={'constraints': constraints})
+        else:
+            response = self.api.get('/secrets', params=params)
+
         return ListResponse([Secret(item) for item in response['items']],
                             response['metadata'])
 
