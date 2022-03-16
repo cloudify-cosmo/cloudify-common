@@ -405,7 +405,8 @@ def validate_input_value(input_name, input_constraints, input_value,
                                value_getter,
                                data_based_constraints):
         raise exceptions.ConstraintException(
-            "Value {0} of input {1} violates at least one of constraints: {2}."
+            "Value '{0}' of input '{1}' does not match any relevant entity "
+            "or violates at least one of the constraints: {2}."
             .format(input_value, input_name,
                     ", ".join(str(c) for c in data_based_constraints))
         )
