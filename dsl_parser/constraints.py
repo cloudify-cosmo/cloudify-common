@@ -284,13 +284,15 @@ class Tenants(DataBasedConstraint):
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
 class NamePattern(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id',
-                            'capability_value']
+                            'capability_value', 'secret_key']
 
     def query_param(self, data_type=None):
         if data_type == 'blueprint_id':
             return 'id_specs'
         elif data_type == 'deployment_id':
             return 'display_name_specs'
+        elif data_type == 'secret_key':
+            return 'key_specs'
         elif data_type == 'capability_value':
             return 'capability_key_specs'
         else:
