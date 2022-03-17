@@ -141,6 +141,8 @@ def get_rest_client(tenant=None, api_token=None):
     elif api_token:
         if not api_token.startswith('ctok-'):
             headers[constants.CLOUDIFY_API_AUTH_TOKEN_HEADER] = api_token
+        else:
+            token = api_token
     else:
         token = utils.get_rest_token()
 
