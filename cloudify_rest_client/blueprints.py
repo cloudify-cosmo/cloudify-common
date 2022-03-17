@@ -8,6 +8,7 @@ from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client._compat import urlquote, urlparse
 from cloudify_rest_client.constants import VisibilityState
 from cloudify_rest_client.exceptions import CloudifyClientError
+from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.responses import ListResponse
 
 from .labels import Label
@@ -197,11 +198,11 @@ class BlueprintsClient(object):
         )
         uri = '/{self._uri_prefix}/{id}/validate'.format(self=self,
                                                          id=blueprint_id)
-        self.api.put(
+        return self.api.put(
             uri,
             params=query_params,
             data=data,
-            expected_status_code=204
+            expected_status_code=(200, 204)
         )
 
     def _validate_blueprint_size(self, path, tempdir, skip_size_limit):
@@ -420,7 +421,7 @@ class BlueprintsClient(object):
                 tar_path, application_file = self._validate_blueprint_size(
                     path, tempdir, skip_size_limit)
 
-            self._validate(
+            response = self._validate(
                 tar_path or path,
                 blueprint_id=entity_id,
                 application_file_name=application_file or blueprint_filename,
@@ -428,6 +429,10 @@ class BlueprintsClient(object):
                 progress_callback=progress_callback)
         finally:
             shutil.rmtree(tempdir)
+
+        if response:
+            # on cloudify earlier than 6.4, response is None (204 no content)
+            return Execution(response)
 
     def get(self, blueprint_id, _include=None):
         """
