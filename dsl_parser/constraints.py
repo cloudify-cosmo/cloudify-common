@@ -284,13 +284,15 @@ class Tenants(DataBasedConstraint):
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
 class NamePattern(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id',
-                            'capability_value']
+                            'capability_value', 'secret_key']
 
     def query_param(self, data_type=None):
         if data_type == 'blueprint_id':
             return 'id_specs'
         elif data_type == 'deployment_id':
             return 'display_name_specs'
+        elif data_type == 'secret_key':
+            return 'key_specs'
         elif data_type == 'capability_value':
             return 'capability_key_specs'
         else:
@@ -403,7 +405,8 @@ def validate_input_value(input_name, input_constraints, input_value,
                                value_getter,
                                data_based_constraints):
         raise exceptions.ConstraintException(
-            "Value {0} of input {1} violates at least one of constraints: {2}."
+            "Value '{0}' of input '{1}' does not match any relevant entity "
+            "or violates at least one of the constraints: {2}."
             .format(input_value, input_name,
                     ", ".join(str(c) for c in data_based_constraints))
         )
