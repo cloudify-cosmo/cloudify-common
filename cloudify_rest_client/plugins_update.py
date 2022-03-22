@@ -33,12 +33,20 @@ class PluginsUpdate(dict):
         return self['deployments_to_update']
 
     @property
+    def deployments_per_tenant(self):
+        return self['deployments_per_tenant']
+
+    @property
     def created_at(self):
         return self['created_at']
 
     @property
     def forced(self):
         return self['forced']
+
+    @property
+    def tenant_name(self):
+        return self['tenant_name']
 
 
 class PluginsUpdateClient(object):
