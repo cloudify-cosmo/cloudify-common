@@ -284,7 +284,8 @@ class Tenants(DataBasedConstraint):
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
 class NamePattern(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id',
-                            'capability_value', 'secret_key']
+                            'capability_value', 'secret_key',
+                            'node_template']
 
     def query_param(self, data_type=None):
         if data_type == 'blueprint_id':
@@ -295,6 +296,8 @@ class NamePattern(DataBasedConstraint):
             return 'key_specs'
         elif data_type == 'capability_value':
             return 'capability_key_specs'
+        elif data_type == 'node_template':
+            return 'id_specs'
         else:
             raise NotImplementedError(
                 "'{0}' constraint is not implemented for data type '{1}'"
