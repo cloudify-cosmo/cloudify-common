@@ -115,7 +115,8 @@ class PluginsUpdateClient(object):
                        to_latest=None, all_to_latest=True,
                        to_minor=None, all_to_minor=False,
                        mapping=None, auto_correct_types=False,
-                       reevaluate_active_statuses=False,):
+                       reevaluate_active_statuses=False,
+                       all_tenants=False):
         """
         Updates the plugins in all the deployments that use the given
         blueprint.
@@ -132,14 +133,16 @@ class PluginsUpdateClient(object):
          installed minor version (i.e. major versions of the plugin in use and
          the upgraded one will match)
         :param all_to_minor: update all (selected) plugins to the latest
-         installed minor version.
+         installed minor version
         :param mapping: detailed information on required plugin update
          (overrides all other arguments/settings concerning version
          constraints)
         :param auto_correct_types: auto_correct_types flag to run deployments
-        update with.
+         update with
         :param reevaluate_active_statuses: reevaluate active plugin-updates'
-        and deployment-updates' states based on relevant executions statuses.
+         and deployment-updates' states based on relevant executions statuses.
+        :param all_tenants: defines if plugin update process should update any
+         deployments based on blueprint_id (owned by any tenant)
         :return: a PluginUpdate object.
         """
         if mapping and mapping.get('updates'):
@@ -160,7 +163,8 @@ class PluginsUpdateClient(object):
                 mapping=mapping,
                 force=force,
                 auto_correct_types=auto_correct_types,
-                reevaluate_active_statuses=reevaluate_active_statuses
+                reevaluate_active_statuses=reevaluate_active_statuses,
+                all_tenants=all_tenants
             )
         )
         return PluginsUpdate(response)
