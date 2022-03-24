@@ -200,7 +200,7 @@ class InRange(Constraint):
 
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
 class ValidValues(DataBasedConstraint):
-    SUPPORTED_DATA_TYPES = ['capability_value']
+    SUPPORTED_DATA_TYPES = ['capability_value', 'node_template']
 
     def predicate(self, value):
         return _try_predicate_func(
