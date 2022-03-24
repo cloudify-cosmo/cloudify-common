@@ -386,6 +386,12 @@ def validate_input_value(input_name, input_constraints, input_value,
             'function and also have '
             'constraints.'.format(input_value, input_name))
 
+    if type_name in ['capability_value', 'node_template'] \
+            and 'deployment_id' not in {c.name for c in input_constraints}:
+        raise exceptions.ConstraintException(
+            "Input '{0}' of type '{1}' lacks 'deployment_id' constraint."
+            .format(input_name, type_name))
+
     if value_getter and type_name in ['deployment_id', 'blueprint_id',
                                       'secret_key', 'node_template']:
         matching_values = value_getter.get(type_name, input_value)
