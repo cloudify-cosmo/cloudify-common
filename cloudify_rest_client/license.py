@@ -109,3 +109,8 @@ class LicenseClient(object):
         )
 
         return response
+
+    def delete(self):
+        """Remove the the Cloudify license from the Manager.
+        """
+        self.api.delete('/license')

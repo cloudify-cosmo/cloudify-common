@@ -530,9 +530,12 @@ class DeploymentCapabilitiesClient(object):
         :return: Deployments list.
         """
         params = kwargs
-        params['_deployment_id'] = deployment_id
         if _include:
             params['_include'] = ','.join(_include)
+
+        if constraints is None:
+            constraints = dict()
+        constraints['deployment_id'] = deployment_id
 
         response = self.api.post('/searches/capabilities', params=params,
                                  data={'constraints': constraints})

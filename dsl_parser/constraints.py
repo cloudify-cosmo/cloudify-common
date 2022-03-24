@@ -200,7 +200,7 @@ class InRange(Constraint):
 
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
 class ValidValues(DataBasedConstraint):
-    SUPPORTED_DATA_TYPES = ['capability_value']
+    SUPPORTED_DATA_TYPES = ['capability_value', 'node_id']
 
     def predicate(self, value):
         return _try_predicate_func(
@@ -284,7 +284,8 @@ class Tenants(DataBasedConstraint):
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
 class NamePattern(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id',
-                            'capability_value', 'secret_key']
+                            'capability_value', 'secret_key',
+                            'node_id']
 
     def query_param(self, data_type=None):
         if data_type == 'blueprint_id':
@@ -295,6 +296,8 @@ class NamePattern(DataBasedConstraint):
             return 'key_specs'
         elif data_type == 'capability_value':
             return 'capability_key_specs'
+        elif data_type == 'node_id':
+            return 'id_specs'
         else:
             raise NotImplementedError(
                 "'{0}' constraint is not implemented for data type '{1}'"
@@ -304,7 +307,7 @@ class NamePattern(DataBasedConstraint):
 
 @register_constraint(name='deployment_id', constraint_data_type=_STRING)
 class DeploymentId(DataBasedConstraint):
-    SUPPORTED_DATA_TYPES = ['capability_value']
+    SUPPORTED_DATA_TYPES = ['capability_value', 'node_id']
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
@@ -383,7 +386,14 @@ def validate_input_value(input_name, input_constraints, input_value,
             'function and also have '
             'constraints.'.format(input_value, input_name))
 
-    if value_getter and type_name in ['deployment_id', 'blueprint_id']:
+    if type_name in ['capability_value', 'node_id'] \
+            and 'deployment_id' not in {c.name for c in input_constraints}:
+        raise exceptions.ConstraintException(
+            "Input '{0}' of type '{1}' lacks 'deployment_id' constraint."
+            .format(input_name, type_name))
+
+    if value_getter and type_name in ['deployment_id', 'blueprint_id',
+                                      'secret_key']:
         matching_values = value_getter.get(type_name, input_value)
         if not any(v == input_value for v in matching_values or []):
             raise exceptions.ConstraintException(
