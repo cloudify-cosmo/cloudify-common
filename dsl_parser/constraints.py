@@ -307,7 +307,7 @@ class NamePattern(DataBasedConstraint):
 
 @register_constraint(name='deployment_id', constraint_data_type=_STRING)
 class DeploymentId(DataBasedConstraint):
-    SUPPORTED_DATA_TYPES = ['capability_value']
+    SUPPORTED_DATA_TYPES = ['capability_value', 'node_template']
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
