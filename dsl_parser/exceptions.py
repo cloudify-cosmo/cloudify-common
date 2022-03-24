@@ -106,6 +106,8 @@ class UnknownSysPropertyError(Exception):
 
 
 class DSLParsingException(Exception):
+    hide_traceback = True
+
     def __init__(self, err_code, *args):
         super(DSLParsingException, self).__init__(*args)
         self.err_code = err_code

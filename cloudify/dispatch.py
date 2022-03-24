@@ -331,7 +331,11 @@ class WorkflowHandler(TaskHandler):
             except api.ExecutionCancelled:
                 result = {'result': api.EXECUTION_CANCELLED_RESULT}
             except BaseException as workflow_ex:
-                err = _WorkflowFuncError(workflow_ex, traceback.format_exc())
+                if getattr(workflow_ex, 'hide_traceback', False):
+                    tb = str(workflow_ex)
+                else:
+                    tb = traceback.format_exc()
+                err = _WorkflowFuncError(workflow_ex, tb)
                 result = {'error': err}
             if not self.ctx.internal.graph_mode:
                 for workflow_task in self.ctx.internal.task_graph.tasks:
