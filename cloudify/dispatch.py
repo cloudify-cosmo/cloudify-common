@@ -335,9 +335,11 @@ class WorkflowHandler(TaskHandler):
                 result = {'result': workflow_output}
             except api.ExecutionCancelled:
                 result = {'result': api.EXECUTION_CANCELLED_RESULT}
+                return result
             except BaseException as workflow_ex:
                 err = _WorkflowFuncError(workflow_ex, traceback.format_exc())
                 result = {'error': err}
+                return result
             if not self.ctx.internal.graph_mode:
                 for workflow_task in self.ctx.internal.task_graph.tasks:
                     workflow_task.async_result.get()
