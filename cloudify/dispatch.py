@@ -309,15 +309,12 @@ class WorkflowHandler(TaskHandler):
             raise
 
     def _execute_workflow_function(self):
-        try:
-            self.ctx.internal.start_local_tasks_processing()
+        with self.ctx.internal.local_tasks_processor:
             result = self.func(*self.args, **self.kwargs)
             if not self.ctx.internal.graph_mode:
                 for workflow_task in self.ctx.internal.task_graph.tasks:
                     workflow_task.async_result.get()
             return result
-        finally:
-            self.ctx.internal.stop_local_tasks_processing()
 
     def _workflow_started(self):
         self._update_execution_status(Execution.STARTED)

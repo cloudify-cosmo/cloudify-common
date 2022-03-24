@@ -1209,12 +1209,6 @@ class CloudifyWorkflowContextInternal(object):
                                          args=args,
                                          additional_context=additional_context)
 
-    def start_local_tasks_processing(self):
-        self.local_tasks_processor.start()
-
-    def stop_local_tasks_processing(self):
-        self.local_tasks_processor.stop()
-
     def add_local_task(self, task):
         self.local_tasks_processor.add_task(task)
 
@@ -1236,6 +1230,12 @@ class LocalTasksProcessing(object):
             thread.daemon = True
             self._local_task_processing_pool.append(thread)
         self.stopped = False
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, exc_type, exc_val, tb):
+        self.stop()
 
     def start(self):
         for thread in self._local_task_processing_pool:
