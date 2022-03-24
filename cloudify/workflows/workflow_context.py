@@ -29,8 +29,6 @@ import json
 import uuid
 import threading
 
-from proxy_tools import proxy
-
 from dsl_parser import functions as dsl_functions
 from cloudify import context
 from cloudify._compat import queue
