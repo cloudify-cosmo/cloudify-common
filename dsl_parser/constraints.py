@@ -393,7 +393,7 @@ def validate_input_value(input_name, input_constraints, input_value,
             .format(input_name, type_name))
 
     if value_getter and type_name in ['deployment_id', 'blueprint_id',
-                                      'secret_key', 'node_template']:
+                                      'secret_key']:
         matching_values = value_getter.get(type_name, input_value)
         if not any(v == input_value for v in matching_values or []):
             raise exceptions.ConstraintException(
