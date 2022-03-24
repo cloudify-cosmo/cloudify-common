@@ -317,8 +317,11 @@ class WorkflowHandler(TaskHandler):
         try:
             self._workflow_started()
             result = self._execute_workflow_function()
+            if 'error' in result:
+                wrapped_exc = result['error'].wrapped_exc
+                raise wrapped_exc
             self._workflow_succeeded()
-            return result
+            return result['result']
         except Exception as e:
             error = StringIO()
             traceback.print_exc(file=error)
