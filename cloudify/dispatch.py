@@ -295,6 +295,8 @@ class WorkflowHandler(TaskHandler):
             return result
         except _WorkflowFuncError as e:
             self._workflow_failed(e.wrapped_exc, e.wrapped_tb)
+            # `raise e.wrapped_exc from None` - but syntax that won't break py2
+            e.wrapped_exc.__suppress_context__ = True
             raise e.wrapped_exc
         except BaseException as e:
             self._workflow_failed(e, traceback.format_exc())
@@ -331,11 +333,7 @@ class WorkflowHandler(TaskHandler):
             except api.ExecutionCancelled:
                 result = {'result': api.EXECUTION_CANCELLED_RESULT}
             except BaseException as workflow_ex:
-                if getattr(workflow_ex, 'hide_traceback', False):
-                    tb = str(workflow_ex)
-                else:
-                    tb = traceback.format_exc()
-                err = _WorkflowFuncError(workflow_ex, tb)
+                err = _WorkflowFuncError(workflow_ex, traceback.format_exc())
                 result = {'error': err}
             if not self.ctx.internal.graph_mode:
                 for workflow_task in self.ctx.internal.task_graph.tasks:
@@ -371,7 +369,11 @@ class WorkflowHandler(TaskHandler):
                     self.ctx.workflow_id, exception),
                 args={'error': error_traceback},
             )
-            self._update_execution_status(Execution.FAILED, error_traceback)
+            if getattr(exception, 'hide_traceback', False):
+                tb = str(exception)
+            else:
+                tb = error_traceback
+            self._update_execution_status(Execution.FAILED, tb)
         except Exception:
             logger = logging.getLogger(__name__)
             logger.exception('Exception raised when attempting to update '
