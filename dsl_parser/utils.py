@@ -201,7 +201,7 @@ def parse_value(
             return value
     elif type_name in ('string', 'secret', 'textarea',
                        'deployment_id', 'blueprint_id', 'secret_key',
-                       'capability_value', 'node_template'):
+                       'capability_value', 'node_id'):
         return value
     elif type_name == 'regex':
         if isinstance(value, text_type):

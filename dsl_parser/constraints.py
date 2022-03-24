@@ -200,7 +200,7 @@ class InRange(Constraint):
 
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
 class ValidValues(DataBasedConstraint):
-    SUPPORTED_DATA_TYPES = ['capability_value', 'node_template']
+    SUPPORTED_DATA_TYPES = ['capability_value', 'node_id']
 
     def predicate(self, value):
         return _try_predicate_func(
@@ -285,7 +285,7 @@ class Tenants(DataBasedConstraint):
 class NamePattern(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id',
                             'capability_value', 'secret_key',
-                            'node_template']
+                            'node_id']
 
     def query_param(self, data_type=None):
         if data_type == 'blueprint_id':
@@ -296,7 +296,7 @@ class NamePattern(DataBasedConstraint):
             return 'key_specs'
         elif data_type == 'capability_value':
             return 'capability_key_specs'
-        elif data_type == 'node_template':
+        elif data_type == 'node_id':
             return 'id_specs'
         else:
             raise NotImplementedError(
@@ -307,7 +307,7 @@ class NamePattern(DataBasedConstraint):
 
 @register_constraint(name='deployment_id', constraint_data_type=_STRING)
 class DeploymentId(DataBasedConstraint):
-    SUPPORTED_DATA_TYPES = ['capability_value', 'node_template']
+    SUPPORTED_DATA_TYPES = ['capability_value', 'node_id']
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
@@ -386,7 +386,7 @@ def validate_input_value(input_name, input_constraints, input_value,
             'function and also have '
             'constraints.'.format(input_value, input_name))
 
-    if type_name in ['capability_value', 'node_template'] \
+    if type_name in ['capability_value', 'node_id'] \
             and 'deployment_id' not in {c.name for c in input_constraints}:
         raise exceptions.ConstraintException(
             "Input '{0}' of type '{1}' lacks 'deployment_id' constraint."
