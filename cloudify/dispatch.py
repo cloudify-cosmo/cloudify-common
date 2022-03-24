@@ -157,6 +157,20 @@ class OperationHandler(TaskHandler):
                 ctx.target.instance.update()
 
 
+class _WorkflowFuncError(Exception):
+    """This wraps any exception coming out of a workflow function.
+
+    We'll wrap the exception and the traceback, so that we can
+    preserve the original traceback. We want the original traceback
+    to be around, so that we can only print that, without adding
+    framework-level frames that come from dispatch.py itself.
+    """
+    def __init__(self, wrapped_exc, wrapped_tb, *args, **kwargs):
+        super(_WorkflowFuncError, self).__init__(*args, **kwargs)
+        self.wrapped_exc = wrapped_exc
+        self.wrapped_tb = wrapped_tb
+
+
 class WorkflowHandler(TaskHandler):
 
     def __init__(self, *args, **kwargs):
@@ -279,6 +293,9 @@ class WorkflowHandler(TaskHandler):
             else:
                 self._workflow_succeeded()
             return result
+        except _WorkflowFuncError as e:
+            self._workflow_failed(e.wrapped_exc, e.wrapped_tb)
+            raise e.wrapped_exc
         except BaseException as e:
             self._workflow_failed(e, traceback.format_exc())
             raise
@@ -290,10 +307,8 @@ class WorkflowHandler(TaskHandler):
         with state.current_workflow_ctx.push(self.ctx, self.kwargs):
             try:
                 workflow_result = self._execute_workflow_function()
-                queue.put({'result': workflow_result})
-            except api.ExecutionCancelled:
-                queue.put({'result': api.EXECUTION_CANCELLED_RESULT})
-            except BaseException as workflow_ex:
+                queue.put(workflow_result)
+            except Exception as workflow_ex:
                 queue.put({'error': workflow_ex})
 
     def _handle_local_workflow(self):
@@ -310,7 +325,14 @@ class WorkflowHandler(TaskHandler):
 
     def _execute_workflow_function(self):
         with self.ctx.internal.local_tasks_processor:
-            result = self.func(*self.args, **self.kwargs)
+            try:
+                workflow_output = self.func(*self.args, **self.kwargs)
+                result = {'result': workflow_output}
+            except api.ExecutionCancelled:
+                result = {'result': api.EXECUTION_CANCELLED_RESULT}
+            except BaseException as workflow_ex:
+                err = _WorkflowFuncError(workflow_ex, traceback.format_exc())
+                result = {'error': err}
             if not self.ctx.internal.graph_mode:
                 for workflow_task in self.ctx.internal.task_graph.tasks:
                     workflow_task.async_result.get()
