@@ -140,12 +140,35 @@ class Node(dict):
         return self['type']
 
 
+class NodeTypes(dict):
+
+    def __init__(self, node_type):
+        super(NodeTypes, self).__init__()
+        self.update(node_type)
+
+    @property
+    def id(self):
+        """ID of the node."""
+        return self['id']
+
+    @property
+    def deployment_id(self):
+        """ID of the deployment the node belong to."""
+        return self['deployment_id']
+
+    @property
+    def type(self):
+        """Node's type."""
+        return self['type']
+
+
 class NodesClient(object):
 
     def __init__(self, api):
         self.api = api
         self._wrapper_cls = Node
         self._uri_prefix = 'nodes'
+        self.types = NodeTypesClient(api)
 
     def _create_filters(
             self,
@@ -290,4 +313,39 @@ class NodesClient(object):
             '/{self._uri_prefix}/{deployment_id}/{node_id}'
             .format(self=self, deployment_id=deployment_id, node_id=node_id),
             expected_status_code=204,
+        )
+
+
+class NodeTypesClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+    def list(self, node_type=None, constraints=None, **kwargs):
+        """
+        Returns a list of node's types matching constraints.
+
+        :param deployment_id: An identifier of a deployment which nodes
+               are going to be searched.  If omitted, 'deployment_id' key
+               should be present in the `constraints` dict, otherwise the
+               request will fail.
+        :param node_type: If provided, returns only the requested type.
+        :param constraints: A list of DSL constraints for node_type
+               data type to filter the types by.
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.Node.fields
+        :return: NodeTypes list.
+        """
+        params = kwargs
+        if node_type:
+            params['_search'] = node_type
+
+        if constraints is None:
+            constraints = dict()
+
+        response = self.api.post('/searches/node-types', params=params,
+                                 data={'constraints': constraints})
+        return ListResponse(
+            items=[NodeTypes(item) for item in response['items']],
+            metadata=response['metadata']
         )
