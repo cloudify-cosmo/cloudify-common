@@ -50,7 +50,6 @@ class MockClient(CloudifyClient):
 
     def check_last_auth_headers(self, auth=None, token=None):
         expected = {
-            constants.CLOUDIFY_API_AUTH_TOKEN_HEADER: None,
             constants.CLOUDIFY_EXECUTION_TOKEN_HEADER: None,
             constants.CLOUDIFY_AUTHENTICATION_HEADER: auth,
             constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER: token,

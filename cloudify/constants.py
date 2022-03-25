@@ -94,7 +94,6 @@ SUPPORTED_ARCHIVE_TYPES = ('zip', 'tar', 'tar.gz', 'tar.bz2')
 
 NEW_TOKEN_FILE_NAME = 'new_token'
 
-CLOUDIFY_API_AUTH_TOKEN_HEADER = 'API-Authentication-Token'
 CLOUDIFY_EXECUTION_TOKEN_HEADER = 'Execution-Token'
 CLOUDIFY_AUTHENTICATION_HEADER = 'Authorization'
 CLOUDIFY_TOKEN_AUTHENTICATION_HEADER = 'Authentication-Token'

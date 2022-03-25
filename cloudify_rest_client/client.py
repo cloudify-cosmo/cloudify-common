@@ -138,7 +138,6 @@ class HTTPClient(object):
 
     def has_auth_header(self):
         auth_headers = [constants.CLOUDIFY_AUTHENTICATION_HEADER,
-                        constants.CLOUDIFY_API_AUTH_TOKEN_HEADER,
                         constants.CLOUDIFY_EXECUTION_TOKEN_HEADER,
                         constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER]
         return any(header in self.headers for header in auth_headers)
