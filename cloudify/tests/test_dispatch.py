@@ -151,7 +151,7 @@ class TestDispatchTaskHandler(testtools.TestCase):
             'local': False,
             'logger': Mock(),
             'cleanup': Mock(),
-            'internal': Mock(),
+            'internal': MagicMock(),
             'execution_id': 'test_execution_id',
             'workflow_id': 'test_workflow_id',
             'dry_run': False,

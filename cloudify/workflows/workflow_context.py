@@ -29,8 +29,6 @@ import json
 import uuid
 import threading
 
-from proxy_tools import proxy
-
 from dsl_parser import functions as dsl_functions
 from cloudify import context
 from cloudify._compat import queue
@@ -1131,53 +1129,11 @@ class CloudifyWorkflowContext(_WorkflowContextBase):
 
 
 class CloudifySystemWideWorkflowContext(_WorkflowContextBase):
-
     def __init__(self, ctx):
         super(CloudifySystemWideWorkflowContext, self).__init__(
             ctx,
             SystemWideWfRemoteContextHandler
         )
-        self._dep_contexts = None
-
-    class _ManagedCloudifyWorkflowContext(CloudifyWorkflowContext):
-        def __enter__(self):
-            self.internal.start_local_tasks_processing()
-
-        def __exit__(self, *args, **kwargs):
-            self.internal.stop_local_tasks_processing()
-
-    @property
-    def deployments_contexts(self):
-        if self.local:
-            raise RuntimeError(
-                'deployment_contexts do not exist in local workflows')
-        if self._dep_contexts is None:
-            self._dep_contexts = {}
-
-            deployments_list = \
-                self.internal.handler.rest_client.deployments.list(
-                    _include=['id', 'blueprint_id'],
-                    _get_all_results=True
-                )
-            for dep in deployments_list:
-                # Failure to deepcopy will cause snapshot restore context hack
-                # to be reset just before it's needed.
-                dep_ctx = copy.deepcopy(self._context)
-                dep_ctx['tenant']['name'] = self.tenant_name
-                dep_ctx['deployment_id'] = dep.id
-                dep_ctx['blueprint_id'] = dep.blueprint_id
-
-                def lazily_loaded_ctx(dep_ctx):
-                    def lazy_ctx():
-                        if not hasattr(lazy_ctx, '_cached_ctx'):
-                            lazy_ctx._cached_ctx = \
-                                self._ManagedCloudifyWorkflowContext(dep_ctx)
-                        return lazy_ctx._cached_ctx
-
-                    return proxy(lazy_ctx)
-
-                self._dep_contexts[dep.id] = lazily_loaded_ctx(dep_ctx)
-        return self._dep_contexts
 
 
 class CloudifyWorkflowContextInternal(object):
@@ -1251,12 +1207,6 @@ class CloudifyWorkflowContextInternal(object):
                                          args=args,
                                          additional_context=additional_context)
 
-    def start_local_tasks_processing(self):
-        self.local_tasks_processor.start()
-
-    def stop_local_tasks_processing(self):
-        self.local_tasks_processor.stop()
-
     def add_local_task(self, task):
         self.local_tasks_processor.add_task(task)
 
@@ -1278,6 +1228,12 @@ class LocalTasksProcessing(object):
             thread.daemon = True
             self._local_task_processing_pool.append(thread)
         self.stopped = False
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, exc_type, exc_val, tb):
+        self.stop()
 
     def start(self):
         for thread in self._local_task_processing_pool:
