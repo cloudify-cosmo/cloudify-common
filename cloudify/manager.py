@@ -139,10 +139,7 @@ def get_rest_client(tenant=None, api_token=None):
     if execution_token:
         headers[constants.CLOUDIFY_EXECUTION_TOKEN_HEADER] = execution_token
     elif api_token:
-        if not api_token.startswith('ctok-'):
-            headers[constants.CLOUDIFY_API_AUTH_TOKEN_HEADER] = api_token
-        else:
-            token = api_token
+        token = api_token
     else:
         token = utils.get_rest_token()
 
