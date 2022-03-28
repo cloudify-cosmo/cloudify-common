@@ -333,6 +333,9 @@ class WorkflowHandler(TaskHandler):
             try:
                 workflow_output = self.func(*self.args, **self.kwargs)
                 result = {'result': workflow_output}
+                if not self.ctx.internal.graph_mode:
+                    for workflow_task in self.ctx.internal.task_graph.tasks:
+                        workflow_task.async_result.get()
             except api.ExecutionCancelled:
                 result = {'result': api.EXECUTION_CANCELLED_RESULT}
                 return result
@@ -340,9 +343,6 @@ class WorkflowHandler(TaskHandler):
                 err = _WorkflowFuncError(workflow_ex, traceback.format_exc())
                 result = {'error': err}
                 return result
-            if not self.ctx.internal.graph_mode:
-                for workflow_task in self.ctx.internal.task_graph.tasks:
-                    workflow_task.async_result.get()
             return result
 
     def _workflow_started(self):
