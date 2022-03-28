@@ -621,11 +621,15 @@ def _validate_ref(ref, ref_name, name, path, attribute_path):
 
 
 def _get_attribute_from_node_instance(ni, node, attribute_path, path):
-    value = _get_property_value(ni['node_id'],
-                                ni.get('runtime_properties'),
-                                attribute_path,
-                                path,
-                                raise_if_not_found=False)
+    try:
+        value = _get_property_value(ni['node_id'],
+                                    ni.get('runtime_properties'),
+                                    attribute_path,
+                                    path,
+                                    raise_if_not_found=False)
+    except Exception as e:
+        raise exceptions.FunctionEvaluationError('get_attribute', str(e))
+
     if value is None:
         # attribute not found in instance runtime properties
         # special case for { get_attributes_list: [
