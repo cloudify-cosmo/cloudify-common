@@ -421,7 +421,8 @@ class GetProperty(Function):
         return _get_property_value(node_template['name'],
                                    node_template.get('properties', {}),
                                    self.property_path,
-                                   self.path)
+                                   self.path,
+                                   'get_property')
 
     def evaluate(self, handler):
         if is_function(self.node_name) or \
@@ -477,7 +478,8 @@ class GetAttribute(Function):
             self.context = self.context.copy()
             self.context['self'] = node_instance['id']
         value = _get_attribute_from_node_instance(
-            node_instance, node, self.attribute_path, self.path)
+            node_instance, node, self.attribute_path, self.path,
+            'get_attribute')
         return value
 
     def _resolve_node_instance_by_name(self, handler):
@@ -620,16 +622,13 @@ def _validate_ref(ref, ref_name, name, path, attribute_path):
                                    attribute_path))
 
 
-def _get_attribute_from_node_instance(ni, node, attribute_path, path):
-    try:
-        value = _get_property_value(ni['node_id'],
-                                    ni.get('runtime_properties'),
-                                    attribute_path,
-                                    path,
-                                    raise_if_not_found=False)
-    except Exception as e:
-        raise exceptions.FunctionEvaluationError('get_attribute', str(e))
-
+def _get_attribute_from_node_instance(ni, node, attribute_path, path, fn_name):
+    value = _get_property_value(ni['node_id'],
+                                ni.get('runtime_properties'),
+                                attribute_path,
+                                path,
+                                raise_if_not_found=False,
+                                func_name=fn_name)
     if value is None:
         # attribute not found in instance runtime properties
         # special case for { get_attributes_list: [
@@ -644,7 +643,8 @@ def _get_attribute_from_node_instance(ni, node, attribute_path, path):
                                     node.get('properties', {}),
                                     attribute_path,
                                     path,
-                                    raise_if_not_found=False)
+                                    raise_if_not_found=False,
+                                    func_name=fn_name)
     return value
 
 
@@ -711,7 +711,8 @@ class GetAttributesList(Function):
 
         for ni in node_instances:
             results.append(_get_attribute_from_node_instance(
-                ni, node, self.attribute_path, self.path))
+                ni, node, self.attribute_path, self.path, 'get_attributes_list'
+            ))
 
         return results
 
@@ -778,7 +779,7 @@ class GetAttributesDict(Function):
             for attribute_path in self.attribute_paths:
                 identifier = self._convert_to_identifier(attribute_path)
                 ni_result[identifier] = _get_attribute_from_node_instance(
-                    ni, node, attribute_path, self.path)
+                    ni, node, attribute_path, self.path, 'get_attributes_dict')
             results[ni['id']] = ni_result
 
         return results
@@ -1267,7 +1268,8 @@ def _get_property_value(node_name,
                         properties,
                         property_path,
                         context_path='',
-                        raise_if_not_found=True):
+                        raise_if_not_found=True,
+                        func_name=None):
     """Extracts a property's value according to the provided property path
 
     :param node_name: Node name the property belongs to (for logging).
@@ -1287,11 +1289,13 @@ def _get_property_value(node_name,
         elif isinstance(value, dict):
             if p not in value:
                 if raise_if_not_found:
-                    raise KeyError(
+                    raise exceptions.FunctionEvaluationError(
+                        func_name,
                         "Node template property '{0}.properties.{1}' "
-                        "referenced from '{2}' doesn't exist.".format(
-                            node_name, '.'.join(str_list(property_path)),
-                            context_path))
+                        "referenced from '{2}' doesn't exist."
+                        .format(node_name, '.'.join(str_list(property_path)),
+                                context_path)
+                    )
                 return None
             else:
                 value = value[p]
@@ -1299,29 +1303,34 @@ def _get_property_value(node_name,
             try:
                 value = value[p]
             except TypeError:
-                raise TypeError(
+                raise exceptions.FunctionEvaluationError(
+                    func_name,
                     "Node template property '{0}.properties.{1}' "
                     "referenced from '{2}' is expected {3} to be an int "
-                    "but it is a {4}.".format(
-                        node_name, '.'.join(str_list(property_path)),
-                        context_path,
-                        p, type(p).__name__))
+                    "but it is a {4}."
+                    .format(node_name, '.'.join(str_list(property_path)),
+                            context_path, p, type(p).__name__)
+                )
             except IndexError:
                 if raise_if_not_found:
-                    raise IndexError(
+                    raise exceptions.FunctionEvaluationError(
+                        func_name,
                         "Node template property '{0}.properties.{1}' "
                         "referenced from '{2}' index is out of range. Got {3}"
-                        " but list size is {4}.".format(
-                            node_name, '.'.join(str_list(property_path)),
-                            context_path, p, len(value)))
+                        " but list size is {4}."
+                        .format(node_name, '.'.join(str_list(property_path)),
+                                context_path, p, len(value))
+                    )
                 return None
         else:
             if raise_if_not_found:
-                raise KeyError(
+                raise exceptions.FunctionEvaluationError(
+                    func_name,
                     "Node template property '{0}.properties.{1}' "
-                    "referenced from '{2}' doesn't exist.".format(
-                        node_name, '.'.join(str_list(property_path)),
-                        context_path))
+                    "referenced from '{2}' doesn't exist."
+                    .format(node_name, '.'.join(str_list(property_path)),
+                            context_path)
+                )
             return None
 
     return value
