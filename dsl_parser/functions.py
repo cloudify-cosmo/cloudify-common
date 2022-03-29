@@ -1277,6 +1277,7 @@ def _get_property_value(node_name,
     :param property_path: Property path as list.
     :param context_path: Context path (for logging).
     :param raise_if_not_found: Whether to raise an error if property not found.
+    "param func_name: Originating function name (for raising error).
     :return: Property value.
     """
     def str_list(li):
