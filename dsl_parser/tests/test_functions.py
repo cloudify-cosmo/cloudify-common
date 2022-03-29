@@ -100,7 +100,7 @@ node_templates:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn('Node template property', str(e))
             self.assertIn("doesn't exist", str(e))
             self.assertIn('vm.properties.notfound', str(e))
@@ -206,7 +206,8 @@ node_templates:
             r"vm\.operations\.(interface\.)?op\.inputs\.x.*"
             r"doesn't exist.*"
         )
-        self.assertRaisesRegex(KeyError, message_regex, self.parse, yaml)
+        self.assertRaisesRegex(exceptions.FunctionEvaluationError,
+                               message_regex, self.parse, yaml)
 
     def test_node_template_capabilities(self):
         yaml = """
@@ -345,7 +346,7 @@ outputs:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn('Node template property', str(e))
             self.assertIn("doesn't exist", str(e))
             self.assertIn('vm.properties.a', str(e))
@@ -553,7 +554,7 @@ node_templates:
         try:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
-        except KeyError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn(
                 "Node template property 'vm.properties.a.notfound' "
                 "referenced from 'nodes.vm.properties.a.a0' doesn't exist.",
@@ -576,7 +577,7 @@ node_templates:
         try:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
-        except TypeError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn('is expected b to be an int but it is a', str(e))
 
     def test_invalid_nested_property3(self):
@@ -596,7 +597,7 @@ node_templates:
         try:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
-        except IndexError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn('index is out of range. Got 10 but list size is 3',
                           str(e))
 
@@ -753,7 +754,8 @@ node_templates:
             a: {get_input: dict_input}
             b: {get_property: [SELF, a, key]}
 """
-        with self.assertRaisesRegex(KeyError, r'vm1\.properties\.a\.key'):
+        with self.assertRaisesRegex(exceptions.FunctionEvaluationError,
+                                    r'vm1\.properties\.a\.key'):
             prepare_deployment_plan(
                 self.parse(yaml), inputs={'dict_input': {'other_key': 42}})
 
