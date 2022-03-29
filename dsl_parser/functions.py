@@ -645,7 +645,26 @@ def _get_attribute_from_node_instance(ni, node, attribute_path, path, fn_name):
                                     path,
                                     raise_if_not_found=False,
                                     func_name=fn_name)
+        if isinstance(value, list):
+            value = _merge_function_args(value)
+
     return value
+
+
+def _merge_function_args(items):
+    for index, item in enumerate(items):
+        if is_function(item):
+            break
+    else:
+        return items
+    item = items[index]
+    f_name = list(item.keys())[0]
+    f_args = item[f_name]
+    f_args.extend(items[index+1:])
+    del items[index+1:]
+    if len(items) == 1:
+        return items[0]
+    return items
 
 
 def _validate_no_functions_in_args(node_name, attribute_path, path, name,
