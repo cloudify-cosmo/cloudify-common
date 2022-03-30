@@ -652,6 +652,15 @@ def _get_attribute_from_node_instance(ni, node, attribute_path, path, fn_name):
 
 
 def _merge_function_args(items):
+    # In case of `items` being a list of values and intrinsic function calls,
+    # e.g.: ['a', {'get_attribute': ['b', 'c']}, 'd', 'e'] contains a list
+    # where the second item is a function call.  This function will transform
+    # it into ['a', {'get_attribute': ['b', 'c', 'd', 'e']}].  For
+    # [{'get_attribute': ['a']}, 'b'] it will produce just
+    # {'get_attribute': ['a', 'b']}.  And in case there are more functions
+    # among `items`, only the first gets the remaining parameters merged:
+    # [{'get_attribute': ['a']}, 'b', {'get_attribute': ['c']}] becomes
+    # {'get_attribute': ['a', 'b', {'get_attribute': ['c']}]}
     f_index = None
     for index, item in enumerate(items):
         if is_function(item):
