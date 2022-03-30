@@ -652,16 +652,18 @@ def _get_attribute_from_node_instance(ni, node, attribute_path, path, fn_name):
 
 
 def _merge_function_args(items):
+    f_index = None
     for index, item in enumerate(items):
         if is_function(item):
+            f_index = index
             break
-    else:
+    if f_index is None:
         return items
-    item = items[index]
+    item = items[f_index]
     f_name = list(item.keys())[0]
     f_args = item[f_name]
-    f_args.extend(items[index+1:])
-    del items[index+1:]
+    f_args.extend(items[f_index+1:])
+    del items[f_index+1:]
     if len(items) == 1:
         return items[0]
     return items
