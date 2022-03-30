@@ -645,9 +645,9 @@ def _get_attribute_from_node_instance(ni, node, attribute_path, path, fn_name):
                                     path,
                                     raise_if_not_found=False,
                                     func_name=fn_name)
-        if isinstance(value, list):
-            value = _merge_function_args(value)
 
+    if isinstance(value, list):
+        value = _merge_function_args(value)
     return value
 
 
