@@ -414,15 +414,17 @@ class GetProperty(Function):
             # that the EvaluationHandler can use the new node as the context,
             # in case there's another get_property call in the result
             self.context = node
-        self._get_property_value(node)
+        self._get_property_value(node, handler)
         return node
 
-    def _get_property_value(self, node_template):
+    def _get_property_value(self, node_template, handler):
         return _get_property_value(node_template['name'],
                                    node_template.get('properties', {}),
                                    self.property_path,
+                                   handler,
+                                   self.context,
                                    self.path,
-                                   'get_property')
+                                   func_name='get_property')
 
     def evaluate(self, handler):
         if is_function(self.node_name) or \
@@ -430,7 +432,8 @@ class GetProperty(Function):
             raise exceptions.FunctionEvaluationError(
                 '{0}: found an unresolved argument in path: {1}, {2}'
                 .format(self.name, self.node_name, self.property_path))
-        return self._get_property_value(self.get_node_template(handler))
+        return self._get_property_value(self.get_node_template(handler),
+                                        handler)
 
 
 @register(name='get_attribute', func_eval_type=RUNTIME_FUNC)
@@ -479,7 +482,7 @@ class GetAttribute(Function):
             self.context['self'] = node_instance['id']
         value = _get_attribute_from_node_instance(
             node_instance, node, self.attribute_path, self.path,
-            'get_attribute')
+            handler, self.context, 'get_attribute')
         return value
 
     def _resolve_node_instance_by_name(self, handler):
@@ -622,13 +625,17 @@ def _validate_ref(ref, ref_name, name, path, attribute_path):
                                    attribute_path))
 
 
-def _get_attribute_from_node_instance(ni, node, attribute_path, path, fn_name):
+def _get_attribute_from_node_instance(ni, node, attribute_path, path,
+                                      handler, context, fn_name):
     value = _get_property_value(ni['node_id'],
                                 ni.get('runtime_properties'),
                                 attribute_path,
+                                handler,
+                                context,
                                 path,
                                 raise_if_not_found=False,
                                 func_name=fn_name)
+
     if value is None:
         # attribute not found in instance runtime properties
         # special case for { get_attributes_list: [
@@ -642,6 +649,8 @@ def _get_attribute_from_node_instance(ni, node, attribute_path, path, fn_name):
         value = _get_property_value(node['id'],
                                     node.get('properties', {}),
                                     attribute_path,
+                                    handler,
+                                    context,
                                     path,
                                     raise_if_not_found=False,
                                     func_name=fn_name)
@@ -711,7 +720,8 @@ class GetAttributesList(Function):
 
         for ni in node_instances:
             results.append(_get_attribute_from_node_instance(
-                ni, node, self.attribute_path, self.path, 'get_attributes_list'
+                ni, node, self.attribute_path, self.path,
+                handler, self.context, 'get_attributes_list'
             ))
 
         return results
@@ -779,7 +789,9 @@ class GetAttributesDict(Function):
             for attribute_path in self.attribute_paths:
                 identifier = self._convert_to_identifier(attribute_path)
                 ni_result[identifier] = _get_attribute_from_node_instance(
-                    ni, node, attribute_path, self.path, 'get_attributes_dict')
+                    ni, node, attribute_path, self.path,
+                    handler, self.context, 'get_attributes_dict'
+                )
             results[ni['id']] = ni_result
 
         return results
@@ -1267,6 +1279,8 @@ class StringUpper(Function, ValidateArgumentMixin):
 def _get_property_value(node_name,
                         properties,
                         property_path,
+                        handler,
+                        context,
                         context_path='',
                         raise_if_not_found=True,
                         func_name=None):
