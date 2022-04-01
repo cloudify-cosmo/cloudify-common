@@ -17,7 +17,6 @@ import abc
 import collections
 import pkg_resources
 import json
-from copy import copy
 
 from functools import wraps
 
@@ -1301,18 +1300,7 @@ def _get_property_value(node_name,
     def evaluate_property_value(v):
         if not handler.runtime_only_evaluation:
             return v
-        evaluated_value = v
-        ctx = copy(context)
-        while True:
-            func = parse(evaluated_value, context=ctx, path=context_path)
-            if not isinstance(func, Function):
-                break
-            previous_evaluated_value = evaluated_value
-            evaluated_value = func.evaluate(handler)
-            ctx = func.context
-            if previous_evaluated_value == evaluated_value:
-                break
-        return evaluated_value
+        return handler(v, None, context, context_path)
 
     value = properties
     for p in property_path:
