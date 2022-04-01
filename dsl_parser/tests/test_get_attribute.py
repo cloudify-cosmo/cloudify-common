@@ -91,6 +91,52 @@ node_templates:
         assertion(webserver_node['relationships'][0]['source_operations'])
         assertion(webserver_node['relationships'][0]['target_operations'])
 
+    def test_simple_nested_evaluation(self):
+        storage = self.mock_evaluation_storage(
+            node_instances=[{
+                'id': 'x',
+                'node_id': 'x'
+            }],
+            nodes=[{
+                'id': 'x',
+                'properties': {
+                    'a': [1, 2, 3, 4],
+                    'b': {'get_attribute': ['x', 'a']},
+                    'c': {'get_attribute': ['x', 'b']},
+                    'd': {'get_attribute': ['x', 'c']}
+                }
+            }]
+        )
+        capabilities = {
+            'a2': {'value': {'get_attribute': ['x', 'a', 2]}},
+            'd2': {'value': {'get_attribute': ['x', 'd', 2]}},
+        }
+        evaluated = functions.evaluate_capabilities(capabilities, storage)
+        assert evaluated['a2'] == evaluated['d2'] == 3
+
+    def test_nested_evaluation(self):
+        storage = self.mock_evaluation_storage(
+            node_instances=[{
+                'id': 'x',
+                'node_id': 'x'
+            }],
+            nodes=[{
+                'id': 'x',
+                'properties': {
+                    'a': [1, 2, 3, 4],
+                    'b': {'get_attribute': ['x', 'a']},
+                    'c': {'get_attribute': ['x', 'b']},
+                    'd': {'get_attribute': ['x', 'c']}
+                }
+            }]
+        )
+        capabilities = {
+            'five': {'value': [0, {'get_attribute': ['x', 'a', 0]},
+                               2, {'get_attribute': ['x', 'd', 2]}, 4]},
+        }
+        evaluated = functions.evaluate_capabilities(capabilities, storage)
+        assert evaluated['five'] == [0, 1, 2, 3, 4]
+
 
 class TestEvaluateFunctions(AbstractTestParser):
 
