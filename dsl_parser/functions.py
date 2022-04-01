@@ -1493,6 +1493,10 @@ class _EvaluationHandler(object):
     def evaluate_function(self, func):
         return func.evaluate(self)
 
+    @property
+    def runtime_only_evaluation(self):
+        return False
+
 
 class _PlanEvaluationHandler(_EvaluationHandler):
     def __init__(self, plan, runtime_only_evaluation):
@@ -1532,6 +1536,10 @@ class _PlanEvaluationHandler(_EvaluationHandler):
     def get_consumers(self, prop):
         raise exceptions.FunctionEvaluationError(
             "`get_consumers` should be evaluated at runtime only")
+
+    @property
+    def runtime_only_evaluation(self):
+        return self._runtime_only_evaluation
 
 
 class _RuntimeEvaluationHandler(_EvaluationHandler):
@@ -1615,6 +1623,10 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
 
     def get_consumers(self, prop):
         return self._storage.get_consumers(prop)
+
+    @property
+    def runtime_only_evaluation(self):
+        return True
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
