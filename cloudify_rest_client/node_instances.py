@@ -217,7 +217,7 @@ class NodeInstancesClient(object):
 
         return params
 
-    def list(self, _include=None, **kwargs):
+    def list(self, _include=None, constraints=None, **kwargs):
         """
         Returns a list of node instances which belong to the deployment
         identified by the provided deployment id.
@@ -232,6 +232,8 @@ class NodeInstancesClient(object):
         :param _include: List of fields to include in response.
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
+        :param constraints: A list of DSL constraints for node_instance data
+                            type to filter the node_instances by.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.DeploymentNodeInstance.fields
         :return: Node instances.
@@ -239,9 +241,18 @@ class NodeInstancesClient(object):
         """
 
         params = self._create_filters(**kwargs)
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                params=params,
-                                _include=_include)
+        if constraints is None:
+            response = self.api.get('/{self._uri_prefix}'.format(self=self),
+                                    params=params,
+                                    _include=_include)
+        else:
+            if _include:
+                params['_include'] = ','.join(_include)
+            response = self.api.post(
+                '/searches/{self._uri_prefix}'.format(self=self),
+                params=params,
+                data={'constraints': constraints}
+            )
 
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
