@@ -95,11 +95,18 @@ VALIDATE_DEFINITIONS_VERSION = 'validate_definitions_version'
 RESOLVER_IMPLEMENTATION_KEY = 'implementation'
 RESLOVER_PARAMETERS_KEY = 'parameters'
 
+TYPES_BASED_ON_DB_ENTITIES = [
+    'blueprint_id', 'deployment_id', 'capability_value', 'scaling_group',
+    'node_id', 'node_type', 'node_instance', 'secret_key'
+]
+TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT = [
+    'capability_value', 'scaling_group',
+    'node_id', 'node_type', 'node_instance'
+]
 USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean', 'list',
-                        'dict', 'regex', 'secret', 'textarea',
-                        'deployment_id', 'blueprint_id', 'secret_key',
-                        'capability_value', 'node_id', 'node_type',
-                        'node_instance']
+                        'dict', 'regex', 'secret', 'textarea'] \
+                       + TYPES_BASED_ON_DB_ENTITIES
+
 PLUGIN_DSL_KEYS_NOT_FROM_YAML = ['blueprint_labels', 'labels', 'resource_tags']
 PLUGIN_DSL_KEYS_READ_FROM_DB = PLUGIN_DSL_KEYS_NOT_FROM_YAML
 PLUGIN_DSL_KEYS_ADD_VALUES_NODE = ['blueprint_labels', 'labels']

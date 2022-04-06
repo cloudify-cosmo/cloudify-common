@@ -23,6 +23,8 @@ from dsl_parser.constants import (
     DEFAULT,
     CONSTRAINTS as CONSTRAINT_CONST,
     TYPE,
+    TYPES_BASED_ON_DB_ENTITIES,
+    TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT,
 )
 
 _NOT_COMPARABLE_ERROR_MSG = "Value is not comparable, the Constraint " \
@@ -392,15 +394,15 @@ def validate_input_value(input_name, input_constraints, input_value,
             'function and also have '
             'constraints.'.format(input_value, input_name))
 
-    if type_name in ['capability_value',
-                     'node_id', 'node_type', 'node_instance'] \
+    if type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT \
             and 'deployment_id' not in {c.name for c in input_constraints}:
         raise exceptions.ConstraintException(
             "Input '{0}' of type '{1}' lacks 'deployment_id' constraint."
             .format(input_name, type_name))
 
-    if value_getter and type_name in ['deployment_id', 'blueprint_id',
-                                      'secret_key']:
+    if value_getter and \
+            type_name in set(TYPES_BASED_ON_DB_ENTITIES) - \
+            set(TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT):
         matching_values = value_getter.get(type_name, input_value)
         if not any(v == input_value for v in matching_values or []):
             raise exceptions.ConstraintException(
