@@ -202,7 +202,7 @@ class InRange(Constraint):
 
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
 class ValidValues(DataBasedConstraint):
-    SUPPORTED_DATA_TYPES = ['capability_value',
+    SUPPORTED_DATA_TYPES = ['capability_value', 'scaling_group',
                             'node_id', 'node_type', 'node_instance']
 
     def predicate(self, value):
@@ -286,8 +286,8 @@ class Tenants(DataBasedConstraint):
 
 @register_constraint(name='name_pattern', constraint_data_type=_DICT)
 class NamePattern(DataBasedConstraint):
-    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id',
-                            'capability_value', 'secret_key',
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id', 'secret_key',
+                            'capability_value', 'scaling_group',
                             'node_id', 'node_type', 'node_instance']
 
     def query_param(self, data_type=None):
@@ -297,14 +297,16 @@ class NamePattern(DataBasedConstraint):
             return 'display_name_specs'
         elif data_type == 'secret_key':
             return 'key_specs'
-        elif data_type == 'capability_value':
-            return 'capability_key_specs'
         elif data_type == 'node_id':
             return 'id_specs'
         elif data_type == 'node_type':
             return 'type_specs'
         elif data_type == 'node_instance':
             return 'id_specs'
+        elif data_type == 'capability_value':
+            return 'capability_key_specs'
+        elif data_type == 'scaling_group':
+            return 'scaling_group_name_specs'
         else:
             raise NotImplementedError(
                 "'{0}' constraint is not implemented for data type '{1}'"
@@ -314,7 +316,7 @@ class NamePattern(DataBasedConstraint):
 
 @register_constraint(name='deployment_id', constraint_data_type=_STRING)
 class DeploymentId(DataBasedConstraint):
-    SUPPORTED_DATA_TYPES = ['capability_value',
+    SUPPORTED_DATA_TYPES = ['capability_value', 'scaling_group',
                             'node_id', 'node_type', 'node_instance']
 
 
