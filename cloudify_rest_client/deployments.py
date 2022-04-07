@@ -1,4 +1,5 @@
 import warnings
+from copy import copy
 
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
@@ -277,6 +278,33 @@ class DeploymentCapabilities(dict):
         return self['capabilities']
 
 
+class DeploymentScalingGroup(dict):
+
+    def __init__(self, scaling_groups):
+        super(DeploymentScalingGroup, self).__init__()
+        self.update(scaling_groups)
+
+    @property
+    def deployment_id(self):
+        """ID of the deployment the capabilities belong to."""
+        return self['deployment_id']
+
+    @property
+    def name(self):
+        """Name of the scaling group."""
+        return self['name']
+
+    @property
+    def members(self):
+        """A list of members of the scaling group (nodes)."""
+        return self['members']
+
+    @property
+    def properties(self):
+        """A dict of scaling group's configuration for instances quantities."""
+        return self['properties']
+
+
 class DeploymentGroup(dict):
     def __init__(self, group):
         super(DeploymentGroup, self).__init__()
@@ -545,12 +573,43 @@ class DeploymentCapabilitiesClient(object):
         )
 
 
+class DeploymentScalingGroupsClient(object):
+    def __init__(self, api):
+        self.api = api
+
+    def list(self, deployment_id, constraints=None, _include=None, **kwargs):
+        """
+        Returns a list of deployment's scaling groups matching constraints.
+
+        :param deployment_id: An identifier of a deployment which scaling
+               groups are going to be searched.
+        :param constraints: A list of DSL constraints for scaling_group
+               data type to filter the scaling groups by.
+        :param _include: List of fields to include in response.
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.Deployment.fields
+        :return: DeploymentScalingGroup list.
+        """
+        params = copy(kwargs) or {}
+        params['deployment_id'] = deployment_id
+        if _include:
+            params['_include'] = ','.join(_include)
+
+        response = self.api.post('/searches/scaling-groups', params=params,
+                                 data={'constraints': constraints or {}})
+        return ListResponse(
+            items=[DeploymentScalingGroup(item) for item in response['items']],
+            metadata=response['metadata']
+        )
+
+
 class DeploymentsClient(object):
 
     def __init__(self, api):
         self.api = api
         self.outputs = DeploymentOutputsClient(api)
         self.capabilities = DeploymentCapabilitiesClient(api)
+        self.scaling_groups = DeploymentScalingGroupsClient(api)
 
     def list(self, _include=None, sort=None, is_descending=False,
              filter_id=None, filter_rules=None, constraints=None, **kwargs):
