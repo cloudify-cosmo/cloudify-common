@@ -18,6 +18,14 @@ class Deployment(dict):
         if 'workflows' in self and self['workflows']:
             # might be None, for example in response for delete deployment
             self['workflows'] = [Workflow(item) for item in self['workflows']]
+        if 'scaling_groups' in self and self['scaling_groups']:
+            self['scaling_groups'] = {
+                name: DeploymentScalingGroup({
+                        'deployment_id': deployment['id'],
+                        'name': name,
+                        'members': spec['members'],
+                        'properties': spec['properties']})
+                for name, spec in self['scaling_groups'].items()}
         if self.get('labels'):
             self['labels'] = [Label(item) for item in self['labels']]
 
