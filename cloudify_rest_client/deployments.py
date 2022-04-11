@@ -21,7 +21,7 @@ class Deployment(dict):
         if 'scaling_groups' in self and self['scaling_groups']:
             self['scaling_groups'] = {
                 name: DeploymentScalingGroup({
-                        'deployment_id': deployment['id'],
+                        'deployment_id': self.id,
                         'name': name,
                         'members': spec['members'],
                         'properties': spec['properties']})
