@@ -23,7 +23,8 @@ install_requires = [
     'jinja2==2.11.3',
     'requests_toolbelt==0.9.1',
     'wagon>0.10',
-    'pytz==2021.3'
+    'pytz==2021.3',
+    'bs4'
 ]
 
 if sys.version_info[:3] < (2, 7, 9):

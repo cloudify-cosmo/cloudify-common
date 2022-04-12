@@ -17,9 +17,12 @@ import os
 
 import jinja2
 
+from bs4 import BeautifulSoup
+
 from cloudify import constants
 from cloudify import manager
 from cloudify import logs
+from cloudify import utils
 from cloudify.logs import CloudifyPluginLoggingHandler
 from cloudify.exceptions import NonRecoverableError
 
@@ -197,6 +200,61 @@ class ManagerEndpoint(Endpoint):
         return self._render_resource_if_needed(
             resource=resource,
             template_variables=template_variables)
+
+    def download_directory(self,
+                           blueprint_id,
+                           deployment_id,
+                           resource_path,
+                           logger,
+                           target_path=None,
+                           preview_only=False):
+        resource_files = self._collect_directory_files(
+            blueprint_id,
+            deployment_id,
+            resource_path)
+        logger.debug(">> Collected %s", resource_files)
+
+        if not preview_only:
+            top_dir = None
+            target_dir = utils.create_temp_folder()
+            for file_path in resource_files:
+                top_dir = top_dir or file_path.split(os.sep)[0]
+                target_path = os.path.join(target_dir,
+                                           os.path.relpath(file_path, top_dir))
+                os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                self.download_resource(
+                    blueprint_id,
+                    deployment_id,
+                    file_path,
+                    logger,
+                    target_path=target_path)
+        return target_dir
+
+    def _collect_directory_files(self,
+                                 blueprint_id,
+                                 deployment_id,
+                                 resource_path):
+        directory_index = manager.get_resource(
+            blueprint_id, deployment_id, self.ctx.tenant_name, resource_path)
+        index_soup = BeautifulSoup(directory_index, 'html.parser')
+        index_title = index_soup.title.text
+        if not index_title.startswith("Index of "):
+            raise NonRecoverableError(
+                '{} has no valid directory listing.'.format(resource_path))
+        resource_files = []
+        for link in index_soup.find_all('a', href=True):
+            if not link.text.startswith('.'):
+                file_path = os.path.join(resource_path, link.text)
+                resource_files.append(file_path)
+
+        for file_path in resource_files:
+            if file_path.endswith('/'):
+                resource_files.extend(self._collect_directory_files(
+                        blueprint_id,
+                        deployment_id,
+                        file_path))
+                resource_files.remove(file_path)
+        return resource_files
 
     def download_resource(self,
                           blueprint_id,
