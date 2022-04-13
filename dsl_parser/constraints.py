@@ -397,6 +397,7 @@ def validate_input_value(input_name, input_constraints, input_value,
             'constraints.'.format(input_value, input_name))
 
     if type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT \
+            and not value_getter.has_deployment_id() \
             and 'deployment_id' not in {c.name for c in input_constraints}:
         raise exceptions.ConstraintException(
             "Input '{0}' of type '{1}' lacks 'deployment_id' constraint."
