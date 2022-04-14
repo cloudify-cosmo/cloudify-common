@@ -28,10 +28,8 @@ import uuid
 import pika
 import pika.exceptions
 
-from cloudify import exceptions
 from cloudify import broker_config
 from cloudify._compat import queue
-from cloudify.constants import EVENTS_EXCHANGE_NAME
 
 # keep compat with both pika 0.11 and pika 1.1: switch the calls based
 # on this flag. We're keeping compat with 0.11 for the py2.6 agent on rhel6.
@@ -616,88 +614,3 @@ def get_client(amqp_host=None,
 
     return cls(handlers=[], amqp_params=amqp_params, name=name,
                connect_timeout=connect_timeout)
-
-
-class CloudifyEventsPublisher(object):
-    SOCKET_TIMEOUT = 5
-    CONNECTION_ATTEMPTS = 3
-    channel_settings = {
-        'auto_delete': False,
-        'durable': True,
-    }
-
-    def __init__(self, amqp_params):
-        self.handlers = {
-            'hook': SendHandler(EVENTS_EXCHANGE_NAME,
-                                exchange_type='topic',
-                                routing_key='events.hooks'),
-        }
-
-        self._connection = AMQPConnection(
-            handlers=list(self.handlers.values()),
-            amqp_params=amqp_params,
-            name=os.environ.get('AGENT_NAME')
-        )
-        self._is_closed = False
-
-    def connect(self):
-        self._connection.consume_in_thread()
-
-    def publish_message(self, message, message_type):
-        if self._is_closed:
-            raise exceptions.ClosedAMQPClientException(
-                'Publish failed, AMQP client already closed')
-
-        handler = self.handlers.get(message_type)
-
-        if handler:
-            handler.publish(message)
-        else:
-            logger.error('Unknown message type : {0} for message : {1}'.
-                         format(message_type, message))
-
-    def close(self):
-        if self._is_closed:
-            return
-        self._is_closed = True
-        thread = threading.current_thread()
-        if self._connection:
-            logger.debug('Closing amqp client of thread {0}'.format(thread))
-            try:
-                self._connection.close()
-            except Exception as e:
-                logger.debug('Failed to close amqp client of thread {0}, '
-                             'reported error: {1}'.format(thread, repr(e)))
-
-
-def create_events_publisher(amqp_host=None,
-                            amqp_user=None,
-                            amqp_pass=None,
-                            amqp_port=None,
-                            amqp_vhost=None,
-                            ssl_enabled=None,
-                            ssl_cert_path=None,
-                            ssl_cert_data=None):
-    thread = threading.current_thread()
-
-    amqp_params = AMQPParams(
-        amqp_host,
-        amqp_user,
-        amqp_pass,
-        amqp_port,
-        amqp_vhost,
-        ssl_enabled,
-        ssl_cert_path,
-        ssl_cert_data,
-    )
-
-    try:
-        client = CloudifyEventsPublisher(amqp_params)
-        client.connect()
-        logger.debug('AMQP client created for thread {0}'.format(thread))
-    except Exception as e:
-        logger.warning(
-            'Failed to create AMQP client for thread: {0} ({1}: {2})'
-            .format(thread, type(e).__name__, e))
-        raise
-    return client
