@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 
 from cloudify_rest_client.constants import VisibilityState
@@ -293,7 +294,8 @@ def get_resource_from_manager(resource_path,
     )
 
 
-def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path):
+def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path,
+                    use_global=True):
     """For the given resource_path, generate all firesever paths to try.
 
     Eg. for path of "foo.txt", generate:
@@ -321,7 +323,8 @@ def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path):
         resource_path
     ).replace('\\', '/')
 
-    yield resource_path
+    if use_global:
+        yield resource_path
 
 
 def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
@@ -356,6 +359,30 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
 
     raise HttpException(','.join(tried_paths), 404, 'Resource not found: {0}'
                         .format(resource_path))
+
+
+def get_resource_directory_index(
+        blueprint_id, deployment_id, tenant_name, resource_path):
+    tried_paths = []
+    resource_files = set()
+    for path in _resource_paths(
+            blueprint_id, deployment_id, tenant_name, resource_path,
+            use_global=False):
+        try:
+            directory_index = get_resource_from_manager(path)
+            for f in json.loads(directory_index)['files']:
+                resource_files.add(f)
+        except (ValueError, KeyError, NonRecoverableError):
+            tried_paths.append(path)
+        except HttpException as e:
+            if e.code != 404:
+                raise
+
+    if not resource_files:
+        raise HttpException(','.join(tried_paths), 404,
+                            'No valid resource directory listing at found: {0}'
+                            .format(resource_path))
+    return list(resource_files)
 
 
 def get_node_instance(node_instance_id, evaluate_functions=False, client=None):

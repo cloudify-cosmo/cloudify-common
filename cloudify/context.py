@@ -980,6 +980,16 @@ class CloudifyContext(CommonContext):
             resource_path=resource_path,
             template_variables=template_variables)
 
+    def download_directory(self,
+                           directory_path,
+                           target_path=None):
+        return self._endpoint.download_directory(
+            blueprint_id=self.blueprint.id,
+            deployment_id=self.deployment.id,
+            resource_path=directory_path,
+            logger=self.logger,
+            target_path=target_path)
+
     def download_resource(self,
                           resource_path,
                           target_path=None):

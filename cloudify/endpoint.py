@@ -20,6 +20,7 @@ import jinja2
 from cloudify import constants
 from cloudify import manager
 from cloudify import logs
+from cloudify import utils
 from cloudify.logs import CloudifyPluginLoggingHandler
 from cloudify.exceptions import NonRecoverableError
 
@@ -58,6 +59,15 @@ class Endpoint(object):
                           logger,
                           target_path=None,
                           template_variables=None):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def download_directory(self,
+                           blueprint_id,
+                           deployment_id,
+                           resource_path,
+                           logger,
+                           target_path=None,
+                           preview_only=False):
         raise NotImplementedError('Implemented by subclasses')
 
     def _render_resource_if_needed(self,
@@ -197,6 +207,37 @@ class ManagerEndpoint(Endpoint):
         return self._render_resource_if_needed(
             resource=resource,
             template_variables=template_variables)
+
+    def download_directory(self,
+                           blueprint_id,
+                           deployment_id,
+                           resource_path,
+                           logger,
+                           target_path=None,
+                           preview_only=False):
+        resource_files = manager.get_resource_directory_index(
+            blueprint_id, deployment_id, self.ctx.tenant_name, resource_path)
+        resource_files = [os.path.join(resource_path, fp)
+                          for fp in resource_files]
+
+        logger.debug(">> Collected %s", resource_files)
+        if preview_only:
+            return resource_files
+
+        top_dir = None
+        target_dir = utils.create_temp_folder()
+        for file_path in resource_files:
+            top_dir = top_dir or file_path.split(os.sep)[0]
+            target_path = os.path.join(target_dir,
+                                       os.path.relpath(file_path, top_dir))
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            self.download_resource(
+                blueprint_id,
+                deployment_id,
+                file_path,
+                logger,
+                target_path=target_path)
+        return target_dir
 
     def download_resource(self,
                           blueprint_id,
