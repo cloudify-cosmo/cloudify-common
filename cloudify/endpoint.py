@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 import os
-import json
 
 import jinja2
 
@@ -216,14 +215,8 @@ class ManagerEndpoint(Endpoint):
                            logger,
                            target_path=None,
                            preview_only=False):
-        directory_index = manager.get_resource(
+        resource_files = manager.get_resource_directory_index(
             blueprint_id, deployment_id, self.ctx.tenant_name, resource_path)
-        try:
-            resource_files = json.loads(directory_index)['files']
-        except (ValueError, KeyError):
-            raise NonRecoverableError(
-                '{} has no valid directory listing.'.format(resource_path))
-        logger.debug(">> Resource_path %s", resource_path)
         resource_files = [os.path.join(resource_path, fp)
                           for fp in resource_files]
 
