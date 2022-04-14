@@ -89,6 +89,8 @@ class FiltersClient(object):
         :return: The filters list
         """
         params = kwargs
+        if '_include' in params:
+            params['_include'] = ','.join(params['_include'])
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
