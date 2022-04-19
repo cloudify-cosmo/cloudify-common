@@ -96,6 +96,7 @@ class ParameterSchemaProperty(data_types.SchemaProperty):
         'default': ParameterSchemaPropertyDefault,
         'description': data_types.SchemaPropertyDescription,
         'type': data_types.SchemaInputType,
+        'item_type': data_types.SchemaListItemType,
         'constraints': Constraints,
     }
 

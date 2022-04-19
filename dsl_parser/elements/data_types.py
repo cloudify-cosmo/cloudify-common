@@ -81,6 +81,22 @@ class SchemaInputType(SchemaPropertyType):
                 "Illegal type name '{0}'".format(self.initial_value))
 
 
+class SchemaListItemType(SchemaPropertyType):
+    def validate(self, data_type, **kwargs):
+        if not self.initial_value:
+            return
+        input_type = self.sibling(SchemaInputType).initial_value
+        if input_type != 'list':
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_ITEM_TYPE_FOR_INVALID_TYPE,
+                'Property item_type defined for unsupported type: '
+                "'{0}'".format(input_type))
+        if self.initial_value not in constants.LIST_ITEM_TYPES:
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_INVALID_ITEM_TYPE,
+                "Illegal item_type '{0}'".format(self.initial_value))
+
+
 class SchemaPropertyDefault(Element):
 
     schema = Leaf(type=elements.PRIMITIVE_TYPES)

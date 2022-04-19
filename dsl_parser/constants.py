@@ -103,6 +103,7 @@ TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT = [
     'capability_value', 'scaling_group',
     'node_id', 'node_type', 'node_instance'
 ]
+LIST_ITEM_TYPES = ['blueprint_id', 'deployment_id', 'node_id', 'node_instance']
 USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean', 'list',
                         'dict', 'regex', 'secret', 'textarea'] \
                        + TYPES_BASED_ON_DB_ENTITIES
