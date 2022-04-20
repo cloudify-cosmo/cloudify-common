@@ -91,7 +91,7 @@ class SchemaListItemType(SchemaPropertyType):
                 exceptions.ERROR_ITEM_TYPE_FOR_INVALID_TYPE,
                 'Property item_type defined for unsupported type: '
                 "'{0}'".format(input_type))
-        if self.initial_value not in constants.LIST_ITEM_TYPES:
+        if self.initial_value not in constants.USER_PRIMITIVE_TYPES:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_INVALID_ITEM_TYPE,
                 "Illegal item_type '{0}'".format(self.initial_value))

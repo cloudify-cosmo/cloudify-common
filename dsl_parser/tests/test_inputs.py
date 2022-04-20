@@ -924,7 +924,7 @@ inputs:
         inputs:
             li:
                 type: list
-                item_type: float
+                item_type: cloudify.datatypes.AgentConfig
         """
         with self.assertRaises(DSLParsingLogicException) as ex:
             self.parse(yaml)
