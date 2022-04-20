@@ -191,3 +191,7 @@ ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA = 214
 ERROR_HIDDEN_REQUIRED_INPUT_NO_DEFAULT = 215
 # A `display` attribute is declared for invalid type
 ERROR_DISPLAY_FOR_INVALID_TYPE = 216
+# A `item_type` attribute is invalid
+ERROR_INVALID_ITEM_TYPE = 217
+# A `item_type` attribute is declared for invalid type
+ERROR_ITEM_TYPE_FOR_INVALID_TYPE = 218
