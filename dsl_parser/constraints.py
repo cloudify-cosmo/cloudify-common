@@ -396,21 +396,24 @@ def validate_input_value(input_name, input_constraints, input_value,
             'function and also have '
             'constraints.'.format(input_value, input_name))
 
-    if type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT \
-            and not value_getter.has_deployment_id() \
-            and 'deployment_id' not in {c.name for c in input_constraints}:
-        raise exceptions.ConstraintException(
-            "Input '{0}' of type '{1}' lacks 'deployment_id' constraint."
-            .format(input_name, type_name))
-
-    if value_getter and \
-            type_name in set(TYPES_BASED_ON_DB_ENTITIES) - \
-            set(TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT):
-        matching_values = value_getter.get(type_name, input_value)
-        if not any(v == input_value for v in matching_values or []):
+    if type_name in TYPES_BASED_ON_DB_ENTITIES:
+        if not value_getter:
             raise exceptions.ConstraintException(
-                "Value {0} of input {1} is not a valid data type of "
-                "{2}.".format(input_value, input_name, type_name))
+                'Invalid call to validate_input_value: value_getter not set')
+        if type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT \
+                and not value_getter.has_deployment_id() \
+                and 'deployment_id' not in {c.name for c in input_constraints}:
+            raise exceptions.ConstraintException(
+                "Input '{0}' of type '{1}' lacks 'deployment_id' constraint."
+                .format(input_name, type_name))
+        if type_name not in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT \
+                or ('deployment_id' not in {c.name for c in input_constraints}
+                    and value_getter.has_deployment_id()):
+            matching_values = value_getter.get(type_name, input_value)
+            if not any(v == input_value for v in matching_values or []):
+                raise exceptions.ConstraintException(
+                    "Value '{0}' of '{1}' is not a valid value for data type "
+                    "'{2}'.".format(input_value, input_name, type_name))
 
     data_based_constraints = []
     for c in input_constraints:
@@ -421,11 +424,12 @@ def validate_input_value(input_name, input_constraints, input_value,
             raise exceptions.ConstraintException(
                 "Value {0} of input {1} violates constraint "
                 "{2}.".format(input_value, input_name, c))
-    if data_based_constraints and \
-            not predicate_many(input_value,
+    if ((type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT
+         or data_based_constraints)
+        and not predicate_many(input_value,
                                type_name,
                                value_getter,
-                               data_based_constraints):
+                               data_based_constraints)):
         raise exceptions.ConstraintException(
             "Value '{0}' of input '{1}' does not match any relevant entity "
             "or violates at least one of the constraints: {2}."
