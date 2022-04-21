@@ -23,6 +23,7 @@ from dsl_parser.constants import (
     DEFAULT,
     CONSTRAINTS as CONSTRAINT_CONST,
     TYPE,
+    ITEM_TYPE,
     TYPES_BASED_ON_DB_ENTITIES,
     TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT,
 )
@@ -388,7 +389,18 @@ def parse(definition):
 
 
 def validate_input_value(input_name, input_constraints, input_value,
-                         type_name, value_getter):
+                         type_name, item_type_name, value_getter):
+    if type_name != 'list' or not item_type_name:
+        return _validate_input_value(
+            input_name, input_constraints, input_value,
+            type_name, value_getter)
+    for item_value in input_value:
+        _validate_input_value(input_name, input_constraints, item_value,
+                              item_type_name, value_getter)
+
+
+def _validate_input_value(input_name, input_constraints, input_value,
+                          type_name, value_getter):
     if input_constraints and functions.is_function(input_value):
         raise exceptions.DSLParsingException(
             exceptions.ERROR_INPUT_WITH_FUNCS_AND_CONSTRAINTS,
@@ -461,7 +473,9 @@ def validate_input_defaults(plan):
         input_default_value = input_def[DEFAULT]
         input_constraints = extract_constraints(input_def)
         validate_input_value(input_name, input_constraints,
-                             input_default_value, input_def.get(TYPE), None)
+                             input_default_value,
+                             input_def.get(TYPE), input_def.get(ITEM_TYPE),
+                             None)
 
 
 def extract_constraints(input_def):

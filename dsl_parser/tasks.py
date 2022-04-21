@@ -24,7 +24,7 @@ from dsl_parser import (scan,
                         exceptions,
                         constraints,
                         multi_instance)
-from dsl_parser.constants import INPUTS, DEFAULT, DATA_TYPES, TYPE
+from dsl_parser.constants import INPUTS, DEFAULT, DATA_TYPES, TYPE, ITEM_TYPE
 from dsl_parser.multi_instance import modify_deployment
 
 
@@ -103,7 +103,7 @@ def _set_plan_inputs(plan, inputs, auto_correct_types, values_getter):
 
             constraints.validate_input_value(
                 input_name, input_constraints, inputs[input_name],
-                input_def.get(TYPE), values_getter)
+                input_def.get(TYPE), input_def.get(ITEM_TYPE), values_getter)
             inputs_complete = inputs[input_name]
             try:
                 inputs_complete = utils.parse_value(
