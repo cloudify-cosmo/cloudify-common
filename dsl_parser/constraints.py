@@ -27,6 +27,7 @@ from dsl_parser.constants import (
     TYPES_BASED_ON_DB_ENTITIES,
     TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT,
 )
+from dsl_parser.utils import parse_simple_type_value
 
 _NOT_COMPARABLE_ERROR_MSG = "Value is not comparable, the Constraint " \
                             "argument type  is '{0}' but value type is '{1}'."
@@ -395,8 +396,20 @@ def validate_input_value(input_name, input_constraints, input_value,
             input_name, input_constraints, input_value,
             type_name, value_getter)
     for item_value in input_value:
+        _validate_type_match(input_name, item_value, item_type_name)
         _validate_input_value(input_name, input_constraints, item_value,
                               item_type_name, value_getter)
+
+
+def _validate_type_match(input_name, input_value, type_name):
+    _, valid = parse_simple_type_value(input_value, type_name)
+    if not valid:
+        raise exceptions.DSLParsingLogicException(
+            exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE,
+            "Property type validation failed in '{0}': the defined "
+            "type is '{1}', yet it was assigned with the "
+            "value '{2}'".format(input_name, type_name, input_value)
+        )
 
 
 def _validate_input_value(input_name, input_constraints, input_value,

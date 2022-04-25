@@ -174,6 +174,38 @@ def _merge_flattened_schema_and_instance_properties(
     return result
 
 
+def parse_simple_type_value(value, type_name):
+    if type_name == 'integer':
+        if isinstance(value, numbers.Integral) and not isinstance(value, bool):
+            return value, True
+    elif type_name == 'float':
+        if isinstance(value, numbers.Number) and not isinstance(
+                value, bool):
+            return value, True
+    elif type_name == 'boolean':
+        if isinstance(value, bool):
+            return value, True
+    elif type_name in ('string', 'secret', 'textarea',
+                       'deployment_id', 'blueprint_id', 'secret_key',
+                       'capability_value', 'scaling_group',
+                       'node_id', 'node_type', 'node_instance'):
+        return value, True
+    elif type_name == 'regex':
+        if isinstance(value, text_type):
+            try:
+                re.compile(value)
+                return value, True
+            except re.error:
+                return None, False
+    elif type_name == 'list':
+        if isinstance(value, (list, tuple)):
+            return value, True
+    elif type_name == 'dict':
+        if isinstance(value, dict):
+            return value, True
+    return None, False
+
+
 def parse_value(
         value,
         type_name,
@@ -189,34 +221,10 @@ def parse_value(
     elif functions.is_function(value):
         # intrinsic function - not validated at the moment
         return value
-    elif type_name == 'integer':
-        if isinstance(value, numbers.Integral) and not isinstance(value, bool):
-            return value
-    elif type_name == 'float':
-        if isinstance(value, numbers.Number) and not isinstance(
-                value, bool):
-            return value
-    elif type_name == 'boolean':
-        if isinstance(value, bool):
-            return value
-    elif type_name in ('string', 'secret', 'textarea',
-                       'deployment_id', 'blueprint_id', 'secret_key',
-                       'capability_value', 'scaling_group',
-                       'node_id', 'node_type', 'node_instance'):
-        return value
-    elif type_name == 'regex':
-        if isinstance(value, text_type):
-            try:
-                re.compile(value)
-                return value
-            except re.error:
-                pass
-    elif type_name == 'list':
-        if isinstance(value, (list, tuple)):
-            return value
-    elif type_name == 'dict':
-        if isinstance(value, dict):
-            return value
+    elif type_name in constants.USER_PRIMITIVE_TYPES:
+        result, found = parse_simple_type_value(value, type_name)
+        if found:
+            return result
     elif type_name in data_types:
         if isinstance(value, dict):
             data_schema = data_types[type_name]['properties']
