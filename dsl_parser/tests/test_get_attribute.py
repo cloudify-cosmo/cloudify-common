@@ -478,7 +478,7 @@ class TestEvaluateFunctions(AbstractTestParser):
         payload = {'a': {'get_attribute': ['SELF', 'a']}}
         with testtools.testcase.ExpectedException(
                 exceptions.FunctionEvaluationError,
-                '.*SELF is missing.*'):
+                '.*Node SELF has no instances.*'):
             functions.evaluate_functions(
                 payload, {}, self.mock_evaluation_storage())
 
