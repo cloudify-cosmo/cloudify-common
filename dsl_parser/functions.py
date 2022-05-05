@@ -460,14 +460,13 @@ class GetAttribute(Function):
 
     def evaluate(self, handler):
         if self.node_name in [SELF, SOURCE, TARGET]:
-            node_instance_id = self.context.get(self.node_name.lower())
+            node_instance_id = self._resolve_available_node_targets(handler)
             _validate_ref(node_instance_id, self.node_name, self.name,
                           self.path, self.attribute_path)
             node_instance = handler.get_node_instance(node_instance_id)
         else:
             try:
                 node_instance = self._resolve_node_instance_by_name(handler)
-                node_instance_id = node_instance['id']
             except exceptions.FunctionEvaluationError as e:
                 # Only in outputs scope we allow to continue when an error
                 # occurred
@@ -485,8 +484,19 @@ class GetAttribute(Function):
             handler, self.context, 'get_attribute')
         return value
 
-    def _resolve_node_instance_by_name(self, handler):
-        node_id = self.node_name
+    def _resolve_available_node_targets(self, handler):
+        node_instance_id = self.context.get(self.node_name.lower())
+        if node_instance_id:
+            return node_instance_id
+
+        if self.node_name == SELF:
+            node_instance = self._resolve_node_instance_by_name(
+                handler, node_id=self.context.get('id'))
+            if node_instance:
+                return node_instance.get('id')
+
+    def _resolve_node_instance_by_name(self, handler, node_id=None):
+        node_id = node_id or self.node_name
         node_instances = handler.get_node_instances(node_id)
 
         if len(node_instances) == 0:
