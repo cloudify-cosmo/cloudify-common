@@ -555,9 +555,9 @@ imports:
         self._assert_dsl_parsing_exception_error_code(
             yaml, 27, DSLParsingLogicException, dsl_parse)
 
-    def test_mismatching_version_in_import(self):
+    def test_mismatching_version_in_import_newer(self):
         imported_yaml = """
-tosca_definitions_version: cloudify_1_1
+tosca_definitions_version: cloudify_dsl_1_1
     """
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         yaml = """
@@ -568,6 +568,19 @@ imports:
 
         self._assert_dsl_parsing_exception_error_code(
             yaml, 28, DSLParsingLogicException, dsl_parse)
+
+    def test_mismatching_version_in_import_older(self):
+        imported_yaml = """
+    tosca_definitions_version: cloudify_dsl_1_1
+        """
+        imported_yaml_filename = self.make_yaml_file(imported_yaml)
+        yaml = """
+imports:
+    -   {0}""".format(imported_yaml_filename) + \
+               self.BASIC_VERSION_SECTION_DSL_1_2 + \
+               self.MINIMAL_BLUEPRINT
+
+        self.parse(yaml)
 
     def test_unsupported_version(self):
         yaml = """
