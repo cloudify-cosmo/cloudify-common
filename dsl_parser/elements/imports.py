@@ -452,7 +452,8 @@ def _validate_version(dsl_version,
                       parsed_imported_dsl_holder):
     version_key_holder, version_value_holder = parsed_imported_dsl_holder\
         .get_item(_version.VERSION)
-    if version_value_holder and version_value_holder.value != dsl_version:
+    # Don't accept importing a file which uses greater DSL version
+    if version_value_holder and version_value_holder.value > dsl_version:
         raise exceptions.DSLParsingLogicException(
             28, "An import uses a different "
                 "tosca_definitions_version than the one defined in "
