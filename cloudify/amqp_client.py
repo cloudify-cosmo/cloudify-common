@@ -23,12 +23,12 @@ import ssl
 import sys
 import threading
 import time
-import uuid
 
 import pika
 import pika.exceptions
 
-from cloudify import broker_config
+from cloudify import broker_config, utils
+from cloudify.constants import INSPECT_TIMEOUT
 from cloudify._compat import queue
 
 # keep compat with both pika 0.11 and pika 1.1: switch the calls based
@@ -549,7 +549,7 @@ class BlockingRequestResponseHandler(TaskConsumer):
     def publish(self, message, correlation_id=None, routing_key='',
                 expiration=None, timeout=None):
         if correlation_id is None:
-            correlation_id = uuid.uuid4().hex
+            correlation_id = utils.uuid4()
         self.make_response_queue(correlation_id)
 
         if expiration is not None:
@@ -614,3 +614,49 @@ def get_client(amqp_host=None,
 
     return cls(handlers=[], amqp_params=amqp_params, name=name,
                connect_timeout=connect_timeout)
+
+
+def is_agent_alive(name,
+                   client,
+                   timeout=INSPECT_TIMEOUT,
+                   connect=True):
+    """
+    Send a `ping` service task to an agent, and validate that a correct
+    response is received
+
+    :param name: the agent's amqp exchange name
+    :param client: an AMQPClient for the agent's vhost
+    :param timeout: how long to wait for the response
+    :param connect: whether to connect the client (should be False if it is
+                    already connected)
+    """
+    handler = BlockingRequestResponseHandler(name)
+    client.add_handler(handler)
+    if connect:
+        with client:
+            response = _send_ping_task(name, handler, timeout)
+    else:
+        response = _send_ping_task(name, handler, timeout)
+    return 'time' in response
+
+
+def _send_ping_task(name, handler, timeout=INSPECT_TIMEOUT):
+    task = {
+        'service_task': {
+            'task_name': 'ping',
+            'kwargs': {}
+        }
+    }
+    # messages expire shortly before we hit the timeout - if they haven't
+    # been handled by then, they won't make the timeout
+    expiration = (timeout * 1000) - 200  # milliseconds
+    try:
+        return handler.publish(task, routing_key='service',
+                               timeout=timeout, expiration=expiration)
+    except pika.exceptions.AMQPError as e:
+        logger.warning('Could not send a ping task to {0}: {1}'
+                       .format(name, e))
+        return {}
+    except RuntimeError as e:
+        logger.info('No ping response from {0}: {1}'.format(name, e))
+        return {}

@@ -51,12 +51,7 @@ from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.constants import LOGGING_CONFIG_FILE
 from cloudify.error_handling import serialize_known_exception
 
-try:
-    from cloudify.workflows import api
-    from cloudify.workflows import workflow_context
-except ImportError:
-    workflow_context = None
-    api = None
+from cloudify.workflows import api
 
 
 class TaskHandler(object):
@@ -172,14 +167,18 @@ class _WorkflowFuncError(Exception):
 
 
 class WorkflowHandler(TaskHandler):
-
     def __init__(self, *args, **kwargs):
-        if workflow_context is None or api is None:
+        if api is None:
             raise RuntimeError('Dispatcher not installed')
         super(WorkflowHandler, self).__init__(*args, **kwargs)
 
     @property
     def ctx_cls(self):
+        # import workflow_context in-function so that it doesn't need to
+        # be imported when handling an operation
+        # (only when handling a workflow)
+        from cloudify.workflows import workflow_context
+
         if getattr(self.func, 'workflow_system_wide', False):
             return workflow_context.CloudifySystemWideWorkflowContext
         return workflow_context.CloudifyWorkflowContext

@@ -51,9 +51,7 @@ else:
     def reraise(exception_type, value, traceback):
         raise value.with_traceback(traceback)
 
-
-__all__ = ['PY2', 'text_type', 'urlparse', 'ABC', 'reraise']
 __all__ = [
     'PY2', 'ABC', 'urlquote', 'reraise', 'pathname2url', 'Request', 'urlopen',
-    'URLError', 'StringIO', 'urljoin', 'urlparse'
+    'URLError', 'StringIO', 'urljoin', 'urlparse', 'text_type',
 ]

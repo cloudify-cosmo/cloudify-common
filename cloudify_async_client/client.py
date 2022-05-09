@@ -1,7 +1,5 @@
 import ssl
 
-import aiohttp
-
 
 class CloudifyAsyncClient:
     host: str
@@ -11,6 +9,11 @@ class CloudifyAsyncClient:
     cert: str
 
     def __init__(self, **kwargs):
+        # only import aiohttp if this is used - otherwise we pay the price
+        # on every import of the rest-client
+        import aiohttp
+        self._aiohttp = aiohttp
+
         self.host = kwargs.pop('host', 'localhost')
         self.port = kwargs.pop('port', 443)
         self.protocol = kwargs.pop('protocol', 'https')
@@ -18,7 +21,7 @@ class CloudifyAsyncClient:
         self.cert = kwargs.pop('cert')
         self.ssl = ssl.create_default_context(cafile=self.cert)
         self.api_version = 'v3.1'
-        self.session = aiohttp.ClientSession(headers=self.headers)
+        self.session = self._aiohttp.ClientSession(headers=self.headers)
 
     @property
     def url(self):
@@ -27,7 +30,7 @@ class CloudifyAsyncClient:
 
     def get(self, url, params=None, timeout=300, **kwargs):
         if isinstance(timeout, int) or isinstance(timeout, float):
-            timeout = aiohttp.ClientTimeout(total=timeout)
+            timeout = self._aiohttp.ClientTimeout(total=timeout)
 
         if params:
             # Format query parameters and pass params only if it is not empty

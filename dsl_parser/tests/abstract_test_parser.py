@@ -16,11 +16,11 @@
 import tempfile
 import shutil
 import os
-import uuid
 import unittest
 
 from mock import Mock
 
+from cloudify.utils import uuid4
 from dsl_parser._compat import pathname2url, urljoin
 from dsl_parser.exceptions import DSLParsingException
 from dsl_parser.parser import parse as dsl_parse
@@ -213,7 +213,7 @@ node_types:
         return filename_path
 
     def make_yaml_file(self, content, as_uri=False):
-        filename = 'tempfile{0}.yaml'.format(uuid.uuid4())
+        filename = 'tempfile{0}.yaml'.format(uuid4())
         filename_path = self.make_file_with_name(content, filename)
         return filename_path if not as_uri else self._path2url(filename_path)
 
