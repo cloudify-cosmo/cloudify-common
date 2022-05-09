@@ -17,7 +17,6 @@ import functools
 import time
 import threading
 import types
-import uuid
 
 from cloudify import exceptions, logs
 from cloudify.workflows import api
@@ -38,7 +37,7 @@ from cloudify.constants import (
     TERMINATED_STATES,
 )
 from cloudify.state import workflow_ctx, current_workflow_ctx
-from cloudify.utils import get_func
+from cloudify.utils import get_func, uuid4
 # imported for backwards compat:
 from cloudify.constants import TASK_RESPONSE_SENT, INSPECT_TIMEOUT  # noqa
 
@@ -135,7 +134,7 @@ class WorkflowTask(object):
         :param retry_interval: Number of seconds to wait between retries
         :param workflow_context: the CloudifyWorkflowContext instance
         """
-        self.id = task_id or str(uuid.uuid4())
+        self.id = task_id or uuid4()
         self._state = TASK_PENDING
         self.async_result = WorkflowTaskResult(self)
         self.on_success = on_success

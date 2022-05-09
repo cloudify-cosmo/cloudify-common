@@ -26,7 +26,6 @@ from __future__ import absolute_import
 import functools
 import copy
 import json
-import uuid
 import threading
 
 from dsl_parser import functions as dsl_functions
@@ -754,7 +753,7 @@ class _WorkflowContextBase(object):
         # Should deepcopy cause problems here, remove it, but please make
         # sure that WORKFLOWS_WORKER_PAYLOAD is not global in manager repo
         kwargs = copy.deepcopy(kwargs) or {}
-        task_id = str(uuid.uuid4())
+        task_id = utils.uuid4()
         cloudify_context = self._build_cloudify_context(
             task_id,
             task_name,

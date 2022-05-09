@@ -19,7 +19,6 @@ import tempfile
 import copy
 import importlib
 import shutil
-import uuid
 import json
 import time
 import threading
@@ -97,7 +96,7 @@ class _Environment(object):
                                      ', '.join(workflows)))
 
         workflow = workflows[workflow_name]
-        execution_id = str(uuid.uuid4())
+        execution_id = utils.uuid4()
         ctx = {
             'type': 'workflow',
             'local': True,

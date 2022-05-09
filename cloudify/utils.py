@@ -40,6 +40,7 @@ from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 from cloudify import constants
 from cloudify.state import workflow_parameters, workflow_ctx, ctx, current_ctx
 from cloudify._compat import StringIO, parse_version
+from cloudify._compat import uuid4  # NOQA - import just to re-export here
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 

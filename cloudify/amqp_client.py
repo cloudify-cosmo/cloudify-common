@@ -23,7 +23,6 @@ import ssl
 import sys
 import threading
 import time
-import uuid
 
 import pika
 import pika.exceptions
@@ -550,7 +549,7 @@ class BlockingRequestResponseHandler(TaskConsumer):
     def publish(self, message, correlation_id=None, routing_key='',
                 expiration=None, timeout=None):
         if correlation_id is None:
-            correlation_id = uuid.uuid4().hex
+            correlation_id = utils.uuid4()
         self.make_response_queue(correlation_id)
 
         if expiration is not None:

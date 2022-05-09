@@ -46,9 +46,18 @@ def exec_(code, globs):
     class ABC:
         __metaclass__ = ABCMeta
 
+    from uuid import uuid4 as stdlib_uuid4
+    def uuid4():
+        """Generate a random UUID.
+
+        The python2 impl. just falls back to the stdlib one. Only py3 gets
+        the performance boost.
+        """
+        return str(stdlib_uuid4())
 else:
     from abc import ABC
     import builtins
+    import os
     import queue
     import xmlrpc.client as xmlrpclib
     import http.client as httplib
@@ -65,6 +74,30 @@ else:
     text_type = str
     exec_ = getattr(builtins, 'exec')
 
+    def uuid4():
+        """Generate a random UUID, and return a string representation of it.
+
+        This is pretty much a copy of the stdlib uuid4. We inline it here,
+        because we'd like to avoid importing the stdlib uuid module on the
+        operation dispatch critical path, because importing the stdlib
+        uuid module runs some subprocesses (for detecting the uuid1-uuid3 MAC
+        address), and that causes more memory pressure than we'd like.
+        """
+        uuid_bytes = os.urandom(16)
+        uuid_as_int = int.from_bytes(uuid_bytes, byteorder='big')
+        uuid_as_int &= ~(0xc000 << 48)
+        uuid_as_int |= 0x8000 << 48
+        uuid_as_int &= ~(0xf000 << 64)
+        uuid_as_int |= 4 << 76
+        uuid_as_hex = '%032x' % uuid_as_int
+        return '%s-%s-%s-%s-%s' % (
+            uuid_as_hex[:8],
+            uuid_as_hex[8:12],
+            uuid_as_hex[12:16],
+            uuid_as_hex[16:20],
+            uuid_as_hex[20:]
+        )
+
 try:
     from packaging.version import parse as parse_version
 except ImportError:
@@ -75,5 +108,5 @@ __all__ = [
     'PY2', 'queue', 'StringIO', 'reraise', 'text_type', 'urlquote',
     'urlparse', 'exec_', 'urljoin', 'urlopen', 'pathname2url', 'parse_qs'
     'urlencode', 'unquote', 'httplib', 'SafeConfigParser', 'xmlrpclib',
-    'parse_version', 'ABC'
+    'parse_version', 'ABC', 'uuid4'
 ]
