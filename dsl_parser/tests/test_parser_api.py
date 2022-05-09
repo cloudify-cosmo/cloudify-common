@@ -51,10 +51,13 @@ def op_struct(plugin_name,
     return result
 
 
-def workflow_op_struct(plugin_name,
-                       mapping,
-                       parameters=None,
-                       is_cascading=False):
+def workflow_op_struct(
+    plugin_name,
+    mapping,
+    parameters=None,
+    is_cascading=False,
+    availability_rules=None,
+):
 
     if not parameters:
         parameters = {}
@@ -62,7 +65,8 @@ def workflow_op_struct(plugin_name,
         'plugin': plugin_name,
         'operation': mapping,
         'parameters': parameters,
-        'is_cascading': is_cascading
+        'is_cascading': is_cascading,
+        'availability_rules': availability_rules,
     }
 
 
