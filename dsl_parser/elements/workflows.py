@@ -18,7 +18,8 @@ from dsl_parser._compat import text_type
 from dsl_parser.elements import (data_types,
                                  plugins as _plugins,
                                  operation,
-                                 misc)
+                                 misc,
+                                 version as _version)
 from dsl_parser.framework.requirements import (Value,
                                                Requirement,
                                                sibling_predicate)
@@ -132,6 +133,14 @@ class WorkflowAvailabilityRules(DictElement):
         'available': WorkflowAvailable,
     }
     add_namespace_to_schema_elements = False
+    requires = {
+        _version.ToscaDefinitionsVersion: ['version'],
+        'inputs': ['validate_version']
+    }
+
+    def validate(self, version, validate_version):
+        if validate_version:
+            self.validate_version(version, (1, 4))
 
 
 class Workflow(Element):
