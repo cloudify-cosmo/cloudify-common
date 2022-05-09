@@ -52,7 +52,6 @@ from cloudify import utils, logs
 from cloudify.state import current_workflow_ctx
 from cloudify.workflows import events
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
-from cloudify.workflows.amqp_dispatcher import TaskDispatcher
 from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            CloudifyWorkflowNodeLoggingHandler,
                            SystemWideWorkflowLoggingHandler,
@@ -1420,7 +1419,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
         super(RemoteContextHandler, self).__init__(*args, **kwargs)
         self._rest_client = None
-        self._dispatcher = TaskDispatcher(self.workflow_ctx)
+        self._dispatcher = None
         self._plugins_cache = {}
         self._bootstrap_context = None
 
@@ -1431,7 +1430,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         return self._rest_client
 
     def cleanup(self, finished):
-        if finished:
+        if finished and self._dispatcher is not None:
             self._dispatcher.cleanup()
 
     @property
@@ -1443,10 +1442,21 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def get_send_task_event_func(self, task):
         return events.send_task_event_func_remote
 
+    def _prepare_dispatcher(self):
+        # only import TaskDispatcher if we actually want to dispatch tasks -
+        # some workflows (eg. upload_blueprint, or create-dep-env) don't
+        # need to do so, so they don't need to pay the price of importing pika
+        from cloudify.workflows.amqp_dispatcher import TaskDispatcher
+        self._dispatcher = TaskDispatcher(self.workflow_ctx)
+
     def send_task(self, *args, **kwargs):
+        if self._dispatcher is None:
+            self._prepare_dispatcher()
         return self._dispatcher.send_task(*args, **kwargs)
 
     def wait_for_result(self, *args, **kwargs):
+        if self._dispatcher is None:
+            self._prepare_dispatcher()
         return self._dispatcher.wait_for_result(*args, **kwargs)
 
     @property

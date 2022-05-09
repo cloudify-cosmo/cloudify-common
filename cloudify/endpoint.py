@@ -15,8 +15,6 @@
 
 import os
 
-import jinja2
-
 from cloudify import constants
 from cloudify import manager
 from cloudify import logs
@@ -74,6 +72,8 @@ class Endpoint(object):
                                    resource,
                                    template_variables,
                                    download=False):
+        # only import jinja2 if necessary - it's a very big module
+        import jinja2
 
         if not template_variables:
             return resource
