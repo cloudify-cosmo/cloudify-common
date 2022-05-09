@@ -195,7 +195,7 @@ class TaskDispatcher(object):
         """
         client, handler = self.get_client(target)
         if target != MGMTWORKER_QUEUE and \
-                not utils.is_agent_alive(target, client, connect=False):
+                not amqp_client.is_agent_alive(target, client, connect=False):
             raise exceptions.RecoverableError(
                 'Timed out waiting for agent: {0}'.format(target))
 

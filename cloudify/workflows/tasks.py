@@ -40,8 +40,7 @@ from cloudify.constants import (
 from cloudify.state import workflow_ctx, current_workflow_ctx
 from cloudify.utils import get_func
 # imported for backwards compat:
-from cloudify.constants import TASK_RESPONSE_SENT  # noqa
-from cloudify.utils import INSPECT_TIMEOUT  # noqa
+from cloudify.constants import TASK_RESPONSE_SENT, INSPECT_TIMEOUT  # noqa
 
 try:
     from functools import lru_cache

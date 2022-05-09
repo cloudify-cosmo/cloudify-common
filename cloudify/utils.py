@@ -19,7 +19,6 @@ import ssl
 import sys
 import time
 import pytz
-import pika
 import shlex
 import random
 import string
@@ -42,7 +41,6 @@ from cloudify import constants
 from cloudify.state import workflow_parameters, workflow_ctx, ctx, current_ctx
 from cloudify._compat import StringIO, parse_version
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
-from cloudify.amqp_client import BlockingRequestResponseHandler
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
 ENV_CFY_EXEC_TEMPDIR = 'CFY_EXEC_TEMP'
@@ -51,7 +49,6 @@ ENV_AGENT_LOG_DIR = 'AGENT_LOG_DIR'
 ENV_AGENT_LOG_MAX_BYTES = 'AGENT_LOG_MAX_BYTES'
 ENV_AGENT_LOG_MAX_HISTORY = 'AGENT_LOG_MAX_HISTORY'
 
-INSPECT_TIMEOUT = 30
 ADMIN_API_TOKEN_PATH = '/opt/mgmtworker/work/admin_token'
 
 
@@ -593,53 +590,6 @@ class Internal(object):
                 ctx._context['tenant']['original_name']
             )
             ctx._context['tenant'].pop('original_name')
-
-
-def is_agent_alive(name,
-                   client,
-                   timeout=INSPECT_TIMEOUT,
-                   connect=True):
-    """
-    Send a `ping` service task to an agent, and validate that a correct
-    response is received
-
-    :param name: the agent's amqp exchange name
-    :param client: an AMQPClient for the agent's vhost
-    :param timeout: how long to wait for the response
-    :param connect: whether to connect the client (should be False if it is
-                    already connected)
-    """
-    handler = BlockingRequestResponseHandler(name)
-    client.add_handler(handler)
-    if connect:
-        with client:
-            response = _send_ping_task(name, handler, timeout)
-    else:
-        response = _send_ping_task(name, handler, timeout)
-    return 'time' in response
-
-
-def _send_ping_task(name, handler, timeout=INSPECT_TIMEOUT):
-    logger = setup_logger('cloudify.utils.is_agent_alive')
-    task = {
-        'service_task': {
-            'task_name': 'ping',
-            'kwargs': {}
-        }
-    }
-    # messages expire shortly before we hit the timeout - if they haven't
-    # been handled by then, they won't make the timeout
-    expiration = (timeout * 1000) - 200  # milliseconds
-    try:
-        return handler.publish(task, routing_key='service',
-                               timeout=timeout, expiration=expiration)
-    except pika.exceptions.AMQPError as e:
-        logger.warning('Could not send a ping task to {0}: {1}'
-                       .format(name, e))
-        return {}
-    except RuntimeError as e:
-        logger.info('No ping response from {0}: {1}'.format(name, e))
-        return {}
 
 
 def is_management_environment():
