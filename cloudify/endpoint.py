@@ -72,9 +72,6 @@ class Endpoint(object):
                                    resource,
                                    template_variables,
                                    download=False):
-        # only import jinja2 if necessary - it's a very big module
-        import jinja2
-
         if not template_variables:
             return resource
 
@@ -82,6 +79,16 @@ class Endpoint(object):
         if download:
             with open(resource_path, 'rb') as f:
                 resource = f.read()
+        if (
+            b'{{' not in resource
+            and b'{#' not in resource
+            and b'{%' not in resource
+        ):
+            # the template has nothing jinja2 in it, no need to try and render
+            return resource
+
+        # only import jinja2 if necessary - it's a very big module
+        import jinja2
 
         template = jinja2.Template(resource.decode('utf-8'))
         rendered_resource = template.render(template_variables).encode('utf-8')
