@@ -220,3 +220,11 @@ class DeploymentSettings(DictNoDefaultElement):
 
 class ResourceTags(DictElement):
     schema = Dict(type=ResourceTag)
+    requires = {
+        element_version.ToscaDefinitionsVersion: ['version'],
+        'inputs': ['validate_version']
+    }
+
+    def validate(self, version, validate_version):
+        if validate_version:
+            self.validate_version(version, (1, 4))

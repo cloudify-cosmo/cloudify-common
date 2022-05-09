@@ -73,16 +73,29 @@ class SchemaPropertyType(Element):
 
 class SchemaInputType(SchemaPropertyType):
 
-    def validate(self, data_type, **kwargs):
+    def validate(self, data_type, version=None, validate_version=None,
+                 **kwargs):
         if self.initial_value and self.initial_value not in \
                 constants.USER_PRIMITIVE_TYPES and not data_type:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,
                 "Illegal type name '{0}'".format(self.initial_value))
+        if validate_version and self.initial_value and \
+                self.initial_value in constants.TYPES_BASED_ON_DB_ENTITIES:
+            self.validate_version(version, (1, 4))
 
 
 class SchemaListItemType(SchemaPropertyType):
-    def validate(self, data_type, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(SchemaListItemType, self).__init__(*args, **kwargs)
+        self.requires.update({
+            _version.ToscaDefinitionsVersion: ['version'],
+            'inputs': ['validate_version'],
+        })
+
+    def validate(self, version=None, validate_version=None, **kwargs):
+        if validate_version:
+            self.validate_version(version, (1, 4))
         if not self.initial_value:
             return
         input_type = self.sibling(SchemaInputType).initial_value

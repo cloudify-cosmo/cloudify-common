@@ -207,10 +207,14 @@ class Element(object):
 
     def validate_version(self, version, min_version):
         if self.initial_value is not None and version < min_version:
+            if self.name == 'type':
+                dsl_node = "type '{0}'".format(self.initial_value)
+            else:
+                dsl_node = self.name
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_CODE_DSL_DEFINITIONS_VERSION_MISMATCH,
                 '{0} not supported in version {1}, it was added in {2}'.format(
-                    self.name,
+                    dsl_node,
                     _version.version_description(version),
                     _version.version_description(min_version)
                 )

@@ -868,7 +868,7 @@ inputs:
 
     def test_input_display_invalid_type(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_3
+        tosca_definitions_version: cloudify_dsl_1_4
         inputs:
             ta:
                 type: string
@@ -881,7 +881,7 @@ inputs:
 
     def test_input_textarea_with_display_hints(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_3
+        tosca_definitions_version: cloudify_dsl_1_4
         inputs:
             ta:
                 type: textarea
@@ -894,7 +894,7 @@ inputs:
 
     def test_input_list_item_type(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_3
+        tosca_definitions_version: cloudify_dsl_1_4
         inputs:
             li:
                 type: list
@@ -908,7 +908,7 @@ inputs:
 
     def test_input_list_item_type_for_invalid_type(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_3
+        tosca_definitions_version: cloudify_dsl_1_4
         inputs:
             li:
                 type: string
@@ -920,7 +920,7 @@ inputs:
 
     def test_input_list_invalid_item_type(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_3
+        tosca_definitions_version: cloudify_dsl_1_4
         inputs:
             li:
                 type: list

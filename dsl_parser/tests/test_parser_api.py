@@ -1476,7 +1476,11 @@ workflows:
     test_workflow2:
         mapping: test_plugin.workflow1
 """
-        result = self.parse(yaml)
+        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
+            self.parse(yaml)
+        self.assertRegexpMatches(str(cm.exception),
+                                 r'^availability_rules.*cloudify_dsl_1_4')
+        result = self.parse_1_4(yaml)
         workflow1 = result['workflows']['test_workflow1']
         workflow2 = result['workflows']['test_workflow2']
         assert 'availability_rules' in workflow1
