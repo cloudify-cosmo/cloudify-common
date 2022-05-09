@@ -18,17 +18,21 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 
 
-def workflow_op_struct(plugin_name,
-                       mapping,
-                       parameters=None,
-                       is_cascading=False):
+def workflow_op_struct(
+    plugin_name,
+    mapping,
+    parameters=None,
+    is_cascading=False,
+    availability_rules=None,
+):
     if not parameters:
         parameters = {}
     return {
         'plugin': plugin_name,
         'operation': mapping,
         'parameters': parameters,
-        'is_cascading': is_cascading
+        'is_cascading': is_cascading,
+        'availability_rules': availability_rules,
     }
 
 

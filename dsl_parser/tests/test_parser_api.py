@@ -51,10 +51,13 @@ def op_struct(plugin_name,
     return result
 
 
-def workflow_op_struct(plugin_name,
-                       mapping,
-                       parameters=None,
-                       is_cascading=False):
+def workflow_op_struct(
+    plugin_name,
+    mapping,
+    parameters=None,
+    is_cascading=False,
+    availability_rules=None,
+):
 
     if not parameters:
         parameters = {}
@@ -62,7 +65,8 @@ def workflow_op_struct(plugin_name,
         'plugin': plugin_name,
         'operation': mapping,
         'parameters': parameters,
-        'is_cascading': is_cascading
+        'is_cascading': is_cascading,
+        'availability_rules': availability_rules,
     }
 
 
@@ -1461,6 +1465,24 @@ workflows:
             {'key': {'default': 'val', 'description': 'parameter_desc',
                      'type': 'string'}},
             workflow['parameters'])
+
+    def test_workflow_availability(self):
+        yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
+workflows:
+    test_workflow1:
+        mapping: test_plugin.workflow1
+        availability_rules:
+            available: false
+    test_workflow2:
+        mapping: test_plugin.workflow1
+"""
+        result = self.parse(yaml)
+        workflow1 = result['workflows']['test_workflow1']
+        workflow2 = result['workflows']['test_workflow2']
+        assert 'availability_rules' in workflow1
+        assert not workflow1['availability_rules']['available']
+
+        assert workflow2.get('availability_rules') is None
 
     def test_policy_type_properties_empty_properties(self):
         policy_types = dict(
