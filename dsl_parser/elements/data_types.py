@@ -82,7 +82,16 @@ class SchemaInputType(SchemaPropertyType):
 
 
 class SchemaListItemType(SchemaPropertyType):
-    def validate(self, data_type, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(SchemaListItemType, self).__init__(*args, **kwargs)
+        self.requires.update({
+            _version.ToscaDefinitionsVersion: ['version'],
+            'inputs': ['validate_version'],
+        })
+
+    def validate(self, version=None, validate_version=None, **kwargs):
+        if validate_version:
+            self.validate_version(version, (1, 4))
         if not self.initial_value:
             return
         input_type = self.sibling(SchemaInputType).initial_value
