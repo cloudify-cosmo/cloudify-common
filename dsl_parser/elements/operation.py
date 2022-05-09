@@ -250,15 +250,19 @@ def _is_remote_script_resource(resource_path, remote_resources_namespaces):
             remote_resources_namespaces)
 
 
-def workflow_operation(plugin_name,
-                       workflow_mapping,
-                       workflow_parameters,
-                       is_workflow_cascading):
+def workflow_operation(
+    plugin_name,
+    workflow_mapping,
+    workflow_parameters,
+    is_workflow_cascading,
+    workflow_availability,
+):
     return {
         'plugin': plugin_name,
         'operation': workflow_mapping,
         'parameters': workflow_parameters,
-        'is_cascading': is_workflow_cascading
+        'is_cascading': is_workflow_cascading,
+        'availability_rules': workflow_availability,
     }
 
 
@@ -271,7 +275,9 @@ def process_operation(
         resource_bases,
         remote_resources_namespaces,
         is_workflows=False,
-        is_workflow_cascading=False):
+        is_workflow_cascading=False,
+        workflow_availability=None,
+):
     payload_field_name = 'parameters' if is_workflows else 'inputs'
     mapping_field_name = 'mapping' if is_workflows else 'implementation'
     operation_mapping = operation_content[mapping_field_name]
@@ -346,7 +352,9 @@ def process_operation(
                 plugin_name=script_plugin,
                 workflow_mapping=operation_mapping,
                 workflow_parameters=operation_payload,
-                is_workflow_cascading=is_workflow_cascading)
+                is_workflow_cascading=is_workflow_cascading,
+                workflow_availability=workflow_availability,
+            )
         else:
             if not operation_executor:
                 operation_executor = plugins[script_plugin]['executor']
@@ -373,7 +381,9 @@ def process_operation(
                 plugin_name=plugin_name,
                 workflow_mapping=mapping,
                 workflow_parameters=operation_payload,
-                is_workflow_cascading=is_workflow_cascading)
+                is_workflow_cascading=is_workflow_cascading,
+                workflow_availability=workflow_availability,
+            )
         else:
             if not operation_executor:
                 operation_executor = plugins[plugin_name]['executor']

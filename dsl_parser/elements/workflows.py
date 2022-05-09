@@ -122,6 +122,18 @@ class WorkflowIsCascading(Element):
     add_namespace_to_schema_elements = False
 
 
+class WorkflowAvailable(Element):
+    schema = Leaf(type=bool)
+    add_namespace_to_schema_elements = False
+
+
+class WorkflowAvailabilityRules(DictElement):
+    schema = {
+        'available': WorkflowAvailable,
+    }
+    add_namespace_to_schema_elements = False
+
+
 class Workflow(Element):
 
     required = True
@@ -130,7 +142,8 @@ class Workflow(Element):
         {
             'mapping': WorkflowMapping,
             'parameters': WorkflowParameters,
-            'is_cascading': WorkflowIsCascading
+            'is_cascading': WorkflowIsCascading,
+            'availability_rules': WorkflowAvailabilityRules,
         }
     ]
     requires = {
@@ -144,9 +157,11 @@ class Workflow(Element):
             operation_content = {'mapping': self.initial_value,
                                  'parameters': {}}
             is_cascading = False
+            availability_rules = None
         else:
             operation_content = self.build_dict_result()
             is_cascading = self.initial_value.get('is_cascading', False)
+            availability_rules = self.initial_value.get('availability_rules')
         return operation.process_operation(
             plugins=plugins,
             operation_name=self.name,
@@ -156,7 +171,9 @@ class Workflow(Element):
             resource_bases=resource_base,
             remote_resources_namespaces=namespaces_mapping,
             is_workflows=True,
-            is_workflow_cascading=is_cascading)
+            is_workflow_cascading=is_cascading,
+            workflow_availability=availability_rules,
+        )
 
 
 class Workflows(DictElement):
