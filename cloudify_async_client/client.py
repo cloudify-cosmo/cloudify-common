@@ -1,7 +1,6 @@
 import ssl
 
 
-
 class CloudifyAsyncClient:
     host: str
     port: int
