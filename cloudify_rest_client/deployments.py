@@ -251,6 +251,11 @@ class Workflow(dict):
         """
         return self['parameters']
 
+    @property
+    def is_available(self):
+        """Is this workflow available for running?"""
+        return self.get('is_available', True)
+
 
 class DeploymentOutputs(dict):
 
