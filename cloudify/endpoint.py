@@ -80,25 +80,23 @@ class Endpoint(object):
             with open(resource_path, 'rb') as f:
                 resource = f.read()
         if (
-            b'{{' not in resource
-            and b'{#' not in resource
-            and b'{%' not in resource
+            b'{{' in resource
+            or b'{#' in resource
+            or b'{%' in resource
         ):
-            # the template has nothing jinja2 in it, no need to try and render
-            return resource
-
-        # only import jinja2 if necessary - it's a very big module
-        import jinja2
-
-        template = jinja2.Template(resource.decode('utf-8'))
-        rendered_resource = template.render(template_variables).encode('utf-8')
+            # resource contains jinja2 template control strings - we need
+            # to render it
+            # only import jinja2 if necessary - it's a very big module
+            import jinja2
+            template = jinja2.Template(resource.decode('utf-8'))
+            resource = template.render(template_variables).encode('utf-8')
 
         if download:
             with open(resource_path, 'wb') as f:
-                f.write(rendered_resource)
+                f.write(resource)
             return resource_path
         else:
-            return rendered_resource
+            return resource
 
     def get_provider_context(self):
         raise NotImplementedError('Implemented by subclasses')
