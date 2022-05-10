@@ -124,7 +124,7 @@ function wagon_create_package(){
 }
 
 # VERSION/PRERELEASE/BUILD must be exported as they is being read as an env var by the cloudify-agent-packager
-export CORE_TAG_NAME="6.3.2.dev1"
+export CORE_TAG_NAME="6.3.2"
 export CORE_BRANCH="6.3.2-build"
 curl https://raw.githubusercontent.com/cloudify-cosmo/cloudify-common/$CORE_BRANCH/packaging/common/provision.sh -o ./common-provision.sh &&
 source common-provision.sh
