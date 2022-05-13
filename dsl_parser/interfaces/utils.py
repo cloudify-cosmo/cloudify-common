@@ -103,8 +103,9 @@ def operation(name,
               max_retries,
               retry_interval,
               timeout,
-              timeout_recoverable):
-    return {
+              timeout_recoverable,
+              operation_inputs_types=None):
+    op = {
         'name': name,
         'plugin': plugin_name,
         'operation': operation_mapping,
@@ -116,3 +117,6 @@ def operation(name,
         'timeout': timeout,
         'timeout_recoverable': timeout_recoverable
     }
+    if operation_inputs_types:
+        op['inputs_types'] = operation_inputs_types
+    return op
