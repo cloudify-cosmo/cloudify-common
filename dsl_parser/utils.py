@@ -33,9 +33,9 @@ from dsl_parser.import_resolver.default_import_resolver import (
     DefaultImportResolver
 )
 from dsl_parser import (yaml_loader,
-                        functions,
                         constants,
                         exceptions)
+from dsl_parser.functions import is_function
 
 
 class ResolverInstantiationError(Exception):
@@ -218,7 +218,7 @@ def parse_value(
         raise_on_missing_property=True):
     if type_name is None:
         return value
-    elif functions.is_function(value):
+    elif is_function(value):
         # intrinsic function - not validated at the moment
         return value
     elif type_name in constants.USER_PRIMITIVE_TYPES:

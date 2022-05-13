@@ -15,6 +15,8 @@
 
 import abc
 import collections
+import copy
+
 import pkg_resources
 import json
 
@@ -28,6 +30,7 @@ from dsl_parser.constants import (OUTPUTS,
                                   INTER_DEPLOYMENT_FUNCTIONS,
                                   EVAL_FUNCS_PATH_PREFIX_KEY,
                                   EVAL_FUNCS_PATH_DEFAULT_PREFIX)
+
 
 SELF = 'SELF'
 SOURCE = 'SOURCE'
@@ -122,10 +125,15 @@ def _register_entry_point_functions():
 
 def is_function(value):
     """Does the value represent a template function call?"""
-    # functions use the syntax {function_name: args}, so let's look for
+    # functions use the syntax {function_name: args}, or
+    # {function_name: args, 'type': type_name} so let's look for
     # dicts of length 1 where the only key was registered as a function
-    return isinstance(value, dict) and len(value) == 1 \
-        and list(value.keys())[0] in TEMPLATE_FUNCTIONS
+    if not isinstance(value, dict):
+        return False
+    value_copy = copy.copy(value)
+    value_copy.pop('type', None)
+    return len(value_copy) == 1 \
+        and list(value_copy.keys())[0] in TEMPLATE_FUNCTIONS
 
 
 def _convert_attribute_list_to_python_syntax_string(attr_list):
@@ -164,7 +172,8 @@ class Function(ABC):
     name = 'function'
     func_eval_type = None
 
-    def __init__(self, args, scope=None, context=None, path=None, raw=None):
+    def __init__(self, args, scope=None, context=None, path=None, raw=None,
+                 return_type=None):
         """Initializes the instance.
 
         :param args: function argument. For Static functions, these arguments
@@ -182,6 +191,7 @@ class Function(ABC):
         self.context = context
         self.path = path
         self.raw = raw
+        self.return_type = return_type
         self.parse_args(args)
 
     @abc.abstractmethod
@@ -234,20 +244,32 @@ class GetInput(Function):
                 "unknown input '{0}'.".format(input_value))
 
     def evaluate(self, handler):
+        return_value = None
         if isinstance(self.input_value, list):
             if any(is_function(x) for x in self.input_value):
                 raise exceptions.FunctionEvaluationError(
                     '{0}: found an unresolved argument: {1}'
                     .format(self.name, self.input_value))
 
-            return self._get_input_attribute(
+            return_value = self._get_input_attribute(
                 handler.get_input(self.input_value[0]))
 
         if is_function(self.input_value):
             raise exceptions.FunctionEvaluationError(
                 '{0}: found an unresolved argument: {1}'
                 .format(self.name, self.input_value))
-        return handler.get_input(self.input_value)
+        return_value = return_value or handler.get_input(self.input_value)
+
+        if self.return_type:
+            from dsl_parser.utils import parse_simple_type_value
+            _, ok = parse_simple_type_value(return_value, self.return_type)
+            if not ok:
+                raise exceptions.InputEvaluationError(
+                    "Value '{0}' of input '{1}' does not match data type "
+                    "declared for '{2}': '{3}'."
+                    .format(return_value, self.input_value, self.path,
+                            self.return_type))
+        return return_value
 
     def _get_input_attribute(self, root):
         value = root
@@ -1368,12 +1390,16 @@ def _get_property_value(node_name,
 
 def parse(raw_function, scope=None, context=None, path=None):
     if is_function(raw_function):
-        func_name, func_args = dict(raw_function).popitem()
-        return TEMPLATE_FUNCTIONS[func_name](func_args,
-                                             scope=scope,
-                                             context=context,
-                                             path=path,
-                                             raw=raw_function)
+        func = copy.copy(raw_function)
+        return_type = func.pop('type', None)
+        func_name, func_args = dict(func).popitem()
+        result = TEMPLATE_FUNCTIONS[func_name](func_args,
+                                               scope=scope,
+                                               context=context,
+                                               path=path,
+                                               raw=raw_function,
+                                               return_type=return_type)
+        return result
     return raw_function
 
 

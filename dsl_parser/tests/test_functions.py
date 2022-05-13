@@ -859,6 +859,74 @@ node_templates:
         self.assertEqual(y_node['properties']['y'], 5)
         self.assertEqual(x_node['properties']['x'], 5)
 
+    def test_get_input_valid_datatypes(self):
+        yaml = """
+plugins:
+    a:
+        executor: central_deployment_agent
+        install: false
+inputs:
+  i_integer:
+    type: integer
+    default: 1
+node_types:
+  test_type:
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: a.a
+          executor: central_deployment_agent
+          inputs:
+            v_integer:
+              type: integer
+node_templates:
+  test:
+    type: test_type
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            v_integer: { get_input: i_integer }
+"""
+        plan = prepare_deployment_plan(self.parse(yaml))
+        assert plan
+
+    def test_get_input_invalid_datatypes(self):
+        yaml = """
+plugins:
+    a:
+        executor: central_deployment_agent
+        install: false
+inputs:
+  i_float:
+    type: float
+    default: 1.01
+  i_string:
+    type: string
+    default: A quick brown fox
+node_types:
+  test_type:
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: a.a
+          executor: central_deployment_agent
+          inputs:
+            v_float:
+              type: float
+node_templates:
+  test:
+    type: test_type
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            v_float: { get_input: i_string }
+"""
+        with self.assertRaisesRegex(
+                exceptions.InputEvaluationError, 'does not match data type'):
+            prepare_deployment_plan(self.parse(yaml))
+
 
 class TestGetAttribute(AbstractTestParser):
 
