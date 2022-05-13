@@ -41,9 +41,18 @@ def merge_schema_and_instance_inputs(schema_inputs,
     flattened_schema_inputs = utils.flatten_schema(schema_inputs)
     merged_inputs = dict(flattened_schema_inputs)
     merged_inputs.update(instance_inputs)
+    for k, v in _retrieve_types(schema_inputs).items():
+        if k not in merged_inputs or not isinstance(merged_inputs[k], dict):
+            continue
+        merged_inputs[k].update(v)
 
     validate_missing_inputs(merged_inputs, schema_inputs)
     return merged_inputs
+
+
+def _retrieve_types(schema_inputs):
+    return {k: {'type': v['type']}
+            for k, v in schema_inputs.items() if 'type' in v}
 
 
 def operation_mapping(implementation, inputs, executor,
