@@ -15,7 +15,6 @@
 
 import abc
 import collections
-import copy
 
 import pkg_resources
 import json
@@ -130,10 +129,29 @@ def is_function(value):
     # dicts of length 1 where the only key was registered as a function
     if not isinstance(value, dict):
         return False
-    value_copy = copy.copy(value)
-    value_copy.pop('type', None)
-    return len(value_copy) == 1 \
-        and list(value_copy.keys())[0] in TEMPLATE_FUNCTIONS
+    if len(value) != 1 and len(value) != 2:
+        return False
+    for k in value:
+        if k == 'type' or k in TEMPLATE_FUNCTIONS:
+            continue
+        else:
+            return False
+    return True
+
+
+def get_function(value):
+    if not isinstance(value, dict):
+        return None
+    if len(value) != 1 and len(value) != 2:
+        return None
+    for k, v in value.items():
+        if k == 'type':
+            continue
+        elif k in TEMPLATE_FUNCTIONS:
+            return {k: v}
+        else:
+            return None
+    return None
 
 
 def _convert_attribute_list_to_python_syntax_string(attr_list):
@@ -1389,17 +1407,16 @@ def _get_property_value(node_name,
 
 
 def parse(raw_function, scope=None, context=None, path=None):
-    if is_function(raw_function):
-        func = copy.copy(raw_function)
-        return_type = func.pop('type', None)
+    func = get_function(raw_function)
+    if func:
+        return_type = raw_function.get('type', None)
         func_name, func_args = dict(func).popitem()
-        result = TEMPLATE_FUNCTIONS[func_name](func_args,
-                                               scope=scope,
-                                               context=context,
-                                               path=path,
-                                               raw=raw_function,
-                                               return_type=return_type)
-        return result
+        return TEMPLATE_FUNCTIONS[func_name](func_args,
+                                             scope=scope,
+                                             context=context,
+                                             path=path,
+                                             raw=raw_function,
+                                             return_type=return_type)
     return raw_function
 
 
