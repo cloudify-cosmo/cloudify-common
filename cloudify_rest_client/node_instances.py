@@ -108,6 +108,30 @@ class NodeInstance(dict):
         """
         return self.get('index')
 
+    @property
+    def is_status_check_ok(self):
+        """Has the last status check for this NI succeeded?
+
+        This examines the result of the most recent check_status call
+        on this node instance, and returns whether the call succeeded.
+
+        If the result is missing, the result is succeeded.
+        """
+        return self.get('is_status_check_ok', True)
+
+    @property
+    def has_configuration_drift(self):
+        """Has this NI's configuration drifted?
+
+        This examines the result of the most recent check_drift call
+        on this node instance, and returns whether there was any configuration
+        drift reported.
+
+        The instance is drifted if either the instance itself, or any of its
+        relationships have drifted.
+        """
+        return self.get('has_configuration_drift', False)
+
 
 class NodeInstancesClient(object):
 
