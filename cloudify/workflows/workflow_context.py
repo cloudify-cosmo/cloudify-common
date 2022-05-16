@@ -2047,6 +2047,8 @@ def task_config(fn=None, **arguments):
 
 
 def _validate_types(schema, arguments):
+    if not isinstance(schema, dict):
+        return True
     for input_name, type_name in schema.items():
         if input_name not in arguments:
             continue
