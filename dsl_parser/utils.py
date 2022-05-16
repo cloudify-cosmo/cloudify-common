@@ -147,10 +147,25 @@ def _merge_flattened_schema_and_instance_properties(
     merged_properties = dict(flattened_schema_properties)
     merged_properties.update(instance_properties)
 
+    use_external_resource = merged_properties.get('use_external_resource')
+    if use_external_resource:
+        if get_function(use_external_resource):
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_INTRINSIC_FUNCTION_NOT_PERMITTED,
+                "Only boolean values are allowed for `use_external_resource` "
+                "property, don't use intrinsic functions.")
+        resource_id = merged_properties.get('resource_id')
+        if not resource_id:
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_MISSING_PROPERTY,
+                "External node '{0}' does not provide a value for mandatory "
+                "'resource_id' property".format(node_name))
+
     result = {}
     for key, property_schema in schema_properties.items():
         if key not in merged_properties:
-            required = property_schema.get('required', True)
+            required = property_schema.get('required', True) and \
+                       not use_external_resource
             if required and raise_on_missing_property:
                 ex = exceptions.DSLParsingLogicException(
                     exceptions.ERROR_MISSING_PROPERTY,
