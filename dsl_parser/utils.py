@@ -448,7 +448,7 @@ def get_function(value):
     # or length of 2 where the other key is 'type'
     if not isinstance(value, dict):
         return None
-    if 0 < len(value) < 3:
+    if not 0 < len(value) < 3:
         return None
     result = None
     for k, v in value.items():
