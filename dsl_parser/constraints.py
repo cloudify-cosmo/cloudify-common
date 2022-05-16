@@ -17,7 +17,7 @@ import re
 import numbers
 
 from dsl_parser._compat import text_type
-from dsl_parser import functions, exceptions
+from dsl_parser import exceptions, utils
 from dsl_parser.constants import (
     INPUTS,
     DEFAULT,
@@ -27,7 +27,6 @@ from dsl_parser.constants import (
     TYPES_BASED_ON_DB_ENTITIES,
     TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT,
 )
-from dsl_parser.utils import parse_simple_type_value
 
 _NOT_COMPARABLE_ERROR_MSG = "Value is not comparable, the Constraint " \
                             "argument type  is '{0}' but value type is '{1}'."
@@ -368,7 +367,7 @@ def validate_args(constraint_cls, args, ancestor):
     :param ancestor: ancestor element of this constraint.
     :raises DSLParsingFormatException: in case of a violation.
     """
-    if functions.is_function(args) \
+    if utils.get_function(args) \
             or not VALIDATION_FUNCTIONS[
                 constraint_cls.constraint_data_type](args):
         raise exceptions.DSLParsingLogicException(
@@ -402,7 +401,7 @@ def validate_input_value(input_name, input_constraints, input_value,
 
 
 def _validate_type_match(input_name, input_value, type_name):
-    _, valid = parse_simple_type_value(input_value, type_name)
+    _, valid = utils.parse_simple_type_value(input_value, type_name)
     if not valid:
         raise exceptions.DSLParsingLogicException(
             exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE,
@@ -414,7 +413,7 @@ def _validate_type_match(input_name, input_value, type_name):
 
 def _validate_input_value(input_name, input_constraints, input_value,
                           type_name, value_getter):
-    if input_constraints and functions.is_function(input_value):
+    if input_constraints and utils.get_function(input_value):
         raise exceptions.DSLParsingException(
             exceptions.ERROR_INPUT_WITH_FUNCS_AND_CONSTRAINTS,
             'Input value {0}, of input {1}, cannot contain an intrinsic '

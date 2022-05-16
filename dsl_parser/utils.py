@@ -35,7 +35,9 @@ from dsl_parser.import_resolver.default_import_resolver import (
 from dsl_parser import (yaml_loader,
                         constants,
                         exceptions)
-from dsl_parser.functions import is_function
+
+
+TEMPLATE_FUNCTIONS = {}
 
 
 class ResolverInstantiationError(Exception):
@@ -218,7 +220,7 @@ def parse_value(
         raise_on_missing_property=True):
     if type_name is None:
         return value
-    elif is_function(value):
+    elif get_function(value):
         # intrinsic function - not validated at the moment
         return value
     elif type_name in constants.USER_PRIMITIVE_TYPES:
@@ -435,4 +437,24 @@ def add_values_node_description(data):
     result = {}
     for k, v in data.items():
         result[k] = {'values': v}
+    return result
+
+
+def get_function(value):
+    """Get a template function if the value represents it"""
+    # functions use the syntax {function_name: args}, or
+    # {function_name: args, 'type': type_name} so let's look for
+    # dicts of length 1 where the only key was registered as a function
+    if not isinstance(value, dict):
+        return None
+    if len(value) != 1 and len(value) != 2:
+        return None
+    result = None
+    for k, v in value.items():
+        if k == 'type':
+            continue
+        elif k in TEMPLATE_FUNCTIONS:
+            result = (TEMPLATE_FUNCTIONS[k], v)
+        else:
+            return None
     return result

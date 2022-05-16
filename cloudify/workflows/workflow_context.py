@@ -2050,7 +2050,7 @@ def _validate_types(schema, arguments):
     for input_name, type_name in schema.items():
         if input_name not in arguments:
             continue
-        if dsl_functions.is_function(arguments[input_name]):
+        if dsl_functions.get_function(arguments[input_name]):
             continue
         _, valid = parse_simple_type_value(arguments[input_name], type_name)
         if not valid:

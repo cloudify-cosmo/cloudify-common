@@ -29,6 +29,9 @@ from dsl_parser.constants import (OUTPUTS,
                                   INTER_DEPLOYMENT_FUNCTIONS,
                                   EVAL_FUNCS_PATH_PREFIX_KEY,
                                   EVAL_FUNCS_PATH_DEFAULT_PREFIX)
+from dsl_parser.utils import (TEMPLATE_FUNCTIONS,
+                              get_function,
+                              parse_simple_type_value)
 
 
 SELF = 'SELF'
@@ -40,8 +43,6 @@ AVAILABLE_NODE_TARGETS = [SELF, SOURCE, TARGET]
 # Hybrid can be evaluated both at runtime and statically,
 # Runtime can be evaluated only at runtime.
 STATIC_FUNC, HYBRID_FUNC, RUNTIME_FUNC = [0, 1, 2]
-
-TEMPLATE_FUNCTIONS = {}
 
 
 class RecursionLimit(object):
@@ -122,43 +123,6 @@ def _register_entry_point_functions():
         register(fn=entry_point.load(), name=entry_point.name)
 
 
-def is_function(value):
-    """Does the value represent a template function call?"""
-    # functions use the syntax {function_name: args}, or
-    # {function_name: args, 'type': type_name} so let's look for
-    # dicts of length 1 where the only key was registered as a function
-    if not isinstance(value, dict):
-        return False
-    if len(value) != 1 and len(value) != 2:
-        return False
-    for k in value:
-        if k == 'type' or k in TEMPLATE_FUNCTIONS:
-            continue
-        else:
-            return False
-    return True
-
-
-def get_function(value):
-    """Get a template function if the value represents it"""
-    # functions use the syntax {function_name: args}, or
-    # {function_name: args, 'type': type_name} so let's look for
-    # dicts of length 1 where the only key was registered as a function
-    if not isinstance(value, dict):
-        return None
-    if len(value) != 1 and len(value) != 2:
-        return None
-    result = None
-    for k, v in value.items():
-        if k == 'type':
-            continue
-        elif k in TEMPLATE_FUNCTIONS:
-            result = (TEMPLATE_FUNCTIONS[k], v)
-        else:
-            return None
-    return result
-
-
 def _convert_attribute_list_to_python_syntax_string(attr_list):
     """This converts the given attribute list to Python syntax. For example,
     calling this function with ['obj1', 'attr1', 7, 'attr2'] will output
@@ -182,7 +146,8 @@ _register_entry_point_functions()
 
 
 def _contains_legal_nested_attribute_path_items(args):
-    return all(is_function(x) or isinstance(x, (text_type, int)) for x in args)
+    return all(get_function(x) or isinstance(x, (text_type, int))
+               for x in args)
 
 
 def _is_legal_nested_attribute_path(args):
@@ -247,7 +212,7 @@ class GetInput(Function):
                 and _contains_legal_nested_attribute_path_items(args_list)
 
         if not isinstance(args, text_type) \
-                and not is_function(args) \
+                and not get_function(args) \
                 and not _is_valid_args_list(args):
             raise ValueError(
                 "Illegal argument(s) passed to {0} function. Expected either "
@@ -259,7 +224,7 @@ class GetInput(Function):
     def validate(self, plan):
         input_value = self.input_value[0] \
             if isinstance(self.input_value, list) else self.input_value
-        if is_function(input_value):
+        if get_function(input_value):
             return
         if input_value not in plan.inputs:
             raise exceptions.UnknownInputError(
@@ -269,7 +234,7 @@ class GetInput(Function):
     def evaluate(self, handler):
         return_value = None
         if isinstance(self.input_value, list):
-            if any(is_function(x) for x in self.input_value):
+            if any(get_function(x) for x in self.input_value):
                 raise exceptions.FunctionEvaluationError(
                     '{0}: found an unresolved argument: {1}'
                     .format(self.name, self.input_value))
@@ -277,14 +242,13 @@ class GetInput(Function):
             return_value = self._get_input_attribute(
                 handler.get_input(self.input_value[0]))
 
-        if is_function(self.input_value):
+        if get_function(self.input_value):
             raise exceptions.FunctionEvaluationError(
                 '{0}: found an unresolved argument: {1}'
                 .format(self.name, self.input_value))
         return_value = return_value or handler.get_input(self.input_value)
 
         if self.return_type:
-            from dsl_parser.utils import parse_simple_type_value
             _, ok = parse_simple_type_value(return_value, self.return_type)
             if not ok:
                 raise exceptions.InputEvaluationError(
@@ -362,14 +326,14 @@ class GetSys(Function):
 
     def validate(self, plan):
         known_entities = set(p[0] for p in self.VALID_PROPERTIES)
-        if is_function(self.entity):
+        if get_function(self.entity):
             return
         if not isinstance(self.entity, text_type) \
                 or self.entity not in known_entities:
             raise exceptions.UnknownSysEntityError(
                 "{0} function unable to determine entity: {1}"
                 .format(self.name, self.entity))
-        if is_function(self.property):
+        if get_function(self.property):
             return
         if not isinstance(self.property, text_type) \
                 or (self.entity, self.property) not in self.VALID_PROPERTIES:
@@ -427,7 +391,7 @@ class GetProperty(Function):
     def validate(self, plan):
         # Try to evaluate only when the arguments don't contain any functions
         args = [self.node_name] + self.property_path
-        if any(is_function(x) for x in args):
+        if any(get_function(x) for x in args):
             return
         handler = _PlanEvaluationHandler(plan, runtime_only_evaluation=False)
         self.evaluate(handler)
@@ -472,8 +436,8 @@ class GetProperty(Function):
                                    func_name='get_property')
 
     def evaluate(self, handler):
-        if is_function(self.node_name) or \
-                any(is_function(x) for x in self.property_path):
+        if get_function(self.node_name) or \
+                any(get_function(x) for x in self.property_path):
             raise exceptions.FunctionEvaluationError(
                 '{0}: found an unresolved argument in path: {1}, {2}'
                 .format(self.name, self.node_name, self.property_path))
@@ -716,7 +680,7 @@ def _validate_no_functions_in_args(node_name, attribute_path, path, name,
                                    scope, plan):
     # If any of the arguments are functions don't validate
     args = [node_name] + attribute_path
-    if any(is_function(x) for x in args):
+    if any(get_function(x) for x in args):
         return
 
     if node_name in [SELF, SOURCE, TARGET]:
@@ -868,7 +832,7 @@ class GetSecret(Function):
             not (
                 (isinstance(args, list) and len(args) > 1)
                 or isinstance(args, text_type)
-                or is_function(args)
+                or get_function(args)
             )
         ):
             raise exceptions.FunctionValidationError(
@@ -1019,7 +983,7 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
                 .format(','.join('{0}'.format(a) for a in args))
             )
         for arg_index, arg in enumerate(args):
-            if not isinstance(arg, (text_type, int)) and not is_function(arg):
+            if not isinstance(arg, (text_type, int)) and not get_function(arg):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
                     "values; only strings/ints/functions are accepted. "
@@ -1038,7 +1002,7 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
     @property
     def target_deployment(self):
         first_arg = self.capability_path[0]
-        target_deployment = None if is_function(first_arg) else first_arg
+        target_deployment = None if get_function(first_arg) else first_arg
         return target_deployment, first_arg
 
 
@@ -1064,7 +1028,7 @@ class GetGroupCapability(Function):
         for arg_index, arg in enumerate(args):
             if arg_index == 1 and isinstance(arg, list):
                 continue
-            if not isinstance(arg, (text_type, int)) and not is_function(arg):
+            if not isinstance(arg, (text_type, int)) and not get_function(arg):
                 raise ValueError(
                     "`get_group_capability` function arguments can't be "
                     "complex values; only strings/ints/functions are "
@@ -1089,7 +1053,7 @@ class GetLabel(Function):
 
     def parse_args(self, args):
         if isinstance(args, list) and len(args) == 2:
-            if not (isinstance(args[0], text_type) or is_function(args[0])):
+            if not (isinstance(args[0], text_type) or get_function(args[0])):
                 raise exceptions.FunctionValidationError(
                     '`get_label`',
                     "the <label-key> should be a string or a dict "
@@ -1107,7 +1071,7 @@ class GetLabel(Function):
             self.values_list_index = int(args[1])
         elif isinstance(args, text_type):
             self.label_key = args
-        elif is_function(args):
+        elif get_function(args):
             self.label_key = args
         else:
             raise exceptions.FunctionValidationError(
@@ -1154,7 +1118,7 @@ class GetEnvironmentCapability(Function):
                     args), args)
             )
         for arg_index, arg in enumerate(args):
-            if not isinstance(arg, (text_type, int)) and not is_function(arg):
+            if not isinstance(arg, (text_type, int)) and not get_function(arg):
                 raise ValueError(
                     "`get_environment_capability` function arguments"
                     " can't be complex values; only strings/ints/functions"
@@ -1177,7 +1141,7 @@ class ValidateArgumentMixin(object):
         exception_cls = exceptions.FunctionValidationError if validation_only \
             else exceptions.FunctionEvaluationError
         value = getattr(self, argument_name)
-        if is_function(value):
+        if get_function(value):
             if validation_only:
                 return
             raise exception_cls(
@@ -1359,7 +1323,7 @@ def _get_property_value(node_name,
 
     value = properties
     for p in property_path:
-        if is_function(value):
+        if get_function(value):
             value = [value, p]
         elif isinstance(value, dict):
             if p not in value:
