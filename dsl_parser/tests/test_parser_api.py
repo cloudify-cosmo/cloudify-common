@@ -2562,3 +2562,34 @@ node_templates:
             ))
         assert "External node" in str(cm.exception)
         assert "mandatory 'resource_id'" in str(cm.exception)
+
+    def test_use_external_resource_no_intrinsic_functions(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_4
+inputs:
+  external:
+    type: boolean
+    default: False
+node_types:
+  type:
+    properties:
+      use_external_resource:
+        type: boolean
+        default: True
+      resource_id:
+        type: string
+        required: False
+      foo:
+        type: string
+        required: True
+node_templates:
+  node1:
+    type: type
+    properties:
+      use_external_resource: { get_input: external }
+      resource_id: id-123
+      foo: bar
+"""
+        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
+            self.parse(yaml)
+        assert "don't use intrinsic functions" in str(cm.exception)

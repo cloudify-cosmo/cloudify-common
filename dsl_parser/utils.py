@@ -149,6 +149,11 @@ def _merge_flattened_schema_and_instance_properties(
 
     use_external_resource = merged_properties.get('use_external_resource')
     if use_external_resource:
+        if get_function(use_external_resource):
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_INTRINSIC_FUNCTION_NOT_PERMITTED,
+                "Only boolean values are allowed for `use_external_resource` "
+                "property, don't use intrinsic functions.")
         resource_id = merged_properties.get('resource_id')
         if not resource_id:
             raise exceptions.DSLParsingLogicException(
