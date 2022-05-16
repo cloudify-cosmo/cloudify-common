@@ -12,7 +12,7 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-
+import dsl_parser.functions
 from dsl_parser import exceptions, functions
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
@@ -2206,23 +2206,26 @@ deployment_settings:
             prepare_deployment_plan(self.parse(yaml))
 
 
-class TestIsFunction(AbstractTestParser):
-    def test_function_must_be_dict(self):
-        assert functions.is_function(123) is False
-        assert functions.is_function(True) is False
-        assert functions.is_function('get_input: foo') is False
-        assert functions.is_function({'get_input': 'foo'}) is True
+class TestGetFunction(AbstractTestParser):
+    def test_must_be_dict(self):
+        assert functions.get_function(123) is None
+        assert functions.get_function(True) is None
+        assert functions.get_function('get_input: foo') is None
+        assert functions.get_function({'get_input': 'foo'}) is not None
 
-    def test_function_invalid_syntax(self):
-        assert functions.is_function(
-            {'get_input': 'foo', 'something': 123}) is False
-        assert functions.is_function(
-            {'get_input': 'foo', 'type': 'string', 'something': 123}) is False
-        assert functions.is_function(
-            {'type': 'string', 'something': 123}) is False
+    def test_invalid_syntax(self):
+        assert functions.get_function(
+            {'get_input': 'foo', 'something': 123}) is None
+        assert functions.get_function(
+            {'get_input': 'foo', 'type': 'string', 'something': 123}) is None
+        assert functions.get_function(
+            {'type': 'string', 'something': 123}) is None
 
-    def test_function_valid_syntax(self):
-        assert functions.is_function(
-            {'get_input': 'foo'}) is True
-        assert functions.is_function(
-            {'get_input': 'foo', 'type': 'string'}) is True
+    def test_valid_syntax(self):
+        f = functions.get_function({'get_input': 'foo'})
+        assert issubclass(f[0], dsl_parser.functions.Function)
+        assert f[1] == 'foo'
+
+        f = functions.get_function({'get_input': 'foo', 'type': 'string'})
+        assert issubclass(f[0], dsl_parser.functions.Function)
+        assert f[1] == 'foo'

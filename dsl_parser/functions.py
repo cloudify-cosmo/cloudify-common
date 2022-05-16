@@ -140,18 +140,23 @@ def is_function(value):
 
 
 def get_function(value):
+    """Get a template function if the value represents it"""
+    # functions use the syntax {function_name: args}, or
+    # {function_name: args, 'type': type_name} so let's look for
+    # dicts of length 1 where the only key was registered as a function
     if not isinstance(value, dict):
         return None
     if len(value) != 1 and len(value) != 2:
         return None
+    result = None
     for k, v in value.items():
         if k == 'type':
             continue
         elif k in TEMPLATE_FUNCTIONS:
-            return {k: v}
+            result = (TEMPLATE_FUNCTIONS[k], v)
         else:
             return None
-    return None
+    return result
 
 
 def _convert_attribute_list_to_python_syntax_string(attr_list):
@@ -1407,16 +1412,15 @@ def _get_property_value(node_name,
 
 
 def parse(raw_function, scope=None, context=None, path=None):
-    func = get_function(raw_function)
-    if func:
+    f = get_function(raw_function)
+    if f:
         return_type = raw_function.get('type', None)
-        func_name, func_args = dict(func).popitem()
-        return TEMPLATE_FUNCTIONS[func_name](func_args,
-                                             scope=scope,
-                                             context=context,
-                                             path=path,
-                                             raw=raw_function,
-                                             return_type=return_type)
+        return f[0](f[1],
+                    scope=scope,
+                    context=context,
+                    path=path,
+                    raw=raw_function,
+                    return_type=return_type)
     return raw_function
 
 
