@@ -445,9 +445,10 @@ def get_function(value):
     # functions use the syntax {function_name: args}, or
     # {function_name: args, 'type': type_name} so let's look for
     # dicts of length 1 where the only key was registered as a function
+    # or length of 2 where the other key is 'type'
     if not isinstance(value, dict):
         return None
-    if len(value) != 1 and len(value) != 2:
+    if 0 < len(value) < 3:
         return None
     result = None
     for k, v in value.items():
