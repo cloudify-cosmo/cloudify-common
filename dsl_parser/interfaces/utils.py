@@ -41,9 +41,18 @@ def merge_schema_and_instance_inputs(schema_inputs,
     flattened_schema_inputs = utils.flatten_schema(schema_inputs)
     merged_inputs = dict(flattened_schema_inputs)
     merged_inputs.update(instance_inputs)
+    for k, v in _retrieve_types(schema_inputs).items():
+        if k not in merged_inputs or not isinstance(merged_inputs[k], dict):
+            continue
+        merged_inputs[k].update(v)
 
     validate_missing_inputs(merged_inputs, schema_inputs)
     return merged_inputs
+
+
+def _retrieve_types(schema_inputs):
+    return {k: {'type': v['type']}
+            for k, v in schema_inputs.items() if 'type' in v}
 
 
 def operation_mapping(implementation, inputs, executor,
@@ -94,8 +103,9 @@ def operation(name,
               max_retries,
               retry_interval,
               timeout,
-              timeout_recoverable):
-    return {
+              timeout_recoverable,
+              operation_inputs_types=None):
+    op = {
         'name': name,
         'plugin': plugin_name,
         'operation': operation_mapping,
@@ -107,3 +117,6 @@ def operation(name,
         'timeout': timeout,
         'timeout_recoverable': timeout_recoverable
     }
+    if operation_inputs_types:
+        op['inputs_types'] = operation_inputs_types
+    return op

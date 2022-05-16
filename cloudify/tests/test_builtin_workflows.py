@@ -670,7 +670,7 @@ class TestCheckStatus(unittest.TestCase):
         assert fail_instance['system_properties']['status']
         assert not fail_instance['system_properties']['status']['ok']
 
-        # with run_by_dependency_order, the noop instance didnt even run,
+        # with run_by_dependency_order, the noop instance didn't even run,
         # because it depends on a failing task
         noop_instance = noop_instances[0]
         assert 'status' not in noop_instance['system_properties']
@@ -841,6 +841,37 @@ class TestRollbackWorkflow(LifecycleBaseTest):
                            for ni in instances if ni.node_id == 'node_b')
 
         assert node_a_time < node_b_time
+
+
+class TestInputTypes(LifecycleBaseTest):
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-operation-input-types.yaml'))
+    def test_valid_input_types(self, cfy_local):
+        cfy_local.execute(
+            'execute_operation',
+            {'operation': 'cloudify.interfaces.lifecycle.create',
+             'operation_kwargs': {'v_integer': 33},
+             'allow_kwargs_override': 'True'
+             }
+        )
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-operation-input-types.yaml'))
+    def test_invalid_input_types(self, cfy_local):
+        self.assertRaisesRegex(
+            RuntimeError,
+            r'does not match.*integer$',
+            cfy_local.execute,
+            'execute_operation',
+            {'operation': 'cloudify.interfaces.lifecycle.create',
+             'operation_kwargs': {'v_integer': 'A lazy dog'},
+             'allow_kwargs_override': 'True'
+             }
+        )
 
 
 @operation

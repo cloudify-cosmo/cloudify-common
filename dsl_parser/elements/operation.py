@@ -283,6 +283,11 @@ def process_operation(
     operation_mapping = operation_content[mapping_field_name]
     operation_payload = operation_content[payload_field_name]
 
+    operation_payload_types = \
+        {k: v['type']
+         for k, v in operation_payload.items()
+         if isinstance(v, dict) and 'type' in v}
+
     # only for node operations
     operation_executor = operation_content.get('executor', None)
     operation_max_retries = operation_content.get('max_retries', None)
@@ -367,7 +372,9 @@ def process_operation(
                 max_retries=operation_max_retries,
                 retry_interval=operation_retry_interval,
                 timeout=operation_timeout,
-                timeout_recoverable=operation_timeout_recoverable)
+                timeout_recoverable=operation_timeout_recoverable,
+                operation_inputs_types=operation_payload_types,
+            )
 
     if candidate_plugins:
         if len(candidate_plugins) > 1:
@@ -396,7 +403,9 @@ def process_operation(
                 max_retries=operation_max_retries,
                 retry_interval=operation_retry_interval,
                 timeout=operation_timeout,
-                timeout_recoverable=operation_timeout_recoverable)
+                timeout_recoverable=operation_timeout_recoverable,
+                operation_inputs_types=operation_payload_types,
+            )
 
     else:
         base_error_message = (

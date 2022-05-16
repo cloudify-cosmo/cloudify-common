@@ -12,8 +12,8 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-
-from dsl_parser import exceptions, functions
+import dsl_parser.functions
+from dsl_parser import exceptions, functions, utils
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
@@ -858,6 +858,74 @@ node_templates:
         y_node = self.get_node_by_name(plan, 'y')
         self.assertEqual(y_node['properties']['y'], 5)
         self.assertEqual(x_node['properties']['x'], 5)
+
+    def test_get_input_valid_datatypes(self):
+        yaml = """
+plugins:
+    a:
+        executor: central_deployment_agent
+        install: false
+inputs:
+  i_integer:
+    type: integer
+    default: 1
+node_types:
+  test_type:
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: a.a
+          executor: central_deployment_agent
+          inputs:
+            v_integer:
+              type: integer
+node_templates:
+  test:
+    type: test_type
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            v_integer: { get_input: i_integer }
+"""
+        plan = prepare_deployment_plan(self.parse(yaml))
+        assert plan
+
+    def test_get_input_invalid_datatypes(self):
+        yaml = """
+plugins:
+    a:
+        executor: central_deployment_agent
+        install: false
+inputs:
+  i_float:
+    type: float
+    default: 1.01
+  i_string:
+    type: string
+    default: A quick brown fox
+node_types:
+  test_type:
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: a.a
+          executor: central_deployment_agent
+          inputs:
+            v_float:
+              type: float
+node_templates:
+  test:
+    type: test_type
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            v_float: { get_input: i_string }
+"""
+        with self.assertRaisesRegex(
+                exceptions.InputEvaluationError, 'does not match data type'):
+            prepare_deployment_plan(self.parse(yaml))
 
 
 class TestGetAttribute(AbstractTestParser):
@@ -2136,3 +2204,28 @@ deployment_settings:
         with self.assertRaisesRegex(exceptions.FunctionValidationError,
                                     'string_upper.*exactly one'):
             prepare_deployment_plan(self.parse(yaml))
+
+
+class TestGetFunction(AbstractTestParser):
+    def test_must_be_dict(self):
+        assert utils.get_function(123) is None
+        assert utils.get_function(True) is None
+        assert utils.get_function('get_input: foo') is None
+        assert utils.get_function({'get_input': 'foo'}) is not None
+
+    def test_invalid_syntax(self):
+        assert utils.get_function(
+            {'get_input': 'foo', 'something': 123}) is None
+        assert utils.get_function(
+            {'get_input': 'foo', 'type': 'string', 'something': 123}) is None
+        assert utils.get_function(
+            {'type': 'string', 'something': 123}) is None
+
+    def test_valid_syntax(self):
+        f = utils.get_function({'get_input': 'foo'})
+        assert issubclass(f[0], dsl_parser.functions.Function)
+        assert f[1] == 'foo'
+
+        f = utils.get_function({'get_input': 'foo', 'type': 'string'})
+        assert issubclass(f[0], dsl_parser.functions.Function)
+        assert f[1] == 'foo'

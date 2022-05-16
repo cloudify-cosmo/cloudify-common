@@ -29,6 +29,9 @@ import json
 import threading
 
 from dsl_parser import functions as dsl_functions
+from dsl_parser.utils import parse_simple_type_value
+
+
 from cloudify import context
 from cloudify._compat import queue
 from cloudify.manager import (get_bootstrap_context,
@@ -672,6 +675,9 @@ class _WorkflowContextBase(object):
         final_kwargs = self._merge_dicts(merged_from=kwargs,
                                          merged_into=operation_properties,
                                          allow_override=allow_kwargs_override)
+        operation_properties_types = op_struct.get('inputs_types')
+        if operation_properties_types:
+            _validate_types(operation_properties_types, final_kwargs)
 
         return self.execute_task(
             task_name,
@@ -2012,7 +2018,7 @@ class WorkflowDeploymentContext(context.DeploymentContext):
 
     @property
     def resource_tags(self):
-        """Resource tags associated wth this deployment."""
+        """Resource tags associated with this deployment."""
         if self._resource_tags is None and self.workflow_ctx.internal:
             raw_tags = self._context.get('deployment_resource_tags')
             if raw_tags:
@@ -2038,3 +2044,20 @@ def task_config(fn=None, **arguments):
         def partial_wrapper(func):
             return task_config(func, **arguments)
         return partial_wrapper
+
+
+def _validate_types(schema, arguments):
+    if not isinstance(schema, dict):
+        return True
+    for input_name, type_name in schema.items():
+        if input_name not in arguments:
+            continue
+        if dsl_functions.get_function(arguments[input_name]):
+            continue
+        _, valid = parse_simple_type_value(arguments[input_name], type_name)
+        if not valid:
+            raise RuntimeError(
+                "Value {0} of '{1}' does not match the definition: {2}"
+                .format(arguments[input_name], input_name, type_name)
+            )
+    return True
