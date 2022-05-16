@@ -2427,3 +2427,138 @@ node_templates:
         plugin2 = node2['plugins_to_install'][0]
         self.assertEqual(expected_plugin1, plugin1)
         self.assertEqual(expected_plugin2, plugin2)
+
+    def test_use_external_resource_required_property_not_empty(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_4
+node_types:
+  type:
+    properties:
+      use_external_resource:
+        type: boolean
+      resource_id:
+        type: string
+      foo:
+        type: string
+        required: True
+node_templates:
+  node1:
+    type: type
+    properties:
+      foo: {foo}
+      use_external_resource: {use_external_resource}
+      resource_id: {resource_id}
+"""
+        node_properties = self.parse(yaml.format(
+            foo='bar', use_external_resource=False, resource_id='id-123'
+        ))['nodes'][0]['properties']
+        assert node_properties['use_external_resource'] is False
+        assert node_properties['foo'] == 'bar'
+
+        node_properties = self.parse(yaml.format(
+            foo='bar', use_external_resource=True, resource_id='id-123'
+        ))['nodes'][0]['properties']
+        assert node_properties['use_external_resource'] is True
+        assert node_properties['resource_id'] == 'id-123'
+
+    def test_use_external_resource_required_property_empty(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_4
+node_types:
+  type:
+    properties:
+      use_external_resource:
+        type: boolean
+      resource_id:
+        type: string
+      foo:
+        type: string
+        required: True
+node_templates:
+  node1:
+    type: type
+    properties:
+      use_external_resource: {use_external_resource}
+      resource_id: {resource_id}
+"""
+        node_properties = self.parse(yaml.format(
+            use_external_resource=True, resource_id='id-123'
+        ))['nodes'][0]['properties']
+        assert node_properties['use_external_resource'] is True
+        assert node_properties['resource_id'] == 'id-123'
+
+        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
+            self.parse(yaml.format(
+                use_external_resource=False, resource_id='""'
+            ))
+        assert "mandatory 'foo'" in str(cm.exception)
+
+    def test_use_external_resource_missing_resource_id(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_4
+node_types:
+  type:
+    properties:
+      use_external_resource:
+        type: boolean
+      resource_id:
+        type: string
+        required: False
+      foo:
+        type: string
+        required: True
+node_templates:
+  node1:
+    type: type
+    properties:
+      use_external_resource: {use_external_resource}
+      foo: {foo}
+"""
+        node_properties = self.parse(yaml.format(
+            use_external_resource=False, foo='bar'
+        ))['nodes'][0]['properties']
+        assert node_properties['use_external_resource'] is False
+        assert node_properties['foo'] == 'bar'
+
+        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
+            self.parse(yaml.format(
+                use_external_resource=True, foo='bar'
+            ))
+        assert "External node" in str(cm.exception)
+        assert "mandatory 'resource_id'" in str(cm.exception)
+
+    def test_default_use_external_resource(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_4
+node_types:
+  type:
+    properties:
+      use_external_resource:
+        type: boolean
+        default: True
+      resource_id:
+        type: string
+        required: False
+      foo:
+        type: string
+        required: True
+node_templates:
+  node1:
+    type: type
+    properties:
+      resource_id: {resource_id}
+      foo: {foo}
+"""
+        node_properties = self.parse(yaml.format(
+            resource_id='id-123', foo='""'
+        ))['nodes'][0]['properties']
+        assert node_properties['use_external_resource'] is True
+        assert node_properties['resource_id'] == 'id-123'
+        assert node_properties['foo'] == ''
+
+        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
+            self.parse(yaml.format(
+                resource_id='""', foo='bar'
+            ))
+        assert "External node" in str(cm.exception)
+        assert "mandatory 'resource_id'" in str(cm.exception)
