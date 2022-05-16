@@ -2204,3 +2204,25 @@ deployment_settings:
         with self.assertRaisesRegex(exceptions.FunctionValidationError,
                                     'string_upper.*exactly one'):
             prepare_deployment_plan(self.parse(yaml))
+
+
+class TestIsFunction(AbstractTestParser):
+    def test_function_must_be_dict(self):
+        assert functions.is_function(123) is False
+        assert functions.is_function(True) is False
+        assert functions.is_function('get_input: foo') is False
+        assert functions.is_function({'get_input': 'foo'}) is True
+
+    def test_function_invalid_syntax(self):
+        assert functions.is_function(
+            {'get_input': 'foo', 'something': 123}) is False
+        assert functions.is_function(
+            {'get_input': 'foo', 'type': 'string', 'something': 123}) is False
+        assert functions.is_function(
+            {'type': 'string', 'something': 123}) is False
+
+    def test_function_valid_syntax(self):
+        assert functions.is_function(
+            {'get_input': 'foo'}) is True
+        assert functions.is_function(
+            {'get_input': 'foo', 'type': 'string'}) is True
