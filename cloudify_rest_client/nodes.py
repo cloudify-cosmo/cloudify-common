@@ -116,6 +116,22 @@ class Node(dict):
                                               in self else None
 
     @property
+    def unavailable_instances(self):
+        """Amount of instances that failed their status check.
+
+        This is only available when querying with _instance_counts
+        """
+        return self.get('unavailable_instances')
+
+    @property
+    def drifted_instances(self):
+        """Amount of instances that have configuration drift.
+
+        This is only available when querying with _instance_counts
+        """
+        return self.get('drifted_instances')
+
+    @property
     def host_id(self):
         """
         :return: The id of the node instance which hosts this node.
@@ -209,6 +225,10 @@ class NodesClient(object):
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.DeploymentNode.fields
         :param evaluate_functions: Evaluate intrinsic functions
+        :param _instance_counts: Include node-instance counts in each node,
+                                 adding unavailable_instances and
+                                 drifted_instances to the response. Only
+                                 available when filtering by deployment_id.
         :return: Nodes.
         :rtype: list
         """
