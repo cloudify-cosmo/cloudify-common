@@ -67,11 +67,10 @@ def _manage_plugin_state(pre_state, post_state, allow_missing=False):
                 plugin = managed_plugin
             else:
                 return
-        try:
-            agent = get_daemon_name()
-            manager = None
-        except KeyError:
-            agent = None
+
+        manager = None
+        agent = get_daemon_name()
+        if agent is None:
             manager = get_manager_name()
 
         try:

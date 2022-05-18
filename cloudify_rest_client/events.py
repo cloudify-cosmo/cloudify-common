@@ -77,7 +77,8 @@ class EventsClient(object):
         response = self.api.get(uri, _include=_include, params=params)
         return ListResponse(response['items'], response['metadata'])
 
-    def create(self, events=None, logs=None, execution_id=None):
+    def create(self, events=None, logs=None, execution_id=None,
+               agent_name=None, manager_name=None):
         """Create events & logs
 
         :param events: List of events to be created
@@ -92,6 +93,8 @@ class EventsClient(object):
             'events': events,
             'logs': logs,
             'execution_id': execution_id,
+            'agent_name': agent_name,
+            'manager_name': manager_name,
         }, expected_status_code=(201, 204))
 
     def delete(self, deployment_id, include_logs=False, message=None,

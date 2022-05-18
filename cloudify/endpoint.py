@@ -314,7 +314,12 @@ class ManagerEndpoint(Endpoint):
         return self.rest_client.executions.get(execution_id)
 
     def update_operation(self, operation_id, state):
-        self.rest_client.operations.update(operation_id, state=state)
+        self.rest_client.operations.update(
+            operation_id,
+            state=state,
+            agent_name=utils.get_daemon_name(),
+            manager_name=utils.get_manager_name(),
+        )
 
 
 class LocalEndpoint(Endpoint):

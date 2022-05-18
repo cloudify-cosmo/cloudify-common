@@ -175,7 +175,7 @@ def format_exception(e):
 
 def get_daemon_name():
     """Name of the currently running agent."""
-    return os.environ['AGENT_NAME']
+    return os.environ.get('AGENT_NAME')
 
 
 def get_manager_name():
@@ -184,7 +184,7 @@ def get_manager_name():
     Available only on mgmtworkers, returns the hostname of the manager
     this is running on.
     """
-    return os.environ[constants.MANAGER_NAME]
+    return os.environ.get(constants.MANAGER_NAME)
 
 
 def get_manager_file_server_scheme():

@@ -110,13 +110,16 @@ class OperationsClient(object):
         return Operation(response)
 
     def update(self, operation_id, state, result=None,
-               exception=None, exception_causes=None):
+               exception=None, exception_causes=None,
+               manager_name=None, agent_name=None):
         uri = '/operations/{0}'.format(operation_id)
         self.api.patch(uri, data={
             'state': state,
             'result': result,
             'exception': exception,
             'exception_causes': exception_causes,
+            'manager_name': manager_name,
+            'agent_name': agent_name,
         }, expected_status_code=(
             200,  # compat with pre-6.2 managers
             204
