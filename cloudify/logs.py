@@ -21,13 +21,17 @@ import datetime
 
 from cloudify import constants, manager
 from cloudify import event as _event
-from cloudify.utils import (get_execution_creator_username,
-                            get_execution_id,
-                            is_management_environment,
-                            ENV_AGENT_LOG_LEVEL,
-                            ENV_AGENT_LOG_DIR,
-                            ENV_AGENT_LOG_MAX_BYTES,
-                            ENV_AGENT_LOG_MAX_HISTORY)
+from cloudify.utils import (
+    get_execution_creator_username,
+    get_execution_id,
+    is_management_environment,
+    ENV_AGENT_LOG_LEVEL,
+    ENV_AGENT_LOG_DIR,
+    ENV_AGENT_LOG_MAX_BYTES,
+    ENV_AGENT_LOG_MAX_HISTORY,
+    get_manager_name,
+    get_daemon_name,
+)
 from cloudify._compat import text_type
 
 EVENT_CLASS = _event.Event
@@ -371,9 +375,18 @@ def _publish_message(message, message_type, logger, skip_send=False):
     execution_id = get_execution_id()
     client = manager.get_rest_client()
     if message_type == 'log':
-        client.events.create(logs=[message], execution_id=execution_id)
+        logs = [message]
+        events = None
     else:
-        client.events.create(events=[message], execution_id=execution_id)
+        logs = None
+        events = [message]
+    client.events.create(
+        events=events,
+        logs=logs,
+        execution_id=execution_id,
+        agent_name=get_daemon_name(),
+        manager_name=get_manager_name(),
+    )
 
 
 def setup_logger_base(log_level, log_dir=None):

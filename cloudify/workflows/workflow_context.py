@@ -1516,7 +1516,10 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             exception_causes = getattr(exception, 'causes', None)
         self.rest_client.operations.update(
             operation_id, state=state, result=result,
-            exception=exception_text, exception_causes=exception_causes)
+            exception=exception_text, exception_causes=exception_causes,
+            agent_name=utils.get_daemon_name(),
+            manager_name=utils.get_manager_name(),
+        )
 
     def _update_operation_inputs(self, *args, **kwargs):
         self.rest_client.operations._update_operation_inputs(*args, **kwargs)
