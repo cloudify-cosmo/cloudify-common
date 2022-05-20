@@ -152,13 +152,14 @@ def _dsl_location_to_url(dsl_location, resources_base_path):
 
 def _get_resource_location(resource_name,
                            resources_base_path,
-                           current_resource_context=None):
+                           current_resource_context=None,
+                           dsl_version=None):
     if is_remote_resource(resource_name):
         return resource_name
 
-    if os.path.exists(resource_name):
-        return 'file:{0}'.format(
-            pathname2url(os.path.abspath(resource_name)))
+    for fn in _possible_resource_locations(resource_name, dsl_version):
+        if os.path.exists(fn):
+            return 'file:{0}'.format(pathname2url(os.path.abspath(fn)))
 
     if current_resource_context:
         candidate_url = current_resource_context[
@@ -168,20 +169,32 @@ def _get_resource_location(resource_name,
 
     if resources_base_path:
         full_path = os.path.join(resources_base_path, resource_name)
+        for fn in _possible_resource_locations(full_path, dsl_version):
+            if os.path.exists(fn):
+                return 'file:{0}'.format(pathname2url(os.path.abspath(fn)))
         return 'file:{0}'.format(
             pathname2url(os.path.abspath(full_path)))
 
     return None
 
 
+def _possible_resource_locations(resource_name, dsl_version):
+    if not dsl_version:
+        return [resource_name]
+    filename, ext = os.path.splitext(resource_name)
+    return ['{0}_{1}{2}'.format(filename, dsl_version, ext), resource_name]
+
+
 def _extract_import_parts(import_url,
                           resources_base_path,
-                          current_resource_context=None):
+                          current_resource_context=None,
+                          dsl_version=None):
     """
     :param import_url: a string which is the import path
     :param resources_base_path: In case of a relative file path, this
                                 is the base path.
     :param current_resource_context: Current import statement,
+    :param dsl_version: DSL version used by the root blueprint.
     :return: Will return a breakdown of the URL to
             (namespace, import_url). If the import is not
             namespaced, the returned namespace will be
@@ -196,7 +209,8 @@ def _extract_import_parts(import_url,
 
     return namespace, _get_resource_location(import_url,
                                              resources_base_path,
-                                             current_resource_context)
+                                             current_resource_context,
+                                             dsl_version)
 
 
 def _insert_imported_list(blueprint_holder, blueprints_imported):
@@ -245,6 +259,14 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
             version, namespace, is_cloudify_types)
     holder_result.value[version_key_holder] = version_value_holder
     return holder_result
+
+
+def _dsl_version(parsed_dsl_holder):
+    version = parsed_dsl_holder.get_item('tosca_definitions_version')
+    if version:
+        version = version[1].value
+    if version.startswith('cloudify_dsl_'):
+        return version.replace('cloudify_dsl_', '', 1)
 
 
 def _build_ordered_imports(parsed_dsl_holder,
@@ -347,7 +369,8 @@ def _build_ordered_imports(parsed_dsl_holder,
 
     def build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                         _current_import,
-                                        context_namespace=None):
+                                        context_namespace=None,
+                                        dsl_version=None):
         imports_key_holder, imports_value_holder = _current_parsed_dsl_holder.\
             get_item(constants.IMPORTS)
         if not imports_value_holder:
@@ -356,7 +379,8 @@ def _build_ordered_imports(parsed_dsl_holder,
         for another_import in imports_value_holder.restore():
             namespace, import_url = _extract_import_parts(another_import,
                                                           resources_base_path,
-                                                          _current_import)
+                                                          _current_import,
+                                                          dsl_version)
             validate_namespace(namespace)
             if context_namespace:
                 if namespace:
@@ -392,7 +416,8 @@ def _build_ordered_imports(parsed_dsl_holder,
                     import_context,
                     namespace)
             else:
-                imported_dsl = resolver.fetch_import(import_url)
+                imported_dsl = resolver.fetch_import(import_url,
+                                                     dsl_version=dsl_version)
                 if not is_parsed_resource(imported_dsl):
                     imported_dsl = utils.load_yaml(
                         raw_yaml=imported_dsl,
@@ -435,14 +460,18 @@ def _build_ordered_imports(parsed_dsl_holder,
                     namespace)
                 build_ordered_imports_recursive(imported_dsl,
                                                 import_url,
-                                                namespace)
+                                                namespace,
+                                                dsl_version)
 
     imports_graph = ImportsGraph()
     blueprint_imports = set()
     namespaces_mapping = {}
 
     imports_graph.add(location(dsl_location), parsed_dsl_holder)
-    build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
+    build_ordered_imports_recursive(
+        parsed_dsl_holder, dsl_location,
+        dsl_version=_dsl_version(parsed_dsl_holder)
+    )
     sorted_imports_graph = imports_graph.topological_sort()
     return sorted_imports_graph, blueprint_imports, namespaces_mapping
 

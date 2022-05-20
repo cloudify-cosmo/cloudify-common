@@ -12,8 +12,11 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
-from dsl_parser.exceptions import DSLParsingLogicException
 
+import glob
+import os
+
+from dsl_parser.exceptions import DSLParsingLogicException
 from dsl_parser.import_resolver.abstract_import_resolver \
     import AbstractImportResolver, read_import
 
@@ -157,3 +160,13 @@ class DefaultImportResolver(AbstractImportResolver):
 
     def retrieve_plugin(self, import_url):
         pass
+
+    @staticmethod
+    def _plugin_yamls_for_dsl_version(plugin_path, dsl_version):
+        yaml_files = glob.glob(os.path.join(plugin_path, '*.yaml'))
+        if len(yaml_files) > 1 and dsl_version:
+            yaml_files = [
+                yaml_file for yaml_file in yaml_files
+                if '{0}.yaml'.format(dsl_version) in yaml_file
+            ]
+        return yaml_files
