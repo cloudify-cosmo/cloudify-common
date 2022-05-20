@@ -45,7 +45,7 @@ class AbstractImportResolver(ABC):
     def resolve(self, import_url):
         raise NotImplementedError
 
-    def fetch_import(self, import_url):
+    def fetch_import(self, import_url, **kwargs):
         if is_remote_resource(import_url):
             return self.resolve(import_url)
         return read_import(import_url)

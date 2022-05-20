@@ -38,11 +38,11 @@ class ResolverWithBlueprintSupport(DefaultImportResolver):
     def _is_blueprint_url(self, import_url):
         return import_url.startswith(constants.BLUEPRINT_IMPORT)
 
-    def fetch_import(self, import_url):
+    def fetch_import(self, import_url, **kwargs):
         if self._is_blueprint_url(import_url):
             return self._fetch_blueprint_import(import_url)
         return super(ResolverWithBlueprintSupport,
-                     self).fetch_import(import_url)
+                     self).fetch_import(import_url, **kwargs)
 
     def _fetch_blueprint_import(self, import_url):
         import_mapping = self.blueprint_mapping[import_url]
