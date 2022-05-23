@@ -23,9 +23,11 @@ NO_VERBOSE = 0
 
 class Event(object):
 
-    def __init__(self, event, verbosity_level=NO_VERBOSE):
+    def __init__(self, event, verbosity_level=NO_VERBOSE,
+                 with_worker_names=False):
         self._event = event
         self._verbosity_level = verbosity_level
+        self._with_names = with_worker_names
 
     def __str__(self):
         deployment_id = self.deployment_id
@@ -37,8 +39,15 @@ class Event(object):
         if info:  # spacing in between of the info and the message
             info += ' '
 
-        return u'{0}  {1} {2} {3}{4}'.format(
+        worker_name = ''
+        if self._with_names:
+            worker_name = (
+                self._event.get('manager_name') or
+                self._event.get('agent_name')
+            )
+        return u'{0} {1} {2} {3} {4}{5}'.format(
             printable_timestamp,
+            worker_name,
             event_type_indicator,
             deployment_id,
             info,
