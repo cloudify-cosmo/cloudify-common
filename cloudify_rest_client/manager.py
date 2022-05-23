@@ -69,6 +69,11 @@ class ConfigItem(dict):
         """
         return self.get('is_editable')
 
+    @property
+    def admin_only(self):
+        """This setting's value is only viewable (and changeable) by admins"""
+        return self.get('admin_only')
+
 
 class ManagerItem(dict):
     """A manager entry"""
