@@ -68,7 +68,7 @@ class LogBundlesClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get(self.base_url,
+        response = self.api.get(self.base_url.rstrip('/'),
                                 params=params, _include=_include)
         return ListResponse([LogBundle(item) for item in response['items']],
                             response['metadata'])
