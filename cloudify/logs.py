@@ -341,8 +341,12 @@ def stdout_log_out(log, **kwargs):
         sys.stdout.flush()
 
 
-def create_event_message_prefix(event):
-    event_obj = EVENT_CLASS(event, verbosity_level=EVENT_VERBOSITY_LEVEL)
+def create_event_message_prefix(event, with_worker_names=False):
+    event_obj = EVENT_CLASS(
+        event,
+        verbosity_level=EVENT_VERBOSITY_LEVEL,
+        with_worker_names=with_worker_names,
+    )
     if not event_obj.has_output:
         return None
     return text_type(event_obj)
