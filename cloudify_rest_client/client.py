@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2018-2019 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import json
 import logging
 import numbers
@@ -42,6 +27,7 @@ from cloudify_rest_client.tenants import TenantsClient
 from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.summary import SummariesClient
 from cloudify_rest_client.snapshots import SnapshotsClient
+from cloudify_rest_client.log_bundles import LogBundlesClient
 from cloudify_rest_client.cluster import ClusterStatusClient
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.executions import (
@@ -473,6 +459,7 @@ class CloudifyClient(object):
         self.idp = IdentityProviderClient(self._client)
         self.permissions = PermissionsClient(self._client)
         self.snapshots = SnapshotsClient(self._client)
+        self.log_bundles = LogBundlesClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.deployment_groups = DeploymentGroupsClient(self._client)
         self.executions = ExecutionsClient(self._client)
