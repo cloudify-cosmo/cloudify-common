@@ -45,7 +45,7 @@ else:
         'pika==1.1.0',
         'requests>=2.27.1,<3.0.0',
         'fasteners==0.17.3',
-        'aiohttp==3.7.4.post0',
+        'aiohttp==3.8.1',
     ]
     pyyaml_version = '6.0'
 
