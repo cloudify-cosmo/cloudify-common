@@ -109,3 +109,15 @@ class LogBundlesClient(object):
                 response, output_file, progress_callback=progress_callback)
 
             return output_file
+
+    def update_status(self, log_bundle_id, status, error=None):
+        """Update log bundle with the provided status and optional error.
+        :param log_bundle_id: Id of the log bundle to update.
+        :param status: Updated log bundle's status.
+        :param error: Updated log bundle error (optional).
+        """
+        uri = self.base_url + log_bundle_id
+        params = {'status': status}
+        if error:
+            params['error'] = error
+        self.api.patch(uri, data=params)
