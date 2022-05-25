@@ -15,8 +15,14 @@
 
 import copy
 
-import networkx as nx
 import yaml
+
+from networkx.algorithms import (
+    ancestors,
+    number_weakly_connected_components,
+    weakly_connected_component_subgraphs,
+)
+from networkx.classes import DiGraph
 
 from dsl_parser import constants, rel_graph
 from dsl_parser.tests import scaling
@@ -2882,8 +2888,8 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
             contained_in_group_instances = []
             for group_instance in group_instances:
                 contained_in_group_instances.append(group_instance)
-                contained_in_group_instances += nx.ancestors(contained_graph,
-                                                             group_instance)
+                contained_in_group_instances += ancestors(contained_graph,
+                                                          group_instance)
 
             # build a subgraph containing only nodes that are part of any
             # instance of the current group
@@ -2891,13 +2897,13 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                 contained_in_group_instances)
 
             # split subgraph into weakly connected components.
-            components = nx.weakly_connected_component_subgraphs(
+            components = weakly_connected_component_subgraphs(
                 group_subgraph)
 
             # verify expected number of group instances
             self.assertEqual(
                 expected_group['instances'],
-                nx.number_weakly_connected_components(group_subgraph))
+                number_weakly_connected_components(group_subgraph))
 
             # export all group instances and for each group instance its
             # its members
@@ -3033,7 +3039,7 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
 
                 # for each relationship, build a graph containing all
                 # source and target node instances.
-                r_graph = nx.DiGraph()
+                r_graph = DiGraph()
                 for source in source_instances:
                     r_graph.add_node(source['id'], source=True)
                     source_relationships = self._relationships_by_target_name(
@@ -3043,12 +3049,12 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                                          source_relationship['target_id'])
 
                 # split graph into weakly connected components
-                components = nx.weakly_connected_component_subgraphs(r_graph)
+                components = weakly_connected_component_subgraphs(r_graph)
 
                 # assert expected number of components count
                 self.assertEqual(
                     components_count,
-                    nx.number_weakly_connected_components(r_graph))
+                    number_weakly_connected_components(r_graph))
 
                 # for each weakly connected component:
                 for component in components:
@@ -3066,7 +3072,7 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                     self.assertEqual(target_count, len(component_target_nodes))
 
                     # assert that each source node instance is indeed connected
-                    # to all target node instances withing the component.
+                    # to all target node instances within the component.
                     for component_source_node in component_source_nodes:
                         self.assertEqual(
                             target_count,
