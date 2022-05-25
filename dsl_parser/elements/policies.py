@@ -15,7 +15,12 @@
 
 import itertools
 
-import networkx as nx
+from networkx.algorithms import (
+    ancestors,
+    recursive_simple_cycles,
+    topological_sort,
+)
+from networkx.classes import DiGraph
 
 from dsl_parser import (exceptions,
                         utils,
@@ -376,12 +381,12 @@ class Policies(DictElement):
         return scaling_groups
 
     def _validate_and_update_groups(self, scaling_groups, node_templates):
-        member_graph = nx.DiGraph()
+        member_graph = DiGraph()
         for group_name, group in scaling_groups.items():
             for member in group['members']:
                 member_graph.add_edge(member, group_name)
 
-        node_graph = nx.DiGraph()
+        node_graph = DiGraph()
         for node in node_templates:
             node_graph.add_node(node['id'])
             for rel in node.get(constants.RELATIONSHIPS, []):
@@ -398,7 +403,7 @@ class Policies(DictElement):
     @staticmethod
     def _validate_no_group_cycles(member_graph):
         # verify no group cycles (i.e. group A in group B and vice versa)
-        group_cycles = nx.recursive_simple_cycles(member_graph)
+        group_cycles = recursive_simple_cycles(member_graph)
         if group_cycles:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_GROUP_CYCLE,
@@ -429,7 +434,7 @@ class Policies(DictElement):
         for member in member_graph:
             if member in node_graph:
                 continue
-            group_members[member] = nx.ancestors(member_graph, member)
+            group_members[member] = ancestors(member_graph, member)
 
         # next, remove members that are groups themselves
         group_names = set(group_members.keys())
@@ -447,10 +452,10 @@ class Policies(DictElement):
             if node_a == node_b:
                 return True
             if node_a not in containing_nodes:
-                containing_nodes[node_a] = nx.topological_sort(
+                containing_nodes[node_a] = topological_sort(
                     node_graph, nbunch=[node_a])
             if node_b not in containing_nodes:
-                containing_nodes[node_b] = nx.topological_sort(
+                containing_nodes[node_b] = topological_sort(
                     node_graph, nbunch=[node_b])
             a_containing_nodes = set(containing_nodes[node_a])
             a_containing_nodes.remove(node_a)
@@ -513,17 +518,17 @@ class Policies(DictElement):
         for member in member_graph:
             if member not in node_graph:
                 continue
-            containing_groups = nx.topological_sort(member_graph,
-                                                    nbunch=[member])
-            containing_nodes = nx.topological_sort(node_graph, nbunch=[member])
+            containing_groups = topological_sort(member_graph,
+                                                 nbunch=[member])
+            containing_nodes = topological_sort(node_graph, nbunch=[member])
             for node in containing_nodes:
                 if node == member:
                     continue
                 if node not in member_graph:
                     continue
 
-                containing_node_groups = nx.topological_sort(member_graph,
-                                                             nbunch=[node])
+                containing_node_groups = topological_sort(member_graph,
+                                                          nbunch=[node])
                 containing_node_groups_set = set(containing_node_groups)
 
                 shared_groups = (set(containing_groups) &
@@ -531,7 +536,7 @@ class Policies(DictElement):
                 if not shared_groups:
                     continue
 
-                minimal_containing_group = nx.topological_sort(
+                minimal_containing_group = topological_sort(
                     member_graph, nbunch=shared_groups)[0]
                 direct_member_group = member_graph.successors(member)[0]
                 members = scaling_groups[minimal_containing_group]['members']
