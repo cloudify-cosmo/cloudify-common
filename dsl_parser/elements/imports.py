@@ -15,8 +15,7 @@
 
 import os
 
-from networkx.algorithms import topological_sort
-from networkx.classes import DiGraph
+import networkx as nx
 
 from cloudify.exceptions import InvalidBlueprintImport
 
@@ -683,8 +682,8 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
 class ImportsGraph(object):
 
     def __init__(self):
-        self._imports_tree = DiGraph()
-        self._imports_graph = DiGraph()
+        self._imports_tree = nx.DiGraph()
+        self._imports_graph = nx.DiGraph()
 
     def add(self, import_url, parsed, cloudify_types=False,
             via_import=None, namespace=None):
@@ -707,7 +706,7 @@ class ImportsGraph(object):
             ({'import': i,
              'parsed': self._imports_tree.node[i]['parsed'],
               'cloudify_types': self._imports_tree.node[i]['cloudify_types']}
-             for i in topological_sort(self._imports_tree))))
+             for i in nx.topological_sort(self._imports_tree))))
 
     def __contains__(self, item):
         return item in self._imports_tree
