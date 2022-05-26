@@ -2520,12 +2520,7 @@ node_templates:
         assert node_properties['use_external_resource'] is False
         assert node_properties['foo'] == 'bar'
 
-        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
-            self.parse(yaml.format(
-                use_external_resource=True, foo='bar'
-            ))
-        assert "External node" in str(cm.exception)
-        assert "mandatory 'resource_id'" in str(cm.exception)
+        self.parse(yaml.format(use_external_resource=True, foo='bar'))
 
     def test_default_use_external_resource(self):
         yaml = """
@@ -2556,12 +2551,7 @@ node_templates:
         assert node_properties['resource_id'] == 'id-123'
         assert node_properties['foo'] == ''
 
-        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
-            self.parse(yaml.format(
-                resource_id='""', foo='bar'
-            ))
-        assert "External node" in str(cm.exception)
-        assert "mandatory 'resource_id'" in str(cm.exception)
+        self.parse(yaml.format(resource_id='""', foo='bar'))
 
     def test_use_external_resource_no_intrinsic_functions(self):
         yaml = """

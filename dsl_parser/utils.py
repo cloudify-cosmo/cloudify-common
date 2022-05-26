@@ -154,12 +154,6 @@ def _merge_flattened_schema_and_instance_properties(
                 exceptions.ERROR_INTRINSIC_FUNCTION_NOT_PERMITTED,
                 "Only boolean values are allowed for `use_external_resource` "
                 "property, don't use intrinsic functions.")
-        resource_id = merged_properties.get('resource_id')
-        if not resource_id:
-            raise exceptions.DSLParsingLogicException(
-                exceptions.ERROR_MISSING_PROPERTY,
-                "External node '{0}' does not provide a value for mandatory "
-                "'resource_id' property".format(node_name))
 
     result = {}
     for key, property_schema in schema_properties.items():
