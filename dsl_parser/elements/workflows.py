@@ -129,12 +129,14 @@ class WorkflowAvailable(Element):
 
 
 class WorkflowAvailabilityNodeInstancesActive(Element):
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=list)
     add_namespace_to_schema_elements = False
-    valid_values = ('all', 'some', 'none')
+    valid_values = ('all', 'partial', 'none')
 
     def validate(self, **kwargs):
-        if self.initial_value and self.initial_value not in self.valid_values:
+        if self.initial_value and \
+                any(value not in self.valid_values
+                    for value in self.initial_value):
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,
                 "Invalid definition of 'active_node_instances' availability "
