@@ -1478,8 +1478,8 @@ workflows:
 """
         with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
             self.parse(yaml)
-        self.assertRegexpMatches(str(cm.exception),
-                                 r'^availability_rules.*cloudify_dsl_1_4')
+        self.assertRegex(
+            str(cm.exception), r'^availability_rules.*cloudify_dsl_1_4')
         result = self.parse_1_4(yaml)
         workflow1 = result['workflows']['test_workflow1']
         workflow2 = result['workflows']['test_workflow2']
@@ -1487,6 +1487,35 @@ workflows:
         assert not workflow1['availability_rules']['available']
 
         assert workflow2.get('availability_rules') is None
+
+    def test_workflow_availability_node_instances(self):
+        yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
+workflows:
+    test_workflow1:
+        mapping: test_plugin.workflow1
+        availability_rules:
+            node_instances_active:
+                - all
+                - partial
+"""
+        result = self.parse_1_4(yaml)
+        workflow1 = result['workflows']['test_workflow1']
+        assert 'availability_rules' in workflow1
+        assert (
+            workflow1['availability_rules']['node_instances_active'] ==
+            ['all', 'partial']
+        )
+
+        invalid_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
+workflows:
+    test_workflow1:
+        mapping: test_plugin.workflow1
+        availability_rules:
+            node_instances_active:
+                - something invalid
+"""
+        with self.assertRaises(exceptions.DSLParsingLogicException):
+            self.parse(invalid_yaml)
 
     def test_policy_type_properties_empty_properties(self):
         policy_types = dict(
