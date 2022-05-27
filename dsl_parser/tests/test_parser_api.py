@@ -1502,7 +1502,7 @@ workflows:
         workflow1 = result['workflows']['test_workflow1']
         assert 'availability_rules' in workflow1
         assert (
-            workflow1['availability_rules']['node_instances_active'] == \
+            workflow1['availability_rules']['node_instances_active'] ==
             ['all', 'partial']
         )
 
@@ -1514,9 +1514,8 @@ workflows:
             node_instances_active:
                 - something invalid
 """
-        with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
+        with self.assertRaises(exceptions.DSLParsingLogicException):
             self.parse(invalid_yaml)
-
 
     def test_policy_type_properties_empty_properties(self):
         policy_types = dict(
