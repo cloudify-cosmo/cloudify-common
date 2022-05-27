@@ -128,9 +128,24 @@ class WorkflowAvailable(Element):
     add_namespace_to_schema_elements = False
 
 
+class WorkflowAvailabilityNodeInstancesActive(Element):
+    schema = Leaf(type=text_type)
+    add_namespace_to_schema_elements = False
+    valid_values = ('all', 'some', 'none')
+
+    def validate(self, **kwargs):
+        if self.initial_value and self.initial_value not in self.valid_values:
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_UNKNOWN_TYPE,
+                "Invalid definition of 'active_node_instances' availability "
+                "rule: '{0}'. Allowed values: {1}"
+                .format(self.initial_value, self.valid_values))
+
+
 class WorkflowAvailabilityRules(DictElement):
     schema = {
         'available': WorkflowAvailable,
+        'node_instances_active': WorkflowAvailabilityNodeInstancesActive,
     }
     add_namespace_to_schema_elements = False
     requires = {
