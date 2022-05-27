@@ -346,3 +346,6 @@ imports:"""
 if not hasattr(AbstractTestParser, 'assertRaisesRegex'):
     AbstractTestParser.assertRaisesRegex = \
         AbstractTestParser.assertRaisesRegexp
+if not hasattr(AbstractTestParser, 'assertRegex'):
+    AbstractTestParser.assertRegex = \
+        AbstractTestParser.assertRegexpMatches
