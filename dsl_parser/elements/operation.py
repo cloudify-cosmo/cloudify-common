@@ -20,7 +20,7 @@ from dsl_parser import (constants,
                         exceptions,
                         utils)
 from dsl_parser._compat import text_type
-from dsl_parser.elements import (data_types,
+from dsl_parser.elements import (inputs,
                                  version as _version)
 from dsl_parser.framework.elements import (DictElement,
                                            Element,
@@ -62,7 +62,7 @@ class OperationExecutor(Element):
                             ','.join(valid_executors)))
 
 
-class NodeTypeOperationInputs(data_types.Schema):
+class NodeTypeOperationInputs(inputs.Inputs):
     add_namespace_to_schema_elements = False
 
 
