@@ -1735,6 +1735,35 @@ node_types:
                       executor='central_deployment_agent'),
             operations['test_interface1.install'])
 
+    def test_merge_workflow_imports(self):
+        imported_yaml = """
+workflows:
+    wf1:
+        mapping: file:///dev/null
+        availability_rules:
+            available: true
+"""
+        import_file_name = self.make_yaml_file(imported_yaml)
+
+        main_yaml = self.BASIC_VERSION_SECTION_DSL_1_4 + """
+imports:
+    -   {0}
+plugins:
+    plug1:
+        executor: central_deployment_agent
+        install: false
+workflows:
+    wf1:
+        mapping: plug1.plug.operation
+""".format(import_file_name)
+        parsed_yaml = self.parse(main_yaml)
+        wfs = parsed_yaml['workflows']
+        assert 'wf1' in wfs
+        wf = wfs['wf1']
+        assert wf['operation'] == 'plug.operation'
+        assert 'availability_rules' in wf
+        assert wf['availability_rules'] == {'available': True}
+
     def test_merge_plugins_and_interfaces_imports(self):
         yaml = self.create_yaml_with_imports(
             [self.BASIC_NODE_TEMPLATES_SECTION, self.BASIC_PLUGIN]) + """
