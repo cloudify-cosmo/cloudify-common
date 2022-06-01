@@ -223,6 +223,16 @@ class Deployment(dict):
     def scaling_groups(self):
         return self.get('scaling_groups')
 
+    @property
+    def unavailable_instances(self):
+        """Amount of instances that failed their status check."""
+        return self.get('unavailable_instances')
+
+    @property
+    def drifted_instances(self):
+        """Amount of instances that have configuration drift."""
+        return self.get('drifted_instances')
+
 
 class Workflow(dict):
 
