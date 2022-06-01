@@ -643,6 +643,14 @@ def _extend_node_template(from_dict_holder, to_dict_holder):
                 to_dict_holder.value[key_holder])
 
 
+def _merge_workflows(key_holder, key_name, to_dict_holder, from_dict_holder):
+    source = from_dict_holder.value
+    target = to_dict_holder.value
+    for key in from_dict_holder.value:
+        if key not in target:
+            target[key] = source[key]
+
+
 def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                                            to_dict_holder,
                                            key_name,
@@ -673,6 +681,13 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
         elif key_name in constants.PLUGIN_DSL_KEYS_READ_FROM_DB:
             # Allow blueprint_labels, labels and resource_tags to be merged
             continue
+        elif key_name == constants.WORKFLOWS:
+            _merge_workflows(
+                key_holder,
+                key_name,
+                to_dict_holder.value[key_holder],
+                value_holder,
+            )
         else:
             raise exceptions.DSLParsingLogicException(
                 4, "Import failed: Could not merge '{0}' due to conflict "
