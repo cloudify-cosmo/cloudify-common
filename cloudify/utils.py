@@ -836,6 +836,14 @@ def _find_versioned_plugin_dir(base_dir, version):
         return found
 
 
+def _plugins_base_dir():
+    """The directory where plugins/ and source_plugins/ are stored.
+
+    Default to sys.prefix, which is going to be in the mgmtworker/agent venv.
+    """
+    return os.environ.get('CFY_PLUGINS_ROOT') or sys.prefix
+
+
 def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
     """Virtualenv for the specified plugin.
 
@@ -847,7 +855,7 @@ def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
     :param deployment_id: deployment id, for source plugins
     :return: directory containing the plugin virtualenv, or None
     """
-    managed_plugin_dir = os.path.join(sys.prefix, 'plugins')
+    managed_plugin_dir = os.path.join(_plugins_base_dir(), 'plugins')
     if tenant_name:
         managed_plugin_dir = os.path.join(
             managed_plugin_dir, tenant_name, name)
@@ -856,7 +864,7 @@ def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
 
     prefix = _find_versioned_plugin_dir(managed_plugin_dir, version)
     if prefix is None and deployment_id is not None:
-        source_plugin_dir = os.path.join(sys.prefix, 'source_plugins')
+        source_plugin_dir = os.path.join(_plugins_base_dir(), 'source_plugins')
         if tenant_name:
             source_plugin_dir = os.path.join(
                 source_plugin_dir, tenant_name, deployment_id, name)
@@ -874,7 +882,7 @@ def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
 def target_plugin_prefix(name, tenant_name, version=None, deployment_id=None):
     """Target directory into which the plugin should be installed"""
     parts = [
-        sys.prefix,
+        _plugins_base_dir(),
         'source_plugins' if deployment_id else 'plugins'
     ]
     if tenant_name:
