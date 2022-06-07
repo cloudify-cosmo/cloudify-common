@@ -1517,6 +1517,24 @@ workflows:
         with self.assertRaises(exceptions.DSLParsingLogicException):
             self.parse(invalid_yaml)
 
+    def test_workflow_availability_node_types(self):
+        yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
+workflows:
+    test_workflow1:
+        mapping: test_plugin.workflow1
+        availability_rules:
+            node_types_required:
+                - test_type
+                - some_other_type
+"""
+        result = self.parse_1_4(yaml)
+        workflow1 = result['workflows']['test_workflow1']
+        assert 'availability_rules' in workflow1
+        assert (
+            workflow1['availability_rules']['node_types_required'] ==
+            ['test_type', 'some_other_type']
+        )
+
     def test_policy_type_properties_empty_properties(self):
         policy_types = dict(
             policy_types=dict(
