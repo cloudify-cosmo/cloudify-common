@@ -279,7 +279,7 @@ def validate_inclusions_and_exclusions(include_instances, exclude_instances,
         raise RuntimeError(error_message)
 
 
-@workflow
+@workflow(resumable=True)
 def scale_entity(ctx,
                  scalable_entity_name,
                  delta,
@@ -389,34 +389,44 @@ def scale_entity(ctx,
 
     if abort_started:
         _abort_started_deployment_modifications(ctx, ignore_failure)
+    if ctx.resume:
+        mods = ctx.deployment.list_started_modifications()
+        if len(mods) > 1:
+            raise RuntimeError(
+                'scale can only be resumed when there is only one started '
+                'deployment modification, but found {0}'
+                .format(len(mods))
+            )
+        modification = mods[0]
+    else:
+        modification = ctx.deployment.start_modification({
+            scale_id: {
+                'instances': planned_num_instances,
+                'removed_ids_exclude_hint': exclude_instances,
+                'removed_ids_include_hint': include_instances,
 
-    modification = ctx.deployment.start_modification({
-        scale_id: {
-            'instances': planned_num_instances,
-            'removed_ids_exclude_hint': exclude_instances,
-            'removed_ids_include_hint': include_instances,
+                # While these parameters are now exposed, this comment is being
+                # kept as it provides useful insight into the hints
+                # These following parameters are not exposed at the moment,
+                # but should be used to control which node instances get
+                # scaled in(when scaling in).
+                # They are mentioned here, because currently, the
+                # modification API is not very well documented.
+                # Special care should be taken because if
+                # `scale_compute == True` (which is the default), then these
+                # ids should be the compute node instance ids which are
+                # not necessarily instances of the node specified by
+                # `scalable_entity_name`.
 
-            # While these parameters are now exposed, this comment is being
-            # kept as it provides useful insight into the hints
-            # These following parameters are not exposed at the moment,
-            # but should be used to control which node instances get scaled in
-            # (when scaling in).
-            # They are mentioned here, because currently, the modification API
-            # is not very documented.
-            # Special care should be taken because if `scale_compute == True`
-            # (which is the default), then these ids should be the compute node
-            # instance ids which are not necessarily instances of the node
-            # specified by `scalable_entity_name`.
+                # Node instances denoted by these instance ids should be
+                # *kept* if possible.
+                # 'removed_ids_exclude_hint': [],
 
-            # Node instances denoted by these instance ids should be *kept* if
-            # possible.
-            # 'removed_ids_exclude_hint': [],
-
-            # Node instances denoted by these instance ids should be *removed*
-            # if possible.
-            # 'removed_ids_include_hint': []
-        }
-    })
+                # Node instances denoted by these instance ids should
+                # be *removed* if possible.
+                # 'removed_ids_include_hint': []
+            }
+        })
     graph = ctx.graph_mode()
     try:
         ctx.logger.info('Deployment modification started. '
