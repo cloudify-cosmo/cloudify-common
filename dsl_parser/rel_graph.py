@@ -18,7 +18,12 @@ import collections
 from random import choice
 from string import ascii_lowercase, digits
 
-import networkx as nx
+from networkx.algorithms import (
+    descendants,
+    topological_sort,
+    weakly_connected_component_subgraphs,
+)
+from networkx.classes import DiGraph
 
 from dsl_parser import (constants,
                         exceptions)
@@ -38,8 +43,8 @@ NI_ID_ALPHABET = ascii_lowercase + digits
 
 def build_node_graph(nodes, scaling_groups):
 
-    graph = nx.DiGraph()
-    groups_graph = nx.DiGraph()
+    graph = DiGraph()
+    groups_graph = DiGraph()
     node_ids = set()
     contained_in_group = {}
 
@@ -95,7 +100,7 @@ def build_node_graph(nodes, scaling_groups):
                 graph.add_edge(node_id, group_name,
                                relationship=relationship,
                                index=index)
-                top_level_group_name = nx.topological_sort(
+                top_level_group_name = topological_sort(
                     groups_graph, nbunch=[group_name])[-1]
                 graph.add_edge(
                     top_level_group_name, target_id,
@@ -116,8 +121,8 @@ def build_node_graph(nodes, scaling_groups):
 
 def build_previous_deployment_node_graph(plan_node_graph,
                                          previous_node_instances):
-    graph = nx.DiGraph()
-    contained_graph = nx.DiGraph()
+    graph = DiGraph()
+    contained_graph = DiGraph()
     for node_instance in previous_node_instances:
         node_instance_id = node_instance['id']
         node_instance_host_id = node_instance.get('host_id')
@@ -205,7 +210,7 @@ def build_deployment_node_graph(plan_node_graph,
 
     _verify_no_unsupported_relationships(plan_node_graph)
 
-    deployment_node_graph = nx.DiGraph()
+    deployment_node_graph = DiGraph()
     ctx = Context(
         plan_node_graph=plan_node_graph,
         deployment_node_graph=deployment_node_graph,
@@ -361,7 +366,7 @@ def extract_removed_relationships(previous_deployment_node_graph,
 
 
 def _graph_diff(G, H, node_instance_attributes):
-    result = nx.DiGraph()
+    result = DiGraph()
     for n1, data in G.nodes_iter(data=True):
         if n1 in H:
             continue
@@ -384,7 +389,7 @@ def _graph_diff_relationships(G, H, node_instance_attributes):
     :param node_instance_attributes:
     :return:
     """
-    result = nx.DiGraph()
+    result = DiGraph()
     for source, dest, data in G.edges_iter(data=True):
         if source in H and dest not in H[source]:
             new_node = copy.deepcopy(G.node[source])
@@ -398,10 +403,10 @@ def _graph_diff_relationships(G, H, node_instance_attributes):
 def _handle_contained_in(ctx):
     # for each 'contained' tree, recursively build new trees based on
     # scaling groups with generated ids
-    for contained_tree in nx.weakly_connected_component_subgraphs(
+    for contained_tree in weakly_connected_component_subgraphs(
             ctx.plan_contained_graph.reverse(copy=True)):
         # extract tree root node id
-        node_id = nx.topological_sort(contained_tree)[0]
+        node_id = topological_sort(contained_tree)[0]
         _build_multi_instance_node_tree_rec(
             node_id=node_id,
             contained_tree=contained_tree,
@@ -436,9 +441,9 @@ def _build_multi_instance_node_tree_rec(node_id,
                 relationship=relationship_instance,
                 index=parent_relationship_index)
         for child_node_id in contained_tree.neighbors_iter(node_id):
-            descendants = nx.descendants(contained_tree, child_node_id)
-            descendants.add(child_node_id)
-            child_contained_tree = contained_tree.subgraph(descendants)
+            _descendants = descendants(contained_tree, child_node_id)
+            _descendants.add(child_node_id)
+            child_contained_tree = contained_tree.subgraph(_descendants)
             _build_multi_instance_node_tree_rec(
                 node_id=child_node_id,
                 contained_tree=child_contained_tree,
@@ -917,8 +922,8 @@ class Context(object):
         shared_groups = set(a_groups) & set(b_groups)
         if not shared_groups:
             return None
-        return nx.topological_sort(self.plan_contained_graph,
-                                   nbunch=shared_groups)[0]
+        return topological_sort(self.plan_contained_graph,
+                                nbunch=shared_groups)[0]
 
     def _containing_groups(self, node_id):
         graph = self.plan_contained_graph
@@ -1001,7 +1006,7 @@ class Context(object):
     def _build_graph_by_relationship_types(graph,
                                            build_from_types,
                                            exclude_types):
-        relationship_base_graph = nx.DiGraph()
+        relationship_base_graph = DiGraph()
         for source, target, edge_data in graph.edges_iter(data=True):
             include_edge = (
                 _relationship_type_hierarchy_includes_one_of(
