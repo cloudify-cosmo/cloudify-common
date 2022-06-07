@@ -144,10 +144,21 @@ class WorkflowAvailabilityNodeInstancesActive(Element):
                 .format(self.initial_value, self.valid_values))
 
 
+class NodeTypeName(Element):
+    schema = Leaf(type=text_type)
+    add_namespace_to_schema_elements = False
+
+
+class WorkflowAvailabilityNodeTypesRequired(Element):
+    schema = List(type=NodeTypeName)
+    add_namespace_to_schema_elements = False
+
+
 class WorkflowAvailabilityRules(DictElement):
     schema = {
         'available': WorkflowAvailable,
         'node_instances_active': WorkflowAvailabilityNodeInstancesActive,
+        'node_types_required': WorkflowAvailabilityNodeTypesRequired,
     }
     add_namespace_to_schema_elements = False
     requires = {
