@@ -14,7 +14,14 @@
 #    * limitations under the License.
 
 import numbers
-import networkx as nx
+
+from networkx.algorithms import (
+    descendants,
+    recursive_simple_cycles,
+    topological_sort,
+)
+from networkx.classes import DiGraph
+from networkx.exception import NetworkXUnfeasible
 
 from dsl_parser._compat import text_type
 from dsl_parser.framework import elements
@@ -101,8 +108,8 @@ class Context(object):
         self.inputs = inputs or {}
         self.element_type_to_elements = {}
         self._root_element = None
-        self._element_tree = nx.DiGraph()
-        self._element_graph = nx.DiGraph()
+        self._element_tree = DiGraph()
+        self._element_graph = DiGraph()
         self._traverse_element_cls(element_cls=element_cls,
                                    name=element_name,
                                    value=value,
@@ -166,7 +173,7 @@ class Context(object):
             yield current_element
 
     def descendants(self, element):
-        return nx.descendants(self._element_tree, element)
+        return descendants(self._element_tree, element)
 
     def _add_element(self, element, parent=None):
         element_type = type(element)
@@ -415,7 +422,7 @@ class Context(object):
                                    parent_element=parent_element)
 
     def _calculate_element_graph(self):
-        self.element_graph = nx.DiGraph(self._element_tree)
+        self.element_graph = DiGraph(self._element_tree)
         for element_type, _elements in self.element_type_to_elements.items():
             requires = element_type.requires
             for requirement, requirement_values in requires.items():
@@ -465,10 +472,10 @@ class Context(object):
 
     def elements_graph_topological_sort(self):
         try:
-            return nx.topological_sort(self.element_graph)
-        except nx.NetworkXUnfeasible:
+            return topological_sort(self.element_graph)
+        except NetworkXUnfeasible:
             # Cycle detected
-            cycle = nx.recursive_simple_cycles(self.element_graph)[0]
+            cycle = recursive_simple_cycles(self.element_graph)[0]
             names = [str(e.name) for e in cycle]
             names.append(str(names[0]))
             ex = exceptions.DSLParsingLogicException(
