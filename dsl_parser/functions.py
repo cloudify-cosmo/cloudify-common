@@ -304,6 +304,7 @@ class GetInput(Function):
 class GetSys(Function):
     VALID_PROPERTIES = [('tenant', 'name'),
                         ('deployment', 'id'),
+                        ('deployment', 'name'),
                         ('deployment', 'blueprint'),
                         ('deployment', 'owner')]
 

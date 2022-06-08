@@ -8,27 +8,33 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 class TestGetSys(AbstractTestParser):
     def setUp(self):
         super(TestGetSys, self).setUp()
-        self.mock_storage = self.mock_evaluation_storage(id='dep1')
+        self.mock_storage = self.mock_evaluation_storage(id='dep1',
+                                                         name="Deployment 1")
 
     def test_node_template_properties_simple(self):
         yaml = """
 node_types:
     type:
         properties:
-            property: {}
+            deployment_id: {}
+            deployment_name: {}
 node_templates:
     node:
         type: type
         properties:
-            property: { get_sys: [deployment, id] }
+            deployment_id: { get_sys: [deployment, id] }
+            deployment_name: { get_sys: [deployment, name] }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         node = self.get_node_by_name(parsed, 'node')
         self.assertEqual({'get_sys': ['deployment', 'id']},
-                         node['properties']['property'])
+                         node['properties']['deployment_id'])
+        self.assertEqual({'get_sys': ['deployment', 'name']},
+                         node['properties']['deployment_name'])
 
         functions.evaluate_functions(parsed, {}, self.mock_storage)
-        self.assertEqual(node['properties']['property'], 'dep1')
+        self.assertEqual(node['properties']['deployment_id'], 'dep1')
+        self.assertEqual(node['properties']['deployment_name'], 'Deployment 1')
 
     def test_illegal_arguments(self):
         yaml = """
