@@ -40,6 +40,7 @@ class RabbitMQClient(object):
         self._logger = logger
         self._cadata = cadata
         self._auth = (username, password)
+        self._request_kwargs = request_kwargs
         self._session = None
 
     @property
@@ -51,20 +52,22 @@ class RabbitMQClient(object):
         )
 
     def _do_request(self, request_method, url, **kwargs):
-        request_kwargs = kwargs
-        request_kwargs.setdefault('headers', {})\
-            .setdefault('Content-Type', 'application/json',)
+        request_kwargs = self._request_kwargs.copy()
+        request_kwargs.update(kwargs)
 
         if self._session is None:
-            ca_path = None
-            if self._cadata is not None:
-                with tempfile.NamedTemporaryFile(delete=False, mode='w') as f:
-                    f.write(self._cadata)
-                ca_path = f.name
-                request_kwargs['verify'] = ca_path
             self._session = requests.Session()
             self._session.auth = self._auth
 
+        ca_path = None
+        if self._cadata is not None:
+            with tempfile.NamedTemporaryFile(delete=False, mode='w') as f:
+                f.write(self._cadata)
+            ca_path = f.name
+            request_kwargs['verify'] = ca_path
+
+        request_kwargs.setdefault('headers', {})\
+            .setdefault('Content-Type', 'application/json',)
         request_method = {
             'get': self._session.get,
             'post': self._session.post,
