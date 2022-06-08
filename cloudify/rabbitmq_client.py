@@ -70,7 +70,7 @@ class RabbitMQClient(object):
             'post': self._session.post,
             'put': self._session.put,
             'delete': self._session.delete,
-        }['request_method']
+        }[request_method]
 
         while True:
             full_url = '{0}/api/{1}'.format(self.base_url, url)
