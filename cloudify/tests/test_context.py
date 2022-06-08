@@ -359,6 +359,28 @@ class NodeContextTests(testtools.TestCase):
             self.assertEqual(expected[node][1],
                              instance.runtime_properties['type_hierarchy'])
 
+    @workflow_test(
+        os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "resources/blueprints/test-has-operation.yaml")
+    )
+    def test_node_has_operation(self, env):
+        """Check WorkflowNode.has_operation
+
+        That method is part of the workflow API, and is only available
+        within a workflow; we'll run the has_operation_wf workflow defined
+        here, which will run the method under test, and we'll assert on
+        the results.
+        """
+        has_nonexistent_op, has_existing_op = env.execute('test_workflow')
+        assert not has_nonexistent_op
+        assert has_existing_op
+
+
+def has_operation_wf(ctx, **kwargs):
+    node = ctx.get_node('node1')
+    return node.has_operation('nonexistent'), node.has_operation('test.op1')
+
 
 class PluginContextTests(testtools.TestCase):
     # workdir is tested separately for local and remote workflows
