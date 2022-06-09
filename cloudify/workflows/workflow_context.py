@@ -470,6 +470,12 @@ class CloudifyWorkflowNode(object):
         """The node instances"""
         return iter(self._node_instances.values())
 
+    def has_operation(self, operation_interface):
+        try:
+            return bool(self.operations[operation_interface]['operation'])
+        except KeyError:
+            return False
+
     def get_relationship(self, target_id):
         """Get a node relationship by its target id"""
         return self._relationships.get(target_id)

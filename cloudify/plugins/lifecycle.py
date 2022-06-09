@@ -341,8 +341,7 @@ def _pre_resume_uninstall(instance):
             'cloudify.interfaces.lifecycle.delete'),
         post=instance.send_event('Deleted node instance')
     )
-    if 'cloudify.interfaces.lifecycle.postdelete'\
-            in instance.node.operations:
+    if instance.node.has_operation('cloudify.interfaces.lifecycle.postdelete'):
         postdelete = _skip_nop_operations(
             pre=instance.send_event('Postdeleting node instance'),
             task=instance.execute_operation(
@@ -356,7 +355,7 @@ def _pre_resume_uninstall(instance):
 
 def _pre_resume_stop(instance):
     """Run these stop tasks before resuming/resending a start."""
-    if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
+    if instance.node.has_operation('cloudify.interfaces.lifecycle.prestop'):
         prestop = _skip_nop_operations(
             pre=instance.send_event('Prestopping node instance'),
             task=instance.execute_operation(
@@ -439,6 +438,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     """
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
+    node = instance.node
     instance_state = instance.state
     if instance_state in [
         'started', 'starting', 'created', 'creating',
@@ -448,7 +448,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         precreate = []
     else:
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.validation.create' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.validation.create'):
             creation_validation = _skip_nop_operations(
                 pre=instance.send_event(
                     'Validating node instance before creation'),
@@ -461,8 +461,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         else:
             creation_validation = []
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.precreate' \
-                in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.precreate'):
             precreate = _skip_nop_operations(
                 pre=instance.send_event('Precreating node instance'),
                 task=instance.execute_operation(
@@ -536,8 +535,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
             host_post_start = []
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.poststart' \
-                in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.poststart'):
             poststart = _skip_nop_operations(
                 pre=instance.send_event('Poststarting node instance'),
                 task=instance.execute_operation(
@@ -612,6 +610,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
                 set_send_node_event_on_error_handler(task, instance)
 
     # Remove unneeded operations
+    node = instance.node
     instance_state = instance.state
     if instance_state in ['stopped', 'deleting', 'deleted', 'uninitialized',
                           'configured']:
@@ -634,7 +633,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         )
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.validation.delete' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.validation.delete'):
             deletion_validation = _skip_nop_operations(
                 pre=instance.send_event(
                     'Validating node instance before deletion'),
@@ -648,7 +647,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
             deletion_validation = []
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.prestop'):
             prestop = _skip_nop_operations(
                 pre=instance.send_event('Prestopping node instance'),
                 task=instance.execute_operation(
@@ -693,8 +692,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
                 'cloudify.interfaces.lifecycle.delete')
         )
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.postdelete'\
-                in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.postdelete'):
             postdelete = _skip_nop_operations(
                 pre=instance.send_event('Postdeleting node instance'),
                 task=instance.execute_operation(
@@ -830,14 +828,13 @@ def plugins_uninstall_task(host_node_instance, plugins_to_uninstall):
 
 
 def plugins_install_task(host_node_instance, plugins_to_install):
+    node = host_node_instance.node
     install_method = utils.internal.get_install_method(
         host_node_instance.node.properties)
     if (plugins_to_install and
             install_method != constants.AGENT_INSTALL_METHOD_NONE):
-        node_operations = host_node_instance.node.operations
 
-        if 'cloudify.interfaces.plugin_installer.install' in \
-                node_operations:
+        if node.has_operation('cloudify.interfaces.plugin_installer.install'):
             # 3.2 Compute Node
             return host_node_instance.execute_operation(
                 'cloudify.interfaces.plugin_installer.install',
@@ -852,10 +849,10 @@ def plugins_install_task(host_node_instance, plugins_to_install):
 def _host_post_start(host_node_instance):
     install_method = utils.internal.get_install_method(
         host_node_instance.node.properties)
+    node = host_node_instance.node
     tasks = [_wait_for_host_to_start(host_node_instance)]
     if install_method != constants.AGENT_INSTALL_METHOD_NONE:
-        node_operations = host_node_instance.node.operations
-        if 'cloudify.interfaces.worker_installer.install' in node_operations:
+        if node.has_operation('cloudify.interfaces.worker_installer.install'):
             # 3.2 Compute Node
             tasks += [
                 host_node_instance.send_event('Installing agent'),
@@ -890,6 +887,7 @@ def _host_post_start(host_node_instance):
 
 
 def _host_pre_stop(host_node_instance):
+    node = host_node_instance.node
     install_method = utils.internal.get_install_method(
         host_node_instance.node.properties)
     tasks = []
@@ -912,8 +910,7 @@ def _host_pre_stop(host_node_instance):
                     'cloudify.interfaces.cloudify_agent.delete')
             ]
         else:
-            node_operations = host_node_instance.node.operations
-            if 'cloudify.interfaces.worker_installer.stop' in node_operations:
+            if node.has_operation('cloudify.interfaces.worker_installer.stop'):
                 tasks += [
                     host_node_instance.execute_operation(
                         'cloudify.interfaces.worker_installer.stop'),
@@ -936,6 +933,7 @@ def _host_pre_stop(host_node_instance):
 def rollback_node_instance_subgraph(instance, graph, ignore_failure):
     subgraph = graph.subgraph(instance.id)
     sequence = subgraph.sequence()
+    node = instance.node
 
     def set_ignore_handlers(_subgraph):
         for task in _subgraph.tasks.values():
@@ -970,7 +968,7 @@ def rollback_node_instance_subgraph(instance, graph, ignore_failure):
         )
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.validation.delete' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.validation.delete'):
             deletion_validation = _skip_nop_operations(
                 pre=instance.send_event(
                     'Validating node instance before deletion'),
@@ -984,7 +982,7 @@ def rollback_node_instance_subgraph(instance, graph, ignore_failure):
             deletion_validation = []
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.prestop'):
             prestop = _skip_nop_operations(
                 pre=instance.send_event('Prestopping node instance'),
                 task=instance.execute_operation(
@@ -1031,8 +1029,7 @@ def rollback_node_instance_subgraph(instance, graph, ignore_failure):
                 'cloudify.interfaces.lifecycle.delete')
         )
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.postdelete' \
-                in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.postdelete'):
             postdelete = _skip_nop_operations(
                 pre=instance.send_event('Postdeleting node instance'),
                 task=instance.execute_operation(
