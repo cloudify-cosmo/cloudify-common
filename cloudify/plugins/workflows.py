@@ -43,14 +43,122 @@ def uninstall(ctx, ignore_failure=False, **kwargs):
         ignore_failure=ignore_failure)
 
 
+def _find_instances_to_heal(instances, healthy_instances):
+    """Examine instances, deciding which should be healed, or reinstalled.
+
+    Instances that are healthy, will not be touched at all - unless they're
+    part of a subgraph (ie. contained-in) of an instance that is going to be
+    reinstalled.
+    Instances that are not healthy will be healed if they define the heal
+    operation, or reinstalled otherwise.
+
+    :param instances: all instances to examine
+    :param healthy_instances: those that are already healthy - a subset
+        of instances
+    """
+
+    instances = set(instances)
+    to_heal = set()
+    to_reinstall = set()
+    while instances:
+        instance = instances.pop()
+        if instance in healthy_instances:
+            # instance is healthy! nothing to do. Its subgraph will still
+            # be examined
+            continue
+        elif instance.node.has_operation('cloudify.interfaces.lifecycle.heal'):
+            to_heal.add(instance)
+        else:
+            # instance doesnt have heal and is not healthy - it must be
+            # reinstalled, and its whole subgraph must be as well
+            subgraph = instance.get_contained_subgraph()
+            to_reinstall |= subgraph
+            to_heal -= subgraph
+            instances -= subgraph
+    return to_heal, to_reinstall
+
+
+def _find_healthy_instances(instances):
+    healthy_instances = set()
+    for instance in instances:
+        try:
+            if (
+                instance.system_properties['status']['ok']
+                and instance.system_properties['status']['task']
+            ):
+                healthy_instances.add(instance)
+        except KeyError:
+            pass
+    return healthy_instances
+
+
+def _reinstall_disallowed_exception(to_reinstall):
+    if len(to_reinstall) > 5:
+        instance_ids = [inst.id for inst in to_reinstall]
+        names_message = (
+            ', '.join(instance_ids[:5]) +
+            ' (and {0} more)'.format(len(instance_ids) - 5)
+        )
+    else:
+        names_message = ', '.join(inst.id for inst in to_reinstall)
+    return RuntimeError(
+        'allow_reinstall is false, but would need to reinstall instances: '
+        + names_message
+    )
+
+
+def _find_heal_failed_instances(ctx, instances):
+    """Examine instances, and return the ones for which heal has failed.
+
+    To find the result of the heal operation, look in system-properties:
+    the heal subgraph's failure callback sets the flag there.
+    """
+    heal_failed = set()
+    for instance in instances:
+        try:
+            if instance.system_properties['heal_failed'] == ctx.execution_id:
+                heal_failed.add(instance)
+        except KeyError:
+            pass
+    return heal_failed
+
+
+def _clean_healed_property(ctx, instances):
+    """Remove the heal_failed flag from all instances.
+
+    No need to leave that flag around. When using it, we do check that it's
+    equal to the current execution id, so if we didn't clean it up, the
+    logic would still work - but it's nice to not leave unnecessary data
+    around.
+    """
+    for instance in instances:
+        system_properties = instance.system_properties or {}
+        if 'heal_failed' not in system_properties:
+            continue
+        del system_properties['heal_failed']
+        ctx.update_node_instance(
+            instance.id,
+            force=True,
+            system_properties=system_properties
+        )
+
+
 @workflow
 def auto_heal_reinstall_node_subgraph(
-        ctx,
-        node_instance_id,
-        diagnose_value='Not provided',
-        ignore_failure=True,
-        **kwargs):
-    """Reinstalls the whole subgraph of the system topology
+    ctx,
+    node_instance_id,
+    diagnose_value='Not provided',
+    ignore_failure=True,
+    check_status=True,
+    allow_reinstall=True,
+    force_reinstall=False,
+    **kwargs
+):
+    """Heals a subgraph of the system topology.
+
+    To heal a subgraph, run the heal operation on all the nodes,
+    and fall back to reinstalling the nodes if the heal operation is
+    not defined or fails.
 
     The subgraph consists of all the nodes that are hosted in the
     failing node's compute and the compute itself.
@@ -60,26 +168,89 @@ def auto_heal_reinstall_node_subgraph(
     :param node_instance_id: node_instances to reinstall
     :param diagnose_value: diagnosed reason of failure
     :param ignore_failure: ignore operations failures in uninstall workflow
+    :param check_status: run the status check before healing
+    :param allow_reinstall: if a heal operation fails or is not defined,
+        attempt reinstalling the instance
+    :param force_reinstall: don't even attempt to heal, always reinstall
     """
 
-    ctx.logger.info("Starting 'heal' workflow on {0}, Diagnosis: {1}".format(
-        node_instance_id, diagnose_value))
+    ctx.logger.info("Starting 'heal' workflow on %s, Diagnosis: %s",
+                    node_instance_id, diagnose_value)
     failing_node = ctx.get_node_instance(node_instance_id)
     if failing_node is None:
-        raise ValueError('No node instance with id `{0}` was found'.format(
-            node_instance_id))
+        raise ValueError(
+            'No node instance with id `{0}` was found'.format(node_instance_id)
+        )
+
     failing_node_host = ctx.get_node_instance(
         failing_node._node_instance.host_id)
     if failing_node_host is None:
         subgraph_node_instances = failing_node.get_contained_subgraph()
     else:
         subgraph_node_instances = failing_node_host.get_contained_subgraph()
-    intact_nodes = set(ctx.node_instances) - subgraph_node_instances
+
     graph = ctx.graph_mode()
-    lifecycle.reinstall_node_instances(graph=graph,
-                                       node_instances=subgraph_node_instances,
-                                       related_nodes=intact_nodes,
-                                       ignore_failure=ignore_failure)
+    if force_reinstall:
+        return lifecycle.reinstall_node_instances(
+            graph=graph,
+            node_instances=subgraph_node_instances,
+            related_nodes=set(ctx.node_instances) - subgraph_node_instances,
+            ignore_failure=ignore_failure,
+        )
+
+    if check_status:
+        status_graph = _make_check_status_graph(
+            ctx,
+            node_instance_ids=[ni.id for ni in subgraph_node_instances],
+            name='check_status',
+        )
+        try:
+            status_graph.execute()
+        except Exception as e:
+            # erroring out isn't a critical error here: we can continue as
+            # normal, we will examine the instances' status anyway - so if
+            # the status check failed for some, they will be healed
+            ctx.logger.error('Error running check_status: %s', e)
+
+        ctx.refresh_node_instances()
+
+    healthy_instances = _find_healthy_instances(subgraph_node_instances)
+    to_heal, to_reinstall = _find_instances_to_heal(
+        subgraph_node_instances,
+        healthy_instances,
+    )
+
+    if to_reinstall and not allow_reinstall:
+        # we already know we'll need to reinstall, so we can abort early
+        raise _reinstall_disallowed_exception(to_reinstall)
+
+    try:
+        lifecycle.heal_node_instances(
+            graph=graph,
+            node_instances=list(to_heal),
+            related_nodes=set(ctx.node_instances) - to_heal,
+        )
+    except Exception as e:
+        # error running the heal - we can still fall back to reinstalling!
+        ctx.logger.error('Error running heal: %s', e)
+
+    ctx.refresh_node_instances()
+    failed_heal = _find_heal_failed_instances(
+        ctx,
+        {ctx.get_node_instance(ni.id) for ni in to_heal},
+    )
+    _clean_healed_property(ctx, failed_heal)
+    to_reinstall |= failed_heal
+
+    if to_reinstall and not allow_reinstall:
+        raise _reinstall_disallowed_exception(to_reinstall)
+    if to_reinstall:
+        lifecycle.reinstall_node_instances(
+            graph=graph,
+            node_instances=to_reinstall,
+            related_nodes=set(ctx.node_instances) - to_reinstall,
+            ignore_failure=ignore_failure,
+        )
 
 
 def get_groups_with_members(ctx):

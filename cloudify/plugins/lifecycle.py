@@ -46,6 +46,19 @@ def uninstall_node_instances(graph,
     processor.uninstall()
 
 
+def heal_node_instances(
+    graph,
+    node_instances,
+    related_nodes=None,
+    name_prefix=''
+):
+    processor = LifecycleProcessor(graph=graph,
+                                   node_instances=node_instances,
+                                   related_nodes=related_nodes,
+                                   name_prefix=name_prefix)
+    processor.heal()
+
+
 def reinstall_node_instances(graph,
                              node_instances,
                              ignore_failure,
@@ -142,6 +155,14 @@ class LifecycleProcessor(object):
             graph_finisher_func=self._finish_uninstall)
         graph.execute()
 
+    def heal(self):
+        graph = self._process_node_instances(
+            workflow_ctx,
+            name=self._name_prefix + 'heal',
+            node_instance_subgraph_func=heal_node_instance_subgraph,
+            graph_finisher_func=self._finish_heal)
+        graph.execute()
+
     def _update_resumed_install(self, graph):
         """Update a resumed install graph to cleanup first.
 
@@ -209,6 +230,14 @@ class LifecycleProcessor(object):
             subgraphs=subgraphs,
             intact_op='cloudify.interfaces.relationship_lifecycle.unlink',
             install=False)
+
+    def _finish_heal(self, graph, subgraphs):
+        self._add_dependencies(
+            graph=graph,
+            subgraphs=subgraphs,
+            instances=self.node_instances,
+            install=True,
+        )
 
     def _finish_subgraphs(self, graph, subgraphs, intact_op, install):
         # Create task dependencies based on node relationships
@@ -1159,3 +1188,67 @@ def _node_get_state_handler(tsk):
         return workflow_tasks.HandlerResult.cont()
     else:
         return workflow_tasks.HandlerResult.retry(ignore_total_retries=True)
+
+
+def _on_heal_success(task):
+    """Heal success callback - set the status system property to OK.
+
+    After a heal has succeeded, we'll consider the node passing the status
+    check immediately.
+    """
+    instance_id = task.info['instance_id']
+    workflow_context = task.workflow_context
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    system_properties.setdefault('status', {}).update(
+        ok=True,
+        task=None,
+        healed=True,
+    )
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties
+    )
+    return workflow_tasks.HandlerResult.cont()
+
+
+def _on_failure(task):
+    """Heal failure callback - mark the node as having failed a heal
+
+    We mark the node that a heal was attempted and failed, so that we know
+    it needs to be fully reinstalled.
+    """
+    instance_id = task.info['instance_id']
+    workflow_context = task.workflow_context
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    system_properties['heal_failed'] = workflow_context.execution_id
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties
+    )
+    return workflow_tasks.HandlerResult.ignore()
+
+
+def heal_node_instance_subgraph(instance, graph, **kwargs):
+    """Make a subgraph of healing a single node instance.
+
+    Just run all the heal-related operations. Let's also have success
+    and failures callbacks on them, so that the workflow knows if this
+    instance was healed successfully or not.
+    """
+    subgraph = graph.subgraph('heal_{0}'.format(instance.id))
+    sequence = subgraph.sequence()
+    sequence.add(
+        instance.send_event('Healing node instance'),
+        instance.execute_operation('cloudify.interfaces.lifecycle.preheal'),
+        instance.execute_operation('cloudify.interfaces.lifecycle.heal'),
+        instance.execute_operation('cloudify.interfaces.lifecycle.postheal'),
+        instance.send_event('Node instance healed'),
+    )
+    subgraph.info['instance_id'] = instance.id
+    subgraph.on_success = _on_heal_success
+    subgraph.on_failure = _on_failure
+    return subgraph

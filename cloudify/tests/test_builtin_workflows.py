@@ -533,6 +533,150 @@ class TestSubgraphWorkflowLogic(testtools.TestCase):
         self.assertEqual(4, len(all_invocations))
 
 
+class TestHealOperation(testtools.TestCase):
+    """Tests for the heal workflow, using the heal operation.
+
+    Each test case runs the heal operation on a node instance, and checks
+    what operations were actually run. See the comments in the blueprint
+    itself for details about why are these operations expected in each case.
+    """
+
+    def _do_test_heal(self, env, node_id, **parameters):
+        instances = {ni.node_id: ni for ni in env.storage.get_node_instances()}
+
+        parameters.setdefault('node_instance_id', instances[node_id].id)
+        env.execute('heal', parameters=parameters)
+        return {
+            ni.node_id: {
+                inv['operation']
+                for inv in ni.runtime_properties.get('invocations', [])
+            } for ni in env.storage.get_node_instances()
+        }
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_heal_operation(self, env):
+        invocations = self._do_test_heal(env, 'node1')
+        assert invocations['node1'] == {'cloudify.interfaces.lifecycle.heal'}
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_failing_status_heal_operation(self, env):
+        invocations = self._do_test_heal(env, 'node2')
+        assert invocations['node2'] == {
+            'cloudify.interfaces.lifecycle.heal',
+            'cloudify.interfaces.validation.check_status',
+        }
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_passing_status_heal_operation(self, env):
+        invocations = self._do_test_heal(env, 'node3')
+        assert invocations['node3'] == {
+            'cloudify.interfaces.validation.check_status',
+        }
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_failing_heal(self, env):
+        invocations = self._do_test_heal(env, 'node4')
+        assert invocations['node4'] == {
+            'cloudify.interfaces.lifecycle.create',
+            'cloudify.interfaces.lifecycle.heal',
+        }
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_no_heal(self, env):
+        invocations = self._do_test_heal(env, 'node5')
+        assert invocations['node5'] == {
+            'cloudify.interfaces.lifecycle.create',
+        }
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_heal_contained(self, env):
+        invocations = self._do_test_heal(env, 'node6')
+        assert invocations['node6'] == {
+            'cloudify.interfaces.lifecycle.heal',
+        }
+        assert invocations['node6_contained'] == {
+            'cloudify.interfaces.lifecycle.heal',
+        }
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_reinstall_contained_with_heal(self, env):
+        invocations = self._do_test_heal(env, 'node7')
+        assert invocations['node7'] == {
+            'cloudify.interfaces.lifecycle.create',
+        }
+        assert invocations['node7_contained'] == {
+            'cloudify.interfaces.lifecycle.create',
+        }
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_only_contained_fails_status(self, env):
+        invocations = self._do_test_heal(env, 'node8')
+        assert invocations['node8'] == {
+            'cloudify.interfaces.validation.check_status',
+        }
+        assert invocations['node8_contained'] == {
+            'cloudify.interfaces.validation.check_status',
+            'cloudify.interfaces.lifecycle.heal',
+        }
+        assert invocations['node8_contained2'] == {
+            'cloudify.interfaces.validation.check_status',
+            'cloudify.interfaces.lifecycle.create',
+        }
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_force_reinstall(self, env):
+        invocations = self._do_test_heal(env, 'node1', force_reinstall=True)
+        assert invocations['node1'] == {'cloudify.interfaces.lifecycle.create'}
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_dont_allow_reinstall(self, env):
+        instances = {ni.node_id: ni for ni in env.storage.get_node_instances()}
+        with self.assertRaisesRegex(RuntimeError, 'allow_reinstall'):
+            env.execute('heal', parameters={
+                'node_instance_id': instances['node4'].id,
+                'allow_reinstall': False,
+            })
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_without_check_status(self, env):
+        ni = env.storage.get_node_instances(node_id='node2')[0]
+        system_properties = ni.system_properties
+        system_properties['status'] = {
+            'ok': True,
+            'task': 'fake task!',
+        }
+        env.storage.update_node_instance(
+            ni.id,
+            system_properties=system_properties,
+            version=ni.version,
+        )
+        # the status check would fail! but let's say the status is already
+        # set to OK, and then, we'll do nothing
+        invocations = self._do_test_heal(env, 'node2', check_status=False)
+        assert invocations['node2'] == set()
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_reinstall_long_message(self, env):
+        instances = {ni.node_id: ni for ni in env.storage.get_node_instances()}
+        with self.assertRaisesRegex(RuntimeError, r'and \d+ more'):
+            env.execute('heal', parameters={
+                'node_instance_id': instances['node9'].id,
+                'allow_reinstall': False,
+            })
+
+
 class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):
 
     blueprint_path = path.join('resources', 'blueprints',
