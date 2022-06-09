@@ -295,7 +295,7 @@ class TaskDependencyGraph(object):
         return TaskSequence(self)
 
     def subgraph(self, name):
-        task = SubgraphTask(self, info=name,
+        task = SubgraphTask(self, info={'name': name},
                             **self._default_subgraph_task_config)
         self.add_task(task)
         return task
@@ -470,6 +470,7 @@ class SubgraphTask(tasks.WorkflowTask):
                  task_id=None,
                  total_retries=tasks.DEFAULT_SUBGRAPH_TOTAL_RETRIES,
                  **kwargs):
+        kwargs.setdefault('info', {})
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,
@@ -499,7 +500,7 @@ class SubgraphTask(tasks.WorkflowTask):
 
     @property
     def name(self):
-        return self.info
+        return self.info.get('name') or self.id
 
     @property
     def is_subgraph(self):
@@ -509,7 +510,7 @@ class SubgraphTask(tasks.WorkflowTask):
         return TaskSequence(self)
 
     def subgraph(self, name):
-        task = SubgraphTask(self.graph, info=name,
+        task = SubgraphTask(self.graph, info={'name': name},
                             **self.graph._default_subgraph_task_config)
         self.add_task(task)
         return task
@@ -564,7 +565,7 @@ class SubgraphTask(tasks.WorkflowTask):
             self.async_result.result = None
 
     def __repr__(self):
-        return '<{0} {1}: {2}>'.format(self.task_type, self.id, self.info)
+        return '<{0} {1}: {2}>'.format(self.task_type, self.id, self.name)
 
 
 def _on_failure_handler_fail(task):
