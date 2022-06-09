@@ -1,0 +1,136 @@
+tosca_definitions_version: cloudify_dsl_1_4
+
+imports:
+  - minimal_types.yaml
+
+plugins:
+  p:
+    executor: central_deployment_agent
+    install: false
+
+node_types:
+  type1: {}
+
+node_templates:
+
+  # node1 has both create and heal, but not check_status. When healed, it will
+  # just run heal (unless called with force_reinstall).
+  node1:
+    type: type1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: p.cloudify.tests.test_builtin_workflows.node_operation
+        heal: p.cloudify.tests.test_builtin_workflows.node_operation
+
+  # node2 fails the status check, so it is healed
+  # (unless check_status is false, and this node's status is forced to be OK)
+  node2:
+    type: type1
+    interfaces:
+      cloudify.interfaces.validation:
+        check_status: p.cloudify.tests.test_builtin_workflows.fail_op
+      cloudify.interfaces.lifecycle:
+        heal: p.cloudify.tests.test_builtin_workflows.node_operation
+
+  # node3 passes the status check, so it is not healed
+  node3:
+    type: type1
+    interfaces:
+      cloudify.interfaces.validation:
+        check_status: p.cloudify.tests.test_builtin_workflows.node_operation
+
+  # node4 fails the heal operation, so it is reinstalled
+  # (but if allow_reinstall is false, then the workflow just fails)
+  node4:
+    type: type1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: p.cloudify.tests.test_builtin_workflows.node_operation
+        heal: p.cloudify.tests.test_builtin_workflows.fail_op
+
+  # node5 doesn't have a heal operation, so it is reinstalled
+  node5:
+    type: type1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: p.cloudify.tests.test_builtin_workflows.node_operation
+
+  # node6 is healed, and so node6_contained is healed as well
+  node6:
+    type: type1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        heal: p.cloudify.tests.test_builtin_workflows.node_operation
+
+  node6_contained:
+    type: type1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        heal: p.cloudify.tests.test_builtin_workflows.node_operation
+    relationships:
+      - target: node6
+        type: cloudify.relationships.contained_in
+
+
+  # node7 doesn't have a heal operation, so it is reinstalled. However,
+  # node7_contained does have a heal operation. But since node7 was reinstalled,
+  # node7_contained has to be reinstalled as well, not healed!
+  node7:
+    type: type1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: p.cloudify.tests.test_builtin_workflows.node_operation
+
+  node7_contained:
+    type: type1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        heal: p.cloudify.tests.test_builtin_workflows.node_operation
+        create: p.cloudify.tests.test_builtin_workflows.node_operation
+    relationships:
+      - target: node7
+        type: cloudify.relationships.contained_in
+
+  # node8 passes the status check just fine, but node8_contained doesn't,
+  # and node8_contained2 doesn't either, so node8_contained is healed,
+  # and node8_contained2 is reinstalled
+  node8:
+    type: type1
+    interfaces:
+      cloudify.interfaces.validation:
+        check_status: p.cloudify.tests.test_builtin_workflows.node_operation
+
+  node8_contained:
+    type: type1
+    interfaces:
+      cloudify.interfaces.validation:
+        check_status: p.cloudify.tests.test_builtin_workflows.fail_op
+      cloudify.interfaces.lifecycle:
+        heal: p.cloudify.tests.test_builtin_workflows.node_operation
+    relationships:
+      - target: node8
+        type: cloudify.relationships.contained_in
+
+  node8_contained2:
+    type: type1
+    interfaces:
+      cloudify.interfaces.validation:
+        check_status: p.cloudify.tests.test_builtin_workflows.fail_op
+      cloudify.interfaces.lifecycle:
+        create: p.cloudify.tests.test_builtin_workflows.node_operation
+    relationships:
+      - target: node8
+        type: cloudify.relationships.contained_in
+
+  # node9 has to be reinstalled, and it has more contained-in children than
+  # can be displayed, so the message is abbreviated
+  node9:
+    type: type1
+
+  node9_contained:
+    type: type1
+    instances:
+      deploy: 10
+    relationships:
+      - target: node9
+        type: cloudify.relationships.contained_in
