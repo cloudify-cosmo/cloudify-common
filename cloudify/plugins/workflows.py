@@ -152,7 +152,7 @@ def auto_heal_reinstall_node_subgraph(
     check_status=True,
     allow_reinstall=True,
     force_reinstall=False,
-    **kwargs,
+    **kwargs
 ):
     """Heals a subgraph of the system topology.
 
