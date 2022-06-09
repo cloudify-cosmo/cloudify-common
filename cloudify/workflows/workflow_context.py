@@ -235,6 +235,12 @@ class CloudifyWorkflowNodeInstance(object):
         self._logger = None
 
     def __eq__(self, other):
+        """Compare node instances
+
+        A node instance is always going to be equal with itself, even if it
+        was fetched multiple times, and it was mutated by the user.
+        This allows storing node instances in sets, and as dict keys.
+        """
         if not isinstance(other, self.__class__):
             return False
         return self.id == other.id
