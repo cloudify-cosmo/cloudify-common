@@ -53,6 +53,9 @@ MERGEABLE_FROM_DSL_VERSION_1_3 = [
     constants.CAPABILITIES,
     constants.BLUEPRINT_LABELS,
     constants.LABELS,
+]
+
+MERGEABLE_FROM_DSL_VERSION_1_4 = [
     constants.RESOURCE_TAGS,
 ]
 
@@ -533,7 +536,10 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
                                 namespace,
                                 is_cloudify_types):
     merge_no_override = MERGE_NO_OVERRIDE.copy()
-    if version['definitions_version'] > (1, 2):
+    if version['definitions_version'] > (1, 3):
+        merge_no_override.update(MERGEABLE_FROM_DSL_VERSION_1_4 +
+                                 MERGEABLE_FROM_DSL_VERSION_1_3)
+    elif version['definitions_version'] > (1, 2):
         merge_no_override.update(MERGEABLE_FROM_DSL_VERSION_1_3)
     for key_holder, value_holder in parsed_imported_dsl_holder.value.items():
         if is_cloudify_types and isinstance(value_holder.value, dict):
@@ -567,7 +573,11 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
                 key_name=key_holder.value,
                 namespace=namespace)
         else:
-            if key_holder.value in MERGEABLE_FROM_DSL_VERSION_1_3:
+            if key_holder.value in MERGEABLE_FROM_DSL_VERSION_1_4:
+                msg = ("Import failed: non-mergeable field: '{0}'. "
+                       "{0} can be imported multiple times only from "
+                       "cloudify_dsl_1_4 and above.")
+            elif key_holder.value in MERGEABLE_FROM_DSL_VERSION_1_3:
                 msg = ("Import failed: non-mergeable field: '{0}'. "
                        "{0} can be imported multiple times only from "
                        "cloudify_dsl_1_3 and above.")
