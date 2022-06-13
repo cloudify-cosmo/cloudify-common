@@ -56,7 +56,7 @@ imports:
                     return BLUEPRINT_2
                 return BLUEPRINT_1
 
-            def retrieve_plugin(self, import_url):
+            def retrieve_plugin(self, import_url, **kwargs):
                 pass
         custom_resolver = CustomResolver()
         self.parse(yaml_to_parse, resolver=custom_resolver)

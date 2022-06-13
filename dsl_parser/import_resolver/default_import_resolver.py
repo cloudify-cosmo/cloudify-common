@@ -158,7 +158,7 @@ class DefaultImportResolver(AbstractImportResolver):
                     'but the rule [{0}] has {1} keys.'
                     .format(rule, len(rule)))
 
-    def retrieve_plugin(self, import_url):
+    def retrieve_plugin(self, import_url, **kwargs):
         pass
 
     @staticmethod
