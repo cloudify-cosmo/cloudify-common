@@ -105,7 +105,7 @@ TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT = [
     'node_id', 'node_type', 'node_instance'
 ]
 USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean', 'list',
-                        'dict', 'regex', 'secret', 'textarea'] \
+                        'dict', 'regex', 'textarea'] \
                        + TYPES_BASED_ON_DB_ENTITIES
 
 PLUGIN_DSL_KEYS_NOT_FROM_YAML = ['blueprint_labels', 'labels', 'resource_tags']
