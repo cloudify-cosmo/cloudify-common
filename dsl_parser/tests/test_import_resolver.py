@@ -39,7 +39,7 @@ class CustomImportResolver(AbstractImportResolver):
     def resolve(self, import_url):
         pass
 
-    def retrieve_plugin(self, import_url):
+    def retrieve_plugin(self, import_url, **kwargs):
         pass
 
 
@@ -51,7 +51,7 @@ class CustomImportResolverWithoutInit(AbstractImportResolver):
     def resolve(self, import_url):
         pass
 
-    def retrieve_plugin(self, import_url):
+    def retrieve_plugin(self, import_url, **kwargs):
         pass
 
 
@@ -67,7 +67,7 @@ class FailedToInitializeCustomImportResolver(AbstractImportResolver):
     def resolve(self, import_url):
         pass
 
-    def retrieve_plugin(self, import_url):
+    def retrieve_plugin(self, import_url, **kwargs):
         pass
 
 

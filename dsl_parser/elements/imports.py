@@ -427,7 +427,8 @@ def _build_ordered_imports(parsed_dsl_holder,
                                       .format(another_import, import_url),
                         filename=import_url)
                 try:
-                    plugin = resolver.retrieve_plugin(import_url)
+                    plugin = resolver.retrieve_plugin(import_url,
+                                                      dsl_version=dsl_version)
                 except InvalidBlueprintImport:
                     plugin = None
                 if plugin:

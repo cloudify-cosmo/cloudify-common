@@ -51,7 +51,7 @@ class AbstractImportResolver(ABC):
         return read_import(import_url)
 
     @abc.abstractmethod
-    def retrieve_plugin(self, import_url):
+    def retrieve_plugin(self, import_url, **kwargs):
         raise NotImplementedError
 
 
