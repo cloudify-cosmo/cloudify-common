@@ -60,7 +60,7 @@ class SitesClient(object):
         self._wrapper_cls = Site
 
     def create(self, name, location=None, visibility=VisibilityState.TENANT,
-               creator=None, created_at=None):
+               created_by=None, created_at=None):
         """
         Create a new site.
 
@@ -75,8 +75,8 @@ class SitesClient(object):
         data = {'visibility': visibility}
         if location:
             data['location'] = location
-        if creator:
-            data['creator'] = creator
+        if created_by:
+            data['created_by'] = created_by
         if created_at:
             data['created_at'] = created_at
         response = self.api.put(
