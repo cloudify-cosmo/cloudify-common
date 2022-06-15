@@ -201,7 +201,20 @@ def auto_heal_reinstall_node_subgraph(
                         "Diagnosis: %s", ctx.deployment.id, diagnose_value)
         subgraph_node_instances = set()
         for ni in ctx.node_instances:
-            subgraph_node_instances.update(ni.get_contained_subgraph())
+            ni_host = ctx.get_node_instance(ni._node_instance.host_id)
+            subgraph_node_instances.update(
+                ni.get_contained_subgraph() if ni_host is None
+                else ni_host.get_contained_subgraph()
+            )
+
+    graph = ctx.graph_mode()
+    if force_reinstall:
+        return lifecycle.reinstall_node_instances(
+            graph=graph,
+            node_instances=subgraph_node_instances,
+            related_nodes=set(ctx.node_instances) - subgraph_node_instances,
+            ignore_failure=ignore_failure,
+        )
 
     if check_status:
         status_graph = _make_check_status_graph(
@@ -218,15 +231,6 @@ def auto_heal_reinstall_node_subgraph(
             ctx.logger.error('Error running check_status: %s', e)
 
         ctx.refresh_node_instances()
-
-    graph = ctx.graph_mode()
-    if force_reinstall:
-        return lifecycle.reinstall_node_instances(
-            graph=graph,
-            node_instances=subgraph_node_instances,
-            related_nodes=set(ctx.node_instances) - subgraph_node_instances,
-            ignore_failure=ignore_failure,
-        )
 
     healthy_instances = _find_healthy_instances(subgraph_node_instances)
     to_heal, to_reinstall = _find_instances_to_heal(
