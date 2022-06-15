@@ -69,7 +69,7 @@ def _find_instances_to_heal(instances, healthy_instances):
         elif instance.node.has_operation('cloudify.interfaces.lifecycle.heal'):
             to_heal.add(instance)
         else:
-            # instance doesnt have heal and is not healthy - it must be
+            # instance doesn't have heal and is not healthy - it must be
             # reinstalled, and its whole subgraph must be as well
             subgraph = instance.get_contained_subgraph()
             to_reinstall |= subgraph
@@ -146,7 +146,7 @@ def _clean_healed_property(ctx, instances):
 @workflow
 def auto_heal_reinstall_node_subgraph(
     ctx,
-    node_instance_id,
+    node_instance_id=None,
     diagnose_value='Not provided',
     ignore_failure=True,
     check_status=True,
@@ -174,29 +174,34 @@ def auto_heal_reinstall_node_subgraph(
     :param force_reinstall: don't even attempt to heal, always reinstall
     """
 
-    ctx.logger.info("Starting 'heal' workflow on %s, Diagnosis: %s",
-                    node_instance_id, diagnose_value)
-    failing_node = ctx.get_node_instance(node_instance_id)
-    if failing_node is None:
-        raise ValueError(
-            'No node instance with id `{0}` was found'.format(node_instance_id)
+    if bool(node_instance_id) == check_status:
+        raise Exception(
+            'Provide either "node_instance_id" or "check_status=true" '
+            'parameter to run the "heal" workflow (but not both)'
         )
 
-    failing_node_host = ctx.get_node_instance(
-        failing_node._node_instance.host_id)
-    if failing_node_host is None:
-        subgraph_node_instances = failing_node.get_contained_subgraph()
+    if node_instance_id:
+        ctx.logger.info("Starting 'heal' workflow on %s, Diagnosis: %s",
+                        node_instance_id, diagnose_value)
+        failing_node = ctx.get_node_instance(node_instance_id)
+        if failing_node is None:
+            raise ValueError('No node instance with id `{0}` was found'
+                             .format(node_instance_id))
+
+        failing_node_host = ctx.get_node_instance(
+            failing_node._node_instance.host_id)
+        if failing_node_host is None:
+            subgraph_node_instances = failing_node.get_contained_subgraph()
+        else:
+            subgraph_node_instances = \
+                failing_node_host.get_contained_subgraph()
+
     else:
-        subgraph_node_instances = failing_node_host.get_contained_subgraph()
-
-    graph = ctx.graph_mode()
-    if force_reinstall:
-        return lifecycle.reinstall_node_instances(
-            graph=graph,
-            node_instances=subgraph_node_instances,
-            related_nodes=set(ctx.node_instances) - subgraph_node_instances,
-            ignore_failure=ignore_failure,
-        )
+        ctx.logger.info("Starting 'heal' workflow for '%s' deployment, "
+                        "Diagnosis: %s", ctx.deployment.id, diagnose_value)
+        subgraph_node_instances = set()
+        for ni in ctx.node_instances:
+            subgraph_node_instances.update(ni.get_contained_subgraph())
 
     if check_status:
         status_graph = _make_check_status_graph(
@@ -213,6 +218,15 @@ def auto_heal_reinstall_node_subgraph(
             ctx.logger.error('Error running check_status: %s', e)
 
         ctx.refresh_node_instances()
+
+    graph = ctx.graph_mode()
+    if force_reinstall:
+        return lifecycle.reinstall_node_instances(
+            graph=graph,
+            node_instances=subgraph_node_instances,
+            related_nodes=set(ctx.node_instances) - subgraph_node_instances,
+            ignore_failure=ignore_failure,
+        )
 
     healthy_instances = _find_healthy_instances(subgraph_node_instances)
     to_heal, to_reinstall = _find_instances_to_heal(
@@ -280,7 +294,7 @@ def get_groups_with_members(ctx):
 def _check_for_too_many_exclusions(exclude_instances, available_instances,
                                    delta, groups_members):
     """
-        Check whether the amount of exluded instances will make it possible to
+        Check whether the amount of excluded instances will make it possible to
         scale down by the given delta.
 
         :param exclude_instances: A list of node instance IDs to exclude.
