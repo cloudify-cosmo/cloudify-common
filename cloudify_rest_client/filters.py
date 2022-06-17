@@ -73,7 +73,7 @@ class FiltersClient(object):
         }
         if created_at:
             data['created_at'] = created_at
-        if creator:
+        if created_by:
             data['created_by'] = created_by
         response = self.api.put('{0}/{1}'.format(self.uri, filter_id),
                                 data=data)
