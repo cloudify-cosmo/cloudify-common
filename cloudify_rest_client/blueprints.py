@@ -288,7 +288,7 @@ class BlueprintsClient(object):
                         async_upload=False,
                         labels=None,
                         created_at=None,
-                        owner=None,
+                        created_by=None,
                         skip_execution=False):
         """Publishes a blueprint archive to the Cloudify manager.
 
@@ -319,7 +319,7 @@ class BlueprintsClient(object):
             async_upload=async_upload,
             labels=labels,
             created_at=created_at,
-            owner=owner,
+            created_by=created_by,
             skip_execution=skip_execution)
         if not async_upload:
             return self._wrapper_cls(response)
@@ -343,7 +343,7 @@ class BlueprintsClient(object):
                async_upload=False,
                labels=None,
                created_at=None,
-               owner=None,
+               created_by=None,
                state=None,
                skip_execution=False):
         """
@@ -380,7 +380,7 @@ class BlueprintsClient(object):
                 async_upload=async_upload,
                 labels=labels,
                 created_at=created_at,
-                owner=owner,
+                created_by=created_by,
                 state=state,
                 skip_execution=skip_execution)
             if not async_upload:
