@@ -107,7 +107,7 @@ class BlueprintsClient(object):
                              async_upload,
                              labels=None,
                              created_at=None,
-                             owner=None,
+                             created_by=None,
                              state=None,
                              skip_execution=False):
         query_params = {'visibility': visibility, 'async_upload': async_upload,
@@ -130,8 +130,8 @@ class BlueprintsClient(object):
             query_params['labels'] = ','.join(labels_params)
         if created_at:
             query_params['created_at'] = created_at
-        if owner:
-            query_params['owner'] = owner
+        if created_by:
+            query_params['created_by'] = created_by
         if state:
             query_params['state'] = state
 
@@ -160,7 +160,7 @@ class BlueprintsClient(object):
                 async_upload=False,
                 labels=None,
                 created_at=None,
-                owner=None,
+                created_by=None,
                 state=None,
                 skip_execution=False):
         query_params, data = self._prepare_put_request(
@@ -171,7 +171,7 @@ class BlueprintsClient(object):
             async_upload,
             labels,
             created_at,
-            owner,
+            created_by,
             state,
             skip_execution,
         )
