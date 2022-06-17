@@ -199,7 +199,7 @@ class ExecutionGroupsClient(object):
 
     def create(self, deployment_group_id, workflow_id, executions,
                force=False, default_parameters=None, parameters=None,
-               concurrency=5, owner=None, created_at=None):
+               concurrency=5, created_by=None, created_at=None):
         """Create an exec group without running it.
         Internal use only.
         """
@@ -215,8 +215,8 @@ class ExecutionGroupsClient(object):
             'concurrency': concurrency,
             'associated_executions': executions,
         }
-        if owner:
-            args['owner'] = owner
+        if created_by:
+            args['created_by'] = created_by
         if created_at:
             args['created_at'] = created_at
         response = self.api.post('/execution-groups', data=args)
@@ -409,8 +409,8 @@ class ExecutionsClient(object):
     def create(self, deployment_id, workflow_id, parameters=None,
                allow_custom_parameters=False, force=False, dry_run=False,
                queue=False, schedule=None, force_status=None,
-               creator=None, created_at=None, started_at=None, ended_at=None,
-               execution_id=None, wait_after_fail=600):
+               created_by=None, created_at=None, started_at=None,
+               ended_at=None, execution_id=None, wait_after_fail=600):
         """Creates an execution on a deployment.
         If force_status is provided, the execution will not be started.
         Otherwise, parameters and return value are identical to 'start'.
@@ -430,7 +430,7 @@ class ExecutionsClient(object):
             'scheduled_time': schedule,
             'wait_after_fail': wait_after_fail,
             'force_status': force_status,
-            'creator': creator,
+            'created_by': created_by,
             'created_at': created_at,
             'started_at': started_at,
             'ended_at': ended_at,

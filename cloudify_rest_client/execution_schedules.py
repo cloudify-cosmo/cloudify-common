@@ -96,7 +96,7 @@ class ExecutionSchedulesClient(object):
                execution_arguments=None, parameters=None,
                since=None, until=None, recurrence=None, count=None,
                weekdays=None, rrule=None, slip=0, stop_on_fail=False,
-               creator=None, created_at=None):
+               created_by=None, created_at=None):
         """Schedules a deployment's workflow execution whose id is provided.
 
         :param schedule_id: Name for the schedule task. Used for listing,
@@ -132,7 +132,7 @@ class ExecutionSchedulesClient(object):
             in which the scheduled execution can run (in minutes).
         :param stop_on_fail: If set to true, once the execution has failed,
             the scheduler won't make further attempts to run it.
-        :param creator: Override the creator. Internal use only.
+        :param created_by: Override the creator. Internal use only.
         :param created_at: Override the creation timestamp. Internal use only.
         :return: The created execution schedule.
         """
@@ -154,8 +154,8 @@ class ExecutionSchedulesClient(object):
             'slip': slip,
             'stop_on_fail': stop_on_fail
         }
-        if creator:
-            data['creator'] = creator
+        if created_by:
+            data['created_by'] = created_by
         if created_at:
             data['created_at'] = created_at
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)

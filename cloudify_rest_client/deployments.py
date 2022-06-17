@@ -388,7 +388,7 @@ class DeploymentGroupsClient(object):
             description=None, blueprint_id=None, default_inputs=None,
             labels=None, filter_id=None, deployment_ids=None,
             new_deployments=None, deployments_from_group=None,
-            creator=None, created_at=None):
+            created_by=None, created_at=None):
         """Create or update the specified deployment group.
 
         Setting group deployments using this method (via either filter_id
@@ -412,7 +412,7 @@ class DeploymentGroupsClient(object):
             keys "id", "inputs", "labels"
         :param deployments_from_group: add all deployments belonging to the
             group given by this id
-        :param creator: Override the creator. Internal use only.
+        :param created_by: Override the creator. Internal use only.
         :param created_at: Override the creation timestamp. Internal use only.
         :return: the created deployment group
         """
@@ -429,8 +429,8 @@ class DeploymentGroupsClient(object):
         }
         if created_at:
             data['created_at'] = created_at
-        if creator:
-            data['creator'] = creator
+        if created_by:
+            data['created_by'] = created_by
         response = self.api.put(
             '/deployment-groups/{0}'.format(group_id), data=data,
         )
