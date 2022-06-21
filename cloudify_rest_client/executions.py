@@ -186,8 +186,9 @@ class ExecutionGroupsClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, **kwargs):
-        response = self.api.get('/execution-groups', params=kwargs)
+    def list(self, _include=None, **kwargs):
+        response = self.api.get('/execution-groups', params=kwargs,
+                                _include=_include)
         return ListResponse(
             [ExecutionGroup(item) for item in response['items']],
             response['metadata'])
