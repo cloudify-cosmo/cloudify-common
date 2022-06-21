@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -132,7 +117,7 @@ class SecretsClient(object):
         response = self.api.get('/secrets/{0}'.format(key))
         return Secret(response)
 
-    def export(self, **kwargs):
+    def export(self, _include=None, **kwargs):
         """
         Returns a list of secrets to be exported
 
@@ -140,7 +125,8 @@ class SecretsClient(object):
         :return: Secrets' list
         """
         params = kwargs
-        response = self.api.get('/secrets/share/export', params=params)
+        response = self.api.get('/secrets/share/export', params=params,
+                                _include=_include)
         return response
 
     def import_secrets(self, secrets_list, tenant_map=None,
