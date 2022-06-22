@@ -227,4 +227,4 @@ class ResourceTags(DictElement):
 
     def validate(self, version, validate_version):
         if validate_version:
-            self.validate_version(version, (1, 4))
+            self.validate_version(version, (1, 3))
