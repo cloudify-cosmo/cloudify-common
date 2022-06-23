@@ -91,6 +91,13 @@ class Blueprint(dict):
         """
         return self.get('upload_execution')
 
+    @property
+    def tenant_name(self):
+        """
+        :return: The name of the tenant associated with this blueprint.
+        """
+        return self.get('tenant_name')
+
 
 class BlueprintsClient(object):
 
