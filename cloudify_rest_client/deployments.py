@@ -718,6 +718,8 @@ class DeploymentsClient(object):
                labels=None,
                display_name=None,
                async_create=None,
+               created_at=None,
+               created_by=None,
                _workdir_zip=None):
         """
         Creates a new deployment for the provided blueprint id and
@@ -761,6 +763,10 @@ class DeploymentsClient(object):
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
         params = {}
+        if created_at:
+            data['created_at'] = created_at
+        if created_by:
+            data['created_by'] = created_by
         if async_create is not None:
             # if it's None, we just keep the server's default behaviour
             params['async_create'] = async_create
