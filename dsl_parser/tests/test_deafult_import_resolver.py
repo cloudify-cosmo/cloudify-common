@@ -200,6 +200,41 @@ class TestDefaultResolver(unittest.TestCase):
             partial_err_msg="Unable to open import url {0}"
             .format(ILLEGAL_URL))
 
+    def test_plugin_yamls_for_dsl_version(self):
+        r = DefaultImportResolver()
+        with mock.patch('glob.glob',
+                        return_value=['plugin.yaml']):
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', None) \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_3') \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_4') \
+                   == ['plugin.yaml']
+        with mock.patch('glob.glob',
+                        return_value=['plugin.yaml', 'plugin_1_1.yaml']):
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', None) \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_1') \
+                   == ['plugin_1_1.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_4') \
+                   == ['plugin.yaml']
+        with mock.patch('glob.glob',
+                        return_value=['plugin_1_2.yaml', 'plugin_1_3.yaml']):
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', None) \
+                   != []
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_2') \
+                   == ['plugin_1_2.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_3') \
+                   == ['plugin_1_3.yaml']
+        with mock.patch('glob.glob',
+                        return_value=['plugin.yaml', 'plugin_1_1.yaml']):
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', None) \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_3') \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_4') \
+                   == ['plugin.yaml']
+
     def _test_default_resolver(self, import_url, rules,
                                expected_urls_to_resolve=[],
                                expected_failure=False,

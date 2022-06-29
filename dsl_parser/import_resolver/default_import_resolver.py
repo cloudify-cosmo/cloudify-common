@@ -15,6 +15,7 @@
 
 import glob
 import os
+import re
 
 from dsl_parser.exceptions import DSLParsingLogicException
 from dsl_parser.import_resolver.abstract_import_resolver \
@@ -164,9 +165,17 @@ class DefaultImportResolver(AbstractImportResolver):
     @staticmethod
     def _plugin_yamls_for_dsl_version(plugin_path, dsl_version):
         yaml_files = glob.glob(os.path.join(plugin_path, '*.yaml'))
-        if len(yaml_files) > 1 and dsl_version:
-            yaml_files = [
-                yaml_file for yaml_file in yaml_files
-                if '{0}.yaml'.format(dsl_version) in yaml_file
-            ]
-        return yaml_files
+        if len(yaml_files) <= 1:
+            return yaml_files
+
+        if dsl_version:
+            # If file exists, return *{dsl_version}.yaml name
+            result = [yaml_file for yaml_file in yaml_files
+                      if '{0}.yaml'.format(dsl_version) in yaml_file]
+            if result:
+                return result
+
+        # Return the first file that does not match *_\d_\d+\.yaml pattern
+        for yaml_file in yaml_files:
+            if not re.match(r"_\d_\d+\.yaml$", yaml_file):
+                return [yaml_file]
