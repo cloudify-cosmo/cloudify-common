@@ -69,7 +69,7 @@ def _find_instances_to_heal(instances, healthy_instances):
         elif instance.node.has_operation('cloudify.interfaces.lifecycle.heal'):
             to_heal.add(instance)
         else:
-            # instance doesnt have heal and is not healthy - it must be
+            # instance doesn't have heal and is not healthy - it must be
             # reinstalled, and its whole subgraph must be as well
             subgraph = instance.get_contained_subgraph()
             to_reinstall |= subgraph
@@ -290,7 +290,7 @@ def get_groups_with_members(ctx):
 def _check_for_too_many_exclusions(exclude_instances, available_instances,
                                    delta, groups_members):
     """
-        Check whether the amount of exluded instances will make it possible to
+        Check whether the amount of excluded instances will make it possible to
         scale down by the given delta.
 
         :param exclude_instances: A list of node instance IDs to exclude.
