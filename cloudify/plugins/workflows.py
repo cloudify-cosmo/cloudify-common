@@ -146,7 +146,7 @@ def _clean_healed_property(ctx, instances):
 @workflow
 def auto_heal_reinstall_node_subgraph(
     ctx,
-    node_instance_id,
+    node_instance_id=None,
     diagnose_value='Not provided',
     ignore_failure=True,
     check_status=True,
@@ -174,34 +174,44 @@ def auto_heal_reinstall_node_subgraph(
     :param force_reinstall: don't even attempt to heal, always reinstall
     """
 
-    ctx.logger.info("Starting 'heal' workflow on %s, Diagnosis: %s",
-                    node_instance_id, diagnose_value)
-    failing_node = ctx.get_node_instance(node_instance_id)
-    if failing_node is None:
-        raise ValueError(
-            'No node instance with id `{0}` was found'.format(node_instance_id)
-        )
+    if node_instance_id:
+        ctx.logger.info("Starting 'heal' workflow on %s, Diagnosis: %s",
+                        node_instance_id, diagnose_value)
+        failing_node = ctx.get_node_instance(node_instance_id)
+        if failing_node is None:
+            raise ValueError('No node instance with id `{0}` was found'
+                             .format(node_instance_id))
 
-    failing_node_host = ctx.get_node_instance(
-        failing_node._node_instance.host_id)
-    if failing_node_host is None:
-        subgraph_node_instances = failing_node.get_contained_subgraph()
+        failing_node_host = ctx.get_node_instance(
+            failing_node._node_instance.host_id)
+        if failing_node_host is None:
+            sub_node_instances = failing_node.get_contained_subgraph()
+        else:
+            sub_node_instances = failing_node_host.get_contained_subgraph()
     else:
-        subgraph_node_instances = failing_node_host.get_contained_subgraph()
+        ctx.logger.info("Starting 'heal' workflow for '%s' deployment, "
+                        "Diagnosis: %s", ctx.deployment.id, diagnose_value)
+        sub_node_instances = set()
+        for ni in ctx.node_instances:
+            ni_host = ctx.get_node_instance(ni._node_instance.host_id)
+            if ni_host is None:
+                sub_node_instances.update(ni.get_contained_subgraph())
+            else:
+                sub_node_instances.update(ni_host.get_contained_subgraph())
 
     graph = ctx.graph_mode()
     if force_reinstall:
         return lifecycle.reinstall_node_instances(
             graph=graph,
-            node_instances=subgraph_node_instances,
-            related_nodes=set(ctx.node_instances) - subgraph_node_instances,
+            node_instances=sub_node_instances,
+            related_nodes=set(ctx.node_instances) - sub_node_instances,
             ignore_failure=ignore_failure,
         )
 
     if check_status:
         status_graph = _make_check_status_graph(
             ctx,
-            node_instance_ids=[ni.id for ni in subgraph_node_instances],
+            node_instance_ids=[ni.id for ni in sub_node_instances],
             name='check_status',
         )
         try:
@@ -214,9 +224,9 @@ def auto_heal_reinstall_node_subgraph(
 
         ctx.refresh_node_instances()
 
-    healthy_instances = _find_healthy_instances(subgraph_node_instances)
+    healthy_instances = _find_healthy_instances(sub_node_instances)
     to_heal, to_reinstall = _find_instances_to_heal(
-        subgraph_node_instances,
+        sub_node_instances,
         healthy_instances,
     )
 
