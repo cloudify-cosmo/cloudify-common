@@ -566,6 +566,7 @@ class _Storage(ABC):
         self.store_deployment(name, deployment)
         for instance in node_instances:
             self.store_instance(name, NodeInstance(instance))
+        return self.load(name)
 
     def load(self, name):
         dep = self.get_deployment(name)
@@ -653,8 +654,23 @@ class _Storage(ABC):
     def store_executions(self, deployment_id, executions):
         raise NotImplementedError()
 
-    @abc.abstractmethod
     def create_deployment_update(self, deployment_id, update_id, update):
+        dep_update = {
+            'id': update_id,
+            'deployment_id': deployment_id,
+            'old_blueprint_id': None,
+            'new_blueprint_id': None,
+            'old_inputs': {},
+            'new_inputs': {},
+            'steps': [],
+            'runtime_only_evaluation': True,
+        }
+        dep_update.update(update)
+        self.store_deployment_update(deployment_id, update_id, dep_update)
+        return self.get_deployment_update(deployment_id, update_id)
+
+    @abc.abstractmethod
+    def store_deployment_update(self, deployment_id, update_id, update):
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -752,7 +768,7 @@ class InMemoryStorage(_Storage):
     def store_executions(self, deployment_id, executions):
         self._executions[deployment_id] = executions
 
-    def create_deployment_update(self, deployment_id, update_id, update):
+    def store_deployment_update(self, deployment_id, update_id, update):
         self._deployment_updates[(deployment_id, update_id)] = update
 
     def get_deployment_update(self, deployment_id, update_id):
@@ -945,7 +961,7 @@ class FileStorage(_Storage):
         with open(executions_path, 'w') as f:
             json.dump(executions, f, indent=4, cls=JSONEncoderWithDatetime)
 
-    def create_deployment_update(self, deployment_id, update_id, update):
+    def store_deployment_update(self, deployment_id, update_id, update):
         updates_dir = os.path.join(
             self._root_storage_dir,
             'deployments',
