@@ -20,10 +20,6 @@ class Execution(dict):
     def __init__(self, execution):
         self.update(execution)
 
-        if self.status:
-            # default to status for compatibility with pre-4.4 managers
-            self.setdefault('status_display', self.status)
-
     @property
     def id(self):
         """
