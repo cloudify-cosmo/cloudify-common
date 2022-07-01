@@ -56,6 +56,7 @@ class OperationsClient(object):
         execution_id=None,
         state=None,
         skip_internal=False,
+        _include=None,
     ):
         """List operations for the given graph or execution.
 
@@ -86,7 +87,7 @@ class OperationsClient(object):
         if _size is not None:
             params['_size'] = _size
         response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                params=params)
+                                params=params, _include=_include)
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata'])
@@ -176,12 +177,12 @@ class TasksGraphClient(object):
         self._uri_prefix = 'tasks_graphs'
         self._wrapper_cls = TasksGraph
 
-    def list(self, execution_id, name=None):
+    def list(self, execution_id, name=None, _include=None):
         params = {'execution_id': execution_id}
         if name:
             params['name'] = name
         response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                params=params)
+                                params=params, _include=_include)
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata'])
