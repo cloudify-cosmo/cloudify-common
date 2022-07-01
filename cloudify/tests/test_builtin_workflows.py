@@ -676,6 +676,27 @@ class TestHealOperation(testtools.TestCase):
                 'allow_reinstall': False,
             })
 
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_node_instance_id_not_provided(self, env):
+        env.execute('heal', parameters={'check_status': True})
+        invocations = [
+            invocations for ni in env.storage.get_node_instances()
+            for invocations in ni.runtime_properties.get('invocations', [])
+        ]
+        assert set(invocation['node_id']
+                   for invocation in invocations
+                   if invocation.get('operation')
+                   == 'cloudify.interfaces.validation.check_status') == \
+               {'node2', 'node3', 'node8',
+                'node8_contained', 'node8_contained2', }
+        assert set(invocation['node_id']
+                   for invocation in invocations
+                   if invocation.get('operation')
+                   == 'cloudify.interfaces.lifecycle.heal') == \
+               {'node1', 'node2', 'node4', 'node6',
+                'node6_contained', 'node8_contained', }
+
 
 class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):
 

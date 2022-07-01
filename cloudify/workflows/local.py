@@ -299,7 +299,8 @@ def _merge_and_validate_execution_parameters(
 
         if 'default' not in param:
             if name not in execution_parameters:
-                missing_mandatory_parameters.add(name)
+                if param.get('required', True):
+                    missing_mandatory_parameters.add(name)
                 continue
             merged_parameters[name] = execution_parameters[name]
         else:
