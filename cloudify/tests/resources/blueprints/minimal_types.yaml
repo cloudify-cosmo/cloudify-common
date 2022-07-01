@@ -170,7 +170,8 @@ workflows:
     mapping: default_workflows.cloudify.plugins.workflows.auto_heal_reinstall_node_subgraph
     is_cascading: false
     parameters:
-      node_instance_id: {}
+      node_instance_id:
+        required: false
       diagnose_value:
         default: Not provided
       ignore_failure:
