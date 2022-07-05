@@ -59,6 +59,19 @@ def heal_node_instances(
     processor.heal()
 
 
+def update_node_instances(
+    graph,
+    node_instances,
+    related_nodes=None,
+    name_prefix=''
+):
+    processor = LifecycleProcessor(graph=graph,
+                                   node_instances=node_instances,
+                                   related_nodes=related_nodes,
+                                   name_prefix=name_prefix)
+    processor.update()
+
+
 def reinstall_node_instances(graph,
                              node_instances,
                              ignore_failure,
@@ -163,6 +176,14 @@ class LifecycleProcessor(object):
             graph_finisher_func=self._finish_heal)
         graph.execute()
 
+    def update(self):
+        graph = self._process_node_instances(
+            workflow_ctx,
+            name=self._name_prefix + 'update',
+            node_instance_subgraph_func=update_node_instance_subgraph,
+            graph_finisher_func=self._finish_update)
+        graph.execute()
+
     def _update_resumed_install(self, graph):
         """Update a resumed install graph to cleanup first.
 
@@ -232,6 +253,14 @@ class LifecycleProcessor(object):
             install=False)
 
     def _finish_heal(self, graph, subgraphs):
+        self._add_dependencies(
+            graph=graph,
+            subgraphs=subgraphs,
+            instances=self.node_instances,
+            install=True,
+        )
+
+    def _finish_update(self, graph, subgraphs):
         self._add_dependencies(
             graph=graph,
             subgraphs=subgraphs,
@@ -1251,4 +1280,61 @@ def heal_node_instance_subgraph(instance, graph, **kwargs):
     subgraph.info['instance_id'] = instance.id
     subgraph.on_success = _on_heal_success
     subgraph.on_failure = _on_failure
+
+
+def _on_update_success(task):
+    instance_id = task.info['instance_id']
+    workflow_context = task.workflow_context
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    system_properties['configuration_drift'] = None
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties
+    )
+    return workflow_tasks.HandlerResult.cont()
+
+
+def _on_update_failure(task):
+    instance_id = task.info['instance_id']
+    workflow_context = task.workflow_context
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    system_properties['update_failed'] = workflow_context.execution_id
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties,
+    )
+    return workflow_tasks.HandlerResult.ignore()
+
+
+def update_node_instance_subgraph(instance, graph, **kwargs):
+    """Make a subgraph of updating a single node instance.
+
+    Runs all the update-related operations.
+    The success callback clears configuration_drift: it is assumed that
+    an update operation does removes all drift.
+    The failure callback just notes that the update did fail, so that the
+    workflow can reinstall the node-instance.
+    """
+    subgraph = graph.subgraph('update_{0}'.format(instance.id))
+    sequence = subgraph.sequence()
+    sequence.add(
+        instance.send_event('Updating node instance'),
+        instance.execute_operation('cloudify.interfaces.lifecycle.preupdate'),
+        instance.execute_operation('cloudify.interfaces.lifecycle.update'),
+        instance.execute_operation('cloudify.interfaces.lifecycle.postupdate'),
+        instance.execute_operation(
+            'cloudify.interfaces.lifecycle.update_config'),
+        instance.execute_operation(
+            'cloudify.interfaces.lifecycle.update_apply'),
+        instance.execute_operation(
+            'cloudify.interfaces.lifecycle.update_postapply'),
+        instance.send_event('Node instance updated'),
+    )
+    subgraph.info['instance_id'] = instance.id
+    subgraph.on_success = _on_update_success
+    subgraph.on_failure = _on_update_failure
     return subgraph
