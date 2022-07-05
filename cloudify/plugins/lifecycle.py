@@ -1242,7 +1242,7 @@ def _on_heal_success(task):
     return workflow_tasks.HandlerResult.cont()
 
 
-def _on_failure(task):
+def _on_heal_failure(task):
     """Heal failure callback - mark the node as having failed a heal
 
     We mark the node that a heal was attempted and failed, so that we know
@@ -1279,7 +1279,8 @@ def heal_node_instance_subgraph(instance, graph, **kwargs):
     )
     subgraph.info['instance_id'] = instance.id
     subgraph.on_success = _on_heal_success
-    subgraph.on_failure = _on_failure
+    subgraph.on_failure = _on_heal_failure
+    return subgraph
 
 
 def _on_update_success(task):
