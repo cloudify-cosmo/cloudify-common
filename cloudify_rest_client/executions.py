@@ -196,7 +196,8 @@ class ExecutionGroupsClient(object):
 
     def create(self, deployment_group_id, workflow_id, executions,
                force=False, default_parameters=None, parameters=None,
-               concurrency=5, created_by=None, created_at=None):
+               concurrency=5, created_by=None, created_at=None,
+               id=None):
         """Create an exec group without running it.
         Internal use only.
         """
@@ -204,6 +205,7 @@ class ExecutionGroupsClient(object):
             raise RuntimeError('Executions must be provided when '
                                'creating an exec group without running it.')
         args = {
+            'id': id,
             'force': force,
             'deployment_group_id': deployment_group_id,
             'workflow_id': workflow_id,
