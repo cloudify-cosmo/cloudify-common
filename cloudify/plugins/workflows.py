@@ -213,14 +213,9 @@ def auto_heal_reinstall_node_subgraph(
             ctx,
             node_instance_ids=[ni.id for ni in sub_node_instances],
             name='check_status',
+            ignore_failure=True,
         )
-        try:
-            status_graph.execute()
-        except Exception as e:
-            # erroring out isn't a critical error here: we can continue as
-            # normal, we will examine the instances' status anyway - so if
-            # the status check failed for some, they will be healed
-            ctx.logger.error('Error running check_status: %s', e)
+        status_graph.execute()
 
         ctx.refresh_node_instances()
 
@@ -935,19 +930,29 @@ def check_status_on_failure(task):
     return HandlerResult.fail()
 
 
+def check_status_on_failure_ignore_failure(task):
+    """check_status failure handler that ignores the error"""
+    _set_node_instance_status(task)
+    return HandlerResult.ignore()
+
+
 @make_or_get_graph
 def _make_check_status_graph(
     ctx,
     run_by_dependency_order=False,
     type_names=None,
     node_ids=None,
-    node_instance_ids=None
+    node_instance_ids=None,
+    ignore_failure=False,
 ):
     """Make the graph for the check_status workflow
 
     This is very similar to execute_operation, but a bit simpler, because
     we only run a single operation from here.
     """
+    on_fail = check_status_on_failure
+    if ignore_failure:
+        on_fail = check_status_on_failure_ignore_failure
     graph = ctx.graph_mode()
     tasks = {}
     filtered_node_instances = _filter_node_instances(
@@ -970,7 +975,7 @@ def _make_check_status_graph(
         )
         task.info = {'instance_id': instance.id}
         task.on_success = check_status_on_success
-        task.on_failure = check_status_on_failure
+        task.on_failure = on_fail
         graph.add_task(task)
         tasks[instance.id] = task
 
@@ -1009,13 +1014,17 @@ def _make_check_drift_graph(
     run_by_dependency_order=False,
     type_names=None,
     node_ids=None,
-    node_instance_ids=None
+    node_instance_ids=None,
+    ignore_failure=False,
 ):
     """Make the graph for the check_status workflow
 
     This is very similar to execute_operation, but a bit simpler, because
     we only run a single operation from here.
     """
+    on_fail = check_drift_on_failure
+    if ignore_failure:
+        on_fail = check_drift_on_failure_ignore_failure
     graph = ctx.graph_mode()
     tasks = {}
     filtered_node_instances = _filter_node_instances(
@@ -1038,7 +1047,7 @@ def _make_check_drift_graph(
         )
         task.info = {'instance_id': instance.id}
         task.on_success = check_drift_on_success
-        task.on_failure = check_drift_on_failure
+        task.on_failure = on_fail
         graph.add_task(task)
         tasks[instance.id] = task
         for rel in instance.relationships:
@@ -1047,7 +1056,7 @@ def _make_check_drift_graph(
             target_task = rel.execute_target_operation(
                 'cloudify.interfaces.relationship_lifecycle.check_drift')
             source_task.on_success = check_drift_on_success
-            source_task.on_failure = check_drift_on_failure
+            source_task.on_failure = on_fail
             graph.add_task(source_task)
             graph.add_dependency(source_task, task)
             source_task.info = {
@@ -1056,7 +1065,7 @@ def _make_check_drift_graph(
             }
 
             target_task.on_success = check_drift_on_success
-            target_task.on_failure = check_drift_on_failure
+            target_task.on_failure = on_fail
             graph.add_task(target_task)
             graph.add_dependency(target_task, task)
             target_task.info = {
@@ -1113,6 +1122,12 @@ def check_drift_on_success(task):
 def check_drift_on_failure(task):
     _set_node_instance_drift(task)
     return HandlerResult.fail()
+
+
+def check_drift_on_failure_ignore_failure(task):
+    """check_drift failure handler that ignores the error"""
+    _set_node_instance_drift(task)
+    return HandlerResult.ignore()
 
 
 @workflow(resumable=True)
