@@ -22,6 +22,7 @@ import mock
 import testtools
 
 from cloudify import exceptions
+from cloudify.plugins import lifecycle
 from cloudify.decorators import operation
 from cloudify.test_utils import workflow_test
 from cloudify.workflows.workflow_context import (Modification,
@@ -696,6 +697,62 @@ class TestHealOperation(testtools.TestCase):
                    == 'cloudify.interfaces.lifecycle.heal') == \
                {'node1', 'node2', 'node4', 'node6',
                 'node6_contained', 'node8_contained', }
+
+
+def update_test_workflow(ctx, node_instance_id, **kwargs):
+    instance = ctx.get_node_instance(node_instance_id)
+    lifecycle.update_node_instances(
+        graph=ctx.graph_mode(),
+        node_instances={instance},
+        related_nodes=set(ctx.node_instances) - {instance},
+    )
+
+
+class TestUpdateOperation(testtools.TestCase):
+    """Test the update flow of the lifecycle processor.
+
+    This is using a "fake" workflow to run the lifecycle code; the real
+    workflow is defined in cloudify-system-workflows instead.
+    """
+    def _do_test_update(self, env, node_id, **parameters):
+        instances = {ni.node_id: ni for ni in env.storage.get_node_instances()}
+
+        parameters.setdefault('node_instance_id', instances[node_id].id)
+        env.execute('test_update', parameters=parameters)
+        return {
+            ni.node_id: {
+                inv['operation']
+                for inv in ni.runtime_properties.get('invocations', [])
+            } for ni in env.storage.get_node_instances()
+        }
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-update-operation.yaml'))
+    def test_update_operation(self, env):
+        invocations = self._do_test_update(env, 'node1')
+        assert invocations['node1'] == {'cloudify.interfaces.lifecycle.update'}
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-update-operation.yaml'))
+    def test_update_fails(self, env):
+        # the operation fails, but it doesn't actually fail the whole workflow;
+        # instead, the failure is recorded in system-properties
+        invocations = self._do_test_update(env, 'node2')
+        assert invocations['node2'] == {'cloudify.interfaces.lifecycle.update'}
+        ni = env.storage.get_node_instances(node_id='node2')[0]
+        assert ni.system_properties.get('update_failed')
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-update-operation.yaml'))
+    def test_update_clears_drift(self, env):
+        ni = env.storage.get_node_instances(node_id='node1')[0]
+        env.storage.update_node_instance(ni.id, system_properties={
+            'configuration_drift': {'drift': True},
+        }, force=True, version=0)
+        invocations = self._do_test_update(env, 'node1')
+        assert invocations['node1'] == {'cloudify.interfaces.lifecycle.update'}
+        ni = env.storage.get_node_instances(node_id='node1')[0]
+        assert not ni.system_properties.get('configuration_drift')
 
 
 class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):

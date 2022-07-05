@@ -1,0 +1,33 @@
+tosca_definitions_version: cloudify_dsl_1_4
+
+imports:
+  - minimal_types.yaml
+
+plugins:
+  p:
+    executor: central_deployment_agent
+    install: false
+
+node_types:
+  type1: {}
+
+workflows:
+  test_update:
+    mapping: p.cloudify.tests.test_builtin_workflows.update_test_workflow
+    parameters:
+      node_instance_id:
+        type: node_instance
+
+node_templates:
+  node1:
+    type: type1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: p.cloudify.tests.test_builtin_workflows.node_operation
+        update: p.cloudify.tests.test_builtin_workflows.node_operation
+
+  node2:
+    type: type1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        update: p.cloudify.tests.test_builtin_workflows.fail_op

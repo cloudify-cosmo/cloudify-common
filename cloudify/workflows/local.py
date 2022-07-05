@@ -560,7 +560,7 @@ class _Storage(ABC):
             'plan': deployment_plan,
             'nodes': {n.id: n for n in nodes},
             'created_at': datetime.utcnow(),
-            'inputs': inputs,
+            'inputs': inputs or {},
             'workflows': workflows,
             'scaling_groups': deployment_plan['scaling_groups'],
         }
