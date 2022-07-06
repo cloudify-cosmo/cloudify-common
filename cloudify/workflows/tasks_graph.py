@@ -46,6 +46,43 @@ def make_or_get_graph(f):
     return _inner
 
 
+class TaskDependencyGraphError(object):
+    def __init__(self, error, error_time=None):
+        self.error = error
+        self.error_time = error_time or time.time()
+
+
+class TaskDependencyGraphErrors(object):
+    def __init__(self):
+        self._errors = []
+
+    def __len__(self):
+        return len(self._errors)
+
+    def __bool__(self):
+        return len(self._errors) > 0
+
+    def add(self, error, error_time=None):
+        self._errors.append(TaskDependencyGraphError(error, error_time))
+
+    def last(self):
+        if len(self._errors) < 1:
+            return None
+        return self._errors[-1]
+
+    def last_error(self):
+        last = self.last()
+        if not last:
+            return None
+        return last.error
+
+    def last_time(self):
+        last = self.last()
+        if not last:
+            return None
+        return last.error_time
+
+
 class TaskDependencyGraph(object):
     """A task graph.
 
@@ -66,9 +103,7 @@ class TaskDependencyGraph(object):
         self.ctx = workflow_context
         default_subgraph_task_config = default_subgraph_task_config or {}
         self._default_subgraph_task_config = default_subgraph_task_config
-        self._error = None
         self._wake_after_fail = None
-        self._error_time = None
         self._stored = False
         self.id = graph_id
         self._tasks = {}
@@ -79,6 +114,7 @@ class TaskDependencyGraph(object):
         self._tasks_wait = threading.Event()
         self._finished_tasks = {}
         self._op_types_cache = {}
+        self._errors = TaskDependencyGraphErrors()
 
     def optimize(self):
         """Optimize this tasks graph, removing tasks that do nothing.
@@ -336,13 +372,13 @@ class TaskDependencyGraph(object):
         If a task failed, wait for ctx.wait_after_fail for additional
         responses to come in anyway.
         """
-        self._error = None
+        self._errors = TaskDependencyGraphErrors()
         api.cancel_callbacks.add(self._tasks_wait.set)
 
         while not self._is_finished():
             self._tasks_wait.clear()
 
-            while self._ready and not self._error:
+            while self._ready:
                 task = self._ready.pop()
                 self._run_task(task)
 
@@ -355,21 +391,21 @@ class TaskDependencyGraph(object):
         api.cancel_callbacks.discard(self._tasks_wait.set)
         if self._wake_after_fail:
             self._wake_after_fail.cancel()
-        if self._error:
-            raise self._error
+        if self._errors:
+            raise self._errors.last_error()
 
     def _is_finished(self):
         if api.has_cancel_request():
-            self._error = api.ExecutionCancelled()
+            self._errors.add(api.ExecutionCancelled())
             return True
 
         if not self._tasks:
             return True
 
-        if self._error:
+        if self._errors:
             if not self._waiting_for:
                 return True
-            deadline = self._error_time + self.ctx.wait_after_fail
+            deadline = self._errors.last_time() + self.ctx.wait_after_fail
             if time.time() > deadline:
                 return True
             else:
@@ -423,9 +459,9 @@ class TaskDependencyGraph(object):
             result = str(result)
             if result:
                 message = '{0} -> {1}'.format(message, result)
-        if self._error is None:
-            self._error = WorkflowFailed(message)
-            self._error_time = time.time()
+        if not self._errors:
+            self._errors = TaskDependencyGraphErrors()
+            self._errors.add(WorkflowFailed(message))
             self._waiting_for = {
                 t for t in self._waiting_for if not t.is_subgraph
             }
