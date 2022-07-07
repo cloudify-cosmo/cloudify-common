@@ -227,9 +227,14 @@ class LifecycleProcessor(object):
                                 graph_finisher_func):
         subgraphs = {}
         for instance in self.node_instances:
-            subgraphs[instance.id] = \
-                node_instance_subgraph_func(
-                    instance, self.graph, ignore_failure=self.ignore_failure)
+            subgraph = node_instance_subgraph_func(
+                instance,
+                self.graph,
+                ignore_failure=self.ignore_failure,
+            )
+            if subgraph is None:
+                subgraph = self.graph.subgraph('stub_{0}'.format(instance.id))
+            subgraphs[instance.id] = subgraph
 
         for instance in self.intact_nodes:
             subgraphs[instance.id] = self.graph.subgraph(
@@ -326,7 +331,9 @@ class LifecycleProcessor(object):
                           on_dependency_added=None):
         subgraph_sequences = dict(
             (instance_id, subgraph.sequence())
-            for instance_id, subgraph in subgraphs.items())
+            for instance_id, subgraph in subgraphs.items()
+            if subgraph is not None
+        )
         for instance in instances:
             relationships = list(instance.relationships)
             if not install:
@@ -334,9 +341,10 @@ class LifecycleProcessor(object):
             for rel in relationships:
                 if (rel.target_node_instance in self.node_instances or
                         rel.target_node_instance in self.intact_nodes):
-                    source_subgraph = subgraphs[instance.id]
-                    target_subgraph = subgraphs[rel.target_id]
-
+                    source_subgraph = subgraphs.get(instance.id)
+                    target_subgraph = subgraphs.get(rel.target_id)
+                    if source_subgraph is None or target_subgraph is None:
+                        continue
                     operation = rel.relationship.properties.get("operation",
                                                                 None)
 
@@ -1320,22 +1328,57 @@ def update_node_instance_subgraph(instance, graph, **kwargs):
     The failure callback just notes that the update did fail, so that the
     workflow can reinstall the node-instance.
     """
-    subgraph = graph.subgraph('update_{0}'.format(instance.id))
-    sequence = subgraph.sequence()
-    sequence.add(
-        instance.send_event('Updating node instance'),
-        instance.execute_operation('cloudify.interfaces.lifecycle.preupdate'),
-        instance.execute_operation('cloudify.interfaces.lifecycle.update'),
-        instance.execute_operation('cloudify.interfaces.lifecycle.postupdate'),
-        instance.execute_operation(
-            'cloudify.interfaces.lifecycle.update_config'),
-        instance.execute_operation(
-            'cloudify.interfaces.lifecycle.update_apply'),
-        instance.execute_operation(
-            'cloudify.interfaces.lifecycle.update_postapply'),
-        instance.send_event('Node instance updated'),
-    )
-    subgraph.info['instance_id'] = instance.id
-    subgraph.on_success = _on_update_success
-    subgraph.on_failure = _on_update_failure
-    return subgraph
+    operations = []
+    system_props = instance.system_properties
+
+    drift = system_props.get('configuration_drift') or {}
+    has_own_drift = bool(drift.get('result'))
+
+    # only run the update operations if we have configuration_drift on the
+    # instance itself. Even if we don't, there might still be relationship
+    # drift, which will later run relationship update operations
+    if has_own_drift:
+        operations += [
+            instance.execute_operation(interface)
+            for interface in [
+                'cloudify.interfaces.lifecycle.preupdate',
+                'cloudify.interfaces.lifecycle.update',
+                'cloudify.interfaces.lifecycle.postupdate',
+                'cloudify.interfaces.lifecycle.update_config',
+                'cloudify.interfaces.lifecycle.update_apply',
+                'cloudify.interfaces.lifecycle.update_postapply',
+            ]
+        ]
+
+    source_drifts = system_props.get(
+        'source_relationships_configuration_drift', {})
+    for relationship in instance.relationships:
+        target_instance = workflow_ctx.get_node_instance(
+            relationship.target_id)
+        target_drifts = target_instance.system_properties.get(
+            'target_relationships_configuration_drift', {})
+        if relationship.target_id in source_drifts:
+            operations.append(relationship.execute_source_operation(
+                'cloudify.interfaces.relationship_lifecycle.update_establish',
+            ))
+        if relationship.source_id in target_drifts:
+            operations.append(relationship.execute_target_operation(
+                'cloudify.interfaces.relationship_lifecycle.update_establish',
+            ))
+
+    operations = [op for op in operations if not op.is_nop()]
+    if operations:
+        subgraph = graph.subgraph('update_{0}'.format(instance.id))
+        sequence = subgraph.sequence()
+        sequence.add(
+            instance.send_event('Updating node instance'),
+        )
+        sequence.add(*operations)
+        sequence.add(
+            instance.send_event('Node instance updated'),
+        )
+        subgraph.info['instance_id'] = instance.id
+        subgraph.on_success = _on_update_success
+        subgraph.on_failure = _on_update_failure
+        return subgraph
+    return None
