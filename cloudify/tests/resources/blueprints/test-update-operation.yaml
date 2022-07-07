@@ -39,7 +39,7 @@ node_templates:
         type: cloudify.relationships.depends_on
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            update_establish: p.cloudify.tests.test_builtin_workflows.source_operation
+            update: p.cloudify.tests.test_builtin_workflows.source_operation
         target_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            update_establish: p.cloudify.tests.test_builtin_workflows.target_operation
+            update: p.cloudify.tests.test_builtin_workflows.target_operation
