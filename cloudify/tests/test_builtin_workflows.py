@@ -720,39 +720,79 @@ class TestUpdateOperation(testtools.TestCase):
         parameters.setdefault('node_instance_id', instances[node_id].id)
         env.execute('test_update', parameters=parameters)
         return {
-            ni.node_id: {
+            ni.node_id: [
                 inv['operation']
                 for inv in ni.runtime_properties.get('invocations', [])
-            } for ni in env.storage.get_node_instances()
+            ] for ni in env.storage.get_node_instances()
         }
+
+    def _get_ni(self, env, node_id):
+        """Get the only node instance of the given node"""
+        instances = env.storage.get_node_instances(node_id=node_id)
+        assert len(instances) == 1
+        return instances[0]
 
     @workflow_test(path.join(
         'resources', 'blueprints', 'test-update-operation.yaml'))
     def test_update_operation(self, env):
+        ni = self._get_ni(env, 'node1')
+        env.storage.update_node_instance(ni.id, system_properties={
+            'configuration_drift': {'result': True},
+        }, force=True, version=0)
+
         invocations = self._do_test_update(env, 'node1')
-        assert invocations['node1'] == {'cloudify.interfaces.lifecycle.update'}
+        assert invocations['node1'] == ['cloudify.interfaces.lifecycle.update']
 
     @workflow_test(path.join(
         'resources', 'blueprints', 'test-update-operation.yaml'))
     def test_update_fails(self, env):
+        ni = self._get_ni(env, 'node2')
+        env.storage.update_node_instance(ni.id, system_properties={
+            'configuration_drift': {'result': True},
+        }, force=True, version=0)
+
         # the operation fails, but it doesn't actually fail the whole workflow;
         # instead, the failure is recorded in system-properties
         invocations = self._do_test_update(env, 'node2')
-        assert invocations['node2'] == {'cloudify.interfaces.lifecycle.update'}
+        assert invocations['node2'] == ['cloudify.interfaces.lifecycle.update']
         ni = env.storage.get_node_instances(node_id='node2')[0]
         assert ni.system_properties.get('update_failed')
 
     @workflow_test(path.join(
         'resources', 'blueprints', 'test-update-operation.yaml'))
     def test_update_clears_drift(self, env):
-        ni = env.storage.get_node_instances(node_id='node1')[0]
+        ni = self._get_ni(env, 'node1')
         env.storage.update_node_instance(ni.id, system_properties={
-            'configuration_drift': {'drift': True},
+            'configuration_drift': {'result': True},
         }, force=True, version=0)
         invocations = self._do_test_update(env, 'node1')
-        assert invocations['node1'] == {'cloudify.interfaces.lifecycle.update'}
+        assert invocations['node1'] == ['cloudify.interfaces.lifecycle.update']
         ni = env.storage.get_node_instances(node_id='node1')[0]
         assert not ni.system_properties.get('configuration_drift')
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-update-operation.yaml'))
+    def test_update_relationship_operation(self, env):
+        node1_ni = self._get_ni(env, 'node1')
+        ni = self._get_ni(env, 'node3')
+        env.storage.update_node_instance(ni.id, system_properties={
+            'source_relationships_configuration_drift': {
+                node1_ni.id: {'result': True},
+            },
+        }, force=True, version=0)
+        env.storage.update_node_instance(node1_ni.id, system_properties={
+            'target_relationships_configuration_drift': {
+                ni.id: {'result': True},
+            },
+        }, force=True, version=0)
+
+        invocations = self._do_test_update(env, 'node3')
+        assert invocations['node3'] == [
+            # source operation
+            'cloudify.interfaces.relationship_lifecycle.update_establish',
+            # target operation
+            'cloudify.interfaces.relationship_lifecycle.update_establish',
+        ]
 
 
 class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):

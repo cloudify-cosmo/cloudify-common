@@ -31,3 +31,15 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         update: p.cloudify.tests.test_builtin_workflows.fail_op
+
+  node3:
+    type: type1
+    relationships:
+      - target: node1
+        type: cloudify.relationships.depends_on
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            update_establish: p.cloudify.tests.test_builtin_workflows.source_operation
+        target_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            update_establish: p.cloudify.tests.test_builtin_workflows.target_operation
