@@ -1359,11 +1359,11 @@ def update_node_instance_subgraph(instance, graph, **kwargs):
             'target_relationships_configuration_drift', {})
         if relationship.target_id in source_drifts:
             operations.append(relationship.execute_source_operation(
-                'cloudify.interfaces.relationship_lifecycle.update_establish',
+                'cloudify.interfaces.relationship_lifecycle.update',
             ))
         if relationship.source_id in target_drifts:
             operations.append(relationship.execute_target_operation(
-                'cloudify.interfaces.relationship_lifecycle.update_establish',
+                'cloudify.interfaces.relationship_lifecycle.update',
             ))
 
     operations = [op for op in operations if not op.is_nop()]

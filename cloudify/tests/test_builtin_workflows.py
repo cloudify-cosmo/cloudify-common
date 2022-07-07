@@ -789,9 +789,9 @@ class TestUpdateOperation(testtools.TestCase):
         invocations = self._do_test_update(env, 'node3')
         assert invocations['node3'] == [
             # source operation
-            'cloudify.interfaces.relationship_lifecycle.update_establish',
+            'cloudify.interfaces.relationship_lifecycle.update',
             # target operation
-            'cloudify.interfaces.relationship_lifecycle.update_establish',
+            'cloudify.interfaces.relationship_lifecycle.update',
         ]
 
 
