@@ -93,9 +93,27 @@ class CloudifyWorkflowRelationshipInstance(object):
         self._relationship = node_instance.node.get_relationship(
             relationship_instance['target_name'])
 
+    def __repr__(self):
+        return '<{0} {1}->{2} ({3})>'.format(
+            self.__class__.__name__,
+            self.source_id,
+            self.target_id,
+            self.type,
+        )
+
+    @property
+    def type(self):
+        """The relationship type"""
+        return self._relationship_instance.get('type')
+
+    @property
+    def source_id(self):
+        """The relationship source node-instance id"""
+        return self.node_instance.id
+
     @property
     def target_id(self):
-        """The relationship target node id"""
+        """The relationship target node-instance id"""
         return self._relationship_instance.get('target_id')
 
     @property
