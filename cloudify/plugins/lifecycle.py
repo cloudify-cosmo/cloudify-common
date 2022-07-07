@@ -227,9 +227,14 @@ class LifecycleProcessor(object):
                                 graph_finisher_func):
         subgraphs = {}
         for instance in self.node_instances:
-            subgraphs[instance.id] = \
-                node_instance_subgraph_func(
-                    instance, self.graph, ignore_failure=self.ignore_failure)
+            subgraph = node_instance_subgraph_func(
+                instance,
+                self.graph,
+                ignore_failure=self.ignore_failure,
+            )
+            if subgraph is None:
+                subgraph = self.graph.subgraph('stub_{0}'.format(instance.id))
+            subgraphs[instance.id] = subgraph
 
         for instance in self.intact_nodes:
             subgraphs[instance.id] = self.graph.subgraph(
@@ -326,7 +331,9 @@ class LifecycleProcessor(object):
                           on_dependency_added=None):
         subgraph_sequences = dict(
             (instance_id, subgraph.sequence())
-            for instance_id, subgraph in subgraphs.items())
+            for instance_id, subgraph in subgraphs.items()
+            if subgraph is not None
+        )
         for instance in instances:
             relationships = list(instance.relationships)
             if not install:
@@ -334,9 +341,10 @@ class LifecycleProcessor(object):
             for rel in relationships:
                 if (rel.target_node_instance in self.node_instances or
                         rel.target_node_instance in self.intact_nodes):
-                    source_subgraph = subgraphs[instance.id]
-                    target_subgraph = subgraphs[rel.target_id]
-
+                    source_subgraph = subgraphs.get(instance.id)
+                    target_subgraph = subgraphs.get(rel.target_id)
+                    if source_subgraph is None or target_subgraph is None:
+                        continue
                     operation = rel.relationship.properties.get("operation",
                                                                 None)
 
