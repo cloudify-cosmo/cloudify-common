@@ -1353,7 +1353,8 @@ def update_node_instance_subgraph(instance, graph, **kwargs):
     source_drifts = system_props.get(
         'source_relationships_configuration_drift', {})
     for relationship in instance.relationships:
-        target_instance = workflow_ctx.get_node_instance(relationship.target_id)
+        target_instance = workflow_ctx.get_node_instance(
+            relationship.target_id)
         target_drifts = target_instance.system_properties.get(
             'target_relationships_configuration_drift', {})
         if relationship.target_id in source_drifts:
