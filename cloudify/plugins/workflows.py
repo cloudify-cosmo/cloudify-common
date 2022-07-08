@@ -78,15 +78,25 @@ def _find_instances_to_heal(instances, healthy_instances):
     return to_heal, to_reinstall
 
 
-def _find_healthy_instances(instances):
+def _find_healthy_instances(instances, require_task=False):
+    """Find instances that are already passing their status check
+
+    Depending on the require_task flag:
+      - if require_task is false, instances that are implicitly healthy
+        (eg. they have just been installed), are considered passing
+      - if require_task is true, only instances that are explicitly proven
+        to be healthy (their check_status operation is defined and has run),
+        are considered passing
+    """
     healthy_instances = set()
     for instance in instances:
         try:
-            if (
-                instance.system_properties['status']['ok']
-                and instance.system_properties['status']['task']
-            ):
-                healthy_instances.add(instance)
+            status = instance.system_properties['status']
+            if not status['ok']:
+                continue
+            if require_task and not status['task']:
+                continue
+            healthy_instances.add(instance)
         except KeyError:
             pass
     return healthy_instances
@@ -219,7 +229,15 @@ def auto_heal_reinstall_node_subgraph(
 
         ctx.refresh_node_instances()
 
-    healthy_instances = _find_healthy_instances(sub_node_instances)
+    healthy_instances = _find_healthy_instances(
+        sub_node_instances,
+        # require_task if we're explicitly going to target a node instance.
+        # This is compatible with pre-6.4 heal.
+        # This means a targeted heal assumes nodes to be unhealthy unless
+        # proven healthy, and a deployment-wide heal assumes nodes healthy
+        # unless proven unhealthy.
+        require_task=bool(node_instance_id),
+    )
     to_heal, to_reinstall = _find_instances_to_heal(
         sub_node_instances,
         healthy_instances,
