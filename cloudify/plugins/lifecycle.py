@@ -50,12 +50,14 @@ def heal_node_instances(
     graph,
     node_instances,
     related_nodes=None,
-    name_prefix=''
+    name_prefix='',
+    ignore_failure=False,
 ):
     processor = LifecycleProcessor(graph=graph,
                                    node_instances=node_instances,
                                    related_nodes=related_nodes,
-                                   name_prefix=name_prefix)
+                                   name_prefix=name_prefix,
+                                   ignore_failure=ignore_failure,)
     processor.heal()
 
 
