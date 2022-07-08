@@ -695,8 +695,7 @@ class TestHealOperation(testtools.TestCase):
                    for invocation in invocations
                    if invocation.get('operation')
                    == 'cloudify.interfaces.lifecycle.heal') == \
-               {'node1', 'node2', 'node4', 'node6',
-                'node6_contained', 'node8_contained', }
+               {'node2', 'node8_contained'}
 
 
 def update_test_workflow(ctx, node_instance_id, **kwargs):
