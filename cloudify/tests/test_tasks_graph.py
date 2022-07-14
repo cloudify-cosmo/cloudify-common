@@ -571,3 +571,133 @@ class TestLifecycleGraphs(testtools.TestCase):
 
         # n2 didnt need to be deleted, because it wasn't in the creating state
         assert task_indexes['n2_delete'] is None
+
+
+class TestGraphOptimization(testtools.TestCase):
+    """Tests for graph.optimize(), which omits empty/pointless tasks"""
+
+    def test_removes_nop(self):
+        """optimize removes NOPTasks"""
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+        nop_task = tasks.NOPLocalWorkflowTask(ctx)
+        not_nop_task = tasks.WorkflowTask(ctx)
+        g.add_task(nop_task)
+        g.add_task(not_nop_task)
+        assert set(g.tasks) == {nop_task, not_nop_task}
+        g.optimize()
+        assert set(g.tasks) == {not_nop_task}
+
+    def test_removes_dependent_nop(self):
+        """optimize removes NOPTasks even if they have dependencies"""
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+        base_nop_task = tasks.NOPLocalWorkflowTask(ctx)
+        dependent_nop_task = tasks.NOPLocalWorkflowTask(ctx)
+        task = tasks.WorkflowTask(ctx)
+        g.add_task(task)
+        g.add_task(base_nop_task)
+        g.add_task(dependent_nop_task)
+        g.add_dependency(dependent_nop_task, task)
+        g.add_dependency(task, base_nop_task)
+        assert set(g.tasks) == {base_nop_task, dependent_nop_task, task}
+        g.optimize()
+        assert set(g.tasks) == {task}
+
+    def test_moves_dependencies(self):
+        """optimize "shortcuts" dependencies
+
+        We have a dependency chain of: task2 -> nop_task -> task1.
+        After optimize, nop is removed, and the chain is just: task2 -> task1
+        """
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+        task1 = tasks.WorkflowTask(ctx)
+        nop_task = tasks.NOPLocalWorkflowTask(ctx)
+        task2 = tasks.WorkflowTask(ctx)
+        g.add_task(task1)
+        g.add_task(task2)
+        g.add_task(nop_task)
+        g.add_dependency(task2, nop_task)
+        g.add_dependency(nop_task, task1)
+        assert set(g.tasks) == {task1, task2, nop_task}
+        g.optimize()
+        assert set(g.tasks) == {task1, task2}
+        assert g._dependencies == {
+            task2: set([task1]),
+        }
+        assert g._dependents == {
+            task1: set([task2]),
+        }
+
+    def test_moves_chain_dependencies(self):
+        r"""The dependency shortcut works even with more complex graphs
+
+        The setup is:
+            task1 \                                 / task3
+                   >- nop1 -> nop2 -> ... -> nop10 <
+            task2 /                                 \ task4
+
+        After optimization, all the NOPs are removed, and we're left with
+        only:
+            task1 \ / task3
+                   x
+            task2 / \ task4
+        """
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+        task1 = tasks.WorkflowTask(ctx)
+        task2 = tasks.WorkflowTask(ctx)
+        task3 = tasks.WorkflowTask(ctx)
+        task4 = tasks.WorkflowTask(ctx)
+        nops_chain = [
+            tasks.NOPLocalWorkflowTask(ctx)
+            for _ in range(10)
+        ]
+        g.add_task(task1)
+        g.add_task(task2)
+        g.add_task(task3)
+        g.add_task(task4)
+        for nop_task in nops_chain:
+            g.add_task(nop_task)
+        for nop_task, next_nop_task in zip(nops_chain, nops_chain[1:]):
+            g.add_dependency(nop_task, next_nop_task)
+        g.add_dependency(task3, nops_chain[0])
+        g.add_dependency(task4, nops_chain[0])
+        g.add_dependency(nops_chain[-1], task1)
+        g.add_dependency(nops_chain[-1], task2)
+        g.optimize()
+        assert g._dependencies == {
+            task3: set([task1, task2]),
+            task4: set([task1, task2]),
+        }
+        assert g._dependents == {
+            task1: set([task3, task4]),
+            task2: set([task3, task4]),
+        }
+
+    def test_removes_empty_subgraph(self):
+        """optimize removes all kinds of "empty" subgraphs"""
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+
+        # sg1 is just empty, no tasks inside it
+        sg1 = g.subgraph(ctx)
+        # sg2 contains only a NOPTask
+        sg2 = g.subgraph(ctx)
+        sg2.add_task(tasks.NOPLocalWorkflowTask(ctx))
+
+        # sg3 contains sg4, which is empty behcause it only contains a NOPTask
+        sg3 = g.subgraph(ctx)
+        sg4 = g.subgraph(ctx)
+        sg4.add_task(tasks.NOPLocalWorkflowTask(ctx))
+        sg3.add_task(sg4)
+
+        # sg5 is a subgraph that contains a real task! it is not removed
+        sg5 = g.subgraph(ctx)
+        real_task = tasks.WorkflowTask(ctx)
+        sg5.add_task(real_task)
+
+        assert set(g.tasks) > {sg1, sg2, sg3, sg4, sg5, real_task}
+        g.optimize()
+        assert set(g.tasks) == {sg5, real_task}
