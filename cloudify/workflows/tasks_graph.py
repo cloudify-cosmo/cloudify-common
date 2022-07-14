@@ -80,6 +80,26 @@ class TaskDependencyGraph(object):
         self._finished_tasks = {}
         self._op_types_cache = {}
 
+    def optimize(self):
+        """Optimize this tasks graph, removing tasks that do nothing.
+
+        Empty subgraphs, and NOP tasks, are dropped. A subgraph is considered
+        empty if it only contains NOP tasks, and empty subgraphs.
+        """
+        removable = [
+            task for task in self._tasks.values()
+            if task.is_nop()
+        ]
+        for task in removable:
+            dependents = self._dependents[task]
+            dependencies = self._dependencies[task]
+            if task.containing_subgraph:
+                task.containing_subgraph.tasks.pop(task.id)
+            self.remove_task(task)
+            for dependent in dependents:
+                for dependency in dependencies:
+                    self.add_dependency(dependent, dependency)
+
     def linearize(self):
         """Traverse the graph, and return tasks in dependency order.
 
@@ -505,6 +525,11 @@ class SubgraphTask(tasks.WorkflowTask):
     @property
     def is_subgraph(self):
         return True
+
+    def is_nop(self):
+        return not self.tasks or all(
+            t.is_nop() for t in self.tasks.values()
+        )
 
     def sequence(self):
         return TaskSequence(self)
