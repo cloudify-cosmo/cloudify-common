@@ -231,6 +231,7 @@ class TestTasksGraphExecute(testtools.TestCase):
             assert t.get_state() == 'succeeded'
         assert t2.get_state() == 'pending'
 
+
 class _CustomRestorableTask(tasks.WorkflowTask):
     """A custom user-provided task, that can be restored"""
     name = '_CustomRestorableTask'
