@@ -114,7 +114,7 @@ class TaskDependencyGraph(object):
         self._tasks_wait = threading.Event()
         self._finished_tasks = {}
         self._op_types_cache = {}
-        self._errors = TaskDependencyGraphErrors()
+        self._errors = None
 
     def optimize(self):
         """Optimize this tasks graph, removing tasks that do nothing.
@@ -405,7 +405,8 @@ class TaskDependencyGraph(object):
         if self._errors:
             if not self._waiting_for and not self._ready:
                 return True
-            deadline = self._errors.last_time() + self.ctx.wait_after_fail
+            deadline = \
+                self._errors.first_error_time() + self.ctx.wait_after_fail
             if time.time() > deadline:
                 return True
             else:
