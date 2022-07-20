@@ -403,7 +403,7 @@ class TaskDependencyGraph(object):
             return True
 
         if self._errors:
-            if not self._waiting_for:
+            if not self._waiting_for and not self._ready:
                 return True
             deadline = self._errors.last_time() + self.ctx.wait_after_fail
             if time.time() > deadline:
