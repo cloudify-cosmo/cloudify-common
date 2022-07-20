@@ -392,7 +392,7 @@ class TaskDependencyGraph(object):
         if self._wake_after_fail:
             self._wake_after_fail.cancel()
         if self._errors:
-            raise self._errors.last_error()
+            raise self._errors.format_exception()
 
     def _is_finished(self):
         if api.has_cancel_request():
@@ -455,20 +455,10 @@ class TaskDependencyGraph(object):
         self._tasks_wait.set()
 
     def _task_error(self, result, task):
-        message = "Task failed: {0}".format(task.short_description)
-        causes_text = _task_error_causes_text(task)
-        if causes_text:
-            message = '{0}: {1}'.format(message, causes_text)
-        if result and not isinstance(result, tasks.HandlerResult):
-            result = str(result)
-            if result:
-                message = '{0} -> {1}'.format(message, result)
-        if not self._errors:
-            self._errors = TaskDependencyGraphErrors()
-            self._errors.add(WorkflowFailed(message))
-            self._waiting_for = {
-                t for t in self._waiting_for if not t.is_subgraph
-            }
+        self._errors.add_error(result, task)
+        self._waiting_for = {
+            t for t in self._waiting_for if not t.is_subgraph
+        }
         return result
 
 
