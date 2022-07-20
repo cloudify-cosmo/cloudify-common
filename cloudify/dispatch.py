@@ -144,6 +144,9 @@ class OperationHandler(TaskHandler):
     def _run_operation_func(self, ctx, kwargs):
         try:
             return self.func(*self.args, **kwargs)
+        except Exception as e:
+            err = _WrappedTaskError(e, traceback.format_exc())
+            raise err
         finally:
             if ctx.type == constants.NODE_INSTANCE:
                 ctx.instance.update()
@@ -152,8 +155,8 @@ class OperationHandler(TaskHandler):
                 ctx.target.instance.update()
 
 
-class _WorkflowFuncError(Exception):
-    """This wraps any exception coming out of a workflow function.
+class _WrappedTaskError(Exception):
+    """This wraps any exception coming out of a workflow/operation function.
 
     We'll wrap the exception and the traceback, so that we can
     preserve the original traceback. We want the original traceback
@@ -161,7 +164,7 @@ class _WorkflowFuncError(Exception):
     framework-level frames that come from dispatch.py itself.
     """
     def __init__(self, wrapped_exc, wrapped_tb, *args, **kwargs):
-        super(_WorkflowFuncError, self).__init__(*args, **kwargs)
+        super(_WrappedTaskError, self).__init__(*args, **kwargs)
         self.wrapped_exc = wrapped_exc
         self.wrapped_tb = wrapped_tb
 
@@ -292,7 +295,7 @@ class WorkflowHandler(TaskHandler):
             else:
                 self._workflow_succeeded()
             return result
-        except _WorkflowFuncError as e:
+        except _WrappedTaskError as e:
             self._workflow_failed(e.wrapped_exc, e.wrapped_tb)
             # `raise e.wrapped_exc from None` - but syntax that won't break py2
             e.wrapped_exc.__suppress_context__ = True
@@ -339,7 +342,7 @@ class WorkflowHandler(TaskHandler):
                 result = {'result': api.EXECUTION_CANCELLED_RESULT}
                 return result
             except BaseException as workflow_ex:
-                err = _WorkflowFuncError(workflow_ex, traceback.format_exc())
+                err = _WrappedTaskError(workflow_ex, traceback.format_exc())
                 result = {'error': err}
                 return result
             return result
@@ -454,14 +457,18 @@ def main():
         _setup_logging()
         payload = handler.handle()
         payload_type = 'result'
+    except _WrappedTaskError as e:
+        payload_type = 'error'
+        payload = serialize_known_exception(e.wrapped_exc, e.wrapped_tb)
     except BaseException as e:
         payload_type = 'error'
         payload = serialize_known_exception(e)
 
+    if payload_type == 'error':
         logger = logging.getLogger(__name__)
         logger.error('Task {0}[{1}] raised:\n{2}'.format(
             handler.cloudify_context['task_name'],
-            handler.cloudify_context.get('task_id', '<no-id>'),
+            handler.cloudify_context.get('task_id', '<no-id>').strip(),
             payload.get('traceback')))
 
     with open(os.path.join(dispatch_dir, 'output.json'), 'w') as f:

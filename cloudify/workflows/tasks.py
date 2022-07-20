@@ -343,6 +343,8 @@ class WorkflowTask(object):
                         time.time() + handler_result.retry_after)
                     handler_result.retried_task = new_task
             else:
+                if self.is_subgraph and handler_result.retried_task:
+                    self.graph.remove_task(handler_result.retried_task)
                 handler_result.action = HandlerResult.HANDLER_FAIL
 
         if self.containing_subgraph:
@@ -749,6 +751,8 @@ class LocalWorkflowTask(WorkflowTask):
                 self.set_state(TASK_SUCCEEDED, result=result)
                 self.async_result.result = result
             except BaseException as e:
+                if hasattr(e, 'wrapped_exc'):
+                    e = e.wrapped_exc
                 new_task_state = TASK_RESCHEDULED if isinstance(
                     e, exceptions.OperationRetry) else TASK_FAILED
                 self.set_state(new_task_state, exception=e)
