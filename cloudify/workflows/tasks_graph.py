@@ -428,10 +428,14 @@ class TaskDependencyGraph(object):
     def _handle_terminated_task(self, result, task):
         self._waiting_for.discard(task)
         handler_result = task.handle_task_terminated()
+        dependents = self._dependents[task]
+        dependencies = self._dependencies[task]
+        self.remove_task(task)
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
             result = self._task_error(result, task)
+            self._ready -= dependents
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
             if self.id is not None:
@@ -447,7 +451,6 @@ class TaskDependencyGraph(object):
             for dependent in self._dependents[task]:
                 self.add_dependency(self.get_task(dependent), new_task)
 
-        self.remove_task(task)
         self._tasks_wait.set()
 
     def _task_error(self, result, task):
