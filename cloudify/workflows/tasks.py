@@ -343,6 +343,8 @@ class WorkflowTask(object):
                         time.time() + handler_result.retry_after)
                     handler_result.retried_task = new_task
             else:
+                if self.is_subgraph and handler_result.retried_task:
+                    self.graph.remove_task(handler_result.retried_task)
                 handler_result.action = HandlerResult.HANDLER_FAIL
 
         if self.containing_subgraph:
