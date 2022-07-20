@@ -393,10 +393,11 @@ class TaskDependencyGraph(object):
             self._wake_after_fail.cancel()
         if self._errors:
             raise self._errors.format_exception()
+        if api.has_cancel_request():
+            raise api.ExecutionCancelled()
 
     def _is_finished(self):
         if api.has_cancel_request():
-            self._errors.add(api.ExecutionCancelled())
             return True
 
         if not self._tasks:
