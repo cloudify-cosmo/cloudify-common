@@ -751,6 +751,8 @@ class LocalWorkflowTask(WorkflowTask):
                 self.set_state(TASK_SUCCEEDED, result=result)
                 self.async_result.result = result
             except BaseException as e:
+                if hasattr(e, 'wrapped_exc'):
+                    e = e.wrapped_exc
                 new_task_state = TASK_RESCHEDULED if isinstance(
                     e, exceptions.OperationRetry) else TASK_FAILED
                 self.set_state(new_task_state, exception=e)
