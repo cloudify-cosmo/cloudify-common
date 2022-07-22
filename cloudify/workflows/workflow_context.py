@@ -342,6 +342,18 @@ class CloudifyWorkflowNodeInstance(object):
         return self._node_instance.state
 
     @property
+    def version(self):
+        """The node instance version
+
+        Node-instance storage uses an optimistic concurrency control approach:
+        when updating a node-instance, also include the version that the
+        client thinks is current (ie. this value).
+        If the server has a more recent version, it will return an error,
+        allowing the client to fetch the more recent version and retry.
+        """
+        return self._node_instance.version
+
+    @property
     def node_id(self):
         """The node id (this instance is an instance of that node)"""
         return self._node_instance.node_id
@@ -364,6 +376,18 @@ class CloudifyWorkflowNodeInstance(object):
     @property
     def scaling_groups(self):
         return self._node_instance.get('scaling_groups', [])
+
+    @property
+    def runtime_properties(self):
+        """The node instance runtime properties
+
+        Note that in workflow code, it is common for runtime-properties
+        to be outdated, if a prior operation changed them.
+        Before using this value, consider if it is up to date. You can
+        use the refresh_node_instances method to bring all node-instance
+        properties up to date.
+        """
+        return self._node_instance.runtime_properties
 
     @property
     def system_properties(self):
