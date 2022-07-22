@@ -295,7 +295,7 @@ class DeploymentContext(EntityContext):
 
     @property
     def resource_tags(self):
-        """Resource tags associated wth this deployment."""
+        """Resource tags associated with this deployment."""
         return self._context.get('deployment_resource_tags')
 
 
@@ -508,6 +508,13 @@ class NodeInstanceContext(EntityContext):
     def index(self):
         self._get_node_instance_if_needed()
         return self._node_instance.index
+
+    @property
+    def drift(self):
+        self._get_node_instance_if_needed()
+        drift = self._node_instance.system_properties\
+            .get('configuration_drift')
+        return drift.get('result') if drift.get('ok') else None
 
 
 class RelationshipContext(EntityContext):
