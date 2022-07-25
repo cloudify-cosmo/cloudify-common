@@ -77,6 +77,20 @@ class ListResponse(object):
             raise TypeError('cmp is not supported. Use key instead.')
         return self.items.sort(key=key, reverse=reverse)
 
+    def one(self):
+        """Return the only item in this list; error if there isn't just one.
+
+        It is often the case that the caller knows there's only one item
+        in the results; instead of doing result[0], use result.one().
+        Then, in case there's more results, an error will be thrown for
+        the failing assumption, rather than silently continuing, which
+        could lead to subtle bugs.
+        """
+        if len(self) != 1:
+            raise ValueError(
+                'Called one() on a list with {0} items'.format(len(self)))
+        return self[0]
+
 
 class DeletedResponse(object):
     """
