@@ -144,11 +144,15 @@ class TaskDependencyGraphErrors(object):
                 self._errors[0].task_name,
                 self._errors[0].error_causes,
             )
-        message = '{0}\nTraceback of {1} (most recent call last):\n{2}'.format(
-            message,
-            self._errors[0].task_name,
-            self._errors[0].traceback,
-        )
+        if self._errors[0].traceback:
+            message = (
+                '{0}\nTraceback of {1} (most recent call last):\n{2}'
+                .format(
+                    message,
+                    self._errors[0].task_name,
+                    self._errors[0].traceback,
+                )
+            )
         return WorkflowFailed(
             message,
             # a task failed, not the workflow function itself: no need to
