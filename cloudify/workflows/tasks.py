@@ -38,6 +38,7 @@ from cloudify.constants import (
 )
 from cloudify.state import workflow_ctx, current_workflow_ctx
 from cloudify.utils import get_func, uuid4
+from cloudify.error_handling import serialize_known_exception
 # imported for backwards compat:
 from cloudify.constants import TASK_RESPONSE_SENT, INSPECT_TIMEOUT  # noqa
 
@@ -140,7 +141,6 @@ class WorkflowTask(object):
         self.on_success = on_success
         self.on_failure = on_failure
         self.info = info
-        self.error = None
         self.total_retries = total_retries
         self.retry_interval = retry_interval
         self.timeout = timeout
@@ -159,6 +159,11 @@ class WorkflowTask(object):
 
         # ID of the task that is being retried by this task
         self.retried_task = None
+
+        # error is a dict as returned by serialize_known_exception:
+        # for remote tasks it is set when the AMQP dispatcher receives a
+        # task error response
+        self.error = None
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
@@ -518,6 +523,7 @@ class RemoteWorkflowTask(WorkflowTask):
                     self, self._task_target, self._task_queue)
         except (exceptions.NonRecoverableError,
                 exceptions.RecoverableError) as e:
+            self.error = serialize_known_exception(e)
             self.set_state(TASK_FAILED)
             self.async_result.result = e
         return self.async_result
@@ -610,7 +616,10 @@ class RemoteWorkflowTask(WorkflowTask):
 
         # we found the actual agent, just return it
         if cloudify_agent.get('queue') and cloudify_agent.get('name'):
-            return cloudify_agent, self._get_tenant_dict(tenant, client)
+            return (
+                cloudify_agent,
+                self._get_tenant_dict(host_node_instance, tenant, client)
+            )
 
         # this node instance isn't the real agent, check if it proxies to one.
         # Evaluate functions because proxy info might contain runtime
@@ -629,9 +638,11 @@ class RemoteWorkflowTask(WorkflowTask):
             # no queue information and no proxy - cannot continue
             missing = 'queue' if not cloudify_agent.get('queue') else 'name'
             raise exceptions.NonRecoverableError(
-                'Missing cloudify_agent.{0} runtime information. '
+                '{0}: missing cloudify_agent.{1} runtime information. '
                 'This most likely means that the Compute node was '
-                'never started successfully'.format(missing))
+                'never started successfully'
+                .format(host_node_instance.id, missing)
+            )
         else:
             # the agent does proxy to another, recursively get from that one
             # (if the proxied-to agent in turn proxies to yet another one,
@@ -641,15 +652,16 @@ class RemoteWorkflowTask(WorkflowTask):
                 deployment_id=proxy_deployment,
                 tenant=proxy_tenant)
 
-    def _get_tenant_dict(self, tenant_name, client):
+    def _get_tenant_dict(self, node_instance, tenant_name, client):
         if tenant_name is None or \
                 tenant_name == self.cloudify_context['tenant']['name']:
             return self.cloudify_context['tenant']
         tenant = client.tenants.get(tenant_name)
         if tenant.get('rabbitmq_vhost') is None:
             raise exceptions.NonRecoverableError(
-                'Could not get RabbitMQ credentials for tenant {0}'
-                .format(tenant_name))
+                '{0}: could not get RabbitMQ credentials for tenant {1}'
+                .format(node_instance.id, tenant_name)
+            )
         return tenant
 
     def _get_queue_kwargs(self):

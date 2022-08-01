@@ -62,8 +62,17 @@ def _task_error_causes_short(task):
     if not hasattr(task, 'error') or not isinstance(task.error, dict):
         return ''
     error_parts = []
-    for c in task.error.get('known_exception_type_kwargs', {}).get('causes'):
+    causes = task.error.get('known_exception_type_kwargs', {}).get('causes')
+    for c in causes:
         error_parts.append('{0} `{1}`'.format(c['type'], c['message']))
+    if not causes:
+        # no known causes - just show the exception directly
+        error_parts.append(
+            '{0} `{1}`'.format(
+                task.error['exception_type'],
+                task.error['message']
+            )
+        )
     return '\n'.join(error_parts)
 
 
@@ -135,11 +144,15 @@ class TaskDependencyGraphErrors(object):
                 self._errors[0].task_name,
                 self._errors[0].error_causes,
             )
-        message = '{0}\nTraceback of {1} (most recent call last):\n{2}'.format(
-            message,
-            self._errors[0].task_name,
-            self._errors[0].traceback,
-        )
+        if self._errors[0].traceback:
+            message = (
+                '{0}\nTraceback of {1} (most recent call last):\n{2}'
+                .format(
+                    message,
+                    self._errors[0].task_name,
+                    self._errors[0].traceback,
+                )
+            )
         return WorkflowFailed(
             message,
             # a task failed, not the workflow function itself: no need to

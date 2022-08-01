@@ -47,7 +47,7 @@ class NodeInstance(object):
         self._runtime_properties[key] = value
 
     def delete(self, key):
-        del(self._runtime_properties[key])
+        del self._runtime_properties[key]
 
     __setitem__ = put
 
