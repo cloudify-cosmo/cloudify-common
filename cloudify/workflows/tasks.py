@@ -38,6 +38,7 @@ from cloudify.constants import (
 )
 from cloudify.state import workflow_ctx, current_workflow_ctx
 from cloudify.utils import get_func, uuid4
+from cloudify.error_handling import serialize_known_exception
 # imported for backwards compat:
 from cloudify.constants import TASK_RESPONSE_SENT, INSPECT_TIMEOUT  # noqa
 
@@ -518,6 +519,7 @@ class RemoteWorkflowTask(WorkflowTask):
                     self, self._task_target, self._task_queue)
         except (exceptions.NonRecoverableError,
                 exceptions.RecoverableError) as e:
+            self.error = serialize_known_exception(e)
             self.set_state(TASK_FAILED)
             self.async_result.result = e
         return self.async_result
