@@ -141,7 +141,6 @@ class WorkflowTask(object):
         self.on_success = on_success
         self.on_failure = on_failure
         self.info = info
-        self.error = None
         self.total_retries = total_retries
         self.retry_interval = retry_interval
         self.timeout = timeout
@@ -160,6 +159,11 @@ class WorkflowTask(object):
 
         # ID of the task that is being retried by this task
         self.retried_task = None
+
+        # error is a dict as returned by serialize_known_exception:
+        # for remote tasks it is set when the AMQP dispatcher receives a
+        # task error response
+        self.error = None
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
