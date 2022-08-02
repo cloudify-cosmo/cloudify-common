@@ -28,10 +28,9 @@ class CloudifyClientError(Exception):
     def __str__(self):
         message = self._message
         if self.server_traceback:
-            traceback_list = \
-                [line for line in self.server_traceback.split('\n') if line]
-            if traceback_list:
-                message = '{0} ({1})'.format(self._message, traceback_list[-1])
+            _, _, last_line = self.server_traceback.strip().rpartition('\n')
+            if last_line:
+                message = '{0} ({1})'.format(self._message, last_line)
         if self.status_code != -1:
             return '{0}: {1}'.format(self.status_code, message)
         return message
