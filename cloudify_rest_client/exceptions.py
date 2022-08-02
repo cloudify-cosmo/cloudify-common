@@ -26,9 +26,15 @@ class CloudifyClientError(Exception):
         self._message = message
 
     def __str__(self):
+        message = self._message
+        if self.server_traceback:
+            traceback_list = \
+                [line for line in self.server_traceback.split('\n') if line]
+            if traceback_list:
+                message = '{0} ({1})'.format(self._message, traceback_list[-1])
         if self.status_code != -1:
-            return '{0}: {1}'.format(self.status_code, self._message)
-        return self._message
+            return '{0}: {1}'.format(self.status_code, message)
+        return message
 
 
 class DeploymentEnvironmentCreationInProgressError(CloudifyClientError):
