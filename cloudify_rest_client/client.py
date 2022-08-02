@@ -207,14 +207,11 @@ class HTTPClient(object):
                                    auth=auth)
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.items():
-                self.logger.debug('request header:  %s: %s'
-                                  % (hdr, hdr_content))
-            self.logger.debug('reply:  "%s %s" %s'
-                              % (response.status_code,
-                                 response.reason, response.content))
+                self.logger.debug('request header:  %s: %s', hdr, hdr_content)
+            self.logger.debug('reply:  "%s %s" %s', response.status_code,
+                              response.reason, response.content)
             for hdr, hdr_content in response.headers.items():
-                self.logger.debug('response header:  %s: %s'
-                                  % (hdr, hdr_content))
+                self.logger.debug('response header:  %s: %s', hdr, hdr_content)
 
         if isinstance(expected_status_code, numbers.Number):
             expected_status_code = [expected_status_code]
@@ -388,7 +385,7 @@ class HTTPClient(object):
             return
         self.headers[key] = value
         value = value if log_value else '*'
-        self.logger.debug('Setting `{0}` header: {1}'.format(key, value))
+        self.logger.debug('Setting `%s` header: %s', key, value)
 
 
 class StreamedResponse(object):
