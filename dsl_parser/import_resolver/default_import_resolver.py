@@ -179,3 +179,7 @@ class DefaultImportResolver(AbstractImportResolver):
         for yaml_file in yaml_files:
             if not re.search(r"_\d_\d+\.yaml$", yaml_file):
                 return [yaml_file]
+
+        # If dsl_version is not provided, return the last yaml_file
+        if not dsl_version:
+            return [sorted(yaml_files)[-1]]
