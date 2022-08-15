@@ -720,6 +720,7 @@ class DeploymentsClient(object):
                async_create=None,
                created_at=None,
                created_by=None,
+               workflows=None,
                _workdir_zip=None):
         """
         Creates a new deployment for the provided blueprint id and
@@ -744,6 +745,7 @@ class DeploymentsClient(object):
         :param async_create: if True, do not wait for the deployment
             environment to finish creating
         :param _workdir_zip: Internal only.
+        :param workflows: Set the deployment workflows. Internal use only.
         :return: The created deployment.
         """
         assert blueprint_id
@@ -759,6 +761,8 @@ class DeploymentsClient(object):
             data['display_name'] = display_name
         if _workdir_zip:
             data['workdir_zip'] = _workdir_zip
+        if workflows:
+            data['workflows'] = workflows
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)

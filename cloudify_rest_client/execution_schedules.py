@@ -96,7 +96,7 @@ class ExecutionSchedulesClient(object):
                execution_arguments=None, parameters=None,
                since=None, until=None, recurrence=None, count=None,
                weekdays=None, rrule=None, slip=0, stop_on_fail=False,
-               created_by=None, created_at=None):
+               created_by=None, created_at=None, enabled=True):
         """Schedules a deployment's workflow execution whose id is provided.
 
         :param schedule_id: Name for the schedule task. Used for listing,
@@ -134,25 +134,32 @@ class ExecutionSchedulesClient(object):
             the scheduler won't make further attempts to run it.
         :param created_by: Override the creator. Internal use only.
         :param created_at: Override the creation timestamp. Internal use only.
+        :param enabled: Boolean indicating whether the schedule should be
+                        enabled.
         :return: The created execution schedule.
         """
         assert schedule_id
         assert deployment_id
         assert workflow_id
         assert since
+        if hasattr(since, 'isoformat'):
+            since = since.isoformat()
+        if hasattr(until, 'isoformat'):
+            until = until.isoformat()
         params = {'deployment_id': deployment_id}
         data = {
             'workflow_id': workflow_id,
             'execution_arguments': execution_arguments,
             'parameters': parameters,
-            'since': since.isoformat(),
-            'until': until.isoformat() if until else None,
+            'since': since,
+            'until': until,
             'recurrence': recurrence,
             'count': count,
             'weekdays': weekdays,
             'rrule': rrule,
             'slip': slip,
-            'stop_on_fail': stop_on_fail
+            'stop_on_fail': stop_on_fail,
+            'enabled': enabled,
         }
         if created_by:
             data['created_by'] = created_by
