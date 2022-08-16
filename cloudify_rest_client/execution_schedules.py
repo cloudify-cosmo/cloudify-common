@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -142,9 +144,9 @@ class ExecutionSchedulesClient(object):
         assert deployment_id
         assert workflow_id
         assert since
-        if hasattr(since, 'isoformat'):
+        if isinstance(since, datetime):
             since = since.isoformat()
-        if hasattr(until, 'isoformat'):
+        if isinstance(until, datetime):
             until = until.isoformat()
         params = {'deployment_id': deployment_id}
         data = {
