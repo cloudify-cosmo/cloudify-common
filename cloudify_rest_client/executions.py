@@ -409,7 +409,8 @@ class ExecutionsClient(object):
                allow_custom_parameters=False, force=False, dry_run=False,
                queue=False, schedule=None, force_status=None,
                created_by=None, created_at=None, started_at=None,
-               ended_at=None, execution_id=None, wait_after_fail=600):
+               ended_at=None, execution_id=None, wait_after_fail=600,
+               error=None):
         """Creates an execution on a deployment.
         If force_status is provided, the execution will not be started.
         Otherwise, parameters and return value are identical to 'start'.
@@ -434,6 +435,7 @@ class ExecutionsClient(object):
             'started_at': started_at,
             'ended_at': ended_at,
             'id': execution_id,
+            'error': error,
         }
         uri = '/executions'
         response = self.api.post(uri,
