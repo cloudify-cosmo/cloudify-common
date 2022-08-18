@@ -8,21 +8,6 @@ spec:
       limits:
         cpu: 0.2
         memory: 256Mi
-  - name: py27
-    image: python:2.7
-    command:
-    - cat
-    tty: true
-    securityContext:
-        runAsUser: 0
-        privileged: true
-    resources:
-      requests:
-        cpu: 1.5
-        memory: 2Gi
-      limits:
-        cpu: 2
-        memory: 2Gi
   - name: py36
     image: python:3.6
     command:
