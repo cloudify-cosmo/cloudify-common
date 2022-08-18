@@ -37,7 +37,6 @@ from cloudify.manager import get_rest_client
 from cloudify.utils import (
     LocalCommandRunner, target_plugin_prefix, extract_archive,
     get_python_path, get_manager_name, get_daemon_name,
-    reraise,
 )
 from cloudify.exceptions import (
     NonRecoverableError,
@@ -221,7 +220,7 @@ def _install_managed_plugin(plugin, args):
             exc = NonRecoverableError(
                 'Failed installing managed plugin: {0} [{1}][{2}]'
                 .format(plugin.id, plugin.package_name, e))
-            reraise(NonRecoverableError, exc, tb)
+            raise exc.with_traceback(tb)
 
 
 def _wagon_install(plugin, venv, args):

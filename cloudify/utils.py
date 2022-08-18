@@ -1035,10 +1035,6 @@ def ipv6_url_compat(addr):
     return addr
 
 
-def reraise(exception_type, value, traceback):
-    raise value.with_traceback(traceback)
-
-
 def uuid4():
     """Generate a random UUID, and return a string representation of it.
 

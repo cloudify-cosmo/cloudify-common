@@ -121,7 +121,7 @@ class _Environment(object):
             return rv
         except Exception as e:
             self.storage.execution_ended(execution_id, e)
-            utils.reraise(e.__class__, e, sys.exc_info()[2])
+            raise e.with_traceback(sys.exc_info()[2])
 
 
 def init_env(blueprint_path,

@@ -26,8 +26,6 @@ from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-from cloudify.utils import reraise
-
 from dsl_parser.constants import (
     RESOLVER_IMPLEMENTATION_KEY,
     RESLOVER_PARAMETERS_KEY,
@@ -362,11 +360,8 @@ def get_class_instance(class_path, properties):
         instance = cls(**properties)
     except Exception as e:
         exc_type, exc, traceback = sys.exc_info()
-        reraise(
-            RuntimeError,
-            RuntimeError('Failed to instantiate {0}, error: {1}'
-                         .format(class_path, e)),
-            traceback)
+        raise RuntimeError(f'Failed to instantiate {class_path}, error: {e}')\
+            .with_traceback(traceback)
 
     return instance
 
