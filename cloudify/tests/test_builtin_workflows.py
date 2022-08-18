@@ -76,7 +76,7 @@ class LifecycleBaseTest(unittest.TestCase):
 
         # this is actually an assertion to ensure the tests themselves are ok
         self.assertEqual(expected_num_of_visited_instances,
-                        num_of_visited_instances)
+                         num_of_visited_instances)
 
 
 class TestWorkflowLifecycleOperations(LifecycleBaseTest):

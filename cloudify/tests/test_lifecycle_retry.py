@@ -218,7 +218,7 @@ class TaskLifecycleRetryTests(unittest.TestCase):
             'ignore_failure': True
         }
         with self.assertRaises(RuntimeError) as cm:
-            self._run(env, subgraph_retries=1 ,workflow='uninstall',
+            self._run(env, subgraph_retries=1, workflow='uninstall',
                       parameters=parameters)
         self.assertIn('test_lifecycle_retry.operation', str(cm.exception))
         self.assertEqual(invocations, [
