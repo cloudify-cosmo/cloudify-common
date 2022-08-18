@@ -15,7 +15,7 @@
 
 import mock
 import time
-import testtools
+import unittest
 from contextlib import contextmanager
 
 from cloudify_rest_client.operations import Operation
@@ -87,7 +87,7 @@ class PassedTask(tasks.WorkflowTask):
         return self.async_result
 
 
-class TestTasksGraphExecute(testtools.TestCase):
+class TestTasksGraphExecute(unittest.TestCase):
     def test_executes_single_task(self):
         """A single NOP task is executed within a single iteration of the
         tasks graph loop"""
@@ -238,7 +238,7 @@ class _CustomRestorableTask(tasks.WorkflowTask):
     task_type = 'cloudify.tests.test_tasks_graph._CustomRestorableTask'
 
 
-class TestTaskGraphRestore(testtools.TestCase):
+class TestTaskGraphRestore(unittest.TestCase):
     def _remote_task(self):
         """Make a RemoteWorkflowTask mock for use in tests"""
         return {
@@ -398,7 +398,7 @@ class NonExecutingGraph(TaskDependencyGraph):
         pass
 
 
-class TestLifecycleGraphs(testtools.TestCase):
+class TestLifecycleGraphs(unittest.TestCase):
     def _make_ctx_and_graph(self):
         ctx = MockWorkflowContext()
         graph = NonExecutingGraph(ctx)
@@ -614,7 +614,7 @@ class TestLifecycleGraphs(testtools.TestCase):
         assert task_indexes['n2_delete'] is None
 
 
-class TestGraphOptimization(testtools.TestCase):
+class TestGraphOptimization(unittest.TestCase):
     """Tests for graph.optimize(), which omits empty/pointless tasks"""
 
     def test_removes_nop(self):

@@ -13,8 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools.testcase
-
 from dsl_parser import constants
 from dsl_parser import exceptions
 from dsl_parser import functions
@@ -476,33 +474,37 @@ class TestEvaluateFunctions(AbstractTestParser):
 
     def test_missing_self_ref(self):
         payload = {'a': {'get_attribute': ['SELF', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*Node SELF has no instances.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*Node SELF has no instances.*',
+        ):
             functions.evaluate_functions(
                 payload, {}, self.mock_evaluation_storage())
 
     def test_missing_source_ref(self):
         payload = {'a': {'get_attribute': ['SOURCE', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*SOURCE is missing.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*SOURCE is missing.*',
+        ):
             functions.evaluate_functions(
                 payload, {}, self.mock_evaluation_storage())
 
     def test_missing_target_ref(self):
         payload = {'a': {'get_attribute': ['TARGET', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*TARGET is missing.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*TARGET is missing.*',
+        ):
             functions.evaluate_functions(
                 payload, {}, self.mock_evaluation_storage())
 
     def test_no_instances(self):
         payload = {'a': {'get_attribute': ['node', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*has no instances.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*has no instances.*',
+        ):
             functions.evaluate_functions(
                 payload, {}, self.mock_evaluation_storage())
 
@@ -513,7 +515,8 @@ class TestEvaluateFunctions(AbstractTestParser):
         ]
         storage = self.mock_evaluation_storage(instances)
         payload = {'a': {'get_attribute': ['node', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*unambiguously.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*unambiguously.*',
+        ):
             functions.evaluate_functions(payload, {}, storage)

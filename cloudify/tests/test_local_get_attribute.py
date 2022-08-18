@@ -17,8 +17,7 @@
 import os
 import shutil
 import tempfile
-
-import testtools
+import unittest
 
 from cloudify import constants
 from cloudify.workflows import local
@@ -28,7 +27,7 @@ from cloudify import ctx as operation_ctx
 from cloudify.workflows import ctx as workflow_ctx
 
 
-class TestLocalWorkflowGetAttribute(testtools.TestCase):
+class TestLocalWorkflowGetAttribute(unittest.TestCase):
 
     def test_in_memory_storage(self):
         self._test()

@@ -14,12 +14,12 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools
+import unittest
 
 from cloudify import logs
 
 
-class TestLogs(testtools.TestCase):
+class TestLogs(unittest.TestCase):
 
     def test_create_event_message_prefix(self):
         test_event = {'type': 'cloudify_log',

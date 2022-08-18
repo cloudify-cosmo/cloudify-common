@@ -13,8 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-
-import testtools
+import unittest
 
 from cloudify import decorators
 from cloudify import exceptions
@@ -72,7 +71,7 @@ def inputs(node, op, count):
     return {'descriptor': {node: {op: count}}}
 
 
-class TaskLifecycleRetryTests(testtools.TestCase):
+class TaskLifecycleRetryTests(unittest.TestCase):
 
     blueprint_path = 'resources/blueprints/test-lifecycle-retry-blueprint.yaml'
     non_ignore_blueprint = \
@@ -168,8 +167,9 @@ class TaskLifecycleRetryTests(testtools.TestCase):
 
     @workflow_test(blueprint_path, inputs=inputs('node1', 'configure', 4))
     def test_retry_lifecycle_failure(self, env):
-        e = self.assertRaises(RuntimeError, self._run, env, subgraph_retries=1)
-        self.assertIn('test_lifecycle_retry.operation', str(e))
+        with self.assertRaises(RuntimeError) as cm:
+            self._run(env, subgraph_retries=1)
+        self.assertIn('test_lifecycle_retry.operation', str(cm.exception))
         self.assertEqual(invocations, [
             ('node1', 'create'),
             ('node1', 'configure'),
@@ -183,8 +183,9 @@ class TaskLifecycleRetryTests(testtools.TestCase):
 
     @workflow_test(blueprint_path, inputs=inputs('node1', 'configure', 6))
     def test_retry_lifecycle_failure2(self, env):
-        e = self.assertRaises(RuntimeError, self._run, env, subgraph_retries=2)
-        self.assertIn('test_lifecycle_retry.operation', str(e))
+        with self.assertRaises(RuntimeError) as cm:
+            self._run(env, subgraph_retries=2)
+        self.assertIn('test_lifecycle_retry.operation', str(cm.exception))
         self.assertEqual(invocations, [
             ('node1', 'create'),
             ('node1', 'configure'),
@@ -203,9 +204,9 @@ class TaskLifecycleRetryTests(testtools.TestCase):
 
     @workflow_test(blueprint_path, inputs=inputs('node2', 'stop', 6))
     def test_retry_lifecycle_in_uninstall(self, env):
-        e = self.assertRaises(RuntimeError, self._run, env,
-                              subgraph_retries=0, workflow='uninstall')
-        self.assertIn('test_lifecycle_retry.operation', str(e))
+        with self.assertRaises(RuntimeError) as cm:
+            self._run(env, subgraph_retries=0, workflow='uninstall')
+        self.assertIn('test_lifecycle_retry.operation', str(cm.exception))
         self.assertEqual(invocations, [
             ('node2', 'stop'),
             ('node2', 'stop'),
@@ -216,9 +217,10 @@ class TaskLifecycleRetryTests(testtools.TestCase):
         parameters = {
             'ignore_failure': True
         }
-        e = self.assertRaises(RuntimeError, self._run, env, subgraph_retries=1,
-                              workflow='uninstall', parameters=parameters)
-        self.assertIn('test_lifecycle_retry.operation', str(e))
+        with self.assertRaises(RuntimeError) as cm:
+            self._run(env, subgraph_retries=1 ,workflow='uninstall',
+                      parameters=parameters)
+        self.assertIn('test_lifecycle_retry.operation', str(cm.exception))
         self.assertEqual(invocations, [
             ('node2', 'stop'),
             ('node2', 'stop'),
@@ -229,9 +231,11 @@ class TaskLifecycleRetryTests(testtools.TestCase):
         parameters = {
             'ignore_failure': False
         }
-        e = self.assertRaises(RuntimeError, self._run, env, subgraph_retries=0,
-                              workflow='uninstall', parameters=parameters)
-        self.assertIn('test_lifecycle_retry.operation_failing_stop', str(e))
+        with self.assertRaises(RuntimeError) as cm:
+            self._run(env, subgraph_retries=0, workflow='uninstall',
+                      parameters=parameters)
+        self.assertIn(
+            'test_lifecycle_retry.operation_failing_stop', str(cm.exception))
         self.assertEqual(invocations, [('node1', 'stop')])
 
     @workflow_test(non_ignore_blueprint)
