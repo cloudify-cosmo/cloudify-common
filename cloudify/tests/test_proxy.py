@@ -18,10 +18,10 @@ import os
 import threading
 import time
 import sys
+from io import StringIO
 
 import testtools
 
-from cloudify._compat import StringIO
 from cloudify.mocks import MockCloudifyContext
 from cloudify.proxy import client
 from cloudify.proxy.server import HTTPCtxProxy, PathDictAccess

@@ -9,7 +9,6 @@ from requests.packages import urllib3
 from cloudify import constants
 from cloudify.utils import ipv6_url_compat
 
-from ._compat import PY36PLUS
 from .utils import is_kerberos_env
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.idp import IdentityProviderClient
@@ -57,6 +56,7 @@ from cloudify_rest_client.filters import (DeploymentsFiltersClient,
                                           BlueprintsFiltersClient)
 from cloudify_rest_client.workflows import WorkflowsClient
 from cloudify_rest_client.audit_log import AuditLogClient
+from cloudify_async_client.audit_log import AuditLogAsyncClient
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -66,10 +66,6 @@ except Exception:
     # Kerberos users will need to manually install it.
     HTTPKerberosAuth = None
 
-if PY36PLUS:
-    from cloudify_async_client.audit_log import AuditLogAsyncClient
-else:
-    AuditLogAsyncClient = None
 
 DEFAULT_PORT = 80
 SECURED_PORT = 443

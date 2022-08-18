@@ -17,7 +17,6 @@ from dsl_parser import utils
 from dsl_parser import elements
 from dsl_parser import constants
 from dsl_parser import exceptions
-from dsl_parser._compat import text_type
 from dsl_parser.elements import types, version as _version
 from dsl_parser.framework.elements import (
     Element,
@@ -32,13 +31,13 @@ from dsl_parser.framework.requirements import (
 
 class SchemaPropertyDescription(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
 
 class SchemaPropertyDisplayLabel(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
     requires = {
@@ -53,7 +52,7 @@ class SchemaPropertyDisplayLabel(Element):
 
 class SchemaPropertyType(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
     # requires will be modified later.
     requires = {}
@@ -208,12 +207,12 @@ class SchemaWithInitialDefault(Schema):
 
 class DataTypeDescription(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class DataTypeVersion(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class DataType(types.Type):

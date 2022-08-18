@@ -25,7 +25,6 @@ from networkx.classes import DiGraph
 from dsl_parser import (exceptions,
                         utils,
                         constants)
-from dsl_parser._compat import text_type
 from dsl_parser.elements import (node_templates as _node_templates,
                                  data_types,
                                  scalable,
@@ -41,7 +40,7 @@ from dsl_parser.framework.elements import (DictElement,
 class PolicyTriggerSource(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
 
@@ -60,7 +59,7 @@ class PolicyTrigger(DictElement):
 class PolicyTypeSource(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
 
@@ -89,7 +88,7 @@ class PolicyTriggers(DictElement):
 class GroupPolicyType(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     requires = {
         PolicyTypes: [Value(constants.POLICY_TYPES)]
     }
@@ -134,7 +133,7 @@ class GroupPolicyProperties(Element):
 class GroupPolicyTriggerType(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     requires = {
         PolicyTriggers: [Value(constants.POLICY_TRIGGERS)]
     }
@@ -204,7 +203,7 @@ class GroupPolicy(DictElement):
 
 class GroupMember(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     requires = {
         _node_templates.NodeTemplates: ['node_template_names']
     }
@@ -268,7 +267,7 @@ class Groups(DictElement):
 class PolicyInstanceType(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
     def validate(self):
         scaling_policy = constants.SCALING_POLICY
@@ -282,7 +281,7 @@ class PolicyInstanceType(Element):
 
 class PolicyInstanceTarget(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     requires = {
         Groups: [Value(constants.GROUPS)]
     }

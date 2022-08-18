@@ -16,12 +16,13 @@
 import tempfile
 import shutil
 import os
-import unittest
+from urllib.request import pathname2url
+from urllib.parse import urljoin
 
+import unittest
 from mock import Mock
 
 from cloudify.utils import uuid4
-from dsl_parser._compat import pathname2url, urljoin
 from dsl_parser.exceptions import DSLParsingException
 from dsl_parser.parser import parse as dsl_parse
 from dsl_parser.parser import parse_from_path as dsl_parse_from_path

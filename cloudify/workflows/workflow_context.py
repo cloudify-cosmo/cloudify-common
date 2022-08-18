@@ -26,6 +26,7 @@ from __future__ import absolute_import
 import functools
 import copy
 import json
+import queue
 import threading
 
 from dsl_parser import functions as dsl_functions
@@ -33,7 +34,6 @@ from dsl_parser.utils import parse_simple_type_value
 
 
 from cloudify import context
-from cloudify._compat import queue
 from cloudify.manager import (get_bootstrap_context,
                               get_rest_client,
                               download_resource)

@@ -22,7 +22,6 @@ import json
 from functools import wraps
 
 from dsl_parser import exceptions, scan, constants
-from dsl_parser._compat import ABC, text_type
 from dsl_parser.constants import (OUTPUTS,
                                   CAPABILITIES,
                                   NODE_INSTANCES,
@@ -146,7 +145,7 @@ _register_entry_point_functions()
 
 
 def _contains_legal_nested_attribute_path_items(args):
-    return all(get_function(x) or isinstance(x, (text_type, int))
+    return all(get_function(x) or isinstance(x, (str, int))
                for x in args)
 
 
@@ -156,7 +155,7 @@ def _is_legal_nested_attribute_path(args):
         and _contains_legal_nested_attribute_path_items(args)
 
 
-class Function(ABC):
+class Function(abc.ABC):
     name = 'function'
     func_eval_type = None
 
@@ -211,7 +210,7 @@ class GetInput(Function):
                 and len(args_list) >= 1 \
                 and _contains_legal_nested_attribute_path_items(args_list)
 
-        if not isinstance(args, text_type) \
+        if not isinstance(args, str) \
                 and not get_function(args) \
                 and not _is_valid_args_list(args):
             raise ValueError(
@@ -329,14 +328,14 @@ class GetSys(Function):
         known_entities = set(p[0] for p in self.VALID_PROPERTIES)
         if get_function(self.entity):
             return
-        if not isinstance(self.entity, text_type) \
+        if not isinstance(self.entity, str) \
                 or self.entity not in known_entities:
             raise exceptions.UnknownSysEntityError(
                 "{0} function unable to determine entity: {1}"
                 .format(self.name, self.entity))
         if get_function(self.property):
             return
-        if not isinstance(self.property, text_type) \
+        if not isinstance(self.property, str) \
                 or (self.entity, self.property) not in self.VALID_PROPERTIES:
             raise exceptions.UnknownSysPropertyError(
                 "{0} function unable to determine property: {1} {2}"
@@ -355,7 +354,7 @@ class GetConsumers(Function):
         super(GetConsumers, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if isinstance(args, text_type) and args in self.VALID_PROPERTIES:
+        if isinstance(args, str) and args in self.VALID_PROPERTIES:
             self.property = args
         else:
             raise ValueError(
@@ -832,7 +831,7 @@ class GetSecret(Function):
         if (
             not (
                 (isinstance(args, list) and len(args) > 1)
-                or isinstance(args, text_type)
+                or isinstance(args, str)
                 or get_function(args)
             )
         ):
@@ -984,7 +983,7 @@ class GetCapability(InterDeploymentDependencyCreatingFunction):
                 .format(','.join('{0}'.format(a) for a in args))
             )
         for arg_index, arg in enumerate(args):
-            if not isinstance(arg, (text_type, int)) and not get_function(arg):
+            if not isinstance(arg, (str, int)) and not get_function(arg):
                 raise ValueError(
                     "`get_capability` function arguments can't be complex "
                     "values; only strings/ints/functions are accepted. "
@@ -1029,7 +1028,7 @@ class GetGroupCapability(Function):
         for arg_index, arg in enumerate(args):
             if arg_index == 1 and isinstance(arg, list):
                 continue
-            if not isinstance(arg, (text_type, int)) and not get_function(arg):
+            if not isinstance(arg, (str, int)) and not get_function(arg):
                 raise ValueError(
                     "`get_group_capability` function arguments can't be "
                     "complex values; only strings/ints/functions are "
@@ -1054,7 +1053,7 @@ class GetLabel(Function):
 
     def parse_args(self, args):
         if isinstance(args, list) and len(args) == 2:
-            if not (isinstance(args[0], text_type) or get_function(args[0])):
+            if not (isinstance(args[0], str) or get_function(args[0])):
                 raise exceptions.FunctionValidationError(
                     '`get_label`',
                     "the <label-key> should be a string or a dict "
@@ -1070,7 +1069,7 @@ class GetLabel(Function):
                 )
             self.label_key = args[0]
             self.values_list_index = int(args[1])
-        elif isinstance(args, text_type):
+        elif isinstance(args, str):
             self.label_key = args
         elif get_function(args):
             self.label_key = args
@@ -1097,7 +1096,7 @@ class GetEnvironmentCapability(Function):
         super(GetEnvironmentCapability, self).__init__(args, **kwargs)
 
     def parse_args(self, args):
-        if isinstance(args, text_type):
+        if isinstance(args, str):
             self.capability_path = [args]
         elif isinstance(args, list):
             if len(args) < 2:
@@ -1119,7 +1118,7 @@ class GetEnvironmentCapability(Function):
                     args), args)
             )
         for arg_index, arg in enumerate(args):
-            if not isinstance(arg, (text_type, int)) and not get_function(arg):
+            if not isinstance(arg, (str, int)) and not get_function(arg):
                 raise ValueError(
                     "`get_environment_capability` function arguments"
                     " can't be complex values; only strings/ints/functions"
@@ -1137,7 +1136,7 @@ class GetEnvironmentCapability(Function):
 class ValidateArgumentMixin(object):
     def _validate_argument(self,
                            argument_name,
-                           argument_type=text_type,
+                           argument_type=str,
                            validation_only=False):
         exception_cls = exceptions.FunctionValidationError if validation_only \
             else exceptions.FunctionEvaluationError
@@ -1259,7 +1258,7 @@ class StringLower(Function, ValidateArgumentMixin):
         super(StringLower, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        if isinstance(args, text_type) \
+        if isinstance(args, str) \
                 or (isinstance(args, dict) and len(args) == 1):
             self.input = args
         else:
@@ -1281,7 +1280,7 @@ class StringUpper(Function, ValidateArgumentMixin):
         super(StringUpper, self).__init__(*args, **kwargs)
 
     def parse_args(self, args):
-        if isinstance(args, text_type) \
+        if isinstance(args, str) \
                 or (isinstance(args, dict) and len(args) == 1):
             self.input = args
         else:

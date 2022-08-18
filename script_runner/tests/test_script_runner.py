@@ -26,7 +26,6 @@ import pytest
 
 from . import string_in_log
 
-from cloudify._compat import text_type
 from cloudify.state import current_ctx
 from cloudify.decorators import workflow
 from cloudify.workflows import local
@@ -466,7 +465,7 @@ if __name__ == '__main__':
             ctx instance runtime-properties key "${input_as_env_var}"
             ''',
             # this fails on windows because apparently the 'complex object'
-            # isnt JSONed? instead it looks repr()-ed
+            # is not JSONed? instead it looks repr()-ed
             windows_script='''
             ctx instance runtime-properties key "%input_as_env_var%"
             ''')
@@ -475,7 +474,7 @@ if __name__ == '__main__':
             props = self._run(script_path=script_path,
                               env_var=value)
             self.assertEqual(
-                props['key'] if isinstance(value, text_type)
+                props['key'] if isinstance(value, str)
                 else json.loads(props['key']), value)
 
         test(u'string-value')
@@ -499,7 +498,7 @@ if __name__ == '__main__':
             ctx instance runtime-properties key "${input_as_env_var}"
             ''',
             # this fails on windows because apparently the 'complex object'
-            # isnt JSONed? instead it looks repr()-ed
+            # is not JSONed? instead it looks repr()-ed
             windows_script='''
             ctx instance runtime-properties key "%input_as_env_var%"
             ''')
@@ -513,7 +512,7 @@ if __name__ == '__main__':
                                   }
                               })
             self.assertEqual(
-                props['key'] if isinstance(value, text_type)
+                props['key'] if isinstance(value, str)
                 else json.loads(props['key']), value)
 
         test(u'override')

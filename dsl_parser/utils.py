@@ -22,8 +22,10 @@ import re
 
 import yaml.parser
 
-from dsl_parser._compat import (
-    urlparse, text_type, reraise, Request, urlopen, URLError)
+from urllib.error import URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+
 from dsl_parser.constants import (
     RESOLVER_IMPLEMENTATION_KEY,
     RESLOVER_PARAMETERS_KEY,
@@ -38,6 +40,10 @@ from dsl_parser import (yaml_loader,
 
 
 TEMPLATE_FUNCTIONS = {}
+
+
+def reraise(exception_type, value, traceback):
+    raise value.with_traceback(traceback)
 
 
 class ResolverInstantiationError(Exception):
@@ -201,7 +207,7 @@ def parse_simple_type_value(value, type_name):
                        'capability_value', 'scaling_group', 'secret_key'):
         return value, True
     elif type_name == 'regex':
-        if isinstance(value, text_type):
+        if isinstance(value, str):
             try:
                 re.compile(value)
                 return value, True
@@ -279,7 +285,7 @@ def parse_value(
 def cast_to_type(value, type_name):
     """Try converting value to the specified type_name if possible."""
 
-    if not isinstance(value, text_type):
+    if not isinstance(value, str):
         return value
 
     try:
@@ -372,7 +378,7 @@ def get_class(class_path):
     if not class_path:
         raise ValueError('class path is missing or empty')
 
-    if not isinstance(class_path, text_type):
+    if not isinstance(class_path, str):
         raise ValueError('class path is not a string')
 
     class_path = class_path.strip()

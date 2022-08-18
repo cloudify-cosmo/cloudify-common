@@ -14,8 +14,8 @@
 #    * limitations under the License.
 
 import traceback
+from io import StringIO
 
-from cloudify._compat import StringIO
 from cloudify.utils import format_exception
 from cloudify import exceptions
 
