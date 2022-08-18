@@ -22,7 +22,6 @@ import shutil
 import json
 import time
 import threading
-import sys
 import weakref
 
 from abc import ABC
