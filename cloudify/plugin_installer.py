@@ -26,6 +26,8 @@ import threading
 from os import walk
 from functools import wraps
 from contextlib import contextmanager
+from urllib.parse import urljoin
+from urllib.request import pathname2url
 
 import wagon
 import fasteners
@@ -34,9 +36,8 @@ from cloudify import ctx
 from cloudify.manager import get_rest_client
 from cloudify.utils import (
     LocalCommandRunner, target_plugin_prefix, extract_archive,
-    get_python_path, get_manager_name, get_daemon_name
+    get_python_path, get_manager_name, get_daemon_name,
 )
-from cloudify._compat import reraise, urljoin, pathname2url, parse_version
 from cloudify.exceptions import (
     NonRecoverableError,
     CommandExecutionException,
@@ -44,6 +45,12 @@ from cloudify.exceptions import (
 )
 from cloudify.models_states import PluginInstallationState
 from cloudify_rest_client.exceptions import CloudifyClientError
+
+try:
+    from packaging.version import parse as parse_version
+except ImportError:
+    from distutils.version import LooseVersion as parse_version
+
 
 PLUGIN_INSTALL_LOCK = threading.Lock()
 runner = LocalCommandRunner()
@@ -213,7 +220,7 @@ def _install_managed_plugin(plugin, args):
             exc = NonRecoverableError(
                 'Failed installing managed plugin: {0} [{1}][{2}]'
                 .format(plugin.id, plugin.package_name, e))
-            reraise(NonRecoverableError, exc, tb)
+            raise exc.with_traceback(tb)
 
 
 def _wagon_install(plugin, venv, args):

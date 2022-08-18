@@ -13,10 +13,10 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import functools
 import time
 import threading
 import types
+from functools import lru_cache, wraps
 
 from cloudify import exceptions, logs
 from cloudify.workflows import api
@@ -42,17 +42,6 @@ from cloudify.error_handling import serialize_known_exception
 # imported for backwards compat:
 from cloudify.constants import TASK_RESPONSE_SENT, INSPECT_TIMEOUT  # noqa
 
-try:
-    from functools import lru_cache
-except ImportError:
-    # py2.7 doesn't have lru_cache, but this is only used mgmtworker-side,
-    # on py3 only. Still, this module needs to be importable. Make a noop
-    # function that still has the same interface.
-    def lru_cache():
-        def _inner(f):
-            return f
-        return _inner
-
 
 INFINITE_TOTAL_RETRIES = -1
 DEFAULT_TOTAL_RETRIES = INFINITE_TOTAL_RETRIES
@@ -70,7 +59,7 @@ def with_execute_after(f):
     If a task has .execute_after set, the apply_async will actually
     only run after that time has passed.
     """
-    @functools.wraps(f)
+    @wraps(f)
     def _inner(*args, **kwargs):
         task = args[0]
         if api.has_cancel_request():

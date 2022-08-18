@@ -18,9 +18,9 @@ import copy
 import json
 import logging
 import os
+import queue
 import random
 import ssl
-import sys
 import threading
 import time
 
@@ -29,7 +29,6 @@ import pika.exceptions
 
 from cloudify import broker_config, utils
 from cloudify.constants import INSPECT_TIMEOUT
-from cloudify._compat import queue
 
 # keep compat with both pika 0.11 and pika 1.1: switch the calls based
 # on this flag. We're keeping compat with 0.11 for the py2.6 agent on rhel6.
@@ -39,24 +38,15 @@ OLD_PIKA = not hasattr(pika, 'SSLOptions')
 
 logger = logging.getLogger(__name__)
 
-if sys.version_info >= (2, 7):
-    # requires 2.7+
-    def wait_for_event(evt, poll_interval=0.5):
-        """Wait for a threading.Event by polling, to allow handling of signals.
-        (ie. doesnt block ^C)
-        """
-        while True:
-            if evt.wait(poll_interval):
-                return
-else:
-    def wait_for_event(evt, poll_interval=None):
-        """Wait for a threading.Event. Stub for compatibility."""
-        # in python 2.6, Event.wait always returns None, so we can either:
-        #  - .wait() without a timeout and block ^C which is inconvenient
-        #  - .wait() with timeout and then check .is_set(),
-        #     which is not threadsafe
-        # We choose the inconvenient but safe method.
-        evt.wait()
+
+# requires 2.7+
+def wait_for_event(evt, poll_interval=0.5):
+    """Wait for a threading.Event by polling, to allow handling of signals.
+    (ie. does not block ^C)
+    """
+    while True:
+        if evt.wait(poll_interval):
+            return
 
 
 class AMQPParams(object):

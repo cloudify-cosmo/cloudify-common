@@ -20,7 +20,6 @@ import testtools
 
 from cloudify import utils
 from cloudify import event
-from cloudify._compat import text_type
 
 
 class TestEvent(testtools.TestCase):
@@ -98,14 +97,14 @@ class TestEvent(testtools.TestCase):
                             message=u'אני אבחן אותך ביסודיות',
                             deployment_id='b44a008f-a8fa-4790-xyz',
                             timestamp='NOW')
-        self.assertIn(u'אני אבחן אותך ביסודיות', text_type(test_event))
+        self.assertIn(u'אני אבחן אותך ביסודיות', str(test_event))
 
     def test_event_unicode_log(self):
         test_event = _event('cloudify_log', level='DEBUG',
                             message=u'אני אבחן אותך ביסודיות',
                             deployment_id='64be2ce0-93c5-453e-qwe',
                             timestamp='THEN')
-        self.assertIn(u'אני אבחן אותך ביסודיות', text_type(test_event))
+        self.assertIn(u'אני אבחן אותך ביסודיות', str(test_event))
 
 
 def _event(type, event_type=None, level=None, message=None,

@@ -1,9 +1,9 @@
 
+import queue
 import threading
 import unittest
 
 
-from cloudify._compat import queue
 from cloudify.state import ctx, current_ctx
 
 from cloudify.mocks import MockCloudifyContext

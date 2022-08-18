@@ -15,9 +15,9 @@
 
 import os
 import contextlib
+from urllib.parse import urlparse
 
 from cloudify_rest_client import bytes_stream_utils
-from cloudify_rest_client._compat import urlparse
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.responses import ListResponse
 

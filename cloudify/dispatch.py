@@ -33,9 +33,11 @@ import copy
 import json
 import logging
 import os
+import queue
 import sys
 import threading
 import traceback
+from io import StringIO
 
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
@@ -46,7 +48,6 @@ from cloudify import state
 from cloudify import context
 from cloudify import utils
 from cloudify import constants
-from cloudify._compat import queue, StringIO
 from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.constants import LOGGING_CONFIG_FILE
 from cloudify.error_handling import serialize_known_exception

@@ -17,14 +17,15 @@ import traceback
 import re
 import collections
 import json
+import queue
 import threading
 import socket
+from io import StringIO
 from wsgiref.simple_server import WSGIServer, WSGIRequestHandler
 from wsgiref.simple_server import make_server as make_wsgi_server
 
 import bottle
 
-from cloudify._compat import text_type, queue, StringIO
 from cloudify.proxy.client import ScriptException
 from cloudify.state import current_ctx
 
@@ -189,7 +190,7 @@ def process_ctx_request(ctx, args):
 
 
 def _desugar_attr(obj, attr):
-    if not isinstance(attr, text_type):
+    if not isinstance(attr, str):
         return None
     try:
         if hasattr(obj, attr):
