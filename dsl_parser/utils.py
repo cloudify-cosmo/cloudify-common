@@ -26,6 +26,8 @@ from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+from cloudify.utils import reraise
+
 from dsl_parser.constants import (
     RESOLVER_IMPLEMENTATION_KEY,
     RESLOVER_PARAMETERS_KEY,
@@ -40,10 +42,6 @@ from dsl_parser import (yaml_loader,
 
 
 TEMPLATE_FUNCTIONS = {}
-
-
-def reraise(exception_type, value, traceback):
-    raise value.with_traceback(traceback)
 
 
 class ResolverInstantiationError(Exception):

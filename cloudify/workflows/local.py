@@ -54,10 +54,6 @@ except ImportError as e:
     HOST_TYPE = None
 
 
-def reraise(exception_type, value, traceback):
-    raise value.with_traceback(traceback)
-
-
 class _Environment(object):
     def __init__(self, storage):
         self.storage = storage
@@ -125,7 +121,7 @@ class _Environment(object):
             return rv
         except Exception as e:
             self.storage.execution_ended(execution_id, e)
-            reraise(e.__class__, e, sys.exc_info()[2])
+            utils.reraise(e.__class__, e, sys.exc_info()[2])
 
 
 def init_env(blueprint_path,

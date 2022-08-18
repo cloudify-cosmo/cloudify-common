@@ -36,7 +36,8 @@ from cloudify import ctx
 from cloudify.manager import get_rest_client
 from cloudify.utils import (
     LocalCommandRunner, target_plugin_prefix, extract_archive,
-    get_python_path, get_manager_name, get_daemon_name
+    get_python_path, get_manager_name, get_daemon_name,
+    reraise,
 )
 from cloudify.exceptions import (
     NonRecoverableError,
@@ -54,10 +55,6 @@ except ImportError:
 
 PLUGIN_INSTALL_LOCK = threading.Lock()
 runner = LocalCommandRunner()
-
-
-def reraise(exception_type, value, traceback):
-    raise value.with_traceback(traceback)
 
 
 def _manage_plugin_state(pre_state, post_state, allow_missing=False):
