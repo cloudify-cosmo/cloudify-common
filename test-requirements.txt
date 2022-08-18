@@ -1,5 +1,4 @@
 mock>=1.0.1
-testtools==2.4.0
 pytest
 pytest-cov
 pytest-xdist==1.34.0
