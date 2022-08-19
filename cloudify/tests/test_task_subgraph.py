@@ -14,7 +14,7 @@
 #    * limitations under the License.
 
 import mock
-import testtools
+import unittest
 
 from cloudify import decorators
 from cloudify.workflows import tasks
@@ -149,7 +149,7 @@ def _test_task_in_two_subgraphs(ctx, graph, instance):
     sub2.add_task(task)
 
 
-class TaskSubgraphWorkflowTests(testtools.TestCase):
+class TaskSubgraphWorkflowTests(unittest.TestCase):
 
     @workflow_test('resources/blueprints/test-task-subgraph-blueprint.yaml')
     def setUp(self, env=None):

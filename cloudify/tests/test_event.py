@@ -15,14 +15,14 @@
 #    * limitations under the License.
 
 import sys
+import unittest
 
-import testtools
 
 from cloudify import utils
 from cloudify import event
 
 
-class TestEvent(testtools.TestCase):
+class TestEvent(unittest.TestCase):
 
     def test_event_has_output(self):
         test_event = _event('cloudify_event')

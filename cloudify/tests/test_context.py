@@ -23,7 +23,6 @@ import unittest
 
 import pytest
 import requests
-import testtools
 from mock import patch, Mock
 
 from cloudify_rest_client.exceptions import CloudifyClientError
@@ -41,18 +40,15 @@ from cloudify import constants, state, context, exceptions, conflict_handlers
 from cloudify.test_utils import workflow_test
 
 
-class CloudifyContextTest(testtools.TestCase):
-    @classmethod
-    def setUpClass(cls):
+class CloudifyContextTest(unittest.TestCase):
+    def setUp(self):
+        super().setUp()
         state.current_ctx.set(context.CloudifyContext({}), {})
 
         os.environ[constants.REST_PORT_KEY] = '53333'
         os.environ[constants.REST_HOST_KEY] = "localhost"
         os.environ[constants.MANAGER_FILE_SERVER_SCHEME] = "http"
-        _, os.environ[constants.LOCAL_REST_CERT_FILE_KEY] = tempfile.mkstemp()
-
-    def setUp(self):
-        super(CloudifyContextTest, self).setUp()
+        os.environ[constants.LOCAL_REST_CERT_FILE_KEY] = 'somefile'
         self.context = context.CloudifyContext({
             'blueprint_id': '',
             'tenant': {'name': 'default_tenant'}
@@ -61,8 +57,8 @@ class CloudifyContextTest(testtools.TestCase):
         # not available here. instead, we redirect the output to stdout.
         self.redirect_log_to_stdout(self.context.logger)
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
+        super().tearDown()
         state.current_ctx.clear()
         os.environ.pop(constants.REST_HOST_KEY)
         os.environ.pop(constants.REST_PORT_KEY)
@@ -87,7 +83,7 @@ class CloudifyContextTest(testtools.TestCase):
                    return_value=Mock(ok=True, content=b'Hello from test')):
             resource = self.context.get_resource(
                 resource_path='for_test_bp_resource.txt')
-        self.assertEquals(resource, b'Hello from test')
+        self.assertEqual(resource, b'Hello from test')
 
     @mock.patch('cloudify.manager.get_rest_client')
     def test_download_resource(self, _):
@@ -293,29 +289,30 @@ class CloudifyContextTest(testtools.TestCase):
         })
         self.assertEqual('node-instance-id', ctx.source.instance.id)
         self.assertEqual('related-instance-id', ctx.target.instance.id)
-        e = self.assertRaises(exceptions.NonRecoverableError,
-                              lambda: ctx.node)
+        with self.assertRaises(exceptions.NonRecoverableError) as cm:
+            ctx.node
+
         self.assertIn('ctx.node/ctx.instance can only be used in a '
                       'node-instance context but used in a '
-                      'relationship-instance context.', str(e))
-        e = self.assertRaises(exceptions.NonRecoverableError,
-                              lambda: ctx.instance)
+                      'relationship-instance context.', str(cm.exception))
+        with self.assertRaises(exceptions.NonRecoverableError) as cm:
+            ctx.instance
         self.assertIn('ctx.node/ctx.instance can only be used in a '
                       'node-instance context but used in a '
-                      'relationship-instance context.', str(e))
+                      'relationship-instance context.', str(cm.exception))
 
     def test_source_target_not_in_relationship(self):
         ctx = context.CloudifyContext({})
-        e = self.assertRaises(exceptions.NonRecoverableError,
-                              lambda: ctx.source)
+        with self.assertRaises(exceptions.NonRecoverableError) as cm:
+            ctx.source
         self.assertIn('ctx.source/ctx.target can only be used in a '
                       'relationship-instance context but used in a '
-                      'deployment context.', str(e))
-        e = self.assertRaises(exceptions.NonRecoverableError,
-                              lambda: ctx.target)
+                      'deployment context.', str(cm.exception))
+        with self.assertRaises(exceptions.NonRecoverableError) as cm:
+            ctx.target
         self.assertIn('ctx.source/ctx.target can only be used in a '
                       'relationship-instance context but used in a '
-                      'deployment context.', str(e))
+                      'deployment context.', str(cm.exception))
 
     def test_ctx_type(self):
         ctx = context.CloudifyContext({})
@@ -333,7 +330,7 @@ class CloudifyContextTest(testtools.TestCase):
         self.assertEqual(constants.RELATIONSHIP_INSTANCE, ctx.type)
 
 
-class NodeContextTests(testtools.TestCase):
+class NodeContextTests(unittest.TestCase):
 
     test_blueprint_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
@@ -382,7 +379,7 @@ def has_operation_wf(ctx, **kwargs):
     return node.has_operation('nonexistent'), node.has_operation('test.op1')
 
 
-class PluginContextTests(testtools.TestCase):
+class PluginContextTests(unittest.TestCase):
     # workdir is tested separately for local and remote workflows
 
     def setUp(self):
@@ -440,7 +437,7 @@ class PluginContextTests(testtools.TestCase):
             self.assertEqual(self.ctx.plugin.prefix, expected_prefix)
 
 
-class GetResourceTemplateTests(testtools.TestCase):
+class GetResourceTemplateTests(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(GetResourceTemplateTests, self).__init__(*args, **kwargs)
@@ -558,7 +555,7 @@ def _context_with_endpoint(endpoint, **kwargs):
     return context.NodeInstanceContext(**context_kwargs)
 
 
-class TestPropertiesRefresh(testtools.TestCase):
+class TestPropertiesRefresh(unittest.TestCase):
     def test_refresh_fetches(self):
         """Refreshing a node instance fetches new properties."""
         # first .get_node_instances call returns an instance with value=1
@@ -614,7 +611,7 @@ class TestPropertiesRefresh(testtools.TestCase):
             "Instance properties were not overwritten but force was used")
 
 
-class TestPropertiesUpdate(testtools.TestCase):
+class TestPropertiesUpdate(unittest.TestCase):
     ERR_CONFLICT = CloudifyClientError('conflict', status_code=409)
 
     def test_update(self):

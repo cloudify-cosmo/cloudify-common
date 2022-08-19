@@ -13,15 +13,15 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import unittest
 from mock import patch, MagicMock, Mock
-import testtools
 
 from cloudify import dispatch
 from cloudify import exceptions
 from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
 
 
-class TestDispatchTaskHandler(testtools.TestCase):
+class TestDispatchTaskHandler(unittest.TestCase):
     def test_dispatch_no_such_handler(self):
         context = {'type': 'unknown_type'}
         self.assertRaises(exceptions.NonRecoverableError,
