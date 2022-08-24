@@ -15,6 +15,15 @@
 
 import numbers
 
+# a hack to allow networkx 1.11 to work with python 3.10: gcd was moved from
+# fractions to math, but networkx attempts to import from fractions. Remove
+# this  after we've either upgraded or removed networkx
+import fractions
+if not hasattr(fractions, 'gcd'):
+    import math
+    fractions.gcd = math.gcd
+
+
 from networkx.algorithms import (
     descendants,
     recursive_simple_cycles,
