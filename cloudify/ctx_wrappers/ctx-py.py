@@ -4,7 +4,7 @@ import sys
 import json
 import shlex
 import subprocess
-from collections import MutableMapping, Mapping
+from collections.abc import MutableMapping, Mapping
 
 
 def check_output(*popenargs, **kwargs):
