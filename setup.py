@@ -19,7 +19,7 @@ from setuptools import setup, find_packages
 install_requires = [
     'retrying==1.3.3',
     'proxy_tools==0.1.0',
-    'bottle==0.12.19',
+    'bottle==0.12.20',
     'jinja2>3,<4',
     'requests_toolbelt==0.9.1',
     'wagon>0.10',
