@@ -20,7 +20,7 @@ install_requires = [
     'retrying==1.3.3',
     'proxy_tools==0.1.0',
     'bottle==0.12.19',
-    'jinja2==2.11.3',
+    'jinja2>3,<4',
     'requests_toolbelt==0.9.1',
     'wagon>0.10',
     'pytz==2021.3'
