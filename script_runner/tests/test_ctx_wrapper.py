@@ -16,9 +16,9 @@
 import os
 import shutil
 import tempfile
+import unittest
 
 import pytest
-import testtools
 
 from . import string_in_log
 
@@ -31,28 +31,18 @@ from script_runner.tasks import ProcessException, IS_WINDOWS
 BLUEPRINT_DIR = os.path.join(os.path.dirname(__file__), 'wrapper_blueprint')
 
 
-class PythonWrapperTests(testtools.TestCase):
+class PythonWrapperTests(unittest.TestCase):
     @pytest.fixture(autouse=True)
-    def _inject_caplog(self, caplog):
+    def _inject_fixtures(self, caplog, tmpdir):
         self._caplog = caplog
-
-    @classmethod
-    def setUpClass(cls):
-        source = os.path.join(os.path.dirname(
-            cloudify.ctx_wrappers.__file__), 'ctx-py.py')
-        cls.tempdir = tempfile.mkdtemp()
-        destination = os.path.join(cls.tempdir, 'ctxwrapper.py')
-        shutil.copy(source, destination)
-
-    @classmethod
-    def tearDownClass(cls):
-        try:
-            shutil.rmtree(cls.tempdir)
-        except Exception:
-            pass
+        self.tempdir = str(tmpdir)
 
     def setUp(self):
         super(PythonWrapperTests, self).setUp()
+        source = os.path.join(os.path.dirname(
+            cloudify.ctx_wrappers.__file__), 'ctx-py.py')
+        destination = os.path.join(self.tempdir, 'ctxwrapper.py')
+        shutil.copy(source, destination)
         self.script_path = tempfile.mktemp()
         self.addCleanup(self.cleanup)
 
@@ -168,9 +158,9 @@ class PythonWrapperTests(testtools.TestCase):
                   'ctx.returns(value)')
         res_dict = self._run(script)
         self.assertIn('ip', res_dict)
-        self.assertEquals(res_dict['ip'], '1.1.1.1')
+        self.assertEqual(res_dict['ip'], '1.1.1.1')
         self.assertIn('key', res_dict)
-        self.assertEquals(res_dict['key'], 'value')
+        self.assertEqual(res_dict['key'], 'value')
 
     def test_get_node_properties_get_function(self):
         script = ('value = ctx.node.properties.get("key", "b")\n'
@@ -311,5 +301,6 @@ class PythonWrapperTests(testtools.TestCase):
 
     def test_retry_operation(self):
         script = ('ctx.retry_operation("retry_message")')
-        ex = self.assertRaises(OperationRetry, self._run, script)
-        self.assertIn('retry_message', str(ex))
+        with self.assertRaises(OperationRetry) as cm:
+            self._run(script)
+        self.assertIn('retry_message', str(cm.exception))

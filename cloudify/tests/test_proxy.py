@@ -18,10 +18,10 @@ import os
 import threading
 import time
 import sys
+from io import StringIO
 
-import testtools
+import unittest
 
-from cloudify._compat import StringIO
 from cloudify.mocks import MockCloudifyContext
 from cloudify.proxy import client
 from cloudify.proxy.server import HTTPCtxProxy, PathDictAccess
@@ -189,7 +189,7 @@ class CtxProxyTestBase(object):
         self.assertEqual(args[1:], response)
 
 
-class TestHTTPCtxProxy(CtxProxyTestBase, testtools.TestCase):
+class TestHTTPCtxProxy(CtxProxyTestBase, unittest.TestCase):
 
     def setUp(self):
         super(TestHTTPCtxProxy, self).setUp(HTTPCtxProxy)
@@ -205,7 +205,7 @@ class TestHTTPCtxProxy(CtxProxyTestBase, testtools.TestCase):
         super(TestHTTPCtxProxy, self).test_client_request_timeout()
 
 
-class TestArgumentParsing(testtools.TestCase):
+class TestArgumentParsing(unittest.TestCase):
 
     def mock_client_req(self, socket_url, args, timeout):
         self.assertEqual(socket_url, self.expected.get('socket_url'))
@@ -322,7 +322,7 @@ class TestArgumentParsing(testtools.TestCase):
             sys.stdout = current_stdout
 
 
-class TestPathDictAccess(testtools.TestCase):
+class TestPathDictAccess(unittest.TestCase):
     def test_simple_set(self):
         obj = {}
         path_dict = PathDictAccess(obj)

@@ -2,10 +2,10 @@ import os
 import tempfile
 import shutil
 import contextlib
+from urllib.parse import quote as urlquote, urlparse
 
 from cloudify_rest_client import utils
 from cloudify_rest_client import bytes_stream_utils
-from cloudify_rest_client._compat import urlquote, urlparse
 from cloudify_rest_client.constants import VisibilityState
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.executions import Execution

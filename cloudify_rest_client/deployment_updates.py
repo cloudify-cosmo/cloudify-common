@@ -17,11 +17,12 @@ import os
 import json
 import shutil
 import tempfile
+from urllib.parse import quote as urlquote, urlparse
+from urllib.request import pathname2url
 
 from mimetypes import MimeTypes
 
 from cloudify_rest_client import utils
-from cloudify_rest_client._compat import urlquote, pathname2url, urlparse
 from cloudify_rest_client.responses import ListResponse
 
 

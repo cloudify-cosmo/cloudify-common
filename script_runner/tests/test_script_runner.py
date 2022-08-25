@@ -17,16 +17,15 @@ import json
 import tempfile
 import shutil
 import os
+import unittest
 from collections import namedtuple
 
 import requests
-import testtools
 from mock import patch
 import pytest
 
 from . import string_in_log
 
-from cloudify._compat import text_type
 from cloudify.state import current_ctx
 from cloudify.decorators import workflow
 from cloudify.workflows import local
@@ -141,7 +140,7 @@ class BaseScriptRunner(object):
                           **{'script_path': script_path,
                              'task_retries': 2})
         with open(log_path, 'r') as log_file:
-            self.assertEquals(retry_message, log_file.read().strip())
+            self.assertEqual(retry_message, log_file.read().strip())
 
     def test_imported_ctx_abort_operation(self):
         log_path = self._get_temp_path()
@@ -162,7 +161,7 @@ class BaseScriptRunner(object):
                           **{'script_path': script_path,
                              'task_retries': 2})
         with open(log_path, 'r') as log_file:
-            self.assertEquals(abort_message, log_file.read().strip())
+            self.assertEqual(abort_message, log_file.read().strip())
 
     def test_imported_ctx_crash_abort_after_return(self):
 
@@ -290,7 +289,7 @@ class BaseScriptRunner(object):
                           self._run,
                           **{'script_path': script_path})
         with open(log_path, 'r') as log_file:
-            self.assertEquals(abort_message, log_file.read().strip())
+            self.assertEqual(abort_message, log_file.read().strip())
 
     def test_abort_returns_a_nonzero_exit_code(self):
         log_path = self._get_temp_path()
@@ -309,7 +308,7 @@ class BaseScriptRunner(object):
                           self._run,
                           **{'script_path': script_path})
         with open(log_path, 'r') as log_file:
-            self.assertEquals(abort_message, log_file.read().strip())
+            self.assertEqual(abort_message, log_file.read().strip())
 
     def test_process_env(self):
         script_path = self._create_script(
@@ -466,7 +465,7 @@ if __name__ == '__main__':
             ctx instance runtime-properties key "${input_as_env_var}"
             ''',
             # this fails on windows because apparently the 'complex object'
-            # isnt JSONed? instead it looks repr()-ed
+            # is not JSONed? instead it looks repr()-ed
             windows_script='''
             ctx instance runtime-properties key "%input_as_env_var%"
             ''')
@@ -475,7 +474,7 @@ if __name__ == '__main__':
             props = self._run(script_path=script_path,
                               env_var=value)
             self.assertEqual(
-                props['key'] if isinstance(value, text_type)
+                props['key'] if isinstance(value, str)
                 else json.loads(props['key']), value)
 
         test(u'string-value')
@@ -499,7 +498,7 @@ if __name__ == '__main__':
             ctx instance runtime-properties key "${input_as_env_var}"
             ''',
             # this fails on windows because apparently the 'complex object'
-            # isnt JSONed? instead it looks repr()-ed
+            # is not JSONed? instead it looks repr()-ed
             windows_script='''
             ctx instance runtime-properties key "%input_as_env_var%"
             ''')
@@ -513,7 +512,7 @@ if __name__ == '__main__':
                                   }
                               })
             self.assertEqual(
-                props['key'] if isinstance(value, text_type)
+                props['key'] if isinstance(value, str)
                 else json.loads(props['key']), value)
 
         test(u'override')
@@ -529,11 +528,11 @@ if __name__ == '__main__':
             ctx instance runtime-properties nonexistent
             ''')
 
-        e = self.assertRaises(tasks.ProcessException,
-                              self._run, script_path=script_path)
+        with self.assertRaises(tasks.ProcessException) as cm:
+            self._run(script_path=script_path)
 
-        self.assertIn(os.path.basename(script_path), e.command)
-        self.assertEqual(e.exit_code, 1)
+        self.assertIn(os.path.basename(script_path), cm.exception.command)
+        self.assertEqual(cm.exception.exit_code, 1)
         self.assertTrue(string_in_log('RequestError', self._caplog))
         self.assertTrue(string_in_log('nonexistent', self._caplog))
 
@@ -547,11 +546,11 @@ if __name__ == '__main__':
             ctx -j instance runtime-properties nonexistent
             ''')
 
-        e = self.assertRaises(tasks.ProcessException,
-                              self._run, script_path=script_path)
+        with self.assertRaises(tasks.ProcessException) as cm:
+            self._run(script_path=script_path)
 
-        self.assertIn(os.path.basename(script_path), e.command)
-        self.assertEqual(e.exit_code, 1)
+        self.assertIn(os.path.basename(script_path), cm.exception.command)
+        self.assertEqual(cm.exception.exit_code, 1)
         self.assertTrue(string_in_log('RequestError', self._caplog))
         self.assertTrue(string_in_log('nonexistent', self._caplog))
 
@@ -597,14 +596,14 @@ if __name__ == '__main__':
         return os.path.normpath(os.path.normcase(path))
 
 
-class TestScriptRunnerHTTPCtxProxy(BaseScriptRunner, testtools.TestCase):
+class TestScriptRunnerHTTPCtxProxy(BaseScriptRunner, unittest.TestCase):
 
     def setUp(self):
         super(TestScriptRunnerHTTPCtxProxy, self).setUp()
         self.ctx_proxy_type = 'http'
 
 
-class TestCtxProxyType(testtools.TestCase):
+class TestCtxProxyType(unittest.TestCase):
     def test_http_ctx_type(self):
         self.assert_valid_ctx_proxy('http', HTTPCtxProxy)
 
@@ -640,7 +639,7 @@ class TestCtxProxyType(testtools.TestCase):
             proxy.close()
 
 
-class TestPowerShellConfiguration(testtools.TestCase):
+class TestPowerShellConfiguration(unittest.TestCase):
 
     def setUp(self):
         super(TestPowerShellConfiguration, self).setUp()
@@ -692,7 +691,7 @@ class TestPowerShellConfiguration(testtools.TestCase):
         current_ctx.clear()
 
 
-class TestEvalPythonConfiguration(testtools.TestCase):
+class TestEvalPythonConfiguration(unittest.TestCase):
 
     def setUp(self):
         super(TestEvalPythonConfiguration, self).setUp()
@@ -763,7 +762,7 @@ class TestEvalPythonConfiguration(testtools.TestCase):
                   ctx=self.mock_ctx())
 
 
-class TestDownloadResource(testtools.TestCase):
+class TestDownloadResource(unittest.TestCase):
 
     def setUp(self):
         super(TestDownloadResource, self).setUp()

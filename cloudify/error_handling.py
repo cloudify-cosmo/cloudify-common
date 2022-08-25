@@ -14,21 +14,26 @@
 #    * limitations under the License.
 
 import traceback
+from io import StringIO
 
-from cloudify._compat import StringIO
 from cloudify.utils import format_exception
 from cloudify import exceptions
 
 
-def serialize_known_exception(e):
+def serialize_known_exception(e, formatted_traceback=None):
     """
     Serialize a cloudify exception into a dict
     :param e: A cloudify exception
+    :param formatted_traceback: If a traceback is already available, use it;
+        otherwise, a traceback will be generated.
     :return: A JSON serializable payload dict
     """
-    tb = StringIO()
-    traceback.print_exc(file=tb)
-    trace_out = tb.getvalue()
+    if formatted_traceback is None:
+        tb = StringIO()
+        traceback.print_exc(file=tb)
+        trace_out = tb.getvalue()
+    else:
+        trace_out = formatted_traceback
 
     # Needed because HttpException constructor sucks
     append_message = False

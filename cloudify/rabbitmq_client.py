@@ -19,7 +19,7 @@ import random
 import requests
 import tempfile
 
-from cloudify._compat import urlquote
+from urllib.parse import quote as urlquote
 from cloudify.utils import ipv6_url_compat
 
 

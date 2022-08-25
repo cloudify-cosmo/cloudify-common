@@ -13,9 +13,8 @@
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
 
+import unittest
 from os import path
-
-import testtools
 
 from cloudify.constants import COMPUTE_NODE_TYPE
 from cloudify.decorators import operation
@@ -45,7 +44,7 @@ def create_amqp(ctx, **_):
     ctx.instance.runtime_properties['created'] = True
 
 
-class TestInstallNewAgentsWorkflow(testtools.TestCase):
+class TestInstallNewAgentsWorkflow(unittest.TestCase):
     blueprint_path = path.join('resources', 'blueprints',
                                'install-new-agents-blueprint.yaml')
 
@@ -62,7 +61,7 @@ class TestInstallNewAgentsWorkflow(testtools.TestCase):
 
     @workflow_test(blueprint_path)
     def test_not_installed(self, cfy_local):
-        with testtools.ExpectedException(RuntimeError, ".*is not started.*"):
+        with self.assertRaisesRegex(RuntimeError, ".*is not started.*"):
             cfy_local.execute('install_new_agents')
         self._assert_all_computes_created(cfy_local, created=False)
 

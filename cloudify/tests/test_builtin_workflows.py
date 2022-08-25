@@ -19,7 +19,6 @@ import unittest
 from os import path
 
 import mock
-import testtools
 
 from cloudify import exceptions
 from cloudify.plugins import lifecycle
@@ -42,14 +41,14 @@ class GlobalCounter(object):
 global_counter = GlobalCounter()
 
 
-class LifecycleBaseTest(testtools.TestCase):
+class LifecycleBaseTest(unittest.TestCase):
 
     def _make_assertions(self, cfy_local, expected_ops):
         instances = cfy_local.storage.get_node_instances()
         instance = instances[0]
         invocations = instance.runtime_properties['invocations']
         invoked_operations = [x['operation'] for x in invocations]
-        self.assertEquals(invoked_operations, expected_ops)
+        self.assertEqual(invoked_operations, expected_ops)
 
     def _make_filter_assertions(self, cfy_local,
                                 expected_num_of_visited_instances,
@@ -76,8 +75,8 @@ class LifecycleBaseTest(testtools.TestCase):
                 self.assertIsNone(test_op_visited)
 
         # this is actually an assertion to ensure the tests themselves are ok
-        self.assertEquals(expected_num_of_visited_instances,
-                          num_of_visited_instances)
+        self.assertEqual(expected_num_of_visited_instances,
+                         num_of_visited_instances)
 
 
 class TestWorkflowLifecycleOperations(LifecycleBaseTest):
@@ -183,8 +182,8 @@ class TestExecuteOperationWorkflow(LifecycleBaseTest):
             self.assertIn('op_kwargs', instance.runtime_properties)
             op_kwargs = instance.runtime_properties['op_kwargs']
             self.assertIn(operation_param_key, op_kwargs)
-            self.assertEquals(operation_param_value,
-                              op_kwargs[operation_param_key])
+            self.assertEqual(operation_param_value,
+                             op_kwargs[operation_param_key])
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_by_nodes(self, cfy_local):
@@ -348,7 +347,7 @@ class TestExecuteOperationWorkflow(LifecycleBaseTest):
         self.assertEqual(len(invocations), 2)
 
 
-class TestScale(testtools.TestCase):
+class TestScale(unittest.TestCase):
     scale_blueprint_path = path.join('resources', 'blueprints',
                                      'test-scale-blueprint.yaml')
 
@@ -359,10 +358,10 @@ class TestScale(testtools.TestCase):
 
     @workflow_test(scale_blueprint_path)
     def test_no_node(self, cfy_local):
-        with testtools.ExpectedException(ValueError, ".*mock was found.*"):
+        with self.assertRaisesRegex(ValueError, ".*mock was found.*"):
             cfy_local.execute(
                 'scale', parameters={'scalable_entity_name': 'mock'})
-        with testtools.ExpectedException(ValueError, ".*mock was found.*"):
+        with self.assertRaisesRegex(ValueError, ".*mock was found.*"):
             cfy_local.execute('scale_old', parameters={'node_id': 'mock'})
 
     @workflow_test(scale_blueprint_path)
@@ -375,17 +374,17 @@ class TestScale(testtools.TestCase):
 
     @workflow_test(scale_blueprint_path)
     def test_illegal_delta(self, cfy_local):
-        with testtools.ExpectedException(ValueError, ".*-2 is illegal.*"):
+        with self.assertRaisesRegex(ValueError, ".*-2 is illegal.*"):
             cfy_local.execute('scale', parameters={
                 'scalable_entity_name': 'node',
                 'delta': -2})
-        with testtools.ExpectedException(ValueError, ".*-2 is illegal.*"):
+        with self.assertRaisesRegex(ValueError, ".*-2 is illegal.*"):
             cfy_local.execute('scale_old', parameters={'node_id': 'node',
                                                        'delta': -2})
 
     @workflow_test(scale_blueprint_path)
     def test_illegal_str_delta(self, cfy_local):
-        with testtools.ExpectedException(ValueError, ".*must be a number.*"):
+        with self.assertRaisesRegex(ValueError, ".*must be a number.*"):
             cfy_local.execute('scale',
                               parameters={'scalable_entity_name': 'node',
                                           'delta': 'not a number'})
@@ -439,7 +438,7 @@ class TestScale(testtools.TestCase):
         modification.finish.assert_called_once()
 
 
-class TestSubgraphWorkflowLogic(testtools.TestCase):
+class TestSubgraphWorkflowLogic(unittest.TestCase):
 
     @workflow_test(path.join('resources', 'blueprints',
                              'test-subgraph-blueprint.yaml'))
@@ -534,7 +533,7 @@ class TestSubgraphWorkflowLogic(testtools.TestCase):
         self.assertEqual(4, len(all_invocations))
 
 
-class TestHealOperation(testtools.TestCase):
+class TestHealOperation(unittest.TestCase):
     """Tests for the heal workflow, using the heal operation.
 
     Each test case runs the heal operation on a node instance, and checks
@@ -707,7 +706,7 @@ def update_test_workflow(ctx, node_instance_id, **kwargs):
     )
 
 
-class TestUpdateOperation(testtools.TestCase):
+class TestUpdateOperation(unittest.TestCase):
     """Test the update flow of the lifecycle processor.
 
     This is using a "fake" workflow to run the lifecycle code; the real
@@ -794,7 +793,7 @@ class TestUpdateOperation(testtools.TestCase):
         ]
 
 
-class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):
+class TestRelationshipOrderInLifecycleWorkflows(unittest.TestCase):
 
     blueprint_path = path.join('resources', 'blueprints',
                                'test-relationship-order-blueprint.yaml')

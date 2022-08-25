@@ -20,20 +20,13 @@ install_requires = [
     'retrying==1.3.3',
     'proxy_tools==0.1.0',
     'bottle==0.12.19',
-    'jinja2==2.11.3',
+    'jinja2>3,<4',
     'requests_toolbelt==0.9.1',
     'wagon>0.10',
     'pytz==2021.3'
 ]
 
-if sys.version_info[:3] < (2, 7, 9):
-    install_requires += [
-        'pika==0.11.2',
-        'requests==2.19.1',
-        'fasteners==0.16.3',
-    ]
-    pyyaml_version = '5.4.1'
-elif sys.version_info[:2] < (3, 6):
+if sys.version_info[:2] < (3, 6):
     install_requires += [
         'pika==1.1.0',
         'requests==2.25.1',
@@ -67,7 +60,7 @@ except ImportError:
 
 setup(
     name='cloudify-common',
-    version='6.4.0.dev1',
+    version='7.0.0.dev1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     packages=find_packages(exclude=('dsl_parser.tests*',
@@ -92,13 +85,6 @@ setup(
         'dispatcher': [
             'PyYAML=={0}'.format(pyyaml_version),
             'networkx==1.11',
-        ],
-        # this is just a hack to allow running unittests on py26.
-        # DO NOT USE THIS ANYWHERE ELSE.
-        # to be removed ASAP whenever we can drop py26 agents.
-        'dispatcher_py26': [
-            'PyYAML==4.2b4',
-            'networkx==1.9.1',
         ],
         'snmp': [
             'pysnmp==4.4.5'

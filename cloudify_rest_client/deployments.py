@@ -388,7 +388,7 @@ class DeploymentGroupsClient(object):
             description=None, blueprint_id=None, default_inputs=None,
             labels=None, filter_id=None, deployment_ids=None,
             new_deployments=None, deployments_from_group=None,
-            created_by=None, created_at=None):
+            created_by=None, created_at=None, creation_counter=None):
         """Create or update the specified deployment group.
 
         Setting group deployments using this method (via either filter_id
@@ -414,6 +414,8 @@ class DeploymentGroupsClient(object):
             group given by this id
         :param created_by: Override the creator. Internal use only.
         :param created_at: Override the creation timestamp. Internal use only.
+        :param creation_counter: Override the creation counter.
+            Internal use only.
         :return: the created deployment group
         """
         data = {
@@ -431,6 +433,8 @@ class DeploymentGroupsClient(object):
             data['created_at'] = created_at
         if created_by:
             data['created_by'] = created_by
+        if creation_counter:
+            data['creation_counter'] = creation_counter
         response = self.api.put(
             '/deployment-groups/{0}'.format(group_id), data=data,
         )
@@ -720,6 +724,7 @@ class DeploymentsClient(object):
                async_create=None,
                created_at=None,
                created_by=None,
+               workflows=None,
                _workdir_zip=None):
         """
         Creates a new deployment for the provided blueprint id and
@@ -744,6 +749,7 @@ class DeploymentsClient(object):
         :param async_create: if True, do not wait for the deployment
             environment to finish creating
         :param _workdir_zip: Internal only.
+        :param workflows: Set the deployment workflows. Internal use only.
         :return: The created deployment.
         """
         assert blueprint_id
@@ -759,6 +765,8 @@ class DeploymentsClient(object):
             data['display_name'] = display_name
         if _workdir_zip:
             data['workdir_zip'] = _workdir_zip
+        if workflows:
+            data['workflows'] = workflows
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)

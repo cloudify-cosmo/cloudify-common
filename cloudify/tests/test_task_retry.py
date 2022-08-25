@@ -15,7 +15,7 @@
 
 from os import path
 
-import testtools
+import unittest
 
 from cloudify import decorators
 from cloudify import exceptions
@@ -38,7 +38,7 @@ def fail_execute_task(ctx, **kwargs):
         raise AssertionError()
 
 
-class TaskRetryWorkflowTests(testtools.TestCase):
+class TaskRetryWorkflowTests(unittest.TestCase):
 
     retry_blueprint_yaml = path.join('resources', 'blueprints',
                                      'test-task-retry-blueprint.yaml')

@@ -15,7 +15,7 @@
 
 from os import path
 
-import testtools
+import unittest
 from mock import patch
 
 from cloudify import decorators
@@ -44,7 +44,7 @@ def execute_operation(ctx, retry_type, **_):
     })
 
 
-class TaskRetryEventContextTests(testtools.TestCase):
+class TaskRetryEventContextTests(unittest.TestCase):
 
     blueprint_path = path.join('resources', 'blueprints',
                                'test-task-retry-event-context-blueprint.yaml')

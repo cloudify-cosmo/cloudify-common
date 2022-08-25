@@ -33,16 +33,21 @@ import subprocess
 
 from datetime import datetime, timedelta
 from contextlib import contextmanager, closing
+from io import StringIO
 import socket   # replace with ipaddress when this is py3-only
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
 from cloudify import constants
 from cloudify.state import workflow_parameters, workflow_ctx, ctx, current_ctx
-from cloudify._compat import StringIO, parse_version
-from cloudify._compat import uuid4  # NOQA - import just to re-export here
 from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
+
+try:
+    from packaging.version import parse as parse_version
+except ImportError:
+    from distutils.version import LooseVersion as parse_version
+
 
 ENV_CFY_EXEC_TEMPDIR = 'CFY_EXEC_TEMP'
 ENV_AGENT_LOG_LEVEL = 'AGENT_LOG_LEVEL'
@@ -1028,3 +1033,28 @@ def ipv6_url_compat(addr):
     if _is_ipv6(addr):
         return '[{0}]'.format(addr)
     return addr
+
+
+def uuid4():
+    """Generate a random UUID, and return a string representation of it.
+
+    This is pretty much a copy of the stdlib uuid4. We inline it here,
+    because we'd like to avoid importing the stdlib uuid module on the
+    operation dispatch critical path, because importing the stdlib
+    uuid module runs some subprocesses (for detecting the uuid1-uuid3 MAC
+    address), and that causes more memory pressure than we'd like.
+    """
+    uuid_bytes = os.urandom(16)
+    uuid_as_int = int.from_bytes(uuid_bytes, byteorder='big')
+    uuid_as_int &= ~(0xc000 << 48)
+    uuid_as_int |= 0x8000 << 48
+    uuid_as_int &= ~(0xf000 << 64)
+    uuid_as_int |= 4 << 76
+    uuid_as_hex = '%032x' % uuid_as_int
+    return '%s-%s-%s-%s-%s' % (
+        uuid_as_hex[:8],
+        uuid_as_hex[8:12],
+        uuid_as_hex[12:16],
+        uuid_as_hex[16:20],
+        uuid_as_hex[20:]
+    )

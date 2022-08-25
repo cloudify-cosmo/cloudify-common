@@ -18,7 +18,6 @@ import copy
 from dsl_parser import (exceptions,
                         utils,
                         constants)
-from dsl_parser._compat import text_type
 from dsl_parser.interfaces import interfaces_parser
 from dsl_parser.elements import (node_types as _node_types,
                                  plugins as _plugins,
@@ -39,7 +38,7 @@ from dsl_parser.framework.elements import (DictElement,
 class NodeTemplateType(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     requires = {
         _node_types.NodeTypes: [Value('node_types')]
     }
@@ -84,7 +83,7 @@ class NodeTemplateProperties(Element):
 class NodeTemplateRelationshipType(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     requires = {
         _relationships.Relationships: [Value('relationships')]
     }
@@ -101,7 +100,7 @@ class NodeTemplateRelationshipType(Element):
 class NodeTemplateRelationshipTarget(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
     def validate(self):
         relationship_type = self.sibling(NodeTemplateRelationshipType).name

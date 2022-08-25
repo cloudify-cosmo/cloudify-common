@@ -4,14 +4,7 @@ import sys
 import json
 import shlex
 import subprocess
-from collections import MutableMapping, Mapping
-
-PY2 = sys.version_info[0] == 2
-
-if PY2:
-    text_type = unicode  # NOQA
-else:
-    text_type = str
+from collections.abc import MutableMapping, Mapping
 
 
 def check_output(*popenargs, **kwargs):
@@ -43,7 +36,7 @@ def check_output(*popenargs, **kwargs):
 
 
 def unicode_to_string(text):
-    if isinstance(text, text_type):
+    if isinstance(text, str):
         return text
     elif isinstance(text, bytes):
         return text.decode('utf-8', 'ignore')

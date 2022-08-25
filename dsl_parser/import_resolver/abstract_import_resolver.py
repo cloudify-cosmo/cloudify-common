@@ -19,7 +19,6 @@ import requests
 from retrying import retry
 
 from dsl_parser import exceptions
-from dsl_parser._compat import ABC
 
 
 DEFAULT_RETRY_DELAY = 1
@@ -33,7 +32,7 @@ def is_remote_resource(resource_url):
         return True
 
 
-class AbstractImportResolver(ABC):
+class AbstractImportResolver(abc.ABC):
     """
     This class is abstract and should be inherited by concrete
     implementations of import resolver.

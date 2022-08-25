@@ -21,9 +21,8 @@ import tempfile
 import shutil
 import os
 import types
+import unittest
 import warnings
-
-import testtools
 
 import cloudify.logs
 from cloudify.decorators import workflow, operation
@@ -46,7 +45,7 @@ class BaseWorkflowTest(object):
         self.env = None
         os.mkdir(self.storage_dir)
         self.addCleanup(self.cleanup)
-        testtools.TestCase.setUp(self)
+        super().setUp()
 
     def cleanup(self):
         shutil.rmtree(self.work_dir)
@@ -552,7 +551,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
             instance = _instance(ctx, 'node')
             self.assertIsNone(instance.get_state().get())
             instance.set_state('state').get()
-            self.assertEquals('state', instance.get_state().get())
+            self.assertEqual('state', instance.get_state().get())
         self._execute_workflow(get_set_node_instance_state)
 
     def test_workflow_ctx_properties(self):
@@ -890,14 +889,14 @@ class LocalWorkflowTest(BaseWorkflowTest):
         )
 
 
-class LocalWorkflowTestInMemoryStorage(LocalWorkflowTest, testtools.TestCase):
+class LocalWorkflowTestInMemoryStorage(LocalWorkflowTest, unittest.TestCase):
 
     def setUp(self):
         super(LocalWorkflowTestInMemoryStorage, self).setUp()
         self.storage_cls = local.InMemoryStorage
 
 
-class LocalWorkflowTestFileStorage(LocalWorkflowTest, testtools.TestCase):
+class LocalWorkflowTestFileStorage(LocalWorkflowTest, unittest.TestCase):
 
     def setUp(self):
         super(LocalWorkflowTestFileStorage, self).setUp()
@@ -905,7 +904,7 @@ class LocalWorkflowTestFileStorage(LocalWorkflowTest, testtools.TestCase):
         self.storage_kwargs = {'storage_dir': self.storage_dir}
 
 
-class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
+class FileStorageTest(BaseWorkflowTest, unittest.TestCase):
 
     def setUp(self):
         super(FileStorageTest, self).setUp()
@@ -982,7 +981,7 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
         content = 'CONTENT'
 
         def op0(ctx, **_):
-            self.assertEquals(
+            self.assertEqual(
                 ctx.plugin.workdir,
                 os.path.join(
                     self.storage_dir, 'deployments', self._testMethodName,
@@ -1017,7 +1016,7 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
                                setup_env=False, load_env=True)
 
 
-class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
+class LocalWorkflowEnvironmentTest(BaseWorkflowTest, unittest.TestCase):
 
     def setUp(self):
         super(LocalWorkflowEnvironmentTest, self).setUp()

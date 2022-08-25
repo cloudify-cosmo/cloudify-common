@@ -15,16 +15,17 @@
 
 import traceback
 import re
-import collections
 import json
+import queue
 import threading
 import socket
+from collections.abc import MutableMapping
+from io import StringIO
 from wsgiref.simple_server import WSGIServer, WSGIRequestHandler
 from wsgiref.simple_server import make_server as make_wsgi_server
 
 import bottle
 
-from cloudify._compat import text_type, queue, StringIO
 from cloudify.proxy.client import ScriptException
 from cloudify.state import current_ctx
 
@@ -155,7 +156,7 @@ def process_ctx_request(ctx, args):
         desugared_attr = _desugar_attr(current, arg)
         if desugared_attr:
             current = getattr(current, desugared_attr)
-        elif isinstance(current, collections.MutableMapping):
+        elif isinstance(current, MutableMapping):
             key = arg
             path_dict = PathDictAccess(current)
             if index + 1 == num_args:
@@ -172,7 +173,7 @@ def process_ctx_request(ctx, args):
         elif callable(current):
             kwargs = {}
             remaining_args = args[index:]
-            if isinstance(remaining_args[-1], collections.MutableMapping):
+            if isinstance(remaining_args[-1], MutableMapping):
                 kwargs = remaining_args[-1]
                 remaining_args = remaining_args[:-1]
             current = current(*remaining_args, **kwargs)
@@ -189,7 +190,7 @@ def process_ctx_request(ctx, args):
 
 
 def _desugar_attr(obj, attr):
-    if not isinstance(attr, text_type):
+    if not isinstance(attr, str):
         return None
     try:
         if hasattr(obj, attr):

@@ -14,13 +14,13 @@
 #    * limitations under the License.
 
 
-import testtools
+import unittest
 
 from cloudify import exceptions
 from cloudify.manager import NodeInstance
 
 
-class NodeStateTest(testtools.TestCase):
+class NodeStateTest(unittest.TestCase):
 
     def test_put_get(self):
         node = NodeInstance('instance_id', 'node_id', {})
@@ -72,15 +72,15 @@ class NodeStateTest(testtools.TestCase):
     def test_delete_property(self):
         node = NodeInstance('instance_id', 'node_id')
         node.put('key', 'value')
-        self.assertEquals('value', node.get('key'))
+        self.assertEqual('value', node.get('key'))
         node.delete('key')
         self.assertNotIn('key', node)
 
     def test_delete_property_sugared_syntax(self):
         node = NodeInstance('instance_id', 'node_id')
         node.put('key', 'value')
-        self.assertEquals('value', node.get('key'))
-        del(node['key'])
+        self.assertEqual('value', node.get('key'))
+        del node['key']
         self.assertNotIn('key', node)
 
     def test_delete_nonexistent_property(self):
@@ -91,7 +91,7 @@ class NodeStateTest(testtools.TestCase):
         node = NodeInstance('instance_id', 'node_id',
                             runtime_properties={'preexisting-key': 'val'})
         self.assertFalse(node.dirty)
-        del(node['preexisting-key'])
+        del node['preexisting-key']
         self.assertTrue(node.dirty)
 
     def test_setting_runtime_properties(self):

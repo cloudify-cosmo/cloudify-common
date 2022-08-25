@@ -15,12 +15,12 @@
 
 import mock
 import time
-import testtools
+import unittest
 from contextlib import contextmanager
 
 from cloudify_rest_client.operations import Operation
 
-from cloudify.exceptions import WorkflowFailed
+from cloudify.exceptions import WorkflowFailed, NonRecoverableError
 from cloudify.workflows import api
 from cloudify.workflows import tasks
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
@@ -67,7 +67,27 @@ class MockWorkflowContext(_WorkflowContextBase):
         self.internal.handler.operation_cloudify_context = {}
 
 
-class TestTasksGraphExecute(testtools.TestCase):
+class FailedTask(tasks.WorkflowTask):
+    """A task that always immediately fails with a NonRecoverableError"""
+    name = 'failtask'
+
+    def apply_async(self):
+        self.async_result.result = NonRecoverableError()
+        self.set_state(tasks.TASK_FAILED)
+        return self.async_result
+
+
+class PassedTask(tasks.WorkflowTask):
+    """A task that always immediately completes successfully"""
+    name = 'task'
+
+    def apply_async(self):
+        self.set_state(tasks.TASK_SUCCEEDED)
+        self.async_result.result = None
+        return self.async_result
+
+
+class TestTasksGraphExecute(unittest.TestCase):
     def test_executes_single_task(self):
         """A single NOP task is executed within a single iteration of the
         tasks graph loop"""
@@ -95,13 +115,6 @@ class TestTasksGraphExecute(testtools.TestCase):
     def test_task_failed(self):
         """Execution is stopped when a task failed. The next task is not
         executed"""
-        class FailedTask(tasks.WorkflowTask):
-            name = 'failtask'
-
-            def apply_async(self):
-                self.async_result.result = None
-                self.set_state(tasks.TASK_FAILED)
-                return self.async_result
 
         task1 = FailedTask(mock.Mock(), total_retries=0)
         task2 = mock.Mock(execute_after=0)
@@ -190,6 +203,34 @@ class TestTasksGraphExecute(testtools.TestCase):
         g.execute()
         assert record == [1, 'success', 2]
 
+    def test_continue_after_fail(self):
+        wctx = MockWorkflowContext()
+        g = TaskDependencyGraph(wctx)
+
+        ft = FailedTask(wctx)
+        t1 = PassedTask(wctx)
+        t2 = PassedTask(wctx)
+        t3 = PassedTask(wctx)
+        t4 = PassedTask(wctx)
+        t5 = PassedTask(wctx)
+        for t in [t1, t2, t3, t4, t5, ft]:
+            g.add_task(t)
+
+        # there's two disjoint subgraphs:
+        # t1 -> ft -> t2
+        # t3 -> t4 -> t5
+        # t1 runs, ft fails, and t2 does not run
+        # t3, t4, and t5 all run
+        g.add_dependency(ft, t1)
+        g.add_dependency(t2, ft)
+        g.add_dependency(t4, t3)
+        g.add_dependency(t5, t4)
+
+        self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
+        for t in [t1, t3, t4, t5]:
+            assert t.get_state() == 'succeeded'
+        assert t2.get_state() == 'pending'
+
 
 class _CustomRestorableTask(tasks.WorkflowTask):
     """A custom user-provided task, that can be restored"""
@@ -197,7 +238,7 @@ class _CustomRestorableTask(tasks.WorkflowTask):
     task_type = 'cloudify.tests.test_tasks_graph._CustomRestorableTask'
 
 
-class TestTaskGraphRestore(testtools.TestCase):
+class TestTaskGraphRestore(unittest.TestCase):
     def _remote_task(self):
         """Make a RemoteWorkflowTask mock for use in tests"""
         return {
@@ -357,7 +398,7 @@ class NonExecutingGraph(TaskDependencyGraph):
         pass
 
 
-class TestLifecycleGraphs(testtools.TestCase):
+class TestLifecycleGraphs(unittest.TestCase):
     def _make_ctx_and_graph(self):
         ctx = MockWorkflowContext()
         graph = NonExecutingGraph(ctx)
@@ -573,7 +614,7 @@ class TestLifecycleGraphs(testtools.TestCase):
         assert task_indexes['n2_delete'] is None
 
 
-class TestGraphOptimization(testtools.TestCase):
+class TestGraphOptimization(unittest.TestCase):
     """Tests for graph.optimize(), which omits empty/pointless tasks"""
 
     def test_removes_nop(self):
