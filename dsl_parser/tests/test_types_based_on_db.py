@@ -21,7 +21,7 @@ inputs:
     type: {data_type}
     """
 
-    def test_fuzzy_with_deployment_id_constriant_1_3(self):
+    def test_fuzzy_with_deployment_id_constraint_1_3(self):
         data_type = random.choice(
             constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)
         with pytest.raises(exceptions.DSLParsingLogicException,
@@ -30,7 +30,7 @@ inputs:
             self.parse_1_3(TypesBasedOnDatabaseTest.YAML_with_dep_id
                            .format(data_type=data_type))
 
-    def test_fuzzy_with_deployment_id_constriant_1_4(self):
+    def test_fuzzy_with_deployment_id_constraint_1_4(self):
         data_type = random.choice(
             constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)
         parsed = self.parse_1_4(TypesBasedOnDatabaseTest.YAML_with_dep_id
