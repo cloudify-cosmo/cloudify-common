@@ -21,6 +21,19 @@ inputs:
     type: {data_type}
     """
 
+    YAML_for_node_props = """
+node_types:
+  t1:
+    properties:
+      {data_type}:
+        type: {data_type}
+node_templates:
+  x:
+    type: t1
+    properties:
+      {data_type}: foobar
+        """
+
     def test_fuzzy_with_deployment_id_constraint_1_3(self):
         data_type = random.choice(
             constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)
@@ -54,3 +67,21 @@ inputs:
         parsed = self.parse_1_4(TypesBasedOnDatabaseTest.YAML_without_dep_id
                                 .format(data_type=data_type))
         assert parsed['inputs'][data_type]['type'] == data_type
+
+    def test_fuzzy_node_property_1_3(self):
+        data_type = random.choice(
+            list(set(constants.TYPES_BASED_ON_DB_ENTITIES) -
+                 set(constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)))
+        with pytest.raises(exceptions.DSLParsingLogicException,
+                           match="^type '{data_type}' not.*cloudify_dsl_1_3"
+                                 .format(data_type=data_type)):
+            self.parse_1_3(TypesBasedOnDatabaseTest.YAML_for_node_props
+                           .format(data_type=data_type))
+
+    def test_fuzzy_node_property_1_4(self):
+        data_type = random.choice(
+            list(set(constants.TYPES_BASED_ON_DB_ENTITIES) -
+                 set(constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)))
+        parsed = self.parse_1_4(TypesBasedOnDatabaseTest.YAML_for_node_props
+                                .format(data_type=data_type))
+        assert parsed['nodes'][0]['properties'][data_type] == 'foobar'
