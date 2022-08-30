@@ -776,39 +776,39 @@ class DeploymentsClient(object):
         assert blueprint_id
         assert deployment_id
         data = {'blueprint_id': blueprint_id, 'visibility': visibility}
-        if inputs:
+        if inputs is not None:
             data['inputs'] = inputs
-        if site_name:
+        if site_name is not None:
             data['site_name'] = site_name
-        if labels:
+        if labels is not None:
             data['labels'] = labels
-        if display_name:
+        if display_name is not None:
             data['display_name'] = display_name
-        if _workdir_zip:
+        if _workdir_zip is not None:
             data['workdir_zip'] = _workdir_zip
-        if workflows:
+        if workflows is not None:
             data['workflows'] = workflows
-        if groups:
+        if groups is not None:
             data['groups'] = groups
-        if scaling_groups:
+        if scaling_groups is not None:
             data['scaling_groups'] = scaling_groups
-        if policy_triggers:
+        if policy_triggers is not None:
             data['policy_triggers'] = policy_triggers
-        if policy_types:
+        if policy_types is not None:
             data['policy_types'] = policy_types
-        if outputs:
+        if outputs is not None:
             data['outputs'] = outputs
-        if capabilities:
+        if capabilities is not None:
             data['capabilities'] = capabilities
-        if resource_tags:
+        if resource_tags is not None:
             data['resource_tags'] = resource_tags
-        if outputs:
+        if outputs is not None:
             data['outputs'] = outputs
-        if description:
+        if description is not None:
             data['description'] = description
-        if deployment_status:
+        if deployment_status is not None:
             data['deployment_status'] = deployment_status
-        if installation_status:
+        if installation_status is not None:
             data['installation_status'] = installation_status
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
@@ -883,6 +883,15 @@ class DeploymentsClient(object):
             '/deployments/{0}/set-site'.format(deployment_id),
             data=data
         )
+
+    def set_executions(self, deployment_id,
+                       create_execution, latest_execution):
+        """Set associated executions. Internal use only."""
+        data = {
+            'create_execution': create_execution,
+            'latest_execution': latest_execution,
+        }
+        return self.api.patch(f'/deployments/{deployment_id}', data=data)
 
     def update_labels(self, deployment_id, labels, creator=None,
                       created_at=None):
