@@ -884,15 +884,6 @@ class DeploymentsClient(object):
             data=data
         )
 
-    def set_executions(self, deployment_id,
-                       create_execution, latest_execution):
-        """Set associated executions. Internal use only."""
-        data = {
-            'create_execution': create_execution,
-            'latest_execution': latest_execution,
-        }
-        return self.api.patch(f'/deployments/{deployment_id}', data=data)
-
     def update_labels(self, deployment_id, labels, creator=None,
                       created_at=None):
         """
@@ -913,11 +904,11 @@ class DeploymentsClient(object):
         return Deployment(updated_dep)
 
     def set_attributes(self, deployment_id, **kwargs):
-        """Set kwargs on the deployment.
+        """Set arbitrary properties on the deployment.
+        If you're not sure, you probably want to look at deployment update
+        instead.
 
-        This is used internally for first populating the deployment
-        with the attributes from the plan.
-        For updating existing deployments, use the deployment update methods.
+        For internal use only.
         """
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=kwargs)
