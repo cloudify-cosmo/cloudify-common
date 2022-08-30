@@ -905,7 +905,7 @@ class DeploymentsClient(object):
 
     def set_attributes(self, deployment_id, **kwargs):
         """Set arbitrary properties on the deployment.
-        
+
         If you're not sure, you probably want to look at deployment update
         instead.
 
