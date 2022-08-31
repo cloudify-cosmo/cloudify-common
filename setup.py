@@ -19,11 +19,11 @@ setup(
         'jinja2>3,<4',
         'requests_toolbelt==0.9.1',
         'wagon>0.10',
-        'pytz==2021.3',
-        'pika==1.1.0',
+        'pytz==2022.2.1',
+        'pika==1.3.0',
         'requests>=2.27.1,<3.0.0',
         'fasteners==0.17.3',
-        'aiohttp==3.7.4.post0',
+        'aiohttp==3.8.1',
     ],
     entry_points={
         'console_scripts': [
