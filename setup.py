@@ -14,7 +14,6 @@ setup(
     description='Cloudify Common',
     zip_safe=False,
     install_requires=[
-        'retrying==1.3.3',
         'proxy_tools==0.1.0',
         'bottle==0.12.19',
         'jinja2>3,<4',
