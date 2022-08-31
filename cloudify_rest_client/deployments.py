@@ -725,6 +725,16 @@ class DeploymentsClient(object):
                created_at=None,
                created_by=None,
                workflows=None,
+               groups=None,
+               scaling_groups=None,
+               policy_triggers=None,
+               policy_types=None,
+               outputs=None,
+               capabilities=None,
+               resource_tags=None,
+               description=None,
+               deployment_status=None,
+               installation_status=None,
                _workdir_zip=None):
         """
         Creates a new deployment for the provided blueprint id and
@@ -750,23 +760,56 @@ class DeploymentsClient(object):
             environment to finish creating
         :param _workdir_zip: Internal only.
         :param workflows: Set the deployment workflows. Internal use only.
+        :param groups: Set groups. Internal use only.
+        :param scaling_groups: Set scaling_groups. Internal use only.
+        :param policy_triggers: Set policy_triggers. Internal use only.
+        :param policy_types: Set policy_types. Internal use only.
+        :param outputs: Set outputs. Internal use only.
+        :param capabilities: Set capabilities. Internal use only.
+        :param resource_tags: Set resource_tags. Internal use only.
+        :param description: Set description. Internal use only.
+        :param deployment_status: Set deployment status. Internal use only.
+        :param installation_status: Set installation status.
+                                    Internal use only.
         :return: The created deployment.
         """
         assert blueprint_id
         assert deployment_id
         data = {'blueprint_id': blueprint_id, 'visibility': visibility}
-        if inputs:
+        if inputs is not None:
             data['inputs'] = inputs
-        if site_name:
+        if site_name is not None:
             data['site_name'] = site_name
-        if labels:
+        if labels is not None:
             data['labels'] = labels
-        if display_name:
+        if display_name is not None:
             data['display_name'] = display_name
-        if _workdir_zip:
+        if _workdir_zip is not None:
             data['workdir_zip'] = _workdir_zip
-        if workflows:
+        if workflows is not None:
             data['workflows'] = workflows
+        if groups is not None:
+            data['groups'] = groups
+        if scaling_groups is not None:
+            data['scaling_groups'] = scaling_groups
+        if policy_triggers is not None:
+            data['policy_triggers'] = policy_triggers
+        if policy_types is not None:
+            data['policy_types'] = policy_types
+        if outputs is not None:
+            data['outputs'] = outputs
+        if capabilities is not None:
+            data['capabilities'] = capabilities
+        if resource_tags is not None:
+            data['resource_tags'] = resource_tags
+        if outputs is not None:
+            data['outputs'] = outputs
+        if description is not None:
+            data['description'] = description
+        if deployment_status is not None:
+            data['deployment_status'] = deployment_status
+        if installation_status is not None:
+            data['installation_status'] = installation_status
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
@@ -861,11 +904,12 @@ class DeploymentsClient(object):
         return Deployment(updated_dep)
 
     def set_attributes(self, deployment_id, **kwargs):
-        """Set kwargs on the deployment.
+        """Set arbitrary properties on the deployment.
 
-        This is used internally for first populating the deployment
-        with the attributes from the plan.
-        For updating existing deployments, use the deployment update methods.
+        If you're not sure, you probably want to look at deployment update
+        instead.
+
+        For internal use only.
         """
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=kwargs)

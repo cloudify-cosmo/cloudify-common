@@ -14,9 +14,9 @@
 #  * limitations under the License.
 
 import abc
+import time
 
 import requests
-from retrying import retry
 
 from dsl_parser import exceptions
 
@@ -62,9 +62,8 @@ def read_import(import_url):
             with open(filename) as f:
                 return f.read()
         except Exception as ex:
-            ex = exceptions.DSLParsingLogicException(
-                13, '{0} {1}; {2}'.format(error_str, import_url, ex))
-            raise ex
+            raise exceptions.DSLParsingLogicException(
+                13, f"{error_str} {import_url}; {ex}")
     else:
         number_of_attempts = MAX_NUMBER_RETRIES + 1
 
@@ -76,10 +75,6 @@ def read_import(import_url):
         def _is_internal_error(result):
             return hasattr(result, 'status_code') and result.status_code >= 500
 
-        @retry(stop_max_attempt_number=number_of_attempts,
-               wait_fixed=DEFAULT_RETRY_DELAY,
-               retry_on_exception=_is_recoverable_error,
-               retry_on_result=_is_internal_error)
         def get_import():
             response = requests.get(import_url,
                                     timeout=DEFAULT_REQUEST_TIMEOUT)
@@ -98,19 +93,36 @@ def read_import(import_url):
                         error_str, import_url, response.status_code))
                 raise invalid_url_err
 
+        def get_import_wrapper():
+            exception_caught = None
+            for attempt in range(number_of_attempts):
+                try:
+                    result = get_import()
+                    if not _is_internal_error(result):
+                        return result
+                except Exception as ex:
+                    if not _is_recoverable_error(ex):
+                        raise ex
+                    else:
+                        exception_caught = ex
+                time.sleep(DEFAULT_RETRY_DELAY)
+            if exception_caught:
+                raise exception_caught
+
         try:
-            import_result = get_import()
+            import_result = get_import_wrapper()
             # If the error is an internal error only. A custom exception should
             # be raised.
             if _is_internal_error(import_result):
-                msg = 'Import failed {0} times, due to internal server error' \
-                      '; {1}'.format(number_of_attempts, import_result.text)
-                raise exceptions.DSLParsingLogicException(13, msg)
+                raise exceptions.DSLParsingLogicException(
+                    13,
+                    f"Import failed {number_of_attempts} times, "
+                    f"due to internal server error; {import_result.text}"
+                )
             return import_result
         # If any ConnectionError, Timeout or URLRequired should rise
         # after the retrying mechanism, a custom exception will be raised.
         except (requests.ConnectionError, requests.Timeout,
-                requests.URLRequired) as err:
-
+                requests.URLRequired) as ex:
             raise exceptions.DSLParsingLogicException(
-                13, '{0} {1}; {2}'.format(error_str, import_url, err))
+                13, f"{error_str} {import_url}; {ex}")

@@ -1,5 +1,5 @@
 mock>=1.0.1
 pytest
 pytest-cov
-pytest-xdist==1.34.0
-coverage==5.5
+pytest-xdist==2.5.0
+coverage==6.2  # upgrade to 6.4.4 once we're on Python 3.10

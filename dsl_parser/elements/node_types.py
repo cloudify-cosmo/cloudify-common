@@ -24,12 +24,20 @@ from dsl_parser.framework import requirements
 from dsl_parser.framework.elements import Dict
 
 
+class NodeTypeProperty(_data_types.SchemaProperty):
+    pass
+
+
+class NodeTypeProperties(_data_types.SchemaWithInitialDefault):
+    schema = Dict(type=NodeTypeProperty)
+
+
 class NodeType(types.Type):
 
     schema = {
         'derived_from': types.TypeDerivedFrom,
         'interfaces': operation.NodeTypeInterfaces,
-        'properties': _data_types.SchemaWithInitialDefault,
+        'properties': NodeTypeProperties,
     }
     requires = {
         'self': [requirements.Value('super_type',
