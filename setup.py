@@ -15,7 +15,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'proxy_tools==0.1.0',
-        'bottle==0.12.19',
+        'bottle==0.12.23',
         'jinja2>3,<4',
         'requests_toolbelt==0.9.1',
         'wagon>0.10',
