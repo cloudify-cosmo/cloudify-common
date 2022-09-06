@@ -34,7 +34,9 @@ import subprocess
 from datetime import datetime, timedelta
 from contextlib import contextmanager, closing
 from io import StringIO
+from requests.exceptions import ConnectionError, Timeout
 import socket   # replace with ipaddress when this is py3-only
+
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
@@ -1058,3 +1060,17 @@ def uuid4():
         uuid_as_hex[16:20],
         uuid_as_hex[20:]
     )
+
+
+def keep_trying_http(func, total_timeout_sec=None):
+    def wrapper(*args, **kwargs):
+        timeout_at = None if total_timeout_sec is None \
+            else datetime.utcnow() + timedelta(seconds=total_timeout_sec)
+        while True:
+            try:
+                return func(*args, **kwargs)
+            except (ConnectionError, Timeout):
+                if timeout_at and datetime.utcnow() > timeout_at:
+                    raise
+
+    return wrapper
