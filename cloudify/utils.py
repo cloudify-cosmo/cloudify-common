@@ -42,7 +42,9 @@ from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
 from cloudify import constants
 from cloudify.state import workflow_parameters, workflow_ctx, ctx, current_ctx
-from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
+from cloudify.constants import (SUPPORTED_ARCHIVE_TYPES,
+                                KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
+                                MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC)
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
 try:
@@ -1062,8 +1064,9 @@ def uuid4():
     )
 
 
-def keep_trying_http(func, total_timeout_sec=None):
-    def wrapper(*args, **kwargs):
+def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
+                     max_delay_sec=MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC):
+    def wrapper(func, *args, **kwargs):
         timeout_at = None if total_timeout_sec is None \
             else datetime.utcnow() + timedelta(seconds=total_timeout_sec)
         while True:
@@ -1072,5 +1075,6 @@ def keep_trying_http(func, total_timeout_sec=None):
             except (ConnectionError, Timeout):
                 if timeout_at and datetime.utcnow() > timeout_at:
                     raise
+            time.sleep(random.randint(1, max_delay_sec))
 
     return wrapper

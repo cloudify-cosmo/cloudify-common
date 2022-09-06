@@ -946,7 +946,7 @@ class CloudifyContext(CommonContext):
             execution_id = self.execution_id
         return self._endpoint.get_execution(execution_id)
 
-    @utils.keep_trying_http
+    @utils.keep_trying_http(total_timeout_sec=None)
     def update_operation(self, state):
         """Update current operation state.
 
