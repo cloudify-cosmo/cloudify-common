@@ -1074,11 +1074,18 @@ def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
         while True:
             try:
                 return func
-            except (ConnectionError, Timeout):
+            except (ConnectionError, Timeout) as ex:
                 if timeout_at and datetime.utcnow() > timeout_at:
+                    logger.info(f'Finished retrying {func}: '
+                                f'total timeout of {total_timeout_sec} '
+                                f'seconds exceeded: {ex}')
                     raise
-            delay = random.randint(1, max_delay_sec)
-            logger.info(f'Will retry {func} in {delay} seconds')
-            time.sleep(delay)
+                delay = random.randint(1, max_delay_sec)
+                logger.info(f'Will retry {func} in {delay} seconds: {ex}')
+                time.sleep(delay)
+            except Exception as ex:
+                logger.info(f'Will not retry {func}: the encountered error '
+                            f'cannot be fixed by retrying: {ex}')
+                raise
 
     return wrapper
