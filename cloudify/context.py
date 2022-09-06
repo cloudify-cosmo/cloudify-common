@@ -401,6 +401,7 @@ class NodeInstanceContext(EntityContext):
         self._get_node_instance_if_needed()
         self._node_instance.runtime_properties = new_properties
 
+    @utils.keep_trying_http(total_timeout_sec=None)
     def update(self, on_conflict=None):
         """
         Stores new/updated runtime properties for the node instance in context
