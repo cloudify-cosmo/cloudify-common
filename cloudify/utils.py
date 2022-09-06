@@ -1066,15 +1066,19 @@ def uuid4():
 
 def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
                      max_delay_sec=MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC):
-    def wrapper(func, *args, **kwargs):
+    logger = setup_logger('http_retrying')
+
+    def wrapper(func):
         timeout_at = None if total_timeout_sec is None \
             else datetime.utcnow() + timedelta(seconds=total_timeout_sec)
         while True:
             try:
-                return func(*args, **kwargs)
+                return func
             except (ConnectionError, Timeout):
                 if timeout_at and datetime.utcnow() > timeout_at:
                     raise
-            time.sleep(random.randint(1, max_delay_sec))
+            delay = random.randint(1, max_delay_sec)
+            logger.info(f'Will retry {func} in {delay} seconds')
+            time.sleep(delay)
 
     return wrapper
