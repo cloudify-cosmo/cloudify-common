@@ -1068,24 +1068,25 @@ def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
                      max_delay_sec=MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC):
     logger = setup_logger('http_retrying')
 
-    def wrapper(func):
-        timeout_at = None if total_timeout_sec is None \
-            else datetime.utcnow() + timedelta(seconds=total_timeout_sec)
-        while True:
-            try:
-                return func
-            except (ConnectionError, Timeout) as ex:
-                if timeout_at and datetime.utcnow() > timeout_at:
-                    logger.info(f'Finished retrying {func}: '
-                                f'total timeout of {total_timeout_sec} '
-                                f'seconds exceeded: {ex}')
+    def inner(func):
+        def wrapper(*args, **kwargs):
+            timeout_at = None if total_timeout_sec is None \
+                else datetime.utcnow() + timedelta(seconds=total_timeout_sec)
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except (ConnectionError, Timeout) as ex:
+                    if timeout_at and datetime.utcnow() > timeout_at:
+                        logger.info(f'Finished retrying {func}: '
+                                    f'total timeout of {total_timeout_sec} '
+                                    f'seconds exceeded: {ex}')
+                        raise
+                    delay = random.randint(1, max_delay_sec)
+                    logger.info(f'Will retry {func} in {delay} seconds: {ex}')
+                    time.sleep(delay)
+                except Exception as ex:
+                    logger.info(f'Will not retry {func}: the encountered '
+                                f'error cannot be fixed by retrying: {ex}')
                     raise
-                delay = random.randint(1, max_delay_sec)
-                logger.info(f'Will retry {func} in {delay} seconds: {ex}')
-                time.sleep(delay)
-            except Exception as ex:
-                logger.info(f'Will not retry {func}: the encountered error '
-                            f'cannot be fixed by retrying: {ex}')
-                raise
-
-    return wrapper
+        return wrapper
+    return inner
