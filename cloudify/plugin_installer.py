@@ -540,9 +540,10 @@ def get_pth_dir(venv=None):
     output = runner.run([
         get_python_path(venv) if venv else sys.executable,
         '-c',
-        'import json, sys; print(json.dumps([sys.prefix, sys.version[:3]]))'
+        'import json, sys; print(json.dumps([sys.prefix, sys.version_info]))'
     ]).std_out
-    prefix, version = json.loads(output)
+    prefix, version_parts = json.loads(output)
+    version = '{0}.{1}'.format(version_parts[0], version_parts[1])
     if os.name == 'nt':
         return '{0}/Lib/site-packages'.format(prefix)
     elif os.name == 'posix':
