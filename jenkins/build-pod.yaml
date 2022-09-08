@@ -8,8 +8,8 @@ spec:
       limits:
         cpu: 0.2
         memory: 256Mi
-  - name: py36
-    image: python:3.6
+  - name: py310
+    image: python:3.10
     command:
     - cat
     tty: true
