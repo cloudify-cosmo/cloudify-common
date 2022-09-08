@@ -15,6 +15,9 @@
 
 from dsl_parser import elements, exceptions
 from dsl_parser.elements import version as element_version
+from dsl_parser.elements.data_types import (SchemaPropertyDescription,
+                                            SchemaPropertyDisplayLabel,
+                                            SchemaPropertyType)
 from dsl_parser.elements.deployment_schedules import DeploymentSchedules
 from dsl_parser.framework.elements import (DictElement,
                                            DictNoDefaultElement,
@@ -227,3 +230,34 @@ class ResourceTags(DictElement):
     def validate(self, version, validate_version):
         if validate_version:
             self.validate_version(version, (1, 3))
+
+
+class CredentialsDescription(Element):
+    schema = Leaf(type=str)
+
+
+class CredentialProperty(Element):
+    schema = {
+        'description': SchemaPropertyDescription,
+        'type': SchemaPropertyType,
+        'display_label': SchemaPropertyDisplayLabel,
+    }
+
+
+class CredentialProperties(DictElement):
+    schema = Dict(type=CredentialProperty)
+
+
+class Credentials(DictElement):
+    schema = {
+        'description': CredentialsDescription,
+        'properties': CredentialProperties,
+    }
+    requires = {
+        element_version.ToscaDefinitionsVersion: ['version'],
+        'inputs': ['validate_version']
+    }
+
+    def validate(self, version, validate_version):
+        if validate_version:
+            self.validate_version(version, (1, 5))

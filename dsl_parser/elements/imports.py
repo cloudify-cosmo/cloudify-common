@@ -53,6 +53,7 @@ MERGEABLE_FROM_DSL_VERSION_1_3 = [
     constants.BLUEPRINT_LABELS,
     constants.LABELS,
     constants.RESOURCE_TAGS,
+    constants.CREDENTIALS,
 ]
 
 DONT_OVERWRITE = set([

@@ -50,6 +50,7 @@ DEPLOYMENT_SETTINGS = 'deployment_settings'
 DISPLAY_LABEL = 'display_label'
 HIDDEN = 'hidden'
 RESOURCE_TAGS = 'resource_tags'
+CREDENTIALS = 'credentials'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
