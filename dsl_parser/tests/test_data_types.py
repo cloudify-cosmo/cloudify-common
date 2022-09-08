@@ -100,7 +100,8 @@ data_types:
             yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
 
     def test_unknown_type_in_datatype(self):
-        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + self.MINIMAL_BLUEPRINT + """
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + \
+               self.MINIMAL_BLUEPRINT + """
 data_types:
     pair_type:
         properties:
@@ -319,7 +320,8 @@ data_types:
         self.parse_1_2(yaml)
 
     def test_nested_type_error_in_default(self):
-        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + self.MINIMAL_BLUEPRINT + """
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + \
+               self.MINIMAL_BLUEPRINT + """
 data_types:
     a:
         properties:
@@ -654,7 +656,8 @@ node_templates:
         self.assertEqual(node['properties']['a']['b'], 'b_override')
 
     def test_version_check(self):
-        yaml = self.BASIC_VERSION_SECTION_DSL_1_1 + self.MINIMAL_BLUEPRINT + """
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_1 + \
+               self.MINIMAL_BLUEPRINT + """
 data_types:
     a:
         properties:
