@@ -1067,6 +1067,22 @@ def uuid4():
 
 def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
                      max_delay_sec=MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC):
+    """
+    Keep (re)trying HTTP requests.
+
+    This is a wrapper function that will keep (re)running whatever function it
+    wraps until it raises a "non-repairable" exception (where "repairable"
+    exceptions are `requests.exceptions.ConnectionError` and
+    `requests.exceptions.Timeout`), or `total_timeout_sec` is exceeded.
+
+    :param total_timeout_sec: The amount of seconds to keep trying, if `None`,
+                              there is no timeout and the wrapped function
+                              will be re-tried indefinitely.
+    :param max_delay_sec: The maximum delay (in seconds) between consecutive
+                          calls to the wrapped function.  The actual delay will
+                          be a pseudo-random number between
+                          `0` and `max_delay_sec`.
+    """
     logger = setup_logger('http_retrying')
 
     def ex_to_str(exception):
