@@ -1,7 +1,7 @@
 from collections import namedtuple
 
 import pytest
-from mock.mock import patch
+from mock.mock import patch, Mock
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from cloudify.context import CloudifyContext
@@ -19,15 +19,12 @@ def mock_ctx():
                tenant_name='default_tenant')
 
 
-@patch('cloudify.utils._get_current_context', mock_ctx)
-@patch('cloudify.utils.get_manager_name', return_value='test-manager')
-@patch('cloudify.utils.get_manager_rest_service_port', return_value=8888)
-@patch('cloudify.utils.get_local_rest_certificate', return_value=None)
 def test_update_operation_fail_on_other_exception(*_):
-    c = CloudifyContext(ctx={'tenant': {'name': 'default_tenant'},
-                             'task_id': 'testing_task'})
-    with patch('cloudify_rest_client.client.HTTPClient.do_request') as client:
-        client.side_effect = HTTPError()
+    client = Mock()
+    client.operations.update.side_effect = HTTPError()
+
+    c = CloudifyContext({})
+    with patch('cloudify.manager.get_rest_client', return_value=client):
         pytest.raises(
             HTTPError,
             c.update_operation,
