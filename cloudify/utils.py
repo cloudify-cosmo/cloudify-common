@@ -33,6 +33,7 @@ import subprocess
 
 from datetime import datetime, timedelta
 from contextlib import contextmanager, closing
+from functools import wraps
 from io import StringIO
 from requests.exceptions import ConnectionError, Timeout
 import socket   # replace with ipaddress when this is py3-only
@@ -1068,7 +1069,11 @@ def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
                      max_delay_sec=MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC):
     logger = setup_logger('http_retrying')
 
+    def ex_to_str(exception):
+        return str(exception) or str(type(exception))
+
     def inner(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             timeout_at = None if total_timeout_sec is None \
                 else datetime.utcnow() + timedelta(seconds=total_timeout_sec)
@@ -1079,14 +1084,16 @@ def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
                     if timeout_at and datetime.utcnow() > timeout_at:
                         logger.info(f'Finished retrying {func}: '
                                     f'total timeout of {total_timeout_sec} '
-                                    f'seconds exceeded: {ex}')
+                                    f'seconds exceeded: {ex_to_str(ex)}')
                         raise
-                    delay = random.randint(1, max_delay_sec)
-                    logger.info(f'Will retry {func} in {delay} seconds: {ex}')
+                    delay = random.randint(0, max_delay_sec)
+                    logger.info(f'Will retry {func} in {delay} seconds: ' +
+                                ex_to_str(ex))
                     time.sleep(delay)
                 except Exception as ex:
                     logger.info(f'Will not retry {func}: the encountered '
-                                f'error cannot be fixed by retrying: {ex}')
+                                f'error cannot be fixed by retrying: ' +
+                                ex_to_str(ex))
                     raise
         return wrapper
     return inner
