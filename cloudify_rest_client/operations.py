@@ -41,6 +41,10 @@ class Operation(dict):
     def info(self):
         return self.get('parameters', {}).get('info')
 
+    @property
+    def tasks_graph_id(self):
+        return self.get('tasks_graph_id')
+
 
 class OperationsClient(object):
     def __init__(self, api):

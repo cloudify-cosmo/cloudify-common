@@ -147,12 +147,7 @@ def _make_virtualenv(path):
     able to import libraries from the current venv, but libraries
     installed directly will have precedence.
     """
-    runner.run([
-        sys.executable, '-m', 'virtualenv',
-        '--no-download',
-        '--no-pip', '--no-wheel', '--no-setuptools',
-        path
-    ])
+    runner.run([sys.executable, '-m', 'venv', '--without-pip', path])
     _link_virtualenv(path)
 
 
