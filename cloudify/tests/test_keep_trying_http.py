@@ -1,22 +1,9 @@
-from collections import namedtuple
-
 import pytest
 from mock.mock import patch, Mock
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from cloudify.context import CloudifyContext
 from cloudify.utils import keep_trying_http
-
-
-def mock_ctx():
-    Ctx = namedtuple(
-        'Ctx',
-        ['bypass_maintenance', 'execution_token', 'rest_host', 'tenant_name', ]
-    )
-    return Ctx(bypass_maintenance=False,
-               execution_token='token',
-               rest_host='non.existent.host.name',
-               tenant_name='default_tenant')
 
 
 def test_update_operation_fail_on_other_exception(*_):
