@@ -80,7 +80,7 @@ class NodeStateTest(testtools.TestCase):
         node = NodeInstance('instance_id', 'node_id')
         node.put('key', 'value')
         self.assertEquals('value', node.get('key'))
-        del(node['key'])
+        del node['key']
         self.assertNotIn('key', node)
 
     def test_delete_nonexistent_property(self):
@@ -91,7 +91,7 @@ class NodeStateTest(testtools.TestCase):
         node = NodeInstance('instance_id', 'node_id',
                             runtime_properties={'preexisting-key': 'val'})
         self.assertFalse(node.dirty)
-        del(node['preexisting-key'])
+        del node['preexisting-key']
         self.assertTrue(node.dirty)
 
     def test_setting_runtime_properties(self):

@@ -33,7 +33,10 @@ import subprocess
 
 from datetime import datetime, timedelta
 from contextlib import contextmanager, closing
+from functools import wraps
+from requests.exceptions import ConnectionError, Timeout
 import socket   # replace with ipaddress when this is py3-only
+
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
@@ -41,7 +44,9 @@ from cloudify import constants
 from cloudify.state import workflow_parameters, workflow_ctx, ctx, current_ctx
 from cloudify._compat import StringIO, parse_version
 from cloudify._compat import uuid4  # NOQA - import just to re-export here
-from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
+from cloudify.constants import (SUPPORTED_ARCHIVE_TYPES,
+                                KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
+                                MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC)
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
 
 ENV_CFY_EXEC_TEMPDIR = 'CFY_EXEC_TEMP'
@@ -1028,3 +1033,59 @@ def ipv6_url_compat(addr):
     if _is_ipv6(addr):
         return '[{0}]'.format(addr)
     return addr
+
+
+def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
+                     max_delay_sec=MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC):
+    """
+    Keep (re)trying HTTP requests.
+
+    This is a wrapper function that will keep (re)running whatever function it
+    wraps until it raises a "non-repairable" exception (where "repairable"
+    exceptions are `requests.exceptions.ConnectionError` and
+    `requests.exceptions.Timeout`), or `total_timeout_sec` is exceeded.
+
+    :param total_timeout_sec: The amount of seconds to keep trying, if `None`,
+                              there is no timeout and the wrapped function
+                              will be re-tried indefinitely.
+    :param max_delay_sec: The maximum delay (in seconds) between consecutive
+                          calls to the wrapped function.  The actual delay will
+                          be a pseudo-random number between
+                          `0` and `max_delay_sec`.
+    """
+    logger = setup_logger('http_retrying')
+
+    def ex_to_str(exception):
+        return str(exception) or str(type(exception))
+
+    def inner(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            timeout_at = None if total_timeout_sec is None \
+                else datetime.utcnow() + timedelta(seconds=total_timeout_sec)
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except (ConnectionError, Timeout) as ex:
+                    if timeout_at and datetime.utcnow() > timeout_at:
+                        logger.error(
+                            'Finished retrying {0}: total timeout of {1} '
+                            'seconds exceeded: {2}'
+                            .format(func, total_timeout_sec, ex_to_str(ex))
+                        )
+                        raise
+                    delay = random.randint(0, max_delay_sec)
+                    logger.warning(
+                        'Will retry {0} in {1} seconds: {2}'
+                        .format(func, delay, ex_to_str(ex))
+                    )
+                    time.sleep(delay)
+                except Exception as ex:
+                    logger.error(
+                        'Will not retry {0}: the encountered error cannot '
+                        'be fixed by retrying: {1}'
+                        .format(func, ex_to_str(ex))
+                    )
+                    raise
+        return wrapper
+    return inner
