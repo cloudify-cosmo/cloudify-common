@@ -15,10 +15,9 @@
 
 
 import copy
+import unittest
 import warnings
 from os import path
-
-import testtools
 
 from cloudify import constants
 from cloudify.decorators import operation
@@ -29,7 +28,7 @@ from cloudify import exceptions
 from cloudify.test_utils import workflow_test
 
 
-class TestContextRelationship(testtools.TestCase):
+class TestContextRelationship(unittest.TestCase):
 
     context_blueprint_path = path.join('resources', 'blueprints',
                                        'relationship_context.yaml')
@@ -149,20 +148,26 @@ class TestContextRelationship(testtools.TestCase):
 
     @workflow_test(context_blueprint_path)
     def test_not_modifiable_instance(self, cfy_local):
-        with testtools.ExpectedException(exceptions.NonRecoverableError,
-                                         '.*Cannot modify.*'):
+        with self.assertRaisesRegex(
+            exceptions.NonRecoverableError,
+            '.*Cannot modify.*',
+        ):
             self._run(cfy_local, 'assert_not_modifiable', '')
 
     @workflow_test(context_blueprint_path)
     def test_not_modifiable_source(self, cfy_local):
-        with testtools.ExpectedException(exceptions.NonRecoverableError,
-                                         '.*Cannot modify.*'):
+        with self.assertRaisesRegex(
+            exceptions.NonRecoverableError,
+            '.*Cannot modify.*',
+        ):
             self._run(cfy_local, 'assert_not_modifiable', 'source')
 
     @workflow_test(context_blueprint_path)
     def test_not_modifiable_target(self, cfy_local):
-        with testtools.ExpectedException(exceptions.NonRecoverableError,
-                                         '.*Cannot modify.*'):
+        with self.assertRaisesRegex(
+            exceptions.NonRecoverableError,
+            '.*Cannot modify.*',
+        ):
             self._run(cfy_local, 'assert_not_modifiable', 'target')
 
     def _test_modifiable_relationship(self, cfy_local, rel):
@@ -177,8 +182,10 @@ class TestContextRelationship(testtools.TestCase):
 
     @workflow_test(context_blueprint_path)
     def test_immutable_properties(self, cfy_local):
-        with testtools.ExpectedException(exceptions.NonRecoverableError,
-                                         '.*read only properties.*'):
+        with self.assertRaisesRegex(
+            exceptions.NonRecoverableError,
+            '.*read only properties.*',
+        ):
             self._run(cfy_local, 'assert_immutable_properties', '')
 
     @workflow_test(context_blueprint_path)
@@ -186,29 +193,31 @@ class TestContextRelationship(testtools.TestCase):
         self._update_runtime_properties(cfy_local)
         result = self._assert_capabilities(cfy_local, '')
         self.assertIn('node2_', result['node1']['id'])
-        self.assertEquals(result['node1']['prop'],
-                          {'node2_prop': 'node2_value'})
+        self.assertEqual(result['node1']['prop'],
+                         {'node2_prop': 'node2_value'})
 
     @workflow_test(context_blueprint_path)
     def test_source_capabilities(self, cfy_local):
         self._update_runtime_properties(cfy_local)
         result = self._assert_capabilities(cfy_local, 'source')
         self.assertIn('node2_', result['node1']['id'])
-        self.assertEquals(result['node1']['prop'],
-                          {'node2_prop': 'node2_value'})
+        self.assertEqual(result['node1']['prop'],
+                         {'node2_prop': 'node2_value'})
 
     @workflow_test(context_blueprint_path)
     def test_target_capabilities(self, cfy_local):
         self._update_runtime_properties(cfy_local)
         result = self._assert_capabilities(cfy_local, 'target')
         self.assertIn('node3_', result['node2']['id'])
-        self.assertEquals(result['node2']['prop'],
-                          {'node3_prop': 'node3_value'})
+        self.assertEqual(result['node2']['prop'],
+                         {'node3_prop': 'node3_value'})
 
     @workflow_test(context_blueprint_path)
     def test_invalid_deployment_capabilities(self, cfy_local):
-        with testtools.ExpectedException(exceptions.NonRecoverableError,
-                                         '.*used in a deployment context.*'):
+        with self.assertRaisesRegex(
+            exceptions.NonRecoverableError,
+            '.*used in a deployment context.*',
+        ):
             cfy_local.execute(
                 'execute_task',
                 parameters={
@@ -222,6 +231,16 @@ class TestContextRelationship(testtools.TestCase):
         node_instances = cfy_local.storage.get_node_instances()
         instance = [i for i in node_instances if i.node_id == 'node1'][0]
         self._assert_node2_rel(instance.runtime_properties['result'])
+
+    @workflow_test(context_blueprint_path)
+    def test_source_relationship(self, cfy_local):
+        with warnings.catch_warnings(record=True):
+            self._run(cfy_local, 'assert_operations', 'source')
+
+    @workflow_test(context_blueprint_path)
+    def test_target_relationship(self, cfy_local):
+        with warnings.catch_warnings(record=True):
+            self._run(cfy_local, 'assert_operations', 'target')
 
     def _run(self, cfy_local, op, rel, node='node1', kwargs=None):
         kwargs = kwargs or {}
@@ -378,3 +397,9 @@ def asset_2_hops(**_):
         for relationship2 in relationship.target.instance.relationships:
             result.append(_extract_relationship(relationship2))
     operation_ctx.instance.runtime_properties['result'] = result
+
+
+@operation
+def assert_operations(rel=None, **_):
+    iface = operation_ctx.operation.relationship
+    assert iface == rel

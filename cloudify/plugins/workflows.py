@@ -14,14 +14,15 @@
 #    * limitations under the License.
 
 import numbers
+import threading
 from itertools import chain
+from datetime import datetime
 
 from cloudify import constants, utils
 from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
-from cloudify.manager import get_rest_client
 from cloudify.workflows.tasks_graph import make_or_get_graph
-from cloudify.utils import add_plugins_to_install, add_plugins_to_uninstall
+from cloudify.workflows.tasks import HandlerResult, TASK_SUCCEEDED
 
 
 @workflow(resumable=True)
@@ -42,14 +43,132 @@ def uninstall(ctx, ignore_failure=False, **kwargs):
         ignore_failure=ignore_failure)
 
 
+def _find_instances_to_heal(instances, healthy_instances):
+    """Examine instances, deciding which should be healed, or reinstalled.
+
+    Instances that are healthy, will not be touched at all - unless they're
+    part of a subgraph (ie. contained-in) of an instance that is going to be
+    reinstalled.
+    Instances that are not healthy will be healed if they define the heal
+    operation, or reinstalled otherwise.
+
+    :param instances: all instances to examine
+    :param healthy_instances: those that are already healthy - a subset
+        of instances
+    """
+
+    instances = set(instances)
+    to_heal = set()
+    to_reinstall = set()
+    while instances:
+        instance = instances.pop()
+        if instance in healthy_instances:
+            # instance is healthy! nothing to do. Its subgraph will still
+            # be examined
+            continue
+        elif instance.node.has_operation('cloudify.interfaces.lifecycle.heal'):
+            to_heal.add(instance)
+        else:
+            # instance doesn't have heal and is not healthy - it must be
+            # reinstalled, and its whole subgraph must be as well
+            subgraph = instance.get_contained_subgraph()
+            to_reinstall |= subgraph
+            to_heal -= subgraph
+            instances -= subgraph
+    return to_heal, to_reinstall
+
+
+def _find_healthy_instances(instances, require_task=False):
+    """Find instances that are already passing their status check
+
+    Depending on the require_task flag:
+      - if require_task is false, instances that are implicitly healthy
+        (eg. they have just been installed), are considered passing
+      - if require_task is true, only instances that are explicitly proven
+        to be healthy (their check_status operation is defined and has run),
+        are considered passing
+    """
+    healthy_instances = set()
+    for instance in instances:
+        try:
+            status = instance.system_properties['status']
+            if not status['ok']:
+                continue
+            if require_task and not status['task']:
+                continue
+            healthy_instances.add(instance)
+        except KeyError:
+            pass
+    return healthy_instances
+
+
+def _reinstall_disallowed_exception(to_reinstall):
+    if len(to_reinstall) > 5:
+        instance_ids = [inst.id for inst in to_reinstall]
+        names_message = (
+            ', '.join(instance_ids[:5]) +
+            ' (and {0} more)'.format(len(instance_ids) - 5)
+        )
+    else:
+        names_message = ', '.join(inst.id for inst in to_reinstall)
+    return RuntimeError(
+        'allow_reinstall is false, but would need to reinstall instances: '
+        + names_message
+    )
+
+
+def _find_heal_failed_instances(ctx, instances):
+    """Examine instances, and return the ones for which heal has failed.
+
+    To find the result of the heal operation, look in system-properties:
+    the heal subgraph's failure callback sets the flag there.
+    """
+    heal_failed = set()
+    for instance in instances:
+        try:
+            if instance.system_properties['heal_failed'] == ctx.execution_id:
+                heal_failed.add(instance)
+        except KeyError:
+            pass
+    return heal_failed
+
+
+def _clean_healed_property(ctx, instances):
+    """Remove the heal_failed flag from all instances.
+
+    No need to leave that flag around. When using it, we do check that it's
+    equal to the current execution id, so if we didn't clean it up, the
+    logic would still work - but it's nice to not leave unnecessary data
+    around.
+    """
+    for instance in instances:
+        system_properties = instance.system_properties or {}
+        if 'heal_failed' not in system_properties:
+            continue
+        del system_properties['heal_failed']
+        ctx.update_node_instance(
+            instance.id,
+            force=True,
+            system_properties=system_properties
+        )
+
+
 @workflow
 def auto_heal_reinstall_node_subgraph(
-        ctx,
-        node_instance_id,
-        diagnose_value='Not provided',
-        ignore_failure=True,
-        **kwargs):
-    """Reinstalls the whole subgraph of the system topology
+    ctx,
+    node_instance_id=None,
+    diagnose_value='Not provided',
+    ignore_failure=True,
+    check_status=True,
+    allow_reinstall=True,
+    force_reinstall=False,
+    **kwargs
+):
+    """Heals a subgraph of the system topology.
+
+    To heal a subgraph, run the heal operation on all the nodes,
+    and fall back to reinstalling the nodes if the heal operation is
+    not defined or fails.
 
     The subgraph consists of all the nodes that are hosted in the
     failing node's compute and the compute itself.
@@ -59,26 +178,102 @@ def auto_heal_reinstall_node_subgraph(
     :param node_instance_id: node_instances to reinstall
     :param diagnose_value: diagnosed reason of failure
     :param ignore_failure: ignore operations failures in uninstall workflow
+    :param check_status: run the status check before healing
+    :param allow_reinstall: if a heal operation fails or is not defined,
+        attempt reinstalling the instance
+    :param force_reinstall: don't even attempt to heal, always reinstall
     """
 
-    ctx.logger.info("Starting 'heal' workflow on {0}, Diagnosis: {1}".format(
-        node_instance_id, diagnose_value))
-    failing_node = ctx.get_node_instance(node_instance_id)
-    if failing_node is None:
-        raise ValueError('No node instance with id `{0}` was found'.format(
-            node_instance_id))
-    failing_node_host = ctx.get_node_instance(
-        failing_node._node_instance.host_id)
-    if failing_node_host is None:
-        subgraph_node_instances = failing_node.get_contained_subgraph()
+    if node_instance_id:
+        ctx.logger.info("Starting 'heal' workflow on %s, Diagnosis: %s",
+                        node_instance_id, diagnose_value)
+        failing_node = ctx.get_node_instance(node_instance_id)
+        if failing_node is None:
+            raise ValueError('No node instance with id `{0}` was found'
+                             .format(node_instance_id))
+
+        failing_node_host = ctx.get_node_instance(
+            failing_node._node_instance.host_id)
+        if failing_node_host is None:
+            sub_node_instances = failing_node.get_contained_subgraph()
+        else:
+            sub_node_instances = failing_node_host.get_contained_subgraph()
     else:
-        subgraph_node_instances = failing_node_host.get_contained_subgraph()
-    intact_nodes = set(ctx.node_instances) - subgraph_node_instances
+        ctx.logger.info("Starting 'heal' workflow for '%s' deployment, "
+                        "Diagnosis: %s", ctx.deployment.id, diagnose_value)
+        sub_node_instances = set()
+        for ni in ctx.node_instances:
+            ni_host = ctx.get_node_instance(ni._node_instance.host_id)
+            if ni_host is None:
+                sub_node_instances.update(ni.get_contained_subgraph())
+            else:
+                sub_node_instances.update(ni_host.get_contained_subgraph())
+
     graph = ctx.graph_mode()
-    lifecycle.reinstall_node_instances(graph=graph,
-                                       node_instances=subgraph_node_instances,
-                                       related_nodes=intact_nodes,
-                                       ignore_failure=ignore_failure)
+    if force_reinstall:
+        return lifecycle.reinstall_node_instances(
+            graph=graph,
+            node_instances=sub_node_instances,
+            related_nodes=set(ctx.node_instances) - sub_node_instances,
+            ignore_failure=ignore_failure,
+        )
+
+    if check_status:
+        status_graph = _make_check_status_graph(
+            ctx,
+            node_instance_ids=[ni.id for ni in sub_node_instances],
+            name='check_status',
+            ignore_failure=True,
+        )
+        status_graph.execute()
+
+        ctx.refresh_node_instances()
+
+    healthy_instances = _find_healthy_instances(
+        sub_node_instances,
+        # require_task if we're explicitly going to target a node instance.
+        # This is compatible with pre-6.4 heal.
+        # This means a targeted heal assumes nodes to be unhealthy unless
+        # proven healthy, and a deployment-wide heal assumes nodes healthy
+        # unless proven unhealthy.
+        require_task=bool(node_instance_id),
+    )
+    to_heal, to_reinstall = _find_instances_to_heal(
+        sub_node_instances,
+        healthy_instances,
+    )
+
+    if to_reinstall and not allow_reinstall:
+        # we already know we'll need to reinstall, so we can abort early
+        raise _reinstall_disallowed_exception(to_reinstall)
+
+    try:
+        lifecycle.heal_node_instances(
+            graph=graph,
+            node_instances=list(to_heal),
+            related_nodes=set(ctx.node_instances) - to_heal,
+        )
+    except Exception as e:
+        # error running the heal - we can still fall back to reinstalling!
+        ctx.logger.error('Error running heal: %s', e)
+
+    ctx.refresh_node_instances()
+    failed_heal = _find_heal_failed_instances(
+        ctx,
+        {ctx.get_node_instance(ni.id) for ni in to_heal},
+    )
+    _clean_healed_property(ctx, failed_heal)
+    to_reinstall |= failed_heal
+
+    if to_reinstall and not allow_reinstall:
+        raise _reinstall_disallowed_exception(to_reinstall)
+    if to_reinstall:
+        lifecycle.reinstall_node_instances(
+            graph=graph,
+            node_instances=to_reinstall,
+            related_nodes=set(ctx.node_instances) - to_reinstall,
+            ignore_failure=ignore_failure,
+        )
 
 
 def get_groups_with_members(ctx):
@@ -108,7 +303,7 @@ def get_groups_with_members(ctx):
 def _check_for_too_many_exclusions(exclude_instances, available_instances,
                                    delta, groups_members):
     """
-        Check whether the amount of exluded instances will make it possible to
+        Check whether the amount of excluded instances will make it possible to
         scale down by the given delta.
 
         :param exclude_instances: A list of node instance IDs to exclude.
@@ -278,7 +473,7 @@ def validate_inclusions_and_exclusions(include_instances, exclude_instances,
         raise RuntimeError(error_message)
 
 
-@workflow
+@workflow(resumable=True)
 def scale_entity(ctx,
                  scalable_entity_name,
                  delta,
@@ -388,34 +583,44 @@ def scale_entity(ctx,
 
     if abort_started:
         _abort_started_deployment_modifications(ctx, ignore_failure)
+    if ctx.resume:
+        mods = ctx.deployment.list_started_modifications()
+        if len(mods) > 1:
+            raise RuntimeError(
+                'scale can only be resumed when there is only one started '
+                'deployment modification, but found {0}'
+                .format(len(mods))
+            )
+        modification = mods[0]
+    else:
+        modification = ctx.deployment.start_modification({
+            scale_id: {
+                'instances': planned_num_instances,
+                'removed_ids_exclude_hint': exclude_instances,
+                'removed_ids_include_hint': include_instances,
 
-    modification = ctx.deployment.start_modification({
-        scale_id: {
-            'instances': planned_num_instances,
-            'removed_ids_exclude_hint': exclude_instances,
-            'removed_ids_include_hint': include_instances,
+                # While these parameters are now exposed, this comment is being
+                # kept as it provides useful insight into the hints
+                # These following parameters are not exposed at the moment,
+                # but should be used to control which node instances get
+                # scaled in(when scaling in).
+                # They are mentioned here, because currently, the
+                # modification API is not very well documented.
+                # Special care should be taken because if
+                # `scale_compute == True` (which is the default), then these
+                # ids should be the compute node instance ids which are
+                # not necessarily instances of the node specified by
+                # `scalable_entity_name`.
 
-            # While these parameters are now exposed, this comment is being
-            # kept as it provides useful insight into the hints
-            # These following parameters are not exposed at the moment,
-            # but should be used to control which node instances get scaled in
-            # (when scaling in).
-            # They are mentioned here, because currently, the modification API
-            # is not very documented.
-            # Special care should be taken because if `scale_compute == True`
-            # (which is the default), then these ids should be the compute node
-            # instance ids which are not necessarily instances of the node
-            # specified by `scalable_entity_name`.
+                # Node instances denoted by these instance ids should be
+                # *kept* if possible.
+                # 'removed_ids_exclude_hint': [],
 
-            # Node instances denoted by these instance ids should be *kept* if
-            # possible.
-            # 'removed_ids_exclude_hint': [],
-
-            # Node instances denoted by these instance ids should be *removed*
-            # if possible.
-            # 'removed_ids_include_hint': []
-        }
-    })
+                # Node instances denoted by these instance ids should
+                # be *removed* if possible.
+                # 'removed_ids_include_hint': []
+            }
+        })
     graph = ctx.graph_mode()
     try:
         ctx.logger.info('Deployment modification started. '
@@ -692,144 +897,273 @@ def execute_operation(ctx, operation, *args, **kwargs):
     graph.execute()
 
 
-@workflow
-def update(ctx,
-           update_id,
-           added_instance_ids,
-           added_target_instances_ids,
-           removed_instance_ids,
-           remove_target_instance_ids,
-           modified_entity_ids,
-           extended_instance_ids,
-           extend_target_instance_ids,
-           reduced_instance_ids,
-           reduce_target_instance_ids,
-           skip_install,
-           skip_uninstall,
-           ignore_failure=False,
-           install_first=False,
-           node_instances_to_reinstall=None,
-           central_plugins_to_install=None,
-           central_plugins_to_uninstall=None,
-           update_plugins=True):
-    node_instances_to_reinstall = node_instances_to_reinstall or []
-    instances_by_change = {
-        'added_instances': (added_instance_ids, []),
-        'added_target_instances_ids': (added_target_instances_ids, []),
-        'removed_instances': (removed_instance_ids, []),
-        'remove_target_instance_ids': (remove_target_instance_ids, []),
-        'extended_and_target_instances':
-            (extended_instance_ids + extend_target_instance_ids, []),
-        'reduced_and_target_instances':
-            (reduced_instance_ids + reduce_target_instance_ids, []),
+def _set_node_instance_status(task):
+    workflow_context = task.workflow_context
+    instance_id = task.info['instance_id']
+    new_status = _format_system_task_result(task)
+
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    previous_status = system_properties.get('status')
+    system_properties['previous_status'] = previous_status
+    system_properties['status'] = new_status
+
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties
+    )
+
+
+def _format_system_task_result(task):
+    result = task.async_result.result
+    if isinstance(result, Exception):
+        result = str(result)
+    return {
+        'ok': task.get_state() == TASK_SUCCEEDED,
+        'timestamp': datetime.utcnow().isoformat(),
+        'task': None if task.is_nop() else task.name,
+        'result': result
     }
-    for instance in ctx.node_instances:
-        instance_holders = [instance_holder
-                            for _, (changed_ids, instance_holder)
-                            in instances_by_change.items()
-                            if instance.id in changed_ids]
-        for instance_holder in instance_holders:
-            instance_holder.append(instance)
 
+
+def check_status_on_success(task):
+    """check_status success handler
+
+    This runs when the check_status operation succeeded. Figure out the
+    node-instance based on the given task.info, and store the result into
+    the node-instance's system-properties.
+    """
+    _set_node_instance_status(task)
+    return HandlerResult.cont()
+
+
+def check_status_on_failure(task):
+    """check_status failure handler
+
+    Similar to check_status_on_success, but runs when the check_status
+    task fails.
+    """
+    _set_node_instance_status(task)
+    return HandlerResult.fail()
+
+
+def check_status_on_failure_ignore_failure(task):
+    """check_status failure handler that ignores the error"""
+    _set_node_instance_status(task)
+    return HandlerResult.ignore()
+
+
+@make_or_get_graph
+def _make_check_status_graph(
+    ctx,
+    run_by_dependency_order=False,
+    type_names=None,
+    node_ids=None,
+    node_instance_ids=None,
+    ignore_failure=False,
+):
+    """Make the graph for the check_status workflow
+
+    This is very similar to execute_operation, but a bit simpler, because
+    we only run a single operation from here.
+    """
+    on_fail = check_status_on_failure
+    if ignore_failure:
+        on_fail = check_status_on_failure_ignore_failure
     graph = ctx.graph_mode()
-    to_install = set(instances_by_change['added_instances'][1])
-    to_uninstall = set(instances_by_change['removed_instances'][1])
+    tasks = {}
+    filtered_node_instances = _filter_node_instances(
+        ctx=ctx,
+        node_ids=node_ids,
+        node_instance_ids=node_instance_ids,
+        type_names=type_names)
 
-    def _install():
-        def _install_nodes():
-            if skip_install:
-                return
-            # Adding nodes or node instances should be based on modified
-            # instances
-            lifecycle.install_node_instances(
-                graph=graph,
-                node_instances=to_install,
-                related_nodes=set(
-                    instances_by_change['added_target_instances_ids'][1])
-            )
+    if run_by_dependency_order:
+        filtered_node_instances_ids = set(inst.id for inst in
+                                          filtered_node_instances)
+        for instance in ctx.node_instances:
+            if instance.id not in filtered_node_instances_ids:
+                tasks[instance.id] = graph.subgraph(instance.id)
 
-            # This one as well.
-            lifecycle.execute_establish_relationships(
-                graph=graph,
-                node_instances=set(
-                    instances_by_change['extended_and_target_instances'][1]),
-                modified_relationship_ids=modified_entity_ids['relationship']
-            )
+    # registering actual tasks to sequences
+    for instance in filtered_node_instances:
+        task = instance.execute_operation(
+            operation='cloudify.interfaces.validation.check_status'
+        )
+        task.info = {'instance_id': instance.id}
+        task.on_success = check_status_on_success
+        task.on_failure = on_fail
+        graph.add_task(task)
+        tasks[instance.id] = task
 
-        _install_nodes()
-        _install_plugins_on_agent()
+    # adding tasks dependencies if required
+    if run_by_dependency_order:
+        for instance in ctx.node_instances:
+            for rel in instance.relationships:
+                graph.add_dependency(tasks[instance.id],
+                                     tasks[rel.target_id])
+    return graph
 
-    def _uninstall():
-        def _uninstall_nodes():
-            if skip_uninstall:
-                return
-            lifecycle.execute_unlink_relationships(
-                graph=graph,
-                node_instances=set(
-                    instances_by_change['reduced_and_target_instances'][1]),
-                modified_relationship_ids=modified_entity_ids['relationship']
-            )
 
-            lifecycle.uninstall_node_instances(
-                graph=graph,
-                node_instances=to_uninstall,
-                ignore_failure=ignore_failure,
-                related_nodes=set(
-                    instances_by_change['remove_target_instance_ids'][1])
-            )
+@workflow(resumable=True)
+def check_status(ctx, *args, **kwargs):
+    """Run the check_status operation on all node-instances, and store results
 
-        _uninstall_nodes()
-        _uninstall_plugins_on_agent()
+    This will store the check results into each node-instance
+    system_properties.
+    """
+    # never retry the check_status task by default. If users want to retry
+    # some specific check_status for a given node, then can still override
+    # it, in the interfaces declaration
+    workflows = ctx.internal.bootstrap_context.setdefault('workflows', {})
+    workflows['task_retries'] = 0
+    graph = _make_check_status_graph(
+        ctx,
+        name='check_status',
+        *args,
+        **kwargs)
+    graph.execute()
 
-    def _reinstall():
-        subgraph = set([])
-        for node_instance_id in node_instances_to_reinstall:
-            subgraph |= ctx.get_node_instance(
-                node_instance_id).get_contained_subgraph()
-        subgraph -= to_uninstall
-        intact_nodes = set(ctx.node_instances) - subgraph - to_uninstall
-        for n in subgraph:
-            for r in n._relationship_instances:
-                if r in removed_instance_ids:
-                    n._relationship_instances.pop(r)
-        lifecycle.reinstall_node_instances(graph=graph,
-                                           node_instances=subgraph,
-                                           related_nodes=intact_nodes,
-                                           ignore_failure=ignore_failure)
 
-    def _uninstall_plugins_on_agent():
-        if not update_plugins:
-            return
-        _handle_plugin_after_update(
-            ctx, modified_entity_ids['plugin'], 'remove')
+@make_or_get_graph
+def _make_check_drift_graph(
+    ctx,
+    run_by_dependency_order=False,
+    type_names=None,
+    node_ids=None,
+    node_instance_ids=None,
+    ignore_failure=False,
+):
+    """Make the graph for the check_status workflow
 
-    def _install_plugins_on_agent():
-        if not update_plugins:
-            return
-        _handle_plugin_after_update(
-            ctx, modified_entity_ids['plugin'], 'add')
+    This is very similar to execute_operation, but a bit simpler, because
+    we only run a single operation from here.
+    """
+    on_fail = check_drift_on_failure
+    if ignore_failure:
+        on_fail = check_drift_on_failure_ignore_failure
+    graph = ctx.graph_mode()
+    tasks = {}
+    filtered_node_instances = _filter_node_instances(
+        ctx=ctx,
+        node_ids=node_ids,
+        node_instance_ids=node_instance_ids,
+        type_names=type_names)
 
-    def _update_central_plugins():
-        if not update_plugins:
-            return
-        sequence = graph.sequence()
-        add_plugins_to_uninstall(ctx, central_plugins_to_uninstall, sequence)
-        add_plugins_to_install(ctx, central_plugins_to_install, sequence)
-        graph.execute()
+    if run_by_dependency_order:
+        filtered_node_instances_ids = set(inst.id for inst in
+                                          filtered_node_instances)
+        for instance in ctx.node_instances:
+            if instance.id not in filtered_node_instances_ids:
+                tasks[instance.id] = graph.subgraph(instance.id)
 
-    if install_first:
-        _install()
-        _uninstall()
-    else:
-        _uninstall()
-        _install()
-    _reinstall()
+    # registering actual tasks to sequences
+    for instance in filtered_node_instances:
+        task = instance.execute_operation(
+            operation='cloudify.interfaces.lifecycle.check_drift'
+        )
+        task.info = {'instance_id': instance.id}
+        task.on_success = check_drift_on_success
+        task.on_failure = on_fail
+        graph.add_task(task)
+        tasks[instance.id] = task
+        for rel in instance.relationships:
+            source_task = rel.execute_source_operation(
+                'cloudify.interfaces.relationship_lifecycle.check_drift')
+            target_task = rel.execute_target_operation(
+                'cloudify.interfaces.relationship_lifecycle.check_drift')
+            source_task.on_success = check_drift_on_success
+            source_task.on_failure = on_fail
+            graph.add_task(source_task)
+            graph.add_dependency(source_task, task)
+            source_task.info = {
+                'instance_id': instance.id,
+                'relationship_target': rel.target_id,
+            }
 
-    _update_central_plugins()
+            target_task.on_success = check_drift_on_success
+            target_task.on_failure = on_fail
+            graph.add_task(target_task)
+            graph.add_dependency(target_task, task)
+            target_task.info = {
+                'instance_id': rel.target_id,
+                'relationship_source': instance.id,
+            }
 
-    # Finalize the commit (i.e. remove relationships or nodes)
-    client = get_rest_client()
-    client.deployment_updates.finalize_commit(update_id)
+    # adding tasks dependencies if required
+    if run_by_dependency_order:
+        for instance in ctx.node_instances:
+            for rel in instance.relationships:
+                graph.add_dependency(tasks[instance.id],
+                                     tasks[rel.target_id])
+    return graph
+
+
+# check_drift might attempt to update the same instance multiple times
+# concurrently, let's just make the update 100% serialized for now
+_instances_update_lock = threading.Lock()
+
+
+def _set_node_instance_drift(task):
+    formatted_result = _format_system_task_result(task)
+    workflow_context = task.workflow_context
+    instance_id = task.info['instance_id']
+    relationship_source = task.info.get('relationship_source')
+    relationship_target = task.info.get('relationship_target')
+    with _instances_update_lock:
+        ni = workflow_context.get_node_instance(instance_id)
+        system_properties = ni.system_properties or {}
+        if relationship_source:
+            targets = system_properties.setdefault(
+                'target_relationships_configuration_drift', {})
+            targets[relationship_source] = formatted_result
+        elif relationship_target:
+            sources = system_properties.setdefault(
+                'source_relationships_configuration_drift', {})
+            sources[relationship_target] = formatted_result
+        else:
+            system_properties['configuration_drift'] = formatted_result
+
+        workflow_context.update_node_instance(
+            instance_id,
+            force=True,
+            system_properties=system_properties
+        )
+
+
+def check_drift_on_success(task):
+    _set_node_instance_drift(task)
+    return HandlerResult.cont()
+
+
+def check_drift_on_failure(task):
+    _set_node_instance_drift(task)
+    return HandlerResult.fail()
+
+
+def check_drift_on_failure_ignore_failure(task):
+    """check_drift failure handler that ignores the error"""
+    _set_node_instance_drift(task)
+    return HandlerResult.ignore()
+
+
+@workflow(resumable=True)
+def check_drift(ctx, *args, **kwargs):
+    graph = _make_check_drift_graph(
+        ctx,
+        name='check_drift',
+        *args,
+        **kwargs)
+    graph.execute()
+
+
+@workflow
+def update(ctx, *args, **kwargs):
+    from cloudify_system_workflows.deployment_update.workflow import (
+        update_deployment
+    )
+    return update_deployment(ctx, *args, **kwargs)
 
 
 @workflow(resumable=True)

@@ -15,11 +15,10 @@
 
 import os
 
-import jinja2
-
 from cloudify import constants
 from cloudify import manager
 from cloudify import logs
+from cloudify import utils
 from cloudify.logs import CloudifyPluginLoggingHandler
 from cloudify.exceptions import NonRecoverableError
 
@@ -60,11 +59,19 @@ class Endpoint(object):
                           template_variables=None):
         raise NotImplementedError('Implemented by subclasses')
 
+    def download_directory(self,
+                           blueprint_id,
+                           deployment_id,
+                           resource_path,
+                           logger,
+                           target_path=None,
+                           preview_only=False):
+        raise NotImplementedError('Implemented by subclasses')
+
     def _render_resource_if_needed(self,
                                    resource,
                                    template_variables,
                                    download=False):
-
         if not template_variables:
             return resource
 
@@ -72,16 +79,24 @@ class Endpoint(object):
         if download:
             with open(resource_path, 'rb') as f:
                 resource = f.read()
-
-        template = jinja2.Template(resource.decode('utf-8'))
-        rendered_resource = template.render(template_variables).encode('utf-8')
+        if (
+            b'{{' in resource
+            or b'{#' in resource
+            or b'{%' in resource
+        ):
+            # resource contains jinja2 template control strings - we need
+            # to render it
+            # only import jinja2 if necessary - it's a very big module
+            import jinja2
+            template = jinja2.Template(resource.decode('utf-8'))
+            resource = template.render(template_variables).encode('utf-8')
 
         if download:
             with open(resource_path, 'wb') as f:
-                f.write(rendered_resource)
+                f.write(resource)
             return resource_path
         else:
-            return rendered_resource
+            return resource
 
     def get_provider_context(self):
         raise NotImplementedError('Implemented by subclasses')
@@ -198,6 +213,37 @@ class ManagerEndpoint(Endpoint):
             resource=resource,
             template_variables=template_variables)
 
+    def download_directory(self,
+                           blueprint_id,
+                           deployment_id,
+                           resource_path,
+                           logger,
+                           target_path=None,
+                           preview_only=False):
+        resource_files = manager.get_resource_directory_index(
+            blueprint_id, deployment_id, self.ctx.tenant_name, resource_path)
+        resource_files = [os.path.join(resource_path, fp)
+                          for fp in resource_files]
+
+        logger.debug(">> Collected %s", resource_files)
+        if preview_only:
+            return resource_files
+
+        top_dir = None
+        target_dir = utils.create_temp_folder()
+        for file_path in resource_files:
+            top_dir = top_dir or file_path.split(os.sep)[0]
+            target_path = os.path.join(target_dir,
+                                       os.path.relpath(file_path, top_dir))
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            self.download_resource(
+                blueprint_id,
+                deployment_id,
+                file_path,
+                logger,
+                target_path=target_path)
+        return target_dir
+
     def download_resource(self,
                           blueprint_id,
                           deployment_id,
@@ -268,7 +314,12 @@ class ManagerEndpoint(Endpoint):
         return self.rest_client.executions.get(execution_id)
 
     def update_operation(self, operation_id, state):
-        self.rest_client.operations.update(operation_id, state=state)
+        self.rest_client.operations.update(
+            operation_id,
+            state=state,
+            agent_name=utils.get_daemon_name(),
+            manager_name=utils.get_manager_name(),
+        )
 
 
 class LocalEndpoint(Endpoint):

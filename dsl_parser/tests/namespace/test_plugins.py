@@ -184,8 +184,8 @@ node_templates:
         self.assertEqual(expected_plugin1, plugin1)
         self.assertEqual(expected_plugin2, plugin2)
         self.assertEqual(expected_test_plugin1, test_plugin1)
-        self.assertEquals(parsed[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
-                          [plugin2])
+        self.assertEqual(parsed[constants.HOST_AGENT_PLUGINS_TO_INSTALL],
+                         [plugin2])
 
     def test_plugins_merging_with_no_collision(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """

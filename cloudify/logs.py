@@ -21,14 +21,17 @@ import datetime
 
 from cloudify import constants, manager
 from cloudify import event as _event
-from cloudify.utils import (get_execution_creator_username,
-                            get_execution_id,
-                            is_management_environment,
-                            ENV_AGENT_LOG_LEVEL,
-                            ENV_AGENT_LOG_DIR,
-                            ENV_AGENT_LOG_MAX_BYTES,
-                            ENV_AGENT_LOG_MAX_HISTORY)
-from cloudify._compat import text_type
+from cloudify.utils import (
+    get_execution_creator_username,
+    get_execution_id,
+    is_management_environment,
+    ENV_AGENT_LOG_LEVEL,
+    ENV_AGENT_LOG_DIR,
+    ENV_AGENT_LOG_MAX_BYTES,
+    ENV_AGENT_LOG_MAX_HISTORY,
+    get_manager_name,
+    get_daemon_name,
+)
 
 EVENT_CLASS = _event.Event
 EVENT_VERBOSITY_LEVEL = _event.NO_VERBOSE
@@ -225,7 +228,8 @@ def send_workflow_node_event(ctx, event_type,
                              message=None,
                              args=None,
                              additional_context=None,
-                             out_func=None):
+                             out_func=None,
+                             skip_send=False):
     """Send a workflow node event
 
     :param ctx: A CloudifyWorkflowNode instance
@@ -233,10 +237,13 @@ def send_workflow_node_event(ctx, event_type,
     :param message: The message
     :param args: additional arguments that may be added to the message
     :param additional_context: additional context to be added to the context
+    :param skip_send: Only for internal use - do not send the event to the
+                      manager, but log it to the logfile
     """
     _send_event(
         message_context_from_workflow_node_instance_context(ctx),
-        event_type, message, args, additional_context, out_func)
+        event_type, message, args, additional_context, out_func,
+        skip_send=skip_send)
 
 
 def send_plugin_event(ctx,
@@ -281,7 +288,7 @@ def send_task_event(cloudify_context,
 
 def _send_event(message_context, event_type,
                 message, args, additional_context,
-                out_func):
+                out_func, **kwargs):
     additional_context = additional_context or {}
     message_context.update(additional_context)
 
@@ -294,7 +301,7 @@ def _send_event(message_context, event_type,
         }
     }
     out_func = out_func or manager_event_out
-    out_func(event)
+    out_func(event, **kwargs)
 
 
 def populate_base_item(item, message_type):
@@ -305,18 +312,19 @@ def populate_base_item(item, message_type):
     item['type'] = message_type
 
 
-def manager_event_out(event):
+def manager_event_out(event, **kwargs):
     populate_base_item(event, 'cloudify_event')
     message_type = event['context'].get('message_type') or 'event'
-    _publish_message(event, message_type, logging.getLogger('cloudify_events'))
+    _publish_message(
+        event, message_type, logging.getLogger('cloudify_events'), **kwargs)
 
 
-def manager_log_out(log):
+def manager_log_out(log, **kwargs):
     populate_base_item(log, 'cloudify_log')
-    _publish_message(log, 'log', logging.getLogger('cloudify_logs'))
+    _publish_message(log, 'log', logging.getLogger('cloudify_logs'), **kwargs)
 
 
-def stdout_event_out(event):
+def stdout_event_out(event, **kwargs):
     populate_base_item(event, 'cloudify_event')
     output = create_event_message_prefix(event)
     if output:
@@ -324,7 +332,7 @@ def stdout_event_out(event):
         sys.stdout.flush()
 
 
-def stdout_log_out(log):
+def stdout_log_out(log, **kwargs):
     populate_base_item(log, 'cloudify_log')
     output = create_event_message_prefix(log)
     if output:
@@ -332,11 +340,15 @@ def stdout_log_out(log):
         sys.stdout.flush()
 
 
-def create_event_message_prefix(event):
-    event_obj = EVENT_CLASS(event, verbosity_level=EVENT_VERBOSITY_LEVEL)
+def create_event_message_prefix(event, with_worker_names=False):
+    event_obj = EVENT_CLASS(
+        event,
+        verbosity_level=EVENT_VERBOSITY_LEVEL,
+        with_worker_names=with_worker_names,
+    )
     if not event_obj.has_output:
         return None
-    return text_type(event_obj)
+    return str(event_obj)
 
 
 def _log_message(logger, message):
@@ -345,25 +357,39 @@ def _log_message(logger, message):
     exec_id = message.get('context', {}).get('execution_id')
     execution_creator_username = message.get('context', {}).get(
         'execution_creator_username')
-    text = message['message']['text']
+    msg = message['message']['text']
+    try:
+        node_id = message['context']['node_id']
+        msg = u'[{0}] {1}'.format(node_id, msg)
+    except KeyError:
+        pass
     if exec_id:
-        msg = u'[{0}] {1}'.format(exec_id, text)
+        msg = u'[{0}] {1}'.format(exec_id, msg)
         if execution_creator_username:
             msg = u'[{0}] '.format(execution_creator_username) + msg
-    else:
-        msg = text
     log_func(msg)
 
 
-def _publish_message(message, message_type, logger):
+def _publish_message(message, message_type, logger, skip_send=False):
     if u'message' in message:
         _log_message(logger, message)
+    if skip_send:
+        return
     execution_id = get_execution_id()
     client = manager.get_rest_client()
     if message_type == 'log':
-        client.events.create(logs=[message], execution_id=execution_id)
+        logs = [message]
+        events = None
     else:
-        client.events.create(events=[message], execution_id=execution_id)
+        logs = None
+        events = [message]
+    client.events.create(
+        events=events,
+        logs=logs,
+        execution_id=execution_id,
+        agent_name=get_daemon_name(),
+        manager_name=get_manager_name(),
+    )
 
 
 def setup_logger_base(log_level, log_dir=None):

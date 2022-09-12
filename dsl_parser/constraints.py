@@ -16,12 +16,15 @@
 import re
 import numbers
 
-from dsl_parser._compat import text_type
-from dsl_parser import functions, exceptions
+from dsl_parser import exceptions, utils
 from dsl_parser.constants import (
     INPUTS,
     DEFAULT,
-    CONSTRAINTS as CONSTRAINT_CONST
+    CONSTRAINTS as CONSTRAINT_CONST,
+    TYPE,
+    ITEM_TYPE,
+    TYPES_BASED_ON_DB_ENTITIES,
+    TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT,
 )
 
 _NOT_COMPARABLE_ERROR_MSG = "Value is not comparable, the Constraint " \
@@ -31,13 +34,15 @@ _NO_LENGTH_ERROR_MSG = "Value's length could not be computed. Value " \
 
 # Constraint types:
 #  scalar (int/float/long), dual scalar (list/tuple), sequence (list/tuple),
-#  regex (string)
+#  regex (string), string (string), dict (dictionary/hashmap)
 # A few examples:
 # - dual scalar: [ -0.5, 2 ] or it could be ( 1, 10 ) or any sequence of two
 #                scalars
 # - sequence: ( 1, 0, 'something', False ) or it could
 #             be [ 1, 0, 'something', False ]
-_SCALAR, _DUAL_SCALAR, _SEQUENCE, _REGEX = [0, 1, 2, 3]
+# - string: 'Quick brown fox jumps over the lazy dog'
+# - dict: {'one': 1, 'two': [2, 22], 'three': 3.14}
+_SCALAR, _DUAL_SCALAR, _SEQUENCE, _REGEX, _STRING, _DICT = [0, 1, 2, 3, 4, 5]
 
 CONSTRAINTS = {}
 VALIDATION_FUNCTIONS = {}
@@ -113,6 +118,28 @@ class Constraint(object):
             ', '.join(str(arg) for arg in self.args)
             if isinstance(self.args, (list, tuple)) else self.args)
 
+    def data_based(self, data_type=None):
+        return False
+
+
+class DataBasedConstraint(Constraint):
+    SUPPORTED_DATA_TYPES = []
+
+    def predicate(self, value):
+        raise NotImplementedError()
+
+    def data_based(self, data_type=None):
+        return True
+
+    def type_check(self, data_type):
+        if data_type not in self.SUPPORTED_DATA_TYPES:
+            raise exceptions.ConstraintException(
+                "'{0}' constraint is not defined for "
+                "'{1}' data types".format(self.name, data_type))
+
+    def query_param(self, data_type=None):
+        return self.name
+
 
 @register_constraint(name='equal', constraint_data_type=_SCALAR)
 class Equal(Constraint):
@@ -174,7 +201,9 @@ class InRange(Constraint):
 
 
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
-class ValidValues(Constraint):
+class ValidValues(DataBasedConstraint):
+    SUPPORTED_DATA_TYPES = ['capability_value', 'scaling_group',
+                            'node_id', 'node_type', 'node_instance']
 
     def predicate(self, value):
         return _try_predicate_func(
@@ -183,6 +212,20 @@ class ValidValues(Constraint):
             "valid values. Constraint argument type "
             "is '{0}' but value type is "
             "'{1}'.".format(type(self.args).__name__, type(value).__name__))
+
+    def data_based(self, data_type=None):
+        if data_type in self.SUPPORTED_DATA_TYPES:
+            return True
+        return False
+
+    def type_check(self, data_type):
+        if data_type not in self.SUPPORTED_DATA_TYPES:
+            raise exceptions.ConstraintException(
+                "'{0}' constraint is not defined for "
+                "'{1}' data types".format(self.name, data_type))
+
+    def query_param(self, data_type=None):
+        return self.name
 
 
 @register_constraint(name='length', constraint_data_type=_SCALAR)
@@ -219,11 +262,62 @@ class Pattern(Constraint):
     # E.g. if self.args = 'abc' then calling `predicate` will only return True
     # when value = "abc".
     def predicate(self, value):
-        if not isinstance(value, text_type):
+        if not isinstance(value, str):
             raise exceptions.ConstraintException(
                 "Value must be of type string, got type "
                 "'{0}'".format(type(value).__name__))
         return bool(re.match(self.args, value))
+
+
+@register_constraint(name='filter_id', constraint_data_type=_STRING)
+class FilterId(DataBasedConstraint):
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
+
+
+@register_constraint(name='labels', constraint_data_type=_SEQUENCE)
+class Labels(DataBasedConstraint):
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
+
+
+@register_constraint(name='tenants', constraint_data_type=_SEQUENCE)
+class Tenants(DataBasedConstraint):
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id']
+
+
+@register_constraint(name='name_pattern', constraint_data_type=_DICT)
+class NamePattern(DataBasedConstraint):
+    SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id', 'secret_key',
+                            'capability_value', 'scaling_group',
+                            'node_id', 'node_type', 'node_instance']
+
+    def query_param(self, data_type=None):
+        if data_type == 'blueprint_id':
+            return 'id_specs'
+        elif data_type == 'deployment_id':
+            return 'display_name_specs'
+        elif data_type == 'secret_key':
+            return 'key_specs'
+        elif data_type == 'node_id':
+            return 'id_specs'
+        elif data_type == 'node_type':
+            return 'type_specs'
+        elif data_type == 'node_instance':
+            return 'id_specs'
+        elif data_type == 'capability_value':
+            return 'capability_key_specs'
+        elif data_type == 'scaling_group':
+            return 'scaling_group_name_specs'
+        else:
+            raise NotImplementedError(
+                "'{0}' constraint is not implemented for data type '{1}'"
+                .format(self.name, data_type)
+            )
+
+
+@register_constraint(name='deployment_id', constraint_data_type=_STRING)
+class DeploymentId(DataBasedConstraint):
+    SUPPORTED_DATA_TYPES = ['capability_value', 'scaling_group',
+                            'node_id', 'node_type', 'node_instance']
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
@@ -245,13 +339,23 @@ def is_valid_sequence(args):
 
 @register_validation_func(constraint_data_type=_REGEX)
 def is_valid_regex(arg):
-    if not isinstance(arg, text_type):
+    if not isinstance(arg, str):
         return False
     try:
         re.compile(arg)
         return True
     except re.error:
         return False
+
+
+@register_validation_func(constraint_data_type=_STRING)
+def is_string(arg):
+    return isinstance(arg, str)
+
+
+@register_validation_func(constraint_data_type=_DICT)
+def is_dict(arg):
+    return isinstance(arg, dict)
 
 
 def validate_args(constraint_cls, args, ancestor):
@@ -262,7 +366,7 @@ def validate_args(constraint_cls, args, ancestor):
     :param ancestor: ancestor element of this constraint.
     :raises DSLParsingFormatException: in case of a violation.
     """
-    if functions.is_function(args) \
+    if utils.get_function(args) \
             or not VALIDATION_FUNCTIONS[
                 constraint_cls.constraint_data_type](args):
         raise exceptions.DSLParsingLogicException(
@@ -283,18 +387,92 @@ def parse(definition):
     return constraint_cls(args)
 
 
-def validate_input_value(input_name, input_constraints, input_value):
-    if input_constraints and functions.is_function(input_value):
+def validate_input_value(input_name, input_constraints, input_value,
+                         type_name, item_type_name, value_getter):
+    if type_name != 'list' or not item_type_name:
+        return _validate_input_value(
+            input_name, input_constraints, input_value,
+            type_name, value_getter)
+    for item_value in input_value:
+        _validate_type_match(input_name, item_value, item_type_name)
+        _validate_input_value(input_name, input_constraints, item_value,
+                              item_type_name, value_getter)
+
+
+def _validate_type_match(input_name, input_value, type_name):
+    _, valid = utils.parse_simple_type_value(input_value, type_name)
+    if not valid:
+        raise exceptions.DSLParsingLogicException(
+            exceptions.ERROR_VALUE_DOES_NOT_MATCH_TYPE,
+            "Property type validation failed in '{0}': the defined "
+            "type is '{1}', yet it was assigned with the "
+            "value '{2}'".format(input_name, type_name, input_value)
+        )
+
+
+def _validate_input_value(input_name, input_constraints, input_value,
+                          type_name, value_getter):
+    if input_constraints and utils.get_function(input_value):
         raise exceptions.DSLParsingException(
             exceptions.ERROR_INPUT_WITH_FUNCS_AND_CONSTRAINTS,
             'Input value {0}, of input {1}, cannot contain an intrinsic '
             'function and also have '
             'constraints.'.format(input_value, input_name))
+
+    if type_name in TYPES_BASED_ON_DB_ENTITIES:
+        if not value_getter:
+            raise exceptions.ConstraintException(
+                'Invalid call to validate_input_value: value_getter not set')
+        if type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT \
+                and not value_getter.has_deployment_id() \
+                and 'deployment_id' not in {c.name for c in input_constraints}:
+            raise exceptions.ConstraintException(
+                "Input '{0}' of type '{1}' lacks 'deployment_id' constraint."
+                .format(input_name, type_name))
+        if type_name not in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT \
+                or ('deployment_id' not in {c.name for c in input_constraints}
+                    and value_getter.has_deployment_id()):
+            matching_values = value_getter.get(type_name, input_value)
+            if not any(v == input_value for v in matching_values or []):
+                raise exceptions.ConstraintException(
+                    "Value '{0}' of '{1}' is not a valid value for data type "
+                    "'{2}'.".format(input_value, input_name, type_name))
+
+    data_based_constraints = []
     for c in input_constraints:
+        if c.data_based(type_name):
+            data_based_constraints.append(c)
+            continue
         if not c.predicate(input_value):
             raise exceptions.ConstraintException(
                 "Value {0} of input {1} violates constraint "
                 "{2}.".format(input_value, input_name, c))
+    if ((type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT
+         or data_based_constraints)
+        and not predicate_many(input_value,
+                               type_name,
+                               value_getter,
+                               data_based_constraints)):
+        raise exceptions.ConstraintException(
+            "Value '{0}' of input '{1}' does not match any relevant entity "
+            "or violates at least one of the constraints: {2}."
+            .format(input_value, input_name,
+                    ", ".join(str(c) for c in data_based_constraints))
+        )
+
+
+def build_data_based_constraints_query(type_name, constraints):
+    params = {}
+    for c in constraints:
+        c.type_check(type_name)
+        params[c.query_param(type_name)] = c.args
+    return params
+
+
+def predicate_many(input_value, type_name, value_getter, constraints):
+    params = build_data_based_constraints_query(type_name, constraints)
+    matching_values = value_getter.get(type_name, input_value, **params)
+    return any(v == input_value for v in matching_values or [])
 
 
 def validate_input_defaults(plan):
@@ -305,8 +483,10 @@ def validate_input_defaults(plan):
             continue
         input_default_value = input_def[DEFAULT]
         input_constraints = extract_constraints(input_def)
-        validate_input_value(
-            input_name, input_constraints, input_default_value)
+        validate_input_value(input_name, input_constraints,
+                             input_default_value,
+                             input_def.get(TYPE), input_def.get(ITEM_TYPE),
+                             None)
 
 
 def extract_constraints(input_def):

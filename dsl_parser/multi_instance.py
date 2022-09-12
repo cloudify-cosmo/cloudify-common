@@ -21,7 +21,7 @@ from dsl_parser import (models,
                         constants)
 
 
-def create_deployment_plan(plan):
+def create_deployment_plan(plan, existing_ni_ids=None):
     """
     Expand node instances based on number of instances to deploy and
     defined relationships
@@ -31,7 +31,7 @@ def create_deployment_plan(plan):
         nodes=deployment_plan['nodes'],
         scaling_groups=deployment_plan['scaling_groups'])
     deployment_node_graph, ctx = rel_graph.build_deployment_node_graph(
-        plan_node_graph)
+        plan_node_graph, existing_ni_ids=existing_ni_ids)
     node_instances = rel_graph.extract_node_instances(
         node_instances_graph=deployment_node_graph,
         ctx=ctx)

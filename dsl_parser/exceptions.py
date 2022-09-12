@@ -89,7 +89,25 @@ class EvaluationRecursionLimitReached(Exception):
     pass
 
 
+class UnknownSysEntityError(Exception):
+    """
+    An error raised when a deployment is created and the get_sys intrinsic
+    function is run for unsupported entity.
+    """
+    pass
+
+
+class UnknownSysPropertyError(Exception):
+    """
+    An error raised when a deployment is created and the get_sys intrinsic
+    function is run for unsupported property of a valid entity.
+    """
+    pass
+
+
 class DSLParsingException(Exception):
+    hide_traceback = True
+
     def __init__(self, err_code, *args):
         super(DSLParsingException, self).__init__(*args)
         self.err_code = err_code
@@ -171,3 +189,11 @@ ERROR_INPUT_WITH_FUNCS_AND_CONSTRAINTS = 213
 ERROR_INPUT_VIOLATES_DATA_TYPE_SCHEMA = 214
 # A hidden and required input does not have a default value
 ERROR_HIDDEN_REQUIRED_INPUT_NO_DEFAULT = 215
+# A `display` attribute is declared for invalid type
+ERROR_DISPLAY_FOR_INVALID_TYPE = 216
+# A `item_type` attribute is invalid
+ERROR_INVALID_ITEM_TYPE = 217
+# A `item_type` attribute is declared for invalid type
+ERROR_ITEM_TYPE_FOR_INVALID_TYPE = 218
+# Intrinsic function not allowed for certain elements of the schema
+ERROR_INTRINSIC_FUNCTION_NOT_PERMITTED = 219

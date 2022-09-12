@@ -1,19 +1,5 @@
-########
-# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import os
+import json
 import requests
 
 from cloudify_rest_client.constants import VisibilityState
@@ -39,7 +25,9 @@ class NodeInstance(object):
                  version=None,
                  host_id=None,
                  relationships=None,
-                 index=None):
+                 index=None,
+                 scaling_groups=None,
+                 system_properties=None):
         self.id = node_instance_id
         self._node_id = node_id
         self._runtime_properties = \
@@ -49,6 +37,8 @@ class NodeInstance(object):
         self._host_id = host_id
         self._relationships = relationships
         self._index = index
+        self._scaling_groups = scaling_groups
+        self._system_properties = system_properties
 
     def get(self, key):
         return self._runtime_properties.get(key)
@@ -57,7 +47,7 @@ class NodeInstance(object):
         self._runtime_properties[key] = value
 
     def delete(self, key):
-        del(self._runtime_properties[key])
+        del self._runtime_properties[key]
 
     __setitem__ = put
 
@@ -124,6 +114,14 @@ class NodeInstance(object):
     def index(self):
         return self._index
 
+    @property
+    def scaling_groups(self):
+        return {g['id']: g['name'] for g in self._scaling_groups}
+
+    @property
+    def system_properties(self):
+        return self._system_properties
+
 
 def get_rest_client(tenant=None, api_token=None):
     """
@@ -148,7 +146,7 @@ def get_rest_client(tenant=None, api_token=None):
     if execution_token:
         headers[constants.CLOUDIFY_EXECUTION_TOKEN_HEADER] = execution_token
     elif api_token:
-        headers[constants.CLOUDIFY_API_AUTH_TOKEN_HEADER] = api_token
+        token = api_token
     else:
         token = utils.get_rest_token()
 
@@ -302,7 +300,8 @@ def get_resource_from_manager(resource_path,
     )
 
 
-def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path):
+def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path,
+                    use_global=True):
     """For the given resource_path, generate all firesever paths to try.
 
     Eg. for path of "foo.txt", generate:
@@ -330,7 +329,8 @@ def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path):
         resource_path
     ).replace('\\', '/')
 
-    yield resource_path
+    if use_global:
+        yield resource_path
 
 
 def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
@@ -367,6 +367,30 @@ def get_resource(blueprint_id, deployment_id, tenant_name, resource_path):
                         .format(resource_path))
 
 
+def get_resource_directory_index(
+        blueprint_id, deployment_id, tenant_name, resource_path):
+    tried_paths = []
+    resource_files = set()
+    for path in _resource_paths(
+            blueprint_id, deployment_id, tenant_name, resource_path,
+            use_global=False):
+        try:
+            directory_index = get_resource_from_manager(path)
+            for f in json.loads(directory_index)['files']:
+                resource_files.add(f)
+        except (ValueError, KeyError, NonRecoverableError):
+            tried_paths.append(path)
+        except HttpException as e:
+            if e.code != 404:
+                raise
+
+    if not resource_files:
+        raise HttpException(','.join(tried_paths), 404,
+                            'No valid resource directory listing at found: {0}'
+                            .format(resource_path))
+    return list(resource_files)
+
+
 def get_node_instance(node_instance_id, evaluate_functions=False, client=None):
     """
     Read node instance data from the storage.
@@ -389,7 +413,9 @@ def get_node_instance(node_instance_id, evaluate_functions=False, client=None):
                         version=instance.version,
                         host_id=instance.host_id,
                         relationships=instance.relationships,
-                        index=instance.index)
+                        index=instance.index,
+                        scaling_groups=instance.scaling_groups,
+                        system_properties=instance.system_properties)
 
 
 def update_node_instance(node_instance, client=None):
@@ -505,3 +531,8 @@ class DirtyTrackingDict(dict):
             raise NonRecoverableError('Cannot modify runtime properties of'
                                       ' relationship node instances')
         self.dirty = True
+
+
+def _get_workdir_path(deployment_id, tenant):
+    return os.path.join('/opt', 'manager', 'resources', 'deployments',
+                        tenant, deployment_id)

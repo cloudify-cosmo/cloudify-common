@@ -15,8 +15,7 @@
 
 import mock
 import requests
-
-import testtools
+import unittest
 
 from dsl_parser.exceptions import DSLParsingLogicException
 from dsl_parser.import_resolver.default_import_resolver import \
@@ -46,7 +45,7 @@ RETRY_URL = 'retry_url'
 RETRY_DELAY = 0
 
 
-class TestDefaultResolver(testtools.TestCase):
+class TestDefaultResolver(unittest.TestCase):
 
     def test_several_matching_rules(self):
         rules = [
@@ -201,6 +200,41 @@ class TestDefaultResolver(testtools.TestCase):
             partial_err_msg="Unable to open import url {0}"
             .format(ILLEGAL_URL))
 
+    def test_plugin_yamls_for_dsl_version(self):
+        r = DefaultImportResolver()
+        with mock.patch('glob.glob',
+                        return_value=['plugin.yaml']):
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', None) \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_3') \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_4') \
+                   == ['plugin.yaml']
+        with mock.patch('glob.glob',
+                        return_value=['plugin.yaml', 'plugin_1_1.yaml']):
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', None) \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_1') \
+                   == ['plugin_1_1.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_4') \
+                   == ['plugin.yaml']
+        with mock.patch('glob.glob',
+                        return_value=['plugin_1_2.yaml', 'plugin_1_3.yaml']):
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', None) \
+                   != []
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_2') \
+                   == ['plugin_1_2.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_3') \
+                   == ['plugin_1_3.yaml']
+        with mock.patch('glob.glob',
+                        return_value=['plugin.yaml', 'plugin_1_1.yaml']):
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', None) \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_3') \
+                   == ['plugin.yaml']
+            assert r._plugin_yamls_for_dsl_version('plugin.yaml', '_1_4') \
+                   == ['plugin.yaml']
+
     def _test_default_resolver(self, import_url, rules,
                                expected_urls_to_resolve=[],
                                expected_failure=False,
@@ -271,7 +305,7 @@ class TestDefaultResolver(testtools.TestCase):
             self.assertEqual(MAX_NUMBER_RETRIES + 1, len(number_of_attempts))
 
 
-class TestDefaultResolverValidations(testtools.TestCase):
+class TestDefaultResolverValidations(unittest.TestCase):
 
     def test_illegal_default_resolver_rules_type(self):
         # wrong rules configuration - string instead of list

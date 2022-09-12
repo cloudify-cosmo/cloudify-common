@@ -15,4 +15,4 @@
 
 
 def string_in_log(str, capture):
-    return any(str in x.getMessage() for x in capture.records)
+    return any(str in x.message for x in capture.records)

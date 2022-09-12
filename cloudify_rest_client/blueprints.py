@@ -1,28 +1,14 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import os
 import tempfile
 import shutil
 import contextlib
+from urllib.parse import quote as urlquote, urlparse
 
 from cloudify_rest_client import utils
 from cloudify_rest_client import bytes_stream_utils
-from cloudify_rest_client._compat import urlquote, urlparse
 from cloudify_rest_client.constants import VisibilityState
 from cloudify_rest_client.exceptions import CloudifyClientError
+from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.responses import ListResponse
 
 from .labels import Label
@@ -98,6 +84,20 @@ class Blueprint(dict):
         """
         return self.get('labels')
 
+    @property
+    def upload_execution(self):
+        """
+        :return: The upload_blueprint execution that parsed this blueprint.
+        """
+        return self.get('upload_execution')
+
+    @property
+    def tenant_name(self):
+        """
+        :return: The name of the tenant associated with this blueprint.
+        """
+        return self.get('tenant_name')
+
 
 class BlueprintsClient(object):
 
@@ -112,8 +112,13 @@ class BlueprintsClient(object):
                              visibility,
                              progress_callback,
                              async_upload,
-                             labels=None):
-        query_params = {'visibility': visibility, 'async_upload': async_upload}
+                             labels=None,
+                             created_at=None,
+                             created_by=None,
+                             state=None,
+                             skip_execution=False):
+        query_params = {'visibility': visibility, 'async_upload': async_upload,
+                        'skip_execution': skip_execution}
         if application_file_name is not None:
             query_params['application_file_name'] = \
                 urlquote(application_file_name)
@@ -130,6 +135,12 @@ class BlueprintsClient(object):
                 value = value.replace('=', '\\=').replace(',', '\\,')
                 labels_params.append('{0}={1}'.format(key, value))
             query_params['labels'] = ','.join(labels_params)
+        if created_at:
+            query_params['created_at'] = created_at
+        if created_by:
+            query_params['created_by'] = created_by
+        if state:
+            query_params['state'] = state
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
@@ -154,14 +165,22 @@ class BlueprintsClient(object):
                 visibility=VisibilityState.TENANT,
                 progress_callback=None,
                 async_upload=False,
-                labels=None):
+                labels=None,
+                created_at=None,
+                created_by=None,
+                state=None,
+                skip_execution=False):
         query_params, data = self._prepare_put_request(
             archive_location,
             application_file_name,
             visibility,
             progress_callback,
             async_upload,
-            labels
+            labels,
+            created_at,
+            created_by,
+            state,
+            skip_execution,
         )
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
         return self.api.put(
@@ -186,11 +205,11 @@ class BlueprintsClient(object):
         )
         uri = '/{self._uri_prefix}/{id}/validate'.format(self=self,
                                                          id=blueprint_id)
-        self.api.put(
+        return self.api.put(
             uri,
             params=query_params,
             data=data,
-            expected_status_code=204
+            expected_status_code=(200, 204)
         )
 
     def _validate_blueprint_size(self, path, tempdir, skip_size_limit):
@@ -225,7 +244,7 @@ class BlueprintsClient(object):
         return tar_path, os.path.basename(path)
 
     def list(self, _include=None, sort=None, is_descending=False,
-             filter_id=None, filter_rules=None, **kwargs):
+             filter_id=None, filter_rules=None, constraints=None, **kwargs):
         """
         Returns a list of currently stored blueprints.
 
@@ -235,10 +254,16 @@ class BlueprintsClient(object):
         :param filter_id: A filter ID to filter the blueprints list by
         :param filter_rules: A list of filter rules to filter the
                blueprints list by
+        :param constraints: A list of DSL constraints for blueprint_id data
+               type.  The purpose is similar to the `filter_rules`, but syntax
+               differs.
         :param kwargs: Optional filter fields. For a list of available fields
                see the REST service's models.BlueprintState.fields
         :return: Blueprints list.
         """
+        if constraints and (filter_id or filter_rules):
+            raise ValueError('provide either DSL constraints or '
+                             'filter_id/filter_rules, not both')
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
@@ -250,6 +275,9 @@ class BlueprintsClient(object):
         if filter_rules:
             response = self.api.post('/searches/blueprints', params=params,
                                      data={'filter_rules': filter_rules})
+        elif constraints:
+            response = self.api.post('/searches/blueprints', params=params,
+                                     data={'constraints': constraints})
         else:
             response = self.api.get('/{self._uri_prefix}'.format(self=self),
                                     params=params)
@@ -265,7 +293,10 @@ class BlueprintsClient(object):
                         visibility=VisibilityState.TENANT,
                         progress_callback=None,
                         async_upload=False,
-                        labels=None):
+                        labels=None,
+                        created_at=None,
+                        created_by=None,
+                        skip_execution=False):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
@@ -293,7 +324,10 @@ class BlueprintsClient(object):
             visibility=visibility,
             progress_callback=progress_callback,
             async_upload=async_upload,
-            labels=labels)
+            labels=labels,
+            created_at=created_at,
+            created_by=created_by,
+            skip_execution=skip_execution)
         if not async_upload:
             return self._wrapper_cls(response)
 
@@ -314,7 +348,11 @@ class BlueprintsClient(object):
                progress_callback=None,
                skip_size_limit=True,
                async_upload=False,
-               labels=None):
+               labels=None,
+               created_at=None,
+               created_by=None,
+               state=None,
+               skip_execution=False):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -347,7 +385,11 @@ class BlueprintsClient(object):
                 visibility=visibility,
                 progress_callback=progress_callback,
                 async_upload=async_upload,
-                labels=labels)
+                labels=labels,
+                created_at=created_at,
+                created_by=created_by,
+                state=state,
+                skip_execution=skip_execution)
             if not async_upload:
                 return self._wrapper_cls(response)
         finally:
@@ -386,7 +428,7 @@ class BlueprintsClient(object):
                 tar_path, application_file = self._validate_blueprint_size(
                     path, tempdir, skip_size_limit)
 
-            self._validate(
+            response = self._validate(
                 tar_path or path,
                 blueprint_id=entity_id,
                 application_file_name=application_file or blueprint_filename,
@@ -394,6 +436,10 @@ class BlueprintsClient(object):
                 progress_callback=progress_callback)
         finally:
             shutil.rmtree(tempdir)
+
+        if response:
+            # on cloudify earlier than 6.4, response is None (204 no content)
+            return Execution(response)
 
     def get(self, blueprint_id, _include=None):
         """
@@ -514,4 +560,30 @@ class BlueprintsClient(object):
         self.api.put('/{self._uri_prefix}/{id}/archive'.format(
             self=self, id=blueprint_id),
             data=archive_data
+        )
+
+    def upload_icon(self, blueprint_id, icon_path):
+        """
+        Upload an icon for an existing a blueprint.
+
+        :param blueprint_id: Blueprint's id to update.
+        :param icon_path: Path of a local file containing a icon for
+            the blueprint.
+        """
+        icon_data = bytes_stream_utils.request_data_file_stream(
+            icon_path,
+            client=self.api)
+        self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
+            self=self, id=blueprint_id),
+            data=icon_data
+        )
+
+    def remove_icon(self, blueprint_id):
+        """
+        Request removal of the icon for an existing a blueprint.
+
+        :param blueprint_id: Blueprint's id to update.
+        """
+        self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
+            self=self, id=blueprint_id),
         )

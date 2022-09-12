@@ -27,6 +27,16 @@ class Workflow(dict):
     def plugin(self):
         return self['plugin']
 
+    @property
+    def is_available(self):
+        """Is this workflow available for running?"""
+        return self.get('is_available', True)
+
+    @property
+    def availability_rules(self):
+        """Rules defining if this workflow is available"""
+        return self.get('availability_rules')
+
 
 class WorkflowsClient(object):
     def __init__(self, api):

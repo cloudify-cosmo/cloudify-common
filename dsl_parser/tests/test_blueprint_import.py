@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+
 from dsl_parser import constants, exceptions
 from dsl_parser.tests.utils import ResolverWithBlueprintSupport
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
@@ -106,11 +107,9 @@ imports:
         parsed_yaml = self.parse(main_yaml, resolver=resolver)
         imported_blueprints = parsed_yaml[constants.IMPORTED_BLUEPRINTS]
         self.assertEqual(len(imported_blueprints), 3)
-        self.assertItemsEqual(
-            ['other_test',
-             'test',
-             'another_test'],
-            imported_blueprints)
+        self.assertEqual(
+            {'other_test', 'test', 'another_test'},
+            set(imported_blueprints))
 
     def test_not_valid_blueprint_import(self):
         yaml = """
@@ -125,41 +124,45 @@ class TestNamespacesMapping(AbstractTestParser):
     blueprint_imported = """
 tosca_definitions_version: cloudify_dsl_1_3
 namespaces_mapping:
-  ns: blueprint
+  deepns: blueprint
 """
 
     def test_merging_namespaces_mapping(self):
         resolver = ResolverWithBlueprintSupport({
-            'blueprint:test': self.blueprint_imported
+            'blueprint:testbp': self.blueprint_imported
         }, rules=self._local_resolver_rules())
         layer1 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - namespace--blueprint:test
+  - collision--blueprint:testbp
 """
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - {0}--{1}
-  - namespace--blueprint:test
-""".format('test1', layer1_import_path)
+  - nested1--{bp_path}
+  - collision--blueprint:testbp
+""".format(bp_path=layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-  - {0}--{1}
-  - {2}--{1}
-""".format('test', layer2_import_path, 'other_test')
+  - mainns1--{bp_path}
+  - mainns2--{bp_path}
+""".format(bp_path=layer2_import_path)
         parsed_yaml = self.parse(main_yaml, resolver=resolver)
         namespaces_mapping = parsed_yaml[constants.NAMESPACES_MAPPING]
-        self.assertItemsEqual({'other_test--test1--namespace': 'test',
-                               'test--test1--namespace': 'test',
-                               'other_test--test1--namespace--ns': 'blueprint',
-                               'test--test1--namespace--ns': 'blueprint',
-                               'other_test--namespace--ns': 'blueprint',
-                               'test--namespace': 'blueprint',
-                               'other_test--namespace': 'blueprint',
-                               'test--namespace--ns': 'blueprint'
-                               },
-                              namespaces_mapping)
+        # If the nested namespace refers to a path to a blueprint, the value
+        # is expected to be: 'blueprint'
+        # If the nested namespace refers to a blueprint:<blueprint_name> then
+        # the value is expected to be '<blueprint_name>'
+        self.assertEqual({
+            'mainns2--nested1--collision': 'testbp',
+            'mainns1--nested1--collision': 'testbp',
+            'mainns2--nested1--collision--deepns': 'blueprint',
+            'mainns1--nested1--collision--deepns': 'blueprint',
+            'mainns2--collision--deepns': 'blueprint',
+            'mainns1--collision': 'testbp',
+            'mainns2--collision': 'testbp',
+            'mainns1--collision--deepns': 'blueprint'
+          }, namespaces_mapping)
 
     def test_blueprints_imports_with_the_same_import(self):
         resolver = ResolverWithBlueprintSupport({

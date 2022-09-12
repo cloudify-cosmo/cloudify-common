@@ -290,7 +290,7 @@ node_types:
             yaml,
             ERROR_UNDEFINED_PROPERTY,
             DSLParsingLogicException)
-        self.assertEquals('key', ex.property)
+        self.assertEqual('key', ex.property)
 
     def test_node_doesnt_implement_schema_mandatory_property(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + self.BASIC_PLUGIN + """
@@ -302,7 +302,7 @@ node_types:
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
-        self.assertEquals('mandatory', ex.property)
+        self.assertEqual('mandatory', ex.property)
 
     def test_relationship_instance_set_non_existing_property(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -320,7 +320,7 @@ relationships:
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
-        self.assertEquals('do_not_exist', ex.property)
+        self.assertEqual('do_not_exist', ex.property)
 
     def test_relationship_instance_doesnt_implement_schema_mandatory_property(self):  # NOQA
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -338,7 +338,7 @@ relationships:
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
-        self.assertEquals('should_implement', ex.property)
+        self.assertEqual('should_implement', ex.property)
 
     def test_instance_relationship_more_than_one_contained_in(self):
         yaml = self.MINIMAL_BLUEPRINT + """
@@ -555,9 +555,9 @@ imports:
         self._assert_dsl_parsing_exception_error_code(
             yaml, 27, DSLParsingLogicException, dsl_parse)
 
-    def test_mismatching_version_in_import(self):
+    def test_mismatching_version_in_import_newer(self):
         imported_yaml = """
-tosca_definitions_version: cloudify_1_1
+tosca_definitions_version: cloudify_dsl_1_1
     """
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         yaml = """
@@ -568,6 +568,19 @@ imports:
 
         self._assert_dsl_parsing_exception_error_code(
             yaml, 28, DSLParsingLogicException, dsl_parse)
+
+    def test_mismatching_version_in_import_older(self):
+        imported_yaml = """
+    tosca_definitions_version: cloudify_dsl_1_1
+        """
+        imported_yaml_filename = self.make_yaml_file(imported_yaml)
+        yaml = """
+imports:
+    -   {0}""".format(imported_yaml_filename) + \
+               self.BASIC_VERSION_SECTION_DSL_1_2 + \
+               self.MINIMAL_BLUEPRINT
+
+        self.parse(yaml)
 
     def test_unsupported_version(self):
         yaml = """

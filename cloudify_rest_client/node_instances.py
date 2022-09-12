@@ -72,6 +72,13 @@ class NodeInstance(dict):
         return self.get('runtime_properties')
 
     @property
+    def system_properties(self):
+        """
+        :return: The system properties of the node instance.
+        """
+        return self.get('system_properties')
+
+    @property
     def state(self):
         """
         :return: The current state of the node instance.
@@ -100,6 +107,30 @@ class NodeInstance(dict):
          relation to other node instances of the same node.
         """
         return self.get('index')
+
+    @property
+    def is_status_check_ok(self):
+        """Has the last status check for this NI succeeded?
+
+        This examines the result of the most recent check_status call
+        on this node instance, and returns whether the call succeeded.
+
+        If the result is missing, the result is succeeded.
+        """
+        return self.get('is_status_check_ok', True)
+
+    @property
+    def has_configuration_drift(self):
+        """Has this NI's configuration drifted?
+
+        This examines the result of the most recent check_drift call
+        on this node instance, and returns whether there was any configuration
+        drift reported.
+
+        The instance is drifted if either the instance itself, or any of its
+        relationships have drifted.
+        """
+        return self.get('has_configuration_drift', False)
 
 
 class NodeInstancesClient(object):
@@ -148,13 +179,16 @@ class NodeInstancesClient(object):
                runtime_properties=None,
                version=1,
                force=False,
-               relationships=None):
+               relationships=None,
+               system_properties=None):
         """
         Update node instance with the provided state & runtime_properties.
 
         :param node_instance_id: The identifier of the node instance to update.
         :param state: The updated state.
         :param runtime_properties: The updated runtime properties.
+        :param system_properties: Like runtime_properties, but only managed
+            by Cloudify itself internally.
         :param version: Current version value of this node instance in
          Cloudify's storage (used for optimistic locking).
         :param force: ignore the version check - use with caution
@@ -169,6 +203,8 @@ class NodeInstancesClient(object):
         data = {'version': version}
         if runtime_properties is not None:
             data['runtime_properties'] = runtime_properties
+        if system_properties is not None:
+            data['system_properties'] = system_properties
         if state is not None:
             data['state'] = state
         if relationships is not None:
@@ -205,7 +241,7 @@ class NodeInstancesClient(object):
 
         return params
 
-    def list(self, _include=None, **kwargs):
+    def list(self, _include=None, constraints=None, **kwargs):
         """
         Returns a list of node instances which belong to the deployment
         identified by the provided deployment id.
@@ -220,6 +256,8 @@ class NodeInstancesClient(object):
         :param _include: List of fields to include in response.
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
+        :param constraints: A list of DSL constraints for node_instance data
+                            type to filter the node_instances by.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.DeploymentNodeInstance.fields
         :return: Node instances.
@@ -227,9 +265,18 @@ class NodeInstancesClient(object):
         """
 
         params = self._create_filters(**kwargs)
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                params=params,
-                                _include=_include)
+        if constraints is None:
+            response = self.api.get('/{self._uri_prefix}'.format(self=self),
+                                    params=params,
+                                    _include=_include)
+        else:
+            if _include:
+                params['_include'] = ','.join(_include)
+            response = self.api.post(
+                '/searches/{self._uri_prefix}'.format(self=self),
+                params=params,
+                data={'constraints': constraints}
+            )
 
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
@@ -258,4 +305,19 @@ class NodeInstancesClient(object):
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata']
+        )
+
+    def delete(self, instance_id):
+        """Delete a node-instance
+
+        This is only useful from within deployment-update. You don't want
+        to delete node-instances otherwise: the state of the deployment
+        could be made inconsistent.
+
+        :param instance_id: ID of the instance to be deleted
+        """
+        self.api.delete(
+            '/{self._uri_prefix}/{instance_id}'
+            .format(self=self, instance_id=instance_id),
+            expected_status_code=204,
         )

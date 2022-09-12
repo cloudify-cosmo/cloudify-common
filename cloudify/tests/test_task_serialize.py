@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from testtools import TestCase
+from unittest import TestCase
 
 from cloudify import exceptions
 from cloudify.workflows import tasks, tasks_graph
@@ -87,12 +87,6 @@ class TestSerialize(TestCase):
             'task_name': task_ctx['task_name'],
             'execution_token': 'mock_token'
         })
-
-    def test_marks_as_stored(self):
-        task = _make_remote_task()
-        self.assertFalse(task.stored)
-        task.dump()
-        self.assertTrue(task.stored)
 
     def test_handler_serialize_func(self):
         task = _make_remote_task()

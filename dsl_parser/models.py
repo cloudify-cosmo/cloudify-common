@@ -35,6 +35,20 @@ class Version(dict):
 class Plan(dict):
 
     def __init__(self, plan):
+        self.update(
+            inputs={},
+            outputs={},
+            nodes=[],
+            scaling_groups={},
+            workflows={},
+            policy_types={},
+            policy_triggers={},
+            description=None,
+            groups={},
+            capabilities={},
+            resource_tags=None,
+            labels={},
+        )
         self.update(plan)
 
     @property

@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools
+import unittest
 
 from dsl_parser import utils
 from dsl_parser.constants import RESOLVER_IMPLEMENTATION_KEY, \
@@ -39,6 +39,9 @@ class CustomImportResolver(AbstractImportResolver):
     def resolve(self, import_url):
         pass
 
+    def retrieve_plugin(self, import_url, **kwargs):
+        pass
+
 
 custom_resolver_class_path = "%s:%s" % (
     CustomImportResolver.__module__, CustomImportResolver.__name__)
@@ -46,6 +49,9 @@ custom_resolver_class_path = "%s:%s" % (
 
 class CustomImportResolverWithoutInit(AbstractImportResolver):
     def resolve(self, import_url):
+        pass
+
+    def retrieve_plugin(self, import_url, **kwargs):
         pass
 
 
@@ -61,13 +67,16 @@ class FailedToInitializeCustomImportResolver(AbstractImportResolver):
     def resolve(self, import_url):
         pass
 
+    def retrieve_plugin(self, import_url, **kwargs):
+        pass
+
 
 failed_custom_resolver_class_path = "%s:%s" % (
     FailedToInitializeCustomImportResolver.__module__,
     FailedToInitializeCustomImportResolver.__name__)
 
 
-class CreateImportResolverTests(testtools.TestCase):
+class CreateImportResolverTests(unittest.TestCase):
 
     def _test_create_import_resolver(self,
                                      resolver_configuration=None,
@@ -212,3 +221,9 @@ class CreateImportResolverTests(testtools.TestCase):
             resolver_configuration=resolver_configuration,
             err_msg_regex=r'Failed to instantiate resolver '
                           r'\(wrong class path\).*Invalid class path')
+
+
+# 2.7 compat
+if not hasattr(CreateImportResolverTests, 'assertRaisesRegex'):
+    CreateImportResolverTests.assertRaisesRegex = \
+        CreateImportResolverTests.assertRaisesRegexp

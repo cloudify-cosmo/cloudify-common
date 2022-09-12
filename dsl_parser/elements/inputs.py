@@ -17,6 +17,7 @@ from dsl_parser import exceptions, constraints, utils
 from dsl_parser.elements.data_types import (Schema,
                                             SchemaProperty,
                                             SchemaInputType,
+                                            SchemaListItemType,
                                             SchemaPropertyDefault,
                                             SchemaPropertyDescription,
                                             SchemaPropertyDisplayLabel,
@@ -88,22 +89,49 @@ class Constraints(Element):
     schema = List(type=Constraint)
 
 
+class DisplayRows(Element):
+    schema = Leaf(type=int)
+
+
+class DisplayHints(Element):
+    schema = {
+        'rows': DisplayRows,
+    }
+
+    def validate(self, **kwargs):
+        if not self.children():
+            return
+
+        data_type = self.sibling(SchemaInputType)
+        if data_type.initial_value == 'textarea':
+            return
+
+        parent = self.ancestor(InputSchemaProperty)
+        raise exceptions.DSLParsingInputTypeException(
+            exceptions.ERROR_DISPLAY_FOR_INVALID_TYPE,
+            '`display` property defined for unsupported input type ({0}) '
+            'for input `{1}`.'
+            .format(data_type.initial_value, parent.name))
+
+
 class InputSchemaProperty(SchemaProperty):
     schema = {
         'required': SchemaPropertyRequired,
         'default': InputSchemaPropertyDefault,
         'description': SchemaPropertyDescription,
         'type': SchemaInputType,
+        'item_type': SchemaListItemType,
         'constraints': Constraints,
         'display_label': SchemaPropertyDisplayLabel,
         'hidden': SchemaPropertyHidden,
+        'display': DisplayHints,
     }
 
     def parse(self):
         return self.build_dict_result(with_default=False)
 
     def validate(self):
-        if self.initial_value.get('required', True) \
+        if self.initial_value and self.initial_value.get('required', True) \
                 and self.initial_value.get('hidden', False) \
                 and 'default' not in self.initial_value:
             raise exceptions.DSLParsingLogicException(

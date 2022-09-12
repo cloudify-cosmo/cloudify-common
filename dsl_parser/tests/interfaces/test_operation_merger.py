@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools
+import unittest
 
 from dsl_parser.interfaces.constants import NO_OP
 from dsl_parser.interfaces.utils import operation_mapping
@@ -51,7 +51,7 @@ def raw_operation_mapping(implementation=None,
     return result
 
 
-class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
+class NodeTemplateNodeTypeOperationMergerTest(unittest.TestCase):
 
     def _assert_operations(self,
                            node_template_operation,
@@ -1122,7 +1122,7 @@ class NodeTemplateNodeTypeOperationMergerTest(testtools.TestCase):
         )
 
 
-class NodeTypeNodeTypeOperationMergerTest(testtools.TestCase):
+class NodeTypeNodeTypeOperationMergerTest(unittest.TestCase):
 
     def _assert_operations(self,
                            overriding_node_type_operation,

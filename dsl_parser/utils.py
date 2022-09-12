@@ -22,8 +22,10 @@ import re
 
 import yaml.parser
 
-from dsl_parser._compat import (
-    urlparse, text_type, reraise, Request, urlopen, URLError)
+from urllib.error import URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+
 from dsl_parser.constants import (
     RESOLVER_IMPLEMENTATION_KEY,
     RESLOVER_PARAMETERS_KEY,
@@ -33,9 +35,11 @@ from dsl_parser.import_resolver.default_import_resolver import (
     DefaultImportResolver
 )
 from dsl_parser import (yaml_loader,
-                        functions,
                         constants,
                         exceptions)
+
+
+TEMPLATE_FUNCTIONS = {}
 
 
 class ResolverInstantiationError(Exception):
@@ -145,10 +149,19 @@ def _merge_flattened_schema_and_instance_properties(
     merged_properties = dict(flattened_schema_properties)
     merged_properties.update(instance_properties)
 
+    use_external_resource = merged_properties.get('use_external_resource')
+    if use_external_resource:
+        if get_function(use_external_resource):
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_INTRINSIC_FUNCTION_NOT_PERMITTED,
+                "Only boolean values are allowed for `use_external_resource` "
+                "property, don't use intrinsic functions.")
+
     result = {}
     for key, property_schema in schema_properties.items():
         if key not in merged_properties:
-            required = property_schema.get('required', True)
+            required = property_schema.get('required', True) and \
+                       not use_external_resource
             if required and raise_on_missing_property:
                 ex = exceptions.DSLParsingLogicException(
                     exceptions.ERROR_MISSING_PROPERTY,
@@ -174,6 +187,37 @@ def _merge_flattened_schema_and_instance_properties(
     return result
 
 
+def parse_simple_type_value(value, type_name):
+    if type_name == 'integer':
+        if isinstance(value, numbers.Integral) and not isinstance(value, bool):
+            return value, True
+    elif type_name == 'float':
+        if isinstance(value, numbers.Number) and not isinstance(
+                value, bool):
+            return value, True
+    elif type_name == 'boolean':
+        if isinstance(value, bool):
+            return value, True
+    elif type_name in ('string', 'textarea', 'deployment_id', 'blueprint_id',
+                       'node_id', 'node_type', 'node_instance',
+                       'capability_value', 'scaling_group', 'secret_key'):
+        return value, True
+    elif type_name == 'regex':
+        if isinstance(value, str):
+            try:
+                re.compile(value)
+                return value, True
+            except re.error:
+                return None, False
+    elif type_name == 'list':
+        if isinstance(value, (list, tuple)):
+            return value, True
+    elif type_name == 'dict':
+        if isinstance(value, dict):
+            return value, True
+    return None, False
+
+
 def parse_value(
         value,
         type_name,
@@ -186,34 +230,13 @@ def parse_value(
         raise_on_missing_property=True):
     if type_name is None:
         return value
-    elif functions.is_function(value):
+    elif get_function(value):
         # intrinsic function - not validated at the moment
         return value
-    elif type_name == 'integer':
-        if isinstance(value, numbers.Integral) and not isinstance(value, bool):
-            return value
-    elif type_name == 'float':
-        if isinstance(value, numbers.Number) and not isinstance(
-                value, bool):
-            return value
-    elif type_name == 'boolean':
-        if isinstance(value, bool):
-            return value
-    elif type_name == 'string':
-        return value
-    elif type_name == 'regex':
-        if isinstance(value, text_type):
-            try:
-                re.compile(value)
-                return value
-            except re.error:
-                pass
-    elif type_name == 'list':
-        if isinstance(value, (list, tuple)):
-            return value
-    elif type_name == 'dict':
-        if isinstance(value, dict):
-            return value
+    elif type_name in constants.USER_PRIMITIVE_TYPES:
+        result, found = parse_simple_type_value(value, type_name)
+        if found:
+            return result
     elif type_name in data_types:
         if isinstance(value, dict):
             data_schema = data_types[type_name]['properties']
@@ -258,7 +281,7 @@ def parse_value(
 def cast_to_type(value, type_name):
     """Try converting value to the specified type_name if possible."""
 
-    if not isinstance(value, text_type):
+    if not isinstance(value, str):
         return value
 
     try:
@@ -337,11 +360,8 @@ def get_class_instance(class_path, properties):
         instance = cls(**properties)
     except Exception as e:
         exc_type, exc, traceback = sys.exc_info()
-        reraise(
-            RuntimeError,
-            RuntimeError('Failed to instantiate {0}, error: {1}'
-                         .format(class_path, e)),
-            traceback)
+        raise RuntimeError(f'Failed to instantiate {class_path}, error: {e}')\
+            .with_traceback(traceback)
 
     return instance
 
@@ -351,7 +371,7 @@ def get_class(class_path):
     if not class_path:
         raise ValueError('class path is missing or empty')
 
-    if not isinstance(class_path, text_type):
+    if not isinstance(class_path, str):
         raise ValueError('class path is not a string')
 
     class_path = class_path.strip()
@@ -401,9 +421,48 @@ def is_blueprint_import(import_url):
     return import_url.startswith(constants.BLUEPRINT_IMPORT)
 
 
+def is_plugin_import(import_url):
+    return import_url.startswith(constants.PLUGIN_PREFIX)
+
+
 def remove_blueprint_import_prefix(import_url):
     return import_url.replace(constants.BLUEPRINT_IMPORT, '')
 
 
 def find_suffix_matches_in_list(sub_str, items):
     return [item for item in items if item.endswith(sub_str)]
+
+
+def remove_dsl_keys(dsl_holder, keys_to_remove):
+    """Remove `keys_to_remove` keys from `dsl_holder`."""
+    for key in list(dsl_holder.value.keys()):
+        if key.value in keys_to_remove:
+            del dsl_holder.value[key]
+
+
+def add_values_node_description(data):
+    result = {}
+    for k, v in data.items():
+        result[k] = {'values': v}
+    return result
+
+
+def get_function(value):
+    """Get a template function if the value represents it"""
+    # functions use the syntax {function_name: args}, or
+    # {function_name: args, 'type': type_name} so let's look for
+    # dicts of length 1 where the only key was registered as a function
+    # or length of 2 where the other key is 'type'
+    if not isinstance(value, dict):
+        return None
+    if not 0 < len(value) < 3:
+        return None
+    result = None
+    for k, v in value.items():
+        if k == 'type':
+            continue
+        elif k in TEMPLATE_FUNCTIONS:
+            result = (TEMPLATE_FUNCTIONS[k], v)
+        else:
+            return None
+    return result

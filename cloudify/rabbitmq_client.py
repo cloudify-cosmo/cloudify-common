@@ -14,11 +14,12 @@
 # limitations under the License.
 ############
 
-
+import os
 import random
 import requests
+import tempfile
 
-from cloudify._compat import urlquote
+from urllib.parse import quote as urlquote
 from cloudify.utils import ipv6_url_compat
 
 
@@ -29,7 +30,7 @@ USERNAME_PATTERN = 'rabbitmq_user_{0}'
 class RabbitMQClient(object):
     def __init__(self, hosts, username, password,
                  port=RABBITMQ_MANAGEMENT_PORT, scheme='https',
-                 logger=None, **request_kwargs):
+                 logger=None, cadata=None, **request_kwargs):
         self._hosts = list(hosts) if isinstance(hosts, list) else [hosts]
         self._hosts = [ipv6_url_compat(h) for h in self._hosts]
         random.shuffle(self._hosts)
@@ -37,8 +38,10 @@ class RabbitMQClient(object):
         self._port = port
         self._scheme = scheme
         self._logger = logger
-        request_kwargs.setdefault('auth', (username, password))
+        self._cadata = cadata
+        self._auth = (username, password)
         self._request_kwargs = request_kwargs
+        self._session = None
 
     @property
     def base_url(self):
@@ -51,8 +54,26 @@ class RabbitMQClient(object):
     def _do_request(self, request_method, url, **kwargs):
         request_kwargs = self._request_kwargs.copy()
         request_kwargs.update(kwargs)
+
+        if self._session is None:
+            self._session = requests.Session()
+            self._session.auth = self._auth
+
+        ca_path = None
+        if self._cadata is not None:
+            with tempfile.NamedTemporaryFile(delete=False, mode='w') as f:
+                f.write(self._cadata)
+            ca_path = f.name
+            request_kwargs['verify'] = ca_path
+
         request_kwargs.setdefault('headers', {})\
             .setdefault('Content-Type', 'application/json',)
+        request_method = {
+            'get': self._session.get,
+            'post': self._session.post,
+            'put': self._session.put,
+            'delete': self._session.delete,
+        }[request_method]
 
         while True:
             full_url = '{0}/api/{1}'.format(self.base_url, url)
@@ -83,16 +104,20 @@ class RabbitMQClient(object):
                         self._logger.error(
                             base_message + 'No healthy hosts found.'
                         )
+                    if ca_path:
+                        os.unlink(ca_path)
                     raise
+        if ca_path:
+            os.unlink(ca_path)
         return response
 
     def get_vhost_names(self):
-        vhosts = self._do_request(requests.get, 'vhosts').json()
+        vhosts = self._do_request('get', 'vhosts').json()
         return [vhost['name'] for vhost in vhosts]
 
     def create_vhost(self, vhost, copy_policies=True):
         vhost = urlquote(vhost, '')
-        self._do_request(requests.put, 'vhosts/{0}'.format(vhost))
+        self._do_request('put', 'vhosts/{0}'.format(vhost))
         if copy_policies:
             default_policies = self.get_policies('/')
             for policy in default_policies:
@@ -104,7 +129,7 @@ class RabbitMQClient(object):
         vhost = urlquote(vhost, '')
         policy_name = urlquote(policy_name, '')
         self._do_request(
-            requests.put,
+            'put',
             'policies/{vhost}/{policy_name}'.format(
                 vhost=vhost,
                 policy_name=policy_name,
@@ -115,36 +140,34 @@ class RabbitMQClient(object):
     def get_policies(self, vhost):
         vhost = urlquote(vhost, '')
         return self._do_request(
-            requests.get,
+            'get',
             'policies/{vhost}'.format(vhost=vhost)
         ).json()
 
     def delete_vhost(self, vhost):
         vhost = urlquote(vhost, '')
-        self._do_request(requests.delete, 'vhosts/{0}'.format(vhost))
+        self._do_request('delete', 'vhosts/{0}'.format(vhost))
 
     def get_users(self):
-        return self._do_request(requests.get, 'users').json()
+        return self._do_request('get', 'users').json()
 
     def create_user(self, username, password, tags=''):
-        self._do_request(requests.put, 'users/{0}'.format(username),
+        self._do_request('put', 'users/{0}'.format(username),
                          json={'password': password, 'tags': tags})
 
     def delete_user(self, username):
-        self._do_request(requests.delete, 'users/{0}'.format(username))
+        self._do_request('delete', 'users/{0}'.format(username))
 
     def delete_queue(self, vhost, queue):
-        self._do_request(
-            requests.delete, 'queues/{0}/{1}'.format(vhost, queue))
+        self._do_request('delete', 'queues/{}/{}'.format(vhost, queue))
 
     def delete_exchange(self, vhost, exchange):
-        self._do_request(
-            requests.delete, 'exchanges/{0}/{1}'.format(vhost, exchange))
+        self._do_request('delete', 'exchanges/{}/{}'.format(vhost, exchange))
 
     def set_vhost_permissions(self, vhost, username, configure='', write='',
                               read=''):
         vhost = urlquote(vhost, '')
-        self._do_request(requests.put,
+        self._do_request('put',
                          'permissions/{0}/{1}'.format(vhost, username),
                          json={
                              'configure': configure,

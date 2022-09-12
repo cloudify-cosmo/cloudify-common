@@ -18,20 +18,17 @@ import copy
 import json
 import logging
 import os
+import queue
 import random
 import ssl
-import sys
 import threading
 import time
-import uuid
 
 import pika
 import pika.exceptions
 
-from cloudify import exceptions
-from cloudify import broker_config
-from cloudify._compat import queue
-from cloudify.constants import EVENTS_EXCHANGE_NAME
+from cloudify import broker_config, utils
+from cloudify.constants import INSPECT_TIMEOUT
 
 # keep compat with both pika 0.11 and pika 1.1: switch the calls based
 # on this flag. We're keeping compat with 0.11 for the py2.6 agent on rhel6.
@@ -41,24 +38,15 @@ OLD_PIKA = not hasattr(pika, 'SSLOptions')
 
 logger = logging.getLogger(__name__)
 
-if sys.version_info >= (2, 7):
-    # requires 2.7+
-    def wait_for_event(evt, poll_interval=0.5):
-        """Wait for a threading.Event by polling, to allow handling of signals.
-        (ie. doesnt block ^C)
-        """
-        while True:
-            if evt.wait(poll_interval):
-                return
-else:
-    def wait_for_event(evt, poll_interval=None):
-        """Wait for a threading.Event. Stub for compatibility."""
-        # in python 2.6, Event.wait always returns None, so we can either:
-        #  - .wait() without a timeout and block ^C which is inconvenient
-        #  - .wait() with timeout and then check .is_set(),
-        #     which is not threadsafe
-        # We choose the inconvenient but safe method.
-        evt.wait()
+
+# requires 2.7+
+def wait_for_event(evt, poll_interval=0.5):
+    """Wait for a threading.Event by polling, to allow handling of signals.
+    (ie. does not block ^C)
+    """
+    while True:
+        if evt.wait(poll_interval):
+            return
 
 
 class AMQPParams(object):
@@ -70,26 +58,20 @@ class AMQPParams(object):
                  amqp_vhost=None,
                  ssl_enabled=None,
                  ssl_cert_path=None,
+                 ssl_cert_data=None,
                  socket_timeout=3,
                  heartbeat_interval=None):
         super(AMQPParams, self).__init__()
         username = amqp_user or broker_config.broker_username
         password = amqp_pass or broker_config.broker_password
         heartbeat = heartbeat_interval or broker_config.broker_heartbeat
+        ssl_enabled = ssl_enabled or broker_config.broker_ssl_enabled
+        ssl_cert_path = ssl_cert_path or broker_config.broker_cert_path
         credentials = pika.credentials.PlainCredentials(
             username=username,
             password=password,
         )
 
-        broker_ssl_options = {}
-        if ssl_enabled:
-            broker_ssl_options = {
-                'ca_certs': ssl_cert_path,
-                'cert_reqs': ssl.CERT_REQUIRED,
-            }
-        if not broker_ssl_options:
-            broker_ssl_options = broker_config.broker_ssl_options
-            ssl_enabled = ssl_enabled or broker_config.broker_ssl_enabled
         self.raw_host = amqp_host or broker_config.broker_hostname
         self._amqp_params = {
             'port': amqp_port or broker_config.broker_port,
@@ -99,13 +81,30 @@ class AMQPParams(object):
             'socket_timeout': socket_timeout
         }
         if OLD_PIKA:
+            if ssl_cert_data:
+                raise RuntimeError(
+                    'Passing in cert content is incompatible with old pika')
             self._amqp_params['ssl'] = ssl_enabled
-            self._amqp_params['ssl_options'] = broker_ssl_options
+            if ssl_enabled:
+                self._amqp_params['ssl_options'] = {
+                    'cert_reqs': ssl.CERT_REQUIRED,
+                    'ca_certs': ssl_cert_path,
+                }
+            else:
+                self._amqp_params['ssl_options'] = {}
         else:
             if ssl_enabled:
-                self._amqp_params['ssl_options'] = pika.SSLOptions(
-                    ssl.create_default_context(
-                        cafile=broker_ssl_options['ca_certs']))
+                if ssl_cert_data:
+                    ssl_context = ssl.create_default_context(
+                        cadata=ssl_cert_data)
+                elif ssl_cert_path:
+                    ssl_context = ssl.create_default_context(
+                        cafile=ssl_cert_path)
+                else:
+                    raise RuntimeError(
+                        'When ssl is enabled, ssl_cert_path or ssl_cert_data '
+                        'must be provided')
+                self._amqp_params['ssl_options'] = pika.SSLOptions(ssl_context)
 
     def as_pika_params(self):
         return pika.ConnectionParameters(**self._amqp_params)
@@ -540,7 +539,7 @@ class BlockingRequestResponseHandler(TaskConsumer):
     def publish(self, message, correlation_id=None, routing_key='',
                 expiration=None, timeout=None):
         if correlation_id is None:
-            correlation_id = uuid.uuid4().hex
+            correlation_id = utils.uuid4()
         self.make_response_queue(correlation_id)
 
         if expiration is not None:
@@ -582,6 +581,7 @@ def get_client(amqp_host=None,
                amqp_vhost=None,
                ssl_enabled=None,
                ssl_cert_path=None,
+               ssl_cert_data=None,
                name=None,
                connect_timeout=10,
                cls=AMQPConnection):
@@ -598,91 +598,55 @@ def get_client(amqp_host=None,
         amqp_port,
         amqp_vhost,
         ssl_enabled,
-        ssl_cert_path
+        ssl_cert_path,
+        ssl_cert_data,
     )
 
     return cls(handlers=[], amqp_params=amqp_params, name=name,
                connect_timeout=connect_timeout)
 
 
-class CloudifyEventsPublisher(object):
-    SOCKET_TIMEOUT = 5
-    CONNECTION_ATTEMPTS = 3
-    channel_settings = {
-        'auto_delete': False,
-        'durable': True,
-    }
+def is_agent_alive(name,
+                   client,
+                   timeout=INSPECT_TIMEOUT,
+                   connect=True):
+    """
+    Send a `ping` service task to an agent, and validate that a correct
+    response is received
 
-    def __init__(self, amqp_params):
-        self.handlers = {
-            'hook': SendHandler(EVENTS_EXCHANGE_NAME,
-                                exchange_type='topic',
-                                routing_key='events.hooks'),
+    :param name: the agent's amqp exchange name
+    :param client: an AMQPClient for the agent's vhost
+    :param timeout: how long to wait for the response
+    :param connect: whether to connect the client (should be False if it is
+                    already connected)
+    """
+    handler = BlockingRequestResponseHandler(name)
+    client.add_handler(handler)
+    if connect:
+        with client:
+            response = _send_ping_task(name, handler, timeout)
+    else:
+        response = _send_ping_task(name, handler, timeout)
+    return 'time' in response
+
+
+def _send_ping_task(name, handler, timeout=INSPECT_TIMEOUT):
+    task = {
+        'service_task': {
+            'task_name': 'ping',
+            'kwargs': {}
         }
-
-        self._connection = AMQPConnection(
-            handlers=list(self.handlers.values()),
-            amqp_params=amqp_params,
-            name=os.environ.get('AGENT_NAME')
-        )
-        self._is_closed = False
-
-    def connect(self):
-        self._connection.consume_in_thread()
-
-    def publish_message(self, message, message_type):
-        if self._is_closed:
-            raise exceptions.ClosedAMQPClientException(
-                'Publish failed, AMQP client already closed')
-
-        handler = self.handlers.get(message_type)
-
-        if handler:
-            handler.publish(message)
-        else:
-            logger.error('Unknown message type : {0} for message : {1}'.
-                         format(message_type, message))
-
-    def close(self):
-        if self._is_closed:
-            return
-        self._is_closed = True
-        thread = threading.current_thread()
-        if self._connection:
-            logger.debug('Closing amqp client of thread {0}'.format(thread))
-            try:
-                self._connection.close()
-            except Exception as e:
-                logger.debug('Failed to close amqp client of thread {0}, '
-                             'reported error: {1}'.format(thread, repr(e)))
-
-
-def create_events_publisher(amqp_host=None,
-                            amqp_user=None,
-                            amqp_pass=None,
-                            amqp_port=None,
-                            amqp_vhost=None,
-                            ssl_enabled=None,
-                            ssl_cert_path=None):
-    thread = threading.current_thread()
-
-    amqp_params = AMQPParams(
-        amqp_host,
-        amqp_user,
-        amqp_pass,
-        amqp_port,
-        amqp_vhost,
-        ssl_enabled,
-        ssl_cert_path
-    )
-
+    }
+    # messages expire shortly before we hit the timeout - if they haven't
+    # been handled by then, they won't make the timeout
+    expiration = (timeout * 1000) - 200  # milliseconds
     try:
-        client = CloudifyEventsPublisher(amqp_params)
-        client.connect()
-        logger.debug('AMQP client created for thread {0}'.format(thread))
-    except Exception as e:
-        logger.warning(
-            'Failed to create AMQP client for thread: {0} ({1}: {2})'
-            .format(thread, type(e).__name__, e))
-        raise
-    return client
+        return handler.publish(task, routing_key='service',
+                               timeout=timeout, expiration=expiration)
+    except pika.exceptions.AMQPError as e:
+        logger.warning('Could not send a ping task to {0}: {1}'
+                       .format(name, e))
+        return {}
+    except RuntimeError as e:
+        logger.info('No ping response from {0}: {1}'.format(name, e))
+        return {}

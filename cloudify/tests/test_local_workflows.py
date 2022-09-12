@@ -21,9 +21,8 @@ import tempfile
 import shutil
 import os
 import types
+import unittest
 import warnings
-
-import testtools
 
 import cloudify.logs
 from cloudify.decorators import workflow, operation
@@ -46,7 +45,7 @@ class BaseWorkflowTest(object):
         self.env = None
         os.mkdir(self.storage_dir)
         self.addCleanup(self.cleanup)
-        testtools.TestCase.setUp(self)
+        super().setUp()
 
     def cleanup(self):
         shutil.rmtree(self.work_dir)
@@ -336,11 +335,11 @@ class BaseWorkflowTest(object):
         logs = []
 
         # Provide same interface as other log/event functions
-        def mock_stdout_event(event):
+        def mock_stdout_event(event, **kwargs):
             events.append(event)
 
         # Provide same interface as other log/event functions
-        def mock_stdout_log(log):
+        def mock_stdout_log(log, **kwargs):
             logs.append(log)
 
         o_stdout_event = cloudify.logs.stdout_event_out
@@ -536,7 +535,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
 
     def test_workflow_bootstrap_context(self):
         def bootstrap_context(ctx, **_):
-            bootstrap_context = ctx.internal._get_bootstrap_context()
+            bootstrap_context = ctx.internal.bootstrap_context
             self.assertEqual(bootstrap_context, {})
         self._execute_workflow(bootstrap_context)
 
@@ -552,7 +551,7 @@ class LocalWorkflowTest(BaseWorkflowTest):
             instance = _instance(ctx, 'node')
             self.assertIsNone(instance.get_state().get())
             instance.set_state('state').get()
-            self.assertEquals('state', instance.get_state().get())
+            self.assertEqual('state', instance.get_state().get())
         self._execute_workflow(get_set_node_instance_state)
 
     def test_workflow_ctx_properties(self):
@@ -890,14 +889,14 @@ class LocalWorkflowTest(BaseWorkflowTest):
         )
 
 
-class LocalWorkflowTestInMemoryStorage(LocalWorkflowTest, testtools.TestCase):
+class LocalWorkflowTestInMemoryStorage(LocalWorkflowTest, unittest.TestCase):
 
     def setUp(self):
         super(LocalWorkflowTestInMemoryStorage, self).setUp()
         self.storage_cls = local.InMemoryStorage
 
 
-class LocalWorkflowTestFileStorage(LocalWorkflowTest, testtools.TestCase):
+class LocalWorkflowTestFileStorage(LocalWorkflowTest, unittest.TestCase):
 
     def setUp(self):
         super(LocalWorkflowTestFileStorage, self).setUp()
@@ -905,7 +904,7 @@ class LocalWorkflowTestFileStorage(LocalWorkflowTest, testtools.TestCase):
         self.storage_kwargs = {'storage_dir': self.storage_dir}
 
 
-class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
+class FileStorageTest(BaseWorkflowTest, unittest.TestCase):
 
     def setUp(self):
         super(FileStorageTest, self).setUp()
@@ -917,7 +916,8 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
             pass
         self._execute_workflow(stub_workflow, name=self._testMethodName)
         self.assertTrue(os.path.isdir(
-            os.path.join(self.storage_dir, self._testMethodName)))
+            os.path.join(
+                self.storage_dir, 'blueprints', self._testMethodName)))
 
     def test_persistency(self):
         bootstrap_context = {'stub': 'prop'}
@@ -981,10 +981,13 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
         content = 'CONTENT'
 
         def op0(ctx, **_):
-            self.assertEquals(
+            self.assertEqual(
                 ctx.plugin.workdir,
-                os.path.join(self.storage_dir, self._testMethodName,
-                             'workdir', 'plugins', 'p'))
+                os.path.join(
+                    self.storage_dir, 'deployments', self._testMethodName,
+                    'workdir', 'plugins', 'p'
+                )
+            )
 
             work_file = os.path.join(ctx.plugin.workdir, 'work_file')
             self.assertFalse(os.path.exists(work_file))
@@ -1013,7 +1016,7 @@ class FileStorageTest(BaseWorkflowTest, testtools.TestCase):
                                setup_env=False, load_env=True)
 
 
-class LocalWorkflowEnvironmentTest(BaseWorkflowTest, testtools.TestCase):
+class LocalWorkflowEnvironmentTest(BaseWorkflowTest, unittest.TestCase):
 
     def setUp(self):
         super(LocalWorkflowEnvironmentTest, self).setUp()

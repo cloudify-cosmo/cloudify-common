@@ -26,8 +26,7 @@ except ImportError:
     from urllib2 import urlopen
 
 
-# Environment variable for the socket url
-# (used by clients to locate the socket [http, zmq(unix, tcp)])
+# envvar for the socket url (used by clients to find the http socket)
 CTX_SOCKET_URL = 'CTX_SOCKET_URL'
 
 
@@ -48,22 +47,6 @@ class RequestError(RuntimeError):
         self.ex_traceback = ex_traceback
 
 
-def zmq_client_req(socket_url, request, timeout):
-    import zmq
-    context = zmq.Context()
-    sock = context.socket(zmq.REQ)
-    try:
-        sock.connect(socket_url)
-        sock.send_json(request)
-        if sock.poll(1000 * timeout):
-            return sock.recv_json()
-        else:
-            raise RuntimeError('Timed out while waiting for response')
-    finally:
-        sock.close()
-        context.term()
-
-
 def http_client_req(socket_url, request, timeout):
     response = urlopen(
         socket_url, data=json.dumps(request).encode('utf-8'), timeout=timeout)
@@ -76,11 +59,8 @@ def client_req(socket_url, args, timeout=5):
     request = {
         'args': args
     }
-
     schema, _ = socket_url.split('://')
-    if schema in ['ipc', 'tcp']:
-        request_method = zmq_client_req
-    elif schema in ['http']:
+    if schema == 'http':
         request_method = http_client_req
     else:
         raise RuntimeError('Unsupported protocol: {0}'.format(schema))

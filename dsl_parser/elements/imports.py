@@ -15,15 +15,17 @@
 
 import os
 
-import networkx as nx
+from networkx.algorithms import topological_sort
+from networkx.classes import DiGraph
+from urllib.request import pathname2url
+
+from cloudify.exceptions import InvalidBlueprintImport
 
 from dsl_parser import (exceptions,
                         constants,
                         version as _version,
                         utils)
-from dsl_parser._compat import text_type
 from dsl_parser.holder import Holder
-from dsl_parser._compat import pathname2url
 from dsl_parser.import_resolver.abstract_import_resolver import\
     is_remote_resource
 from dsl_parser.framework.elements import (Element,
@@ -47,7 +49,10 @@ MERGEABLE_FROM_DSL_VERSION_1_3 = [
     constants.INPUTS,
     constants.OUTPUTS,
     constants.NODE_TEMPLATES,
-    constants.CAPABILITIES
+    constants.CAPABILITIES,
+    constants.BLUEPRINT_LABELS,
+    constants.LABELS,
+    constants.RESOURCE_TAGS,
 ]
 
 DONT_OVERWRITE = set([
@@ -64,7 +69,7 @@ IGNORE = set([
 
 class Import(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class Imports(Element):
@@ -74,7 +79,7 @@ class Imports(Element):
 
 class ImportLoader(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class ImportsLoader(Element):
@@ -147,13 +152,14 @@ def _dsl_location_to_url(dsl_location, resources_base_path):
 
 def _get_resource_location(resource_name,
                            resources_base_path,
-                           current_resource_context=None):
+                           current_resource_context=None,
+                           dsl_version=None):
     if is_remote_resource(resource_name):
         return resource_name
 
-    if os.path.exists(resource_name):
-        return 'file:{0}'.format(
-            pathname2url(os.path.abspath(resource_name)))
+    for fn in _possible_resource_locations(resource_name, dsl_version):
+        if os.path.exists(fn):
+            return 'file:{0}'.format(pathname2url(os.path.abspath(fn)))
 
     if current_resource_context:
         candidate_url = current_resource_context[
@@ -163,20 +169,32 @@ def _get_resource_location(resource_name,
 
     if resources_base_path:
         full_path = os.path.join(resources_base_path, resource_name)
+        for fn in _possible_resource_locations(full_path, dsl_version):
+            if os.path.exists(fn):
+                return 'file:{0}'.format(pathname2url(os.path.abspath(fn)))
         return 'file:{0}'.format(
             pathname2url(os.path.abspath(full_path)))
 
     return None
 
 
+def _possible_resource_locations(resource_name, dsl_version):
+    if not dsl_version:
+        return [resource_name]
+    filename, ext = os.path.splitext(resource_name)
+    return ['{0}_{1}{2}'.format(filename, dsl_version, ext), resource_name]
+
+
 def _extract_import_parts(import_url,
                           resources_base_path,
-                          current_resource_context=None):
+                          current_resource_context=None,
+                          dsl_version=None):
     """
     :param import_url: a string which is the import path
     :param resources_base_path: In case of a relative file path, this
                                 is the base path.
     :param current_resource_context: Current import statement,
+    :param dsl_version: DSL version used by the root blueprint.
     :return: Will return a breakdown of the URL to
             (namespace, import_url). If the import is not
             namespaced, the returned namespace will be
@@ -191,7 +209,8 @@ def _extract_import_parts(import_url,
 
     return namespace, _get_resource_location(import_url,
                                              resources_base_path,
-                                             current_resource_context)
+                                             current_resource_context,
+                                             dsl_version)
 
 
 def _insert_imported_list(blueprint_holder, blueprints_imported):
@@ -240,6 +259,14 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
             version, namespace, is_cloudify_types)
     holder_result.value[version_key_holder] = version_value_holder
     return holder_result
+
+
+def _dsl_version(parsed_dsl_holder):
+    version = parsed_dsl_holder.get_item('tosca_definitions_version')
+    if version:
+        version = version[1].value
+    if version.startswith('cloudify_dsl_'):
+        return version.replace('cloudify_dsl_', '', 1)
 
 
 def _build_ordered_imports(parsed_dsl_holder,
@@ -342,7 +369,8 @@ def _build_ordered_imports(parsed_dsl_holder,
 
     def build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                         _current_import,
-                                        context_namespace=None):
+                                        context_namespace=None,
+                                        dsl_version=None):
         imports_key_holder, imports_value_holder = _current_parsed_dsl_holder.\
             get_item(constants.IMPORTS)
         if not imports_value_holder:
@@ -351,7 +379,8 @@ def _build_ordered_imports(parsed_dsl_holder,
         for another_import in imports_value_holder.restore():
             namespace, import_url = _extract_import_parts(another_import,
                                                           resources_base_path,
-                                                          _current_import)
+                                                          _current_import,
+                                                          dsl_version)
             validate_namespace(namespace)
             if context_namespace:
                 if namespace:
@@ -387,7 +416,8 @@ def _build_ordered_imports(parsed_dsl_holder,
                     import_context,
                     namespace)
             else:
-                imported_dsl = resolver.fetch_import(import_url)
+                imported_dsl = resolver.fetch_import(import_url,
+                                                     dsl_version=dsl_version)
                 if not is_parsed_resource(imported_dsl):
                     imported_dsl = utils.load_yaml(
                         raw_yaml=imported_dsl,
@@ -395,6 +425,27 @@ def _build_ordered_imports(parsed_dsl_holder,
                                       "(via '{1}')"
                                       .format(another_import, import_url),
                         filename=import_url)
+                try:
+                    plugin = resolver.retrieve_plugin(import_url,
+                                                      dsl_version=dsl_version)
+                except InvalidBlueprintImport:
+                    plugin = None
+                if plugin:
+                    # If it is a plugin, then use labels and tags from the DB
+                    utils.remove_dsl_keys(
+                        imported_dsl,
+                        constants.PLUGIN_DSL_KEYS_NOT_FROM_YAML)
+                    for key in constants.PLUGIN_DSL_KEYS_READ_FROM_DB:
+                        if not plugin.get(key):
+                            continue
+                        value = plugin[key]
+                        if key in constants.PLUGIN_DSL_KEYS_ADD_VALUES_NODE:
+                            value = utils.add_values_node_description(value)
+                        _merge_into_dict_or_throw_on_duplicate(
+                            Holder.of({key: value}),
+                            imported_dsl,
+                            key,
+                            namespace)
                 cloudify_basic_types = is_cloudify_basic_types(imported_dsl)
                 validate_import_namespace(namespace,
                                           cloudify_basic_types,
@@ -410,14 +461,18 @@ def _build_ordered_imports(parsed_dsl_holder,
                     namespace)
                 build_ordered_imports_recursive(imported_dsl,
                                                 import_url,
-                                                namespace)
+                                                namespace,
+                                                dsl_version)
 
     imports_graph = ImportsGraph()
     blueprint_imports = set()
     namespaces_mapping = {}
 
     imports_graph.add(location(dsl_location), parsed_dsl_holder)
-    build_ordered_imports_recursive(parsed_dsl_holder, dsl_location)
+    build_ordered_imports_recursive(
+        parsed_dsl_holder, dsl_location,
+        dsl_version=_dsl_version(parsed_dsl_holder)
+    )
     sorted_imports_graph = imports_graph.topological_sort()
     return sorted_imports_graph, blueprint_imports, namespaces_mapping
 
@@ -427,7 +482,8 @@ def _validate_version(dsl_version,
                       parsed_imported_dsl_holder):
     version_key_holder, version_value_holder = parsed_imported_dsl_holder\
         .get_item(_version.VERSION)
-    if version_value_holder and version_value_holder.value != dsl_version:
+    if version_value_holder and \
+            not _can_import_version(dsl_version, version_value_holder.value):
         raise exceptions.DSLParsingLogicException(
             28, "An import uses a different "
                 "tosca_definitions_version than the one defined in "
@@ -437,6 +493,12 @@ def _validate_version(dsl_version,
                 .format(dsl_version,
                         import_url,
                         version_value_holder.value))
+
+
+def _can_import_version(version_orig, version_imported):
+    """Accept importing a file which uses equal or earlier DSL version."""
+    return _version.SUPPORTED_VERSIONS.index(version_orig) >= \
+        _version.SUPPORTED_VERSIONS.index(version_imported)
 
 
 def _mark_key_value_holder_items(value_holder, field_name, field_value):
@@ -518,7 +580,7 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
 def _prepare_namespaced_elements(key_holder, namespace, value_holder):
     if isinstance(value_holder.value, dict):
         _mark_key_value_holder_items(value_holder, 'namespace', namespace)
-    elif isinstance(value_holder.value, text_type):
+    elif isinstance(value_holder.value, str):
         # In case of primitive type we a need a different way to mark
         # the sub elements with the namespace, but leaving the option
         # for the DSL element to not receive the namespace.
@@ -572,7 +634,7 @@ def _merge_node_templates_relationships(
 def _extend_node_template(from_dict_holder, to_dict_holder):
     for key_holder, value_holder in from_dict_holder.value.items():
         if (isinstance(value_holder.value, dict) or
-                isinstance(value_holder.value, text_type)):
+                isinstance(value_holder.value, str)):
             to_dict_holder.value[key_holder] = value_holder
         elif (isinstance(value_holder.value, list) and
               key_holder.value == constants.RELATIONSHIPS):
@@ -580,6 +642,14 @@ def _extend_node_template(from_dict_holder, to_dict_holder):
                 value_holder.namespace,
                 value_holder,
                 to_dict_holder.value[key_holder])
+
+
+def _merge_workflows(key_holder, key_name, to_dict_holder, from_dict_holder):
+    source = from_dict_holder.value
+    target = to_dict_holder.value
+    for key in from_dict_holder.value:
+        if key not in target:
+            target[key] = source[key]
 
 
 def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
@@ -609,6 +679,16 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
                 key_name,
                 to_dict_holder.value[key_holder],
                 value_holder)
+        elif key_name in constants.PLUGIN_DSL_KEYS_READ_FROM_DB:
+            # Allow blueprint_labels, labels and resource_tags to be merged
+            continue
+        elif key_name == constants.WORKFLOWS:
+            _merge_workflows(
+                key_holder,
+                key_name,
+                to_dict_holder.value[key_holder],
+                value_holder,
+            )
         else:
             raise exceptions.DSLParsingLogicException(
                 4, "Import failed: Could not merge '{0}' due to conflict "
@@ -618,8 +698,8 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
 class ImportsGraph(object):
 
     def __init__(self):
-        self._imports_tree = nx.DiGraph()
-        self._imports_graph = nx.DiGraph()
+        self._imports_tree = DiGraph()
+        self._imports_graph = DiGraph()
 
     def add(self, import_url, parsed, cloudify_types=False,
             via_import=None, namespace=None):
@@ -642,7 +722,7 @@ class ImportsGraph(object):
             ({'import': i,
              'parsed': self._imports_tree.node[i]['parsed'],
               'cloudify_types': self._imports_tree.node[i]['cloudify_types']}
-             for i in nx.topological_sort(self._imports_tree))))
+             for i in topological_sort(self._imports_tree))))
 
     def __contains__(self, item):
         return item in self._imports_tree

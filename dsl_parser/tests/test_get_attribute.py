@@ -13,8 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import testtools.testcase
-
 from dsl_parser import constants
 from dsl_parser import exceptions
 from dsl_parser import functions
@@ -90,6 +88,52 @@ node_templates:
         assertion(webserver_node['operations'])
         assertion(webserver_node['relationships'][0]['source_operations'])
         assertion(webserver_node['relationships'][0]['target_operations'])
+
+    def test_simple_nested_evaluation(self):
+        storage = self.mock_evaluation_storage(
+            node_instances=[{
+                'id': 'x',
+                'node_id': 'x'
+            }],
+            nodes=[{
+                'id': 'x',
+                'properties': {
+                    'a': [1, 2, 3, 4],
+                    'b': {'get_attribute': ['x', 'a']},
+                    'c': {'get_attribute': ['x', 'b']},
+                    'd': {'get_attribute': ['x', 'c']}
+                }
+            }]
+        )
+        capabilities = {
+            'a2': {'value': {'get_attribute': ['x', 'a', 2]}},
+            'd2': {'value': {'get_attribute': ['x', 'd', 2]}},
+        }
+        evaluated = functions.evaluate_capabilities(capabilities, storage)
+        assert evaluated['a2'] == evaluated['d2'] == 3
+
+    def test_nested_evaluation(self):
+        storage = self.mock_evaluation_storage(
+            node_instances=[{
+                'id': 'x',
+                'node_id': 'x'
+            }],
+            nodes=[{
+                'id': 'x',
+                'properties': {
+                    'a': [1, 2, 3, 4],
+                    'b': {'get_attribute': ['x', 'a']},
+                    'c': {'get_attribute': ['x', 'b']},
+                    'd': {'get_attribute': ['x', 'c']}
+                }
+            }]
+        )
+        capabilities = {
+            'five': {'value': [0, {'get_attribute': ['x', 'a', 0]},
+                               2, {'get_attribute': ['x', 'd', 2]}, 4]},
+        }
+        evaluated = functions.evaluate_capabilities(capabilities, storage)
+        assert evaluated['five'] == [0, 1, 2, 3, 4]
 
 
 class TestEvaluateFunctions(AbstractTestParser):
@@ -362,6 +406,60 @@ class TestEvaluateFunctions(AbstractTestParser):
         self.assertEqual(payload['c'], 'c_val')
         self.assertEqual(payload['d'], 'd_val')
 
+    def test_fallback_context_switching(self):
+        node_instances = [
+            {
+                'id': 'x_1',
+                'node_id': 'x',
+                'runtime_properties': {}
+            },
+            {
+                'id': 'y_1',
+                'node_id': 'y',
+                'runtime_properties': {}
+            },
+
+        ]
+        nodes = [
+            {
+                'id': 'x',
+                'properties': {
+                    'x': {'get_attribute': ['y', 'y']},
+                }
+            },
+            {
+                'id': 'y',
+                'properties': {
+                    'y': {'get_attribute': ['SELF', 'z']},
+                    'z': 5
+                }
+            }
+        ]
+        storage = self.mock_evaluation_storage(node_instances, nodes)
+        payload_y = {
+            'y': {'get_attribute': ['y', 'y']},
+        }
+        context_y = {
+            'self': 'y_1',
+            'source': 'y_1',
+            'target': 'y_1'
+        }
+
+        functions.evaluate_functions(payload_y, context_y, storage)
+        self.assertEqual(payload_y['y'], 5)
+
+        payload_x = {
+            'x': {'get_attribute': ['x', 'x']},
+        }
+        context_x = {
+            'self': 'x_1',
+            'source': 'x_1',
+            'target': 'x_1'
+        }
+
+        functions.evaluate_functions(payload_x, context_x, storage)
+        self.assertEqual(payload_x['x'], 5)
+
     def test_process_attributes_no_value(self):
         node_instances = [{
             'id': 'node_1',
@@ -376,33 +474,37 @@ class TestEvaluateFunctions(AbstractTestParser):
 
     def test_missing_self_ref(self):
         payload = {'a': {'get_attribute': ['SELF', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*SELF is missing.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*Node SELF has no instances.*',
+        ):
             functions.evaluate_functions(
                 payload, {}, self.mock_evaluation_storage())
 
     def test_missing_source_ref(self):
         payload = {'a': {'get_attribute': ['SOURCE', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*SOURCE is missing.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*SOURCE is missing.*',
+        ):
             functions.evaluate_functions(
                 payload, {}, self.mock_evaluation_storage())
 
     def test_missing_target_ref(self):
         payload = {'a': {'get_attribute': ['TARGET', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*TARGET is missing.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*TARGET is missing.*',
+        ):
             functions.evaluate_functions(
                 payload, {}, self.mock_evaluation_storage())
 
     def test_no_instances(self):
         payload = {'a': {'get_attribute': ['node', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*has no instances.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*has no instances.*',
+        ):
             functions.evaluate_functions(
                 payload, {}, self.mock_evaluation_storage())
 
@@ -413,7 +515,8 @@ class TestEvaluateFunctions(AbstractTestParser):
         ]
         storage = self.mock_evaluation_storage(instances)
         payload = {'a': {'get_attribute': ['node', 'a']}}
-        with testtools.testcase.ExpectedException(
-                exceptions.FunctionEvaluationError,
-                '.*unambiguously.*'):
+        with self.assertRaisesRegex(
+            exceptions.FunctionEvaluationError,
+            '.*unambiguously.*',
+        ):
             functions.evaluate_functions(payload, {}, storage)

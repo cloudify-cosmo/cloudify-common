@@ -42,12 +42,14 @@ NAMESPACES_MAPPING = 'namespaces_mapping'
 CONSTRAINTS = 'constraints'
 DEFAULT = 'default'
 TYPE = 'type'
+ITEM_TYPE = 'item_type'
 LABELS = 'labels'
 BLUEPRINT_LABELS = 'blueprint_labels'
 DEFAULT_SCHEDULES = 'default_schedules'
 DEPLOYMENT_SETTINGS = 'deployment_settings'
 DISPLAY_LABEL = 'display_label'
 HIDDEN = 'hidden'
+RESOURCE_TAGS = 'resource_tags'
 
 HOST_TYPE = 'cloudify.nodes.Compute'
 DEPENDS_ON_REL_TYPE = 'cloudify.relationships.depends_on'
@@ -94,8 +96,21 @@ VALIDATE_DEFINITIONS_VERSION = 'validate_definitions_version'
 RESOLVER_IMPLEMENTATION_KEY = 'implementation'
 RESLOVER_PARAMETERS_KEY = 'parameters'
 
+TYPES_BASED_ON_DB_ENTITIES = [
+    'blueprint_id', 'deployment_id', 'capability_value', 'scaling_group',
+    'node_id', 'node_type', 'node_instance', 'secret_key'
+]
+TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT = [
+    'capability_value', 'scaling_group',
+    'node_id', 'node_type', 'node_instance'
+]
 USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean', 'list',
-                        'dict', 'regex']
+                        'dict', 'regex', 'textarea'] \
+                       + TYPES_BASED_ON_DB_ENTITIES
+
+PLUGIN_DSL_KEYS_NOT_FROM_YAML = ['blueprint_labels', 'labels', 'resource_tags']
+PLUGIN_DSL_KEYS_READ_FROM_DB = PLUGIN_DSL_KEYS_NOT_FROM_YAML
+PLUGIN_DSL_KEYS_ADD_VALUES_NODE = ['blueprint_labels', 'labels']
 
 UNBOUNDED_LITERAL = 'UNBOUNDED'
 UNBOUNDED = -1
@@ -105,6 +120,7 @@ SCALING_GROUPS = 'scaling_groups'
 NAMESPACE_DELIMITER = '--'
 CLOUDIFY_TYPE_PREFIX = 'cloudify.'
 BLUEPRINT_IMPORT = 'blueprint:'
+PLUGIN_PREFIX = 'plugin:'
 
 ADDED_AND_RELATED = 'added_and_related'
 REMOVED_AND_RELATED = 'removed_and_related'

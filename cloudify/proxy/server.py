@@ -14,18 +14,18 @@
 #  * limitations under the License.
 
 import traceback
-import tempfile
 import re
-import collections
 import json
+import queue
 import threading
 import socket
+from collections.abc import MutableMapping
+from io import StringIO
 from wsgiref.simple_server import WSGIServer, WSGIRequestHandler
 from wsgiref.simple_server import make_server as make_wsgi_server
 
 import bottle
 
-from cloudify._compat import text_type, queue, StringIO
 from cloudify.proxy.client import ScriptException
 from cloudify.state import current_ctx
 
@@ -139,49 +139,6 @@ class HTTPCtxProxy(CtxProxy):
                 headers={'content-type': 'application/json'})
 
 
-class ZMQCtxProxy(CtxProxy):
-
-    def __init__(self, ctx, socket_url):
-        super(ZMQCtxProxy, self).__init__(ctx, socket_url)
-        import zmq
-        self.z_context = zmq.Context(io_threads=1)
-        self.sock = self.z_context.socket(zmq.REP)
-        self.sock.bind(self.socket_url)
-        self.poller = zmq.Poller()
-        self.poller.register(self.sock, zmq.POLLIN)
-
-    def poll_and_process(self, timeout=1):
-        import zmq
-        state = dict(self.poller.poll(1000 * timeout)).get(self.sock)
-        if not state == zmq.POLLIN:
-            return False
-        request = self.sock.recv()
-        response = self.process(request)
-        self.sock.send_string(response)
-        return True
-
-    def close(self):
-        self.sock.close()
-        self.z_context.term()
-
-
-class UnixCtxProxy(ZMQCtxProxy):
-
-    def __init__(self, ctx, socket_path=None):
-        if not socket_path:
-            socket_path = tempfile.mktemp(prefix='ctx-', suffix='.socket')
-        socket_url = 'ipc://{0}'.format(socket_path)
-        super(UnixCtxProxy, self).__init__(ctx, socket_url)
-
-
-class TCPCtxProxy(ZMQCtxProxy):
-
-    def __init__(self, ctx, ip='127.0.0.1', port=None):
-        port = port or get_unused_port()
-        socket_url = 'tcp://{0}:{1}'.format(ip, port)
-        super(TCPCtxProxy, self).__init__(ctx, socket_url)
-
-
 class StubCtxProxy(object):
 
     socket_url = ''
@@ -199,7 +156,7 @@ def process_ctx_request(ctx, args):
         desugared_attr = _desugar_attr(current, arg)
         if desugared_attr:
             current = getattr(current, desugared_attr)
-        elif isinstance(current, collections.MutableMapping):
+        elif isinstance(current, MutableMapping):
             key = arg
             path_dict = PathDictAccess(current)
             if index + 1 == num_args:
@@ -216,7 +173,7 @@ def process_ctx_request(ctx, args):
         elif callable(current):
             kwargs = {}
             remaining_args = args[index:]
-            if isinstance(remaining_args[-1], collections.MutableMapping):
+            if isinstance(remaining_args[-1], MutableMapping):
                 kwargs = remaining_args[-1]
                 remaining_args = remaining_args[:-1]
             current = current(*remaining_args, **kwargs)
@@ -233,7 +190,7 @@ def process_ctx_request(ctx, args):
 
 
 def _desugar_attr(obj, attr):
-    if not isinstance(attr, text_type):
+    if not isinstance(attr, str):
         return None
     try:
         if hasattr(obj, attr):

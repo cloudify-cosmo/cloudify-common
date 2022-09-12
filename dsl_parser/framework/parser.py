@@ -14,9 +14,24 @@
 #    * limitations under the License.
 
 import numbers
-import networkx as nx
 
-from dsl_parser._compat import text_type
+# a hack to allow networkx 1.11 to work with python 3.10: gcd was moved from
+# fractions to math, but networkx attempts to import from fractions. Remove
+# this  after we've either upgraded or removed networkx
+import fractions
+if not hasattr(fractions, 'gcd'):
+    import math
+    fractions.gcd = math.gcd
+
+
+from networkx.algorithms import (
+    descendants,
+    recursive_simple_cycles,
+    topological_sort,
+)
+from networkx.classes import DiGraph
+from networkx.exception import NetworkXUnfeasible
+
 from dsl_parser.framework import elements
 from dsl_parser import (exceptions,
                         constants,
@@ -47,7 +62,7 @@ class SchemaAPIValidator(object):
     def _traverse_schema(self, schema, list_nesting=0):
         if isinstance(schema, dict):
             for key, value in schema.items():
-                if not isinstance(key, text_type):
+                if not isinstance(key, str):
                     raise exceptions.DSLParsingSchemaAPIException(1)
                 self._traverse_element_cls(value)
         elif isinstance(schema, list):
@@ -101,8 +116,8 @@ class Context(object):
         self.inputs = inputs or {}
         self.element_type_to_elements = {}
         self._root_element = None
-        self._element_tree = nx.DiGraph()
-        self._element_graph = nx.DiGraph()
+        self._element_tree = DiGraph()
+        self._element_graph = DiGraph()
         self._traverse_element_cls(element_cls=element_cls,
                                    name=element_name,
                                    value=value,
@@ -166,7 +181,7 @@ class Context(object):
             yield current_element
 
     def descendants(self, element):
-        return nx.descendants(self._element_tree, element)
+        return descendants(self._element_tree, element)
 
     def _add_element(self, element, parent=None):
         element_type = type(element)
@@ -305,7 +320,7 @@ class Context(object):
                     holder_element.value[holder_key].value = namespaced_value
                     holder_value.skip_namespace = True
                 if k == 'get_input' and isinstance(v, list):
-                    if isinstance(v[0], text_type):
+                    if isinstance(v[0], str):
                         element[k][0] =\
                             utils.generate_namespaced_value(namespace, v[0])
                 elif k == 'get_property' or k == 'get_attribute':
@@ -321,7 +336,7 @@ class Context(object):
                     traverse_list(holder_element.value[holder_key], v)
 
         def should_add_namespace_to_string_leaf(element):
-            if not isinstance(element._initial_value, text_type):
+            if not isinstance(element._initial_value, str):
                 return False
             is_premitive_type = (element._initial_value in
                                  constants.USER_PRIMITIVE_TYPES)
@@ -415,12 +430,12 @@ class Context(object):
                                    parent_element=parent_element)
 
     def _calculate_element_graph(self):
-        self.element_graph = nx.DiGraph(self._element_tree)
+        self.element_graph = DiGraph(self._element_tree)
         for element_type, _elements in self.element_type_to_elements.items():
             requires = element_type.requires
             for requirement, requirement_values in requires.items():
                 requirement_values = [
-                    Requirement(r) if isinstance(r, text_type)
+                    Requirement(r) if isinstance(r, str)
                     else r for r in requirement_values]
                 if requirement == 'inputs':
                     continue
@@ -465,10 +480,10 @@ class Context(object):
 
     def elements_graph_topological_sort(self):
         try:
-            return nx.topological_sort(self.element_graph)
-        except nx.NetworkXUnfeasible:
+            return topological_sort(self.element_graph)
+        except NetworkXUnfeasible:
             # Cycle detected
-            cycle = nx.recursive_simple_cycles(self.element_graph)[0]
+            cycle = recursive_simple_cycles(self.element_graph)[0]
             names = [str(e.name) for e in cycle]
             names.append(str(names[0]))
             ex = exceptions.DSLParsingLogicException(
@@ -533,7 +548,7 @@ class Parser(object):
                     raise exceptions.DSLParsingFormatException(
                         1, _expected_type_message(value, dict))
                 for key in value:
-                    if not isinstance(key, text_type):
+                    if not isinstance(key, str):
                         raise exceptions.DSLParsingFormatException(
                             1, "Dict keys must be strings but"
                                " found '{0}' of type '{1}'"
@@ -593,7 +608,7 @@ class Parser(object):
         context = element.context
         required_args = {}
         for required_type, requirements in element.requires.items():
-            requirements = [Requirement(r) if isinstance(r, text_type)
+            requirements = [Requirement(r) if isinstance(r, str)
                             else r for r in requirements]
             if not requirements:
                 # only set required type as a logical dependency
@@ -699,7 +714,7 @@ def _expected_type_message(value, expected_type):
 def _py_type_to_user_type(_type):
     if isinstance(_type, tuple):
         return list(set(_py_type_to_user_type(t) for t in _type))
-    elif issubclass(_type, text_type):
+    elif issubclass(_type, str):
         return 'string'
     elif issubclass(_type, bool):
         return 'boolean'

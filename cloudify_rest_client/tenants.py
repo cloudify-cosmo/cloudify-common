@@ -109,12 +109,12 @@ class TenantsClient(object):
         return ListResponse([Tenant(item) for item in response['items']],
                             response['metadata'])
 
-    def create(self, tenant_name):
+    def create(self, tenant_name, rabbitmq_password=''):
         response = self.api.post(
             '/tenants/{0}'.format(tenant_name),
-            expected_status_code=201
+            expected_status_code=201,
+            data={'rabbitmq_password': rabbitmq_password},
         )
-
         return Tenant(response)
 
     def add_user(self, username, tenant_name, role):

@@ -13,11 +13,10 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import functools
 import time
 import threading
 import types
-import uuid
+from functools import lru_cache, wraps
 
 from cloudify import exceptions, logs
 from cloudify.workflows import api
@@ -38,21 +37,10 @@ from cloudify.constants import (
     TERMINATED_STATES,
 )
 from cloudify.state import workflow_ctx, current_workflow_ctx
-from cloudify.utils import get_func
+from cloudify.utils import get_func, uuid4
+from cloudify.error_handling import serialize_known_exception
 # imported for backwards compat:
-from cloudify.constants import TASK_RESPONSE_SENT  # noqa
-from cloudify.utils import INSPECT_TIMEOUT  # noqa
-
-try:
-    from functools import lru_cache
-except ImportError:
-    # py2.7 doesn't have lru_cache, but this is only used mgmtworker-side,
-    # on py3 only. Still, this module needs to be importable. Make a noop
-    # function that still has the same interface.
-    def lru_cache():
-        def _inner(f):
-            return f
-        return _inner
+from cloudify.constants import TASK_RESPONSE_SENT, INSPECT_TIMEOUT  # noqa
 
 
 INFINITE_TOTAL_RETRIES = -1
@@ -71,7 +59,7 @@ def with_execute_after(f):
     If a task has .execute_after set, the apply_async will actually
     only run after that time has passed.
     """
-    @functools.wraps(f)
+    @wraps(f)
     def _inner(*args, **kwargs):
         task = args[0]
         if api.has_cancel_request():
@@ -90,7 +78,18 @@ def with_execute_after(f):
 
 
 class WorkflowTask(object):
-    """A base class for workflow tasks"""
+    """A base class for workflow tasks
+
+    A WorkflowTask represents an operation to be executed by the mgmtworker
+    or an agent.
+
+    There's two main kinds of WorkflowTasks - a remote kind, to be sent
+    to a remote mgmtworker/agent and executed there; and a local kind, to
+    be executed in the current process, in a background thread.
+
+    The interface of a WorkflowTask is its apply_async method, which
+    returns a WorkflowTaskResult.
+    """
 
     def __init__(self,
                  workflow_context,
@@ -125,13 +124,12 @@ class WorkflowTask(object):
         :param retry_interval: Number of seconds to wait between retries
         :param workflow_context: the CloudifyWorkflowContext instance
         """
-        self.id = task_id or str(uuid.uuid4())
+        self.id = task_id or uuid4()
         self._state = TASK_PENDING
         self.async_result = WorkflowTaskResult(self)
         self.on_success = on_success
         self.on_failure = on_failure
         self.info = info
-        self.error = None
         self.total_retries = total_retries
         self.retry_interval = retry_interval
         self.timeout = timeout
@@ -150,6 +148,11 @@ class WorkflowTask(object):
 
         # ID of the task that is being retried by this task
         self.retried_task = None
+
+        # error is a dict as returned by serialize_known_exception:
+        # for remote tasks it is set when the AMQP dispatcher receives a
+        # task error response
+        self.error = None
 
     @classmethod
     def restore(cls, ctx, graph, task_descr):
@@ -227,7 +230,6 @@ class WorkflowTask(object):
                 'Cannot deserialize: {0!r}'.format(data))
 
     def dump(self):
-        self.stored = True
         return {
             'id': self.id,
             'name': self.name,
@@ -335,6 +337,8 @@ class WorkflowTask(object):
                         time.time() + handler_result.retry_after)
                     handler_result.retried_task = new_task
             else:
+                if self.is_subgraph and handler_result.retried_task:
+                    self.graph.remove_task(handler_result.retried_task)
                 handler_result.action = HandlerResult.HANDLER_FAIL
 
         if self.containing_subgraph:
@@ -371,7 +375,12 @@ class WorkflowTask(object):
             # the handler set on the task.
             handler_result = HandlerResult.retry()
             handler_result.retry_after = result.retry_after
-        elif self.on_failure:
+            return handler_result
+
+        if self.is_subgraph:
+            self.error = self.failed_task.error
+
+        if self.on_failure:
             handler_result = self.on_failure(self)
         else:
             handler_result = HandlerResult.retry()
@@ -416,12 +425,25 @@ class WorkflowTask(object):
         raise NotImplementedError('Implemented by subclasses')
 
     @property
+    def short_description(self):
+        """Short summary of the task.
+
+        This is a human-readable representation of the task, should be
+        clear and unambiguous enough for the operation to be able to
+        uniquely identify the task.
+        """
+        return self.name
+
+    @property
     def is_subgraph(self):
         return False
 
 
 class RemoteWorkflowTask(WorkflowTask):
-    """A WorkflowTask wrapping an AMQP based task"""
+    """A WorkflowTask wrapping an AMQP based task
+
+    This WorkflowTask will be sent via AMQP to a remote mgmtworker/agent.
+    """
     def __init__(self,
                  kwargs,
                  cloudify_context,
@@ -490,6 +512,7 @@ class RemoteWorkflowTask(WorkflowTask):
                     self, self._task_target, self._task_queue)
         except (exceptions.NonRecoverableError,
                 exceptions.RecoverableError) as e:
+            self.error = serialize_known_exception(e)
             self.set_state(TASK_FAILED)
             self.async_result.result = e
         return self.async_result
@@ -515,6 +538,18 @@ class RemoteWorkflowTask(WorkflowTask):
     def name(self):
         """The task name"""
         return self.cloudify_context['task_name']
+
+    @property
+    def short_description(self):
+        try:
+            node_id = self.cloudify_context['node_id']
+        except KeyError:
+            node_id = '<unknown node>'
+        try:
+            operation_name = self.cloudify_context['operation']['name']
+        except KeyError:
+            operation_name = '<unknown operation>'
+        return '{0} ({1}:{2})'.format(self.name, node_id, operation_name)
 
     @property
     def cloudify_context(self):
@@ -570,7 +605,10 @@ class RemoteWorkflowTask(WorkflowTask):
 
         # we found the actual agent, just return it
         if cloudify_agent.get('queue') and cloudify_agent.get('name'):
-            return cloudify_agent, self._get_tenant_dict(tenant, client)
+            return (
+                cloudify_agent,
+                self._get_tenant_dict(host_node_instance, tenant, client)
+            )
 
         # this node instance isn't the real agent, check if it proxies to one.
         # Evaluate functions because proxy info might contain runtime
@@ -589,9 +627,11 @@ class RemoteWorkflowTask(WorkflowTask):
             # no queue information and no proxy - cannot continue
             missing = 'queue' if not cloudify_agent.get('queue') else 'name'
             raise exceptions.NonRecoverableError(
-                'Missing cloudify_agent.{0} runtime information. '
+                '{0}: missing cloudify_agent.{1} runtime information. '
                 'This most likely means that the Compute node was '
-                'never started successfully'.format(missing))
+                'never started successfully'
+                .format(host_node_instance.id, missing)
+            )
         else:
             # the agent does proxy to another, recursively get from that one
             # (if the proxied-to agent in turn proxies to yet another one,
@@ -601,15 +641,16 @@ class RemoteWorkflowTask(WorkflowTask):
                 deployment_id=proxy_deployment,
                 tenant=proxy_tenant)
 
-    def _get_tenant_dict(self, tenant_name, client):
+    def _get_tenant_dict(self, node_instance, tenant_name, client):
         if tenant_name is None or \
                 tenant_name == self.cloudify_context['tenant']['name']:
             return self.cloudify_context['tenant']
         tenant = client.tenants.get(tenant_name)
         if tenant.get('rabbitmq_vhost') is None:
             raise exceptions.NonRecoverableError(
-                'Could not get RabbitMQ credentials for tenant {0}'
-                .format(tenant_name))
+                '{0}: could not get RabbitMQ credentials for tenant {1}'
+                .format(node_instance.id, tenant_name)
+            )
         return tenant
 
     def _get_queue_kwargs(self):
@@ -711,6 +752,8 @@ class LocalWorkflowTask(WorkflowTask):
                 self.set_state(TASK_SUCCEEDED, result=result)
                 self.async_result.result = result
             except BaseException as e:
+                if hasattr(e, 'wrapped_exc'):
+                    e = e.wrapped_exc
                 new_task_state = TASK_RESCHEDULED if isinstance(
                     e, exceptions.OperationRetry) else TASK_FAILED
                 self.set_state(new_task_state, exception=e)
@@ -785,6 +828,12 @@ class DryRunLocalWorkflowTask(LocalWorkflowTask):
 
 
 class WorkflowTaskResult(object):
+    """Deferred result of a WorkiflowTask
+
+    This is returned by the WorkflowTask, and will eventually have
+    the actual result set, when the task finishes. Use the on_result method
+    to register callbacks to be called when the task result is set.
+    """
     _NOT_SET = object()
 
     def __init__(self, task):
@@ -997,11 +1046,7 @@ class SendNodeEventTask(_BuiltinTaskBase):
         self.info = event
 
     def remote(self):
-        # only explicitly send the event if the task is not stored - if we do
-        # actually update the operation state, then the server will
-        # automatically add an event
-        if not self.stored:
-            self._send(out_func=logs.manager_event_out)
+        self._send(out_func=logs.manager_event_out)
 
     def local(self):
         self._send(out_func=logs.stdout_event_out)
@@ -1014,7 +1059,11 @@ class SendNodeEventTask(_BuiltinTaskBase):
             event_type='workflow_node_event',
             message=self.kwargs['event'],
             additional_context=self.kwargs['additional_context'],
-            out_func=out_func)
+            out_func=out_func,
+            # if this operation is stored, we don't need to send the log,
+            # because updating the operation state will insert the log
+            # automatically, on the manager side
+            skip_send=self.stored)
 
 
 class SendWorkflowEventTask(_BuiltinTaskBase):

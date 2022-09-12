@@ -116,6 +116,16 @@ class Node(dict):
                                               in self else None
 
     @property
+    def unavailable_instances(self):
+        """Amount of instances that failed their status check."""
+        return self.get('unavailable_instances')
+
+    @property
+    def drifted_instances(self):
+        """Amount of instances that have configuration drift."""
+        return self.get('drifted_instances')
+
+    @property
     def host_id(self):
         """
         :return: The id of the node instance which hosts this node.
@@ -140,12 +150,35 @@ class Node(dict):
         return self['type']
 
 
+class NodeTypes(dict):
+
+    def __init__(self, node_type):
+        super(NodeTypes, self).__init__()
+        self.update(node_type)
+
+    @property
+    def id(self):
+        """ID of the node."""
+        return self['id']
+
+    @property
+    def deployment_id(self):
+        """ID of the deployment the node belong to."""
+        return self['deployment_id']
+
+    @property
+    def type(self):
+        """Node's type."""
+        return self['type']
+
+
 class NodesClient(object):
 
     def __init__(self, api):
         self.api = api
         self._wrapper_cls = Node
         self._uri_prefix = 'nodes'
+        self.types = NodeTypesClient(api)
 
     def _create_filters(
             self,
@@ -169,7 +202,8 @@ class NodesClient(object):
 
         return params
 
-    def list(self, _include=None, **kwargs):
+    def list(self, _include=None, filter_rules=None, constraints=None,
+             **kwargs):
         """
         Returns a list of nodes which belong to the deployment identified
         by the provided deployment id.
@@ -180,19 +214,41 @@ class NodesClient(object):
         :param _include: List of fields to include in response.
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
+        :param constraints: A list of DSL constraints for node_template data
+               type to filter the nodes by.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.DeploymentNode.fields
         :param evaluate_functions: Evaluate intrinsic functions
         :return: Nodes.
         :rtype: list
         """
-        params = self._create_filters(**kwargs)
+        if constraints and filter_rules:
+            raise ValueError(
+                'provide either filter_rules or DSL constraints, not both')
 
-        response = self.api.get(
-            '/{self._uri_prefix}'.format(self=self),
-            params=params,
-            _include=_include
-        )
+        params = self._create_filters(**kwargs)
+        if filter_rules is not None:
+            if _include:
+                params['_include'] = ','.join(_include)
+            response = self.api.post(
+                '/searches/{self._uri_prefix}'.format(self=self),
+                params=params,
+                data={'filter_rules': filter_rules}
+            )
+        elif constraints is not None:
+            if _include:
+                params['_include'] = ','.join(_include)
+            response = self.api.post(
+                '/searches/{self._uri_prefix}'.format(self=self),
+                params=params,
+                data={'constraints': constraints}
+            )
+        else:
+            response = self.api.get(
+                '/{self._uri_prefix}'.format(self=self),
+                params=params,
+                _include=_include
+            )
         return ListResponse(
             [self._wrapper_cls(item) for item in response['items']],
             response['metadata']
@@ -255,4 +311,51 @@ class NodesClient(object):
             .format(self=self, deployment_id=deployment_id, node_id=node_id),
             data=kwargs,
             expected_status_code=204,
+        )
+
+    def delete(self, deployment_id, node_id):
+        """Delete a node
+
+        :param deployment_id: The deployment the node belongs to
+        :param node_id: The node id within the given deployment
+        """
+        self.api.delete(
+            '/{self._uri_prefix}/{deployment_id}/{node_id}'
+            .format(self=self, deployment_id=deployment_id, node_id=node_id),
+            expected_status_code=204,
+        )
+
+
+class NodeTypesClient(object):
+
+    def __init__(self, api):
+        self.api = api
+
+    def list(self, node_type=None, constraints=None, **kwargs):
+        """
+        Returns a list of node's types matching constraints.
+
+        :param deployment_id: An identifier of a deployment which nodes
+               are going to be searched.  If omitted, 'deployment_id' key
+               should be present in the `constraints` dict, otherwise the
+               request will fail.
+        :param node_type: If provided, returns only the requested type.
+        :param constraints: A list of DSL constraints for node_type
+               data type to filter the types by.
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.Node.fields
+        :return: NodeTypes list.
+        """
+        params = kwargs
+        if node_type:
+            params['_search'] = node_type
+
+        if constraints is None:
+            constraints = dict()
+
+        response = self.api.post('/searches/node-types', params=params,
+                                 data={'constraints': constraints})
+        return ListResponse(
+            items=[NodeTypes(item) for item in response['items']],
+            metadata=response['metadata']
         )

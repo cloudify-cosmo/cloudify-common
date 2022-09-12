@@ -17,7 +17,6 @@ from dsl_parser import utils
 from dsl_parser import elements
 from dsl_parser import constants
 from dsl_parser import exceptions
-from dsl_parser._compat import text_type
 from dsl_parser.elements import types, version as _version
 from dsl_parser.framework.elements import (
     Element,
@@ -32,13 +31,13 @@ from dsl_parser.framework.requirements import (
 
 class SchemaPropertyDescription(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
 
 class SchemaPropertyDisplayLabel(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
     requires = {
@@ -53,32 +52,55 @@ class SchemaPropertyDisplayLabel(Element):
 
 class SchemaPropertyType(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
     # requires will be modified later.
     requires = {}
 
     provides = ['component_types']
 
-    def validate(self, data_type, **kwargs):
+    def validate(self, data_type, version=None, validate_version=None,
+                 **kwargs):
         if self.initial_value and self.initial_value not in \
                 constants.USER_PRIMITIVE_TYPES and not data_type:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,
                 "Illegal type name '{0}'".format(self.initial_value))
+        if validate_version and self.initial_value and \
+                self.initial_value in constants.TYPES_BASED_ON_DB_ENTITIES:
+            self.validate_version(version, (1, 4))
 
     def calculate_provided(self, component_types, **kwargs):
         return {'component_types': component_types}
 
 
 class SchemaInputType(SchemaPropertyType):
+    pass
 
-    def validate(self, data_type, **kwargs):
-        if self.initial_value and self.initial_value not in \
-                constants.USER_PRIMITIVE_TYPES and not data_type:
+
+class SchemaListItemType(SchemaPropertyType):
+    def __init__(self, *args, **kwargs):
+        super(SchemaListItemType, self).__init__(*args, **kwargs)
+        self.requires.update({
+            _version.ToscaDefinitionsVersion: ['version'],
+            'inputs': ['validate_version'],
+        })
+
+    def validate(self, version=None, validate_version=None, **kwargs):
+        if validate_version:
+            self.validate_version(version, (1, 4))
+        if not self.initial_value:
+            return
+        input_type = self.sibling(SchemaInputType).initial_value
+        if input_type != 'list':
             raise exceptions.DSLParsingLogicException(
-                exceptions.ERROR_UNKNOWN_TYPE,
-                "Illegal type name '{0}'".format(self.initial_value))
+                exceptions.ERROR_ITEM_TYPE_FOR_INVALID_TYPE,
+                'Property item_type defined for unsupported type: '
+                "'{0}'".format(input_type))
+        if self.initial_value not in constants.USER_PRIMITIVE_TYPES:
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_INVALID_ITEM_TYPE,
+                "Illegal item_type '{0}'".format(self.initial_value))
 
 
 class SchemaPropertyDefault(Element):
@@ -179,12 +201,12 @@ class SchemaWithInitialDefault(Schema):
 
 class DataTypeDescription(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class DataTypeVersion(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class DataType(types.Type):
@@ -280,6 +302,8 @@ SchemaPropertyType.requires[DataType] = [
     Value('data_type', predicate=_has_type, required=False),
     Requirement('component_types', predicate=_has_type, required=False)
 ]
+SchemaPropertyType.requires[_version.ToscaDefinitionsVersion] = ['version']
+SchemaPropertyType.requires['inputs'] = ['validate_version']
 SchemaInputType.requires[DataType] = [
     Value('data_type', predicate=_has_type, required=False),
     Requirement('component_types', predicate=_has_type, required=False)

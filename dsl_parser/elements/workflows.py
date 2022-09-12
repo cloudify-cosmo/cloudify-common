@@ -14,11 +14,11 @@
 #    * limitations under the License.
 
 from dsl_parser import constants, constraints, exceptions, utils
-from dsl_parser._compat import text_type
 from dsl_parser.elements import (data_types,
                                  plugins as _plugins,
                                  operation,
-                                 misc)
+                                 misc,
+                                 version as _version)
 from dsl_parser.framework.requirements import (Value,
                                                Requirement,
                                                sibling_predicate)
@@ -96,25 +96,18 @@ class ParameterSchemaProperty(data_types.SchemaProperty):
         'default': ParameterSchemaPropertyDefault,
         'description': data_types.SchemaPropertyDescription,
         'type': data_types.SchemaInputType,
+        'item_type': data_types.SchemaListItemType,
         'constraints': Constraints,
     }
 
     def parse(self):
         return self.build_dict_result(with_default=False)
 
-    def validate(self):
-        if self.initial_value.get('required', False) \
-                and 'default' not in self.initial_value:
-            raise exceptions.DSLParsingLogicException(
-                exceptions.ERROR_HIDDEN_REQUIRED_INPUT_NO_DEFAULT,
-                "Input is required thus it should have a default value: "
-                "'{0}'.".format(self.name))
-
 
 class WorkflowMapping(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class WorkflowParameters(data_types.Schema):
@@ -129,15 +122,64 @@ class WorkflowIsCascading(Element):
     add_namespace_to_schema_elements = False
 
 
+class WorkflowAvailable(Element):
+    schema = Leaf(type=bool)
+    add_namespace_to_schema_elements = False
+
+
+class WorkflowAvailabilityNodeInstancesActive(Element):
+    schema = Leaf(type=list)
+    add_namespace_to_schema_elements = False
+    valid_values = ('all', 'partial', 'none')
+
+    def validate(self, **kwargs):
+        if self.initial_value and \
+                any(value not in self.valid_values
+                    for value in self.initial_value):
+            raise exceptions.DSLParsingLogicException(
+                exceptions.ERROR_UNKNOWN_TYPE,
+                "Invalid definition of 'active_node_instances' availability "
+                "rule: '{0}'. Allowed values: {1}"
+                .format(self.initial_value, self.valid_values))
+
+
+class NodeTypeName(Element):
+    schema = Leaf(type=str)
+    add_namespace_to_schema_elements = False
+
+
+class WorkflowAvailabilityNodeTypesRequired(Element):
+    schema = List(type=NodeTypeName)
+    add_namespace_to_schema_elements = False
+
+
+class WorkflowAvailabilityRules(DictElement):
+    schema = {
+        'available': WorkflowAvailable,
+        'node_instances_active': WorkflowAvailabilityNodeInstancesActive,
+        'node_types_required': WorkflowAvailabilityNodeTypesRequired,
+    }
+    add_namespace_to_schema_elements = False
+    requires = {
+        _version.ToscaDefinitionsVersion: ['version'],
+        'inputs': ['validate_version']
+    }
+
+    def validate(self, version, validate_version):
+        if validate_version:
+            self.validate_version(version, (1, 4))
+
+
 class Workflow(Element):
 
     required = True
     schema = [
-        Leaf(type=text_type),
+        Leaf(type=str),
         {
             'mapping': WorkflowMapping,
             'parameters': WorkflowParameters,
-            'is_cascading': WorkflowIsCascading
+            'is_cascading': WorkflowIsCascading,
+            'availability_rules': WorkflowAvailabilityRules,
         }
     ]
     requires = {
@@ -147,13 +189,15 @@ class Workflow(Element):
     }
 
     def parse(self, plugins, resource_base, namespaces_mapping):
-        if isinstance(self.initial_value, text_type):
+        if isinstance(self.initial_value, str):
             operation_content = {'mapping': self.initial_value,
                                  'parameters': {}}
             is_cascading = False
+            availability_rules = None
         else:
             operation_content = self.build_dict_result()
             is_cascading = self.initial_value.get('is_cascading', False)
+            availability_rules = self.initial_value.get('availability_rules')
         return operation.process_operation(
             plugins=plugins,
             operation_name=self.name,
@@ -163,7 +207,9 @@ class Workflow(Element):
             resource_bases=resource_base,
             remote_resources_namespaces=namespaces_mapping,
             is_workflows=True,
-            is_workflow_cascading=is_cascading)
+            is_workflow_cascading=is_cascading,
+            workflow_availability=availability_rules,
+        )
 
 
 class Workflows(DictElement):

@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import warnings
 from datetime import datetime
 
@@ -77,22 +62,29 @@ class EventsClient(object):
         response = self.api.get(uri, _include=_include, params=params)
         return ListResponse(response['items'], response['metadata'])
 
-    def create(self, events=None, logs=None, execution_id=None):
+    def create(self, events=None, logs=None, execution_id=None,
+               agent_name=None, manager_name=None,
+               execution_group_id=None):
         """Create events & logs
 
         :param events: List of events to be created
         :param logs: List of logs to be created
-        :param execution_id: Create logs/events for this execution - only
-                             used if the request is not authenticated by an
-                             execution token (then, the token's execution
-                             takes precedence).
+        :param execution_id: Create logs/events for this execution
+        :param execution_group_id: Create logs/events for this execution group
         :return: None
         """
-        self.api.post('/events', data={
+        data = {
             'events': events,
             'logs': logs,
-            'execution_id': execution_id,
-        }, expected_status_code=(201, 204))
+            'agent_name': agent_name,
+            'manager_name': manager_name,
+        }
+        if execution_id:
+            data['execution_id'] = execution_id
+        if execution_group_id:
+            data['execution_group_id'] = execution_group_id
+
+        self.api.post('/events', data=data, expected_status_code=(201, 204))
 
     def delete(self, deployment_id, include_logs=False, message=None,
                from_datetime=None, to_datetime=None, sort=None, **kwargs):

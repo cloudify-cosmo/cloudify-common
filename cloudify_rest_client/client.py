@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2018-2019 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import json
 import logging
 import numbers
@@ -26,6 +11,7 @@ from cloudify.utils import ipv6_url_compat
 
 from .utils import is_kerberos_env
 from cloudify_rest_client import exceptions
+from cloudify_rest_client.idp import IdentityProviderClient
 from cloudify_rest_client.ldap import LdapClient
 from cloudify_rest_client.nodes import NodesClient
 from cloudify_rest_client.users import UsersClient
@@ -40,6 +26,7 @@ from cloudify_rest_client.tenants import TenantsClient
 from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.summary import SummariesClient
 from cloudify_rest_client.snapshots import SnapshotsClient
+from cloudify_rest_client.log_bundles import LogBundlesClient
 from cloudify_rest_client.cluster import ClusterStatusClient
 from cloudify_rest_client.blueprints import BlueprintsClient
 from cloudify_rest_client.executions import (
@@ -56,7 +43,7 @@ from cloudify_rest_client.permissions import PermissionsClient
 from cloudify_rest_client.maintenance import MaintenanceModeClient
 from cloudify_rest_client.plugins_update import PluginsUpdateClient
 from cloudify_rest_client.node_instances import NodeInstancesClient
-from cloudify_rest_client.tokens import TokensClient, UserTokensClient
+from cloudify_rest_client.tokens import TokensClient
 from cloudify_rest_client.deployment_updates import DeploymentUpdatesClient
 from cloudify_rest_client.operations import OperationsClient, TasksGraphClient
 from cloudify_rest_client.deployment_modifications import (
@@ -68,6 +55,8 @@ from cloudify_rest_client.labels import (DeploymentsLabelsClient,
 from cloudify_rest_client.filters import (DeploymentsFiltersClient,
                                           BlueprintsFiltersClient)
 from cloudify_rest_client.workflows import WorkflowsClient
+from cloudify_rest_client.audit_log import AuditLogClient
+from cloudify_async_client.audit_log import AuditLogAsyncClient
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -76,6 +65,7 @@ except Exception:
     # pykerberos require krb5-devel, which isn't python lib.
     # Kerberos users will need to manually install it.
     HTTPKerberosAuth = None
+
 
 DEFAULT_PORT = 80
 SECURED_PORT = 443
@@ -130,7 +120,6 @@ class HTTPClient(object):
 
     def has_auth_header(self):
         auth_headers = [constants.CLOUDIFY_AUTHENTICATION_HEADER,
-                        constants.CLOUDIFY_API_AUTH_TOKEN_HEADER,
                         constants.CLOUDIFY_EXECUTION_TOKEN_HEADER,
                         constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER]
         return any(header in self.headers for header in auth_headers)
@@ -155,7 +144,8 @@ class HTTPClient(object):
                 error_msg,
                 status_code=response.status_code,
                 response=response)
-        message = result['message']
+        # this can be changed after RD-3539
+        message = result.get('message') or result.get('detail')
         code = result.get('error_code')
         server_traceback = result.get('server_traceback')
         self._prepare_and_raise_exception(
@@ -213,14 +203,11 @@ class HTTPClient(object):
                                    auth=auth)
         if self.logger.isEnabledFor(logging.DEBUG):
             for hdr, hdr_content in response.request.headers.items():
-                self.logger.debug('request header:  %s: %s'
-                                  % (hdr, hdr_content))
-            self.logger.debug('reply:  "%s %s" %s'
-                              % (response.status_code,
-                                 response.reason, response.content))
+                self.logger.debug('request header:  %s: %s', hdr, hdr_content)
+            self.logger.debug('reply:  "%s %s" %s', response.status_code,
+                              response.reason, response.content)
             for hdr, hdr_content in response.headers.items():
-                self.logger.debug('response header:  %s: %s'
-                                  % (hdr, hdr_content))
+                self.logger.debug('response header:  %s: %s', hdr, hdr_content)
 
         if isinstance(expected_status_code, numbers.Number):
             expected_status_code = [expected_status_code]
@@ -394,7 +381,7 @@ class HTTPClient(object):
             return
         self.headers[key] = value
         value = value if log_value else '*'
-        self.logger.debug('Setting `{0}` header: {1}'.format(key, value))
+        self.logger.debug('Setting `%s` header: %s', key, value)
 
 
 class StreamedResponse(object):
@@ -462,8 +449,10 @@ class CloudifyClient(object):
                                          token, tenant, kerberos_env, timeout,
                                          session)
         self.blueprints = BlueprintsClient(self._client)
+        self.idp = IdentityProviderClient(self._client)
         self.permissions = PermissionsClient(self._client)
         self.snapshots = SnapshotsClient(self._client)
+        self.log_bundles = LogBundlesClient(self._client)
         self.deployments = DeploymentsClient(self._client)
         self.deployment_groups = DeploymentGroupsClient(self._client)
         self.executions = ExecutionsClient(self._client)
@@ -488,7 +477,6 @@ class CloudifyClient(object):
         self.secrets = SecretsClient(self._client)
         self.agents = AgentsClient(self._client)
         self.summary = SummariesClient(self._client)
-        self.user_tokens = UserTokensClient(self._client)
         self.operations = OperationsClient(self._client)
         self.tasks_graphs = TasksGraphClient(self._client)
         self.license = LicenseClient(self._client)
@@ -501,3 +489,7 @@ class CloudifyClient(object):
         self.deployments_labels = DeploymentsLabelsClient(self._client)
         self.blueprints_labels = BlueprintsLabelsClient(self._client)
         self.workflows = WorkflowsClient(self._client)
+        if AuditLogAsyncClient is None:
+            self.auditlog = AuditLogClient(self._client)
+        else:
+            self.auditlog = AuditLogAsyncClient(self._client)

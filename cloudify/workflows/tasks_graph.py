@@ -46,6 +46,121 @@ def make_or_get_graph(f):
     return _inner
 
 
+class TaskDependencyGraphError(object):
+    def __init__(self, task_name, traceback, error_causes, error_time=None):
+        self.task_name = task_name
+        self.traceback = traceback
+        self.error_causes = error_causes
+        self.error_time = error_time or time.time()
+
+
+def _task_error_causes_short(task):
+    """Examine the task, and return a summary of its errors.
+
+    If the task didn't error out, return the empty string.
+    """
+    if not hasattr(task, 'error') or not isinstance(task.error, dict):
+        return ''
+    error_parts = []
+    causes = task.error.get('known_exception_type_kwargs', {}).get('causes')
+    for c in causes:
+        error_parts.append('{0} `{1}`'.format(c['type'], c['message']))
+    if not causes:
+        # no known causes - just show the exception directly
+        error_parts.append(
+            '{0} `{1}`'.format(
+                task.error['exception_type'],
+                task.error['message']
+            )
+        )
+    return '\n'.join(error_parts)
+
+
+def _task_error_causes_traceback(task):
+    """Examine the task, and return tracebacks of its errors.
+
+    The tracebacks are concatenated into a single string.
+    If the task didn't error out, return the empty string.
+    """
+    if not hasattr(task, 'error') or not isinstance(task.error, dict):
+        return ''
+    error_parts = []
+    for c in task.error.get('known_exception_type_kwargs', {}).get('causes'):
+        traceback = c.get('traceback')
+        if traceback:
+            # this is a bit dirty - remove the first line of the traceback,
+            # which says "Traceback (most recent call last):". This is so
+            # that we can add our own line instead later, which also
+            # says the name of the erroring out task
+            header, _, traceback = traceback.strip().partition('\n')
+            error_parts.append(traceback)
+    return '\n'.join(error_parts)
+
+
+class TaskDependencyGraphErrors(object):
+    def __init__(self):
+        self._errors = []
+
+    def __len__(self):
+        return len(self._errors)
+
+    def __bool__(self):
+        return len(self._errors) > 0
+
+    def add_error(self, result, task):
+        summary = "Task failed: {0}".format(task.short_description)
+        short_causes_text = _task_error_causes_short(task)
+        if short_causes_text:
+            summary = '{0}: {1}'.format(summary, short_causes_text)
+        self._errors.append(TaskDependencyGraphError(
+            task_name=task.short_description,
+            error_causes=short_causes_text,
+            traceback=_task_error_causes_traceback(task),
+        ))
+
+    def first_error_time(self):
+        if not self._errors:
+            return None
+        return self._errors[0].error_time
+
+    def format_exception(self):
+        """Turn errors stored here into a single human-readable WorkflowFailed
+
+        This formats the actual message the user will see. Show information
+        about all errors that happened, and a traceback.
+        """
+        if not self._errors:
+            return None
+        if len(self._errors) > 1:
+            message = '{0} operation errors:\n{1}'.format(
+                len(self._errors),
+                '\n'.join(
+                    '{0}: {1}'.format(err.task_name, err.error_causes)
+                    for err in self._errors
+                ),
+            )
+        else:
+            message = 'Task failed: {0}: {1}'.format(
+                self._errors[0].task_name,
+                self._errors[0].error_causes,
+            )
+        if self._errors[0].traceback:
+            message = (
+                '{0}\nTraceback of {1} (most recent call last):\n{2}'
+                .format(
+                    message,
+                    self._errors[0].task_name,
+                    self._errors[0].traceback,
+                )
+            )
+        return WorkflowFailed(
+            message,
+            # a task failed, not the workflow function itself: no need to
+            # show the traceback of the workflow function
+            hide_traceback=True,
+        )
+
+
 class TaskDependencyGraph(object):
     """A task graph.
 
@@ -66,9 +181,7 @@ class TaskDependencyGraph(object):
         self.ctx = workflow_context
         default_subgraph_task_config = default_subgraph_task_config or {}
         self._default_subgraph_task_config = default_subgraph_task_config
-        self._error = None
         self._wake_after_fail = None
-        self._error_time = None
         self._stored = False
         self.id = graph_id
         self._tasks = {}
@@ -79,6 +192,27 @@ class TaskDependencyGraph(object):
         self._tasks_wait = threading.Event()
         self._finished_tasks = {}
         self._op_types_cache = {}
+        self._errors = None
+
+    def optimize(self):
+        """Optimize this tasks graph, removing tasks that do nothing.
+
+        Empty subgraphs, and NOP tasks, are dropped. A subgraph is considered
+        empty if it only contains NOP tasks, and empty subgraphs.
+        """
+        removable = [
+            task for task in self._tasks.values()
+            if task.is_nop()
+        ]
+        for task in removable:
+            dependents = self._dependents[task]
+            dependencies = self._dependencies[task]
+            if task.containing_subgraph:
+                task.containing_subgraph.tasks.pop(task.id)
+            self.remove_task(task)
+            for dependent in dependents:
+                for dependency in dependencies:
+                    self.add_dependency(dependent, dependency)
 
     def linearize(self):
         """Traverse the graph, and return tasks in dependency order.
@@ -215,6 +349,8 @@ class TaskDependencyGraph(object):
         if stored_graph:
             self.id = stored_graph['id']
             self._stored = True
+            for task in self._tasks.values():
+                task.stored = True
 
     @property
     def tasks(self):
@@ -293,7 +429,7 @@ class TaskDependencyGraph(object):
         return TaskSequence(self)
 
     def subgraph(self, name):
-        task = SubgraphTask(self, info=name,
+        task = SubgraphTask(self, info={'name': name},
                             **self._default_subgraph_task_config)
         self.add_task(task)
         return task
@@ -314,13 +450,13 @@ class TaskDependencyGraph(object):
         If a task failed, wait for ctx.wait_after_fail for additional
         responses to come in anyway.
         """
-        self._error = None
+        self._errors = TaskDependencyGraphErrors()
         api.cancel_callbacks.add(self._tasks_wait.set)
 
         while not self._is_finished():
             self._tasks_wait.clear()
 
-            while self._ready and not self._error:
+            while self._ready:
                 task = self._ready.pop()
                 self._run_task(task)
 
@@ -333,22 +469,24 @@ class TaskDependencyGraph(object):
         api.cancel_callbacks.discard(self._tasks_wait.set)
         if self._wake_after_fail:
             self._wake_after_fail.cancel()
-        if self._error:
-            raise self._error
+        if self._errors:
+            raise self._errors.format_exception()
+        if api.has_cancel_request():
+            raise api.ExecutionCancelled()
 
     def _is_finished(self):
         if api.has_cancel_request():
-            self._error = api.ExecutionCancelled()
             return True
 
         if not self._tasks:
             return True
 
-        if self._error:
-            if not self._waiting_for:
+        if self._errors:
+            if not self._waiting_for and not self._ready:
                 return True
-            deadline = self._error_time + self.ctx.wait_after_fail
-            if deadline > time.time():
+            deadline = \
+                self._errors.first_error_time() + self.ctx.wait_after_fail
+            if time.time() > deadline:
                 return True
             else:
                 self._wake_after_fail = threading.Timer(
@@ -370,31 +508,37 @@ class TaskDependencyGraph(object):
     def _handle_terminated_task(self, result, task):
         self._waiting_for.discard(task)
         handler_result = task.handle_task_terminated()
+        dependents = self._dependents[task]
+        dependencies = self._dependencies[task]
+        self.remove_task(task)
         if handler_result.action == tasks.HandlerResult.HANDLER_FAIL:
             if isinstance(task, SubgraphTask) and task.failed_task:
                 task = task.failed_task
-            message = "Task failed '{0}'".format(task.name)
-            if result and not isinstance(result, tasks.HandlerResult):
-                message = '{0} -> {1}'.format(message, result)
-            if self._error is None:
-                self._error = WorkflowFailed(message)
-                self._error_time = time.time()
+            result = self._task_error(result, task)
+            self._ready -= dependents
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
             if self.id is not None:
-                self.ctx.store_operation(
+                stored = self.ctx.store_operation(
                     new_task,
                     [dep.id for dep in self._dependencies[task]],
                     self.id)
-                new_task.stored = True
+                if stored:
+                    new_task.stored = True
             self.add_task(new_task)
-            for dependency in self._dependencies[task]:
+            for dependency in dependencies:
                 self.add_dependency(new_task, self.get_task(dependency))
-            for dependent in self._dependents[task]:
+            for dependent in dependents:
                 self.add_dependency(self.get_task(dependent), new_task)
 
-        self.remove_task(task)
         self._tasks_wait.set()
+
+    def _task_error(self, result, task):
+        self._errors.add_error(result, task)
+        self._waiting_for = {
+            t for t in self._waiting_for if not t.is_subgraph
+        }
+        return result
 
 
 class forkjoin(object):
@@ -455,6 +599,7 @@ class SubgraphTask(tasks.WorkflowTask):
                  task_id=None,
                  total_retries=tasks.DEFAULT_SUBGRAPH_TOTAL_RETRIES,
                  **kwargs):
+        kwargs.setdefault('info', {})
         super(SubgraphTask, self).__init__(
             graph.ctx,
             task_id,
@@ -484,17 +629,22 @@ class SubgraphTask(tasks.WorkflowTask):
 
     @property
     def name(self):
-        return self.info
+        return self.info.get('name') or self.id
 
     @property
     def is_subgraph(self):
         return True
 
+    def is_nop(self):
+        return not self.tasks or all(
+            t.is_nop() for t in self.tasks.values()
+        )
+
     def sequence(self):
         return TaskSequence(self)
 
     def subgraph(self, name):
-        task = SubgraphTask(self.graph, info=name,
+        task = SubgraphTask(self.graph, info={'name': name},
                             **self.graph._default_subgraph_task_config)
         self.add_task(task)
         return task
@@ -549,7 +699,7 @@ class SubgraphTask(tasks.WorkflowTask):
             self.async_result.result = None
 
     def __repr__(self):
-        return '<{0} {1}: {2}>'.format(self.task_type, self.id, self.info)
+        return '<{0} {1}: {2}>'.format(self.task_type, self.id, self.name)
 
 
 def _on_failure_handler_fail(task):

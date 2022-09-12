@@ -16,12 +16,13 @@
 import tempfile
 import shutil
 import os
-import uuid
+from urllib.request import pathname2url
+from urllib.parse import urljoin
 
-import testtools
+import unittest
 from mock import Mock
 
-from dsl_parser._compat import pathname2url, urljoin
+from cloudify.utils import uuid4
 from dsl_parser.exceptions import DSLParsingException
 from dsl_parser.parser import parse as dsl_parse
 from dsl_parser.parser import parse_from_path as dsl_parse_from_path
@@ -35,7 +36,7 @@ from dsl_parser.multi_instance import (create_deployment_plan,
 class _MockRuntimeEvaluationStorage(object):
     def __init__(self, node_instances=None, nodes=None, inputs=None,
                  secrets=None, capabilities=None, labels=None,
-                 group_capabilities=None):
+                 group_capabilities=None, id=None, name=None, consumers=None):
         self._node_instances = node_instances or []
         self._nodes = nodes or []
         self._inputs = inputs or {}
@@ -43,6 +44,9 @@ class _MockRuntimeEvaluationStorage(object):
         self._capabilities = capabilities or {}
         self._labels = labels or {}
         self._group_capabilities = group_capabilities or {}
+        self._consumers = consumers or {}
+        self._deployment_id = id or None
+        self._deployment_name = name or None
 
     def get_input(self, input_name):
         return self._inputs[input_name]
@@ -90,8 +94,23 @@ class _MockRuntimeEvaluationStorage(object):
         capability_path = [label_value] + capability_path
         return self.get_capability(capability_path)
 
+    def get_sys(self, entity, prop):
+        if (entity, prop) == ('deployment', 'id'):
+            return self._deployment_id
+        if (entity, prop) == ('deployment', 'name'):
+            return self._deployment_name
 
-class AbstractTestParser(testtools.TestCase):
+    def get_consumers(self, prop):
+        consumers_list = list(self._consumers.keys())
+        if prop == 'ids':
+            return consumers_list
+        if prop == 'count':
+            return len(consumers_list)
+        if prop == 'names':
+            return list(self._consumers.values())
+
+
+class AbstractTestParser(unittest.TestCase):
     BASIC_VERSION_SECTION_DSL_1_0 = """
 tosca_definitions_version: cloudify_dsl_1_0
     """
@@ -106,6 +125,10 @@ tosca_definitions_version: cloudify_dsl_1_2
 
     BASIC_VERSION_SECTION_DSL_1_3 = """
 tosca_definitions_version: cloudify_dsl_1_3
+    """
+
+    BASIC_VERSION_SECTION_DSL_1_4 = """
+tosca_definitions_version: cloudify_dsl_1_4
     """
 
     BASIC_NODE_TEMPLATES_SECTION = """
@@ -198,7 +221,7 @@ node_types:
         return filename_path
 
     def make_yaml_file(self, content, as_uri=False):
-        filename = 'tempfile{0}.yaml'.format(uuid.uuid4())
+        filename = 'tempfile{0}.yaml'.format(uuid4())
         filename_path = self.make_file_with_name(content, filename)
         return filename_path if not as_uri else self._path2url(filename_path)
 
@@ -257,6 +280,11 @@ imports:"""
                           dsl_version=self.BASIC_VERSION_SECTION_DSL_1_3,
                           resolver=resolver)
 
+    def parse_1_4(self, dsl_string, resources_base_path=None, resolver=None):
+        return self.parse(dsl_string, resources_base_path,
+                          dsl_version=self.BASIC_VERSION_SECTION_DSL_1_4,
+                          resolver=resolver)
+
     def parse_from_path(self,
                         dsl_path,
                         resources_base_path=None,
@@ -291,7 +319,9 @@ imports:"""
                 parsing_method(dsl)
             ex = cm.exception
         else:
-            ex = self.assertRaises(exception_type, parsing_method, dsl)
+            with self.assertRaises(exception_type) as cm:
+                parsing_method(dsl)
+            ex = cm.exception
         self.assertEqual(ex.err_code, expected_error_code)
         return ex
 
@@ -314,3 +344,12 @@ imports:"""
 
     def get_secret(self, secret_name):
         return self.mock_evaluation_storage().get_secret(secret_name)
+
+
+# 2.7 compat
+if not hasattr(AbstractTestParser, 'assertRaisesRegex'):
+    AbstractTestParser.assertRaisesRegex = \
+        AbstractTestParser.assertRaisesRegexp
+if not hasattr(AbstractTestParser, 'assertRegex'):
+    AbstractTestParser.assertRegex = \
+        AbstractTestParser.assertRegexpMatches

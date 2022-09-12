@@ -12,10 +12,8 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-
-from testtools import ExpectedException
-
-from dsl_parser import exceptions, functions
+import dsl_parser.functions
+from dsl_parser import exceptions, functions, utils
 from dsl_parser.tasks import prepare_deployment_plan
 from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 
@@ -102,7 +100,7 @@ node_templates:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn('Node template property', str(e))
             self.assertIn("doesn't exist", str(e))
             self.assertIn('vm.properties.notfound', str(e))
@@ -208,7 +206,8 @@ node_templates:
             r"vm\.operations\.(interface\.)?op\.inputs\.x.*"
             r"doesn't exist.*"
         )
-        self.assertRaisesRegex(KeyError, message_regex, self.parse, yaml)
+        self.assertRaisesRegex(exceptions.FunctionEvaluationError,
+                               message_regex, self.parse, yaml)
 
     def test_node_template_capabilities(self):
         yaml = """
@@ -347,7 +346,7 @@ outputs:
         try:
             self.parse(yaml)
             self.fail()
-        except KeyError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn('Node template property', str(e))
             self.assertIn("doesn't exist", str(e))
             self.assertIn('vm.properties.a', str(e))
@@ -555,7 +554,7 @@ node_templates:
         try:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
-        except KeyError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn(
                 "Node template property 'vm.properties.a.notfound' "
                 "referenced from 'nodes.vm.properties.a.a0' doesn't exist.",
@@ -578,7 +577,7 @@ node_templates:
         try:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
-        except TypeError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn('is expected b to be an int but it is a', str(e))
 
     def test_invalid_nested_property3(self):
@@ -598,7 +597,7 @@ node_templates:
         try:
             prepare_deployment_plan(self.parse(yaml))
             self.fail()
-        except IndexError as e:
+        except exceptions.FunctionEvaluationError as e:
             self.assertIn('index is out of range. Got 10 but list size is 3',
                           str(e))
 
@@ -755,7 +754,8 @@ node_templates:
             a: {get_input: dict_input}
             b: {get_property: [SELF, a, key]}
 """
-        with self.assertRaisesRegex(KeyError, r'vm1\.properties\.a\.key'):
+        with self.assertRaisesRegex(exceptions.FunctionEvaluationError,
+                                    r'vm1\.properties\.a\.key'):
             prepare_deployment_plan(
                 self.parse(yaml), inputs={'dict_input': {'other_key': 42}})
 
@@ -826,6 +826,106 @@ node_templates:
         node = functions.evaluate_node_functions(
             plan_node, self.mock_evaluation_storage(nodes=plan['nodes']))
         self.assertEqual(node['properties']['a'], 'secret2')
+
+    def test_context_switching(self):
+        """get_property calling get_property that has SELF, uses the new node
+
+        x.properties.x references y.properties.y - but y.properties.y calls
+        SELF.z - check that the SELF is then resolved to the y node indeed,
+        not to the x node
+        """
+        yaml = """
+node_types:
+  type1:
+    properties:
+      x: {}
+  type2:
+    properties:
+      y:
+        default: {get_property: [SELF, z]}
+      z:
+        default: 5
+node_templates:
+  x:
+    type: type1
+    properties:
+      x: {get_property: [y, y]}
+  y:
+    type: type2
+"""
+        plan = prepare_deployment_plan(self.parse(yaml))
+        x_node = self.get_node_by_name(plan, 'x')
+        y_node = self.get_node_by_name(plan, 'y')
+        self.assertEqual(y_node['properties']['y'], 5)
+        self.assertEqual(x_node['properties']['x'], 5)
+
+    def test_get_input_valid_datatypes(self):
+        yaml = """
+plugins:
+    a:
+        executor: central_deployment_agent
+        install: false
+inputs:
+  i_integer:
+    type: integer
+    default: 1
+node_types:
+  test_type:
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: a.a
+          executor: central_deployment_agent
+          inputs:
+            v_integer:
+              type: integer
+node_templates:
+  test:
+    type: test_type
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            v_integer: { get_input: i_integer }
+"""
+        plan = prepare_deployment_plan(self.parse(yaml))
+        assert plan
+
+    def test_get_input_invalid_datatypes(self):
+        yaml = """
+plugins:
+    a:
+        executor: central_deployment_agent
+        install: false
+inputs:
+  i_float:
+    type: float
+    default: 1.01
+  i_string:
+    type: string
+    default: A quick brown fox
+node_types:
+  test_type:
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: a.a
+          executor: central_deployment_agent
+          inputs:
+            v_float:
+              type: float
+node_templates:
+  test:
+    type: test_type
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            v_float: { get_input: i_string }
+"""
+        with self.assertRaisesRegex(
+                exceptions.InputEvaluationError, 'does not match data type'):
+            prepare_deployment_plan(self.parse(yaml))
 
 
 class TestGetAttribute(AbstractTestParser):
@@ -964,8 +1064,8 @@ node_templates:
         properties:
             property: { concat: [1, 2] }
 """
-        with ExpectedException(exceptions.FunctionValidationError,
-                               '.*version 1_1 or greater.*'):
+        with self.assertRaisesRegex(
+                exceptions.FunctionValidationError, 'version 1_1 or greater'):
             prepare_deployment_plan(self.parse(
                 yaml,
                 dsl_version=self.BASIC_VERSION_SECTION_DSL_1_0))
@@ -982,7 +1082,7 @@ node_templates:
         properties:
             property: { concat: 1 }
 """
-        with ExpectedException(ValueError, '.*Illegal.*concat.*'):
+        with self.assertRaisesRegex(ValueError, 'Illegal.*concat'):
             prepare_deployment_plan(self.parse_1_1(yaml))
 
     def test_node_template_properties_simple(self):
@@ -1231,8 +1331,8 @@ node_templates:
         properties:
             property: { merge: [{}, {}] }
 """
-        with ExpectedException(exceptions.FunctionValidationError,
-                               '.*version 1_3 or greater.*'):
+        with self.assertRaisesRegex(
+                exceptions.FunctionValidationError, 'version 1_3 or greater'):
             prepare_deployment_plan(self.parse(
                 yaml,
                 dsl_version=self.BASIC_VERSION_SECTION_DSL_1_0))
@@ -1249,7 +1349,7 @@ node_templates:
         properties:
             property: { merge: 1 }
 """
-        with ExpectedException(ValueError, '.*Illegal.*merge.*'):
+        with self.assertRaisesRegex(ValueError, 'Illegal.*merge'):
             prepare_deployment_plan(self.parse_1_3(yaml))
 
     def test_node_template_properties_simple(self):
@@ -1920,3 +2020,212 @@ node_templates:
         yaml = self.BLUEPRINT.format('{get_group_capability: 1}')
         with self.assertRaisesRegex(ValueError, 'should be a list'):
             self.parse(yaml)
+
+
+class TestStringFind(AbstractTestParser):
+
+    def test_correct(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_find: ['Quick fox jumps', 'fox']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 6
+
+    def test_not_found(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_find: ['Quick fox jumps', 'dog']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == -1
+
+    def test_with_get_input(self):
+        yaml = """
+inputs:
+  quick:
+    type: string
+    default: Quick fox jumps
+deployment_settings:
+    display_name: {string_find: [{get_input: quick}, 'fox']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 6
+
+    def test_invalid_number_of_params(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_find: ['Quick fox jumps']}
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'string_find.*exactly two parameters'):
+            prepare_deployment_plan(self.parse(yaml))
+
+
+class TestStringReplace(AbstractTestParser):
+
+    def test_correct(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_replace: ['Quick fox jumps', 'fox', 'racoon']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'Quick racoon jumps'
+
+    def test_not_found(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_replace: ['Quick fox jumps', 'dog', 'racoon']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'Quick fox jumps'
+
+    def test_with_get_input(self):
+        yaml = """
+inputs:
+  quick:
+    type: string
+    default: Quick fox jumps
+deployment_settings:
+    display_name: {string_replace: [{get_input: quick}, 'fox', 'racoon']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'Quick racoon jumps'
+
+    def test_correct_with_count(self):
+        yaml = """
+deployment_settings:
+    display_name:
+        string_replace:
+            - "Buzz fox is the best fox in the fox town"
+            - "fox"
+            - "dog"
+            - 2
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'Buzz dog is the best dog in the fox town'
+
+    def test_invalid_param_type(self):
+        yaml = """
+deployment_settings:
+    display_name:
+        string_replace:
+            - "Quick fox jumps"
+            - "fox"
+            - "racoon"
+            - "hen"
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    r"string_replace.*count.*should be of "
+                                    r"type.*'int'"):
+            prepare_deployment_plan(self.parse(yaml))
+
+    def test_invalid_param_number(self):
+        yaml = """
+deployment_settings:
+    display_name: { string_replace: [ "Quick fox jumps", "fox" ] }
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    "string_replace.*three or four"):
+            prepare_deployment_plan(self.parse(yaml))
+
+
+class TestStringSplit(AbstractTestParser):
+
+    def test_correct_with_index(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_split: ['Quick fox jumps', ' ', 1]}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'fox'
+
+    def test_correct_no_index(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_split: ['Quick fox jumps', ' ']}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == ['Quick', 'fox', 'jumps']
+
+    def test_correct_invalid_index(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_split: ['Quick fox jumps', ' ', 'invalid-index']}
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'string_split.*index'):
+            prepare_deployment_plan(self.parse(yaml))
+
+
+class TestStringLowerAndUpper(AbstractTestParser):
+
+    def test_lower_correct(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_lower: 'Schnell Fuchs springt'}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'schnell fuchs springt'
+
+    def test_upper_correct(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_upper: 'Schnell Fuchs springt'}
+        """
+        plan = prepare_deployment_plan(self.parse(yaml))
+        display_name = plan['deployment_settings']['display_name']
+        assert display_name == 'SCHNELL FUCHS SPRINGT'
+
+    def test_lower_invalid_number_of_params(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_lower: ['Quick fox jumps', 'fox', 'racoon', 'hen']}
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'string_lower.*exactly one'):
+            prepare_deployment_plan(self.parse(yaml))
+
+    def test_upper_invalid_type(self):
+        yaml = """
+deployment_settings:
+    display_name: {string_upper: True}
+        """
+        with self.assertRaisesRegex(exceptions.FunctionValidationError,
+                                    'string_upper.*exactly one'):
+            prepare_deployment_plan(self.parse(yaml))
+
+
+class TestGetFunction(AbstractTestParser):
+    def test_must_be_dict(self):
+        assert utils.get_function(123) is None
+        assert utils.get_function(True) is None
+        assert utils.get_function('get_input: foo') is None
+        assert utils.get_function({'get_input': 'foo'}) is not None
+
+    def test_invalid_syntax(self):
+        assert utils.get_function(
+            {'get_input': 'foo', 'something': 123}) is None
+        assert utils.get_function(
+            {'get_input': 'foo', 'type': 'string', 'something': 123}) is None
+        assert utils.get_function(
+            {'type': 'string', 'something': 123}) is None
+
+    def test_valid_syntax(self):
+        f = utils.get_function({'get_input': 'foo'})
+        assert issubclass(f[0], dsl_parser.functions.Function)
+        assert f[1] == 'foo'
+
+        f = utils.get_function({'get_input': 'foo', 'type': 'string'})
+        assert issubclass(f[0], dsl_parser.functions.Function)
+        assert f[1] == 'foo'

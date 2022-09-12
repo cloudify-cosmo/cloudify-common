@@ -1,0 +1,21 @@
+tosca_definitions_version: cloudify_dsl_1_4
+
+plugins:
+  test:
+    executor: central_deployment_agent
+    install: false
+
+node_types:
+  t1:
+    interfaces:
+      test:
+        op1:
+          implementation: test.cloudify.tests.test_context.get_node_type
+
+node_templates:
+  node1:
+    type: t1
+
+workflows:
+  test_workflow:
+    mapping: test.cloudify.tests.test_context.has_operation_wf

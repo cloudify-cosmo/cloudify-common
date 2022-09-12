@@ -283,6 +283,21 @@ class DeploymentContext(EntityContext):
     def runtime_only_evaluation(self):
         return self._context.get('runtime_only_evaluation')
 
+    @property
+    def display_name(self):
+        """The deployment's display_name used e.g. in Cloudify UI."""
+        return self._context.get('deployment_display_name')
+
+    @property
+    def creator(self):
+        """The name of the user who owns the deployment."""
+        return self._context.get('deployment_creator')
+
+    @property
+    def resource_tags(self):
+        """Resource tags associated with this deployment."""
+        return self._context.get('deployment_resource_tags')
+
 
 class NodeContext(EntityContext):
 
@@ -327,6 +342,12 @@ class NodeContext(EntityContext):
         self._get_node_if_needed()
         return self._node.type_hierarchy
 
+    @property
+    def number_of_instances(self):
+        """The number of instances of that node."""
+        self._get_node_if_needed()
+        return self._node.number_of_instances
+
 
 class NodeInstanceContext(EntityContext):
     def __init__(self, *args, **kwargs):
@@ -337,6 +358,7 @@ class NodeInstanceContext(EntityContext):
         self._node_instance = None
         self._host_ip = None
         self._relationships = None
+        self._scaling_groups = []
 
     def _get_node_instance(self):
         self._node_instance = self._endpoint.get_node_instance(self.id)
@@ -368,11 +390,18 @@ class NodeInstanceContext(EntityContext):
         self._get_node_instance_if_needed()
         return self._node_instance.runtime_properties
 
+    @property
+    def scaling_groups(self):
+        """The list of scaling group instances this node instance belongs to"""
+        self._get_node_instance_if_needed()
+        return self._node_instance.scaling_groups
+
     @runtime_properties.setter
     def runtime_properties(self, new_properties):
         self._get_node_instance_if_needed()
         self._node_instance.runtime_properties = new_properties
 
+    @utils.keep_trying_http(total_timeout_sec=None)
     def update(self, on_conflict=None):
         """
         Stores new/updated runtime properties for the node instance in context
@@ -480,6 +509,13 @@ class NodeInstanceContext(EntityContext):
     def index(self):
         self._get_node_instance_if_needed()
         return self._node_instance.index
+
+    @property
+    def drift(self):
+        self._get_node_instance_if_needed()
+        drift = self._node_instance.system_properties\
+            .get('configuration_drift')
+        return drift.get('result') if drift.get('ok') else None
 
 
 class RelationshipContext(EntityContext):
@@ -911,6 +947,7 @@ class CloudifyContext(CommonContext):
             execution_id = self.execution_id
         return self._endpoint.get_execution(execution_id)
 
+    @utils.keep_trying_http(total_timeout_sec=None)
     def update_operation(self, state):
         """Update current operation state.
 
@@ -951,6 +988,16 @@ class CloudifyContext(CommonContext):
             deployment_id=self.deployment.id,
             resource_path=resource_path,
             template_variables=template_variables)
+
+    def download_directory(self,
+                           directory_path,
+                           target_path=None):
+        return self._endpoint.download_directory(
+            blueprint_id=self.blueprint.id,
+            deployment_id=self.deployment.id,
+            resource_path=directory_path,
+            logger=self.logger,
+            target_path=target_path)
 
     def download_resource(self,
                           resource_path,
@@ -1056,6 +1103,10 @@ class OperationContext(object):
     def max_retries(self):
         """The maximum number of retries the operation can have."""
         return self._operation_context.get('max_retries')
+
+    @property
+    def relationship(self):
+        return self._operation_context.get('relationship')
 
     def retry(self, message=None, retry_after=None):
         """Specifies that this operation should be retried.

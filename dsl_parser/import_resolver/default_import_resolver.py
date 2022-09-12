@@ -12,8 +12,12 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
-from dsl_parser.exceptions import DSLParsingLogicException
 
+import glob
+import os
+import re
+
+from dsl_parser.exceptions import DSLParsingLogicException
 from dsl_parser.import_resolver.abstract_import_resolver \
     import AbstractImportResolver, read_import
 
@@ -154,3 +158,28 @@ class DefaultImportResolver(AbstractImportResolver):
                     'Each rule must be a dictionary with one (key,value) pair '
                     'but the rule [{0}] has {1} keys.'
                     .format(rule, len(rule)))
+
+    def retrieve_plugin(self, import_url, **kwargs):
+        pass
+
+    @staticmethod
+    def _plugin_yamls_for_dsl_version(plugin_path, dsl_version):
+        yaml_files = glob.glob(os.path.join(plugin_path, '*.yaml'))
+        if len(yaml_files) <= 1:
+            return yaml_files
+
+        if dsl_version:
+            # If file exists, return *{dsl_version}.yaml name
+            result = [yaml_file for yaml_file in yaml_files
+                      if '{0}.yaml'.format(dsl_version) in yaml_file]
+            if result:
+                return result
+
+        # Return the first file that does not match *_\d_\d+\.yaml pattern
+        for yaml_file in yaml_files:
+            if not re.search(r"_\d_\d+\.yaml$", yaml_file):
+                return [yaml_file]
+
+        # If dsl_version is not provided, return the last yaml_file
+        if not dsl_version:
+            return [sorted(yaml_files)[-1]]

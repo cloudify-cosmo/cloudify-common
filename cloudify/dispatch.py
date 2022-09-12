@@ -13,14 +13,31 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+"""Cloudify operation executor
+
+This module is the subprocess entry-point: the mgmtworker & agents will
+run this module in a subprocess.
+This reads the inputs & context from the specified input.json file, runs
+the operation, and emits outputs to the output.json file.
+
+To run the task, create an instance of a TaskHandler; this will create
+a context, load the target function, and run it.
+
+Note that this runs both workflow functions (in the mgmtworker) and operation
+functions (in the mgmtworker and the agents).
+
+This module will normally run from a plugin-specific virtualenv.
+"""
 
 import copy
 import json
 import logging
 import os
+import queue
 import sys
 import threading
 import traceback
+from io import StringIO
 
 from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.exceptions import InvalidExecutionUpdateStatus
@@ -31,21 +48,11 @@ from cloudify import state
 from cloudify import context
 from cloudify import utils
 from cloudify import constants
-from cloudify._compat import queue, StringIO
 from cloudify.manager import update_execution_status, get_rest_client
 from cloudify.constants import LOGGING_CONFIG_FILE
 from cloudify.error_handling import serialize_known_exception
 
-try:
-    from cloudify.workflows import api
-    from cloudify.workflows import workflow_context
-except ImportError:
-    workflow_context = None
-    api = None
-
-
-DISPATCH_LOGGER_FORMATTER = logging.Formatter(
-    '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
+from cloudify.workflows import api
 
 
 class TaskHandler(object):
@@ -57,30 +64,9 @@ class TaskHandler(object):
         self.kwargs = kwargs
         self._ctx = None
         self._func = self.NOTSET
-        self._logfiles = {}
-        self._process_registry = process_registry
 
     def handle(self):
         raise NotImplementedError('Implemented by subclasses')
-
-    def setup_logging(self):
-        logs.setup_subprocess_logger()
-        self._update_logging_level()
-
-    @staticmethod
-    def _update_logging_level():
-        if not os.path.isfile(LOGGING_CONFIG_FILE):
-            return
-        with open(LOGGING_CONFIG_FILE, 'r') as config_file:
-            config_lines = config_file.readlines()
-        for line in config_lines:
-            if not line.strip() or line.startswith('#'):
-                continue
-            level_name, logger_name = line.split()
-            level_id = logging.getLevelName(level_name.upper())
-            if not isinstance(level_id, int):
-                continue
-            logging.getLogger(logger_name).setLevel(level_id)
 
     @property
     def ctx_cls(self):
@@ -94,6 +80,13 @@ class TaskHandler(object):
 
     @property
     def func(self):
+        """The target task function.
+
+        Load and return the operation/workflow function defined in the
+        context. This must be a python executable, available in the
+        current virtualenv. This function is most often defined in a
+        plugin.
+        """
         if self._func is self.NOTSET:
             try:
                 self._func = self.get_func()
@@ -152,6 +145,9 @@ class OperationHandler(TaskHandler):
     def _run_operation_func(self, ctx, kwargs):
         try:
             return self.func(*self.args, **kwargs)
+        except Exception as e:
+            err = _WrappedTaskError(e, traceback.format_exc())
+            raise err
         finally:
             if ctx.type == constants.NODE_INSTANCE:
                 ctx.instance.update()
@@ -160,16 +156,33 @@ class OperationHandler(TaskHandler):
                 ctx.target.instance.update()
 
 
-class WorkflowHandler(TaskHandler):
+class _WrappedTaskError(Exception):
+    """This wraps any exception coming out of a workflow/operation function.
 
+    We'll wrap the exception and the traceback, so that we can
+    preserve the original traceback. We want the original traceback
+    to be around, so that we can only print that, without adding
+    framework-level frames that come from dispatch.py itself.
+    """
+    def __init__(self, wrapped_exc, wrapped_tb, *args, **kwargs):
+        super(_WrappedTaskError, self).__init__(*args, **kwargs)
+        self.wrapped_exc = wrapped_exc
+        self.wrapped_tb = wrapped_tb
+
+
+class WorkflowHandler(TaskHandler):
     def __init__(self, *args, **kwargs):
-        if workflow_context is None or api is None:
+        if api is None:
             raise RuntimeError('Dispatcher not installed')
         super(WorkflowHandler, self).__init__(*args, **kwargs)
-        self.execution_parameters = copy.deepcopy(self.kwargs)
 
     @property
     def ctx_cls(self):
+        # import workflow_context in-function so that it doesn't need to
+        # be imported when handling an operation
+        # (only when handling a workflow)
+        from cloudify.workflows import workflow_context
+
         if getattr(self.func, 'workflow_system_wide', False):
             return workflow_context.CloudifySystemWideWorkflowContext
         return workflow_context.CloudifyWorkflowContext
@@ -199,14 +212,18 @@ class WorkflowHandler(TaskHandler):
         return self.cloudify_context.get('update_execution_status', True)
 
     def _handle_remote_workflow(self):
+        """Run the workflow function.
+
+        This runs the workflow in a background thread. The main thread will
+        wait for the background thread to finish, and poll the execution
+        status, to check if the execution was cancelled. If so, the cancel
+        flag is set, which allows the workflow function to clean up.
+        If the force-cancel flag is set, then this function will return
+        early, without waiting for the background thread to finish.
+        """
         tenant = self.ctx._context['tenant'].get('original_name',
                                                  self.ctx.tenant_name)
         rest = get_rest_client(tenant=tenant)
-        execution = rest.executions.get(self.ctx.execution_id,
-                                        _include=['status'])
-        if execution.status == Execution.STARTED:
-            self.ctx.resume = True
-
         try:
             try:
                 self._workflow_started()
@@ -279,9 +296,11 @@ class WorkflowHandler(TaskHandler):
             else:
                 self._workflow_succeeded()
             return result
-        except exceptions.WorkflowFailed as e:
-            self._workflow_failed(e)
-            raise
+        except _WrappedTaskError as e:
+            self._workflow_failed(e.wrapped_exc, e.wrapped_tb)
+            # `raise e.wrapped_exc from None` - but syntax that won't break py2
+            e.wrapped_exc.__suppress_context__ = True
+            raise e.wrapped_exc
         except BaseException as e:
             self._workflow_failed(e, traceback.format_exc())
             raise
@@ -293,18 +312,19 @@ class WorkflowHandler(TaskHandler):
         with state.current_workflow_ctx.push(self.ctx, self.kwargs):
             try:
                 workflow_result = self._execute_workflow_function()
-                queue.put({'result': workflow_result})
-            except api.ExecutionCancelled:
-                queue.put({'result': api.EXECUTION_CANCELLED_RESULT})
-            except BaseException as workflow_ex:
+                queue.put(workflow_result)
+            except Exception as workflow_ex:
                 queue.put({'error': workflow_ex})
 
     def _handle_local_workflow(self):
         try:
             self._workflow_started()
             result = self._execute_workflow_function()
+            if 'error' in result:
+                wrapped_exc = result['error'].wrapped_exc
+                raise wrapped_exc
             self._workflow_succeeded()
-            return result
+            return result['result']
         except Exception as e:
             error = StringIO()
             traceback.print_exc(file=error)
@@ -312,15 +332,21 @@ class WorkflowHandler(TaskHandler):
             raise
 
     def _execute_workflow_function(self):
-        try:
-            self.ctx.internal.start_local_tasks_processing()
-            result = self.func(*self.args, **self.kwargs)
-            if not self.ctx.internal.graph_mode:
-                for workflow_task in self.ctx.internal.task_graph.tasks:
-                    workflow_task.async_result.get()
+        with self.ctx.internal.local_tasks_processor:
+            try:
+                workflow_output = self.func(*self.args, **self.kwargs)
+                result = {'result': workflow_output}
+                if not self.ctx.internal.graph_mode:
+                    for workflow_task in self.ctx.internal.task_graph.tasks:
+                        workflow_task.async_result.get()
+            except api.ExecutionCancelled:
+                result = {'result': api.EXECUTION_CANCELLED_RESULT}
+                return result
+            except BaseException as workflow_ex:
+                err = _WrappedTaskError(workflow_ex, traceback.format_exc())
+                result = {'error': err}
+                return result
             return result
-        finally:
-            self.ctx.internal.stop_local_tasks_processing()
 
     def _workflow_started(self):
         self._update_execution_status(Execution.STARTED)
@@ -351,7 +377,11 @@ class WorkflowHandler(TaskHandler):
                     self.ctx.workflow_id, exception),
                 args={'error': error_traceback},
             )
-            self._update_execution_status(Execution.FAILED, error_traceback)
+            if getattr(exception, 'hide_traceback', False):
+                tb = str(exception)
+            else:
+                tb = error_traceback
+            self._update_execution_status(Execution.FAILED, tb)
         except Exception:
             logger = logging.getLogger(__name__)
             logger.exception('Exception raised when attempting to update '
@@ -392,6 +422,26 @@ def dispatch(__cloudify_context, *args, **kwargs):
     return handler.handle()
 
 
+def _setup_logging():
+    logs.setup_subprocess_logger()
+    _update_logging_level()
+
+
+def _update_logging_level():
+    if not os.path.isfile(LOGGING_CONFIG_FILE):
+        return
+    with open(LOGGING_CONFIG_FILE, 'r') as config_file:
+        config_lines = config_file.readlines()
+    for line in config_lines:
+        if not line.strip() or line.startswith('#'):
+            continue
+        level_name, logger_name = line.split()
+        level_id = logging.getLevelName(level_name.upper())
+        if not isinstance(level_id, int):
+            continue
+        logging.getLogger(logger_name).setLevel(level_id)
+
+
 def main():
     dispatch_dir = sys.argv[1]
     with open(os.path.join(dispatch_dir, 'input.json')) as f:
@@ -402,22 +452,24 @@ def main():
     dispatch_type = cloudify_context['type']
     threading.current_thread().setName('Dispatch-{0}'.format(dispatch_type))
     handler_cls = TASK_HANDLERS[dispatch_type]
-    handler = None
+    handler = handler_cls(
+        cloudify_context=cloudify_context, args=args, kwargs=kwargs)
     try:
-        handler = handler_cls(cloudify_context=cloudify_context,
-                              args=args,
-                              kwargs=kwargs)
-        handler.setup_logging()
+        _setup_logging()
         payload = handler.handle()
         payload_type = 'result'
+    except _WrappedTaskError as e:
+        payload_type = 'error'
+        payload = serialize_known_exception(e.wrapped_exc, e.wrapped_tb)
     except BaseException as e:
         payload_type = 'error'
         payload = serialize_known_exception(e)
 
+    if payload_type == 'error':
         logger = logging.getLogger(__name__)
         logger.error('Task {0}[{1}] raised:\n{2}'.format(
             handler.cloudify_context['task_name'],
-            handler.cloudify_context.get('task_id', '<no-id>'),
+            handler.cloudify_context.get('task_id', '<no-id>').strip(),
             payload.get('traceback')))
 
     with open(os.path.join(dispatch_dir, 'output.json'), 'w') as f:

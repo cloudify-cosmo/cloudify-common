@@ -1,19 +1,5 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import warnings
+from copy import copy
 
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
@@ -32,6 +18,14 @@ class Deployment(dict):
         if 'workflows' in self and self['workflows']:
             # might be None, for example in response for delete deployment
             self['workflows'] = [Workflow(item) for item in self['workflows']]
+        if 'scaling_groups' in self and self['scaling_groups']:
+            self['scaling_groups'] = {
+                name: DeploymentScalingGroup({
+                        'deployment_id': self.id,
+                        'name': name,
+                        'members': spec['members'],
+                        'properties': spec['properties']})
+                for name, spec in self['scaling_groups'].items()}
         if self.get('labels'):
             self['labels'] = [Label(item) for item in self['labels']]
 
@@ -229,6 +223,16 @@ class Deployment(dict):
     def scaling_groups(self):
         return self.get('scaling_groups')
 
+    @property
+    def unavailable_instances(self):
+        """Amount of instances that failed their status check."""
+        return self.get('unavailable_instances')
+
+    @property
+    def drifted_instances(self):
+        """Amount of instances that have configuration drift."""
+        return self.get('drifted_instances')
+
 
 class Workflow(dict):
 
@@ -256,6 +260,16 @@ class Workflow(dict):
         :return: The workflow's parameters
         """
         return self['parameters']
+
+    @property
+    def is_available(self):
+        """Is this workflow available for running?"""
+        return self.get('is_available', True)
+
+    @property
+    def availability_rules(self):
+        """Rules defining if this workflow is available"""
+        return self.get('availability_rules')
 
 
 class DeploymentOutputs(dict):
@@ -290,6 +304,33 @@ class DeploymentCapabilities(dict):
     def capabilities(self):
         """Deployment capabilities as dict."""
         return self['capabilities']
+
+
+class DeploymentScalingGroup(dict):
+
+    def __init__(self, scaling_groups):
+        super(DeploymentScalingGroup, self).__init__()
+        self.update(scaling_groups)
+
+    @property
+    def deployment_id(self):
+        """ID of the deployment the capabilities belong to."""
+        return self['deployment_id']
+
+    @property
+    def name(self):
+        """Name of the scaling group."""
+        return self['name']
+
+    @property
+    def members(self):
+        """A list of members of the scaling group (nodes)."""
+        return self['members']
+
+    @property
+    def properties(self):
+        """A dict of scaling group's configuration for instances quantities."""
+        return self['properties']
 
 
 class DeploymentGroup(dict):
@@ -327,9 +368,13 @@ class DeploymentGroupsClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self):
+    def list(self, _include=None, **kwargs):
         """List all deployment groups."""
-        response = self.api.get('/deployment-groups')
+        params = kwargs
+        if _include:
+            params['_include'] = ','.join(_include)
+
+        response = self.api.get('/deployment-groups', params=params)
         return ListResponse(
             [DeploymentGroup(item) for item in response['items']],
             response['metadata'])
@@ -342,7 +387,8 @@ class DeploymentGroupsClient(object):
     def put(self, group_id, visibility=VisibilityState.TENANT,
             description=None, blueprint_id=None, default_inputs=None,
             labels=None, filter_id=None, deployment_ids=None,
-            new_deployments=None, deployments_from_group=None):
+            new_deployments=None, deployments_from_group=None,
+            created_by=None, created_at=None, creation_counter=None):
         """Create or update the specified deployment group.
 
         Setting group deployments using this method (via either filter_id
@@ -366,21 +412,31 @@ class DeploymentGroupsClient(object):
             keys "id", "inputs", "labels"
         :param deployments_from_group: add all deployments belonging to the
             group given by this id
+        :param created_by: Override the creator. Internal use only.
+        :param created_at: Override the creation timestamp. Internal use only.
+        :param creation_counter: Override the creation counter.
+            Internal use only.
         :return: the created deployment group
         """
+        data = {
+            'visibility': visibility,
+            'description': description,
+            'blueprint_id': blueprint_id,
+            'default_inputs': default_inputs,
+            'labels': labels,
+            'filter_id': filter_id,
+            'deployment_ids': deployment_ids,
+            'new_deployments': new_deployments,
+            'deployments_from_group': deployments_from_group,
+        }
+        if created_at:
+            data['created_at'] = created_at
+        if created_by:
+            data['created_by'] = created_by
+        if creation_counter:
+            data['creation_counter'] = creation_counter
         response = self.api.put(
-            '/deployment-groups/{0}'.format(group_id),
-            data={
-                'visibility': visibility,
-                'description': description,
-                'blueprint_id': blueprint_id,
-                'default_inputs': default_inputs,
-                'labels': labels,
-                'filter_id': filter_id,
-                'deployment_ids': deployment_ids,
-                'new_deployments': new_deployments,
-                'deployments_from_group': deployments_from_group,
-            }
+            '/deployment-groups/{0}'.format(group_id), data=data,
         )
         return DeploymentGroup(response)
 
@@ -520,6 +576,64 @@ class DeploymentCapabilitiesClient(object):
         response = self.api.get(uri)
         return DeploymentCapabilities(response)
 
+    def list(self, deployment_id, _include=None, constraints=None, **kwargs):
+        """
+        Returns a list of deployment's capabilities matching constraints.
+
+        :param deployment_id: An identifier of a deployment which capabilities
+               are going to be searched.
+        :param _include: List of fields to include in response.
+        :param constraints: A list of DSL constraints for capability_value
+               data type to filter the capabilities by.
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.Deployment.fields
+        :return: Deployments list.
+        """
+        params = kwargs
+        if _include:
+            params['_include'] = ','.join(_include)
+
+        if constraints is None:
+            constraints = dict()
+        constraints['deployment_id'] = deployment_id
+
+        response = self.api.post('/searches/capabilities', params=params,
+                                 data={'constraints': constraints})
+        return ListResponse(
+            items=[DeploymentCapabilities(item) for item in response['items']],
+            metadata=response['metadata']
+        )
+
+
+class DeploymentScalingGroupsClient(object):
+    def __init__(self, api):
+        self.api = api
+
+    def list(self, deployment_id, constraints=None, _include=None, **kwargs):
+        """
+        Returns a list of deployment's scaling groups matching constraints.
+
+        :param deployment_id: An identifier of a deployment which scaling
+               groups are going to be searched.
+        :param constraints: A list of DSL constraints for scaling_group
+               data type to filter the scaling groups by.
+        :param _include: List of fields to include in response.
+        :param kwargs: Optional filter fields. for a list of available fields
+               see the REST service's models.Deployment.fields
+        :return: DeploymentScalingGroup list.
+        """
+        params = copy(kwargs) or {}
+        params['deployment_id'] = deployment_id
+        if _include:
+            params['_include'] = ','.join(_include)
+
+        response = self.api.post('/searches/scaling-groups', params=params,
+                                 data={'constraints': constraints or {}})
+        return ListResponse(
+            items=[DeploymentScalingGroup(item) for item in response['items']],
+            metadata=response['metadata']
+        )
+
 
 class DeploymentsClient(object):
 
@@ -527,9 +641,10 @@ class DeploymentsClient(object):
         self.api = api
         self.outputs = DeploymentOutputsClient(api)
         self.capabilities = DeploymentCapabilitiesClient(api)
+        self.scaling_groups = DeploymentScalingGroupsClient(api)
 
     def list(self, _include=None, sort=None, is_descending=False,
-             filter_id=None, filter_rules=None, **kwargs):
+             filter_id=None, filter_rules=None, constraints=None, **kwargs):
         """
         Returns a list of all deployments.
 
@@ -539,10 +654,16 @@ class DeploymentsClient(object):
         :param filter_id: A filter ID to filter the deployments list by
         :param filter_rules: A list of filter rules to filter the
                deployments list by
+        :param constraints: A list of DSL constraints for deployment_id data
+               type.  The purpose is similar to the `filter_rules`, but syntax
+               differs.
         :param kwargs: Optional filter fields. for a list of available fields
                see the REST service's models.Deployment.fields
         :return: Deployments list.
         """
+        if constraints and (filter_id or filter_rules):
+            raise ValueError('provide either DSL constraints or '
+                             'filter_id/filter_rules, not both')
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
@@ -554,6 +675,9 @@ class DeploymentsClient(object):
         if filter_rules:
             response = self.api.post('/searches/deployments', params=params,
                                      data={'filter_rules': filter_rules})
+        elif constraints:
+            response = self.api.post('/searches/deployments', params=params,
+                                     data={'constraints': constraints})
         else:
             response = self.api.get('/deployments', params=params)
 
@@ -563,7 +687,8 @@ class DeploymentsClient(object):
     def get(self,
             deployment_id,
             _include=None,
-            all_sub_deployments=True
+            all_sub_deployments=True,
+            include_workdir=False,
             ):
         """
         Returns a deployment by its id.
@@ -581,7 +706,8 @@ class DeploymentsClient(object):
         response = self.api.get(
             uri,
             _include=_include,
-            params={'all_sub_deployments': all_sub_deployments}
+            params={'all_sub_deployments': all_sub_deployments,
+                    'include_workdir': include_workdir}
         )
         return Deployment(response)
 
@@ -594,7 +720,22 @@ class DeploymentsClient(object):
                site_name=None,
                runtime_only_evaluation=False,
                labels=None,
-               display_name=None):
+               display_name=None,
+               async_create=None,
+               created_at=None,
+               created_by=None,
+               workflows=None,
+               groups=None,
+               scaling_groups=None,
+               policy_triggers=None,
+               policy_types=None,
+               outputs=None,
+               capabilities=None,
+               resource_tags=None,
+               description=None,
+               deployment_status=None,
+               installation_status=None,
+               _workdir_zip=None):
         """
         Creates a new deployment for the provided blueprint id and
         deployment id.
@@ -615,23 +756,73 @@ class DeploymentsClient(object):
         :param labels: The deployment's labels. A list of 1-entry
             dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
         :param display_name: The deployment's display name.
+        :param async_create: if True, do not wait for the deployment
+            environment to finish creating
+        :param _workdir_zip: Internal only.
+        :param workflows: Set the deployment workflows. Internal use only.
+        :param groups: Set groups. Internal use only.
+        :param scaling_groups: Set scaling_groups. Internal use only.
+        :param policy_triggers: Set policy_triggers. Internal use only.
+        :param policy_types: Set policy_types. Internal use only.
+        :param outputs: Set outputs. Internal use only.
+        :param capabilities: Set capabilities. Internal use only.
+        :param resource_tags: Set resource_tags. Internal use only.
+        :param description: Set description. Internal use only.
+        :param deployment_status: Set deployment status. Internal use only.
+        :param installation_status: Set installation status.
+                                    Internal use only.
         :return: The created deployment.
         """
         assert blueprint_id
         assert deployment_id
         data = {'blueprint_id': blueprint_id, 'visibility': visibility}
-        if inputs:
+        if inputs is not None:
             data['inputs'] = inputs
-        if site_name:
+        if site_name is not None:
             data['site_name'] = site_name
-        if labels:
+        if labels is not None:
             data['labels'] = labels
-        if display_name:
+        if display_name is not None:
             data['display_name'] = display_name
+        if _workdir_zip is not None:
+            data['workdir_zip'] = _workdir_zip
+        if workflows is not None:
+            data['workflows'] = workflows
+        if groups is not None:
+            data['groups'] = groups
+        if scaling_groups is not None:
+            data['scaling_groups'] = scaling_groups
+        if policy_triggers is not None:
+            data['policy_triggers'] = policy_triggers
+        if policy_types is not None:
+            data['policy_types'] = policy_types
+        if outputs is not None:
+            data['outputs'] = outputs
+        if capabilities is not None:
+            data['capabilities'] = capabilities
+        if resource_tags is not None:
+            data['resource_tags'] = resource_tags
+        if outputs is not None:
+            data['outputs'] = outputs
+        if description is not None:
+            data['description'] = description
+        if deployment_status is not None:
+            data['deployment_status'] = deployment_status
+        if installation_status is not None:
+            data['installation_status'] = installation_status
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
-        response = self.api.put(uri, data, expected_status_code=201)
+        params = {}
+        if created_at:
+            data['created_at'] = created_at
+        if created_by:
+            data['created_by'] = created_by
+        if async_create is not None:
+            # if it's None, we just keep the server's default behaviour
+            params['async_create'] = async_create
+        response = self.api.put(
+            uri, data, params=params, expected_status_code=201)
         return Deployment(response)
 
     def delete(self, deployment_id,
@@ -693,7 +884,8 @@ class DeploymentsClient(object):
             data=data
         )
 
-    def update_labels(self, deployment_id, labels):
+    def update_labels(self, deployment_id, labels, creator=None,
+                      created_at=None):
         """
         Updates the deployment's labels.
 
@@ -703,16 +895,21 @@ class DeploymentsClient(object):
         :return: The deployment
         """
         data = {'labels': labels}
+        if creator:
+            data['creator'] = creator
+        if created_at:
+            data['created_at'] = created_at
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=data)
         return Deployment(updated_dep)
 
     def set_attributes(self, deployment_id, **kwargs):
-        """Set kwargs on the deployment.
+        """Set arbitrary properties on the deployment.
 
-        This is used internally for first populating the deployment
-        with the attributes from the plan.
-        For updating existing deployments, use the deployment update methods.
+        If you're not sure, you probably want to look at deployment update
+        instead.
+
+        For internal use only.
         """
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=kwargs)

@@ -34,6 +34,16 @@ class SnapshotState(object):
     END_STATES = [CREATED, FAILED, UPLOADED]
 
 
+class LogBundleState(object):
+    CREATED = 'created'
+    FAILED = 'failed'
+    CREATING = 'creating'
+    UPLOADED = 'uploaded'
+
+    STATES = [CREATED, FAILED, CREATING, UPLOADED]
+    END_STATES = [CREATED, FAILED, UPLOADED]
+
+
 class ExecutionState(object):
     TERMINATED = 'terminated'
     FAILED = 'failed'

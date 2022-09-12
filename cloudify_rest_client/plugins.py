@@ -1,23 +1,8 @@
-########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import os
 import contextlib
+from urllib.parse import urlparse
 
 from cloudify_rest_client import bytes_stream_utils
-from cloudify_rest_client._compat import urlparse
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -185,6 +170,27 @@ class Plugin(dict):
         """
         return self.get('installation_state')
 
+    @property
+    def blueprint_labels(self):
+        """
+        :return: blueprint_labels declared for that plugin.
+        """
+        return self.get('blueprint_labels')
+
+    @property
+    def labels(self):
+        """
+        :return: labels declared for that plugin.
+        """
+        return self.get('labels')
+
+    @property
+    def resource_tags(self):
+        """
+        :return: resource_tags declared for that plugin.
+        """
+        return self.get('resource_tags')
+
 
 class PluginsClient(object):
     """
@@ -251,7 +257,10 @@ class PluginsClient(object):
                plugin_path,
                plugin_title=None,
                visibility=VisibilityState.TENANT,
-               progress_callback=None):
+               progress_callback=None,
+               _plugin_id=None,
+               _uploaded_at=None,
+               _created_by=None):
         """Uploads a plugin archive to the manager
 
         :param plugin_path: Path to plugin archive.
@@ -260,10 +269,18 @@ class PluginsClient(object):
         :param visibility: The visibility of the plugin, can be 'private',
                            'tenant' or 'global'
         :param progress_callback: Progress bar callback method
+        :param _plugin_id: Internal use only
+        :param _uploaded_at: Internal use only
+        :param _created_by: Internal use only
         :return: Plugin object
         """
-        assert plugin_path
         query_params = {'visibility': visibility}
+        if _plugin_id:
+            query_params['id'] = _plugin_id
+        if _uploaded_at:
+            query_params['uploaded_at'] = _uploaded_at
+        if _created_by:
+            query_params['created_by'] = _created_by
         if plugin_title:
             query_params['title'] = plugin_title
         timeout = self.api.default_timeout_sec
@@ -303,8 +320,23 @@ class PluginsClient(object):
         a progress bar
         :return: The file path of the downloaded plugin.
         """
-        assert plugin_id
         uri = '/plugins/{0}/archive'.format(plugin_id)
+        with contextlib.closing(self.api.get(uri, stream=True)) as response:
+            output_file = bytes_stream_utils.write_response_stream_to_file(
+                response, output_file, progress_callback=progress_callback)
+
+            return output_file
+
+    def download_yaml(self, plugin_id, output_file, progress_callback=None):
+        """Downloads a previously uploaded plugin archive from the manager
+
+        :param plugin_id: The plugin ID of the plugin yaml to be downloaded.
+        :param output_file: The file path of the downloaded plugin yaml file
+        :param progress_callback: Callback function - can be used to print
+        a progress bar
+        :return: The file path of the downloaded plugin yaml.
+        """
+        uri = '/plugins/{0}/yaml'.format(plugin_id)
         with contextlib.closing(self.api.get(uri, stream=True)) as response:
             output_file = bytes_stream_utils.write_response_stream_to_file(
                 response, output_file, progress_callback=progress_callback)
@@ -378,4 +410,15 @@ class PluginsClient(object):
         if error:
             data['error'] = error
         response = self.api.put('/plugins/{0}'.format(plugin_id), data=data)
+        return Plugin(response)
+
+    def set_owner(self, plugin_id, creator):
+        """Change ownership of the plugin."""
+        response = self.api.patch('/plugins/{0}'.format(plugin_id),
+                                  data={'creator': creator})
+        return Plugin(response)
+
+    def update(self, plugin_id, **kwargs):
+        response = self.api.patch('/plugins/{0}'.format(plugin_id),
+                                  data=kwargs)
         return Plugin(response)

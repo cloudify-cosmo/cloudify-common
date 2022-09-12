@@ -46,6 +46,34 @@ def uninstall_node_instances(graph,
     processor.uninstall()
 
 
+def heal_node_instances(
+    graph,
+    node_instances,
+    related_nodes=None,
+    name_prefix='',
+    ignore_failure=False,
+):
+    processor = LifecycleProcessor(graph=graph,
+                                   node_instances=node_instances,
+                                   related_nodes=related_nodes,
+                                   name_prefix=name_prefix,
+                                   ignore_failure=ignore_failure,)
+    processor.heal()
+
+
+def update_node_instances(
+    graph,
+    node_instances,
+    related_nodes=None,
+    name_prefix=''
+):
+    processor = LifecycleProcessor(graph=graph,
+                                   node_instances=node_instances,
+                                   related_nodes=related_nodes,
+                                   name_prefix=name_prefix)
+    processor.update()
+
+
 def reinstall_node_instances(graph,
                              node_instances,
                              ignore_failure,
@@ -142,6 +170,22 @@ class LifecycleProcessor(object):
             graph_finisher_func=self._finish_uninstall)
         graph.execute()
 
+    def heal(self):
+        graph = self._process_node_instances(
+            workflow_ctx,
+            name=self._name_prefix + 'heal',
+            node_instance_subgraph_func=heal_node_instance_subgraph,
+            graph_finisher_func=self._finish_heal)
+        graph.execute()
+
+    def update(self):
+        graph = self._process_node_instances(
+            workflow_ctx,
+            name=self._name_prefix + 'update',
+            node_instance_subgraph_func=update_node_instance_subgraph,
+            graph_finisher_func=self._finish_update)
+        graph.execute()
+
     def _update_resumed_install(self, graph):
         """Update a resumed install graph to cleanup first.
 
@@ -185,15 +229,21 @@ class LifecycleProcessor(object):
                                 graph_finisher_func):
         subgraphs = {}
         for instance in self.node_instances:
-            subgraphs[instance.id] = \
-                node_instance_subgraph_func(
-                    instance, self.graph, ignore_failure=self.ignore_failure)
+            subgraph = node_instance_subgraph_func(
+                instance,
+                self.graph,
+                ignore_failure=self.ignore_failure,
+            )
+            if subgraph is None:
+                subgraph = self.graph.subgraph('stub_{0}'.format(instance.id))
+            subgraphs[instance.id] = subgraph
 
         for instance in self.intact_nodes:
             subgraphs[instance.id] = self.graph.subgraph(
                 'stub_{0}'.format(instance.id))
 
         graph_finisher_func(self.graph, subgraphs)
+        self.graph.optimize()
         return self.graph
 
     def _finish_install(self, graph, subgraphs):
@@ -209,6 +259,22 @@ class LifecycleProcessor(object):
             subgraphs=subgraphs,
             intact_op='cloudify.interfaces.relationship_lifecycle.unlink',
             install=False)
+
+    def _finish_heal(self, graph, subgraphs):
+        self._add_dependencies(
+            graph=graph,
+            subgraphs=subgraphs,
+            instances=self.node_instances,
+            install=True,
+        )
+
+    def _finish_update(self, graph, subgraphs):
+        self._add_dependencies(
+            graph=graph,
+            subgraphs=subgraphs,
+            instances=self.node_instances,
+            install=True,
+        )
 
     def _finish_subgraphs(self, graph, subgraphs, intact_op, install):
         # Create task dependencies based on node relationships
@@ -268,7 +334,9 @@ class LifecycleProcessor(object):
                           on_dependency_added=None):
         subgraph_sequences = dict(
             (instance_id, subgraph.sequence())
-            for instance_id, subgraph in subgraphs.items())
+            for instance_id, subgraph in subgraphs.items()
+            if subgraph is not None
+        )
         for instance in instances:
             relationships = list(instance.relationships)
             if not install:
@@ -276,9 +344,10 @@ class LifecycleProcessor(object):
             for rel in relationships:
                 if (rel.target_node_instance in self.node_instances or
                         rel.target_node_instance in self.intact_nodes):
-                    source_subgraph = subgraphs[instance.id]
-                    target_subgraph = subgraphs[rel.target_id]
-
+                    source_subgraph = subgraphs.get(instance.id)
+                    target_subgraph = subgraphs.get(rel.target_id)
+                    if source_subgraph is None or target_subgraph is None:
+                        continue
                     operation = rel.relationship.properties.get("operation",
                                                                 None)
 
@@ -341,8 +410,7 @@ def _pre_resume_uninstall(instance):
             'cloudify.interfaces.lifecycle.delete'),
         post=instance.send_event('Deleted node instance')
     )
-    if 'cloudify.interfaces.lifecycle.postdelete'\
-            in instance.node.operations:
+    if instance.node.has_operation('cloudify.interfaces.lifecycle.postdelete'):
         postdelete = _skip_nop_operations(
             pre=instance.send_event('Postdeleting node instance'),
             task=instance.execute_operation(
@@ -356,7 +424,7 @@ def _pre_resume_uninstall(instance):
 
 def _pre_resume_stop(instance):
     """Run these stop tasks before resuming/resending a start."""
-    if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
+    if instance.node.has_operation('cloudify.interfaces.lifecycle.prestop'):
         prestop = _skip_nop_operations(
             pre=instance.send_event('Prestopping node instance'),
             task=instance.execute_operation(
@@ -439,6 +507,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
     """
     subgraph = graph.subgraph('install_{0}'.format(instance.id))
     sequence = subgraph.sequence()
+    node = instance.node
     instance_state = instance.state
     if instance_state in [
         'started', 'starting', 'created', 'creating',
@@ -448,7 +517,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         precreate = []
     else:
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.validation.create' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.validation.create'):
             creation_validation = _skip_nop_operations(
                 pre=instance.send_event(
                     'Validating node instance before creation'),
@@ -461,8 +530,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
         else:
             creation_validation = []
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.precreate' \
-                in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.precreate'):
             precreate = _skip_nop_operations(
                 pre=instance.send_event('Precreating node instance'),
                 task=instance.execute_operation(
@@ -536,8 +604,7 @@ def install_node_instance_subgraph(instance, graph, **kwargs):
             host_post_start = []
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.poststart' \
-                in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.poststart'):
             poststart = _skip_nop_operations(
                 pre=instance.send_event('Poststarting node instance'),
                 task=instance.execute_operation(
@@ -612,6 +679,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
                 set_send_node_event_on_error_handler(task, instance)
 
     # Remove unneeded operations
+    node = instance.node
     instance_state = instance.state
     if instance_state in ['stopped', 'deleting', 'deleted', 'uninitialized',
                           'configured']:
@@ -634,7 +702,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
         )
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.validation.delete' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.validation.delete'):
             deletion_validation = _skip_nop_operations(
                 pre=instance.send_event(
                     'Validating node instance before deletion'),
@@ -648,7 +716,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
             deletion_validation = []
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.prestop'):
             prestop = _skip_nop_operations(
                 pre=instance.send_event('Prestopping node instance'),
                 task=instance.execute_operation(
@@ -693,8 +761,7 @@ def uninstall_node_instance_subgraph(instance, graph, ignore_failure=False):
                 'cloudify.interfaces.lifecycle.delete')
         )
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.postdelete'\
-                in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.postdelete'):
             postdelete = _skip_nop_operations(
                 pre=instance.send_event('Postdeleting node instance'),
                 task=instance.execute_operation(
@@ -830,14 +897,13 @@ def plugins_uninstall_task(host_node_instance, plugins_to_uninstall):
 
 
 def plugins_install_task(host_node_instance, plugins_to_install):
+    node = host_node_instance.node
     install_method = utils.internal.get_install_method(
         host_node_instance.node.properties)
     if (plugins_to_install and
             install_method != constants.AGENT_INSTALL_METHOD_NONE):
-        node_operations = host_node_instance.node.operations
 
-        if 'cloudify.interfaces.plugin_installer.install' in \
-                node_operations:
+        if node.has_operation('cloudify.interfaces.plugin_installer.install'):
             # 3.2 Compute Node
             return host_node_instance.execute_operation(
                 'cloudify.interfaces.plugin_installer.install',
@@ -852,10 +918,10 @@ def plugins_install_task(host_node_instance, plugins_to_install):
 def _host_post_start(host_node_instance):
     install_method = utils.internal.get_install_method(
         host_node_instance.node.properties)
+    node = host_node_instance.node
     tasks = [_wait_for_host_to_start(host_node_instance)]
     if install_method != constants.AGENT_INSTALL_METHOD_NONE:
-        node_operations = host_node_instance.node.operations
-        if 'cloudify.interfaces.worker_installer.install' in node_operations:
+        if node.has_operation('cloudify.interfaces.worker_installer.install'):
             # 3.2 Compute Node
             tasks += [
                 host_node_instance.send_event('Installing agent'),
@@ -890,6 +956,7 @@ def _host_post_start(host_node_instance):
 
 
 def _host_pre_stop(host_node_instance):
+    node = host_node_instance.node
     install_method = utils.internal.get_install_method(
         host_node_instance.node.properties)
     tasks = []
@@ -912,8 +979,7 @@ def _host_pre_stop(host_node_instance):
                     'cloudify.interfaces.cloudify_agent.delete')
             ]
         else:
-            node_operations = host_node_instance.node.operations
-            if 'cloudify.interfaces.worker_installer.stop' in node_operations:
+            if node.has_operation('cloudify.interfaces.worker_installer.stop'):
                 tasks += [
                     host_node_instance.execute_operation(
                         'cloudify.interfaces.worker_installer.stop'),
@@ -936,6 +1002,7 @@ def _host_pre_stop(host_node_instance):
 def rollback_node_instance_subgraph(instance, graph, ignore_failure):
     subgraph = graph.subgraph(instance.id)
     sequence = subgraph.sequence()
+    node = instance.node
 
     def set_ignore_handlers(_subgraph):
         for task in _subgraph.tasks.values():
@@ -970,7 +1037,7 @@ def rollback_node_instance_subgraph(instance, graph, ignore_failure):
         )
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.validation.delete' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.validation.delete'):
             deletion_validation = _skip_nop_operations(
                 pre=instance.send_event(
                     'Validating node instance before deletion'),
@@ -984,7 +1051,7 @@ def rollback_node_instance_subgraph(instance, graph, ignore_failure):
             deletion_validation = []
 
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.prestop' in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.prestop'):
             prestop = _skip_nop_operations(
                 pre=instance.send_event('Prestopping node instance'),
                 task=instance.execute_operation(
@@ -1031,8 +1098,7 @@ def rollback_node_instance_subgraph(instance, graph, ignore_failure):
                 'cloudify.interfaces.lifecycle.delete')
         )
         # Only exists in >= 5.0.
-        if 'cloudify.interfaces.lifecycle.postdelete' \
-                in instance.node.operations:
+        if node.has_operation('cloudify.interfaces.lifecycle.postdelete'):
             postdelete = _skip_nop_operations(
                 pre=instance.send_event('Postdeleting node instance'),
                 task=instance.execute_operation(
@@ -1162,3 +1228,160 @@ def _node_get_state_handler(tsk):
         return workflow_tasks.HandlerResult.cont()
     else:
         return workflow_tasks.HandlerResult.retry(ignore_total_retries=True)
+
+
+def _on_heal_success(task):
+    """Heal success callback - set the status system property to OK.
+
+    After a heal has succeeded, we'll consider the node passing the status
+    check immediately.
+    """
+    instance_id = task.info['instance_id']
+    workflow_context = task.workflow_context
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    system_properties.setdefault('status', {}).update(
+        ok=True,
+        task=None,
+        healed=True,
+    )
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties
+    )
+    return workflow_tasks.HandlerResult.cont()
+
+
+def _on_heal_failure(task):
+    """Heal failure callback - mark the node as having failed a heal
+
+    We mark the node that a heal was attempted and failed, so that we know
+    it needs to be fully reinstalled.
+    """
+    instance_id = task.info['instance_id']
+    workflow_context = task.workflow_context
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    system_properties['heal_failed'] = workflow_context.execution_id
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties
+    )
+    return workflow_tasks.HandlerResult.ignore()
+
+
+def heal_node_instance_subgraph(instance, graph, **kwargs):
+    """Make a subgraph of healing a single node instance.
+
+    Just run all the heal-related operations. Let's also have success
+    and failures callbacks on them, so that the workflow knows if this
+    instance was healed successfully or not.
+    """
+    subgraph = graph.subgraph('heal_{0}'.format(instance.id))
+    sequence = subgraph.sequence()
+    sequence.add(
+        instance.send_event('Healing node instance'),
+        instance.execute_operation('cloudify.interfaces.lifecycle.preheal'),
+        instance.execute_operation('cloudify.interfaces.lifecycle.heal'),
+        instance.execute_operation('cloudify.interfaces.lifecycle.postheal'),
+        instance.send_event('Node instance healed'),
+    )
+    subgraph.info['instance_id'] = instance.id
+    subgraph.on_success = _on_heal_success
+    subgraph.on_failure = _on_heal_failure
+    return subgraph
+
+
+def _on_update_success(task):
+    instance_id = task.info['instance_id']
+    workflow_context = task.workflow_context
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    system_properties['configuration_drift'] = None
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties
+    )
+    return workflow_tasks.HandlerResult.cont()
+
+
+def _on_update_failure(task):
+    instance_id = task.info['instance_id']
+    workflow_context = task.workflow_context
+    ni = workflow_context.get_node_instance(instance_id)
+    system_properties = ni.system_properties or {}
+    system_properties['update_failed'] = workflow_context.execution_id
+    workflow_context.update_node_instance(
+        instance_id,
+        force=True,
+        system_properties=system_properties,
+    )
+    return workflow_tasks.HandlerResult.ignore()
+
+
+def update_node_instance_subgraph(instance, graph, **kwargs):
+    """Make a subgraph of updating a single node instance.
+
+    Runs all the update-related operations.
+    The success callback clears configuration_drift: it is assumed that
+    an update operation does removes all drift.
+    The failure callback just notes that the update did fail, so that the
+    workflow can reinstall the node-instance.
+    """
+    operations = []
+    system_props = instance.system_properties
+
+    drift = system_props.get('configuration_drift') or {}
+    has_own_drift = bool(drift.get('result'))
+
+    # only run the update operations if we have configuration_drift on the
+    # instance itself. Even if we don't, there might still be relationship
+    # drift, which will later run relationship update operations
+    if has_own_drift:
+        operations += [
+            instance.execute_operation(interface)
+            for interface in [
+                'cloudify.interfaces.lifecycle.preupdate',
+                'cloudify.interfaces.lifecycle.update',
+                'cloudify.interfaces.lifecycle.postupdate',
+                'cloudify.interfaces.lifecycle.update_config',
+                'cloudify.interfaces.lifecycle.update_apply',
+                'cloudify.interfaces.lifecycle.update_postapply',
+            ]
+        ]
+
+    source_drifts = system_props.get(
+        'source_relationships_configuration_drift', {})
+    for relationship in instance.relationships:
+        target_instance = workflow_ctx.get_node_instance(
+            relationship.target_id)
+        target_drifts = target_instance.system_properties.get(
+            'target_relationships_configuration_drift', {})
+        if relationship.target_id in source_drifts:
+            operations.append(relationship.execute_source_operation(
+                'cloudify.interfaces.relationship_lifecycle.update',
+            ))
+        if relationship.source_id in target_drifts:
+            operations.append(relationship.execute_target_operation(
+                'cloudify.interfaces.relationship_lifecycle.update',
+            ))
+
+    operations = [op for op in operations if not op.is_nop()]
+    if operations:
+        subgraph = graph.subgraph('update_{0}'.format(instance.id))
+        sequence = subgraph.sequence()
+        sequence.add(
+            instance.send_event('Updating node instance'),
+        )
+        sequence.add(*operations)
+        sequence.add(
+            instance.send_event('Node instance updated'),
+        )
+        subgraph.info['instance_id'] = instance.id
+        subgraph.on_success = _on_update_success
+        subgraph.on_failure = _on_update_failure
+        return subgraph
+    return None

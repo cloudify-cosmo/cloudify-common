@@ -1,18 +1,3 @@
-#########
-# Copyright (c) 2019 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  * See the License for the specific language governing permissions and
-#  * limitations under the License.
-
 import warnings
 
 from cloudify_rest_client.responses import ListResponse
@@ -48,12 +33,20 @@ class PluginsUpdate(dict):
         return self['deployments_to_update']
 
     @property
+    def deployments_per_tenant(self):
+        return self['deployments_per_tenant']
+
+    @property
     def created_at(self):
         return self['created_at']
 
     @property
     def forced(self):
         return self['forced']
+
+    @property
+    def tenant_name(self):
+        return self['tenant_name']
 
 
 class PluginsUpdateClient(object):
@@ -106,11 +99,32 @@ class PluginsUpdateClient(object):
                                 params=params)
         return self._wrap_list(response)
 
+    def inject(self, blueprint_id, force=False,
+               created_by=None, created_at=None,
+               execution_id=None, state=None,
+               update_id=None, affected_deployments=None,
+               temp_blueprint_id=None):
+        return PluginsUpdate(self.api.post(
+            '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
+                                                            self=self),
+            data=_data_from_kwargs(
+                force=force,
+                created_by=created_by,
+                created_at=created_at,
+                execution_id=execution_id,
+                state=state,
+                update_id=update_id,
+                affected_deployments=affected_deployments,
+                temp_blueprint_id=temp_blueprint_id,
+            ),
+        ))
+
     def update_plugins(self, blueprint_id, force=False, plugin_names=None,
                        to_latest=None, all_to_latest=True,
                        to_minor=None, all_to_minor=False,
                        mapping=None, auto_correct_types=False,
-                       reevaluate_active_statuses=False,):
+                       reevaluate_active_statuses=False,
+                       all_tenants=False):
         """
         Updates the plugins in all the deployments that use the given
         blueprint.
@@ -127,14 +141,16 @@ class PluginsUpdateClient(object):
          installed minor version (i.e. major versions of the plugin in use and
          the upgraded one will match)
         :param all_to_minor: update all (selected) plugins to the latest
-         installed minor version.
+         installed minor version
         :param mapping: detailed information on required plugin update
          (overrides all other arguments/settings concerning version
          constraints)
         :param auto_correct_types: auto_correct_types flag to run deployments
-        update with.
+         update with
         :param reevaluate_active_statuses: reevaluate active plugin-updates'
-        and deployment-updates' states based on relevant executions statuses.
+         and deployment-updates' states based on relevant executions statuses.
+        :param all_tenants: defines if plugin update process should update any
+         deployments based on blueprint_id (owned by any tenant)
         :return: a PluginUpdate object.
         """
         if mapping and mapping.get('updates'):
@@ -155,7 +171,8 @@ class PluginsUpdateClient(object):
                 mapping=mapping,
                 force=force,
                 auto_correct_types=auto_correct_types,
-                reevaluate_active_statuses=reevaluate_active_statuses
+                reevaluate_active_statuses=reevaluate_active_statuses,
+                all_tenants=all_tenants
             )
         )
         return PluginsUpdate(response)

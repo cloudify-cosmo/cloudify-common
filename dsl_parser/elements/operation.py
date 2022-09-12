@@ -19,8 +19,7 @@ import numbers
 from dsl_parser import (constants,
                         exceptions,
                         utils)
-from dsl_parser._compat import text_type
-from dsl_parser.elements import (data_types,
+from dsl_parser.elements import (inputs,
                                  version as _version)
 from dsl_parser.framework.elements import (DictElement,
                                            Element,
@@ -32,7 +31,7 @@ from dsl_parser.interfaces.utils import (operation,
 
 class OperationImplementation(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
     def parse(self):
         return self.initial_value if self.initial_value is not None else ''
@@ -40,7 +39,7 @@ class OperationImplementation(Element):
 
 class OperationExecutor(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
     add_namespace_to_schema_elements = False
 
@@ -62,7 +61,7 @@ class OperationExecutor(Element):
                             ','.join(valid_executors)))
 
 
-class NodeTypeOperationInputs(data_types.Schema):
+class NodeTypeOperationInputs(inputs.Inputs):
     add_namespace_to_schema_elements = False
 
 
@@ -135,7 +134,7 @@ class OperationTimeoutRecoverable(Element):
 class Operation(Element):
 
     def parse(self):
-        if isinstance(self.initial_value, text_type):
+        if isinstance(self.initial_value, str):
             return {
                 'implementation': self.initial_value,
                 'executor': None,
@@ -152,7 +151,7 @@ class Operation(Element):
 class NodeTypeOperation(Operation):
 
     schema = [
-        Leaf(type=text_type),
+        Leaf(type=str),
         {
             'implementation': OperationImplementation,
             'inputs': NodeTypeOperationInputs,
@@ -168,7 +167,7 @@ class NodeTypeOperation(Operation):
 class NodeTemplateOperation(Operation):
 
     schema = [
-        Leaf(type=text_type),
+        Leaf(type=str),
         {
             'implementation': OperationImplementation,
             'inputs': NodeTemplateOperationInputs,
@@ -250,15 +249,19 @@ def _is_remote_script_resource(resource_path, remote_resources_namespaces):
             remote_resources_namespaces)
 
 
-def workflow_operation(plugin_name,
-                       workflow_mapping,
-                       workflow_parameters,
-                       is_workflow_cascading):
+def workflow_operation(
+    plugin_name,
+    workflow_mapping,
+    workflow_parameters,
+    is_workflow_cascading,
+    workflow_availability,
+):
     return {
         'plugin': plugin_name,
         'operation': workflow_mapping,
         'parameters': workflow_parameters,
-        'is_cascading': is_workflow_cascading
+        'is_cascading': is_workflow_cascading,
+        'availability_rules': workflow_availability,
     }
 
 
@@ -271,11 +274,18 @@ def process_operation(
         resource_bases,
         remote_resources_namespaces,
         is_workflows=False,
-        is_workflow_cascading=False):
+        is_workflow_cascading=False,
+        workflow_availability=None,
+):
     payload_field_name = 'parameters' if is_workflows else 'inputs'
     mapping_field_name = 'mapping' if is_workflows else 'implementation'
     operation_mapping = operation_content[mapping_field_name]
     operation_payload = operation_content[payload_field_name]
+
+    operation_payload_types = \
+        {k: v['type']
+         for k, v in operation_payload.items()
+         if isinstance(v, dict) and 'type' in v}
 
     # only for node operations
     operation_executor = operation_content.get('executor', None)
@@ -346,7 +356,9 @@ def process_operation(
                 plugin_name=script_plugin,
                 workflow_mapping=operation_mapping,
                 workflow_parameters=operation_payload,
-                is_workflow_cascading=is_workflow_cascading)
+                is_workflow_cascading=is_workflow_cascading,
+                workflow_availability=workflow_availability,
+            )
         else:
             if not operation_executor:
                 operation_executor = plugins[script_plugin]['executor']
@@ -359,7 +371,9 @@ def process_operation(
                 max_retries=operation_max_retries,
                 retry_interval=operation_retry_interval,
                 timeout=operation_timeout,
-                timeout_recoverable=operation_timeout_recoverable)
+                timeout_recoverable=operation_timeout_recoverable,
+                operation_inputs_types=operation_payload_types,
+            )
 
     if candidate_plugins:
         if len(candidate_plugins) > 1:
@@ -373,7 +387,9 @@ def process_operation(
                 plugin_name=plugin_name,
                 workflow_mapping=mapping,
                 workflow_parameters=operation_payload,
-                is_workflow_cascading=is_workflow_cascading)
+                is_workflow_cascading=is_workflow_cascading,
+                workflow_availability=workflow_availability,
+            )
         else:
             if not operation_executor:
                 operation_executor = plugins[plugin_name]['executor']
@@ -386,7 +402,9 @@ def process_operation(
                 max_retries=operation_max_retries,
                 retry_interval=operation_retry_interval,
                 timeout=operation_timeout,
-                timeout_recoverable=operation_timeout_recoverable)
+                timeout_recoverable=operation_timeout_recoverable,
+                operation_inputs_types=operation_payload_types,
+            )
 
     else:
         base_error_message = (

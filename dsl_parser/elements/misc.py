@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 from dsl_parser import elements, exceptions
-from dsl_parser._compat import text_type
 from dsl_parser.elements import version as element_version
 from dsl_parser.elements.deployment_schedules import DeploymentSchedules
 from dsl_parser.framework.elements import (DictElement,
@@ -27,7 +26,7 @@ from dsl_parser.framework.elements import (DictElement,
 
 class OutputDescription(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
 
@@ -52,7 +51,7 @@ class Outputs(DictElement):
 
 class CapabilityDescription(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
 
@@ -90,7 +89,7 @@ class DSLDefinitions(Element):
 
 class Description(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
     requires = {
         element_version.ToscaDefinitionsVersion: ['version'],
@@ -109,7 +108,7 @@ class Metadata(Element):
 
 class Imported(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class ImportedBlueprints(Element):
@@ -123,7 +122,7 @@ class ImportedBlueprints(Element):
 
 class NamespaceMapping(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
 
@@ -155,7 +154,7 @@ class BlueprintLabel(DictNoDefaultElement):
                        "Please modify the values of {0}"
 
         for value in self.initial_value['values']:
-            if not isinstance(value, text_type):
+            if not isinstance(value, str):
                 raise exceptions.DSLParsingException(
                     1, type_err_msg.format(self.name))
 
@@ -177,12 +176,16 @@ class DeploymentLabel(DictNoDefaultElement):
                            "the values of {0}"
 
         for value in self.initial_value['values']:
-            if not isinstance(value, (dict, text_type)):
+            if not isinstance(value, (dict, str)):
                 raise exceptions.DSLParsingException(
                     1, type_err_msg.format(self.name))
             if isinstance(value, dict) and 'get_attribute' in value:
                 raise exceptions.DSLParsingException(
                     1, get_attr_err_msg.format(self.name))
+
+
+class ResourceTag(Element):
+    schema = Leaf(type=elements.PRIMITIVE_TYPES)
 
 
 class Labels(DictElement):
@@ -198,11 +201,11 @@ class DeploymentGroups(Element):
 
 
 class DeploymentIDTemplate(Element):
-    schema = Leaf(text_type)
+    schema = Leaf(str)
 
 
 class DeploymentDisplayName(Element):
-    schema = Leaf(type=(text_type, dict))
+    schema = Leaf(type=(str, dict))
 
 
 class DeploymentSettings(DictNoDefaultElement):
@@ -212,3 +215,15 @@ class DeploymentSettings(DictNoDefaultElement):
         'id_template': DeploymentIDTemplate,
         'display_name': DeploymentDisplayName
     }
+
+
+class ResourceTags(DictElement):
+    schema = Dict(type=ResourceTag)
+    requires = {
+        element_version.ToscaDefinitionsVersion: ['version'],
+        'inputs': ['validate_version']
+    }
+
+    def validate(self, version, validate_version):
+        if validate_version:
+            self.validate_version(version, (1, 3))

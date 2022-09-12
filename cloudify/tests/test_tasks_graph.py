@@ -15,12 +15,12 @@
 
 import mock
 import time
-import testtools
+import unittest
 from contextlib import contextmanager
 
 from cloudify_rest_client.operations import Operation
 
-from cloudify.exceptions import WorkflowFailed
+from cloudify.exceptions import WorkflowFailed, NonRecoverableError
 from cloudify.workflows import api
 from cloudify.workflows import tasks
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
@@ -67,7 +67,27 @@ class MockWorkflowContext(_WorkflowContextBase):
         self.internal.handler.operation_cloudify_context = {}
 
 
-class TestTasksGraphExecute(testtools.TestCase):
+class FailedTask(tasks.WorkflowTask):
+    """A task that always immediately fails with a NonRecoverableError"""
+    name = 'failtask'
+
+    def apply_async(self):
+        self.async_result.result = NonRecoverableError()
+        self.set_state(tasks.TASK_FAILED)
+        return self.async_result
+
+
+class PassedTask(tasks.WorkflowTask):
+    """A task that always immediately completes successfully"""
+    name = 'task'
+
+    def apply_async(self):
+        self.set_state(tasks.TASK_SUCCEEDED)
+        self.async_result.result = None
+        return self.async_result
+
+
+class TestTasksGraphExecute(unittest.TestCase):
     def test_executes_single_task(self):
         """A single NOP task is executed within a single iteration of the
         tasks graph loop"""
@@ -95,13 +115,6 @@ class TestTasksGraphExecute(testtools.TestCase):
     def test_task_failed(self):
         """Execution is stopped when a task failed. The next task is not
         executed"""
-        class FailedTask(tasks.WorkflowTask):
-            name = 'failtask'
-
-            def apply_async(self):
-                self.async_result.result = None
-                self.set_state(tasks.TASK_FAILED)
-                return self.async_result
 
         task1 = FailedTask(mock.Mock(), total_retries=0)
         task2 = mock.Mock(execute_after=0)
@@ -114,40 +127,6 @@ class TestTasksGraphExecute(testtools.TestCase):
             self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
         self.assertTrue(task1.is_terminated)
         self.assertFalse(task2.apply_async.called)
-
-    def test_wait_after_fail(self):
-        """When a task fails, the already-running tasks are waited for"""
-        class FailedTask(tasks.WorkflowTask):
-            """Task that fails 1 second after starting"""
-            name = 'failtask'
-
-            def apply_async(self):
-                self.set_state(tasks.TASK_FAILED)
-                self.async_result.result = tasks.HandlerResult.fail()
-                return self.async_result
-
-            def handle_task_terminated(self):
-                rv = super(FailedTask, self).handle_task_terminated()
-                task2.set_state(tasks.TASK_SUCCEEDED)
-                task2.async_result.result = None
-                return rv
-
-        class DelayedTask(tasks.WorkflowTask):
-            """Task that succeeds 3 seconds after starting"""
-            name = 'delayedtask'
-            handle_task_terminated = mock.Mock()
-
-        task1 = FailedTask(mock.Mock(), total_retries=0)
-        task2 = DelayedTask(mock.Mock())
-
-        g = TaskDependencyGraph(MockWorkflowContext())
-        g.add_task(task1)
-        g.add_task(task2)
-        self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
-
-        # even though the workflow failed 1 second in, the other task was
-        # still waited for and completed
-        task2.handle_task_terminated.assert_called()
 
     def test_task_sequence(self):
         """Tasks in a sequence are called in order"""
@@ -194,6 +173,64 @@ class TestTasksGraphExecute(testtools.TestCase):
         self.assertFalse(task.apply_async.called)
         self.assertFalse(task.cancel.called)
 
+    def test_task_on_success(self):
+        """If a task has a success callback, dependent tasks still run"""
+        wctx = MockWorkflowContext()
+        g = TaskDependencyGraph(wctx)
+        record = []
+
+        class Task(tasks.WorkflowTask):
+            name = 'task'
+
+            def apply_async(self):
+                record.append(self.i)
+                self.set_state(tasks.TASK_SUCCEEDED)
+                self.async_result.result = None
+                return self.async_result
+
+        def on_success(task):
+            record.append('success')
+            return tasks.HandlerResult.cont()
+
+        t1 = Task(wctx)
+        t1.i = 1
+        t2 = Task(wctx)
+        t1.on_success = on_success
+        t2.i = 2
+        g.add_task(t1)
+        g.add_task(t2)
+        g.add_dependency(t2, t1)
+        g.execute()
+        assert record == [1, 'success', 2]
+
+    def test_continue_after_fail(self):
+        wctx = MockWorkflowContext()
+        g = TaskDependencyGraph(wctx)
+
+        ft = FailedTask(wctx)
+        t1 = PassedTask(wctx)
+        t2 = PassedTask(wctx)
+        t3 = PassedTask(wctx)
+        t4 = PassedTask(wctx)
+        t5 = PassedTask(wctx)
+        for t in [t1, t2, t3, t4, t5, ft]:
+            g.add_task(t)
+
+        # there's two disjoint subgraphs:
+        # t1 -> ft -> t2
+        # t3 -> t4 -> t5
+        # t1 runs, ft fails, and t2 does not run
+        # t3, t4, and t5 all run
+        g.add_dependency(ft, t1)
+        g.add_dependency(t2, ft)
+        g.add_dependency(t4, t3)
+        g.add_dependency(t5, t4)
+
+        self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
+        for t in [t1, t3, t4, t5]:
+            assert t.get_state() == 'succeeded'
+        assert t2.get_state() == 'pending'
+
 
 class _CustomRestorableTask(tasks.WorkflowTask):
     """A custom user-provided task, that can be restored"""
@@ -201,7 +238,7 @@ class _CustomRestorableTask(tasks.WorkflowTask):
     task_type = 'cloudify.tests.test_tasks_graph._CustomRestorableTask'
 
 
-class TestTaskGraphRestore(testtools.TestCase):
+class TestTaskGraphRestore(unittest.TestCase):
     def _remote_task(self):
         """Make a RemoteWorkflowTask mock for use in tests"""
         return {
@@ -361,7 +398,7 @@ class NonExecutingGraph(TaskDependencyGraph):
         pass
 
 
-class TestLifecycleGraphs(testtools.TestCase):
+class TestLifecycleGraphs(unittest.TestCase):
     def _make_ctx_and_graph(self):
         ctx = MockWorkflowContext()
         graph = NonExecutingGraph(ctx)
@@ -575,3 +612,133 @@ class TestLifecycleGraphs(testtools.TestCase):
 
         # n2 didnt need to be deleted, because it wasn't in the creating state
         assert task_indexes['n2_delete'] is None
+
+
+class TestGraphOptimization(unittest.TestCase):
+    """Tests for graph.optimize(), which omits empty/pointless tasks"""
+
+    def test_removes_nop(self):
+        """optimize removes NOPTasks"""
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+        nop_task = tasks.NOPLocalWorkflowTask(ctx)
+        not_nop_task = tasks.WorkflowTask(ctx)
+        g.add_task(nop_task)
+        g.add_task(not_nop_task)
+        assert set(g.tasks) == {nop_task, not_nop_task}
+        g.optimize()
+        assert set(g.tasks) == {not_nop_task}
+
+    def test_removes_dependent_nop(self):
+        """optimize removes NOPTasks even if they have dependencies"""
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+        base_nop_task = tasks.NOPLocalWorkflowTask(ctx)
+        dependent_nop_task = tasks.NOPLocalWorkflowTask(ctx)
+        task = tasks.WorkflowTask(ctx)
+        g.add_task(task)
+        g.add_task(base_nop_task)
+        g.add_task(dependent_nop_task)
+        g.add_dependency(dependent_nop_task, task)
+        g.add_dependency(task, base_nop_task)
+        assert set(g.tasks) == {base_nop_task, dependent_nop_task, task}
+        g.optimize()
+        assert set(g.tasks) == {task}
+
+    def test_moves_dependencies(self):
+        """optimize "shortcuts" dependencies
+
+        We have a dependency chain of: task2 -> nop_task -> task1.
+        After optimize, nop is removed, and the chain is just: task2 -> task1
+        """
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+        task1 = tasks.WorkflowTask(ctx)
+        nop_task = tasks.NOPLocalWorkflowTask(ctx)
+        task2 = tasks.WorkflowTask(ctx)
+        g.add_task(task1)
+        g.add_task(task2)
+        g.add_task(nop_task)
+        g.add_dependency(task2, nop_task)
+        g.add_dependency(nop_task, task1)
+        assert set(g.tasks) == {task1, task2, nop_task}
+        g.optimize()
+        assert set(g.tasks) == {task1, task2}
+        assert g._dependencies == {
+            task2: set([task1]),
+        }
+        assert g._dependents == {
+            task1: set([task2]),
+        }
+
+    def test_moves_chain_dependencies(self):
+        r"""The dependency shortcut works even with more complex graphs
+
+        The setup is:
+            task1 \                                 / task3
+                   >- nop1 -> nop2 -> ... -> nop10 <
+            task2 /                                 \ task4
+
+        After optimization, all the NOPs are removed, and we're left with
+        only:
+            task1 \ / task3
+                   x
+            task2 / \ task4
+        """
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+        task1 = tasks.WorkflowTask(ctx)
+        task2 = tasks.WorkflowTask(ctx)
+        task3 = tasks.WorkflowTask(ctx)
+        task4 = tasks.WorkflowTask(ctx)
+        nops_chain = [
+            tasks.NOPLocalWorkflowTask(ctx)
+            for _ in range(10)
+        ]
+        g.add_task(task1)
+        g.add_task(task2)
+        g.add_task(task3)
+        g.add_task(task4)
+        for nop_task in nops_chain:
+            g.add_task(nop_task)
+        for nop_task, next_nop_task in zip(nops_chain, nops_chain[1:]):
+            g.add_dependency(nop_task, next_nop_task)
+        g.add_dependency(task3, nops_chain[0])
+        g.add_dependency(task4, nops_chain[0])
+        g.add_dependency(nops_chain[-1], task1)
+        g.add_dependency(nops_chain[-1], task2)
+        g.optimize()
+        assert g._dependencies == {
+            task3: set([task1, task2]),
+            task4: set([task1, task2]),
+        }
+        assert g._dependents == {
+            task1: set([task3, task4]),
+            task2: set([task3, task4]),
+        }
+
+    def test_removes_empty_subgraph(self):
+        """optimize removes all kinds of "empty" subgraphs"""
+        ctx = MockWorkflowContext()
+        g = TaskDependencyGraph(ctx)
+
+        # sg1 is just empty, no tasks inside it
+        sg1 = g.subgraph(ctx)
+        # sg2 contains only a NOPTask
+        sg2 = g.subgraph(ctx)
+        sg2.add_task(tasks.NOPLocalWorkflowTask(ctx))
+
+        # sg3 contains sg4, which is empty behcause it only contains a NOPTask
+        sg3 = g.subgraph(ctx)
+        sg4 = g.subgraph(ctx)
+        sg4.add_task(tasks.NOPLocalWorkflowTask(ctx))
+        sg3.add_task(sg4)
+
+        # sg5 is a subgraph that contains a real task! it is not removed
+        sg5 = g.subgraph(ctx)
+        real_task = tasks.WorkflowTask(ctx)
+        sg5.add_task(real_task)
+
+        assert set(g.tasks) > {sg1, sg2, sg3, sg4, sg5, real_task}
+        g.optimize()
+        assert set(g.tasks) == {sg5, real_task}

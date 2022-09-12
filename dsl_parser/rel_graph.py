@@ -18,7 +18,12 @@ import collections
 from random import choice
 from string import ascii_lowercase, digits
 
-import networkx as nx
+from networkx.algorithms import (
+    descendants,
+    topological_sort,
+    weakly_connected_component_subgraphs,
+)
+from networkx.classes import DiGraph
 
 from dsl_parser import (constants,
                         exceptions)
@@ -32,12 +37,14 @@ GROUP_CONTAINED_IN_REL_TYPE = '__group_contained_in__'
 CONNECTION_TYPE = 'connection_type'
 ALL_TO_ALL = 'all_to_all'
 ALL_TO_ONE = 'all_to_one'
+NI_ID_LEN = 6
+NI_ID_ALPHABET = ascii_lowercase + digits
 
 
 def build_node_graph(nodes, scaling_groups):
 
-    graph = nx.DiGraph()
-    groups_graph = nx.DiGraph()
+    graph = DiGraph()
+    groups_graph = DiGraph()
     node_ids = set()
     contained_in_group = {}
 
@@ -93,7 +100,7 @@ def build_node_graph(nodes, scaling_groups):
                 graph.add_edge(node_id, group_name,
                                relationship=relationship,
                                index=index)
-                top_level_group_name = nx.topological_sort(
+                top_level_group_name = topological_sort(
                     groups_graph, nbunch=[group_name])[-1]
                 graph.add_edge(
                     top_level_group_name, target_id,
@@ -114,8 +121,8 @@ def build_node_graph(nodes, scaling_groups):
 
 def build_previous_deployment_node_graph(plan_node_graph,
                                          previous_node_instances):
-    graph = nx.DiGraph()
-    contained_graph = nx.DiGraph()
+    graph = DiGraph()
+    contained_graph = DiGraph()
     for node_instance in previous_node_instances:
         node_instance_id = node_instance['id']
         node_instance_host_id = node_instance.get('host_id')
@@ -198,27 +205,29 @@ def build_previous_deployment_node_graph(plan_node_graph,
 def build_deployment_node_graph(plan_node_graph,
                                 previous_deployment_node_graph=None,
                                 previous_deployment_contained_graph=None,
-                                modified_nodes=None):
+                                modified_nodes=None,
+                                existing_ni_ids=None):
 
     _verify_no_unsupported_relationships(plan_node_graph)
 
-    deployment_node_graph = nx.DiGraph()
+    deployment_node_graph = DiGraph()
     ctx = Context(
         plan_node_graph=plan_node_graph,
         deployment_node_graph=deployment_node_graph,
         previous_deployment_node_graph=previous_deployment_node_graph,
         previous_deployment_contained_graph=previous_deployment_contained_graph,  # noqa
-        modified_nodes=modified_nodes)
+        modified_nodes=modified_nodes,
+        existing_node_instance_ids=existing_ni_ids)
 
     _handle_contained_in(ctx)
 
-    ctx.node_instance_ids.clear()
-    ctx.node_ids_to_node_instance_ids.clear()
+    ctx.node_instance_ids = existing_ni_ids or collections.defaultdict(set)
+    ctx.deployment_node_instance_ids.clear()
     for node_instance_id, data in deployment_node_graph.nodes_iter(
             data=True):
-        ctx.node_instance_ids.add(node_instance_id)
         node_id = _node_id_from_node_instance(data['node'])
-        ctx.node_ids_to_node_instance_ids[node_id].add(node_instance_id)
+        ctx.node_instance_ids[node_id].add(node_instance_id)
+        ctx.deployment_node_instance_ids[node_id].add(node_instance_id)
 
     _handle_connected_to_and_depends_on(ctx)
 
@@ -357,7 +366,7 @@ def extract_removed_relationships(previous_deployment_node_graph,
 
 
 def _graph_diff(G, H, node_instance_attributes):
-    result = nx.DiGraph()
+    result = DiGraph()
     for n1, data in G.nodes_iter(data=True):
         if n1 in H:
             continue
@@ -380,7 +389,7 @@ def _graph_diff_relationships(G, H, node_instance_attributes):
     :param node_instance_attributes:
     :return:
     """
-    result = nx.DiGraph()
+    result = DiGraph()
     for source, dest, data in G.edges_iter(data=True):
         if source in H and dest not in H[source]:
             new_node = copy.deepcopy(G.node[source])
@@ -394,10 +403,10 @@ def _graph_diff_relationships(G, H, node_instance_attributes):
 def _handle_contained_in(ctx):
     # for each 'contained' tree, recursively build new trees based on
     # scaling groups with generated ids
-    for contained_tree in nx.weakly_connected_component_subgraphs(
+    for contained_tree in weakly_connected_component_subgraphs(
             ctx.plan_contained_graph.reverse(copy=True)):
         # extract tree root node id
-        node_id = nx.topological_sort(contained_tree)[0]
+        node_id = topological_sort(contained_tree)[0]
         _build_multi_instance_node_tree_rec(
             node_id=node_id,
             contained_tree=contained_tree,
@@ -432,9 +441,9 @@ def _build_multi_instance_node_tree_rec(node_id,
                 relationship=relationship_instance,
                 index=parent_relationship_index)
         for child_node_id in contained_tree.neighbors_iter(node_id):
-            descendants = nx.descendants(contained_tree, child_node_id)
-            descendants.add(child_node_id)
-            child_contained_tree = contained_tree.subgraph(descendants)
+            _descendants = descendants(contained_tree, child_node_id)
+            _descendants.add(child_node_id)
+            child_contained_tree = contained_tree.subgraph(_descendants)
             _build_multi_instance_node_tree_rec(
                 node_id=child_node_id,
                 contained_tree=child_contained_tree,
@@ -458,7 +467,7 @@ def _build_and_update_node_instances(ctx,
     new_instances_num = 0
     previous_containers = []
     if ctx.is_modification:
-        all_previous_node_instance_ids = ctx.node_ids_to_node_instance_ids[
+        all_previous_node_instance_ids = ctx.deployment_node_instance_ids[
             node_id]
         previous_node_instance_ids = [
             instance_id for instance_id in all_previous_node_instance_ids
@@ -498,6 +507,12 @@ def _build_and_update_node_instances(ctx,
         new_instances_num = current_instances_num
 
     new_containers = []
+    max_ni_ids = len(NI_ID_ALPHABET)**NI_ID_LEN
+    if len(ctx.node_instance_ids[node_id]) + new_instances_num > max_ni_ids:
+        raise RuntimeError(
+             "Failed generating node instance ids for node `{0}` - total node "
+             "instance number exceeds {1}".format(node_id, max_ni_ids))
+
     for _ in range(int(new_instances_num)):
         node_instance_id = _node_instance_id(node_id, ctx)
         node_instance = _node_instance_copy(
@@ -585,10 +600,23 @@ def _extract_contained(node, node_instance):
             break
     else:
         return None
+    rel_node_instance_id = None
     for node_instance_relationship in node_instance['relationships']:
+        rel_node_instance_id = node_instance_relationship['target_id']
         if (node_instance_relationship['type'] ==
                 contained_node_relationship['type']):
             return node_instance_relationship
+    # In case there are two or more relationships to the same target,
+    # node_instance['relationships'] contains only one of them, which makes
+    # this function always fail for those node_instances.  Let's try to create
+    # a relationship dictionary based on node['relationships'] in this case.
+    if rel_node_instance_id:
+        for node_relationship in node['relationships']:
+            if (node_relationship['type'] ==
+                    contained_node_relationship['type']):
+                return _relationship_instance_copy(
+                    relationship=node_relationship,
+                    target_node_instance_id=rel_node_instance_id)
     raise RuntimeError("Failed extracting contained node instance "
                        "relationships for node instance '{0}'"
                        .format(node_instance['id']))
@@ -615,9 +643,9 @@ def _handle_connected_to_and_depends_on(ctx):
         relationship = edge_data['relationship']
         index = edge_data['index']
         connection_type = _verify_and_get_connection_type(relationship)
-        source_node_instance_ids = ctx.node_ids_to_node_instance_ids[
+        source_node_instance_ids = ctx.deployment_node_instance_ids[
             source_node_id]
-        target_node_instance_ids = ctx.node_ids_to_node_instance_ids[
+        target_node_instance_ids = ctx.deployment_node_instance_ids[
             target_node_id]
         _add_connected_to_and_depends_on_relationships(
             ctx=ctx,
@@ -767,14 +795,14 @@ def _build_scaling_groups_map(ctx, node_instance_ids, group):
 
 def _node_instance_id(node_id, ctx):
     new_node_instance_id = '{0}_{1}'.format(node_id, _generate_id())
-    while new_node_instance_id in ctx.node_instance_ids:
+    while new_node_instance_id in ctx.node_instance_ids[node_id]:
         new_node_instance_id = '{0}_{1}'.format(node_id, _generate_id())
-    ctx.node_instance_ids.add(new_node_instance_id)
+    ctx.node_instance_ids[node_id].add(new_node_instance_id)
     return new_node_instance_id
 
 
-def _generate_id(id_len=6):
-    return ''.join(choice(digits + ascii_lowercase) for _ in range(id_len))
+def _generate_id():
+    return ''.join(choice(NI_ID_ALPHABET) for _ in range(NI_ID_LEN))
 
 
 def _node_instance_copy(node, node_instance_id):
@@ -846,7 +874,8 @@ class Context(object):
                  deployment_node_graph,
                  previous_deployment_node_graph=None,
                  previous_deployment_contained_graph=None,
-                 modified_nodes=None):
+                 modified_nodes=None,
+                 existing_node_instance_ids=None):
         self.plan_node_graph = plan_node_graph
         self.plan_contained_graph = self._build_contained_in_graph(
             plan_node_graph)
@@ -858,15 +887,14 @@ class Context(object):
         self.previous_deployment_contained_graph = (
             previous_deployment_contained_graph)
         self.modified_nodes = modified_nodes
-        self.node_ids_to_node_instance_ids = collections.defaultdict(set)
-        self.node_instance_ids = set()
+        self.node_instance_ids = \
+            existing_node_instance_ids or collections.defaultdict(set)
+        self.deployment_node_instance_ids = collections.defaultdict(set)
         if self.is_modification:
             for node_instance_id, data in \
                     self.previous_deployment_node_graph.nodes_iter(data=True):
-                self.node_instance_ids.add(node_instance_id)
-                node_instance = data['node']
-                self.node_ids_to_node_instance_ids[
-                    _node_id_from_node_instance(node_instance)].add(
+                self.deployment_node_instance_ids[
+                    _node_id_from_node_instance(data['node'])].add(
                     node_instance_id)
 
     def get_group_member_mapping(self):
@@ -894,8 +922,8 @@ class Context(object):
         shared_groups = set(a_groups) & set(b_groups)
         if not shared_groups:
             return None
-        return nx.topological_sort(self.plan_contained_graph,
-                                   nbunch=shared_groups)[0]
+        return topological_sort(self.plan_contained_graph,
+                                nbunch=shared_groups)[0]
 
     def _containing_groups(self, node_id):
         graph = self.plan_contained_graph
@@ -978,7 +1006,7 @@ class Context(object):
     def _build_graph_by_relationship_types(graph,
                                            build_from_types,
                                            exclude_types):
-        relationship_base_graph = nx.DiGraph()
+        relationship_base_graph = DiGraph()
         for source, target, edge_data in graph.edges_iter(data=True):
             include_edge = (
                 _relationship_type_hierarchy_includes_one_of(

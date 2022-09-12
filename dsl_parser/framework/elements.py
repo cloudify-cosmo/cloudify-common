@@ -14,12 +14,11 @@
 #    * limitations under the License.
 
 import copy
+from io import StringIO
 
 from dsl_parser import exceptions
 from dsl_parser import holder
 from dsl_parser import version as _version
-
-from dsl_parser._compat import StringIO
 
 
 class Unparsed(object):
@@ -207,10 +206,14 @@ class Element(object):
 
     def validate_version(self, version, min_version):
         if self.initial_value is not None and version < min_version:
+            if self.name == 'type':
+                dsl_node = "type '{0}'".format(self.initial_value)
+            else:
+                dsl_node = self.name
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_CODE_DSL_DEFINITIONS_VERSION_MISMATCH,
                 '{0} not supported in version {1}, it was added in {2}'.format(
-                    self.name,
+                    dsl_node,
                     _version.version_description(version),
                     _version.version_description(min_version)
                 )

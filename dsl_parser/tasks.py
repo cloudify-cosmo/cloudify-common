@@ -24,7 +24,7 @@ from dsl_parser import (scan,
                         exceptions,
                         constraints,
                         multi_instance)
-from dsl_parser.constants import INPUTS, DEFAULT, DATA_TYPES, TYPE
+from dsl_parser.constants import INPUTS, DEFAULT, DATA_TYPES, TYPE, ITEM_TYPE
 from dsl_parser.multi_instance import modify_deployment
 
 
@@ -46,7 +46,7 @@ def parse_dsl(dsl_location,
         additional_resource_sources=additional_resources)
 
 
-def _set_plan_inputs(plan, inputs=None, auto_correct_types=False):
+def _set_plan_inputs(plan, inputs, auto_correct_types, values_getter):
     inputs = inputs if inputs else {}
     # Verify inputs satisfied
     missing_inputs = []
@@ -63,7 +63,7 @@ def _set_plan_inputs(plan, inputs=None, auto_correct_types=False):
         elif DEFAULT in input_def and input_def[DEFAULT] is not None:
             inputs[input_name] = input_def[DEFAULT]
         else:
-            # Try to get some defaults from the data_type maybe or in another
+            # Try to get some defaults from the data_type maybe or in other
             # words just try to parse the value before validating it.
             try:
                 parsed_value = utils.parse_value(
@@ -100,8 +100,10 @@ def _set_plan_inputs(plan, inputs=None, auto_correct_types=False):
             if auto_correct_types:
                 inputs[input_name] = utils.cast_to_type(
                     inputs[input_name], input_def.get(TYPE, None))
+
             constraints.validate_input_value(
-                input_name, input_constraints, inputs[input_name])
+                input_name, input_constraints, inputs[input_name],
+                input_def.get(TYPE), input_def.get(ITEM_TYPE), values_getter)
             inputs_complete = inputs[input_name]
             try:
                 inputs_complete = utils.parse_value(
@@ -178,12 +180,14 @@ def _validate_secrets(plan, get_secret_method):
 def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
                             runtime_only_evaluation=False,
                             auto_correct_types=False,
+                            values_getter=None,
+                            existing_ni_ids=None,
                             **_):
     """
     Prepare a plan for deployment
     """
     plan = models.Plan(copy.deepcopy(plan))
-    _set_plan_inputs(plan, inputs, auto_correct_types)
+    _set_plan_inputs(plan, inputs, auto_correct_types, values_getter)
     _process_functions(plan, runtime_only_evaluation)
     _validate_secrets(plan, get_secret_method)
-    return multi_instance.create_deployment_plan(plan)
+    return multi_instance.create_deployment_plan(plan, existing_ni_ids)

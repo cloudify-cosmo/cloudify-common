@@ -19,7 +19,6 @@ import ssl
 import sys
 import time
 import pytz
-import pika
 import shlex
 import random
 import string
@@ -34,16 +33,26 @@ import subprocess
 
 from datetime import datetime, timedelta
 from contextlib import contextmanager, closing
+from functools import wraps
+from io import StringIO
+from requests.exceptions import ConnectionError, Timeout
 import socket   # replace with ipaddress when this is py3-only
+
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
 from cloudify import constants
-from cloudify.state import workflow_parameters, workflow_ctx, ctx
-from cloudify._compat import StringIO, parse_version
-from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
-from cloudify.amqp_client import BlockingRequestResponseHandler
+from cloudify.state import workflow_parameters, workflow_ctx, ctx, current_ctx
+from cloudify.constants import (SUPPORTED_ARCHIVE_TYPES,
+                                KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
+                                MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC)
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
+
+try:
+    from packaging.version import parse as parse_version
+except ImportError:
+    from distutils.version import LooseVersion as parse_version
+
 
 ENV_CFY_EXEC_TEMPDIR = 'CFY_EXEC_TEMP'
 ENV_AGENT_LOG_LEVEL = 'AGENT_LOG_LEVEL'
@@ -51,7 +60,6 @@ ENV_AGENT_LOG_DIR = 'AGENT_LOG_DIR'
 ENV_AGENT_LOG_MAX_BYTES = 'AGENT_LOG_MAX_BYTES'
 ENV_AGENT_LOG_MAX_HISTORY = 'AGENT_LOG_MAX_HISTORY'
 
-INSPECT_TIMEOUT = 30
 ADMIN_API_TOKEN_PATH = '/opt/mgmtworker/work/admin_token'
 
 
@@ -177,7 +185,7 @@ def format_exception(e):
 
 def get_daemon_name():
     """Name of the currently running agent."""
-    return os.environ['AGENT_NAME']
+    return os.environ.get('AGENT_NAME')
 
 
 def get_manager_name():
@@ -186,7 +194,7 @@ def get_manager_name():
     Available only on mgmtworkers, returns the hostname of the manager
     this is running on.
     """
-    return os.environ[constants.MANAGER_NAME]
+    return os.environ.get(constants.MANAGER_NAME)
 
 
 def get_manager_file_server_scheme():
@@ -595,53 +603,6 @@ class Internal(object):
             ctx._context['tenant'].pop('original_name')
 
 
-def is_agent_alive(name,
-                   client,
-                   timeout=INSPECT_TIMEOUT,
-                   connect=True):
-    """
-    Send a `ping` service task to an agent, and validate that a correct
-    response is received
-
-    :param name: the agent's amqp exchange name
-    :param client: an AMQPClient for the agent's vhost
-    :param timeout: how long to wait for the response
-    :param connect: whether to connect the client (should be False if it is
-                    already connected)
-    """
-    handler = BlockingRequestResponseHandler(name)
-    client.add_handler(handler)
-    if connect:
-        with client:
-            response = _send_ping_task(name, handler, timeout)
-    else:
-        response = _send_ping_task(name, handler, timeout)
-    return 'time' in response
-
-
-def _send_ping_task(name, handler, timeout=INSPECT_TIMEOUT):
-    logger = setup_logger('cloudify.utils.is_agent_alive')
-    task = {
-        'service_task': {
-            'task_name': 'ping',
-            'kwargs': {}
-        }
-    }
-    # messages expire shortly before we hit the timeout - if they haven't
-    # been handled by then, they won't make the timeout
-    expiration = (timeout * 1000) - 200  # milliseconds
-    try:
-        return handler.publish(task, routing_key='service',
-                               timeout=timeout, expiration=expiration)
-    except pika.exceptions.AMQPError as e:
-        logger.warning('Could not send a ping task to {0}: {1}'
-                       .format(name, e))
-        return {}
-    except RuntimeError as e:
-        logger.info('No ping response from {0}: {1}'.format(name, e))
-        return {}
-
-
 def is_management_environment():
     """
     Checks whether we're currently running within a management worker.
@@ -796,16 +757,24 @@ def wait_for(callable_obj,
 
 
 class OutputConsumer(object):
-    def __init__(self, out, logger, prefix):
+    def __init__(self, out, logger, prefix, ctx=None):
         self.out = out
         self.output = []
         self.logger = logger
         self.prefix = prefix
+        self.ctx = ctx
         self.consumer = threading.Thread(target=self.consume_output)
         self.consumer.daemon = True
         self.consumer.start()
 
     def consume_output(self):
+        if self.ctx is not None:
+            with current_ctx.push(self.ctx):
+                self._do_consume()
+        else:
+            self._do_consume()
+
+    def _do_consume(self):
         for line in self.out:
             line = line.decode('utf-8', 'replace')
             self.output.append(line)
@@ -877,6 +846,14 @@ def _find_versioned_plugin_dir(base_dir, version):
         return found
 
 
+def _plugins_base_dir():
+    """The directory where plugins/ and source_plugins/ are stored.
+
+    Default to sys.prefix, which is going to be in the mgmtworker/agent venv.
+    """
+    return os.environ.get('CFY_PLUGINS_ROOT') or sys.prefix
+
+
 def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
     """Virtualenv for the specified plugin.
 
@@ -888,7 +865,7 @@ def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
     :param deployment_id: deployment id, for source plugins
     :return: directory containing the plugin virtualenv, or None
     """
-    managed_plugin_dir = os.path.join(sys.prefix, 'plugins')
+    managed_plugin_dir = os.path.join(_plugins_base_dir(), 'plugins')
     if tenant_name:
         managed_plugin_dir = os.path.join(
             managed_plugin_dir, tenant_name, name)
@@ -897,7 +874,7 @@ def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
 
     prefix = _find_versioned_plugin_dir(managed_plugin_dir, version)
     if prefix is None and deployment_id is not None:
-        source_plugin_dir = os.path.join(sys.prefix, 'source_plugins')
+        source_plugin_dir = os.path.join(_plugins_base_dir(), 'source_plugins')
         if tenant_name:
             source_plugin_dir = os.path.join(
                 source_plugin_dir, tenant_name, deployment_id, name)
@@ -915,7 +892,7 @@ def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
 def target_plugin_prefix(name, tenant_name, version=None, deployment_id=None):
     """Target directory into which the plugin should be installed"""
     parts = [
-        sys.prefix,
+        _plugins_base_dir(),
         'source_plugins' if deployment_id else 'plugins'
     ]
     if tenant_name:
@@ -1015,6 +992,9 @@ def parse_and_apply_timedelta(expr, date_time):
     if period in ['mo', 'month']:
         new_month = (date_time.month + number) % 12
         new_year = date_time.year + (date_time.month + number) // 12
+        if new_month == 0:
+            new_month = 12
+            new_year -= 1
         new_day = date_time.day
         date_time = date_time.replace(day=1, month=new_month, year=new_year)
         return date_time + timedelta(days=new_day - 1)
@@ -1058,3 +1038,78 @@ def ipv6_url_compat(addr):
     if _is_ipv6(addr):
         return '[{0}]'.format(addr)
     return addr
+
+
+def uuid4():
+    """Generate a random UUID, and return a string representation of it.
+
+    This is pretty much a copy of the stdlib uuid4. We inline it here,
+    because we'd like to avoid importing the stdlib uuid module on the
+    operation dispatch critical path, because importing the stdlib
+    uuid module runs some subprocesses (for detecting the uuid1-uuid3 MAC
+    address), and that causes more memory pressure than we'd like.
+    """
+    uuid_bytes = os.urandom(16)
+    uuid_as_int = int.from_bytes(uuid_bytes, byteorder='big')
+    uuid_as_int &= ~(0xc000 << 48)
+    uuid_as_int |= 0x8000 << 48
+    uuid_as_int &= ~(0xf000 << 64)
+    uuid_as_int |= 4 << 76
+    uuid_as_hex = '%032x' % uuid_as_int
+    return '%s-%s-%s-%s-%s' % (
+        uuid_as_hex[:8],
+        uuid_as_hex[8:12],
+        uuid_as_hex[12:16],
+        uuid_as_hex[16:20],
+        uuid_as_hex[20:]
+    )
+
+
+def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
+                     max_delay_sec=MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC):
+    """
+    Keep (re)trying HTTP requests.
+
+    This is a wrapper function that will keep (re)running whatever function it
+    wraps until it raises a "non-repairable" exception (where "repairable"
+    exceptions are `requests.exceptions.ConnectionError` and
+    `requests.exceptions.Timeout`), or `total_timeout_sec` is exceeded.
+
+    :param total_timeout_sec: The amount of seconds to keep trying, if `None`,
+                              there is no timeout and the wrapped function
+                              will be re-tried indefinitely.
+    :param max_delay_sec: The maximum delay (in seconds) between consecutive
+                          calls to the wrapped function.  The actual delay will
+                          be a pseudo-random number between
+                          `0` and `max_delay_sec`.
+    """
+    logger = setup_logger('http_retrying')
+
+    def ex_to_str(exception):
+        return str(exception) or str(type(exception))
+
+    def inner(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            timeout_at = None if total_timeout_sec is None \
+                else datetime.utcnow() + timedelta(seconds=total_timeout_sec)
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except (ConnectionError, Timeout) as ex:
+                    if timeout_at and datetime.utcnow() > timeout_at:
+                        logger.error(f'Finished retrying {func}: '
+                                     f'total timeout of {total_timeout_sec} '
+                                     f'seconds exceeded: {ex_to_str(ex)}')
+                        raise
+                    delay = random.randint(0, max_delay_sec)
+                    logger.warning(f'Will retry {func} in {delay} seconds: ' +
+                                   ex_to_str(ex))
+                    time.sleep(delay)
+                except Exception as ex:
+                    logger.error(f'Will not retry {func}: the encountered '
+                                 'error cannot be fixed by retrying: ' +
+                                 ex_to_str(ex))
+                    raise
+        return wrapper
+    return inner

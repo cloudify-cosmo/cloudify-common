@@ -14,15 +14,14 @@
 #    * limitations under the License.
 
 import os
-
-import testtools
+import unittest
 
 from dsl_parser import exceptions as dsl_exceptions
 
 from cloudify.workflows import local
 
 
-class LocalWorkflowInitTest(testtools.TestCase):
+class LocalWorkflowInitTest(unittest.TestCase):
 
     def test_init_env_validate_definitions(self):
         blueprint_path = os.path.join(

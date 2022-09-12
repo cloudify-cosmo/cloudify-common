@@ -18,17 +18,21 @@ from dsl_parser.tests.abstract_test_parser import AbstractTestParser
 from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 
 
-def workflow_op_struct(plugin_name,
-                       mapping,
-                       parameters=None,
-                       is_cascading=False):
+def workflow_op_struct(
+    plugin_name,
+    mapping,
+    parameters=None,
+    is_cascading=False,
+    availability_rules=None,
+):
     if not parameters:
         parameters = {}
     return {
         'plugin': plugin_name,
         'operation': mapping,
         'parameters': parameters,
-        'is_cascading': is_cascading
+        'is_cascading': is_cascading,
+        'availability_rules': availability_rules,
     }
 
 
@@ -86,9 +90,9 @@ workflows:
         workflow_plugins_to_install = \
             parsed[constants.WORKFLOW_PLUGINS_TO_INSTALL]
         self.assertEqual(2, len(workflow_plugins_to_install))
-        self.assertItemsEqual(['test--test_plugin', 'test_plugin'],
-                              [workflow_plugins_to_install[1]['name'],
-                               workflow_plugins_to_install[0]['name']])
+        self.assertEqual({'test--test_plugin', 'test_plugin'},
+                         {workflow_plugins_to_install[0]['name'],
+                          workflow_plugins_to_install[1]['name']})
 
     def test_workflows_merging_with_no_collision(self):
         imported_yaml = self.basic_blueprint()

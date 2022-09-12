@@ -1,17 +1,5 @@
-########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
+from cloudify.utils import parse_utc_datetime
+from cloudify_rest_client.responses import ListResponse
 
 
 class Token(dict):
@@ -30,9 +18,34 @@ class Token(dict):
     @property
     def role(self):
         """
-        :returns: The role of the user associated with the token
+        :returns: The role of the user associated with the token.
         """
         return self.get('role')
+
+    @property
+    def username(self):
+        """:returns: The username associated with the token."""
+        return self.get('username')
+
+    @property
+    def description(self):
+        """:returns: The description of the token."""
+        return self.get('description')
+
+    @property
+    def expiration_date(self):
+        """:returns: The expiration date of the token."""
+        return self.get('expiration_date')
+
+    @property
+    def last_used(self):
+        """:returns: The last time the token was used."""
+        return self.get('last_used')
+
+    @property
+    def id(self):
+        """:returns: The ID of the token."""
+        return self.get('id')
 
 
 class TokensClient(object):
@@ -40,26 +53,48 @@ class TokensClient(object):
     def __init__(self, api):
         self.api = api
 
-    def get(self):
-        """Get an authentication token.
-
-        :rtype: Token
+    def list(self, **kwargs):
+        """Get a list of tokens.
+        :param kwargs: Optional fields or filter arguments as defined in the
+                       restservice.
         """
-        response = self.api.get('/tokens')
-        return Token(response)
+        response = self.api.get('/tokens', params=kwargs)
 
+        return ListResponse(
+            [Token(item) for item in response['items']],
+            response['metadata']
+        )
 
-class UserTokensClient(object):
+    def get(self, token_id):
+        """Get details of an existing authentication token.
+        :param token_id: The ID of the token to get.
 
-    def __init__(self, api):
-        self.api = api
-
-    def get(self, user_id):
-        """
-        Get an authentication REST token of a specified user
-        :param user_id: The id of the user
         :return: Token
         """
-        uri = '/user-tokens/{0}'.format(user_id)
-        response = self.api.get(uri)
-        return Token(response)
+        return Token(self.api.get('/tokens/{}'.format(token_id)))
+
+    def delete(self, token_id):
+        """Delete an existing token, revoking its access."""
+        self.api.delete('/tokens/{}'.format(token_id))
+
+    def create(self, description=None, expiration=None):
+        """Create a new authentication token for the current user.
+        :param description: The description of the token.
+        :param expiration: The expiration date of the token.
+                           Can be provided in format YYYY-MM-DD HH:mm
+                           or relative to current time,
+                           e.g. '+10h' for 10 hours
+                           or '+30 minutes' for 30 minutes
+                           or '+1 day' for 1 day
+        :return: Token
+        """
+        data = {}
+        if description:
+            data['description'] = description
+        if expiration:
+            parse_utc_datetime(expiration)
+            data['expiration_date'] = expiration
+        return Token(self.api.post(
+            '/tokens',
+            data=data,
+        ))

@@ -12,27 +12,32 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
+"""Cloudify workflow context
+
+This module defines the WorkflowContext, which is available as workflow_ctx
+in workflow functions.
+The main uses of a workflow context are:
+  - being an interface to all the data stored (in the Manager)
+  - exposing a way to run operations
+"""
+
 from __future__ import absolute_import
 
 import functools
 import copy
 import json
-import uuid
+import queue
 import threading
-import logging
-import pika
 
-from proxy_tools import proxy
+from dsl_parser import functions as dsl_functions
+from dsl_parser.utils import parse_simple_type_value
 
-from cloudify import amqp_client, context
-from cloudify._compat import queue
+
+from cloudify import context
 from cloudify.manager import (get_bootstrap_context,
                               get_rest_client,
                               download_resource)
-from cloudify.workflows.tasks import (TASK_FAILED,
-                                      TASK_SUCCEEDED,
-                                      TASK_RESCHEDULED,
-                                      RemoteWorkflowTask,
+from cloudify.workflows.tasks import (RemoteWorkflowTask,
                                       LocalWorkflowTask,
                                       NOPLocalWorkflowTask,
                                       DryRunLocalWorkflowTask,
@@ -45,11 +50,10 @@ from cloudify.workflows.tasks import (TASK_FAILED,
                                       SendNodeEventTask,
                                       SendWorkflowEventTask,
                                       UpdateExecutionStatusTask)
-from cloudify.constants import MGMTWORKER_QUEUE
-from cloudify import utils, logs, exceptions
+
+from cloudify import utils, logs
 from cloudify.state import current_workflow_ctx
 from cloudify.workflows import events
-from cloudify.error_handling import deserialize_known_exception
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
 from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            CloudifyWorkflowNodeLoggingHandler,
@@ -58,8 +62,6 @@ from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            send_workflow_event,
                            send_sys_wide_wf_event)
 from cloudify.models_states import DeploymentModificationState
-
-from cloudify.utils import is_agent_alive
 
 
 try:
@@ -91,9 +93,27 @@ class CloudifyWorkflowRelationshipInstance(object):
         self._relationship = node_instance.node.get_relationship(
             relationship_instance['target_name'])
 
+    def __repr__(self):
+        return '<{0} {1}->{2} ({3})>'.format(
+            self.__class__.__name__,
+            self.source_id,
+            self.target_id,
+            self.type,
+        )
+
+    @property
+    def type(self):
+        """The relationship type"""
+        return self._relationship_instance.get('type')
+
+    @property
+    def source_id(self):
+        """The relationship source node-instance id"""
+        return self.node_instance.id
+
     @property
     def target_id(self):
-        """The relationship target node id"""
+        """The relationship target node-instance id"""
         return self._relationship_instance.get('target_id')
 
     @property
@@ -167,6 +187,11 @@ class CloudifyWorkflowRelationship(object):
         self._relationship = relationship
 
     @property
+    def type(self):
+        """The type of this relationship"""
+        return self._relationship.get('type')
+
+    @property
     def target_id(self):
         """The relationship target node id"""
         return self._relationship.get('target_id')
@@ -214,17 +239,39 @@ class CloudifyWorkflowNodeInstance(object):
         self._node_instance = node_instance
         # Directly contained node instances. Filled in the context's __init__()
         self._contained_instances = []
-        self._relationship_instances = OrderedDict(
-            (relationship_instance['target_id'],
-                CloudifyWorkflowRelationshipInstance(
-                    self.ctx, self, nodes_and_instances,
-                    relationship_instance))
-            for relationship_instance in node_instance.relationships)
+        self._relationship_instances = OrderedDict()
+        for relationship in node_instance.relationships:
+            target_id = relationship['target_id']
+            rel_instance = CloudifyWorkflowRelationshipInstance(
+                self.ctx, self, nodes_and_instances, relationship)
+            if rel_instance.relationship is not None:
+                self._relationship_instances[target_id] = rel_instance
 
         # adding the node instance to the node instances map
         node._node_instances[self.id] = self
 
         self._logger = None
+
+    def __eq__(self, other):
+        """Compare node instances
+
+        A node instance is always going to be equal with itself, even if it
+        was fetched multiple times, and it was mutated by the user.
+        This allows storing node instances in sets, and as dict keys.
+        """
+        if not isinstance(other, self.__class__):
+            return False
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __repr__(self):
+        return '<{0} {1} ({2})>'.format(
+            self.__class__.__name__,
+            self.id,
+            self.state,
+        )
 
     def set_state(self, state):
         """Set the node-instance state
@@ -295,6 +342,18 @@ class CloudifyWorkflowNodeInstance(object):
         return self._node_instance.state
 
     @property
+    def version(self):
+        """The node instance version
+
+        Node-instance storage uses an optimistic concurrency control approach:
+        when updating a node-instance, also include the version that the
+        client thinks is current (ie. this value).
+        If the server has a more recent version, it will return an error,
+        allowing the client to fetch the more recent version and retry.
+        """
+        return self._node_instance.version
+
+    @property
     def node_id(self):
         """The node id (this instance is an instance of that node)"""
         return self._node_instance.node_id
@@ -317,6 +376,22 @@ class CloudifyWorkflowNodeInstance(object):
     @property
     def scaling_groups(self):
         return self._node_instance.get('scaling_groups', [])
+
+    @property
+    def runtime_properties(self):
+        """The node instance runtime properties
+
+        Note that in workflow code, it is common for runtime-properties
+        to be outdated, if a prior operation changed them.
+        Before using this value, consider if it is up to date. You can
+        use the refresh_node_instances method to bring all node-instance
+        properties up to date.
+        """
+        return self._node_instance.runtime_properties
+
+    @property
+    def system_properties(self):
+        return self._node_instance.get('system_properties', {})
 
     @property
     def logger(self):
@@ -369,6 +444,12 @@ class CloudifyWorkflowNode(object):
                 self.ctx, self, nodes_and_instances, relationship))
             for relationship in node.relationships)
         self._node_instances = {}
+
+    def __repr__(self):
+        return '<{0} {1})>'.format(
+            self.__class__.__name__,
+            self.id,
+        )
 
     @property
     def id(self):
@@ -431,6 +512,12 @@ class CloudifyWorkflowNode(object):
         """The node instances"""
         return iter(self._node_instances.values())
 
+    def has_operation(self, operation_interface):
+        try:
+            return bool(self.operations[operation_interface]['operation'])
+        except KeyError:
+            return False
+
     def get_relationship(self, target_id):
         """Get a node relationship by its target id"""
         return self._relationships.get(target_id)
@@ -458,9 +545,7 @@ class _WorkflowContextBase(object):
             handler = remote_ctx_handler_cls(self)
 
         self._internal = CloudifyWorkflowContextInternal(self, handler)
-        # is this execution being resumed? set to True if at the beginning
-        # of handling the execution, the status was already STARTED
-        self.resume = False
+        self.resume = ctx.get('resume', False)
         # all amqp Handler instances used by this workflow
         self.amqp_handlers = set()
 
@@ -482,7 +567,7 @@ class _WorkflowContextBase(object):
 
     @property
     def bootstrap_context(self):
-        return self.internal._bootstrap_context
+        return self.internal.bootstrap_context
 
     @property
     def internal(self):
@@ -599,8 +684,11 @@ class _WorkflowContextBase(object):
         plugin_name = op_struct['plugin']
         # could match two plugins with different executors, one is enough
         # for our purposes (extract package details)
-        plugin = [p for p in node_instance.node.plugins
-                  if p['name'] == plugin_name][0]
+        try:
+            plugin = [p for p in node_instance.node.plugins
+                      if p['name'] == plugin_name][0]
+        except IndexError:
+            raise RuntimeError('Plugin not found: {0}'.format(plugin_name))
         operation_mapping = op_struct['operation']
         has_intrinsic_functions = op_struct['has_intrinsic_functions']
         operation_properties = op_struct.get('inputs', {})
@@ -655,10 +743,16 @@ class _WorkflowContextBase(object):
                 'node_name': related_node_instance.node_id,
                 'is_target': related_node_instance.id in relationships
             }
+            node_context['operation']['relationship'] = \
+                'source' if related_node_instance.id in relationships \
+                else 'target'
 
         final_kwargs = self._merge_dicts(merged_from=kwargs,
                                          merged_into=operation_properties,
                                          allow_override=allow_kwargs_override)
+        operation_properties_types = op_struct.get('inputs_types')
+        if operation_properties_types:
+            _validate_types(operation_properties_types, final_kwargs)
 
         return self.execute_task(
             task_name,
@@ -739,7 +833,7 @@ class _WorkflowContextBase(object):
         # Should deepcopy cause problems here, remove it, but please make
         # sure that WORKFLOWS_WORKER_PAYLOAD is not global in manager repo
         kwargs = copy.deepcopy(kwargs) or {}
-        task_id = str(uuid.uuid4())
+        task_id = utils.uuid4()
         cloudify_context = self._build_cloudify_context(
             task_id,
             task_name,
@@ -875,6 +969,15 @@ class _WorkflowContextBase(object):
         return self.internal.handler.update_operation(
             operation_id, state, result, exception)
 
+    def _update_operation_inputs(self, *args, **kwargs):
+        """Update stored operations with new inputs.
+
+        This is internal, and is only called from within deployment-update,
+        to update stored operations, to allow for using new operation inputs
+        in executions resumed after the update.
+        """
+        return self.internal.handler._update_operation_inputs(*args, **kwargs)
+
     def get_tasks_graph(self, name):
         return self.internal.handler.get_tasks_graph(self.execution_id, name)
 
@@ -899,18 +1002,117 @@ class _WorkflowContextBase(object):
             execution_id = self.execution_id
         return self.internal.handler.get_execution(execution_id)
 
+    def update_node_instance(
+        self,
+        node_instance_id,
+        version=0,
+        state=None,
+        runtime_properties=None,
+        system_properties=None,
+        relationships=None,
+        force=False,
+    ):
+        updated_instance = self.internal.handler.update_node_instance(
+            node_instance_id=node_instance_id,
+            version=version,
+            state=state,
+            runtime_properties=runtime_properties,
+            system_properties=system_properties,
+            relationships=relationships,
+            force=force,
+        )
+        wctx_instance = self.get_node_instance(node_instance_id)
+        if wctx_instance:
+            wctx_instance._node_instance.update(updated_instance)
+        return updated_instance
+
+    def set_deployment_attributes(self, deployment_id, **kwargs):
+        self.internal.handler.set_deployment_attributes(
+            deployment_id, **kwargs)
+
+    def get_deployment_update(self, update_id):
+        return self.internal.handler.get_deployment_update(update_id)
+
+    def set_deployment_update_attributes(self, update_id, **kwargs):
+        self.internal.handler.set_deployment_update_attributes(
+            update_id, **kwargs)
+
+    def get_blueprint(self, blueprint_id):
+        return self.internal.handler.get_blueprint(blueprint_id)
+
+    def get_deployment(self, deployment_id):
+        return self.internal.handler.get_deployment(deployment_id)
+
+    def list_nodes(self, **kwargs):
+        return self.internal.handler.list_nodes(**kwargs)
+
+    def list_node_instances(self, **kwargs):
+        return self.internal.handler.list_node_instances(**kwargs)
+
+    def update_node(self, deployment_id, node_id, **kwargs):
+        return self.internal.handler.update_node(
+            deployment_id, node_id, **kwargs)
+
+    def delete_node(self, deployment_id, node_id):
+        self.internal.handler.delete_node(deployment_id, node_id)
+
+    def delete_node_instance(self, node_id):
+        self.internal.handler.delete_node_instance(node_id)
+
+    def create_nodes(self, deployment_id, nodes):
+        self.internal.handler.create_nodes(deployment_id, nodes)
+
+    def create_node_instances(self, deployment_id, node_instances):
+        self.internal.handler.create_node_instances(
+            deployment_id, node_instances)
+
+    def list_execution_schedules(self, **kwargs):
+        return self.internal.handler.list_execution_schedules(**kwargs)
+
+    def update_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        self.internal.handler.update_execution_schedule(
+            schedule_id, deployment_id, **kwargs)
+
+    def create_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        self.internal.handler.create_execution_schedule(
+            schedule_id, deployment_id, **kwargs)
+
+    def get_managers(self):
+        return self.internal.handler.get_managers()
+
+    def list_idds(self, **kwargs):
+        return self.internal.handler.list_idds(**kwargs)
+
+    def update_idds(self, deployment_id, idds):
+        return self.internal.handler.update_idds(deployment_id, idds)
+
+    def get_secret(self, key):
+        return self.internal.handler.get_secret(key)
+
+    def start_execution(self, deployment_id, workflow_id, **kwargs):
+        return self.internal.handler.start_execution(
+            deployment_id, workflow_id, **kwargs)
+
 
 class WorkflowNodesAndInstancesContainer(object):
-
-    def __init__(self, workflow_context, raw_nodes, raw_node_instances):
+    def __init__(self, workflow_context, raw_nodes=None, raw_instances=None):
         self.workflow_context = workflow_context
+        self._nodes = None
+        self._node_instances = None
+        if raw_nodes is not None:
+            self._load_nodes(raw_nodes)
+        if raw_instances is not None:
+            self._load_instances(raw_instances)
+
+    def _load_nodes(self, raw_nodes):
         self._nodes = dict(
-            (node.id, CloudifyWorkflowNode(workflow_context, node, self))
+            (node.id, CloudifyWorkflowNode(self.workflow_context, node, self))
             for node in raw_nodes)
 
+    def _load_instances(self, raw_node_instances):
         self._node_instances = dict(
             (instance.id, CloudifyWorkflowNodeInstance(
-                workflow_context, self._nodes[instance.node_id], instance,
+                self.workflow_context, self._nodes[instance.node_id], instance,
                 self))
             for instance in raw_node_instances)
 
@@ -949,23 +1151,14 @@ class WorkflowNodesAndInstancesContainer(object):
         return self._node_instances.get(node_instance_id)
 
     def refresh_node_instances(self):
-        raw_nodes = self.internal.handler.get_nodes()
-        self._nodes = dict(
-            (node.id, CloudifyWorkflowNode(self.workflow_context, node, self))
-            for node in raw_nodes)
-
-        raw_node_instances = self.internal.handler.get_node_instances()
-        self._node_instances = dict(
-            (instance.id, CloudifyWorkflowNodeInstance(
-                self.workflow_context, self._nodes[instance.node_id], instance,
-                self))
-            for instance in raw_node_instances)
+        raw_nodes = self.workflow_context.internal.handler.get_nodes()
+        raw_node_instances = \
+            self.workflow_context.internal.handler.get_node_instances()
+        self._load_nodes(raw_nodes)
+        self._load_instances(raw_node_instances)
 
 
-class CloudifyWorkflowContext(
-    _WorkflowContextBase,
-    WorkflowNodesAndInstancesContainer
-):
+class CloudifyWorkflowContext(_WorkflowContextBase):
     """
     A context used in workflow operations
 
@@ -973,22 +1166,13 @@ class CloudifyWorkflowContext(
     """
 
     def __init__(self, ctx):
+        super(CloudifyWorkflowContext, self).__init__(
+            ctx, RemoteCloudifyWorkflowContextHandler)
         self.blueprint = context.BlueprintContext(ctx)
         self.deployment = WorkflowDeploymentContext(ctx, self)
-
+        self._nodes_and_instances = WorkflowNodesAndInstancesContainer(self)
         with current_workflow_ctx.push(self):
-            # Not using super() here, because
-            # WorkflowNodesAndInstancesContainer's __init__() needs some data
-            # to be prepared before calling it. It would be possible to
-            # overcome this by using kwargs + super(...).__init__() in
-            # _WorkflowContextBase, but the way it is now is self-explanatory.
-            _WorkflowContextBase.__init__(self, ctx,
-                                          RemoteCloudifyWorkflowContextHandler)
-
-            raw_nodes = self.internal.handler.get_nodes()
-            raw_node_instances = self.internal.handler.get_node_instances()
-            WorkflowNodesAndInstancesContainer.__init__(self, self, raw_nodes,
-                                                        raw_node_instances)
+            self._nodes_and_instances.refresh_node_instances()
 
     def _build_cloudify_context(self, *args):
         context = super(
@@ -997,60 +1181,38 @@ class CloudifyWorkflowContext(
         )._build_cloudify_context(*args)
         context.update({
             'blueprint_id': self.blueprint.id,
-            'deployment_id': self.deployment.id
+            'deployment_id': self.deployment.id,
+            'deployment_display_name': self.deployment.display_name,
+            'deployment_creator': self.deployment.creator,
+            'deployment_resource_tags': self.deployment.resource_tags,
         })
         return context
 
-
-class CloudifySystemWideWorkflowContext(_WorkflowContextBase):
-
-    def __init__(self, ctx):
-        with current_workflow_ctx.push(self):
-            super(CloudifySystemWideWorkflowContext, self).__init__(
-                ctx,
-                SystemWideWfRemoteContextHandler
-            )
-        self._dep_contexts = None
-
-    class _ManagedCloudifyWorkflowContext(CloudifyWorkflowContext):
-        def __enter__(self):
-            self.internal.start_local_tasks_processing()
-
-        def __exit__(self, *args, **kwargs):
-            self.internal.stop_local_tasks_processing()
+    @property
+    def nodes(self):
+        return self._nodes_and_instances.nodes
 
     @property
-    def deployments_contexts(self):
-        if self.local:
-            raise RuntimeError(
-                'deployment_contexts do not exist in local workflows')
-        if self._dep_contexts is None:
-            self._dep_contexts = {}
+    def node_instances(self):
+        return self._nodes_and_instances.node_instances
 
-            deployments_list = \
-                self.internal.handler.rest_client.deployments.list(
-                    _include=['id', 'blueprint_id'],
-                    _get_all_results=True
-                )
-            for dep in deployments_list:
-                # Failure to deepcopy will cause snapshot restore context hack
-                # to be reset just before it's needed.
-                dep_ctx = copy.deepcopy(self._context)
-                dep_ctx['tenant']['name'] = self.tenant_name
-                dep_ctx['deployment_id'] = dep.id
-                dep_ctx['blueprint_id'] = dep.blueprint_id
+    def get_node(self, *args, **kwargs):
+        return self._nodes_and_instances.get_node(*args, **kwargs)
 
-                def lazily_loaded_ctx(dep_ctx):
-                    def lazy_ctx():
-                        if not hasattr(lazy_ctx, '_cached_ctx'):
-                            lazy_ctx._cached_ctx = \
-                                self._ManagedCloudifyWorkflowContext(dep_ctx)
-                        return lazy_ctx._cached_ctx
+    def get_node_instance(self, *args, **kwargs):
+        return self._nodes_and_instances.get_node_instance(*args, **kwargs)
 
-                    return proxy(lazy_ctx)
+    def refresh_node_instances(self, *args, **kwargs):
+        return self._nodes_and_instances.refresh_node_instances(
+            *args, **kwargs)
 
-                self._dep_contexts[dep.id] = lazily_loaded_ctx(dep_ctx)
-        return self._dep_contexts
+
+class CloudifySystemWideWorkflowContext(_WorkflowContextBase):
+    def __init__(self, ctx):
+        super(CloudifySystemWideWorkflowContext, self).__init__(
+            ctx,
+            SystemWideWfRemoteContextHandler
+        )
 
 
 class CloudifyWorkflowContextInternal(object):
@@ -1060,22 +1222,15 @@ class CloudifyWorkflowContextInternal(object):
         self.handler = handler
         self._bootstrap_context = None
         self._graph_mode = False
-        # the graph is always created internally for events to work properly
-        # when graph mode is turned on this instance is returned to the user.
-        subgraph_task_config = self.get_subgraph_task_configuration()
-        self._task_graph = TaskDependencyGraph(
-            workflow_context=workflow_context,
-            default_subgraph_task_config=subgraph_task_config)
+        self._task_graph = None
 
-        # local task processing
         thread_pool_size = self.workflow_context._local_task_thread_pool_size
         self.local_tasks_processor = LocalTasksProcessing(
             self.workflow_context,
             thread_pool_size=thread_pool_size)
 
     def get_task_configuration(self):
-        bootstrap_context = self._get_bootstrap_context()
-        workflows = bootstrap_context.get('workflows', {})
+        workflows = self.bootstrap_context.get('workflows', {})
         total_retries = workflows.get(
             'task_retries',
             self.workflow_context._task_retries)
@@ -1086,21 +1241,27 @@ class CloudifyWorkflowContextInternal(object):
                     retry_interval=retry_interval)
 
     def get_subgraph_task_configuration(self):
-        bootstrap_context = self._get_bootstrap_context()
-        workflows = bootstrap_context.get('workflows', {})
+        workflows = self.bootstrap_context.get('workflows', {})
         subgraph_retries = workflows.get(
             'subgraph_retries',
             self.workflow_context._subgraph_retries
         )
         return dict(total_retries=subgraph_retries)
 
-    def _get_bootstrap_context(self):
+    @property
+    def bootstrap_context(self):
         if self._bootstrap_context is None:
             self._bootstrap_context = self.handler.bootstrap_context
         return self._bootstrap_context
 
     @property
     def task_graph(self):
+        if self._task_graph is None:
+            subgraph_task_config = self.get_subgraph_task_configuration()
+            self._task_graph = TaskDependencyGraph(
+                workflow_context=self.workflow_context,
+                default_subgraph_task_config=subgraph_task_config)
+
         return self._task_graph
 
     @property
@@ -1125,14 +1286,11 @@ class CloudifyWorkflowContextInternal(object):
                                          args=args,
                                          additional_context=additional_context)
 
-    def start_local_tasks_processing(self):
-        self.local_tasks_processor.start()
-
-    def stop_local_tasks_processing(self):
-        self.local_tasks_processor.stop()
-
     def add_local_task(self, task):
         self.local_tasks_processor.add_task(task)
+
+    def evaluate_functions(self, deployment_id, ctx, payload):
+        return self.handler.evaluate_functions(deployment_id, ctx, payload)
 
 
 class LocalTasksProcessing(object):
@@ -1149,6 +1307,12 @@ class LocalTasksProcessing(object):
             thread.daemon = True
             self._local_task_processing_pool.append(thread)
         self.stopped = False
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, exc_type, exc_val, tb):
+        self.stop()
 
     def start(self):
         for thread in self._local_task_processing_pool:
@@ -1171,180 +1335,6 @@ class LocalTasksProcessing(object):
                 # anyway, this is properly unit tested, so we should be good.
                 except Exception:
                     pass
-
-
-class _WorkflowTaskHandler(object):
-    def __init__(self, workflow_ctx):
-        self._logger = logging.getLogger('dispatch')
-        self.workflow_ctx = workflow_ctx
-        workflow_ctx.amqp_handlers.add(self)
-        self._queue_name = 'execution_responses_{0}'.format(
-            workflow_ctx.execution_id)
-        self._connection = None
-        self._responses = {}
-        self._tasks = {}
-        self._bound = set()
-
-    def wait_for_task(self, task):
-        if task.id in self._responses:
-            response, delivery_tag = self._responses.pop(task.id)
-            self._task_callback(task, response)
-            self._connection.channel_method(
-                'basic_ack', delivery_tag=delivery_tag)
-        else:
-            self._tasks[task.id] = task
-
-    def register(self, connection, channel):
-        self._connection = connection
-        channel.exchange_declare(exchange=MGMTWORKER_QUEUE,
-                                 auto_delete=False,
-                                 durable=True,
-                                 exchange_type='direct')
-        channel.queue_declare(
-            queue=self._queue_name, durable=True, auto_delete=False)
-
-        channel.basic_consume(
-            queue=self._queue_name, on_message_callback=self.process)
-
-    def process(self, channel, method, properties, body):
-        try:
-            response = json.loads(body.decode('utf-8'))
-        except ValueError:
-            self._logger.error('Error parsing response: %s', body)
-            channel.basic_ack(method.delivery_tag)
-            return
-        if properties.correlation_id in self._tasks:
-            task = self._tasks.pop(properties.correlation_id)
-            self._task_callback(task, response)
-            channel.basic_ack(method.delivery_tag)
-        else:
-            self._responses[properties.correlation_id] = \
-                (response, method.delivery_tag)
-
-    def publish(self, target, message, correlation_id, routing_key):
-        if target not in self._bound:
-            self._bound.add(target)
-            self._connection.channel_method(
-                'queue_bind',
-                queue=self._queue_name, exchange=target,
-                routing_key=self._queue_name)
-        self._connection.publish({
-            'exchange': target,
-            'body': json.dumps(message),
-            'properties': pika.BasicProperties(
-                reply_to=self._queue_name,
-                correlation_id=correlation_id),
-            'routing_key': routing_key,
-        })
-        if self._task_deletes_exchange(message):
-            self._clear_bound_exchanges_cache()
-
-    def _task_deletes_exchange(self, message):
-        """Does this task delete an amqp exchange?
-
-        Agent delete tasks are going to delete the agent's amqp exchange,
-        so we'll have to bind it again, if the agent is reinstalled
-        (eg. in a deployment-update workflow) - so we'll bust the ._bound
-        cache in that case.
-        """
-        try:
-            name = message['cloudify_task']['kwargs'][
-                '__cloudify_context']['operation']['name']
-            return name == 'cloudify.interfaces.cloudify_agent.delete'
-        except (KeyError, TypeError):
-            return False
-
-    def _clear_bound_exchanges_cache(self):
-        for handler in self.workflow_ctx.amqp_handlers:
-            handler._bound.clear()
-
-    def delete_queue(self):
-        self._connection.channel_method(
-            'queue_delete', queue=self._queue_name, if_empty=True, wait=True)
-
-    def _task_callback(self, task, response):
-        self._logger.debug('[%s] Response received - %s', task.id, response)
-        try:
-            if not response or task.is_terminated:
-                return
-
-            error = response.get('error')
-            if error:
-                exception = deserialize_known_exception(error)
-                if isinstance(exception, exceptions.OperationRetry):
-                    state = TASK_RESCHEDULED
-                else:
-                    state = TASK_FAILED
-                self._set_task_state(task, state, exception=exception)
-                task.async_result.result = exception
-            else:
-                state = TASK_SUCCEEDED
-                result = response.get('result')
-                self._set_task_state(task, state, result=result)
-                task.async_result.result = result
-        except Exception:
-            self._logger.error('Error occurred while processing task',
-                               exc_info=True)
-            raise
-
-    def _set_task_state(self, task, state, **kwargs):
-        with current_workflow_ctx.push(task.workflow_context):
-            task.set_state(state, **kwargs)
-
-
-class _TaskDispatcher(object):
-    def __init__(self, workflow_ctx):
-        self.workflow_ctx = workflow_ctx
-        self._logger = logging.getLogger('dispatch')
-        self._clients = {}
-
-    def cleanup(self):
-        for client, handler in self._clients.values():
-            handler.delete_queue()
-            client.close()
-
-    def get_client(self, target):
-        if target == MGMTWORKER_QUEUE:
-            if None not in self._clients:
-                client = amqp_client.get_client()
-                handler = _WorkflowTaskHandler(self.workflow_ctx)
-                client.add_handler(handler)
-                client.consume_in_thread()
-                self._clients[None] = (client, handler)
-            client, handler = self._clients[None]
-        else:
-            tenant = utils.get_tenant()
-            if tenant.rabbitmq_vhost not in self._clients:
-                client = amqp_client.get_client(
-                    amqp_user=tenant.rabbitmq_username,
-                    amqp_pass=tenant.rabbitmq_password,
-                    amqp_vhost=tenant.rabbitmq_vhost
-                )
-                handler = _WorkflowTaskHandler(self.workflow_ctx)
-                client.add_handler(handler)
-                client.consume_in_thread()
-                self._clients[tenant.rabbitmq_vhost] = (client, handler)
-            client, handler = self._clients[tenant.rabbitmq_vhost]
-        return client, handler
-
-    def send_task(self, task, target, queue):
-        client, handler = self.get_client(target)
-        if target != MGMTWORKER_QUEUE and \
-                not is_agent_alive(target, client, connect=False):
-            raise exceptions.RecoverableError(
-                'Timed out waiting for agent: {0}'.format(target))
-
-        message = {
-            'id': task.id,
-            'cloudify_task': {'kwargs': task.kwargs}
-        }
-        handler.publish(queue, message, routing_key='operation',
-                        correlation_id=task.id)
-        self._logger.debug('Task [%s] sent', task.id)
-
-    def wait_for_result(self, task, target):
-        client, handler = self.get_client(target)
-        handler.wait_for_task(task)
 
 
 # Local/Remote Handlers
@@ -1408,6 +1398,9 @@ class CloudifyWorkflowContextHandler(object):
                          result=None, exception=None):
         raise NotImplementedError('Implemented by subclasses')
 
+    def _update_operation_inputs(self, *args, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
     def store_tasks_graph(self, execution_id, name, operations):
         raise NotImplementedError('Implemented by subclasses')
 
@@ -1430,29 +1423,121 @@ class CloudifyWorkflowContextHandler(object):
     def get_plugin(self, plugin_spec):
         raise NotImplementedError('Implemented by subclasses')
 
+    def update_node_instance(
+        self,
+        node_instance_id,
+        version,
+        state=None,
+        runtime_properties=None,
+        system_properties=None,
+        relationships=None,
+        force=False,
+    ):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def set_deployment_attributes(self, deployment_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_deployment_update(self, update_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def set_deployment_update_attributes(self, update_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_blueprint(self, blueprint_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_deployment(self, deployment_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_nodes(self, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_node_instances(self, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_node(self, deployment_id, node_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def delete_node(self, deployment_id, node_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def delete_node_instance(self, instance_id):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def create_nodes(self, deployment_id, nodes):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def create_node_instances(self, deployment_id, node_instances):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_execution_schedules(self, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def create_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def get_managers(self):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def list_idds(self, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def update_idds(self, deployment_id, idds):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def start_execution(self, deployment_id, workflow_id, **kwargs):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def evaluate_functions(self, deployment_id, ctx, payload):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class RemoteContextHandler(CloudifyWorkflowContextHandler):
     def __init__(self, *args, **kwargs):
         super(RemoteContextHandler, self).__init__(*args, **kwargs)
-        self._dispatcher = _TaskDispatcher(self.workflow_ctx)
-        self.rest_client = get_rest_client()
+        self._rest_client = None
+        self._dispatcher = None
         self._plugins_cache = {}
+        self._bootstrap_context = None
+
+    @property
+    def rest_client(self):
+        if self._rest_client is None:
+            self._rest_client = get_rest_client()
+        return self._rest_client
 
     def cleanup(self, finished):
-        if finished:
+        if finished and self._dispatcher is not None:
             self._dispatcher.cleanup()
 
     @property
     def bootstrap_context(self):
-        return get_bootstrap_context()
+        if self._bootstrap_context is None:
+            self._bootstrap_context = get_bootstrap_context()
+        return self._bootstrap_context
 
     def get_send_task_event_func(self, task):
         return events.send_task_event_func_remote
 
+    def _prepare_dispatcher(self):
+        # only import TaskDispatcher if we actually want to dispatch tasks -
+        # some workflows (eg. upload_blueprint, or create-dep-env) don't
+        # need to do so, so they don't need to pay the price of importing pika
+        from cloudify.workflows.amqp_dispatcher import TaskDispatcher
+        self._dispatcher = TaskDispatcher(self.workflow_ctx)
+
     def send_task(self, *args, **kwargs):
+        if self._dispatcher is None:
+            self._prepare_dispatcher()
         return self._dispatcher.send_task(*args, **kwargs)
 
     def wait_for_result(self, *args, **kwargs):
+        if self._dispatcher is None:
+            self._prepare_dispatcher()
         return self._dispatcher.wait_for_result(*args, **kwargs)
 
     @property
@@ -1506,7 +1591,13 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             exception_causes = getattr(exception, 'causes', None)
         self.rest_client.operations.update(
             operation_id, state=state, result=result,
-            exception=exception_text, exception_causes=exception_causes)
+            exception=exception_text, exception_causes=exception_causes,
+            agent_name=utils.get_daemon_name(),
+            manager_name=utils.get_manager_name(),
+        )
+
+    def _update_operation_inputs(self, *args, **kwargs):
+        self.rest_client.operations._update_operation_inputs(*args, **kwargs)
 
     def get_tasks_graph(self, execution_id, name):
         graphs = self.rest_client.tasks_graphs.list(execution_id, name)
@@ -1519,7 +1610,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
 
     def store_operation(self, graph_id, dependencies,
                         id, name, type, parameters, **kwargs):
-        self.rest_client.operations.create(
+        return self.rest_client.operations.create(
             operation_id=id,
             graph_id=graph_id,
             name=name,
@@ -1550,7 +1641,8 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         )
 
     def get_node_instances(self):
-        if self.workflow_ctx.workflow_id in ('create_deployment_environment',
+        if self.workflow_ctx.workflow_id in ('upload_blueprint',
+                                             'create_deployment_environment',
                                              'delete_deployment_environment'):
             return []
         dep = self.workflow_ctx.deployment
@@ -1570,6 +1662,82 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
                 plugin['tenant_name'] = managed_plugins[0]['tenant_name']
             self._plugins_cache[key] = plugin
         return self._plugins_cache[key]
+
+    def update_node_instance(self, *args, **kwargs):
+        return self.rest_client.node_instances.update(*args, **kwargs)
+
+    def set_deployment_attributes(self, deployment_id, **kwargs):
+        self.rest_client.deployments.set_attributes(deployment_id, **kwargs)
+
+    def get_deployment_update(self, update_id):
+        return self.rest_client.deployment_updates.get(update_id)
+
+    def set_deployment_update_attributes(self, update_id, **kwargs):
+        self.rest_client.deployment_updates.set_attributes(update_id, **kwargs)
+
+    def get_blueprint(self, blueprint_id):
+        return self.rest_client.blueprints.get(blueprint_id)
+
+    def get_deployment(self, deployment_id):
+        return self.rest_client.deployments.get(deployment_id)
+
+    def list_nodes(self, **kwargs):
+        return self.rest_client.nodes.list(**kwargs)
+
+    def list_node_instances(self, **kwargs):
+        return self.rest_client.node_instances.list(**kwargs)
+
+    def update_node(self, deployment_id, node_id, **kwargs):
+        self.rest_client.nodes.update(deployment_id, node_id, **kwargs)
+
+    def delete_node(self, deployment_id, node_id):
+        self.rest_client.nodes.delete(deployment_id, node_id)
+
+    def delete_node_instance(self, instance_id):
+        self.rest_client.node_instances.delete(instance_id)
+
+    def create_nodes(self, deployment_id, nodes):
+        self.rest_client.nodes.create_many(deployment_id, nodes)
+
+    def create_node_instances(self, deployment_id, node_instances):
+        self.rest_client.node_instances.create_many(
+            deployment_id, node_instances)
+
+    def list_execution_schedules(self, **kwargs):
+        return self.rest_client.execution_schedules.list(**kwargs)
+
+    def update_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        self.rest_client.execution_schedules.update(
+            schedule_id, deployment_id, **kwargs)
+
+    def create_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        self.rest_client.execution_schedules.create(
+            schedule_id, deployment_id, **kwargs)
+
+    def get_managers(self):
+        return self.rest_client.manager.get_managers()
+
+    def list_idds(self, **kwargs):
+        return self.rest_client.inter_deployment_dependencies.list(**kwargs)
+
+    def update_idds(self, deployment_id, idds):
+        return self.rest_client.inter_deployment_dependencies.update_all(
+            deployment_id, idds)
+
+    def get_secret(self, key):
+        return self.rest_client.secrets.get(key)
+
+    def start_execution(self, deployment_id, workflow_id, **kwargs):
+        return self.rest_client.executions.start(
+            deployment_id,
+            workflow_id,
+            **kwargs
+        )
+
+    def evaluate_functions(self, deployment_id, ctx, payload):
+        result = \
+            self.rest_client.evaluate.functions(deployment_id, ctx, payload)
+        return result.get('payload')
 
 
 class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
@@ -1710,6 +1878,9 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
                          result=None, exception=None):
         pass
 
+    def _update_operation_inputs(self, *args, **kwargs):
+        pass
+
     def store_tasks_graph(self, execution_id, name, operations):
         pass
 
@@ -1731,6 +1902,91 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
 
     def get_plugin(self, plugin):
         return plugin
+
+    def update_node_instance(self, *args, **kwargs):
+        return self.storage.update_node_instance(*args, **kwargs)
+
+    def set_deployment_attributes(self, deployment_id, **kwargs):
+        if 'workflows' in kwargs:
+            workflows = []
+            for name, wf in kwargs['workflows'].items():
+                wf = wf.copy()
+                wf['name'] = name
+                workflows.append(wf)
+            kwargs['workflows'] = workflows
+        self.storage.set_deployment_attributes(deployment_id, **kwargs)
+
+    def get_deployment_update(self, update_id):
+        return self.storage.get_deployment_update(
+            self.workflow_ctx.deployment.id, update_id)
+
+    def set_deployment_update_attributes(self, update_id, **kwargs):
+        if 'plan' in kwargs:
+            kwargs['deployment_plan'] = kwargs.pop('plan')
+        if 'nodes' in kwargs:
+            kwargs['deployment_update_nodes'] = kwargs.pop('nodes')
+        if 'node_instances' in kwargs:
+            kwargs['deployment_update_node_instances'] = \
+                kwargs.pop('node_instances')
+        self.storage.set_deployment_update_attributes(
+            self.workflow_ctx.deployment.id, update_id, **kwargs)
+
+    def get_blueprint(self, blueprint_id):
+        return self.storage.get_blueprint(blueprint_id)
+
+    def get_deployment(self, deployment_id):
+        return self.storage.get_deployment(deployment_id)
+
+    def list_nodes(self, **kwargs):
+        deployment_id = kwargs.pop('deployment_id')
+        return self.storage.get_nodes(deployment_id)
+
+    def list_node_instances(self, **kwargs):
+        deployment_id = kwargs.pop('deployment_id')
+        node_id = kwargs.pop('node_id', None)
+        return self.storage.get_node_instances(
+            deployment_id=deployment_id, node_id=node_id)
+
+    def update_node(self, deployment_id, node_id, **kwargs):
+        self.storage.update_node(deployment_id, node_id, **kwargs)
+
+    def delete_node(self, deployment_id, node_id):
+        self.storage.delete_node(deployment_id, node_id)
+
+    def delete_node_instance(self, instance_id):
+        raise NotImplementedError('Not implemented yet')
+
+    def create_nodes(self, deployment_id, nodes):
+        self.storage.create_nodes(deployment_id, nodes)
+
+    def create_node_instances(self, deployment_id, node_instances):
+        self.storage.create_node_instances(deployment_id, node_instances)
+
+    def list_execution_schedules(self, **kwargs):
+        return []
+
+    def update_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        pass
+
+    def create_execution_schedule(self, schedule_id, deployment_id, **kwargs):
+        pass
+
+    def get_managers(self):
+        return []
+
+    def list_idds(self, **kwargs):
+        return []
+
+    def update_idds(self, deployment_id, idds):
+        pass
+
+    def start_execution(self, deployment_id, workflow_id, **kwargs):
+        raise RuntimeError('Starting executions from executions is not '
+                           'implemented for local workflows')
+
+    def evaluate_functions(self, deployment_id, ctx, payload):
+        return dsl_functions.evaluate_functions(
+            payload=payload, context=ctx, storage=self.storage)
 
 
 class Modification(object):
@@ -1810,6 +2066,7 @@ class WorkflowDeploymentContext(context.DeploymentContext):
     def __init__(self, cloudify_context, workflow_ctx):
         super(WorkflowDeploymentContext, self).__init__(cloudify_context)
         self.workflow_ctx = workflow_ctx
+        self._resource_tags = None
 
     def start_modification(self, nodes):
         """Start deployment modification process
@@ -1837,6 +2094,22 @@ class WorkflowDeploymentContext(context.DeploymentContext):
     def scaling_groups(self):
         return self.workflow_ctx.internal.handler.scaling_groups
 
+    @property
+    def resource_tags(self):
+        """Resource tags associated with this deployment."""
+        if self._resource_tags is None and self.workflow_ctx.internal:
+            raw_tags = self._context.get('deployment_resource_tags')
+            if raw_tags:
+                evaluated = self.workflow_ctx.internal.evaluate_functions(
+                    self.id,
+                    self._context,
+                    raw_tags,
+                )
+            else:
+                evaluated = {}
+            self._resource_tags = evaluated
+        return self._resource_tags
+
 
 def task_config(fn=None, **arguments):
     if fn is not None:
@@ -1849,3 +2122,20 @@ def task_config(fn=None, **arguments):
         def partial_wrapper(func):
             return task_config(func, **arguments)
         return partial_wrapper
+
+
+def _validate_types(schema, arguments):
+    if not isinstance(schema, dict):
+        return True
+    for input_name, type_name in schema.items():
+        if input_name not in arguments:
+            continue
+        if dsl_functions.get_function(arguments[input_name]):
+            continue
+        _, valid = parse_simple_type_value(arguments[input_name], type_name)
+        if not valid:
+            raise RuntimeError(
+                "Value {0} of '{1}' does not match the definition: {2}"
+                .format(arguments[input_name], input_name, type_name)
+            )
+    return True

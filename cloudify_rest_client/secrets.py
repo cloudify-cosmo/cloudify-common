@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -117,15 +102,14 @@ class SecretsClient(object):
         response = self.api.put('/secrets/{0}'.format(key), data=data)
         return Secret(response)
 
-    def update(self, key, value=None, visibility=None, is_hidden_value=None):
-        data = {
+    def update(self, key,
+               value=None, visibility=None, is_hidden_value=None, **kwargs):
+        kwargs.update({
             'value': value,
             'visibility': visibility,
             'is_hidden_value': is_hidden_value
-        }
-
-        # Remove the keys with value None
-        data = dict((k, v) for k, v in data.items() if v is not None)
+        })
+        data = dict((k, v) for k, v in kwargs.items() if v is not None)
         response = self.api.patch('/secrets/{0}'.format(key), data=data)
         return Secret(response)
 
@@ -133,7 +117,7 @@ class SecretsClient(object):
         response = self.api.get('/secrets/{0}'.format(key))
         return Secret(response)
 
-    def export(self, **kwargs):
+    def export(self, _include=None, **kwargs):
         """
         Returns a list of secrets to be exported
 
@@ -141,7 +125,8 @@ class SecretsClient(object):
         :return: Secrets' list
         """
         params = kwargs
-        response = self.api.get('/secrets/share/export', params=params)
+        response = self.api.get('/secrets/share/export', params=params,
+                                _include=_include)
         return response
 
     def import_secrets(self, secrets_list, tenant_map=None,
@@ -167,22 +152,39 @@ class SecretsClient(object):
         response = self.api.post('/secrets/share/import', data=data)
         return response
 
-    def list(self, sort=None, is_descending=False, **kwargs):
+    def list(self, sort=None, is_descending=False,
+             filter_rules=None, constraints=None, **kwargs):
         """
         Returns a list of currently stored secrets.
 
         :param sort: Key for sorting the list.
         :param is_descending: True for descending order, False for ascending.
+        :param filter_rules: A list of filter rules to filter the secrets
+               list by
+        :param constraints: A list of DSL constraints for secret_id data
+               type.  The purpose is similar to the `filter_rules`, but syntax
+               differs.
         :param kwargs: Optional filter fields. For a list of available fields
                see the REST service's models.Secret.fields
         :return: Secrets list.
         """
+        if constraints and filter_rules:
+            raise ValueError('provide either DSL constraints or '
+                             'filter_id/filter_rules, not both')
 
         params = kwargs
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/secrets', params=params)
+        if filter_rules:
+            response = self.api.post('/searches/secrets', params=params,
+                                     data={'filter_rules': filter_rules})
+        elif constraints:
+            response = self.api.post('/searches/secrets', params=params,
+                                     data={'constraints': constraints})
+        else:
+            response = self.api.get('/secrets', params=params)
+
         return ListResponse([Secret(item) for item in response['items']],
                             response['metadata'])
 
