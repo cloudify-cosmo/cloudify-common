@@ -175,6 +175,15 @@ class BlueprintsClient(object):
                 state=None,
                 skip_execution=False,
                 validate=False):
+        def callback_wrapper(watcher):
+            if getattr(watcher, 'cfy_progress_complete', False):
+                # Don't print the final line twice
+                return
+            read_bytes, total_bytes = watcher.bytes_read, watcher.len
+            progress_callback(read_bytes, total_bytes)
+            if read_bytes == total_bytes:
+                watcher.cfy_progress_complete = True
+
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
         if validate:
             uri += '/validate'
@@ -186,7 +195,7 @@ class BlueprintsClient(object):
             archive_location,
             application_file_name,
             visibility,
-            progress_callback,
+            callback_wrapper if progress_callback else None,
             async_upload,
             labels,
             created_at,
