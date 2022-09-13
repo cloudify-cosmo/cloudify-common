@@ -664,7 +664,7 @@ def generate_user_password(password_length=32):
 def get_admin_api_token():
     token = os.environ.get(constants.ADMIN_API_TOKEN_KEY)
 
-    if token is None:
+    if not token:
         with open(ADMIN_API_TOKEN_PATH, 'r') as token_file:
             token = token_file.read()
             token = token.strip()
