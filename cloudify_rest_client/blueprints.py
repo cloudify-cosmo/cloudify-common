@@ -113,7 +113,6 @@ class BlueprintsClient(object):
                              archive_location,
                              application_file_name,
                              visibility,
-                             progress_callback,
                              async_upload,
                              labels=None,
                              created_at=None,
@@ -195,7 +194,6 @@ class BlueprintsClient(object):
             archive_location,
             application_file_name,
             visibility,
-            callback_wrapper if progress_callback else None,
             async_upload,
             labels,
             created_at,
@@ -207,7 +205,7 @@ class BlueprintsClient(object):
         multipart = MultipartEncoder(fields=params)
         if progress_callback:
             multipart = MultipartEncoderMonitor(
-                multipart, progress_callback)
+                multipart, callback_wrapper)
         return self.api.put(
             uri,
             data=multipart,
