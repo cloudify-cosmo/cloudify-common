@@ -1,21 +1,8 @@
-########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import os
 import contextlib
 from urllib.parse import urlparse
+
+from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client.executions import Execution
@@ -195,18 +182,26 @@ class SnapshotsClient(object):
 
         uri = '/snapshots/{0}/archive'.format(snapshot_id)
         query_params = {}
+        headers = {}
 
         if urlparse(snapshot_path).scheme and \
                 not os.path.exists(snapshot_path):
             query_params['snapshot_archive_url'] = snapshot_path
             data = None
         else:
-            data = bytes_stream_utils.request_data_file_stream(
-                snapshot_path,
-                progress_callback=progress_callback,
-                client=self.api)
+            data = MultipartEncoder(fields={
+                    'snapshot_archive': (
+                        'filename',
+                        open(snapshot_path, 'rb'),
+                        'text/plain',
+                    )
+            })
+            if progress_callback:
+                data = MultipartEncoderMonitor(data, progress_callback)
+            headers = {'Content-Type': data.content_type}
 
         response = self.api.put(uri, params=query_params, data=data,
+                                headers=headers,
                                 expected_status_code=201)
         return Snapshot(response)
 
