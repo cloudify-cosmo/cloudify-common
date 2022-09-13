@@ -1,8 +1,11 @@
+import json
 import os
 import tempfile
 import shutil
 import contextlib
 from urllib.parse import quote as urlquote, urlparse
+
+from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 from cloudify_rest_client import utils
 from cloudify_rest_client import bytes_stream_utils
@@ -117,46 +120,47 @@ class BlueprintsClient(object):
                              created_by=None,
                              state=None,
                              skip_execution=False):
-        query_params = {'visibility': visibility, 'async_upload': async_upload,
-                        'skip_execution': skip_execution}
+        params = {'visibility': visibility, 'async_upload': async_upload,
+                  'skip_execution': skip_execution}
         if application_file_name is not None:
-            query_params['application_file_name'] = \
-                urlquote(application_file_name)
+            params['application_file_name'] = urlquote(application_file_name)
         if labels is not None:
-            labels_params = []
-            for label in labels:
-                if (not isinstance(label, dict)) or len(label) != 1:
-                    raise CloudifyClientError(
-                        'Labels must be a list of 1-entry dictionaries: '
-                        '[{<key1>: <value1>}, {<key2>: [<value2>, <value3>]}, '
-                        '...]')
-
-                [(key, value)] = label.items()
-                value = value.replace('=', '\\=').replace(',', '\\,')
-                labels_params.append('{0}={1}'.format(key, value))
-            query_params['labels'] = ','.join(labels_params)
+            params['labels'] = [
+                {
+                    'key': list(label.keys())[0],
+                    'value': list(label.values())[0],
+                }
+                for label in labels
+            ]
         if created_at:
-            query_params['created_at'] = created_at
+            params['created_at'] = created_at
         if created_by:
-            query_params['created_by'] = created_by
+            params['created_by'] = created_by
         if state:
-            query_params['state'] = state
+            params['state'] = state
 
         # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
         # drive letter and therefore the 2nd condition is present
         if urlparse(archive_location).scheme and \
                 not os.path.exists(archive_location):
             # archive location is URL
-            query_params['blueprint_archive_url'] = archive_location
-            data = None
+            params['blueprint_archive_url'] = archive_location
+            blueprint_archive = None
         else:
             # archive location is a system path
-            data = bytes_stream_utils.request_data_file_stream(
-                archive_location,
-                progress_callback=progress_callback,
-                client=self.api)
+            blueprint_archive = (
+                'filename',
+                open(archive_location, 'rb'),
+                'text/plain',
+            )
 
-        return query_params, data
+        data = {
+            'params': json.dumps(params),
+        }
+        if blueprint_archive:
+            data['blueprint_archive'] = blueprint_archive
+
+        return data
 
     def _upload(self,
                 archive_location,
@@ -169,8 +173,16 @@ class BlueprintsClient(object):
                 created_at=None,
                 created_by=None,
                 state=None,
-                skip_execution=False):
-        query_params, data = self._prepare_put_request(
+                skip_execution=False,
+                validate=False):
+        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
+        if validate:
+            uri += '/validate'
+            expected_status = [201, 204]
+        else:
+            expected_status = 201
+
+        params = self._prepare_put_request(
             archive_location,
             application_file_name,
             visibility,
@@ -182,12 +194,16 @@ class BlueprintsClient(object):
             state,
             skip_execution,
         )
-        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
+
+        multipart = MultipartEncoder(fields=params)
+        if progress_callback:
+            multipart = MultipartEncoderMonitor(
+                multipart, progress_callback)
         return self.api.put(
             uri,
-            params=query_params,
-            data=data,
-            expected_status_code=201
+            data=multipart,
+            headers={'Content-Type': multipart.content_type},
+            expected_status_code=expected_status,
         )
 
     def _validate(self,
@@ -196,21 +212,11 @@ class BlueprintsClient(object):
                   application_file_name=None,
                   visibility=VisibilityState.TENANT,
                   progress_callback=None):
-        query_params, data = self._prepare_put_request(
-            archive_location,
-            application_file_name,
-            visibility,
-            progress_callback,
-            async_upload=False,
-        )
-        uri = '/{self._uri_prefix}/{id}/validate'.format(self=self,
-                                                         id=blueprint_id)
-        return self.api.put(
-            uri,
-            params=query_params,
-            data=data,
-            expected_status_code=(200, 204)
-        )
+        return self._upload(archive_location, blueprint_id,
+                            application_file_name=application_file_name,
+                            visibility=visibility,
+                            progress_callback=progress_callback,
+                            async_upload=False)
 
     def _validate_blueprint_size(self, path, tempdir, skip_size_limit):
         blueprint_directory = os.path.dirname(path) or os.getcwd()

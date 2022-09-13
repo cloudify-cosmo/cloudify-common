@@ -1,48 +1,7 @@
-########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import os
 
 CONTENT_DISPOSITION_HEADER = 'content-disposition'
 DEFAULT_BUFFER_SIZE = 8192
-
-
-def request_data_file_stream(file_path,
-                             buffer_size=DEFAULT_BUFFER_SIZE,
-                             progress_callback=None,
-                             client=None):
-    """
-    Read file data in kerberos mode or split into chunks,
-    :param file_path: Local path of the file to be transferred
-    :param buffer_size: Size of the buffer
-    :param progress_callback: Callback function - can be used to print progress
-    :return: File data or generator object
-    """
-    if client and client.has_kerberos() and not client.has_auth_header():
-        # kerberos currently does not support chunks
-        with open(file_path, 'rb') as f:
-            data = f.read()
-        if progress_callback:
-            progress_callback(1, 1)
-    else:
-        # upload it in chunks
-        data = request_data_file_stream_gen(
-            file_path,
-            buffer_size=buffer_size,
-            progress_callback=progress_callback)
-    return data
 
 
 def request_data_file_stream_gen(file_path,
