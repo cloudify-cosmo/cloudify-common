@@ -124,6 +124,11 @@ class BlueprintsClient(object):
         if application_file_name is not None:
             params['application_file_name'] = urlquote(application_file_name)
         if labels is not None:
+            if any(len(label) > 1 for label in labels):
+                raise CloudifyClientError(
+                        'Labels must be a list of 1-entry dictionaries: '
+                        '[{<key1>: <value1>}, {<key2>: [<value2>, <value3>]}, '
+                        '...]')
             params['labels'] = [
                 {
                     'key': list(label.keys())[0],
