@@ -223,6 +223,13 @@ def get_manager_file_server_root():
     return os.environ[constants.MANAGER_FILE_SERVER_ROOT_KEY]
 
 
+def get_manager_rest_service_protocol():
+    return os.environ.get(
+        constants.REST_PROTOCOL_KEY,
+        constants.SECURED_PROTOCOL,
+    )
+
+
 def get_manager_rest_service_host():
     """
     Returns the host the manager REST service is running on.
@@ -655,8 +662,13 @@ def generate_user_password(password_length=32):
 
 
 def get_admin_api_token():
-    with open(ADMIN_API_TOKEN_PATH, 'r') as token_file:
-        token = token_file.read()
+    token = os.environ.get(constants.ADMIN_API_TOKEN_KEY)
+
+    if not token:
+        with open(ADMIN_API_TOKEN_PATH, 'r') as token_file:
+            token = token_file.read()
+            token = token.strip()
+
     return token
 
 

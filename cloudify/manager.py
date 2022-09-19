@@ -156,7 +156,7 @@ def get_rest_client(tenant=None, api_token=None):
         port=utils.get_manager_rest_service_port(),
         tenant=tenant,
         token=token,
-        protocol=constants.SECURED_PROTOCOL,
+        protocol=utils.get_manager_rest_service_protocol(),
         cert=utils.get_local_rest_certificate(),
         kerberos_env=utils.get_kerberos_indication(
             os.environ.get(constants.KERBEROS_ENV_KEY))
