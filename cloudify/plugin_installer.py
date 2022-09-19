@@ -462,6 +462,8 @@ def _is_plugin_supported(plugin):
 
 def _platform_and_distro():
     current_platform = wagon.get_platform()
+    if linux_distribution is None:
+        raise NonRecoverableError("distro must be installed")
     distribution, _, distribution_release = linux_distribution(
         full_distribution_name=False)
     return current_platform, distribution.lower(), distribution_release.lower()
