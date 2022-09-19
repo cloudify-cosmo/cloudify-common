@@ -20,7 +20,6 @@ import json
 import errno
 import shutil
 import tempfile
-import platform
 import threading
 
 from os import walk
@@ -51,6 +50,13 @@ try:
 except ImportError:
     from distutils.version import LooseVersion as parse_version
 
+try:
+    from distro import linux_distribution
+except ImportError:
+    try:
+        from platform import linux_distribution
+    except ImportError:
+        linux_distribution = None
 
 PLUGIN_INSTALL_LOCK = threading.Lock()
 runner = LocalCommandRunner()
@@ -456,7 +462,7 @@ def _is_plugin_supported(plugin):
 
 def _platform_and_distro():
     current_platform = wagon.get_platform()
-    distribution, _, distribution_release = platform.linux_distribution(
+    distribution, _, distribution_release = linux_distribution(
         full_distribution_name=False)
     return current_platform, distribution.lower(), distribution_release.lower()
 
