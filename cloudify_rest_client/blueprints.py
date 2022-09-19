@@ -113,7 +113,6 @@ class BlueprintsClient(object):
                              archive_location,
                              application_file_name,
                              visibility,
-                             progress_callback,
                              async_upload,
                              labels=None,
                              created_at=None,
@@ -125,6 +124,12 @@ class BlueprintsClient(object):
         if application_file_name is not None:
             params['application_file_name'] = urlquote(application_file_name)
         if labels is not None:
+            if any(not isinstance(label, dict) or len(label) > 1
+                   for label in labels):
+                raise CloudifyClientError(
+                        'Labels must be a list of 1-entry dictionaries: '
+                        '[{<key1>: <value1>}, {<key2>: [<value2>, <value3>]}, '
+                        '...]')
             params['labels'] = [
                 {
                     'key': list(label.keys())[0],
@@ -175,6 +180,15 @@ class BlueprintsClient(object):
                 state=None,
                 skip_execution=False,
                 validate=False):
+        def callback_wrapper(watcher):
+            if getattr(watcher, 'cfy_progress_complete', False):
+                # Don't print the final line twice
+                return
+            read_bytes, total_bytes = watcher.bytes_read, watcher.len
+            progress_callback(read_bytes, total_bytes)
+            if read_bytes == total_bytes:
+                watcher.cfy_progress_complete = True
+
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
         if validate:
             uri += '/validate'
@@ -186,7 +200,6 @@ class BlueprintsClient(object):
             archive_location,
             application_file_name,
             visibility,
-            progress_callback,
             async_upload,
             labels,
             created_at,
@@ -198,7 +211,7 @@ class BlueprintsClient(object):
         multipart = MultipartEncoder(fields=params)
         if progress_callback:
             multipart = MultipartEncoderMonitor(
-                multipart, progress_callback)
+                multipart, callback_wrapper)
         return self.api.put(
             uri,
             data=multipart,
