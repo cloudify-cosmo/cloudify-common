@@ -92,7 +92,6 @@ class Blueprint(Element):
         'blueprint_labels': misc.BlueprintLabels,
         'deployment_settings': misc.DeploymentSettings,
         'resource_tags': misc.ResourceTags,
-        'credentials': misc.Credentials,
     }
 
     requires = {
@@ -137,7 +136,6 @@ class Blueprint(Element):
             constants.LABELS: self.child(misc.Labels).value,
             constants.BLUEPRINT_LABELS: self.child(misc.BlueprintLabels).value,
             constants.RESOURCE_TAGS: self.child(misc.ResourceTags).value,
-            constants.CREDENTIALS: self.child(misc.Credentials).value,
             constants.DEPLOYMENT_SETTINGS: self.child(
                 misc.DeploymentSettings).value
         })
