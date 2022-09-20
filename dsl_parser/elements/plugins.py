@@ -16,6 +16,9 @@
 from dsl_parser import (constants,
                         exceptions)
 from dsl_parser.elements import version as element_version
+from dsl_parser.elements.data_types import (SchemaPropertyDescription,
+                                            SchemaPropertyType,
+                                            SchemaPropertyDisplayLabel)
 from dsl_parser.framework.elements import (DictElement,
                                            Element,
                                            Leaf,
@@ -103,6 +106,31 @@ class PluginDistributionRelease(PluginVersionValidatedElement):
     min_version = (1, 2)
 
 
+class PluginPropertiesDescription(PluginVersionValidatedElement):
+    min_version = (1, 5)
+    schema = Leaf(type=str)
+
+
+class PluginProperty(Element):
+    schema = {
+        'description': SchemaPropertyDescription,
+        'type': SchemaPropertyType,
+        'display_label': SchemaPropertyDisplayLabel,
+    }
+
+
+class PluginProperties(DictElement):
+    schema = Dict(type=PluginProperty)
+    requires = {
+        element_version.ToscaDefinitionsVersion: ['version'],
+        'inputs': ['validate_version']
+    }
+
+    def validate(self, version, validate_version):
+        if validate_version:
+            self.validate_version(version, (1, 5))
+
+
 class Plugin(DictElement):
 
     schema = {
@@ -115,7 +143,9 @@ class Plugin(DictElement):
         'supported_platform': PluginSupportedPlatform,
         'distribution': PluginDistribution,
         'distribution_version': PluginDistributionVersion,
-        'distribution_release': PluginDistributionRelease
+        'distribution_release': PluginDistributionRelease,
+        'properties_description': PluginPropertiesDescription,
+        'properties': PluginProperties,
     }
 
     def validate(self):

@@ -76,7 +76,7 @@ class BaseParserApiTest(AbstractTestParser):
         self.assertEqual('test_type', node['type'])
         plugin_props = [p for p in node['plugins']
                         if p['name'] == 'test_plugin'][0]
-        self.assertEqual(11, len(plugin_props))
+        self.assertEqual(13, len(plugin_props))
         self.assertEqual('test_plugin',
                          plugin_props[constants.PLUGIN_NAME_KEY])
         operations = node['operations']
@@ -164,9 +164,11 @@ node_types:
             constants.PLUGIN_SUPPORTED_PLATFORM: None,
             constants.PLUGIN_DISTRIBUTION: None,
             constants.PLUGIN_DISTRIBUTION_VERSION: None,
-            constants.PLUGIN_DISTRIBUTION_RELEASE: None
+            constants.PLUGIN_DISTRIBUTION_RELEASE: None,
+            'properties_description': None,
+            'properties': {},
         }]
-        self.assertEqual(parsed_plugins, expected_plugins)
+        self.assertEqual(expected_plugins, parsed_plugins)
 
     def test_type_with_interface_and_plugin_with_install_args(self):
         yaml = self.PLUGIN_WITH_INTERFACES_AND_PLUGINS_WITH_INSTALL_ARGS
@@ -186,9 +188,11 @@ node_types:
             constants.PLUGIN_SUPPORTED_PLATFORM: None,
             constants.PLUGIN_DISTRIBUTION: None,
             constants.PLUGIN_DISTRIBUTION_VERSION: None,
-            constants.PLUGIN_DISTRIBUTION_RELEASE: None
+            constants.PLUGIN_DISTRIBUTION_RELEASE: None,
+            'properties_description': None,
+            'properties': {},
         }]
-        self.assertEqual(parsed_plugins, expected_plugins)
+        self.assertEqual(expected_plugins, parsed_plugins)
 
     def test_dsl_with_type_with_operation_mappings(self):
         yaml = self.create_yaml_with_imports(
@@ -2496,8 +2500,12 @@ node_templates:
         parsed = self.parse_1_2(yml.safe_dump(raw_parsed))
         expected_plugin1 = deployment_plugin_def.copy()
         expected_plugin1['name'] = 'plugin1'
+        expected_plugin1['properties_description'] = None
+        expected_plugin1['properties'] = {}
         expected_plugin2 = host_plugin_def.copy()
         expected_plugin2['name'] = 'plugin2'
+        expected_plugin2['properties_description'] = None
+        expected_plugin2['properties'] = {}
         plugin1 = parsed['deployment_plugins_to_install'][0]
         node2 = self.get_node_by_name(parsed, 'node2')
         plugin2 = node2['plugins_to_install'][0]
