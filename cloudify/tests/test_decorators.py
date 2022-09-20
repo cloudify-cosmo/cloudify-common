@@ -29,7 +29,7 @@ from cloudify.exceptions import (
     NonRecoverableError, CloudifySerializationRetry)
 
 from cloudify.test_utils.dispatch_helper import run
-import cloudify.tests.mocks.mock_rest_client as rest_client_mock
+from cloudify.test_utils import mock_rest_client as rest_client_mock
 
 
 class MockNotPicklableException(Exception):
@@ -192,7 +192,7 @@ class OperationTest(unittest.TestCase):
         self.assertEqual(w1(), 'w1')
         self.assertEqual(w2(), 'w2')
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_install(self, list_fn):
 
@@ -229,7 +229,7 @@ class OperationTest(unittest.TestCase):
         self.assertTrue(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_install_wait_for_1(self, list_fn):
 
@@ -257,7 +257,7 @@ class OperationTest(unittest.TestCase):
         self.assertTrue(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_install_states(self, list_fn):
 
@@ -285,7 +285,7 @@ class OperationTest(unittest.TestCase):
         self.assertTrue(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_install_workflow(self, list_fn):
 
@@ -313,7 +313,7 @@ class OperationTest(unittest.TestCase):
         self.assertTrue(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_uninstall(self, list_fn):
 
@@ -342,7 +342,7 @@ class OperationTest(unittest.TestCase):
         self.assertFalse(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_uninstall_wait_3(self, list_fn):
 

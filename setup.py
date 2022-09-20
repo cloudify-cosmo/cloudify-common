@@ -24,6 +24,7 @@ setup(
         'requests>=2.27.1,<3.0.0',
         'fasteners==0.17.3',
         'aiohttp==3.8.1',
+        'distro>=1.7.0',
     ],
     entry_points={
         'console_scripts': [

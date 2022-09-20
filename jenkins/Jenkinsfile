@@ -57,7 +57,7 @@ pipeline {
     stage ('flake8') {
       steps{
         sh script: "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8", label: "copying repo to separate workspace"
-        container('py36'){
+        container('py310'){
           dir("${env.WORKSPACE}/flake8") {
           echo 'install flake 8'
           sh "pip install flake8 --user"
@@ -69,10 +69,11 @@ pipeline {
     }
     stage('tests'){
       steps{
-        sh script: "mkdir -p ${env.WORKSPACE}/test-py36 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py36", label: "copying repo to separate workspace"
-        container('py36'){
-          dir("${env.WORKSPACE}/test-py36") {
-            install_test_dependencies('py36')
+        sh script: "mkdir -p ${env.WORKSPACE}/test-py310 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py310", label:
+        "copying repo to separate workspace"
+        container('py310'){
+          dir("${env.WORKSPACE}/test-py310") {
+            install_test_dependencies('py310')
             pytest('dsl_parser')
             pytest('script_runner')
             pytest('cloudify')
@@ -90,7 +91,7 @@ pipeline {
       when { branch pattern: ".+-build", comparator: "REGEXP"}
       steps{
         sh script: "mkdir -p ${env.WORKSPACE}/project-docs && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/project-docs", label: "copying repo to separate workspace"
-        container('py36'){
+        container('py310'){
           dir("${env.WORKSPACE}/project-docs") {
             echo 'Install sphinx'
             sh "pip install sphinx sphinx-rtd-theme"
