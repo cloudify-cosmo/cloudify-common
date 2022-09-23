@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 from dsl_parser import constants, constraints, exceptions, utils
-from dsl_parser._compat import text_type
 from dsl_parser.elements import (data_types,
                                  plugins as _plugins,
                                  operation,
@@ -108,7 +107,7 @@ class ParameterSchemaProperty(data_types.SchemaProperty):
 class WorkflowMapping(Element):
 
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class WorkflowParameters(data_types.Schema):
@@ -145,7 +144,7 @@ class WorkflowAvailabilityNodeInstancesActive(Element):
 
 
 class NodeTypeName(Element):
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
     add_namespace_to_schema_elements = False
 
 
@@ -175,7 +174,7 @@ class Workflow(Element):
 
     required = True
     schema = [
-        Leaf(type=text_type),
+        Leaf(type=str),
         {
             'mapping': WorkflowMapping,
             'parameters': WorkflowParameters,
@@ -190,7 +189,7 @@ class Workflow(Element):
     }
 
     def parse(self, plugins, resource_base, namespaces_mapping):
-        if isinstance(self.initial_value, text_type):
+        if isinstance(self.initial_value, str):
             operation_content = {'mapping': self.initial_value,
                                  'parameters': {}}
             is_cascading = False

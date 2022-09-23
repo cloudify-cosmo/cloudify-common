@@ -13,7 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-from testtools import TestCase
+from unittest import TestCase
 
 from cloudify import exceptions
 from cloudify.workflows import tasks, tasks_graph

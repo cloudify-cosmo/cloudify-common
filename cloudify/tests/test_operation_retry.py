@@ -13,17 +13,16 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-
+import unittest
+from io import StringIO
 from os import path
 
-import testtools
 from mock import patch
 
 from cloudify import context
 from cloudify import decorators
 from cloudify import exceptions
 from cloudify import logs
-from cloudify._compat import StringIO
 from cloudify.workflows import tasks as workflow_tasks
 from cloudify.test_utils import workflow_test
 from cloudify.test_utils import dispatch_helper
@@ -41,7 +40,7 @@ def retry_operation_impl(ctx, **_):
     return ctx.operation.retry(message=RETRY_MESSAGE, retry_after=RETRY_AFTER)
 
 
-class OperationRetryTests(testtools.TestCase):
+class OperationRetryTests(unittest.TestCase):
     def test_operation_retry_api(self):
         op_name = 'operation'
         ctx = context.CloudifyContext({
@@ -57,12 +56,10 @@ class OperationRetryTests(testtools.TestCase):
 
     def test_operation_retry(self):
         ctx = context.CloudifyContext({})
-        e = self.assertRaises(exceptions.OperationRetry,
-                              retry_operation,
-                              ctx,
-                              __cloudify_context={'local': True})
-        self.assertEqual(RETRY_AFTER, e.retry_after)
-        self.assertIn(RETRY_MESSAGE, str(e))
+        with self.assertRaises(exceptions.OperationRetry) as cm:
+            retry_operation(ctx, __cloudify_context={'local': True})
+        self.assertEqual(RETRY_AFTER, cm.exception.retry_after)
+        self.assertIn(RETRY_MESSAGE, str(cm.exception))
 
 
 @decorators.operation
@@ -100,7 +97,7 @@ def execute_operation(ctx, operation, **kwargs):
     graph.execute()
 
 
-class OperationRetryWorkflowTests(testtools.TestCase):
+class OperationRetryWorkflowTests(unittest.TestCase):
 
     blueprint_path = path.join('resources', 'blueprints',
                                'test-operation-retry-blueprint.yaml')

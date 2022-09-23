@@ -14,20 +14,20 @@
 #    * limitations under the License.
 
 import os
-
-import testtools
-from testtools.testcase import ExpectedException
+import unittest
 
 from cloudify.workflows import local
 
 
-class InstallAgentTest(testtools.TestCase):
+class InstallAgentTest(unittest.TestCase):
 
     def test_install_agent(self):
         blueprint_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             "resources/blueprints/test-install-agent-blueprint.yaml")
 
-        with ExpectedException(ValueError,
-                               "'install_agent': true is not supported*"):
-            self.env = local.init_env(blueprint_path)
+        with self.assertRaisesRegex(
+            ValueError,
+            "'install_agent': true is not supported*",
+        ):
+            local.init_env(blueprint_path)

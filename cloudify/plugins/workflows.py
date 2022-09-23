@@ -69,7 +69,7 @@ def _find_instances_to_heal(instances, healthy_instances):
         elif instance.node.has_operation('cloudify.interfaces.lifecycle.heal'):
             to_heal.add(instance)
         else:
-            # instance doesnt have heal and is not healthy - it must be
+            # instance doesn't have heal and is not healthy - it must be
             # reinstalled, and its whole subgraph must be as well
             subgraph = instance.get_contained_subgraph()
             to_reinstall |= subgraph
@@ -78,15 +78,25 @@ def _find_instances_to_heal(instances, healthy_instances):
     return to_heal, to_reinstall
 
 
-def _find_healthy_instances(instances):
+def _find_healthy_instances(instances, require_task=False):
+    """Find instances that are already passing their status check
+
+    Depending on the require_task flag:
+      - if require_task is false, instances that are implicitly healthy
+        (eg. they have just been installed), are considered passing
+      - if require_task is true, only instances that are explicitly proven
+        to be healthy (their check_status operation is defined and has run),
+        are considered passing
+    """
     healthy_instances = set()
     for instance in instances:
         try:
-            if (
-                instance.system_properties['status']['ok']
-                and instance.system_properties['status']['task']
-            ):
-                healthy_instances.add(instance)
+            status = instance.system_properties['status']
+            if not status['ok']:
+                continue
+            if require_task and not status['task']:
+                continue
+            healthy_instances.add(instance)
         except KeyError:
             pass
     return healthy_instances
@@ -146,7 +156,7 @@ def _clean_healed_property(ctx, instances):
 @workflow
 def auto_heal_reinstall_node_subgraph(
     ctx,
-    node_instance_id,
+    node_instance_id=None,
     diagnose_value='Not provided',
     ignore_failure=True,
     check_status=True,
@@ -174,49 +184,62 @@ def auto_heal_reinstall_node_subgraph(
     :param force_reinstall: don't even attempt to heal, always reinstall
     """
 
-    ctx.logger.info("Starting 'heal' workflow on %s, Diagnosis: %s",
-                    node_instance_id, diagnose_value)
-    failing_node = ctx.get_node_instance(node_instance_id)
-    if failing_node is None:
-        raise ValueError(
-            'No node instance with id `{0}` was found'.format(node_instance_id)
-        )
+    if node_instance_id:
+        ctx.logger.info("Starting 'heal' workflow on %s, Diagnosis: %s",
+                        node_instance_id, diagnose_value)
+        failing_node = ctx.get_node_instance(node_instance_id)
+        if failing_node is None:
+            raise ValueError('No node instance with id `{0}` was found'
+                             .format(node_instance_id))
 
-    failing_node_host = ctx.get_node_instance(
-        failing_node._node_instance.host_id)
-    if failing_node_host is None:
-        subgraph_node_instances = failing_node.get_contained_subgraph()
+        failing_node_host = ctx.get_node_instance(
+            failing_node._node_instance.host_id)
+        if failing_node_host is None:
+            sub_node_instances = failing_node.get_contained_subgraph()
+        else:
+            sub_node_instances = failing_node_host.get_contained_subgraph()
     else:
-        subgraph_node_instances = failing_node_host.get_contained_subgraph()
+        ctx.logger.info("Starting 'heal' workflow for '%s' deployment, "
+                        "Diagnosis: %s", ctx.deployment.id, diagnose_value)
+        sub_node_instances = set()
+        for ni in ctx.node_instances:
+            ni_host = ctx.get_node_instance(ni._node_instance.host_id)
+            if ni_host is None:
+                sub_node_instances.update(ni.get_contained_subgraph())
+            else:
+                sub_node_instances.update(ni_host.get_contained_subgraph())
 
     graph = ctx.graph_mode()
     if force_reinstall:
         return lifecycle.reinstall_node_instances(
             graph=graph,
-            node_instances=subgraph_node_instances,
-            related_nodes=set(ctx.node_instances) - subgraph_node_instances,
+            node_instances=sub_node_instances,
+            related_nodes=set(ctx.node_instances) - sub_node_instances,
             ignore_failure=ignore_failure,
         )
 
     if check_status:
         status_graph = _make_check_status_graph(
             ctx,
-            node_instance_ids=[ni.id for ni in subgraph_node_instances],
+            node_instance_ids=[ni.id for ni in sub_node_instances],
             name='check_status',
+            ignore_failure=True,
         )
-        try:
-            status_graph.execute()
-        except Exception as e:
-            # erroring out isn't a critical error here: we can continue as
-            # normal, we will examine the instances' status anyway - so if
-            # the status check failed for some, they will be healed
-            ctx.logger.error('Error running check_status: %s', e)
+        status_graph.execute()
 
         ctx.refresh_node_instances()
 
-    healthy_instances = _find_healthy_instances(subgraph_node_instances)
+    healthy_instances = _find_healthy_instances(
+        sub_node_instances,
+        # require_task if we're explicitly going to target a node instance.
+        # This is compatible with pre-6.4 heal.
+        # This means a targeted heal assumes nodes to be unhealthy unless
+        # proven healthy, and a deployment-wide heal assumes nodes healthy
+        # unless proven unhealthy.
+        require_task=bool(node_instance_id),
+    )
     to_heal, to_reinstall = _find_instances_to_heal(
-        subgraph_node_instances,
+        sub_node_instances,
         healthy_instances,
     )
 
@@ -280,7 +303,7 @@ def get_groups_with_members(ctx):
 def _check_for_too_many_exclusions(exclude_instances, available_instances,
                                    delta, groups_members):
     """
-        Check whether the amount of exluded instances will make it possible to
+        Check whether the amount of excluded instances will make it possible to
         scale down by the given delta.
 
         :param exclude_instances: A list of node instance IDs to exclude.
@@ -925,19 +948,29 @@ def check_status_on_failure(task):
     return HandlerResult.fail()
 
 
+def check_status_on_failure_ignore_failure(task):
+    """check_status failure handler that ignores the error"""
+    _set_node_instance_status(task)
+    return HandlerResult.ignore()
+
+
 @make_or_get_graph
 def _make_check_status_graph(
     ctx,
     run_by_dependency_order=False,
     type_names=None,
     node_ids=None,
-    node_instance_ids=None
+    node_instance_ids=None,
+    ignore_failure=False,
 ):
     """Make the graph for the check_status workflow
 
     This is very similar to execute_operation, but a bit simpler, because
     we only run a single operation from here.
     """
+    on_fail = check_status_on_failure
+    if ignore_failure:
+        on_fail = check_status_on_failure_ignore_failure
     graph = ctx.graph_mode()
     tasks = {}
     filtered_node_instances = _filter_node_instances(
@@ -960,7 +993,7 @@ def _make_check_status_graph(
         )
         task.info = {'instance_id': instance.id}
         task.on_success = check_status_on_success
-        task.on_failure = check_status_on_failure
+        task.on_failure = on_fail
         graph.add_task(task)
         tasks[instance.id] = task
 
@@ -999,13 +1032,17 @@ def _make_check_drift_graph(
     run_by_dependency_order=False,
     type_names=None,
     node_ids=None,
-    node_instance_ids=None
+    node_instance_ids=None,
+    ignore_failure=False,
 ):
     """Make the graph for the check_status workflow
 
     This is very similar to execute_operation, but a bit simpler, because
     we only run a single operation from here.
     """
+    on_fail = check_drift_on_failure
+    if ignore_failure:
+        on_fail = check_drift_on_failure_ignore_failure
     graph = ctx.graph_mode()
     tasks = {}
     filtered_node_instances = _filter_node_instances(
@@ -1028,7 +1065,7 @@ def _make_check_drift_graph(
         )
         task.info = {'instance_id': instance.id}
         task.on_success = check_drift_on_success
-        task.on_failure = check_drift_on_failure
+        task.on_failure = on_fail
         graph.add_task(task)
         tasks[instance.id] = task
         for rel in instance.relationships:
@@ -1037,7 +1074,7 @@ def _make_check_drift_graph(
             target_task = rel.execute_target_operation(
                 'cloudify.interfaces.relationship_lifecycle.check_drift')
             source_task.on_success = check_drift_on_success
-            source_task.on_failure = check_drift_on_failure
+            source_task.on_failure = on_fail
             graph.add_task(source_task)
             graph.add_dependency(source_task, task)
             source_task.info = {
@@ -1046,7 +1083,7 @@ def _make_check_drift_graph(
             }
 
             target_task.on_success = check_drift_on_success
-            target_task.on_failure = check_drift_on_failure
+            target_task.on_failure = on_fail
             graph.add_task(target_task)
             graph.add_dependency(target_task, task)
             target_task.info = {
@@ -1103,6 +1140,12 @@ def check_drift_on_success(task):
 def check_drift_on_failure(task):
     _set_node_instance_drift(task)
     return HandlerResult.fail()
+
+
+def check_drift_on_failure_ignore_failure(task):
+    """check_drift failure handler that ignores the error"""
+    _set_node_instance_drift(task)
+    return HandlerResult.ignore()
 
 
 @workflow(resumable=True)

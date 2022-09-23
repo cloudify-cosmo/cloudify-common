@@ -14,6 +14,5 @@
 #    * limitations under the License.
 
 import numbers
-from dsl_parser._compat import text_type
 
-PRIMITIVE_TYPES = (list, bool, numbers.Number, text_type, dict)
+PRIMITIVE_TYPES = (list, bool, numbers.Number, str, dict)

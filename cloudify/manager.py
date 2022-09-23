@@ -26,7 +26,8 @@ class NodeInstance(object):
                  host_id=None,
                  relationships=None,
                  index=None,
-                 scaling_groups=None):
+                 scaling_groups=None,
+                 system_properties=None):
         self.id = node_instance_id
         self._node_id = node_id
         self._runtime_properties = \
@@ -37,6 +38,7 @@ class NodeInstance(object):
         self._relationships = relationships
         self._index = index
         self._scaling_groups = scaling_groups
+        self._system_properties = system_properties
 
     def get(self, key):
         return self._runtime_properties.get(key)
@@ -45,7 +47,7 @@ class NodeInstance(object):
         self._runtime_properties[key] = value
 
     def delete(self, key):
-        del(self._runtime_properties[key])
+        del self._runtime_properties[key]
 
     __setitem__ = put
 
@@ -116,6 +118,10 @@ class NodeInstance(object):
     def scaling_groups(self):
         return {g['id']: g['name'] for g in self._scaling_groups}
 
+    @property
+    def system_properties(self):
+        return self._system_properties
+
 
 def get_rest_client(tenant=None, api_token=None):
     """
@@ -150,7 +156,7 @@ def get_rest_client(tenant=None, api_token=None):
         port=utils.get_manager_rest_service_port(),
         tenant=tenant,
         token=token,
-        protocol=constants.SECURED_PROTOCOL,
+        protocol=utils.get_manager_rest_service_protocol(),
         cert=utils.get_local_rest_certificate(),
         kerberos_env=utils.get_kerberos_indication(
             os.environ.get(constants.KERBEROS_ENV_KEY))
@@ -408,7 +414,8 @@ def get_node_instance(node_instance_id, evaluate_functions=False, client=None):
                         host_id=instance.host_id,
                         relationships=instance.relationships,
                         index=instance.index,
-                        scaling_groups=instance.scaling_groups)
+                        scaling_groups=instance.scaling_groups,
+                        system_properties=instance.system_properties)
 
 
 def update_node_instance(node_instance, client=None):

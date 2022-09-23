@@ -16,12 +16,13 @@
 import tempfile
 import shutil
 import os
-import unittest
+from urllib.request import pathname2url
+from urllib.parse import urljoin
 
+import unittest
 from mock import Mock
 
 from cloudify.utils import uuid4
-from dsl_parser._compat import pathname2url, urljoin
 from dsl_parser.exceptions import DSLParsingException
 from dsl_parser.parser import parse as dsl_parse
 from dsl_parser.parser import parse_from_path as dsl_parse_from_path
@@ -128,6 +129,10 @@ tosca_definitions_version: cloudify_dsl_1_3
 
     BASIC_VERSION_SECTION_DSL_1_4 = """
 tosca_definitions_version: cloudify_dsl_1_4
+    """
+
+    BASIC_VERSION_SECTION_DSL_1_5 = """
+tosca_definitions_version: cloudify_dsl_1_5
     """
 
     BASIC_NODE_TEMPLATES_SECTION = """
@@ -282,6 +287,11 @@ imports:"""
     def parse_1_4(self, dsl_string, resources_base_path=None, resolver=None):
         return self.parse(dsl_string, resources_base_path,
                           dsl_version=self.BASIC_VERSION_SECTION_DSL_1_4,
+                          resolver=resolver)
+
+    def parse_1_5(self, dsl_string, resources_base_path=None, resolver=None):
+        return self.parse(dsl_string, resources_base_path,
+                          dsl_version=self.BASIC_VERSION_SECTION_DSL_1_5,
                           resolver=resolver)
 
     def parse_from_path(self,

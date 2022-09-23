@@ -20,12 +20,13 @@ import json
 import errno
 import shutil
 import tempfile
-import platform
 import threading
 
 from os import walk
 from functools import wraps
 from contextlib import contextmanager
+from urllib.parse import urljoin
+from urllib.request import pathname2url
 
 import wagon
 import fasteners
@@ -34,9 +35,8 @@ from cloudify import ctx
 from cloudify.manager import get_rest_client
 from cloudify.utils import (
     LocalCommandRunner, target_plugin_prefix, extract_archive,
-    get_python_path, get_manager_name, get_daemon_name
+    get_python_path, get_manager_name, get_daemon_name,
 )
-from cloudify._compat import reraise, urljoin, pathname2url, parse_version
 from cloudify.exceptions import (
     NonRecoverableError,
     CommandExecutionException,
@@ -44,6 +44,19 @@ from cloudify.exceptions import (
 )
 from cloudify.models_states import PluginInstallationState
 from cloudify_rest_client.exceptions import CloudifyClientError
+
+try:
+    from packaging.version import parse as parse_version
+except ImportError:
+    from distutils.version import LooseVersion as parse_version
+
+try:
+    from distro import linux_distribution
+except ImportError:
+    try:
+        from platform import linux_distribution
+    except ImportError:
+        linux_distribution = None
 
 PLUGIN_INSTALL_LOCK = threading.Lock()
 runner = LocalCommandRunner()
@@ -140,12 +153,7 @@ def _make_virtualenv(path):
     able to import libraries from the current venv, but libraries
     installed directly will have precedence.
     """
-    runner.run([
-        sys.executable, '-m', 'virtualenv',
-        '--no-download',
-        '--no-pip', '--no-wheel', '--no-setuptools',
-        path
-    ])
+    runner.run([sys.executable, '-m', 'venv', '--without-pip', path])
     _link_virtualenv(path)
 
 
@@ -213,7 +221,7 @@ def _install_managed_plugin(plugin, args):
             exc = NonRecoverableError(
                 'Failed installing managed plugin: {0} [{1}][{2}]'
                 .format(plugin.id, plugin.package_name, e))
-            reraise(NonRecoverableError, exc, tb)
+            raise exc.with_traceback(tb)
 
 
 def _wagon_install(plugin, venv, args):
@@ -454,7 +462,9 @@ def _is_plugin_supported(plugin):
 
 def _platform_and_distro():
     current_platform = wagon.get_platform()
-    distribution, _, distribution_release = platform.linux_distribution(
+    if linux_distribution is None:
+        raise NonRecoverableError("distro must be installed")
+    distribution, _, distribution_release = linux_distribution(
         full_distribution_name=False)
     return current_platform, distribution.lower(), distribution_release.lower()
 
@@ -538,9 +548,10 @@ def get_pth_dir(venv=None):
     output = runner.run([
         get_python_path(venv) if venv else sys.executable,
         '-c',
-        'import json, sys; print(json.dumps([sys.prefix, sys.version[:3]]))'
+        'import json, sys; print(json.dumps([sys.prefix, sys.version_info]))'
     ]).std_out
-    prefix, version = json.loads(output)
+    prefix, version_parts = json.loads(output)
+    version = '{0}.{1}'.format(version_parts[0], version_parts[1])
     if os.name == 'nt':
         return '{0}/Lib/site-packages'.format(prefix)
     elif os.name == 'posix':

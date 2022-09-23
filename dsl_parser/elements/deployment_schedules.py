@@ -1,7 +1,6 @@
 import re
 from datetime import datetime
 
-from dsl_parser._compat import text_type
 from dsl_parser import exceptions
 from dsl_parser.framework.elements import (DictElement,
                                            DictNoDefaultElement,
@@ -26,11 +25,11 @@ class ScheduleCount(Element):
 
 class ScheduleName(Element):
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class DateTimeExpression(Element):
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class RequiredDateTimeExpression(DateTimeExpression):
@@ -38,7 +37,7 @@ class RequiredDateTimeExpression(DateTimeExpression):
 
 
 class TimeDelta(Element):
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
     def validate(self):
         if self.initial_value:
@@ -46,12 +45,12 @@ class TimeDelta(Element):
 
 
 class TimeZoneExpression(Element):
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class ScheduledWorkflowId(Element):
     required = True
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class ScheduledWorkflowForce(Element):
@@ -102,7 +101,7 @@ class ScheduledWorkflowParameters(Element):
 
 
 class Weekday(Element):
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
     def validate(self):
         weekdays_list = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']

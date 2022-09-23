@@ -17,11 +17,12 @@ import os
 import json
 import shutil
 import tempfile
+from urllib.parse import quote as urlquote, urlparse
+from urllib.request import pathname2url
 
 from mimetypes import MimeTypes
 
 from cloudify_rest_client import utils
-from cloudify_rest_client._compat import urlquote, pathname2url, urlparse
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -205,28 +206,36 @@ class DeploymentUpdatesClient(object):
         response = self.api.get(uri, _include=_include)
         return DeploymentUpdate(response)
 
-    def update_with_existing_blueprint(self,
-                                       deployment_id,
-                                       blueprint_id=None,
-                                       inputs=None,
-                                       skip_install=False,
-                                       skip_uninstall=False,
-                                       skip_reinstall=False,
-                                       workflow_id=None,
-                                       force=False,
-                                       ignore_failure=False,
-                                       install_first=False,
-                                       reinstall_list=None,
-                                       preview=False,
-                                       update_plugins=True,
-                                       runtime_only_evaluation=None,
-                                       auto_correct_types=None,
-                                       reevaluate_active_statuses=None):
+    def update_with_existing_blueprint(
+        self,
+        deployment_id,
+        blueprint_id=None,
+        inputs=None,
+        skip_install=False,
+        skip_uninstall=False,
+        skip_reinstall=False,
+        skip_drift_check=False,
+        skip_heal=False,
+        force_reinstall=False,
+        workflow_id=None,
+        force=False,
+        ignore_failure=False,
+        install_first=False,
+        reinstall_list=None,
+        preview=False,
+        update_plugins=True,
+        runtime_only_evaluation=None,
+        auto_correct_types=None,
+        reevaluate_active_statuses=None
+    ):
         data = {
             'workflow_id': workflow_id,
             'skip_install': skip_install,
             'skip_uninstall': skip_uninstall,
             'skip_reinstall': skip_reinstall,
+            'skip_drift_check': skip_drift_check,
+            'skip_heal': skip_heal,
+            'force_reinstall': force_reinstall,
             'ignore_failure': ignore_failure,
             'install_first': install_first,
             'preview': preview,

@@ -20,10 +20,6 @@ class Execution(dict):
     def __init__(self, execution):
         self.update(execution)
 
-        if self.status:
-            # default to status for compatibility with pre-4.4 managers
-            self.setdefault('status_display', self.status)
-
     @property
     def id(self):
         """
@@ -186,8 +182,9 @@ class ExecutionGroupsClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, **kwargs):
-        response = self.api.get('/execution-groups', params=kwargs)
+    def list(self, _include=None, **kwargs):
+        response = self.api.get('/execution-groups', params=kwargs,
+                                _include=_include)
         return ListResponse(
             [ExecutionGroup(item) for item in response['items']],
             response['metadata'])
@@ -199,7 +196,8 @@ class ExecutionGroupsClient(object):
 
     def create(self, deployment_group_id, workflow_id, executions,
                force=False, default_parameters=None, parameters=None,
-               concurrency=5, owner=None, created_at=None):
+               concurrency=5, created_by=None, created_at=None,
+               id=None):
         """Create an exec group without running it.
         Internal use only.
         """
@@ -207,6 +205,7 @@ class ExecutionGroupsClient(object):
             raise RuntimeError('Executions must be provided when '
                                'creating an exec group without running it.')
         args = {
+            'id': id,
             'force': force,
             'deployment_group_id': deployment_group_id,
             'workflow_id': workflow_id,
@@ -215,8 +214,8 @@ class ExecutionGroupsClient(object):
             'concurrency': concurrency,
             'associated_executions': executions,
         }
-        if owner:
-            args['owner'] = owner
+        if created_by:
+            args['created_by'] = created_by
         if created_at:
             args['created_at'] = created_at
         response = self.api.post('/execution-groups', data=args)
@@ -409,8 +408,9 @@ class ExecutionsClient(object):
     def create(self, deployment_id, workflow_id, parameters=None,
                allow_custom_parameters=False, force=False, dry_run=False,
                queue=False, schedule=None, force_status=None,
-               creator=None, created_at=None, started_at=None, ended_at=None,
-               execution_id=None, wait_after_fail=600):
+               created_by=None, created_at=None, started_at=None,
+               ended_at=None, execution_id=None, wait_after_fail=600,
+               error=None):
         """Creates an execution on a deployment.
         If force_status is provided, the execution will not be started.
         Otherwise, parameters and return value are identical to 'start'.
@@ -430,11 +430,12 @@ class ExecutionsClient(object):
             'scheduled_time': schedule,
             'wait_after_fail': wait_after_fail,
             'force_status': force_status,
-            'creator': creator,
+            'created_by': created_by,
             'created_at': created_at,
             'started_at': started_at,
             'ended_at': ended_at,
             'id': execution_id,
+            'error': error,
         }
         uri = '/executions'
         response = self.api.post(uri,

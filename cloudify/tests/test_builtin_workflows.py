@@ -19,9 +19,9 @@ import unittest
 from os import path
 
 import mock
-import testtools
 
 from cloudify import exceptions
+from cloudify.plugins import lifecycle
 from cloudify.decorators import operation
 from cloudify.test_utils import workflow_test
 from cloudify.workflows.workflow_context import (Modification,
@@ -41,14 +41,14 @@ class GlobalCounter(object):
 global_counter = GlobalCounter()
 
 
-class LifecycleBaseTest(testtools.TestCase):
+class LifecycleBaseTest(unittest.TestCase):
 
     def _make_assertions(self, cfy_local, expected_ops):
         instances = cfy_local.storage.get_node_instances()
         instance = instances[0]
         invocations = instance.runtime_properties['invocations']
         invoked_operations = [x['operation'] for x in invocations]
-        self.assertEquals(invoked_operations, expected_ops)
+        self.assertEqual(invoked_operations, expected_ops)
 
     def _make_filter_assertions(self, cfy_local,
                                 expected_num_of_visited_instances,
@@ -75,8 +75,8 @@ class LifecycleBaseTest(testtools.TestCase):
                 self.assertIsNone(test_op_visited)
 
         # this is actually an assertion to ensure the tests themselves are ok
-        self.assertEquals(expected_num_of_visited_instances,
-                          num_of_visited_instances)
+        self.assertEqual(expected_num_of_visited_instances,
+                         num_of_visited_instances)
 
 
 class TestWorkflowLifecycleOperations(LifecycleBaseTest):
@@ -182,8 +182,8 @@ class TestExecuteOperationWorkflow(LifecycleBaseTest):
             self.assertIn('op_kwargs', instance.runtime_properties)
             op_kwargs = instance.runtime_properties['op_kwargs']
             self.assertIn(operation_param_key, op_kwargs)
-            self.assertEquals(operation_param_value,
-                              op_kwargs[operation_param_key])
+            self.assertEqual(operation_param_value,
+                             op_kwargs[operation_param_key])
 
     @workflow_test(execute_blueprint_path)
     def test_execute_operation_by_nodes(self, cfy_local):
@@ -347,7 +347,7 @@ class TestExecuteOperationWorkflow(LifecycleBaseTest):
         self.assertEqual(len(invocations), 2)
 
 
-class TestScale(testtools.TestCase):
+class TestScale(unittest.TestCase):
     scale_blueprint_path = path.join('resources', 'blueprints',
                                      'test-scale-blueprint.yaml')
 
@@ -358,10 +358,10 @@ class TestScale(testtools.TestCase):
 
     @workflow_test(scale_blueprint_path)
     def test_no_node(self, cfy_local):
-        with testtools.ExpectedException(ValueError, ".*mock was found.*"):
+        with self.assertRaisesRegex(ValueError, ".*mock was found.*"):
             cfy_local.execute(
                 'scale', parameters={'scalable_entity_name': 'mock'})
-        with testtools.ExpectedException(ValueError, ".*mock was found.*"):
+        with self.assertRaisesRegex(ValueError, ".*mock was found.*"):
             cfy_local.execute('scale_old', parameters={'node_id': 'mock'})
 
     @workflow_test(scale_blueprint_path)
@@ -374,17 +374,17 @@ class TestScale(testtools.TestCase):
 
     @workflow_test(scale_blueprint_path)
     def test_illegal_delta(self, cfy_local):
-        with testtools.ExpectedException(ValueError, ".*-2 is illegal.*"):
+        with self.assertRaisesRegex(ValueError, ".*-2 is illegal.*"):
             cfy_local.execute('scale', parameters={
                 'scalable_entity_name': 'node',
                 'delta': -2})
-        with testtools.ExpectedException(ValueError, ".*-2 is illegal.*"):
+        with self.assertRaisesRegex(ValueError, ".*-2 is illegal.*"):
             cfy_local.execute('scale_old', parameters={'node_id': 'node',
                                                        'delta': -2})
 
     @workflow_test(scale_blueprint_path)
     def test_illegal_str_delta(self, cfy_local):
-        with testtools.ExpectedException(ValueError, ".*must be a number.*"):
+        with self.assertRaisesRegex(ValueError, ".*must be a number.*"):
             cfy_local.execute('scale',
                               parameters={'scalable_entity_name': 'node',
                                           'delta': 'not a number'})
@@ -438,7 +438,7 @@ class TestScale(testtools.TestCase):
         modification.finish.assert_called_once()
 
 
-class TestSubgraphWorkflowLogic(testtools.TestCase):
+class TestSubgraphWorkflowLogic(unittest.TestCase):
 
     @workflow_test(path.join('resources', 'blueprints',
                              'test-subgraph-blueprint.yaml'))
@@ -533,7 +533,7 @@ class TestSubgraphWorkflowLogic(testtools.TestCase):
         self.assertEqual(4, len(all_invocations))
 
 
-class TestHealOperation(testtools.TestCase):
+class TestHealOperation(unittest.TestCase):
     """Tests for the heal workflow, using the heal operation.
 
     Each test case runs the heal operation on a node instance, and checks
@@ -676,8 +676,124 @@ class TestHealOperation(testtools.TestCase):
                 'allow_reinstall': False,
             })
 
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-heal-operation.yaml'))
+    def test_node_instance_id_not_provided(self, env):
+        env.execute('heal', parameters={'check_status': True})
+        invocations = [
+            invocations for ni in env.storage.get_node_instances()
+            for invocations in ni.runtime_properties.get('invocations', [])
+        ]
+        assert set(invocation['node_id']
+                   for invocation in invocations
+                   if invocation.get('operation')
+                   == 'cloudify.interfaces.validation.check_status') == \
+               {'node2', 'node3', 'node8',
+                'node8_contained', 'node8_contained2', }
+        assert set(invocation['node_id']
+                   for invocation in invocations
+                   if invocation.get('operation')
+                   == 'cloudify.interfaces.lifecycle.heal') == \
+               {'node2', 'node8_contained'}
 
-class TestRelationshipOrderInLifecycleWorkflows(testtools.TestCase):
+
+def update_test_workflow(ctx, node_instance_id, **kwargs):
+    instance = ctx.get_node_instance(node_instance_id)
+    lifecycle.update_node_instances(
+        graph=ctx.graph_mode(),
+        node_instances={instance},
+        related_nodes=set(ctx.node_instances) - {instance},
+    )
+
+
+class TestUpdateOperation(unittest.TestCase):
+    """Test the update flow of the lifecycle processor.
+
+    This is using a "fake" workflow to run the lifecycle code; the real
+    workflow is defined in cloudify-system-workflows instead.
+    """
+    def _do_test_update(self, env, node_id, **parameters):
+        instances = {ni.node_id: ni for ni in env.storage.get_node_instances()}
+
+        parameters.setdefault('node_instance_id', instances[node_id].id)
+        env.execute('test_update', parameters=parameters)
+        return {
+            ni.node_id: [
+                inv['operation']
+                for inv in ni.runtime_properties.get('invocations', [])
+            ] for ni in env.storage.get_node_instances()
+        }
+
+    def _get_ni(self, env, node_id):
+        """Get the only node instance of the given node"""
+        instances = env.storage.get_node_instances(node_id=node_id)
+        assert len(instances) == 1
+        return instances[0]
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-update-operation.yaml'))
+    def test_update_operation(self, env):
+        ni = self._get_ni(env, 'node1')
+        env.storage.update_node_instance(ni.id, system_properties={
+            'configuration_drift': {'result': True},
+        }, force=True, version=0)
+
+        invocations = self._do_test_update(env, 'node1')
+        assert invocations['node1'] == ['cloudify.interfaces.lifecycle.update']
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-update-operation.yaml'))
+    def test_update_fails(self, env):
+        ni = self._get_ni(env, 'node2')
+        env.storage.update_node_instance(ni.id, system_properties={
+            'configuration_drift': {'result': True},
+        }, force=True, version=0)
+
+        # the operation fails, but it doesn't actually fail the whole workflow;
+        # instead, the failure is recorded in system-properties
+        invocations = self._do_test_update(env, 'node2')
+        assert invocations['node2'] == ['cloudify.interfaces.lifecycle.update']
+        ni = env.storage.get_node_instances(node_id='node2')[0]
+        assert ni.system_properties.get('update_failed')
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-update-operation.yaml'))
+    def test_update_clears_drift(self, env):
+        ni = self._get_ni(env, 'node1')
+        env.storage.update_node_instance(ni.id, system_properties={
+            'configuration_drift': {'result': True},
+        }, force=True, version=0)
+        invocations = self._do_test_update(env, 'node1')
+        assert invocations['node1'] == ['cloudify.interfaces.lifecycle.update']
+        ni = env.storage.get_node_instances(node_id='node1')[0]
+        assert not ni.system_properties.get('configuration_drift')
+
+    @workflow_test(path.join(
+        'resources', 'blueprints', 'test-update-operation.yaml'))
+    def test_update_relationship_operation(self, env):
+        node1_ni = self._get_ni(env, 'node1')
+        ni = self._get_ni(env, 'node3')
+        env.storage.update_node_instance(ni.id, system_properties={
+            'source_relationships_configuration_drift': {
+                node1_ni.id: {'result': True},
+            },
+        }, force=True, version=0)
+        env.storage.update_node_instance(node1_ni.id, system_properties={
+            'target_relationships_configuration_drift': {
+                ni.id: {'result': True},
+            },
+        }, force=True, version=0)
+
+        invocations = self._do_test_update(env, 'node3')
+        assert invocations['node3'] == [
+            # source operation
+            'cloudify.interfaces.relationship_lifecycle.update',
+            # target operation
+            'cloudify.interfaces.relationship_lifecycle.update',
+        ]
+
+
+class TestRelationshipOrderInLifecycleWorkflows(unittest.TestCase):
 
     blueprint_path = path.join('resources', 'blueprints',
                                'test-relationship-order-blueprint.yaml')

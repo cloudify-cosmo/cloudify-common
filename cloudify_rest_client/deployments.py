@@ -388,7 +388,7 @@ class DeploymentGroupsClient(object):
             description=None, blueprint_id=None, default_inputs=None,
             labels=None, filter_id=None, deployment_ids=None,
             new_deployments=None, deployments_from_group=None,
-            creator=None, created_at=None):
+            created_by=None, created_at=None, creation_counter=None):
         """Create or update the specified deployment group.
 
         Setting group deployments using this method (via either filter_id
@@ -412,8 +412,10 @@ class DeploymentGroupsClient(object):
             keys "id", "inputs", "labels"
         :param deployments_from_group: add all deployments belonging to the
             group given by this id
-        :param creator: Override the creator. Internal use only.
+        :param created_by: Override the creator. Internal use only.
         :param created_at: Override the creation timestamp. Internal use only.
+        :param creation_counter: Override the creation counter.
+            Internal use only.
         :return: the created deployment group
         """
         data = {
@@ -429,8 +431,10 @@ class DeploymentGroupsClient(object):
         }
         if created_at:
             data['created_at'] = created_at
-        if creator:
-            data['creator'] = creator
+        if created_by:
+            data['created_by'] = created_by
+        if creation_counter:
+            data['creation_counter'] = creation_counter
         response = self.api.put(
             '/deployment-groups/{0}'.format(group_id), data=data,
         )
@@ -718,6 +722,19 @@ class DeploymentsClient(object):
                labels=None,
                display_name=None,
                async_create=None,
+               created_at=None,
+               created_by=None,
+               workflows=None,
+               groups=None,
+               scaling_groups=None,
+               policy_triggers=None,
+               policy_types=None,
+               outputs=None,
+               capabilities=None,
+               resource_tags=None,
+               description=None,
+               deployment_status=None,
+               installation_status=None,
                _workdir_zip=None):
         """
         Creates a new deployment for the provided blueprint id and
@@ -742,25 +759,65 @@ class DeploymentsClient(object):
         :param async_create: if True, do not wait for the deployment
             environment to finish creating
         :param _workdir_zip: Internal only.
+        :param workflows: Set the deployment workflows. Internal use only.
+        :param groups: Set groups. Internal use only.
+        :param scaling_groups: Set scaling_groups. Internal use only.
+        :param policy_triggers: Set policy_triggers. Internal use only.
+        :param policy_types: Set policy_types. Internal use only.
+        :param outputs: Set outputs. Internal use only.
+        :param capabilities: Set capabilities. Internal use only.
+        :param resource_tags: Set resource_tags. Internal use only.
+        :param description: Set description. Internal use only.
+        :param deployment_status: Set deployment status. Internal use only.
+        :param installation_status: Set installation status.
+                                    Internal use only.
         :return: The created deployment.
         """
         assert blueprint_id
         assert deployment_id
         data = {'blueprint_id': blueprint_id, 'visibility': visibility}
-        if inputs:
+        if inputs is not None:
             data['inputs'] = inputs
-        if site_name:
+        if site_name is not None:
             data['site_name'] = site_name
-        if labels:
+        if labels is not None:
             data['labels'] = labels
-        if display_name:
+        if display_name is not None:
             data['display_name'] = display_name
-        if _workdir_zip:
+        if _workdir_zip is not None:
             data['workdir_zip'] = _workdir_zip
+        if workflows is not None:
+            data['workflows'] = workflows
+        if groups is not None:
+            data['groups'] = groups
+        if scaling_groups is not None:
+            data['scaling_groups'] = scaling_groups
+        if policy_triggers is not None:
+            data['policy_triggers'] = policy_triggers
+        if policy_types is not None:
+            data['policy_types'] = policy_types
+        if outputs is not None:
+            data['outputs'] = outputs
+        if capabilities is not None:
+            data['capabilities'] = capabilities
+        if resource_tags is not None:
+            data['resource_tags'] = resource_tags
+        if outputs is not None:
+            data['outputs'] = outputs
+        if description is not None:
+            data['description'] = description
+        if deployment_status is not None:
+            data['deployment_status'] = deployment_status
+        if installation_status is not None:
+            data['installation_status'] = installation_status
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
         params = {}
+        if created_at:
+            data['created_at'] = created_at
+        if created_by:
+            data['created_by'] = created_by
         if async_create is not None:
             # if it's None, we just keep the server's default behaviour
             params['async_create'] = async_create
@@ -847,11 +904,12 @@ class DeploymentsClient(object):
         return Deployment(updated_dep)
 
     def set_attributes(self, deployment_id, **kwargs):
-        """Set kwargs on the deployment.
+        """Set arbitrary properties on the deployment.
 
-        This is used internally for first populating the deployment
-        with the attributes from the plan.
-        For updating existing deployments, use the deployment update methods.
+        If you're not sure, you probably want to look at deployment update
+        instead.
+
+        For internal use only.
         """
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=kwargs)

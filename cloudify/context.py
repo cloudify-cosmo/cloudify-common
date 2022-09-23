@@ -295,7 +295,7 @@ class DeploymentContext(EntityContext):
 
     @property
     def resource_tags(self):
-        """Resource tags associated wth this deployment."""
+        """Resource tags associated with this deployment."""
         return self._context.get('deployment_resource_tags')
 
 
@@ -401,6 +401,7 @@ class NodeInstanceContext(EntityContext):
         self._get_node_instance_if_needed()
         self._node_instance.runtime_properties = new_properties
 
+    @utils.keep_trying_http(total_timeout_sec=None)
     def update(self, on_conflict=None):
         """
         Stores new/updated runtime properties for the node instance in context
@@ -508,6 +509,13 @@ class NodeInstanceContext(EntityContext):
     def index(self):
         self._get_node_instance_if_needed()
         return self._node_instance.index
+
+    @property
+    def drift(self):
+        self._get_node_instance_if_needed()
+        drift = self._node_instance.system_properties\
+            .get('configuration_drift')
+        return drift.get('result') if drift.get('ok') else None
 
 
 class RelationshipContext(EntityContext):
@@ -939,6 +947,7 @@ class CloudifyContext(CommonContext):
             execution_id = self.execution_id
         return self._endpoint.get_execution(execution_id)
 
+    @utils.keep_trying_http(total_timeout_sec=None)
     def update_operation(self, state):
         """Update current operation state.
 

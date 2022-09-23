@@ -18,7 +18,7 @@ import mock
 import shutil
 import logging
 import tempfile
-from testtools import TestCase
+from unittest import TestCase
 from datetime import datetime, timedelta
 
 from cloudify import utils

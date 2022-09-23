@@ -22,11 +22,12 @@ import shutil
 import json
 import time
 import threading
-import sys
 import weakref
 
+from abc import ABC
 from datetime import datetime
 from contextlib import contextmanager
+from io import StringIO
 
 from cloudify_rest_client.nodes import Node
 from cloudify_rest_client.blueprints import Blueprint
@@ -35,11 +36,9 @@ from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.node_instances import NodeInstance
 from cloudify_rest_client.deployment_updates import DeploymentUpdate
 
-from cloudify._compat import StringIO, ABC
 from cloudify import dispatch, utils
 from cloudify.workflows.workflow_context import (
     DEFAULT_LOCAL_TASK_THREAD_POOL_SIZE)
-from cloudify._compat import reraise, text_type
 
 try:
     from dsl_parser.constants import HOST_TYPE
@@ -121,7 +120,7 @@ class _Environment(object):
             return rv
         except Exception as e:
             self.storage.execution_ended(execution_id, e)
-            reraise(e.__class__, e, sys.exc_info()[2])
+            raise
 
 
 def init_env(blueprint_path,
@@ -247,7 +246,7 @@ def _get_module_method(module_method_path, tpe, node_name,
 
 
 def _try_convert_from_str(string, target_type):
-    if target_type == text_type:
+    if target_type == str:
         return string
     if target_type == bool:
         if string.lower() == 'true':
@@ -274,7 +273,7 @@ def _merge_and_validate_execution_parameters(
     allowed_types = {
         'integer': int,
         'float': float,
-        'string': (text_type, bytes),
+        'string': (str, bytes),
         'boolean': bool
     }
     wrong_types = {}
@@ -284,7 +283,7 @@ def _merge_and_validate_execution_parameters(
         if 'type' in param and name in execution_parameters:
 
             # check if need to convert from string
-            if (isinstance(execution_parameters[name], (text_type, bytes)) and
+            if (isinstance(execution_parameters[name], (str, bytes)) and
                     param['type'] in allowed_types and
                     param['type'] != 'string'):
                 execution_parameters[name] = \
@@ -299,7 +298,8 @@ def _merge_and_validate_execution_parameters(
 
         if 'default' not in param:
             if name not in execution_parameters:
-                missing_mandatory_parameters.add(name)
+                if param.get('required', True):
+                    missing_mandatory_parameters.add(name)
                 continue
             merged_parameters[name] = execution_parameters[name]
         else:
@@ -559,13 +559,14 @@ class _Storage(ABC):
             'plan': deployment_plan,
             'nodes': {n.id: n for n in nodes},
             'created_at': datetime.utcnow(),
-            'inputs': inputs,
+            'inputs': inputs or {},
             'workflows': workflows,
             'scaling_groups': deployment_plan['scaling_groups'],
         }
         self.store_deployment(name, deployment)
         for instance in node_instances:
             self.store_instance(name, NodeInstance(instance))
+        return self.load(name)
 
     def load(self, name):
         dep = self.get_deployment(name)
@@ -653,8 +654,23 @@ class _Storage(ABC):
     def store_executions(self, deployment_id, executions):
         raise NotImplementedError()
 
-    @abc.abstractmethod
     def create_deployment_update(self, deployment_id, update_id, update):
+        dep_update = {
+            'id': update_id,
+            'deployment_id': deployment_id,
+            'old_blueprint_id': None,
+            'new_blueprint_id': None,
+            'old_inputs': {},
+            'new_inputs': {},
+            'steps': [],
+            'runtime_only_evaluation': True,
+        }
+        dep_update.update(update)
+        self.store_deployment_update(deployment_id, update_id, dep_update)
+        return self.get_deployment_update(deployment_id, update_id)
+
+    @abc.abstractmethod
+    def store_deployment_update(self, deployment_id, update_id, update):
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -752,7 +768,7 @@ class InMemoryStorage(_Storage):
     def store_executions(self, deployment_id, executions):
         self._executions[deployment_id] = executions
 
-    def create_deployment_update(self, deployment_id, update_id, update):
+    def store_deployment_update(self, deployment_id, update_id, update):
         self._deployment_updates[(deployment_id, update_id)] = update
 
     def get_deployment_update(self, deployment_id, update_id):
@@ -945,7 +961,7 @@ class FileStorage(_Storage):
         with open(executions_path, 'w') as f:
             json.dump(executions, f, indent=4, cls=JSONEncoderWithDatetime)
 
-    def create_deployment_update(self, deployment_id, update_id, update):
+    def store_deployment_update(self, deployment_id, update_id, update):
         updates_dir = os.path.join(
             self._root_storage_dir,
             'deployments',

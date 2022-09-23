@@ -14,9 +14,8 @@
 #    * limitations under the License.
 
 import sys
+import unittest
 import warnings
-
-import testtools
 
 from mock import patch, Mock
 
@@ -30,7 +29,7 @@ from cloudify.exceptions import (
     NonRecoverableError, CloudifySerializationRetry)
 
 from cloudify.test_utils.dispatch_helper import run
-import cloudify.tests.mocks.mock_rest_client as rest_client_mock
+from cloudify.test_utils import mock_rest_client as rest_client_mock
 
 
 class MockNotPicklableException(Exception):
@@ -72,12 +71,13 @@ def run_op(**kwargs):
     run(assert_op_impl, **kwargs)
 
 
-def assert_op_impl(ctx, test_case, **kwargs):
-    test_case.assertEqual(ctx, ctx_proxy)
+def assert_op_impl(ctx, **kwargs):
+    if ctx != ctx_proxy:
+        raise RuntimeError('expected ctx to equal ctx_proxy')
 
 
 @patch('cloudify.manager.get_rest_client', rest_client_mock.MockRestclient)
-class OperationTest(testtools.TestCase):
+class OperationTest(unittest.TestCase):
     def test_empty_ctx(self):
         ctx = acquire_context(0, 0)
         self.assertIsInstance(ctx, context.CloudifyContext)
@@ -87,14 +87,13 @@ class OperationTest(testtools.TestCase):
         kwargs = {'__cloudify_context': ctx}
         ctx = acquire_context(0, 0, **kwargs)
         self.assertIsInstance(ctx, context.CloudifyContext)
-        self.assertEquals('1234', ctx.instance.id)
+        self.assertEqual('1234', ctx.instance.id)
 
     def test_proxied_ctx(self):
-
         self.assertRaises(RuntimeError,
                           lambda: ctx_proxy.instance.id)
 
-        run_op(test_case=self)
+        run_op()
 
         self.assertRaises(RuntimeError,
                           lambda: ctx_proxy.instance.id)
@@ -115,10 +114,7 @@ class OperationTest(testtools.TestCase):
         ctx = acquire_context(0, 0, **kwargs)
         with warnings.catch_warnings(record=True) as warns:
             self.assertIn('k', ctx.capabilities)
-            self.assertEquals('v', ctx.capabilities['k'])
-        if sys.version_info < (2, 7):
-            # i was unable to make this work on py2.6
-            return
+            self.assertEqual('v', ctx.capabilities['k'])
         self.assertEqual(len(warns), 2)
         for w in warns:
             self.assertIn('capabilities is deprecated', str(w))
@@ -196,7 +192,7 @@ class OperationTest(testtools.TestCase):
         self.assertEqual(w1(), 'w1')
         self.assertEqual(w2(), 'w2')
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_install(self, list_fn):
 
@@ -233,7 +229,7 @@ class OperationTest(testtools.TestCase):
         self.assertTrue(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_install_wait_for_1(self, list_fn):
 
@@ -261,7 +257,7 @@ class OperationTest(testtools.TestCase):
         self.assertTrue(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_install_states(self, list_fn):
 
@@ -289,7 +285,7 @@ class OperationTest(testtools.TestCase):
         self.assertTrue(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_install_workflow(self, list_fn):
 
@@ -317,7 +313,7 @@ class OperationTest(testtools.TestCase):
         self.assertTrue(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_uninstall(self, list_fn):
 
@@ -346,7 +342,7 @@ class OperationTest(testtools.TestCase):
         self.assertFalse(_caller.called)
         current_ctx.clear()
 
-    @patch('cloudify.tests.mocks.mock_rest_client.'
+    @patch('cloudify.test_utils.mock_rest_client.'
            'MockNodeInstancesClient.list')
     def test_serial_operation_uninstall_wait_3(self, list_fn):
 

@@ -32,7 +32,6 @@ from cloudify.utils import (
     get_manager_name,
     get_daemon_name,
 )
-from cloudify._compat import text_type
 
 EVENT_CLASS = _event.Event
 EVENT_VERBOSITY_LEVEL = _event.NO_VERBOSE
@@ -349,7 +348,7 @@ def create_event_message_prefix(event, with_worker_names=False):
     )
     if not event_obj.has_output:
         return None
-    return text_type(event_obj)
+    return str(event_obj)
 
 
 def _log_message(logger, message):

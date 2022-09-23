@@ -100,7 +100,7 @@ class PluginsUpdateClient(object):
         return self._wrap_list(response)
 
     def inject(self, blueprint_id, force=False,
-               creator=None, created_at=None,
+               created_by=None, created_at=None,
                execution_id=None, state=None,
                update_id=None, affected_deployments=None,
                temp_blueprint_id=None):
@@ -109,7 +109,7 @@ class PluginsUpdateClient(object):
                                                             self=self),
             data=_data_from_kwargs(
                 force=force,
-                creator=creator,
+                created_by=created_by,
                 created_at=created_at,
                 execution_id=execution_id,
                 state=state,

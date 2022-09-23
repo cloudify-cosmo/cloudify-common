@@ -17,6 +17,7 @@ import os
 
 from networkx.algorithms import topological_sort
 from networkx.classes import DiGraph
+from urllib.request import pathname2url
 
 from cloudify.exceptions import InvalidBlueprintImport
 
@@ -24,9 +25,7 @@ from dsl_parser import (exceptions,
                         constants,
                         version as _version,
                         utils)
-from dsl_parser._compat import text_type
 from dsl_parser.holder import Holder
-from dsl_parser._compat import pathname2url
 from dsl_parser.import_resolver.abstract_import_resolver import\
     is_remote_resource
 from dsl_parser.framework.elements import (Element,
@@ -73,7 +72,7 @@ IGNORE = set([
 
 class Import(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class Imports(Element):
@@ -83,7 +82,7 @@ class Imports(Element):
 
 class ImportLoader(Element):
 
-    schema = Leaf(type=text_type)
+    schema = Leaf(type=str)
 
 
 class ImportsLoader(Element):
@@ -430,7 +429,8 @@ def _build_ordered_imports(parsed_dsl_holder,
                                       .format(another_import, import_url),
                         filename=import_url)
                 try:
-                    plugin = resolver.retrieve_plugin(import_url)
+                    plugin = resolver.retrieve_plugin(import_url,
+                                                      dsl_version=dsl_version)
                 except InvalidBlueprintImport:
                     plugin = None
                 if plugin:
@@ -590,7 +590,7 @@ def _merge_parsed_into_combined(combined_parsed_dsl_holder,
 def _prepare_namespaced_elements(key_holder, namespace, value_holder):
     if isinstance(value_holder.value, dict):
         _mark_key_value_holder_items(value_holder, 'namespace', namespace)
-    elif isinstance(value_holder.value, text_type):
+    elif isinstance(value_holder.value, str):
         # In case of primitive type we a need a different way to mark
         # the sub elements with the namespace, but leaving the option
         # for the DSL element to not receive the namespace.
@@ -644,7 +644,7 @@ def _merge_node_templates_relationships(
 def _extend_node_template(from_dict_holder, to_dict_holder):
     for key_holder, value_holder in from_dict_holder.value.items():
         if (isinstance(value_holder.value, dict) or
-                isinstance(value_holder.value, text_type)):
+                isinstance(value_holder.value, str)):
             to_dict_holder.value[key_holder] = value_holder
         elif (isinstance(value_holder.value, list) and
               key_holder.value == constants.RELATIONSHIPS):

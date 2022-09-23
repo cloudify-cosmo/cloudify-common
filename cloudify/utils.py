@@ -33,16 +33,26 @@ import subprocess
 
 from datetime import datetime, timedelta
 from contextlib import contextmanager, closing
+from functools import wraps
+from io import StringIO
+from requests.exceptions import ConnectionError, Timeout
 import socket   # replace with ipaddress when this is py3-only
+
 
 from dsl_parser.constants import PLUGIN_INSTALL_KEY, PLUGIN_NAME_KEY
 
 from cloudify import constants
 from cloudify.state import workflow_parameters, workflow_ctx, ctx, current_ctx
-from cloudify._compat import StringIO, parse_version
-from cloudify._compat import uuid4  # NOQA - import just to re-export here
-from cloudify.constants import SUPPORTED_ARCHIVE_TYPES
+from cloudify.constants import (SUPPORTED_ARCHIVE_TYPES,
+                                KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
+                                MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC)
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
+
+try:
+    from packaging.version import parse as parse_version
+except ImportError:
+    from distutils.version import LooseVersion as parse_version
+
 
 ENV_CFY_EXEC_TEMPDIR = 'CFY_EXEC_TEMP'
 ENV_AGENT_LOG_LEVEL = 'AGENT_LOG_LEVEL'
@@ -211,6 +221,13 @@ def get_manager_file_server_root():
     Returns the host the manager REST service is running on.
     """
     return os.environ[constants.MANAGER_FILE_SERVER_ROOT_KEY]
+
+
+def get_manager_rest_service_protocol():
+    return os.environ.get(
+        constants.REST_PROTOCOL_KEY,
+        constants.SECURED_PROTOCOL,
+    )
 
 
 def get_manager_rest_service_host():
@@ -645,8 +662,13 @@ def generate_user_password(password_length=32):
 
 
 def get_admin_api_token():
-    with open(ADMIN_API_TOKEN_PATH, 'r') as token_file:
-        token = token_file.read()
+    token = os.environ.get(constants.ADMIN_API_TOKEN_KEY)
+
+    if not token:
+        with open(ADMIN_API_TOKEN_PATH, 'r') as token_file:
+            token = token_file.read()
+            token = token.strip()
+
     return token
 
 
@@ -1028,3 +1050,78 @@ def ipv6_url_compat(addr):
     if _is_ipv6(addr):
         return '[{0}]'.format(addr)
     return addr
+
+
+def uuid4():
+    """Generate a random UUID, and return a string representation of it.
+
+    This is pretty much a copy of the stdlib uuid4. We inline it here,
+    because we'd like to avoid importing the stdlib uuid module on the
+    operation dispatch critical path, because importing the stdlib
+    uuid module runs some subprocesses (for detecting the uuid1-uuid3 MAC
+    address), and that causes more memory pressure than we'd like.
+    """
+    uuid_bytes = os.urandom(16)
+    uuid_as_int = int.from_bytes(uuid_bytes, byteorder='big')
+    uuid_as_int &= ~(0xc000 << 48)
+    uuid_as_int |= 0x8000 << 48
+    uuid_as_int &= ~(0xf000 << 64)
+    uuid_as_int |= 4 << 76
+    uuid_as_hex = '%032x' % uuid_as_int
+    return '%s-%s-%s-%s-%s' % (
+        uuid_as_hex[:8],
+        uuid_as_hex[8:12],
+        uuid_as_hex[12:16],
+        uuid_as_hex[16:20],
+        uuid_as_hex[20:]
+    )
+
+
+def keep_trying_http(total_timeout_sec=KEEP_TRYING_HTTP_TOTAL_TIMEOUT_SEC,
+                     max_delay_sec=MAX_WAIT_BETWEEN_HTTP_RETRIES_SEC):
+    """
+    Keep (re)trying HTTP requests.
+
+    This is a wrapper function that will keep (re)running whatever function it
+    wraps until it raises a "non-repairable" exception (where "repairable"
+    exceptions are `requests.exceptions.ConnectionError` and
+    `requests.exceptions.Timeout`), or `total_timeout_sec` is exceeded.
+
+    :param total_timeout_sec: The amount of seconds to keep trying, if `None`,
+                              there is no timeout and the wrapped function
+                              will be re-tried indefinitely.
+    :param max_delay_sec: The maximum delay (in seconds) between consecutive
+                          calls to the wrapped function.  The actual delay will
+                          be a pseudo-random number between
+                          `0` and `max_delay_sec`.
+    """
+    logger = setup_logger('http_retrying')
+
+    def ex_to_str(exception):
+        return str(exception) or str(type(exception))
+
+    def inner(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            timeout_at = None if total_timeout_sec is None \
+                else datetime.utcnow() + timedelta(seconds=total_timeout_sec)
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except (ConnectionError, Timeout) as ex:
+                    if timeout_at and datetime.utcnow() > timeout_at:
+                        logger.error(f'Finished retrying {func}: '
+                                     f'total timeout of {total_timeout_sec} '
+                                     f'seconds exceeded: {ex_to_str(ex)}')
+                        raise
+                    delay = random.randint(0, max_delay_sec)
+                    logger.warning(f'Will retry {func} in {delay} seconds: ' +
+                                   ex_to_str(ex))
+                    time.sleep(delay)
+                except Exception as ex:
+                    logger.error(f'Will not retry {func}: the encountered '
+                                 'error cannot be fixed by retrying: ' +
+                                 ex_to_str(ex))
+                    raise
+        return wrapper
+    return inner
