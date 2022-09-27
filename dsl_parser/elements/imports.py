@@ -138,16 +138,19 @@ class ImportsLoader(Element):
         imports_set = set()
         for _import in imports:
             if isinstance(_import, str):
-                if _import in imports_set:
-                    raise exceptions.DSLParsingFormatException(
-                        2, 'Duplicate imports')
-                imports_set.add(_import)
-            if isinstance(_import, dict):
+                import_key = _import
+            elif isinstance(_import, dict):
                 import_key = _validate_import_dict(_import)
-                if import_key in imports_set:
-                    raise exceptions.DSLParsingFormatException(
-                        2, 'Duplicate imports')
-                imports_set.add(import_key)
+            else:
+                raise exceptions.DSLParsingFormatException(
+                    exceptions.ERROR_INVALID_IMPORT_SPECS,
+                    'The import statement should be either a string '
+                    'or a dictionary'
+                )
+            if import_key in imports_set:
+                raise exceptions.DSLParsingFormatException(
+                    2, 'Duplicate imports')
+            imports_set.add(import_key)
 
     def parse(self,
               main_blueprint_holder,
