@@ -296,6 +296,9 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
             _validate_version(version.raw,
                               import_url,
                               parsed_imported_dsl_holder)
+        if import_url != 'root':
+            _validate_properties(
+                parsed_imported_dsl_holder, imported['properties'])
         is_cloudify_types = imported['cloudify_types']
         _merge_parsed_into_combined(
             holder_result, parsed_imported_dsl_holder,
@@ -426,6 +429,7 @@ def _build_ordered_imports(parsed_dsl_holder,
                     pass
             else:
                 another_import = another_import_raw
+                properties = None
             namespace, import_url = _extract_import_parts(another_import,
                                                           resources_base_path,
                                                           _current_import,
@@ -507,7 +511,8 @@ def _build_ordered_imports(parsed_dsl_holder,
                     imported_dsl,
                     cloudify_basic_types,
                     import_context,
-                    namespace)
+                    namespace,
+                    properties)
                 build_ordered_imports_recursive(imported_dsl,
                                                 import_url,
                                                 namespace,
@@ -542,6 +547,74 @@ def _validate_version(dsl_version,
                 .format(dsl_version,
                         import_url,
                         version_value_holder.value))
+
+
+def _validate_properties(parsed_imported_dsl_holder, properties):
+    _, plugins = parsed_imported_dsl_holder.get_item('plugins')
+    if not plugins:
+        return
+    for plugin_name in plugins.keys():
+        _, plugin = plugins.get_item(plugin_name)
+        if plugin:
+            _validate_plugin_properties(plugin, properties)
+
+
+def _validate_plugin_properties(plugin_dsl_holder, properties):
+    _, plugin_properties = plugin_dsl_holder.get_item('properties')
+    if not plugin_properties:
+        return
+    not_declared_properties, invalid_types = [], []
+    redundant_properties = list(properties.keys()) if properties else []
+    for property_name in plugin_properties.keys():
+        _, plugin_property = plugin_properties.get_item(property_name)
+        _, property_type = plugin_property.get_item('type')
+        if properties and property_name in properties:
+            redundant_properties.remove(property_name)
+            if not _is_type_valid(properties[property_name],
+                                  property_type.value):
+                invalid_types.append(
+                    f"Property {property_name}: value "
+                    f"'{properties[property_name]}' should be of type "
+                    f"{property_type.value}"
+                )
+        else:
+            not_declared_properties.append(property_name)
+    errors = []
+    if not_declared_properties:
+        errors.append(
+            'Properties for imported plugin are not declared: '
+            f'{not_declared_properties}, consider updating import lines'
+        )
+    if invalid_types:
+        errors.extend(invalid_types)
+    if redundant_properties:
+        errors.append(
+            'Properties for imported plugin are redundant: '
+            f'{redundant_properties}, consider updating import lines'
+        )
+    if errors:
+        raise exceptions.DSLParsingLogicException(
+            exceptions.ERROR_INVALID_IMPORT_PROPERTIES,
+            '.  '.join(errors)
+            )
+
+
+def _is_type_valid(obj, type_name):
+    if type_name == 'string':
+        return isinstance(obj, (str, int))
+    elif type_name == 'integer':
+        return isinstance(obj, int)
+    elif type_name == 'float':
+        return isinstance(obj, (int, float))
+    elif type_name == 'boolean':
+        return isinstance(obj, bool)
+    elif type_name == 'list':
+        return isinstance(obj, list)
+    else:
+        raise exceptions.DSLParsingFormatException(
+            exceptions.ERROR_INVALID_IMPORT_SPECS,
+            'Properties should either be strings, integers, '
+            'floats, booleans, or lists.')
 
 
 def _can_import_version(version_orig, version_imported):
@@ -751,13 +824,21 @@ class ImportsGraph(object):
         self._imports_graph = DiGraph()
 
     def add(self, import_url, parsed, cloudify_types=False,
-            via_import=None, namespace=None):
+            via_import=None, namespace=None, properties=None):
         node_key = (import_url, namespace)
         if import_url not in self._imports_tree:
             self._imports_tree.add_node(
-                node_key, parsed=parsed, cloudify_types=cloudify_types)
+                node_key,
+                parsed=parsed,
+                cloudify_types=cloudify_types,
+                properties=properties
+            )
             self._imports_graph.add_node(
-                node_key, parsed=parsed, cloudify_types=cloudify_types)
+                node_key,
+                parsed=parsed,
+                cloudify_types=cloudify_types,
+                properties=properties,
+            )
         if via_import:
             self._imports_tree.add_edge(node_key, via_import)
             self._imports_graph.add_edge(node_key, via_import)
@@ -770,7 +851,8 @@ class ImportsGraph(object):
         return reversed(list(
             ({'import': i,
              'parsed': self._imports_tree.node[i]['parsed'],
-              'cloudify_types': self._imports_tree.node[i]['cloudify_types']}
+              'cloudify_types': self._imports_tree.node[i]['cloudify_types'],
+              'properties': self._imports_tree.node[i]['properties']}
              for i in topological_sort(self._imports_tree))))
 
     def __contains__(self, item):
