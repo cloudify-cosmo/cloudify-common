@@ -28,9 +28,12 @@ from dsl_parser import (exceptions,
 from dsl_parser.holder import Holder
 from dsl_parser.import_resolver.abstract_import_resolver import\
     is_remote_resource
-from dsl_parser.framework.elements import (Element,
+from dsl_parser.framework.elements import (Dict,
+                                           DictElement,
+                                           Element,
                                            Leaf,
                                            List)
+from dsl_parser.utils import get_function
 
 
 MERGE_NO_OVERRIDE = set([
@@ -77,9 +80,42 @@ class Imports(Element):
     schema = List(type=Import)
 
 
+class ImportPluginProperty(Element):
+    schema = Leaf(type=(str, int, float, bool, list, dict))
+
+    requires = {
+        'inputs': ['validate_version', 'version'],
+    }
+
+    def validate(self, version, validate_version, **kwargs):
+        if validate_version:
+            self.validate_version(version.definitions_version, (1, 5))
+        if isinstance(self.initial_value, (str, int, float, bool, list)):
+            return
+        if isinstance(self.initial_value, dict) \
+                and get_function(self.initial_value):
+            return
+        raise exceptions.DSLParsingFormatException(
+            exceptions.ERROR_INVALID_IMPORT_SPECS,
+            'Properties of imported node should either be strings, integers, '
+            'floats, booleans, lists or intrinsic functions')
+
+
+class ImportPluginProperties(DictElement):
+    schema = Dict(type=ImportPluginProperty)
+
+    requires = {
+        'inputs': ['validate_version', 'version'],
+    }
+
+    def validate(self, version, validate_version, **kwargs):
+        if validate_version:
+            self.validate_version(version.definitions_version, (1, 5))
+
+
 class ImportLoader(Element):
 
-    schema = Leaf(type=str)
+    schema = [Leaf(type=str), Dict(type=ImportPluginProperties)]
 
 
 class ImportsLoader(Element):
@@ -101,10 +137,17 @@ class ImportsLoader(Element):
         imports = [i.value for i in self.children()]
         imports_set = set()
         for _import in imports:
-            if _import in imports_set:
-                raise exceptions.DSLParsingFormatException(
-                    2, 'Duplicate imports')
-            imports_set.add(_import)
+            if isinstance(_import, str):
+                if _import in imports_set:
+                    raise exceptions.DSLParsingFormatException(
+                        2, 'Duplicate imports')
+                imports_set.add(_import)
+            if isinstance(_import, dict):
+                import_key = _validate_import_dict(_import)
+                if import_key in imports_set:
+                    raise exceptions.DSLParsingFormatException(
+                        2, 'Duplicate imports')
+                imports_set.add(import_key)
 
     def parse(self,
               main_blueprint_holder,
@@ -376,7 +419,13 @@ def _build_ordered_imports(parsed_dsl_holder,
         if not imports_value_holder:
             return
 
-        for another_import in imports_value_holder.restore():
+        for another_import_raw in imports_value_holder.restore():
+            if isinstance(another_import_raw, dict):
+                # This is actually guaranteed to be a dict of length 1
+                for another_import, properties in another_import_raw.items():
+                    pass
+            else:
+                another_import = another_import_raw
             namespace, import_url = _extract_import_parts(another_import,
                                                           resources_base_path,
                                                           _current_import,
@@ -729,3 +778,11 @@ class ImportsGraph(object):
 
     def __getitem__(self, item):
         return self._imports_tree.node[item]
+
+
+def _validate_import_dict(_import):
+    if len(_import) != 1:
+        raise exceptions.DSLParsingFormatException(
+            exceptions.ERROR_INVALID_IMPORT_SPECS,
+            'Import with properties should be a single-entry dictionary')
+    return list(_import.keys())[0]

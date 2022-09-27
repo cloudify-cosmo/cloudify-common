@@ -197,3 +197,5 @@ ERROR_INVALID_ITEM_TYPE = 217
 ERROR_ITEM_TYPE_FOR_INVALID_TYPE = 218
 # Intrinsic function not allowed for certain elements of the schema
 ERROR_INTRINSIC_FUNCTION_NOT_PERMITTED = 219
+# Node not properly imported
+ERROR_INVALID_IMPORT_SPECS = 220
