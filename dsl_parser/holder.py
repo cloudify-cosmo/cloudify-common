@@ -115,3 +115,10 @@ class Holder(object):
                       namespace=self.namespace,
                       is_cloudify_type=self.is_cloudify_type,
                       only_children_namespace=self.only_children_namespace)
+
+    def keys(self):
+        if not isinstance(self.value, dict):
+            raise ValueError('Value is expected to be a dictionary while it '
+                             'is of type {0}'
+                             .format(type(self.value).__name__))
+        return [k.value for k in self.value.keys()]
