@@ -17,11 +17,11 @@ plugins:
       or the link to cloudify documentation on
       different types of authentication methods
     properties:
-      aws_access_key_id:
+      aws_access_key:
         type: string
         description: This is a AWS Access Key ID
         display_label: AWS Access Key ID
-      aws_secret_access_key:
+      aws_access_secret:
         type: string
         description: This is a AWS Secret Access Key
         display_label: AWS Secret Access Key
@@ -55,6 +55,12 @@ class PluginPropertiesTest(AbstractTestParser):
         assert dummy['properties_description'].rstrip()\
             .endswith('authentication methods')
         assert all(p['type'] == 'string' for p in dummy['properties'].values())
+        assert set(dummy['properties'].keys()) \
+               == {'aws_access_key', 'aws_access_secret', 'aws_region'}
+        assert dummy['properties']['aws_access_key']['description'] \
+               == 'This is a AWS Access Key ID'
+        assert dummy['properties']['aws_region']['display_label'] \
+               == 'AWS Region'
 
     def test_no_properties(self):
         yaml = """
