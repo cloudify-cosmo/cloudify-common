@@ -378,6 +378,10 @@ class CloudifyWorkflowNodeInstance(object):
         return self._node_instance.get('scaling_groups', [])
 
     @property
+    def deployment_id(self):
+        return self._node_instance.get('deployment_id')
+
+    @property
     def runtime_properties(self):
         """The node instance runtime properties
 
@@ -707,6 +711,10 @@ class _WorkflowContextBase(object):
 
         if plugin and plugin['package_name']:
             plugin = self.internal.handler.get_plugin(plugin)
+            plugin_properties = self.internal.handler.get_plugin_properties(
+                plugin, node_instance)
+        else:
+            plugin_properties = {}
 
         node_context = {
             'node_id': node_instance.id,
@@ -717,7 +725,8 @@ class _WorkflowContextBase(object):
                 'package_version': plugin.get('package_version'),
                 'visibility': plugin.get('visibility'),
                 'tenant_name': plugin.get('tenant_name'),
-                'source': plugin.get('source')
+                'source': plugin.get('source'),
+                'properties': plugin_properties,
             },
             'operation': {
                 'name': operation,
@@ -1423,6 +1432,9 @@ class CloudifyWorkflowContextHandler(object):
     def get_plugin(self, plugin_spec):
         raise NotImplementedError('Implemented by subclasses')
 
+    def get_plugin_properties(self, plugin_spec, node_instance_spec):
+        raise NotImplementedError('Implemented by subclasses')
+
     def update_node_instance(
         self,
         node_instance_id,
@@ -1663,6 +1675,19 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             self._plugins_cache[key] = plugin
         return self._plugins_cache[key]
 
+    def get_plugin_properties(self, plugin, node_instance):
+        dep = self.rest_client.deployments.get(node_instance.deployment_id)
+        bp = self.rest_client.blueprints.get(dep.blueprint_id)
+        plugins = [
+            p for p in
+            bp.plan['deployment_plugins_to_install'] +
+            bp.plan['workflow_plugins_to_install'] +
+            bp.plan['host_agent_plugins_to_install']
+            if p.get('package_name') == plugin.get('package_name')
+            and p.get('package_version') == plugin.get('package_version')
+        ]
+        return plugins[0].get('properties') if len(plugins) > 0 else {}
+
     def update_node_instance(self, *args, **kwargs):
         return self.rest_client.node_instances.update(*args, **kwargs)
 
@@ -1902,6 +1927,19 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
 
     def get_plugin(self, plugin):
         return plugin
+
+    def get_plugin_properties(self, plugin, node_instance):
+        dep = self.storage.get_deployment(node_instance.deployment_id)
+        bp = self.storage.get_blueprint(dep.blueprint_id)
+        plugins = [
+            p for p in
+            bp.plan['deployment_plugins_to_install'] +
+            bp.plan['workflow_plugins_to_install'] +
+            bp.plan['host_agent_plugins_to_install']
+            if p.get('package_name') == plugin.get('package_name')
+            and p.get('package_version') == plugin.get('package_version')
+        ]
+        return plugins[0].get('properties') if len(plugins) > 0 else {}
 
     def update_node_instance(self, *args, **kwargs):
         return self.storage.update_node_instance(*args, **kwargs)
