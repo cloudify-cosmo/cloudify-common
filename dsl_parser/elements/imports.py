@@ -300,7 +300,7 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
                               import_url,
                               parsed_imported_dsl_holder)
         if import_url != 'root':
-            _validate_properties(
+            _validate_and_set_properties(
                 parsed_imported_dsl_holder, imported['properties'])
         is_cloudify_types = imported['cloudify_types']
         _merge_parsed_into_combined(
@@ -552,17 +552,17 @@ def _validate_version(dsl_version,
                         version_value_holder.value))
 
 
-def _validate_properties(parsed_imported_dsl_holder, properties):
+def _validate_and_set_properties(parsed_imported_dsl_holder, properties):
     _, plugins = parsed_imported_dsl_holder.get_item('plugins')
     if not plugins:
         return
     for plugin_name in plugins.keys():
         _, plugin = plugins.get_item(plugin_name)
         if plugin:
-            _validate_plugin_properties(plugin, properties)
+            _validate_and_set_plugin_properties(plugin, properties)
 
 
-def _validate_plugin_properties(plugin_dsl_holder, properties):
+def _validate_and_set_plugin_properties(plugin_dsl_holder, properties):
     _, plugin_properties = plugin_dsl_holder.get_item('properties')
     if not plugin_properties:
         return
@@ -573,8 +573,9 @@ def _validate_plugin_properties(plugin_dsl_holder, properties):
         _, property_type = plugin_property.get_item('type')
         if properties and property_name in properties:
             redundant_properties.remove(property_name)
-            if not _is_type_valid(properties[property_name],
-                                  property_type.value):
+            if _is_type_valid(properties[property_name], property_type.value):
+                plugin_property.set_item('value', properties[property_name])
+            else:
                 invalid_types.append(
                     f"Property {property_name}: value "
                     f"'{properties[property_name]}' should be of type "
