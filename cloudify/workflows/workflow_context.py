@@ -1664,7 +1664,11 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         )
 
     def get_plugin(self, plugin):
-        key = (plugin.get('package_name'), plugin.get('package_version'))
+        key = (
+            plugin.get('name'),
+            plugin.get('package_name'),
+            plugin.get('package_version'),
+        )
         if key not in self._plugins_cache:
             filter_plugin = {'package_name': plugin.get('package_name'),
                              'package_version': plugin.get('package_version')}
@@ -1683,7 +1687,8 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             bp.plan['deployment_plugins_to_install'] +
             bp.plan['workflow_plugins_to_install'] +
             bp.plan['host_agent_plugins_to_install']
-            if p.get('package_name') == plugin.get('package_name')
+            if p.get('name') == plugin.get('name')
+            and p.get('package_name') == plugin.get('package_name')
             and p.get('package_version') == plugin.get('package_version')
         ]
         return plugins[0].get('properties') if len(plugins) > 0 else {}
