@@ -1929,8 +1929,14 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
         return plugin
 
     def get_plugin_properties(self, plugin, node_instance):
+        if not node_instance.deployment_id:
+            return {}
         dep = self.storage.get_deployment(node_instance.deployment_id)
+        if not dep.blueprint_id:
+            return {}
         bp = self.storage.get_blueprint(dep.blueprint_id)
+        if not bp.plan:
+            return {}
         plugins = [
             p for p in
             bp.plan['deployment_plugins_to_install'] +
