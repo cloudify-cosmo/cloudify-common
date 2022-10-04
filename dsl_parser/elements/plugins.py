@@ -111,11 +111,16 @@ class PluginPropertiesDescription(PluginVersionValidatedElement):
     schema = Leaf(type=str)
 
 
+class PluginPropertyValue(Element):
+    schema = Leaf(type=(str, int, float, bool, list))
+
+
 class PluginProperty(Element):
     schema = {
         'description': SchemaPropertyDescription,
         'type': SchemaPropertyType,
         'display_label': SchemaPropertyDisplayLabel,
+        'value': PluginPropertyValue,
     }
 
 

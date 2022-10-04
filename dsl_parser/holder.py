@@ -78,6 +78,15 @@ class Holder(object):
                 return key_holder, value_holder
         return None, None
 
+    def set_item(self, key, value):
+        if not isinstance(self.value, dict):
+            raise ValueError('Value is expected to be a dictionary while it '
+                             'is of type {0}'
+                             .format(type(self.value).__name__))
+        self.value.update({
+            Holder.of(key): Holder.of(value)
+        })
+
     def restore(self):
         if isinstance(self.value, dict):
             return dict((key_holder.restore(), value_holder.restore())
