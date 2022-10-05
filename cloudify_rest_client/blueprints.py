@@ -179,7 +179,8 @@ class BlueprintsClient(object):
                 created_by=None,
                 state=None,
                 skip_execution=False,
-                validate=False):
+                validate=False,
+                legacy=False):
         def callback_wrapper(watcher):
             if getattr(watcher, 'cfy_progress_complete', False):
                 # Don't print the final line twice
@@ -207,6 +208,22 @@ class BlueprintsClient(object):
             state,
             skip_execution,
         )
+
+        if legacy:
+            # Legacy mode is only intended for use with systests, so no
+            # progress callback, sorry!
+            params.pop('blueprint_archive', None)
+            params = json.loads(params.get('params', '{}'))
+            # System tests don't use url based upload
+            data = bytes_stream_utils.request_data_file_stream(
+                archive_location,
+                client=self.api)
+            return self.api.put(
+                uri,
+                params=params,
+                data=data,
+                expected_status_code=expected_status,
+            )
 
         multipart = MultipartEncoder(fields=params)
         if progress_callback:
@@ -371,7 +388,8 @@ class BlueprintsClient(object):
                created_at=None,
                created_by=None,
                state=None,
-               skip_execution=False):
+               skip_execution=False,
+               legacy=False):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -384,6 +402,8 @@ class BlueprintsClient(object):
                            blueprint folder
         :param labels: The blueprint's labels. A list of 1-entry
             dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
+        :param legacy: Support some parameters for upload to older managers.
+                       Internal use only.
         :return: Created response.
 
         Blueprint path should point to the main yaml file of the response
@@ -408,7 +428,8 @@ class BlueprintsClient(object):
                 created_at=created_at,
                 created_by=created_by,
                 state=state,
-                skip_execution=skip_execution)
+                skip_execution=skip_execution,
+                legacy=legacy)
             if not async_upload:
                 return self._wrapper_cls(response)
         finally:
