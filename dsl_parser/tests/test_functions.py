@@ -1977,6 +1977,54 @@ node_templates:
                 "evaluating the deployment\\..+get_property\\[0\\].+"):
             prepare_deployment_plan(self.parse(yaml))
 
+    def test_clean_invalid_secrets(self):
+
+        class MockedStorageSuccessful:
+            secret_method_called_counter = 0
+
+            def secret_method(self, _):
+                self.secret_method_called_counter += 1
+
+        class Mocked404Exception(Exception):
+            status_code = 404
+
+        class MockedStorage404:
+            def secret_method(self, key):
+                raise Mocked404Exception()
+
+        data_dict_simple = {
+            'test': {
+                'value': {
+                    'get_secret': 'just_string'
+                }
+            }
+        }
+        data_dict_nested = {
+            'test': {
+                'value': {
+                    'get_secret': {
+                        'get_sys': ['deployment', 'id']
+                    }
+                }
+            }
+        }
+
+        storage = MockedStorageSuccessful()
+
+        result = functions._clean_invalid_secrets(data_dict_simple, storage)
+        assert result == {'test': {'get_secret': 'just_string'}}
+        assert storage.secret_method_called_counter == 1
+
+        result = functions._clean_invalid_secrets(data_dict_nested, storage)
+        assert result \
+            == {'test': {'get_secret': {'get_sys': ['deployment', 'id']}}}
+        assert storage.secret_method_called_counter == 1
+
+        storage = MockedStorage404()
+
+        result = functions._clean_invalid_secrets(data_dict_simple, storage)
+        assert result == {}
+
 
 class TestGetGroupCapability(AbstractTestParser):
     BLUEPRINT = """
