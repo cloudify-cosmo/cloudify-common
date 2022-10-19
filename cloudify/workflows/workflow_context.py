@@ -1680,9 +1680,18 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         return self._plugins_cache[key]
 
     def get_plugin_properties(self, plugin, node_instance):
-        dep = self.rest_client.deployments.get(node_instance.deployment_id)
+        if node_instance.deployment_id:
+            plugins = self._get_matching_plugins(node_instance.deployment_id,
+                                                 plugin)
+            if plugins:
+                return plugins[0]['properties']
+
+        return {}
+
+    def _get_matching_plugins(self, deployment_id, plugin):
+        dep = self.rest_client.deployments.get(deployment_id)
         bp = self.rest_client.blueprints.get(dep.blueprint_id)
-        plugins = [
+        return [
             p for p in
             bp.plan['deployment_plugins_to_install'] +
             bp.plan['workflow_plugins_to_install'] +
@@ -1691,7 +1700,6 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             and p.get('package_name') == plugin.get('package_name')
             and p.get('package_version') == plugin.get('package_version')
         ]
-        return plugins[0].get('properties') if len(plugins) > 0 else {}
 
     def update_node_instance(self, *args, **kwargs):
         return self.rest_client.node_instances.update(*args, **kwargs)
