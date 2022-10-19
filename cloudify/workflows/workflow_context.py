@@ -1684,7 +1684,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
             plugins = self._get_matching_plugins(node_instance.deployment_id,
                                                  plugin)
             if plugins:
-                return plugins[0].get('properties')
+                return plugins[0]['properties']
 
         return {}
 
