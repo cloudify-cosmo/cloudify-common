@@ -11,7 +11,6 @@ from cloudify_rest_client import utils
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client.constants import VisibilityState
 from cloudify_rest_client.exceptions import CloudifyClientError
-from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.responses import ListResponse
 
 from .labels import Label
@@ -246,7 +245,8 @@ class BlueprintsClient(object):
                             application_file_name=application_file_name,
                             visibility=visibility,
                             progress_callback=progress_callback,
-                            async_upload=False)
+                            async_upload=False,
+                            validate=True)
 
     def _validate_blueprint_size(self, path, tempdir, skip_size_limit):
         blueprint_directory = os.path.dirname(path) or os.getcwd()
@@ -479,7 +479,7 @@ class BlueprintsClient(object):
 
         if response:
             # on cloudify earlier than 6.4, response is None (204 no content)
-            return Execution(response)
+            return response
 
     def get(self, blueprint_id, _include=None):
         """
