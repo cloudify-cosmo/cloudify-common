@@ -87,7 +87,8 @@ def _collect_secret(value):
         secret_name = value['get_secret']
         if isinstance(value['get_secret'], list):
             secret_name = secret_name[0]
-        secrets.add(secret_name)
+        if isinstance(secret_name, str):
+            secrets.add(secret_name)
 
 
 def _scan_operations(operations,

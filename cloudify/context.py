@@ -1210,6 +1210,11 @@ class PluginContext(str):
         return self._plugin_context.get('source')
 
     @property
+    def properties(self):
+        """The properties of the plugin."""
+        return self._plugin_context.get('properties')
+
+    @property
     def prefix(self):
         """The plugin prefix."""
         return utils.plugin_prefix(
