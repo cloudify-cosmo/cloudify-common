@@ -566,7 +566,7 @@ def _validate_and_set_plugin_properties(plugin_dsl_holder, properties):
     _, plugin_properties = plugin_dsl_holder.get_item('properties')
     if not plugin_properties:
         return
-    not_declared_properties, invalid_types = [], []
+    invalid_types = []
     redundant_properties = list(properties.keys()) if properties else []
     for property_name in plugin_properties.keys():
         _, plugin_property = plugin_properties.get_item(property_name)
@@ -581,14 +581,7 @@ def _validate_and_set_plugin_properties(plugin_dsl_holder, properties):
                     f"'{properties[property_name]}' should be of type "
                     f"{property_type.value}"
                 )
-        else:
-            not_declared_properties.append(property_name)
     errors = []
-    if not_declared_properties:
-        errors.append(
-            'Properties for imported plugin are not declared: '
-            f'{not_declared_properties}, consider updating import lines'
-        )
     if invalid_types:
         errors.extend(invalid_types)
     if redundant_properties:
