@@ -450,7 +450,7 @@ def main():
     args = dispatch_inputs['args']
     kwargs = dispatch_inputs['kwargs']
     dispatch_type = cloudify_context['type']
-    threading.current_thread().setName('Dispatch-{0}'.format(dispatch_type))
+    threading.current_thread().name = f'Dispatch-{dispatch_type}'
     handler_cls = TASK_HANDLERS[dispatch_type]
     handler = handler_cls(
         cloudify_context=cloudify_context, args=args, kwargs=kwargs)
