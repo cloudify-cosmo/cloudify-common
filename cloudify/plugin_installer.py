@@ -146,14 +146,14 @@ def install(plugin, deployment_id=None, blueprint_id=None):
             .format(name, platform, distro, release))
 
 
-def _make_virtualenv(path):
+def _make_virtualenv(python_executable, path):
     """Make a venv and link the current venv to it.
 
     The new venv will have the current venv linked, ie. it will be
     able to import libraries from the current venv, but libraries
     installed directly will have precedence.
     """
-    runner.run([sys.executable, '-m', 'venv', '--without-pip', path])
+    runner.run([python_executable, '-m', 'venv', '--without-pip', path])
     _link_virtualenv(path)
 
 
@@ -210,7 +210,7 @@ def _install_managed_plugin(plugin, args):
         ctx.logger.info(
             'Installing managed plugin: %s [%s]',
             plugin.id, _get_plugin_description(plugin))
-        _make_virtualenv(dst_dir)
+        _make_virtualenv(_python_executable(plugin), dst_dir)
         try:
             _wagon_install(plugin, venv=dst_dir, args=args)
             with open(os.path.join(dst_dir, 'plugin.id'), 'w') as f:
@@ -260,7 +260,7 @@ def _install_source_plugin(deployment_id, plugin, source, args):
             return
 
         ctx.logger.info('Installing plugin from source: %s', name)
-        _make_virtualenv(dst_dir)
+        _make_virtualenv(_python_executable(plugin), dst_dir)
         try:
             _pip_install(source=source, venv=dst_dir, args=args)
         except Exception:
@@ -558,3 +558,16 @@ def get_pth_dir(venv=None):
         return '{0}/lib/python{1}/site-packages'.format(prefix, version)
     else:
         raise NonRecoverableError('Unsupported OS: {0}'.format(os.name))
+
+
+def _python_executable(plugin):
+    if 'supported_py_versions' not in plugin:
+        return sys.executable
+    if 'py310' in plugin['supported_py_versions']:
+        return sys.executable
+    if 'py36' in plugin['supported_py_versions']:
+        return '/usr/bin/python3.6'
+    raise NonRecoverableError(
+        "This version of Cloudify supports plugins build for Python 3.6 or "
+        f"Python 3.10, while plugin {plugin.get('name', 'UNKNOWN')} supports "
+        f"only Python versions: {plugin['supported_py_versions']}.")
