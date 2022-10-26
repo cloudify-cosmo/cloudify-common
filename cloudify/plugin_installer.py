@@ -562,12 +562,19 @@ def get_pth_dir(venv=None):
 
 def _python_executable(plugin):
     if 'supported_py_versions' not in plugin:
+        # This is the case for source plugins
         return sys.executable
-    if 'py310' in plugin['supported_py_versions']:
+
+    v = sys.version_info
+    if f'py{v.major}{v.minor}' in plugin['supported_py_versions']:
         return sys.executable
-    if 'py36' in plugin['supported_py_versions']:
-        return '/usr/bin/python3.6'
+    for v in reversed(plugin['supported_py_versions']):
+        # This won't work with Python>=10, e.g. `py101`
+        file_name = f'python{v[2:3]}.{v[3:]}'
+        for path in os.environ['PATH'].split(os.pathsep):
+            file_path = os.path.join(path, file_name)
+            if os.path.isfile(file_path) and os.access(file_path, os.X_OK):
+                return file_path
     raise NonRecoverableError(
-        "This version of Cloudify supports plugins build for Python 3.6 or "
-        f"Python 3.10, while plugin {plugin.get('name', 'UNKNOWN')} supports "
-        f"only Python versions: {plugin['supported_py_versions']}.")
+        "This version of Cloudify does not support plugins build for Python "
+        f"versions: {plugin['supported_py_versions']}.")
