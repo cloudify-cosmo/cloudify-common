@@ -20,6 +20,7 @@ import json
 import errno
 import shutil
 import tempfile
+import platform
 import threading
 
 from os import walk
@@ -49,14 +50,6 @@ try:
     from packaging.version import parse as parse_version
 except ImportError:
     from distutils.version import LooseVersion as parse_version
-
-try:
-    from distro import linux_distribution
-except ImportError:
-    try:
-        from platform import linux_distribution
-    except ImportError:
-        linux_distribution = None
 
 PLUGIN_INSTALL_LOCK = threading.Lock()
 runner = LocalCommandRunner()
@@ -138,12 +131,11 @@ def install(plugin, deployment_id=None, blueprint_id=None):
             source=source,
             args=args)
     else:
-        platform, distro, release = _platform_and_distro()
         name = plugin.get('package_name') or plugin.get('name')
         raise NonRecoverableError(
-            'No source or managed plugin found for {0} '
-            '[current platform={1}, distro={2}, release={3}]'
-            .format(name, platform, distro, release))
+           f'No source or managed plugin found for {name} '
+           f'[current platform={platform.system()}, '
+           f'arch={platform.machine()}]')
 
 
 def _make_virtualenv(python_executable, path):
@@ -443,30 +435,19 @@ def _is_plugin_supported(plugin):
         return False
     if plugin.supported_platform == 'any':
         return True
-    current_platform, current_dist, current_release = _platform_and_distro()
 
     if os.name == 'posix':
         # for linux,
         # 1) allow manylinux always,
-        # 2) disallow if the distro is specified and different than current
+        # 2) disallow if the arch is specified and different than current
         if plugin.supported_platform.startswith('manylinux'):
             return True
-        if plugin.distribution and plugin.distribution != current_dist:
-            return False
-        if plugin.distribution_release \
-                and plugin.distribution_release != current_release:
-            return False
-    # non-linux, or linux but the distribution fits
-    return plugin.supported_platform == current_platform
-
-
-def _platform_and_distro():
-    current_platform = wagon.get_platform()
-    if linux_distribution is None:
-        raise NonRecoverableError("distro must be installed")
-    distribution, _, distribution_release = linux_distribution(
-        full_distribution_name=False)
-    return current_platform, distribution.lower(), distribution_release.lower()
+        if plugin.supported_platform.startswith('linux_'):
+            if plugin.supported_platform.split('_', 1)[1] != \
+                    platform.machine():
+                return False
+    # non-linux, or linux but the platform fits
+    return plugin.supported_platform == wagon.get_platform()
 
 
 def get_plugin_source(plugin, blueprint_id=None):
