@@ -112,7 +112,7 @@ class PluginPropertiesDescription(PluginVersionValidatedElement):
 
 
 class PluginPropertyValue(Element):
-    schema = Leaf(type=(str, int, float, bool, list))
+    schema = Leaf(type=(str, int, float, bool, list, dict))
 
 
 class PluginProperty(Element):

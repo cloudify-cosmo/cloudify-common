@@ -575,6 +575,8 @@ def _validate_and_set_plugin_properties(plugin_dsl_holder, properties):
             redundant_properties.remove(property_name)
             if _is_type_valid(properties[property_name], property_type.value):
                 plugin_property.set_item('value', properties[property_name])
+            elif get_function(properties[property_name]):
+                plugin_property.set_item('value', properties[property_name])
             else:
                 invalid_types.append(
                     f"Property {property_name}: value "
