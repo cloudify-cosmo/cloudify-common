@@ -1435,6 +1435,16 @@ class CloudifyWorkflowContextHandler(object):
     def get_plugin_properties(self, deployment_id, plugin_spec):
         raise NotImplementedError('Implemented by subclasses')
 
+    def evaluate_plugin_properties(self, deployment_id, plugin_properties):
+        payload = {k: v['value'] for k, v in plugin_properties.items()
+                   if isinstance(v, dict) and 'value' in v}
+        evaluated = self.evaluate_functions(deployment_id, {}, payload)
+        if not evaluated:
+            return plugin_properties
+        for k, v in evaluated.items():
+            plugin_properties[k]['value'] = v
+        return plugin_properties
+
     def update_node_instance(
         self,
         node_instance_id,
@@ -1685,7 +1695,8 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         plugins = self._get_matching_plugins(deployment_id, plugin_spec)
         if not plugins:
             return {}
-        return plugins[0]['properties']
+        return self.evaluate_plugin_properties(
+            deployment_id, plugins[0]['properties'])
 
     def _get_matching_plugins(self, deployment_id, plugin):
         dep = self.rest_client.deployments.get(deployment_id)
@@ -1959,7 +1970,8 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
         ]
         if not plugins or 'properties' not in plugins[0]:
             return {}
-        return plugins[0]['properties']
+        return self.evaluate_plugin_properties(
+            deployment_id, plugins[0]['properties'])
 
     def update_node_instance(self, *args, **kwargs):
         return self.storage.update_node_instance(*args, **kwargs)
