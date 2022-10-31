@@ -98,12 +98,12 @@ class Constraint(object):
     # accepts at it's initialization/definition.
     constraint_data_type = None
 
-    def __init__(self, args, **kwargs):
+    def __init__(self, args, error_message=None):
         """
         :param args: the constraint arguments.
         """
         self.args = args
-        self.error_message = kwargs.pop('error_message', None)
+        self.error_message = error_message
 
     def predicate(self, value):
         """Value compliance hook.
