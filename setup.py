@@ -23,8 +23,8 @@ setup(
         'pika==1.3.0',
         'requests>=2.27.1,<3.0.0',
         'fasteners==0.17.3',
-        'aiohttp==3.8.1',
         'distro>=1.7.0',
+        'aiohttp>3,<4',
     ],
     entry_points={
         'console_scripts': [
