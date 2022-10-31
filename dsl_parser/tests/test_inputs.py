@@ -1106,7 +1106,6 @@ inputs:
               error_message: The value should be either `hi` or `ab`
             - max_length: 2
 """
-        # self.parse(yaml)
         with self.assertRaises(ConstraintException) as ctx:
             self.parse(yaml)
         assert str(ctx.exception) == 'Value lorem ipsum of input x is ' + \
