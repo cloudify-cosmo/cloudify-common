@@ -204,7 +204,7 @@ class Element(object):
     def sibling(self, element_type):
         return self.parent().child(element_type)
 
-    def validate_version(self, version, min_version):
+    def validate_version(self, version, min_version, error_msg=None):
         if self.initial_value is not None and version < min_version:
             if self.name == 'type':
                 dsl_node = "type '{0}'".format(self.initial_value)
@@ -212,6 +212,7 @@ class Element(object):
                 dsl_node = self.name
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_CODE_DSL_DEFINITIONS_VERSION_MISMATCH,
+                error_msg or
                 '{0} not supported in version {1}, it was added in {2}'.format(
                     dsl_node,
                     _version.version_description(version),
