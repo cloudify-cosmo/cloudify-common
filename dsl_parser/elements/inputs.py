@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 from dsl_parser import exceptions, constraints, utils
+from dsl_parser.elements import version as _version
 from dsl_parser.elements.data_types import (Schema,
                                             SchemaProperty,
                                             SchemaInputType,
@@ -26,6 +27,7 @@ from dsl_parser.elements.data_types import (Schema,
                                             )
 from dsl_parser.framework.elements import Element, Leaf, List, Dict
 from dsl_parser.framework.requirements import Requirement, sibling_predicate
+from dsl_parser.version import version_description
 
 
 class Constraint(Element):
@@ -33,7 +35,12 @@ class Constraint(Element):
 
     add_namespace_to_schema_elements = False
 
-    def validate(self, **kwargs):
+    requires = {
+        _version.ToscaDefinitionsVersion: ['version'],
+        'inputs': ['validate_version']
+    }
+
+    def validate(self, version, validate_version, **kwargs):
         constraint_op_keys = list(self.initial_value)
         if not constraint_op_keys:
             raise exceptions.DSLParsingLogicException(
@@ -41,10 +48,19 @@ class Constraint(Element):
                 "Empty constraint operator name given. Allowed operators: "
                 "{0}".format(constraints.CONSTRAINTS))
         if len(constraint_op_keys) > 1:
-            raise exceptions.DSLParsingLogicException(
-                exceptions.ERROR_UNKNOWN_TYPE,
-                "Each constraint operator dict must be in it's own list item.")
-        constraint_name = constraint_op_keys[0]
+            if validate_version:
+                self.validate_version(
+                    version, (1, 5),
+                    'Constraint\'s additional attributes are not supported '
+                    f'in version {version_description(version)}, they were '
+                    f'added in {version_description((1, 5))}')
+            else:
+                raise exceptions.DSLParsingLogicException(
+                    exceptions.ERROR_UNKNOWN_TYPE,
+                    "Each constraint operator dict must be in it's own list "
+                    "item.")
+        constraint_name = [cn for cn in constraint_op_keys
+                           if cn != 'error_message'][0]
         if constraint_name not in constraints.CONSTRAINTS:
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,

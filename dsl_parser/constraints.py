@@ -98,11 +98,12 @@ class Constraint(object):
     # accepts at it's initialization/definition.
     constraint_data_type = None
 
-    def __init__(self, args):
+    def __init__(self, args, **kwargs):
         """
         :param args: the constraint arguments.
         """
         self.args = args
+        self.error_message = kwargs.pop('error_message', None)
 
     def predicate(self, value):
         """Value compliance hook.
@@ -382,9 +383,10 @@ def parse(definition):
     with a single key-value pair, i.e. { constraint_operator_name: argument/s }
     :return: an instantiated Constraint.
     """
+    kwargs = {'error_message': definition.pop('error_message', None)}
     name, args = dict(definition).popitem()
     constraint_cls = CONSTRAINTS[name]
-    return constraint_cls(args)
+    return constraint_cls(args, **kwargs)
 
 
 def validate_input_value(input_name, input_constraints, input_value,
@@ -444,9 +446,10 @@ def _validate_input_value(input_name, input_constraints, input_value,
             data_based_constraints.append(c)
             continue
         if not c.predicate(input_value):
+            msg = f'is invalid. {c.error_message}' if c.error_message \
+                else 'violates constraint {c}'
             raise exceptions.ConstraintException(
-                "Value {0} of input {1} violates constraint "
-                "{2}.".format(input_value, input_name, c))
+                f"Value {input_value} of input {input_name} {msg}")
     if ((type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT
          or data_based_constraints)
         and not predicate_many(input_value,
