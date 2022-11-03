@@ -18,7 +18,7 @@ setup(
         'bottle==0.12.23',
         'jinja2>3,<4',
         'requests_toolbelt==0.9.1',
-        'wagon>0.10',
+        'wagon>=0.12',
         'pytz==2022.2.1',
         'pika==1.3.0',
         'requests>=2.27.1,<3.0.0',
