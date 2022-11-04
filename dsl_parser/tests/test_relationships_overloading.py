@@ -43,26 +43,26 @@ node_types:
       prop1:
         default: value2
 node_templates:
-    test_node:
-        type: test_type
+  test_node:
+    type: test_type
 """
         import_file_name = self.make_yaml_file(node_blueprint)
 
         main_yaml = """
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 node_templates:
-    other_node:
-        type: test--test_type
-    test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: other_node
+  other_node:
+    type: test--test_type
+  test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: other_node
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(import_file_name)
         self.validate_expected_relationships(
             main_yaml,
@@ -77,26 +77,26 @@ node_types:
       prop1:
         default: value2
 node_templates:
-    test_node:
-        type: test_type
+  test_node:
+    type: test_type
 """
         import_file_name = self.make_yaml_file(node_blueprint)
 
         main_yaml = """
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 node_templates:
-    other_node:
-        type: test_type
-    test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: other_node
+  other_node:
+    type: test_type
+  test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: other_node
 imports:
-    -   {0}
+  - {0}
 """.format(import_file_name)
 
         self.validate_expected_relationships(
@@ -114,8 +114,8 @@ node_types:
       prop1:
         default: value2
 node_templates:
-    test_node:
-        type: test_type
+  test_node:
+    type: test_type
 """
         resolver = ResolverWithBlueprintSupport(
             {'blueprint:node': node_blueprint})
@@ -124,20 +124,20 @@ node_templates:
 tosca_definitions_version: cloudify_dsl_1_3
 
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 
 node_templates:
-    other_node:
-        type: test--test_type
-    test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: other_node
+  other_node:
+    type: test--test_type
+  test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: other_node
 imports:
-    -   test--blueprint:node
+  - test--blueprint:node
 """
         self.validate_expected_relationships(
             main_yaml,
@@ -148,10 +148,10 @@ imports:
     def test_extending_relationships(self):
         node_blueprint = """
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 
 node_types:
   test_type:
@@ -160,14 +160,14 @@ node_types:
         default: value2
 
 node_templates:
-    other_node:
-        type: test_type
+  other_node:
+    type: test_type
 
-    test_node:
-        type: test_type
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: other_node
+  test_node:
+    type: test_type
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: other_node
 """
         import_file_name = self.make_yaml_file(node_blueprint)
 
@@ -197,28 +197,28 @@ node_types:
         default: value2
 
 node_templates:
-    test_node:
-        type: test_type
+  test_node:
+    type: test_type
 """
         import_file_name = self.make_yaml_file(node_blueprint)
 
         main_yaml = """
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 
 node_templates:
-    other_node:
-        type: test--test_type
+  other_node:
+    type: test--test_type
 
-    test--test_node1:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: other_node
+  test--test_node1:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: other_node
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(import_file_name)
         self.assertRaises(exceptions.DSLParsingFormatException,
                           self.parse_1_3,
@@ -233,39 +233,39 @@ node_types:
         default: value2
 
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 
 node_templates:
-    other_node:
-        type: test_type
-    test_node:
-        type: test_type
+  other_node:
+    type: test_type
+  test_node:
+    type: test_type
 """
         node_file_name = self.make_yaml_file(node_blueprint)
 
         middle_extender_blueprint = """
 node_templates:
-    test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--other_node
+  test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--other_node
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(node_file_name)
 
         extender_file_name = self.make_yaml_file(middle_extender_blueprint)
 
         main_yaml = """
 node_templates:
-    test--test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--test--other_node
+  test--test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--test--other_node
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(extender_file_name)
 
         self.validate_expected_relationships(
@@ -284,26 +284,26 @@ node_types:
       prop1:
         default: value2
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 node_templates:
-    other_node:
-        type: test_type
-    test_node:
-        type: test_type
+  other_node:
+    type: test_type
+  test_node:
+    type: test_type
 """
         middle_extender_blueprint = """
 tosca_definitions_version: cloudify_dsl_1_3
 
 node_templates:
-    test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--other_node
+  test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--other_node
 imports:
-    -   test--blueprint:node
+  - test--blueprint:node
 """
         resolver = ResolverWithBlueprintSupport(
             {'blueprint:node': node_blueprint,
@@ -312,12 +312,12 @@ imports:
 tosca_definitions_version: cloudify_dsl_1_3
 
 node_templates:
-    test--test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--test--other_node
+  test--test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--test--other_node
 imports:
-    -   test--blueprint:middle
+  - test--blueprint:middle
 """
 
         self.validate_expected_relationships(
@@ -336,37 +336,37 @@ node_types:
         default: value2
 
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 
 node_templates:
-    other_node:
-        type: test_type
-    test_node:
-        type: test_type
+  other_node:
+    type: test_type
+  test_node:
+    type: test_type
 """
         node_file_name = self.make_yaml_file(node_blueprint)
 
         extender_blueprint = """
 node_templates:
-    test--test_node:
-        type: test--test_type
+  test--test_node:
+    type: test--test_type
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(node_file_name)
 
         extender_file_name = self.make_yaml_file(extender_blueprint)
 
         main_yaml = """
 node_templates:
-    test--test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--test--other_node
+  test--test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--test--other_node
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(extender_file_name)
 
         self.assertRaises(exceptions.DSLParsingLogicException,
@@ -382,39 +382,39 @@ node_types:
         default: value2
 
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 
 node_templates:
-    other_node:
-        type: test_type
-    test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--other_node
+  other_node:
+    type: test_type
+  test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--other_node
 """
         node_file_name = self.make_yaml_file(node_blueprint)
 
         middle_extender_blueprint = """
 node_templates:
-    test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--other_node
+  test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--other_node
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(node_file_name)
 
         extender_file_name = self.make_yaml_file(middle_extender_blueprint)
 
         main_yaml = """
 node_templates:
-    test--test--test_node:
-        type: test_type
+  test--test--test_node:
+    type: test_type
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(extender_file_name)
 
         self.assertRaises(exceptions.DSLParsingLogicException,
@@ -430,38 +430,38 @@ node_types:
         default: value2
 
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 
 node_templates:
-    other_node:
-        type: test_type
-    test_node:
-        type: test_type
+  other_node:
+    type: test_type
+  test_node:
+    type: test_type
 """
         node_file_name = self.make_yaml_file(node_blueprint)
 
         extender_blueprint = """
 node_templates:
-    test--test_node:
-        properties:
-            prop1: e
+  test--test_node:
+    properties:
+      prop1: e
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(node_file_name)
 
         extender_file_name = self.make_yaml_file(extender_blueprint)
 
         main_yaml = """
 node_templates:
-    test--test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--test--other_node
+  test--test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--test--other_node
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(extender_file_name)
 
         self.assertRaises(exceptions.DSLParsingLogicException,
@@ -477,37 +477,37 @@ node_types:
         default: value2
 
 relationships:
-    cloudify.relationships.depends_on:
-        properties:
-            connection_type:
-                default: 'all_to_all'
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: 'all_to_all'
 
 node_templates:
-    other_node:
-        type: test_type
-    test_node:
-        type: test_type
+  other_node:
+    type: test_type
+  test_node:
+    type: test_type
 """
         node_file_name = self.make_yaml_file(node_blueprint)
 
         extender_blueprint = """
 node_templates:
-    test--test_node:
-        properties:
-            prop1: e
+  test--test_node:
+    properties:
+      prop1: e
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(node_file_name)
 
         extender_file_name = self.make_yaml_file(extender_blueprint)
 
         main_yaml = """
 node_templates:
-    test--test--test_node:
-        properties:
-                prop1: e
+  test--test--test_node:
+    properties:
+      prop1: e
 imports:
-    -   test--{0}
+  - test--{0}
 """.format(extender_file_name)
 
         self.assertRaises(exceptions.DSLParsingLogicException,
@@ -517,7 +517,7 @@ imports:
     def test_side_import_expending_relationships(self):
         side_blueprint = """
 imports:
-    - http://local-test-resolver/types.yaml
+  - http://local-test-resolver/types.yaml
 
 node_types:
   test_other_type:
@@ -526,18 +526,18 @@ node_types:
         default: value2
 
 node_templates:
-    some_node:
-        type: test_other_type
+  some_node:
+    type: test_other_type
 
-    test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: some_node
+  test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: some_node
 """
         side_import_file_name = self.make_yaml_file(side_blueprint)
         node_blueprint = """
 imports:
-    - http://local-test-resolver/types.yaml
+  - http://local-test-resolver/types.yaml
 
 node_types:
   test_type:
@@ -546,26 +546,26 @@ node_types:
         default: value2
 
 node_templates:
-    other_node:
-        type: test_type
+  other_node:
+    type: test_type
 
-    test_node:
-        type: test_type
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: other_node
+  test_node:
+    type: test_type
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: other_node
 """
         import_file_name = self.make_yaml_file(node_blueprint)
 
         main_yaml = """
 node_templates:
-    test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--other_node
+  test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--other_node
 imports:
-    -   test--{0}
-    -   test--{1}
+  - test--{0}
+  - test--{1}
 """.format(import_file_name, side_import_file_name)
 
         self.validate_expected_relationships(main_yaml, 'test--test_node', [
@@ -577,7 +577,7 @@ imports:
     def test_side_import_not_expending_relationships_failure(self):
         side_blueprint = """
 imports:
-    - http://local-test-resolver/types.yaml
+  - http://local-test-resolver/types.yaml
 
 node_types:
   test_other_type:
@@ -586,18 +586,18 @@ node_types:
         default: value2
 
 node_templates:
-    some_node:
-        type: test_other_type
+  some_node:
+    type: test_other_type
 
-    test_node:
-        properties:
-            prop1: value2
+  test_node:
+    properties:
+      prop1: value2
 
 """
         side_import_file_name = self.make_yaml_file(side_blueprint)
         node_blueprint = """
 imports:
-    - http://local-test-resolver/types.yaml
+  - http://local-test-resolver/types.yaml
 
 node_types:
   test_type:
@@ -606,26 +606,26 @@ node_types:
         default: value2
 
 node_templates:
-    other_node:
-        type: test_type
+  other_node:
+    type: test_type
 
-    test_node:
-        type: test_type
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: other_node
+  test_node:
+    type: test_type
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: other_node
 """
         import_file_name = self.make_yaml_file(node_blueprint)
 
         main_yaml = """
 node_templates:
-    test--test_node:
-        relationships:
-            - type: cloudify.relationships.depends_on
-              target: test--other_node
+  test--test_node:
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: test--other_node
 imports:
-    -   test--{0}
-    -   test--{1}
+  - test--{0}
+  - test--{1}
 """.format(import_file_name, side_import_file_name)
 
         self.assertRaises(exceptions.DSLParsingLogicException,

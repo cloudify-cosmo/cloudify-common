@@ -4,9 +4,9 @@ imports:
   - minimal_types.yaml
 
 plugins:
-    mock:
-        executor: central_deployment_agent
-        install: false
+  mock:
+    executor: central_deployment_agent
+    install: false
 
 node_templates:
   node_failing:

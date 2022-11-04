@@ -149,7 +149,7 @@ imports:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 plugins:
   plugin1:
     distribution: dist
@@ -166,8 +166,8 @@ node_templates:
   node3:
     type: test--type
     interfaces:
-     interface:
-       op: plugin1.op
+      interface:
+        op: plugin1.op
 """.format('test', import_file_name)
         parsed = self.parse(main_yaml)
         expected_plugin1 = self._expected_plugin('plugin1',
@@ -204,8 +204,8 @@ node_templates:
   node2:
     type: cloudify.nodes.Compute
     interfaces:
-     interface:
-       op: plugin2.op
+      interface:
+        op: plugin2.op
 """
 
         host_plugin_def = self.base_plugin_def.copy()
@@ -218,7 +218,7 @@ node_templates:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 plugins:
   plugin1:
     distribution: dist
@@ -235,8 +235,8 @@ node_templates:
   node1:
     type: test--type
     interfaces:
-     interface:
-       op: plugin1.op
+      interface:
+        op: plugin1.op
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         deployment_plugin_def = self.base_plugin_def.copy()

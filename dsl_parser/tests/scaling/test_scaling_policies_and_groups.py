@@ -723,28 +723,28 @@ class TestNodeTemplateDefaultScalableProperties(AbstractTestParser):
 
     def test_default_scalable_empty_capabilities(self):
         self.assert_scalable_properties(self.MINIMAL_BLUEPRINT + """
-        capabilities: {}
+    capabilities: {}
 """)
 
     def test_default_scalable_empty_scalable(self):
         self.assert_scalable_properties(self.MINIMAL_BLUEPRINT + """
-        capabilities:
-            scalable: {}
+    capabilities:
+      scalable: {}
 """)
 
     def test_default_scalable_single_property_defined(self):
         self.assert_scalable_properties(self.MINIMAL_BLUEPRINT + """
-        capabilities:
-            scalable:
-                properties:
-                    default_instances: 2
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 2
 """, expected_default=2)
 
     def test_instances_deploy_fallback(self):
         # tests backwards compatibility
         self.assert_scalable_properties(self.MINIMAL_BLUEPRINT + """
-        instances:
-            deploy: 2
+    instances:
+      deploy: 2
 """, expected_default=2)
 
     def assert_scalable_properties(self, blueprint, expected_default=1):
@@ -759,7 +759,7 @@ class TestNodeTemplateDefaultScalableProperties(AbstractTestParser):
 
     def test_capabilities_spec_version_validation(self):
         blueprint = self.MINIMAL_BLUEPRINT + """
-        capabilities: {}
+    capabilities: {}
 """
         for parsing_method in [self.parse_1_0, self.parse_1_1, self.parse_1_2]:
             self._assert_dsl_parsing_exception_error_code(
@@ -769,9 +769,9 @@ class TestNodeTemplateDefaultScalableProperties(AbstractTestParser):
 
     def test_capabilities_and_instances_deploy_validation(self):
         blueprint = self.MINIMAL_BLUEPRINT + """
-        instances:
-          deploy: 1
-        capabilities: {}
+    instances:
+      deploy: 1
+    capabilities: {}
 """
         self._assert_dsl_parsing_exception_error_code(
             blueprint,
@@ -819,4 +819,5 @@ def base_blueprint(groups=None,
         blueprint['policies'] = policies
     if policy_types is not None:
         blueprint['policy_types'] = policy_types
-    return yaml.safe_dump(blueprint)
+
+    return yaml.safe_dump(blueprint, canonical=True)

@@ -31,8 +31,8 @@ relationships: {}
     def test_empty_top_level_relationships_empty_relationship(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship: {}
-        """
+  test_relationship: {}
+"""
         result = self.parse(yaml)
         self._assert_minimal_blueprint(result)
         self.assertEqual({'name': 'test_relationship', 'properties': {},
@@ -43,18 +43,18 @@ relationships:
     def test_top_level_relationships_single_complete_relationship(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 relationships:
-    empty_rel: {}
-    test_relationship:
-        derived_from: empty_rel
-        source_interfaces:
-            test_interface3:
-                test_interface3_op1: {}
-        target_interfaces:
-            test_interface4:
-                test_interface4_op1:
-                    implementation: test_plugin.task_name
-                    inputs: {}
-        """
+  empty_rel: {}
+  test_relationship:
+    derived_from: empty_rel
+    source_interfaces:
+      test_interface3:
+        test_interface3_op1: {}
+    target_interfaces:
+      test_interface4:
+        test_interface4_op1:
+          implementation: test_plugin.task_name
+          inputs: {}
+"""
         result = self.parse(yaml)
         self._assert_blueprint(result)
         self.assertEqual({
@@ -86,41 +86,41 @@ relationships:
     def test_top_level_relationships_recursive_imports(self):
         bottom_level_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 relationships:
-    empty_rel: {}
-    test_relationship:
-        derived_from: empty_rel
-        source_interfaces:
-            test_interface2:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-        """
+  empty_rel: {}
+  test_relationship:
+    derived_from: empty_rel
+    source_interfaces:
+      test_interface2:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+"""
 
         bottom_file_name = self.make_yaml_file(bottom_level_yaml)
         mid_level_yaml = """
 relationships:
-    test_relationship2:
-        derived_from: "test_relationship3"
+  test_relationship2:
+    derived_from: "test_relationship3"
 imports:
-    -   {0}""".format(bottom_file_name)
+  - {0}""".format(bottom_file_name)
         mid_file_name = self.make_yaml_file(mid_level_yaml)
         top_level_yaml = """
 relationships:
-    test_relationship3:
-        target_interfaces:
-            test_interface2:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
+  test_relationship3:
+    target_interfaces:
+      test_interface2:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
 
 imports:
-    - """ + mid_file_name
+  - """ + mid_file_name
 
         result = self.parse(top_level_yaml)
         self._assert_blueprint(result)
@@ -214,16 +214,16 @@ imports:
     def test_top_level_relationship_properties(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship:
-        properties:
-            without_default_value: {}
-            with_simple_default_value:
-                default: 1
-            with_object_default_value:
-                default:
-                    comp1: 1
-                    comp2: 2
-        """
+  test_relationship:
+    properties:
+      without_default_value: {}
+      with_simple_default_value:
+        default: 1
+      with_object_default_value:
+        default:
+          comp1: 1
+          comp2: 2
+"""
         result = self.parse(yaml)
         self._assert_minimal_blueprint(result)
         relationships = result['relationships']
@@ -240,36 +240,36 @@ relationships:
     def test_top_level_relationship_properties_inheritance(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship1:
-        properties:
-            prop1: {}
-            prop2: {}
-            prop3:
-                default: prop3_value_1
-            derived1:
-                default: derived1_value
-    test_relationship2:
-        derived_from: test_relationship1
-        properties:
-            prop2:
-                default: prop2_value_2
-            prop3:
-                default: prop3_value_2
-            prop4: {}
-            prop5: {}
-            prop6:
-                default: prop6_value_2
-            derived2:
-                default: derived2_value
-    test_relationship3:
-        derived_from: test_relationship2
-        properties:
-            prop5:
-                default: prop5_value_3
-            prop6:
-                default: prop6_value_3
-            prop7: {}
-        """
+  test_relationship1:
+    properties:
+      prop1: {}
+      prop2: {}
+      prop3:
+        default: prop3_value_1
+      derived1:
+        default: derived1_value
+  test_relationship2:
+    derived_from: test_relationship1
+    properties:
+      prop2:
+        default: prop2_value_2
+      prop3:
+        default: prop3_value_2
+      prop4: {}
+      prop5: {}
+      prop6:
+        default: prop6_value_2
+      derived2:
+        default: derived2_value
+  test_relationship3:
+    derived_from: test_relationship2
+    properties:
+      prop5:
+        default: prop5_value_3
+      prop6:
+        default: prop6_value_3
+      prop7: {}
+"""
         result = self.parse(yaml)
         self._assert_minimal_blueprint(result)
         relationships = result['relationships']
@@ -329,8 +329,8 @@ relationships:
 
     def test_instance_relationships_empty_relationships_section(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-        relationships: []
-        """
+    relationships: []
+"""
         result = self.parse(yaml)
         self._assert_minimal_blueprint(result)
         self.assertTrue(isinstance(result['nodes'][0]['relationships'], list))
@@ -338,21 +338,21 @@ relationships:
 
     def test_instance_relationships_standard_relationship(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: test_relationship
-                target: test_node
-                source_interfaces:
-                    test_interface1:
-                        install: test_plugin.install
+  test_node2:
+    type: test_type
+    relationships:
+      - type: test_relationship
+        target: test_node
+        source_interfaces:
+          test_interface1:
+            install: test_plugin.install
 relationships:
-    test_relationship: {}
+  test_relationship: {}
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
-        """
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -388,16 +388,16 @@ plugins:
         # right now, having two relationships with the same (type,target)
         # under one node is valid
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: test_relationship
-                target: test_node
-            -   type: test_relationship
-                target: test_node
+  test_node2:
+    type: test_type
+    relationships:
+      - type: test_relationship
+        target: test_node
+      - type: test_relationship
+        target: test_node
 relationships:
-    test_relationship: {}
-        """
+  test_relationship: {}
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -423,28 +423,28 @@ relationships:
         # note there are no overrides in this case; these are tested in the
         # next, more thorough test
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: test_relationship
-                target: test_node
-                source_interfaces:
-                    interface1:
-                        op1: test_plugin.task_name1
+  test_node2:
+    type: test_type
+    relationships:
+      - type: test_relationship
+        target: test_node
+        source_interfaces:
+          interface1:
+            op1: test_plugin.task_name1
 relationships:
-    relationship: {}
-    test_relationship:
-        derived_from: relationship
-        target_interfaces:
-            interface2:
-                op2:
-                    implementation: test_plugin.task_name2
-                    inputs: {}
+  relationship: {}
+  test_relationship:
+    derived_from: relationship
+    target_interfaces:
+      interface2:
+        op2:
+          implementation: test_plugin.task_name2
+          inputs: {}
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
-        """
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -492,24 +492,24 @@ plugins:
 
     def test_instance_relationship_properties_inheritance(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
+  test_node2:
+    type: test_type
+    properties:
+      key: "val"
+    relationships:
+      - type: empty_relationship
+        target: test_node
         properties:
-            key: "val"
-        relationships:
-            -   type: empty_relationship
-                target: test_node
-                properties:
-                    prop1: prop1_value_new
-                    prop2: prop2_value_new
-                    prop7: prop7_value_new_instance
+          prop1: prop1_value_new
+          prop2: prop2_value_new
+          prop7: prop7_value_new_instance
 relationships:
-    empty_relationship:
-        properties:
-            prop1: {}
-            prop2: {}
-            prop7: {}
-        """
+  empty_relationship:
+    properties:
+      prop1: {}
+      prop2: {}
+      prop7: {}
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -526,37 +526,37 @@ relationships:
         # testing for a complete inheritance path for relationships
         # from top-level relationships to a relationship instance
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: relationship
-                target: test_node
-                source_interfaces:
-                    test_interface3:
-                        install: test_plugin.install
-                target_interfaces:
-                    test_interface1:
-                        install: test_plugin.install
-relationships:
-    relationship:
-        derived_from: parent_relationship
+  test_node2:
+    type: test_type
+    relationships:
+      - type: relationship
+        target: test_node
         source_interfaces:
-            test_interface2:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-    parent_relationship:
+          test_interface3:
+            install: test_plugin.install
         target_interfaces:
-            test_interface3:
-                install: {}
+          test_interface1:
+            install: test_plugin.install
+relationships:
+  relationship:
+    derived_from: parent_relationship
+    source_interfaces:
+      test_interface2:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+  parent_relationship:
+    target_interfaces:
+      test_interface3:
+        install: {}
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
-        """
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -691,50 +691,50 @@ plugins:
         # testing for a complete inheritance path for relationships
         # from top-level relationships to a relationship instance
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: relationship
-                target: test_node
-                target_interfaces:
-                    test_interface:
-                        destroy: test_plugin.destroy1
-                source_interfaces:
-                    test_interface:
-                        install2: test_plugin.install2
-                        destroy2: test_plugin.destroy2
+  test_node2:
+    type: test_type
+    relationships:
+      - type: relationship
+        target: test_node
+        target_interfaces:
+          test_interface:
+            destroy: test_plugin.destroy1
+        source_interfaces:
+          test_interface:
+            install2: test_plugin.install2
+            destroy2: test_plugin.destroy2
 relationships:
-    parent_relationship:
-        target_interfaces:
-            test_interface:
-                install: {}
-        source_interfaces:
-            test_interface:
-                install2: {}
-    relationship:
-        derived_from: parent_relationship
-        target_interfaces:
-            test_interface:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-        source_interfaces:
-            test_interface:
-                install2:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate2:
-                    implementation: test_plugin.terminate
-                    inputs: {}
+  parent_relationship:
+    target_interfaces:
+      test_interface:
+        install: {}
+    source_interfaces:
+      test_interface:
+        install2: {}
+  relationship:
+    derived_from: parent_relationship
+    target_interfaces:
+      test_interface:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+    source_interfaces:
+      test_interface:
+        install2:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate2:
+          implementation: test_plugin.terminate
+          inputs: {}
 
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
-        """
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -916,14 +916,14 @@ plugins:
 
     def test_relationship_no_type_hierarchy(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: relationship
-                target: test_node
+  test_node2:
+    type: test_type
+    relationships:
+      - type: relationship
+        target: test_node
 relationships:
-    relationship: {}
-        """
+  relationship: {}
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -936,16 +936,16 @@ relationships:
 
     def test_relationship_type_hierarchy(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: rel2
-                target: test_node
+  test_node2:
+    type: test_type
+    relationships:
+      - type: rel2
+        target: test_node
 relationships:
-    relationship: {}
-    rel2:
-        derived_from: relationship
-        """
+  relationship: {}
+  rel2:
+    derived_from: relationship
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -959,18 +959,18 @@ relationships:
 
     def test_relationship_3_types_hierarchy(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: rel3
-                target: test_node
+  test_node2:
+    type: test_type
+    relationships:
+      - type: rel3
+        target: test_node
 relationships:
-    relationship: {}
-    rel2:
-        derived_from: relationship
-    rel3:
-        derived_from: rel2
-        """
+  relationship: {}
+  rel2:
+    derived_from: relationship
+  rel3:
+    derived_from: rel2
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -988,13 +988,13 @@ class TestRelationshipsBasics(BaseParserApiTest):
     def test_relationship_type_properties_empty_properties(self):
         yaml = """
 node_templates:
-    test_node:
-        type: test_type
+  test_node:
+    type: test_type
 node_types:
-    test_type: {}
+  test_type: {}
 relationships:
-    test_relationship:
-        properties: {}
+  test_relationship:
+    properties: {}
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -1007,9 +1007,9 @@ relationships:
     def test_relationship_type_properties_empty_property(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship:
-        properties:
-            key: {}
+  test_relationship:
+    properties:
+      key: {}
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -1022,10 +1022,10 @@ relationships:
     def test_relationship_type_properties_property_with_description_only(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship:
-        properties:
-            key:
-                description: property_desc
+  test_relationship:
+    properties:
+      key:
+        description: property_desc
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -1039,12 +1039,12 @@ relationships:
     def test_relationship_type_properties_standard_property(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship:
-        properties:
-            key:
-                default: val
-                description: property_desc
-                type: string
+  test_relationship:
+    properties:
+      key:
+        default: val
+        description: property_desc
+        type: string
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -1063,43 +1063,43 @@ class TestDependsOnLifecycleOperation(BaseParserApiTest):
 tosca_definitions_version: cloudify_dsl_1_3
 
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
 
 node_types:
-      basic_type:
-        interfaces:
-          cloudify.interfaces.lifecycle:
-            precreate: {}
-            create: {}
-            configure: {}
+  basic_type:
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        precreate: {}
+        create: {}
+        configure: {}
 
 relationships:
-    cloudify.relationships.depends_on_lifecycle_operation:
-        properties:
-          operation:
-            type: string
-            default: precreate
+  cloudify.relationships.depends_on_lifecycle_operation:
+    properties:
+      operation:
+        type: string
+        default: precreate
 """
 
     def test_valid_relationship_use(self):
         yaml = self.basic_yaml + """
 node_templates:
-    node:
-        type: basic_type
-        interfaces:
-          cloudify.interfaces.lifecycle:
-            create: test_plugin.do_nothing
-            configure: test_plugin.do_nothing
+  node:
+    type: basic_type
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: test_plugin.do_nothing
+        configure: test_plugin.do_nothing
 
-    depends:
-        type: basic_type
-        relationships:
-          - type: cloudify.relationships.depends_on_lifecycle_operation
-            target: node
-            properties:
-              operation: create
+  depends:
+    type: basic_type
+    relationships:
+      - type: cloudify.relationships.depends_on_lifecycle_operation
+        target: node
+        properties:
+          operation: create
 """
         parsed = self.parse(yaml)
         relationships = parsed['relationships']
@@ -1114,54 +1114,54 @@ node_templates:
     def test_not_defined_lifecycle_operation_target(self):
         yaml = self.basic_yaml + """
 node_templates:
-    node:
-        type: basic_type
-        interfaces:
-          cloudify.interfaces.lifecycle:
-            configure: test_plugin.do_nothing
+  node:
+    type: basic_type
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        configure: test_plugin.do_nothing
 
-    depends:
-        type: basic_type
-        relationships:
-          - type: cloudify.relationships.depends_on_lifecycle_operation
-            target: node
-            properties:
-              operation: create
+  depends:
+    type: basic_type
+    relationships:
+      - type: cloudify.relationships.depends_on_lifecycle_operation
+        target: node
+        properties:
+          operation: create
 """
         self.assertRaises(DSLParsingLogicException, self.parse, yaml)
 
     def test_not_defined_interfaces_in_target(self):
         yaml = self.basic_yaml + """
 node_templates:
-    node:
-        type: basic_type
+  node:
+    type: basic_type
 
-    depends:
-        type: basic_type
-        relationships:
-          - type: cloudify.relationships.depends_on_lifecycle_operation
-            target: node
-            properties:
-              operation: create
+  depends:
+    type: basic_type
+    relationships:
+      - type: cloudify.relationships.depends_on_lifecycle_operation
+        target: node
+        properties:
+          operation: create
 """
         self.assertRaises(DSLParsingLogicException, self.parse, yaml)
 
     def test_not_existing_operation_target(self):
         yaml = self.basic_yaml + """
 node_templates:
-    node:
-        type: basic_type
-        interfaces:
-          cloudify.interfaces.lifecycle:
-            configure: test_plugin.do_nothing
+  node:
+    type: basic_type
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        configure: test_plugin.do_nothing
 
-    depends:
-        type: basic_type
-        relationships:
-          - type: cloudify.relationships.depends_on_lifecycle_operation
-            target: node
-            properties:
-              operation: not_existing
+  depends:
+    type: basic_type
+    relationships:
+      - type: cloudify.relationships.depends_on_lifecycle_operation
+        target: node
+        properties:
+          operation: not_existing
 """
         self.assertRaises(DSLParsingLogicException, self.parse, yaml)
 

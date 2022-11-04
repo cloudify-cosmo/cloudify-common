@@ -515,16 +515,16 @@ node_types:
                 properties:
                     default_instances: 2
         relationships:
-        - target: node1
-          type: cloudify.relationships.connected_to
-        - target: node2
-          type: cloudify.relationships.connected_to
-        - target: node3
-          type: cloudify.relationships.contained_in
-        - target: node4
-          type: cloudify.relationships.connected_to
-        - target: node5
-          type: cloudify.relationships.connected_to
+            - target: node1
+              type: cloudify.relationships.connected_to
+            - target: node2
+              type: cloudify.relationships.connected_to
+            - target: node3
+              type: cloudify.relationships.contained_in
+            - target: node4
+              type: cloudify.relationships.connected_to
+            - target: node5
+              type: cloudify.relationships.connected_to
 '''
         plan = self.parse_multi(blueprint)
         node6_instances = [i for i in plan['node_instances']
@@ -562,10 +562,10 @@ node_types:
     node2:
         type: type
         relationships:
-        - target: node1
-          type: cloudify.relationships.connected_to
-          properties:
-            connection_type: all_to_one
+            - target: node1
+              type: cloudify.relationships.connected_to
+              properties:
+                  connection_type: all_to_one
 groups:
     group:
         members: [node1, node2]

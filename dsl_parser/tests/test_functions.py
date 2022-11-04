@@ -862,9 +862,9 @@ node_templates:
     def test_get_input_valid_datatypes(self):
         yaml = """
 plugins:
-    a:
-        executor: central_deployment_agent
-        install: false
+  a:
+    executor: central_deployment_agent
+    install: false
 inputs:
   i_integer:
     type: integer
@@ -894,9 +894,9 @@ node_templates:
     def test_get_input_invalid_datatypes(self):
         yaml = """
 plugins:
-    a:
-        executor: central_deployment_agent
-        install: false
+  a:
+    executor: central_deployment_agent
+    install: false
 inputs:
   i_float:
     type: float
@@ -982,29 +982,28 @@ node_templates:
         def assert_with(ref):
             yaml = """
 plugins:
-    a:
-        executor: central_deployment_agent
-        install: false
+  a:
+    executor: central_deployment_agent
+    install: false
 relationships:
-    relationship: {}
+  relationship: {}
 node_types:
-    vm_type:
-        properties: {}
+  vm_type:
+    properties: {}
 node_templates:
-    node:
-        type: vm_type
-    vm:
-        type: vm_type
-        relationships:
-            - target: node
-              type: relationship
-              source_interfaces:
-                test:
-                    op:
-                        implementation: a.a
-                        inputs:
-                            a: { get_attribute: [""" + ref + """, aaa] }
-
+  node:
+    type: vm_type
+  vm:
+    type: vm_type
+    relationships:
+      - target: node
+        type: relationship
+        source_interfaces:
+          test:
+            op:
+              implementation: a.a
+              inputs:
+                a: { get_attribute: [""" + ref + """, aaa] }
 """
             message_regex = ref + (
                 r'.*cannot be used.*in.*'
@@ -1104,18 +1103,16 @@ node_templates:
     def test_node_template_properties_with_self_property(self):
         yaml = """
 node_types:
-    type:
-        properties:
-            property1: {}
-            property2: {}
+  type:
+    properties:
+      property1: {}
+      property2: {}
 node_templates:
-    node:
-        type: type
-        properties:
-            property1: value1
-            property2: { concat:
-                [one, { get_property: [SELF, property1] }, three]
-            }
+  node:
+    type: type
+    properties:
+      property1: value1
+      property2: { concat: [one, { get_property: [SELF, property1] }, three] }
 """
         parsed = prepare_deployment_plan(self.parse_1_1(yaml))
         node = self.get_node_by_name(parsed, 'node')
@@ -1124,20 +1121,20 @@ node_templates:
     def test_node_template_properties_with_named_node_property(self):
         yaml = """
 node_types:
-    type:
-        properties:
-            property: {}
+  type:
+    properties:
+      property: {}
 node_templates:
-    node:
-        type: type
-        properties:
-            property: { concat:
-                [one, { get_property: [node2, property] }, three]
-            }
-    node2:
-        type: type
-        properties:
-            property: value2
+  node:
+    type: type
+    properties:
+      property: { concat:
+                    [one, { get_property: [node2, property] }, three]
+      }
+  node2:
+    type: type
+    properties:
+      property: value2
 """
         parsed = prepare_deployment_plan(self.parse_1_1(yaml))
         node = self.get_node_by_name(parsed, 'node')
@@ -1146,20 +1143,20 @@ node_templates:
     def test_node_template_properties_with_recursive_concat(self):
         yaml = """
 node_types:
-    type:
-        properties:
-            property: {}
+  type:
+    properties:
+      property: {}
 node_templates:
-    node1:
-        type: type
-        properties:
-            property: { concat:
-                [one, { get_property: [node2, property] }, three]
-            }
-    node2:
-        type: type
-        properties:
-            property: { concat: [one, two, three] }
+  node1:
+    type: type
+    properties:
+      property: { concat:
+                    [one, { get_property: [node2, property] }, three]
+      }
+  node2:
+    type: type
+    properties:
+      property: { concat: [one, two, three] }
 """
         parsed = prepare_deployment_plan(self.parse_1_1(yaml))
         node1 = self.get_node_by_name(parsed, 'node1')
@@ -1171,36 +1168,34 @@ node_templates:
     def test_node_operation_inputs(self):
         yaml = """
 plugins:
-    p:
-        executor: central_deployment_agent
-        install: false
+  p:
+    executor: central_deployment_agent
+    install: false
 node_types:
-    type:
-        properties:
-            property: {}
+  type:
+    properties:
+      property: {}
 node_templates:
-    node:
-        type: type
-        properties:
-            property: value
-        interfaces:
-            interface:
-                op:
-                    implementation: p.task
-                    inputs:
-                        input1: { concat: [one,
-                            { get_property: [SELF, property] }, three] }
-                        input2:
-                            key1: value1
-                            key2: { concat: [one,
-                                { get_property: [SELF, property] }, three] }
-                            key3:
-                                - item1
-                                - { concat: [one,
-                                    {get_property: [SELF, property] },three]}
-                        input3: { concat: [one,
-                                    {get_property: [SELF, property] },
-                                    {get_attribute: [SELF, attribute] }]}
+  node:
+    type: type
+    properties:
+      property: value
+    interfaces:
+      interface:
+        op:
+          implementation: p.task
+          inputs:
+            input1: { concat: [one,
+                               { get_property: [SELF, property] }, three] }
+            input2:
+              key1: value1
+              key2: {concat: [one, { get_property: [SELF, property] }, three]}
+              key3:
+                - item1
+                - { concat: [one, {get_property: [SELF, property] }, three] }
+            input3: { concat: [one,
+                               {get_property: [SELF, property] },
+                               {get_attribute: [SELF, attribute] }]}
 """
         parsed = prepare_deployment_plan(self.parse_1_1(yaml))
         inputs = self.get_node_by_name(parsed, 'node')['operations'][
@@ -1220,48 +1215,48 @@ node_templates:
     def test_relationship_operation_inputs(self):
         yaml = """
 plugins:
-    p:
-        executor: central_deployment_agent
-        install: false
+  p:
+    executor: central_deployment_agent
+    install: false
 node_types:
-    type:
-        properties:
-            property: {}
+  type:
+    properties:
+      property: {}
 relationships:
-    cloudify.relationships.contained_in: {}
+  cloudify.relationships.contained_in: {}
 node_templates:
-    node:
-        type: type
-        properties:
-            property: value
-        relationships:
-            -   type: cloudify.relationships.contained_in
-                target: node2
-                source_interfaces:
-                    interface:
-                        op:
-                            implementation: p.task
-                            inputs:
-                                input1: { concat: [one,
-                                    { get_property: [SOURCE, property] },
-                                    three] }
-                                input2:
-                                    key1: value1
-                                    key2: { concat: [one,
-                                        { get_property: [SOURCE, property] },
-                                        three] }
-                                    key3:
-                                        - item1
-                                        - { concat: [one,
-                                            {get_property: [TARGET, property]},
-                                            three] }
-                                input3: { concat: [one,
-                                    {get_property: [SOURCE, property] },
-                                    {get_attribute: [SOURCE, attribute] }]}
-    node2:
-        type: type
-        properties:
-            property: value2
+  node:
+    type: type
+    properties:
+      property: value
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: node2
+        source_interfaces:
+          interface:
+            op:
+              implementation: p.task
+              inputs:
+                input1: { concat: [one,
+                                   { get_property: [SOURCE, property] },
+                                   three] }
+                input2:
+                  key1: value1
+                  key2: { concat: [one,
+                                   { get_property: [SOURCE, property] },
+                                   three] }
+                  key3:
+                    - item1
+                    - { concat: [one,
+                                 {get_property: [TARGET, property]},
+                                 three] }
+                input3: { concat: [one,
+                                   {get_property: [SOURCE, property] },
+                                   {get_attribute: [SOURCE, attribute] }] }
+  node2:
+    type: type
+    properties:
+      property: value2
 """
         parsed = prepare_deployment_plan(self.parse_1_1(yaml))
         inputs = self.get_node_by_name(parsed, 'node')['relationships'][0][
@@ -1363,7 +1358,7 @@ node_templates:
         type: type
         properties:
             property: { merge: [{'key1': 'value1'}, {'key2': 'value2'},
-                {'key3': 'value3'}] }
+                                {'key3': 'value3'}] }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         node = self.get_node_by_name(parsed, 'node')
@@ -1376,15 +1371,15 @@ node_templates:
     def test_node_template_properties_override(self):
         yaml = """
 node_types:
-    type:
-        properties:
-            property: {}
+  type:
+    properties:
+      property: {}
 node_templates:
-    node:
-        type: type
-        properties:
-            property: { merge: [{'key1': 'value1'}, {'key2': 'value2'},
-                {'key3': 'value3'}, {'key2': 'valueA'} ] }
+  node:
+    type: type
+    properties:
+      property: { merge: [{'key1': 'value1'}, {'key2': 'value2'},
+                          {'key3': 'value3'}, {'key2': 'valueA'} ] }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         node = self.get_node_by_name(parsed, 'node')
@@ -1407,8 +1402,9 @@ node_templates:
         properties:
             property1: { key1: value1 }
             property2: { merge:
-                [{key2: value2}, { get_property: [SELF, property1] },
-                {key3: value3}]
+                             [{key2: value2},
+                              { get_property: [SELF, property1] },
+                              {key3: value3}]
             }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
@@ -1430,7 +1426,8 @@ node_templates:
         type: type
         properties:
             property: { merge:
-                [{ key2: value2}, { get_property: [node2, property] }]
+                            [{ key2: value2},
+                             { get_property: [node2, property] }]
             }
     node2:
         type: type
@@ -1455,9 +1452,8 @@ node_templates:
     node1:
         type: type
         properties:
-            property: { merge:
-                [{key1: value1}, { get_property: [node2, property] }]
-            }
+            property: { merge: [{key1: value1},
+                                { get_property: [node2, property] }] }
     node2:
         type: type
         properties:
@@ -1479,25 +1475,25 @@ node_templates:
     def test_node_operation_inputs(self):
         yaml = """
 plugins:
-    p:
-        executor: central_deployment_agent
-        install: false
+  p:
+    executor: central_deployment_agent
+    install: false
 node_types:
-    type:
-        properties:
-            property: {}
+  type:
+    properties:
+      property: {}
 node_templates:
-    node:
-        type: type
-        properties:
-            property:
-                key2: value2
-        interfaces:
-            interface:
-                op:
-                    implementation: p.task
-                    inputs: { merge: [ {key1: value1},
-                        { get_property: [SELF, property] } ] }
+  node:
+    type: type
+    properties:
+      property:
+        key2: value2
+    interfaces:
+      interface:
+        op:
+          implementation: p.task
+          inputs: { merge: [ {key1: value1},
+                             { get_property: [SELF, property] } ] }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         inputs = self.get_node_by_name(parsed, 'node')['operations'][
@@ -1512,48 +1508,48 @@ node_templates:
     def test_relationship_operation_inputs(self):
         yaml = """
 plugins:
-    p:
-        executor: central_deployment_agent
-        install: false
+  p:
+    executor: central_deployment_agent
+    install: false
 node_types:
-    type:
-        properties:
-            property: {}
+  type:
+    properties:
+      property: {}
 relationships:
-    cloudify.relationships.contained_in: {}
+  cloudify.relationships.contained_in: {}
 node_templates:
-    node:
-        type: type
-        properties:
-            property: value
-        relationships:
-            -   type: cloudify.relationships.contained_in
-                target: node2
-                source_interfaces:
-                    interface:
-                        op:
-                            implementation: p.task
-                            inputs:
-                                input1: { concat: [one,
-                                    { get_property: [SOURCE, property] },
-                                    three] }
-                                input2:
-                                    key1: value1
-                                    key2: { concat: [one,
-                                        { get_property: [SOURCE, property] },
-                                        three] }
-                                    key3:
-                                        - item1
-                                        - { concat: [one,
-                                            {get_property: [TARGET, property]},
-                                            three] }
-                                input3: { concat: [one,
-                                    {get_property: [SOURCE, property] },
-                                    {get_attribute: [SOURCE, attribute] }]}
-    node2:
-        type: type
-        properties:
-            property: value2
+  node:
+    type: type
+    properties:
+      property: value
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: node2
+        source_interfaces:
+          interface:
+            op:
+              implementation: p.task
+              inputs:
+                input1: { concat: [one,
+                                   { get_property: [SOURCE, property] },
+                                   three] }
+                input2:
+                  key1: value1
+                  key2: { concat: [one,
+                                   { get_property: [SOURCE, property] },
+                                   three] }
+                  key3:
+                    - item1
+                    - { concat: [one,
+                                 {get_property: [TARGET, property]},
+                                 three] }
+                input3: { concat: [one,
+                                   {get_property: [SOURCE, property] },
+                                   {get_attribute: [SOURCE, attribute] }]}
+  node2:
+    type: type
+    properties:
+      property: value2
 """
         parsed = prepare_deployment_plan(self.parse_1_1(yaml))
         inputs = self.get_node_by_name(parsed, 'node')['relationships'][0][
@@ -1585,16 +1581,16 @@ node_templates:
 outputs:
     output1:
         value: { merge: [{key2: value2},
-                          {get_property: [node, property]}]}
+                         {get_property: [node, property]}]}
     output2:
         value:
             - item1
             - { merge: [{key2: value2},
-                         {get_property: [node, property]}]}
+                        {get_property: [node, property]}]}
     output3:
         value: { merge: [{key2: value2},
-                          {get_property: [node, property]},
-                          {get_attribute: [node, attribute]}] }
+                         {get_property: [node, property]},
+                         {get_attribute: [node, attribute]}] }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         outputs = parsed['outputs']
@@ -1620,27 +1616,27 @@ class TestFunctionIntegration(AbstractTestParser):
     def test_func_integrations(self):
         yaml = """
 inputs:
-    some_input:
-        default: some_node
-    some_input2:
-        default: some_input
+  some_input:
+    default: some_node
+  some_input2:
+    default: some_input
 node_types:
-    some_type:
-        properties:
-            prop1: {}
-            concat_prop: {}
+  some_type:
+    properties:
+      prop1: {}
+      concat_prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            prop1: 4
-            concat_prop:
-                concat:
-                    - get_property:
-                        - get_input:
-                            get_input: some_input2
-                        - prop1
-                    - 2
+  some_node:
+    type: some_type
+    properties:
+      prop1: 4
+      concat_prop:
+        concat:
+          - get_property:
+              - get_input:
+                  get_input: some_input2
+              - prop1
+          - 2
 """
         parsed = prepare_deployment_plan(self.parse_1_1(yaml))
         some_node = self.get_node_by_name(parsed, 'some_node')
@@ -1648,54 +1644,54 @@ node_templates:
 
         yaml = """
 inputs:
-    dummy_input:
-        default: some_node
-    some_nodesome_node:
-        default: some_nodesome_node
+  dummy_input:
+    default: some_node
+  some_nodesome_node:
+    default: some_nodesome_node
 node_types:
-    some_type:
-        properties:
-            prop: {}
-            dummy_prop: {}
+  some_type:
+    properties:
+      prop: {}
+      dummy_prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            dummy_prop: dummy_value
-            prop:
-                get_attribute:
-                    - get_input: dummy_input
-                    - concat:
-                        - get_attribute: [ some_node, dummy_prop ]
-                    - get_input:
-                        concat:
-                            - get_input: dummy_input
-                            - get_input: dummy_input
-            """
+  some_node:
+    type: some_type
+    properties:
+      dummy_prop: dummy_value
+      prop:
+        get_attribute:
+          - get_input: dummy_input
+          - concat:
+              - get_attribute: [ some_node, dummy_prop ]
+          - get_input:
+              concat:
+                - get_input: dummy_input
+                - get_input: dummy_input
+    """
         prepare_deployment_plan(self.parse_1_1(yaml))
 
     def test_func_integrations_1_0(self):
         yaml = """
 inputs:
-    some_input:
-        default: some_node
+  some_input:
+    default: some_node
 node_types:
-    some_type:
-        properties:
-            prop1: {}
-            prop2: {}
+  some_type:
+    properties:
+      prop1: {}
+      prop2: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            prop1: 4
-            prop2:
-                get_attribute:
-                    - get_property:
-                        - get_input:
-                            some_input
-                        - prop1
-                    - 2
+  some_node:
+    type: some_type
+    properties:
+      prop1: 4
+      prop2:
+        get_attribute:
+          - get_property:
+              - get_input:
+                  some_input
+              - prop1
+          - 2
 """
         parsed = prepare_deployment_plan(self.parse(yaml))
         some_node = self.get_node_by_name(parsed, 'some_node')
@@ -1722,9 +1718,9 @@ node_templates:
                 some_result:
                     concat:
                         - get_property:
-                            - get_input:
-                                some_input
-                            - prop1
+                              - get_input:
+                                    some_input
+                              - prop1
                         - 2
 """
 
@@ -1751,11 +1747,11 @@ node_templates:
             prop1: 4
             concat_prop:
                 - concat:
-                    - get_property:
-                        - get_input:
-                            some_input
-                        - prop1
-                    - 2
+                      - get_property:
+                            - get_input:
+                                  some_input
+                            - prop1
+                      - 2
 """
 
         parsed = prepare_deployment_plan(self.parse_1_1(yaml))
@@ -1765,21 +1761,21 @@ node_templates:
     def test_get_input_doesnt_accept_runtime_func_as_args(self):
         yaml = """
 node_types:
-    some_type:
-        properties:
-            prop: {}
-            dummy_prop: {}
+  some_type:
+    properties:
+      prop: {}
+      dummy_prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            dummy_prop: dummy_value
-            prop:
-                get_input:
-                    - get_attribute:
-                            - some_node
-                            - dummy_prop
-    """
+  some_node:
+    type: some_type
+    properties:
+      dummy_prop: dummy_value
+      prop:
+        get_input:
+          - get_attribute:
+              - some_node
+              - dummy_prop
+"""
         plan = self.parse(yaml)
         with self.assertRaisesRegex(
                 exceptions.FunctionEvaluationError, 'unresolved argument'):
@@ -1787,21 +1783,21 @@ node_templates:
 
         yaml = """
 node_types:
-    some_type:
-        properties:
-            prop: {}
-            dummy_prop: {}
+  some_type:
+    properties:
+      prop: {}
+      dummy_prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            dummy_prop: dummy_value
-            prop:
-                get_input:
-                    concat:
-                        - get_attribute:
-                                - some_node
-                                - dummy_prop
+  some_node:
+    type: some_type
+    properties:
+      dummy_prop: dummy_value
+      prop:
+        get_input:
+          concat:
+            - get_attribute:
+                - some_node
+                - dummy_prop
     """
         plan = self.parse_1_1(yaml)
         with self.assertRaisesRegex(
@@ -1810,28 +1806,28 @@ node_templates:
 
         yaml = """
 inputs:
-    dummy_input:
-        default: some_node
+  dummy_input:
+    default: some_node
 node_types:
-    some_type:
-        properties:
-            prop: {}
-            dummy_prop: {}
+  some_type:
+    properties:
+      prop: {}
+      dummy_prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            dummy_prop: dummy_value
-            prop:
-                get_attribute:
-                    - get_input: dummy_input
-                    - concat:
-                        - get_attribute: [ some_node, dummy_prop ]
-                    - get_input:
-                        concat:
-                            - get_attribute: [ some_node, dummy_prop ]
-                            - get_input: dummy_input
-    """
+  some_node:
+    type: some_type
+    properties:
+      dummy_prop: dummy_value
+      prop:
+        get_attribute:
+          - get_input: dummy_input
+          - concat:
+              - get_attribute: [ some_node, dummy_prop ]
+          - get_input:
+              concat:
+                - get_attribute: [ some_node, dummy_prop ]
+                - get_input: dummy_input
+"""
         plan = self.parse_1_1(yaml)
         with self.assertRaisesRegex(
                 exceptions.FunctionEvaluationError, 'unresolved argument'):
@@ -1840,21 +1836,21 @@ node_templates:
     def test_get_property_doesnt_accept_runtime_func_as_args(self):
         yaml = """
 node_types:
-    some_type:
-        properties:
-            prop: {}
-            dummy_prop: {}
+  some_type:
+    properties:
+      prop: {}
+      dummy_prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            dummy_prop: dummy_value
-            prop:
-                get_property:
-                    - get_attribute:
-                            - some_node
-                            - dummy_prop
-                    - shouldn't matter
+  some_node:
+    type: some_type
+    properties:
+      dummy_prop: dummy_value
+      prop:
+        get_property:
+          - get_attribute:
+              - some_node
+              - dummy_prop
+          - shouldn't matter
     """
         plan = self.parse(yaml)
         with self.assertRaisesRegex(
@@ -1863,22 +1859,22 @@ node_templates:
 
         yaml = """
 node_types:
-    some_type:
-        properties:
-            prop: {}
-            dummy_prop: {}
+  some_type:
+    properties:
+      prop: {}
+      dummy_prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            dummy_prop: dummy_value
-            prop:
-                get_property:
-                    - concat:
-                        - get_attribute:
-                                - some_node
-                                - dummy_prop
-                    - shouldn't matter
+  some_node:
+    type: some_type
+    properties:
+      dummy_prop: dummy_value
+      prop:
+        get_property:
+          - concat:
+              - get_attribute:
+                  - some_node
+                  - dummy_prop
+          - shouldn't matter
     """
         plan = self.parse_1_1(yaml)
         with self.assertRaisesRegex(
@@ -1910,19 +1906,19 @@ node_templates:
     def test_circular_with_list_argument(self):
         yaml = """
 node_types:
-    some_type:
-        properties:
-            prop: {}
+  some_type:
+    properties:
+      prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            prop:
-                get_property:
-                    - get_property:
-                            - some_node
-                            - prop
-                    - shouldn't matter
+  some_node:
+    type: some_type
+    properties:
+      prop:
+        get_property:
+          - get_property:
+              - some_node
+              - prop
+          - shouldn't matter
         """
         with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
@@ -1933,21 +1929,21 @@ node_templates:
     def test_circular_within_dict(self):
         yaml = """
 node_types:
-    some_type:
-        properties:
-            prop: {}
+  some_type:
+    properties:
+      prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            prop:
-                key:
-                    get_property:
-                        - get_property:
-                                - some_node
-                                - prop
-                        - shouldn't matter
-            """
+  some_node:
+    type: some_type
+    properties:
+      prop:
+        key:
+          get_property:
+            - get_property:
+                - some_node
+                - prop
+            - shouldn't matter
+    """
         with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
@@ -1957,20 +1953,20 @@ node_templates:
     def test_circular_within_list(self):
         yaml = """
 node_types:
-    some_type:
-        properties:
-            prop: {}
+  some_type:
+    properties:
+      prop: {}
 node_templates:
-    some_node:
-        type: some_type
-        properties:
-            prop:
-                - get_property:
-                    - get_property:
-                            - some_node
-                            - prop
-                    - shouldn't matter
-            """
+  some_node:
+    type: some_type
+    properties:
+      prop:
+        - get_property:
+            - get_property:
+                - some_node
+                - prop
+            - shouldn't matter
+"""
         with self.assertRaisesRegex(
                 exceptions.EvaluationRecursionLimitReached,
                 "The recursion limit \\([0-9]+\\) has been reached while "
@@ -2097,8 +2093,8 @@ inputs:
     type: string
     default: Quick fox jumps
 deployment_settings:
-    display_name: {string_find: [{get_input: quick}, 'fox']}
-        """
+  display_name: {string_find: [{get_input: quick}, 'fox']}
+"""
         plan = prepare_deployment_plan(self.parse(yaml))
         display_name = plan['deployment_settings']['display_name']
         assert display_name == 6
@@ -2140,8 +2136,8 @@ inputs:
     type: string
     default: Quick fox jumps
 deployment_settings:
-    display_name: {string_replace: [{get_input: quick}, 'fox', 'racoon']}
-        """
+  display_name: {string_replace: [{get_input: quick}, 'fox', 'racoon']}
+"""
         plan = prepare_deployment_plan(self.parse(yaml))
         display_name = plan['deployment_settings']['display_name']
         assert display_name == 'Quick racoon jumps'

@@ -41,19 +41,19 @@ class TestParserLogicExceptions(AbstractTestParser):
     def test_explicit_interface_with_missing_plugin(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + self.BASIC_PLUGIN + """
 node_types:
-    test_type:
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: missing_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: missing_plugin.terminate
-                    inputs: {}
-        properties:
-            install_agent:
-                default: 'false'
-            key: {}
+  test_type:
+    interfaces:
+      test_interface1:
+        install:
+          implementation: missing_plugin.install
+          inputs: {}
+        terminate:
+          implementation: missing_plugin.terminate
+          inputs: {}
+    properties:
+      install_agent:
+        default: 'false'
+      key: {}
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, 10, DSLParsingLogicException)
@@ -61,9 +61,9 @@ node_types:
     def test_type_derive_non_from_none_existing(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        derived_from: "non_existing_type_parent"
-        """
+  test_type:
+    derived_from: "non_existing_type_parent"
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, exceptions.ERROR_UNKNOWN_TYPE, DSLParsingLogicException)
 
@@ -78,15 +78,15 @@ imports:
     def test_cyclic_dependency(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        derived_from: "test_type_parent"
+  test_type:
+    derived_from: "test_type_parent"
 
-    test_type_parent:
-        derived_from: "test_type_grandparent"
+  test_type_parent:
+    derived_from: "test_type_grandparent"
 
-    test_type_grandparent:
-        derived_from: "test_type"
-    """
+  test_type_grandparent:
+    derived_from: "test_type"
+"""
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, 100, DSLParsingLogicException)
         circular = ex.circular_dependency
@@ -96,63 +96,61 @@ node_types:
     def test_plugin_with_wrongful_executor_field(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 plugins:
-    test_plugin:
-        executor: "bad value"
-        source: dummy
+  test_plugin:
+    executor: "bad value"
+    source: dummy
 
 node_types:
-    test_type:
-        properties:
-            key: {}
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-
-        """
+  test_type:
+    properties:
+      key: {}
+    interfaces:
+      test_interface1:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, 18, DSLParsingLogicException)
 
     def test_operation_with_wrongful_executor_field(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
 
 node_types:
-    test_type:
-        properties:
-            key: {}
-        interfaces:
-            test_interface1:
-                install:
-                    executor: wrong_executor
-                    implementation: test_plugin.install
-                    inputs: {}
-
-        """
+  test_type:
+    properties:
+      key: {}
+    interfaces:
+      test_interface1:
+        install:
+          executor: wrong_executor
+          implementation: test_plugin.install
+          inputs: {}
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, 28, DSLParsingLogicException)
 
     def test_top_level_relationships_relationship_with_undefined_plugin(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship:
-        source_interfaces:
-            some_interface:
-                op:
-                    implementation: no_plugin.op
-                    inputs: {}
-                        """
+  test_relationship:
+    source_interfaces:
+      some_interface:
+        op:
+          implementation: no_plugin.op
+          inputs: {}
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, 19, DSLParsingLogicException)
 
     def test_workflow_mapping_no_plugin(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    workflow1: test_plugin2.workflow1
+  workflow1: test_plugin2.workflow1
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, 21, DSLParsingLogicException)
@@ -160,83 +158,83 @@ workflows:
     def test_top_level_relationships_import_same_name_relationship(self):
         imported_yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship: {}
-            """
+  test_relationship: {}
+"""
         yaml = self.create_yaml_with_imports([imported_yaml]) + """
 relationships:
-    test_relationship: {}
-            """
+  test_relationship: {}
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, 4, DSLParsingLogicException)
 
     def test_top_level_relationships_circular_inheritance(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship1:
-        derived_from: test_relationship2
-    test_relationship2:
-        derived_from: test_relationship3
-    test_relationship3:
-        derived_from: test_relationship1
-        """
+  test_relationship1:
+    derived_from: test_relationship2
+  test_relationship2:
+    derived_from: test_relationship3
+  test_relationship3:
+    derived_from: test_relationship1
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, 100, DSLParsingLogicException)
 
     def test_instance_relationships_bad_target_value(self):
         # target value is a non-existent node
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: test_relationship
-                target: fake_node
+  test_node2:
+    type: test_type
+    relationships:
+      - type: test_relationship
+        target: fake_node
 relationships:
-    test_relationship: {}
-            """
+  test_relationship: {}
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, 25, DSLParsingLogicException)
 
     def test_instance_relationships_bad_type_value(self):
         # type value is a non-existent relationship
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: fake_relationship
-                target: test_node
+  test_node2:
+    type: test_type
+    relationships:
+      - type: fake_relationship
+        target: test_node
 relationships:
-    test_relationship: {}
-            """
+  test_relationship: {}
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, 26, DSLParsingLogicException)
 
     def test_instance_relationships_same_source_and_target(self):
         # A relationship from a node to itself is not valid
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: test_relationship
-                target: test_node2
+  test_node2:
+    type: test_type
+    relationships:
+      - type: test_relationship
+        target: test_node2
 relationships:
-    test_relationship: {}
-            """
+  test_relationship: {}
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, 23, DSLParsingLogicException)
 
     def test_instance_relationship_with_undefined_plugin(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: "test_relationship"
-                target: "test_node"
-                source_interfaces:
-                    an_interface:
-                        op: no_plugin.op
+  test_node2:
+    type: test_type
+    relationships:
+      - type: "test_relationship"
+        target: "test_node"
+        source_interfaces:
+          an_interface:
+            op: no_plugin.op
 relationships:
-    test_relationship: {}
-                        """
+  test_relationship: {}
+"""
         self._assert_dsl_parsing_exception_error_code(
             yaml, 19, DSLParsingLogicException)
 
@@ -284,7 +282,7 @@ plugins:
     def test_node_set_non_existing_property(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + self.BASIC_PLUGIN + """
 node_types:
-    test_type: {}
+  test_type: {}
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml,
@@ -295,10 +293,10 @@ node_types:
     def test_node_doesnt_implement_schema_mandatory_property(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + self.BASIC_PLUGIN + """
 node_types:
-    test_type:
-        properties:
-            key: {}
-            mandatory: {}
+  test_type:
+    properties:
+      key: {}
+      mandatory: {}
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
@@ -306,17 +304,17 @@ node_types:
 
     def test_relationship_instance_set_non_existing_property(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
+  test_node2:
+    type: test_type
+    properties:
+      key: "val"
+    relationships:
+      - type: test_relationship
+        target: test_node
         properties:
-            key: "val"
-        relationships:
-            -   type: test_relationship
-                target: test_node
-                properties:
-                    do_not_exist: some_value
+          do_not_exist: some_value
 relationships:
-    test_relationship: {}
+  test_relationship: {}
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
@@ -324,17 +322,17 @@ relationships:
 
     def test_relationship_instance_doesnt_implement_schema_mandatory_property(self):  # NOQA
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        properties:
-            key: "val"
-        relationships:
-            -   type: test_relationship
-                target: test_node
+  test_node2:
+    type: test_type
+    properties:
+      key: "val"
+    relationships:
+      - type: test_relationship
+        target: test_node
 relationships:
-    test_relationship:
-        properties:
-            should_implement: {}
+  test_relationship:
+    properties:
+      should_implement: {}
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
@@ -342,17 +340,17 @@ relationships:
 
     def test_instance_relationship_more_than_one_contained_in(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            - type: cloudify.relationships.contained_in
-              target: test_node
-            - type: derived_from_contained_in
-              target: test_node
+  test_node2:
+    type: test_type
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: test_node
+      - type: derived_from_contained_in
+        target: test_node
 relationships:
-    cloudify.relationships.contained_in: {}
-    derived_from_contained_in:
-        derived_from: cloudify.relationships.contained_in
+  cloudify.relationships.contained_in: {}
+  derived_from_contained_in:
+    derived_from: cloudify.relationships.contained_in
 """
         ex = self._assert_dsl_parsing_exception_error_code(
             yaml, 112, DSLParsingLogicException)
@@ -363,18 +361,18 @@ relationships:
     def test_group_missing_member(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 policy_types:
-    policy_type:
-        properties:
-            metric:
-                default: 100
-        source: source
+  policy_type:
+    properties:
+      metric:
+        default: 100
+    source: source
 groups:
-    group:
-        members: [vm]
-        policies:
-            policy:
-                type: policy_type
-                properties: {}
+  group:
+    members: [vm]
+    policies:
+      policy:
+        type: policy_type
+        properties: {}
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, 40, DSLParsingLogicException)
@@ -382,18 +380,18 @@ groups:
     def test_group_missing_policy_type(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 policy_types:
-    policy_type:
-        properties:
-            metric:
-                default: 100
-        source: source
+  policy_type:
+    properties:
+      metric:
+        default: 100
+    source: source
 groups:
-    group:
-        members: [test_node]
-        policies:
-            policy:
-                type: non_existent_policy_type
-                properties: {}
+  group:
+    members: [test_node]
+    policies:
+      policy:
+        type: non_existent_policy_type
+        properties: {}
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, 41, DSLParsingLogicException)
@@ -401,17 +399,17 @@ groups:
     def test_group_missing_trigger_type(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 policy_types:
-    policy_type:
-        source: source
+  policy_type:
+    source: source
 groups:
-    group:
-        members: [test_node]
-        policies:
-            policy:
-                type: policy_type
-                triggers:
-                    trigger1:
-                        type: non_existent_trigger
+  group:
+    members: [test_node]
+    policies:
+      policy:
+        type: policy_type
+        triggers:
+          trigger1:
+            type: non_existent_trigger
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, 42, DSLParsingLogicException)
@@ -419,17 +417,17 @@ groups:
     def test_group_policy_type_undefined_property(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 policy_types:
-    policy_type:
-        properties: {}
-        source: source
+  policy_type:
+    properties: {}
+    source: source
 groups:
-    group:
-        members: [test_node]
-        policies:
-            policy:
-                type: policy_type
-                properties:
-                    key: value
+  group:
+    members: [test_node]
+    policies:
+      policy:
+        type: policy_type
+        properties:
+          key: value
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
@@ -437,18 +435,18 @@ groups:
     def test_group_policy_type_missing_property(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 policy_types:
-    policy_type:
-        properties:
-            key:
-                description: a key
-        source: source
+  policy_type:
+    properties:
+      key:
+        description: a key
+    source: source
 groups:
-    group:
-        members: [test_node]
-        policies:
-            policy:
-                type: policy_type
-                properties: {}
+  group:
+    members: [test_node]
+    policies:
+      policy:
+        type: policy_type
+        properties: {}
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
@@ -456,22 +454,22 @@ groups:
     def test_group_policy_trigger_undefined_parameter(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 policy_triggers:
-    trigger:
-        source: source
+  trigger:
+    source: source
 policy_types:
-    policy_type:
-        source: source
+  policy_type:
+    source: source
 groups:
-    group:
-        members: [test_node]
-        policies:
-            policy:
-                type: policy_type
-                triggers:
-                    trigger1:
-                        type: trigger
-                        parameters:
-                            some: undefined
+  group:
+    members: [test_node]
+    policies:
+      policy:
+        type: policy_type
+        triggers:
+          trigger1:
+            type: trigger
+            parameters:
+              some: undefined
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
@@ -479,23 +477,23 @@ groups:
     def test_group_policy_trigger_missing_parameter(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 policy_triggers:
-    trigger:
-        source: source
-        parameters:
-            param1:
-                description: the description
+  trigger:
+    source: source
+    parameters:
+      param1:
+        description: the description
 policy_types:
-    policy_type:
-        source: source
+  policy_type:
+    source: source
 groups:
-    group:
-        members: [test_node]
-        policies:
-            policy:
-                type: policy_type
-                triggers:
-                    trigger1:
-                        type: trigger
+  group:
+    members: [test_node]
+    policies:
+      policy:
+        type: policy_type
+        triggers:
+          trigger1:
+            type: trigger
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_MISSING_PROPERTY, DSLParsingLogicException)
@@ -504,16 +502,16 @@ groups:
         def test_type_with_value(prop_type, prop_val):
             yaml = """
 node_templates:
-    test_node:
-        type: test_type
-        properties:
-            string1: {0}
+  test_node:
+    type: test_type
+    properties:
+      string1: {0}
 node_types:
-    test_type:
-        properties:
-            string1:
-                type: {1}
-        """.format(prop_val, prop_type)
+  test_type:
+    properties:
+      string1:
+        type: {1}
+""".format(prop_val, prop_type)
 
             self._assert_dsl_parsing_exception_error_code(
                 yaml,
@@ -550,7 +548,7 @@ node_types:
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         yaml = """
 imports:
-    -   {0}""".format(imported_yaml_filename) + self.MINIMAL_BLUEPRINT
+  - {0}""".format(imported_yaml_filename) + self.MINIMAL_BLUEPRINT
 
         self._assert_dsl_parsing_exception_error_code(
             yaml, 27, DSLParsingLogicException, dsl_parse)
@@ -562,7 +560,7 @@ tosca_definitions_version: cloudify_dsl_1_1
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         yaml = """
 imports:
-    -   {0}""".format(imported_yaml_filename) + \
+  - {0}""".format(imported_yaml_filename) + \
                self.BASIC_VERSION_SECTION_DSL_1_0 +\
                self.MINIMAL_BLUEPRINT
 
@@ -571,12 +569,12 @@ imports:
 
     def test_mismatching_version_in_import_older(self):
         imported_yaml = """
-    tosca_definitions_version: cloudify_dsl_1_1
-        """
+tosca_definitions_version: cloudify_dsl_1_1
+    """
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         yaml = """
 imports:
-    -   {0}""".format(imported_yaml_filename) + \
+  - {0}""".format(imported_yaml_filename) + \
                self.BASIC_VERSION_SECTION_DSL_1_2 + \
                self.MINIMAL_BLUEPRINT
 
@@ -703,10 +701,10 @@ node_templates:
 
     def test_max_retries_version_validation(self):
         yaml_template = '{0}' + self.MINIMAL_BLUEPRINT + """
-        interfaces:
-            my_interface:
-                my_operation:
-                    max_retries: 1
+    interfaces:
+      my_interface:
+        my_operation:
+          max_retries: 1
 """
         self.parse(yaml_template.format(self.BASIC_VERSION_SECTION_DSL_1_1))
         self._assert_dsl_parsing_exception_error_code(
@@ -716,10 +714,10 @@ node_templates:
 
     def test_retry_interval_version_validation(self):
         yaml_template = '{0}' + self.MINIMAL_BLUEPRINT + """
-        interfaces:
-            my_interface:
-                my_operation:
-                    retry_interval: 1
+    interfaces:
+      my_interface:
+        my_operation:
+          retry_interval: 1
 """
         self.parse(yaml_template.format(self.BASIC_VERSION_SECTION_DSL_1_1))
         self._assert_dsl_parsing_exception_error_code(
@@ -852,7 +850,7 @@ plugins:
 inputs:
   some_input:
     constraints:
-        - max_length: some_string
+      - max_length: some_string
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, 212, DSLParsingLogicException, self.parse)

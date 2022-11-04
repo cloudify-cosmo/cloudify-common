@@ -92,7 +92,7 @@ outputs:
     webserver_url:
         description: Web server url
         value: { concat: ['http://', { get_secret: ip }, ':',
-        { get_secret: webserver_port }] }
+                          { get_secret: webserver_port }] }
 """
 
     def test_has_intrinsic_functions_property(self):

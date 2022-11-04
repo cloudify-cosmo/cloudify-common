@@ -684,11 +684,11 @@ class TestMultiInstanceModify(scaling.BaseTestMultiInstance):
 
     def _test_base_nodes(self):
         return self.BASE_BLUEPRINT + """
-            without_rel:
-                type: type
-            with_rel:
-                type: type
-        """
+    without_rel:
+        type: type
+    with_rel:
+        type: type
+"""
 
     def test_new_node(self):
         blueprint = self._test_base_nodes()

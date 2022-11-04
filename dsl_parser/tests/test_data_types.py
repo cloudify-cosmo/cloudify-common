@@ -28,11 +28,11 @@ class TestDataTypes(AbstractTestParser):
     def test_unknown_type(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 data_types:
-    pair_type:
-        properties:
-            first:
-                type: unknown-type
-            second: {}
+  pair_type:
+    properties:
+      first:
+        type: unknown-type
+      second: {}
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_UNKNOWN_TYPE, DSLParsingLogicException)
@@ -40,40 +40,40 @@ data_types:
     def test_simple(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 data_types:
-    pair_type:
-        properties:
-            first: {}
-            second: {}
+  pair_type:
+    properties:
+      first: {}
+      second: {}
 """
         self.parse_1_2(yaml)
 
     def test_definitions(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 data_types:
-    pair_type:
-        properties:
-            first: {}
-            second: {}
-    pair_of_pairs_type:
-        properties:
-            first:
-                type: pair_type
-            second:
-                type: pair_type
+  pair_type:
+    properties:
+      first: {}
+      second: {}
+  pair_of_pairs_type:
+    properties:
+      first:
+        type: pair_type
+      second:
+        type: pair_type
 """
         self.parse_1_2(yaml)
 
     def test_infinite_list(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 data_types:
-    list_type:
-        properties:
-            head:
-                type: integer
-            tail:
-                type: list_type
-                default:
-                    head: 1
+  list_type:
+    properties:
+      head:
+        type: integer
+      tail:
+        type: list_type
+        default:
+          head: 1
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_CODE_CYCLE, DSLParsingLogicException)
@@ -81,20 +81,20 @@ data_types:
     def test_definitions_with_default_error(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 data_types:
-    pair_type:
-        properties:
-            first: {}
-            second: {}
-    pair_of_pairs_type:
-        properties:
-            first:
-                type: pair_type
-                default:
-                    first: 1
-                    second: 2
-                    third: 4
-            second:
-                type: pair_type
+  pair_type:
+    properties:
+      first: {}
+      second: {}
+  pair_of_pairs_type:
+    properties:
+      first:
+        type: pair_type
+        default:
+          first: 1
+          second: 2
+          third: 4
+      second:
+        type: pair_type
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_UNDEFINED_PROPERTY, DSLParsingLogicException)
@@ -103,11 +103,11 @@ data_types:
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + \
             self.MINIMAL_BLUEPRINT + """
 data_types:
-    pair_type:
-        properties:
-            first:
-                type: unknown-type
-            second: {}
+  pair_type:
+    properties:
+      first:
+        type: unknown-type
+      second: {}
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml, ERROR_UNKNOWN_TYPE, DSLParsingLogicException)
@@ -115,33 +115,33 @@ data_types:
     def test_nested_validation(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 node_templates:
-    n_template:
-        type: n_type
-        properties:
-            n_pair:
-                second:
-                    first: 4
-                    second: invalid_type_value
+  n_template:
+    type: n_type
+    properties:
+      n_pair:
+        second:
+          first: 4
+          second: invalid_type_value
 node_types:
-    n_type:
-        properties:
-            n_pair:
-                type: pair_of_pairs_type
+  n_type:
+    properties:
+      n_pair:
+        type: pair_of_pairs_type
 data_types:
-    pair_type:
-        properties:
-            first: {}
-            second:
-                type: integer
-    pair_of_pairs_type:
-        properties:
-            first:
-                type: pair_type
-                default:
-                    first: 1
-                    second: 2
-            second:
-                type: pair_type
+  pair_type:
+    properties:
+      first: {}
+      second:
+        type: integer
+  pair_of_pairs_type:
+    properties:
+      first:
+        type: pair_type
+        default:
+          first: 1
+          second: 2
+      second:
+        type: pair_type
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
@@ -150,33 +150,33 @@ data_types:
     def test_nested_defaults(self):
         yaml = """
 node_types:
-    vm_type:
-        properties:
-            agent:
-                type: agent
+  vm_type:
+    properties:
+      agent:
+        type: agent
 node_templates:
-    vm:
-        type: vm_type
-        properties:
-            agent: {}
+  vm:
+    type: vm_type
+    properties:
+      agent: {}
 data_types:
-    agent_connection:
-        properties:
-            username:
-                type: string
-                default: ubuntu
-            key:
-                type: string
-                default: ~/.ssh/id_rsa
+  agent_connection:
+    properties:
+      username:
+        type: string
+        default: ubuntu
+      key:
+        type: string
+        default: ~/.ssh/id_rsa
 
-    agent:
-        properties:
-            connection:
-                type: agent_connection
-                default: {}
-            basedir:
-                type: string
-                default: /home/
+  agent:
+    properties:
+      connection:
+        type: agent_connection
+        default: {}
+      basedir:
+        type: string
+        default: /home/
 """
         parsed = self.parse_1_2(yaml)
         vm = parsed['nodes'][0]
@@ -187,37 +187,37 @@ data_types:
     def test_derives(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 node_types:
-    vm_type:
-        properties:
-            agent:
-                type: agent
+  vm_type:
+    properties:
+      agent:
+        type: agent
 node_templates:
-    vm:
-        type: vm_type
-        properties:
-            agent:
-                connection:
-                    key: /home/ubuntu/id_rsa
+  vm:
+    type: vm_type
+    properties:
+      agent:
+        connection:
+          key: /home/ubuntu/id_rsa
 data_types:
-    agent_connection:
-        properties:
-            username:
-                type: string
-                default: ubuntu
-            key:
-                type: string
-                default: ~/.ssh/id_rsa
-    agent:
-        derived_from: agent_installer
-        properties:
-            basedir:
-                type: string
-                default: /home/
-    agent_installer:
-        properties:
-            connection:
-                type: agent_connection
-                default: {}
+  agent_connection:
+    properties:
+      username:
+        type: string
+        default: ubuntu
+      key:
+        type: string
+        default: ~/.ssh/id_rsa
+  agent:
+    derived_from: agent_installer
+    properties:
+      basedir:
+        type: string
+        default: /home/
+  agent_installer:
+    properties:
+      connection:
+        type: agent_connection
+        default: {}
 """
         parsed = self.parse(yaml)
         vm = parsed['nodes'][0]
@@ -231,31 +231,31 @@ data_types:
     def test_nested_type_error(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 node_templates:
-    node:
-        type: node_type
-        properties:
-            a:
-                b:
-                    c:
-                        d: should_be_int
+  node:
+    type: node_type
+    properties:
+      a:
+        b:
+          c:
+            d: should_be_int
 node_types:
-    node_type:
-        properties:
-            a:
-                type: a
+  node_type:
+    properties:
+      a:
+        type: a
 data_types:
-    a:
-        properties:
-            b:
-                type: b
-    b:
-        properties:
-            c:
-                type: c
-    c:
-        properties:
-            d:
-                type: integer
+  a:
+    properties:
+      b:
+        type: b
+  b:
+    properties:
+      c:
+        type: c
+  c:
+    properties:
+      d:
+        type: integer
 
 """
         self._assert_dsl_parsing_exception_error_code(
@@ -266,11 +266,11 @@ data_types:
     def test_unknown_parent(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 data_types:
-    a:
-        derived_from: b
-        properties:
-            p:
-                type: integer
+  a:
+    derived_from: b
+    properties:
+      p:
+        type: integer
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
@@ -280,10 +280,10 @@ data_types:
     def test_redefine_primitive(self):
         yaml = self.MINIMAL_BLUEPRINT + """
 data_types:
-    integer:
-        properties:
-            p:
-                type: string
+  integer:
+    properties:
+      p:
+        type: string
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
@@ -293,29 +293,29 @@ data_types:
     def test_subtype_override_field_type(self):
         yaml = """
 node_templates:
-    node:
-        type: node_type
-        properties:
-            b:
-                i: 'redefined from int'
-                s: 'to make sure that b really derives from a'
+  node:
+    type: node_type
+    properties:
+      b:
+        i: 'redefined from int'
+        s: 'to make sure that b really derives from a'
 node_types:
-    node_type:
-        properties:
-            b:
-                type: b
+  node_type:
+    properties:
+      b:
+        type: b
 data_types:
-    a:
-        properties:
-            i:
-                type: integer
-            s:
-                type: string
-    b:
-        derived_from: a
-        properties:
-            i:
-                type: string
+  a:
+    properties:
+      i:
+        type: integer
+      s:
+        type: string
+  b:
+    derived_from: a
+    properties:
+      i:
+        type: string
 """
         self.parse_1_2(yaml)
 
@@ -323,26 +323,26 @@ data_types:
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + \
             self.MINIMAL_BLUEPRINT + """
 data_types:
-    a:
-        properties:
-            b:
-                type: b
-                default:
-                    c:
-                        d:
-                            e: 'should be int'
-    b:
-        properties:
-            c:
-                type: c
-    c:
-        properties:
+  a:
+    properties:
+      b:
+        type: b
+        default:
+          c:
             d:
-                type: d
-    d:
-        properties:
-            e:
-                type: integer
+              e: 'should be int'
+  b:
+    properties:
+      c:
+        type: c
+  c:
+    properties:
+      d:
+        type: d
+  d:
+    properties:
+      e:
+        type: integer
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
@@ -351,35 +351,35 @@ data_types:
     def test_nested_merging(self):
         yaml = self.BASIC_VERSION_SECTION_DSL_1_2 + """
 node_templates:
-    node:
-        type: node_type
-        properties:
-            b: {}
+  node:
+    type: node_type
+    properties:
+      b: {}
 node_types:
-    node_type:
-        properties:
-            b:
-                type: b
-                default:
-                    i: 'it will be used too'
-            bb:
-                type: b
-                default:
-                    i: 'it will be used'
+  node_type:
+    properties:
+      b:
+        type: b
+        default:
+          i: 'it will be used too'
+      bb:
+        type: b
+        default:
+          i: 'it will be used'
 data_types:
-    a:
-        properties:
-            i:
-                type: integer
-            s:
-                type: string
-                default: 's string'
-    b:
-        derived_from: a
-        properties:
-            i:
-                type: string
-                default: 'i string'
+  a:
+    properties:
+      i:
+        type: integer
+      s:
+        type: string
+        default: 's string'
+  b:
+    derived_from: a
+    properties:
+      i:
+        type: string
+        default: 'i string'
 """
         parsed = self.parse(yaml)
         node = self.get_node_by_name(parsed, 'node')
@@ -659,10 +659,10 @@ node_templates:
         yaml = self.BASIC_VERSION_SECTION_DSL_1_1 + \
             self.MINIMAL_BLUEPRINT + """
 data_types:
-    a:
-        properties:
-            i:
-                type: integer
+  a:
+    properties:
+      i:
+        type: integer
 """
         self._assert_dsl_parsing_exception_error_code(
             yaml,
@@ -671,20 +671,20 @@ data_types:
     def test_implicit_default_value(self):
         yaml = """
 data_types:
-    data1:
-        properties:
-            inner:
-                default: inner_default
+  data1:
+    properties:
+      inner:
+        default: inner_default
 
 node_types:
-    type1:
-        properties:
-            prop1:
-                type: data1
+  type1:
+    properties:
+      prop1:
+        type: data1
 
 node_templates:
-    node1:
-        type: type1
+  node1:
+    type: type1
 """
         parsed = self.parse_1_2(yaml)
         node1 = parsed['nodes'][0]
@@ -694,30 +694,30 @@ node_templates:
     def test_data_types_merging(self):
         file1 = """
 data_types:
-    data1:
-        properties:
-            prop1:
-                default: value1
+  data1:
+    properties:
+      prop1:
+        default: value1
 """
         import_path = self.make_yaml_file(file1)
         yaml = """
 imports:
   - {0}
 data_types:
-    data2:
-        properties:
-            prop2:
-                default: value2
+  data2:
+    properties:
+      prop2:
+        default: value2
 node_types:
-    type:
-        properties:
-            prop1:
-                type: data1
-            prop2:
-                type: data2
+  type:
+    properties:
+      prop1:
+        type: data1
+      prop2:
+        type: data2
 node_templates:
-    node:
-        type: type
+  node:
+    type: type
 """.format(import_path)
         properties = self.parse_1_2(yaml)['nodes'][0]['properties']
         self.assertEqual(properties['prop1']['prop1'], 'value1')

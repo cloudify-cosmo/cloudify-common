@@ -22,9 +22,9 @@ class TestNamespacedInputs(AbstractTestParser):
     def _default_input(description, default, name='port'):
         return """
 inputs:
-    {2}:
-        description: {0}
-        default: {1}
+  {2}:
+    description: {0}
+    default: {1}
 """.format(description, default, name)
 
     def _assert_input(self, inputs, name, description, default):
@@ -37,7 +37,7 @@ inputs:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         inputs = parsed_yaml[constants.INPUTS]

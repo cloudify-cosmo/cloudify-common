@@ -118,31 +118,31 @@ class TestParserApi(BaseParserApiTest):
     def test_type_with_single_explicit_interface_and_plugin(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + self.BASIC_PLUGIN + """
 node_types:
-    test_type:
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-                start:
-                    implementation: test_plugin.start
-                    inputs: {}
-        properties:
-            install_agent:
-                default: false
-            key: {}
-            number:
-                default: 80
-            boolean:
-                default: false
-            complex:
-                default:
-                    key1: value1
-                    key2: value2
-            """
+  test_type:
+    interfaces:
+      test_interface1:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+        start:
+          implementation: test_plugin.start
+          inputs: {}
+    properties:
+      install_agent:
+        default: false
+      key: {}
+      number:
+        default: 80
+      boolean:
+        default: false
+      complex:
+        default:
+          key1: value1
+          key2: value2
+"""
 
         result = self.parse(yaml)
         self._assert_blueprint(result)
@@ -198,29 +198,29 @@ node_types:
         yaml = self.create_yaml_with_imports(
             [self.BASIC_NODE_TEMPLATES_SECTION, self.BASIC_PLUGIN]) + """
 node_types:
-    test_type:
-        properties:
-            key: {}
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-            test_interface2:
-                start:
-                    implementation: other_test_plugin.start
-                    inputs: {}
-                shutdown:
-                    implementation: other_test_plugin.shutdown
-                    inputs: {}
+  test_type:
+    properties:
+      key: {}
+    interfaces:
+      test_interface1:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+      test_interface2:
+        start:
+          implementation: other_test_plugin.start
+          inputs: {}
+        shutdown:
+          implementation: other_test_plugin.shutdown
+          inputs: {}
 
 plugins:
-    other_test_plugin:
-        executor: central_deployment_agent
-        source: dummy
+  other_test_plugin:
+    executor: central_deployment_agent
+    source: dummy
 """
         result = self.parse(yaml)
         node = result['nodes'][0]
@@ -246,12 +246,12 @@ plugins:
 
         mid_level_yaml = self.BASIC_PLUGIN + """
 imports:
-    -   {0}""".format(bottom_file_name)
+  - {0}""".format(bottom_file_name)
         mid_file_name = self.make_yaml_file(mid_level_yaml)
 
         top_level_yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 imports:
-    -   {0}""".format(mid_file_name)
+  - {0}""".format(mid_file_name)
 
         result = self.parse(top_level_yaml)
         self._assert_blueprint(result)
@@ -292,18 +292,18 @@ description: sample description
 
         mid_level_yaml = self.BASIC_PLUGIN + """
 imports:
-    -   {0}""".format(bottom_file_name)
+  - {0}""".format(bottom_file_name)
         mid_file_name = self.make_yaml_file(mid_level_yaml)
 
         mid_level_yaml2 = """
 imports:
-    -   {0}""".format(bottom_file_name)
+  - {0}""".format(bottom_file_name)
         mid_file_name2 = self.make_yaml_file(mid_level_yaml2)
 
         top_level_yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 imports:
-    -   {0}
-    -   {1}""".format(mid_file_name, mid_file_name2)
+  - {0}
+  - {1}""".format(mid_file_name, mid_file_name2)
         result = self.parse(top_level_yaml)
         self._assert_blueprint(result)
 
@@ -314,7 +314,7 @@ imports:
             importable)
         main_yaml = """
 imports:
-    -   {0}""".format(imported_yaml) + \
+  - {0}""".format(imported_yaml) + \
             self.BASIC_NODE_TEMPLATES_SECTION + \
             self.BASIC_INPUTS + \
             self.BASIC_OUTPUTS
@@ -340,8 +340,8 @@ imports:
     def test_version_1_2_and_above_input_imports(self):
         importable = """
 inputs:
-    test_input2:
-        default: value
+  test_input2:
+    default: value
 """
         self._verify_1_2_and_below_non_mergeable_imports(
             importable, 'inputs')
@@ -350,10 +350,10 @@ inputs:
     def test_version_1_2_and_above_node_template_imports(self):
         importable = """
 node_templates:
-    test_node2:
-        type: test_type
-        properties:
-            key: "val"
+  test_node2:
+    type: test_type
+    properties:
+      key: "val"
 """
         self._verify_1_2_and_below_non_mergeable_imports(
             importable, 'node_templates')
@@ -362,8 +362,8 @@ node_templates:
     def test_version_1_2_and_above_output_imports(self):
         importable = """
 outputs:
-    test_output2:
-        value: value
+  test_output2:
+    value: value
 """
         self._verify_1_2_and_below_non_mergeable_imports(
             importable, 'outputs')
@@ -372,13 +372,13 @@ outputs:
     def test_node_get_type_properties_including_overriding_properties(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        properties:
-            key:
-                default: "not_val"
-            key2:
-                default: "val2"
-    """
+  test_type:
+    properties:
+      key:
+        default: "not_val"
+      key2:
+        default: "val2"
+"""
         result = self.parse(yaml)
         # this will also check property "key" = "val"
         self._assert_minimal_blueprint(result)
@@ -388,11 +388,11 @@ node_types:
     def test_type_properties_empty_properties(self):
         yaml = """
 node_templates:
-    test_node:
-        type: test_type
+  test_node:
+    type: test_type
 node_types:
-    test_type:
-        properties: {}
+  test_type:
+    properties: {}
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -404,9 +404,9 @@ node_types:
     def test_type_properties_empty_property(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        properties:
-            key: {}
+  test_type:
+    properties:
+      key: {}
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -421,10 +421,10 @@ node_types:
     def test_type_properties_property_with_description_only(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        properties:
-            key:
-                description: property_desc
+  test_type:
+    properties:
+      key:
+        description: property_desc
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -439,12 +439,12 @@ node_types:
     def test_type_properties_standard_property(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        properties:
-            key:
-                default: val
-                description: property_desc
-                type: string
+  test_type:
+    properties:
+      key:
+        default: val
+        description: property_desc
+        type: string
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -459,22 +459,22 @@ node_types:
     def test_type_properties_derivation(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        properties:
-            key:
-                default: "not_val"
-            key2:
-                default: "val2"
-        derived_from: "test_type_parent"
+  test_type:
+    properties:
+      key:
+        default: "not_val"
+      key2:
+        default: "val2"
+    derived_from: "test_type_parent"
 
-    test_type_parent:
-        properties:
-            key:
-                default: "val1_parent"
-            key2:
-                default: "val2_parent"
-            key3:
-                default: "val3_parent"
+  test_type_parent:
+    properties:
+      key:
+        default: "val1_parent"
+      key2:
+        default: "val2_parent"
+      key3:
+        default: "val3_parent"
     """
         result = self.parse(yaml)
         # this will also check property "key" = "val"
@@ -486,13 +486,13 @@ node_types:
     def test_empty_types_hierarchy_in_node(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        properties:
-            key:
-                default: "not_val"
-            key2:
-                default: "val2"
-    """
+  test_type:
+    properties:
+      key:
+        default: "not_val"
+      key2:
+        default: "val2"
+"""
         result = self.parse(yaml)
         node = result['nodes'][0]
         self.assertEqual(1, len(node[TYPE_HIERARCHY]))
@@ -501,15 +501,15 @@ node_types:
     def test_types_hierarchy_in_node(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        derived_from: "test_type_parent"
-        properties:
-            key:
-                default: "not_val"
-            key2:
-                default: "val2"
-    test_type_parent: {}
-    """
+  test_type:
+    derived_from: "test_type_parent"
+    properties:
+      key:
+        default: "not_val"
+      key2:
+        default: "val2"
+  test_type_parent: {}
+"""
         result = self.parse(yaml)
         node = result['nodes'][0]
         self.assertEqual(2, len(node[TYPE_HIERARCHY]))
@@ -519,18 +519,18 @@ node_types:
     def test_types_hierarchy_order_in_node(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        derived_from: "test_type_parent"
-        properties:
-            key:
-                default: "not_val"
-            key2:
-                default: "val2"
-    test_type_parent:
-        derived_from: "parent_type"
+  test_type:
+    derived_from: "test_type_parent"
+    properties:
+      key:
+        default: "not_val"
+      key2:
+        default: "val2"
+  test_type_parent:
+    derived_from: "parent_type"
 
-    parent_type: {}
-    """
+  parent_type: {}
+"""
         result = self.parse(yaml)
         node = result['nodes'][0]
         self.assertEqual(3, len(node[TYPE_HIERARCHY]))
@@ -541,36 +541,36 @@ node_types:
     def test_type_properties_recursive_derivation(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 node_types:
-    test_type:
-        properties:
-            key:
-                default: "not_val"
-            key2:
-                default: "val2"
-        derived_from: "test_type_parent"
+  test_type:
+    properties:
+      key:
+        default: "not_val"
+      key2:
+        default: "val2"
+    derived_from: "test_type_parent"
 
-    test_type_parent:
-        properties:
-            key:
-                default: "val_parent"
-            key2:
-                default: "val2_parent"
-            key4:
-                default: "val4_parent"
-        derived_from: "test_type_grandparent"
+  test_type_parent:
+    properties:
+      key:
+        default: "val_parent"
+      key2:
+        default: "val2_parent"
+      key4:
+        default: "val4_parent"
+    derived_from: "test_type_grandparent"
 
-    test_type_grandparent:
-        properties:
-            key:
-                default: "val1_grandparent"
-            key2:
-                default: "val2_grandparent"
-            key3:
-                default: "val3_grandparent"
-        derived_from: "test_type_grandgrandparent"
+  test_type_grandparent:
+    properties:
+      key:
+        default: "val1_grandparent"
+      key2:
+        default: "val2_grandparent"
+      key3:
+        default: "val3_grandparent"
+    derived_from: "test_type_grandgrandparent"
 
-    test_type_grandgrandparent: {}
-    """
+  test_type_grandgrandparent: {}
+"""
         result = self.parse(yaml)
         # this will also check property "key" = "val"
         self._assert_minimal_blueprint(result)
@@ -583,65 +583,65 @@ node_types:
         yaml = self.create_yaml_with_imports(
             [self.BASIC_NODE_TEMPLATES_SECTION, self.BASIC_PLUGIN]) + """
 node_types:
-    test_type:
-        properties:
-            key: {}
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-            test_interface2:
-                start:
-                    implementation: test_plugin2.start
-                    inputs: {}
-                stop:
-                    implementation: test_plugin2.stop
-                    inputs: {}
-            test_interface3:
-                op1:
-                    implementation: test_plugin3.op
-                    inputs: {}
-        derived_from: test_type_parent
+  test_type:
+    properties:
+      key: {}
+    interfaces:
+      test_interface1:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+      test_interface2:
+        start:
+          implementation: test_plugin2.start
+          inputs: {}
+        stop:
+          implementation: test_plugin2.stop
+          inputs: {}
+      test_interface3:
+        op1:
+          implementation: test_plugin3.op
+          inputs: {}
+    derived_from: test_type_parent
 
-    test_type_parent:
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: nop_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: nop_plugin.install
-                    inputs: {}
-            test_interface2:
-                start:
-                    implementation: test_plugin2.start
-                    inputs: {}
-                stop:
-                    implementation: test_plugin2.stop
-                    inputs: {}
-            test_interface3:
-                op1:
-                    implementation: test_plugin3.op
-                    inputs: {}
-            test_interface4:
-                op2:
-                    implementation: test_plugin4.op2
-                    inputs: {}
+  test_type_parent:
+    interfaces:
+      test_interface1:
+        install:
+          implementation: nop_plugin.install
+          inputs: {}
+        terminate:
+          implementation: nop_plugin.install
+          inputs: {}
+      test_interface2:
+        start:
+          implementation: test_plugin2.start
+          inputs: {}
+        stop:
+          implementation: test_plugin2.stop
+          inputs: {}
+      test_interface3:
+        op1:
+          implementation: test_plugin3.op
+          inputs: {}
+      test_interface4:
+        op2:
+          implementation: test_plugin4.op2
+          inputs: {}
 
 plugins:
-    test_plugin2:
-        executor: central_deployment_agent
-        source: dummy
-    test_plugin3:
-        executor: central_deployment_agent
-        source: dummy
-    test_plugin4:
-        executor: central_deployment_agent
-        source: dummy
+  test_plugin2:
+    executor: central_deployment_agent
+    source: dummy
+  test_plugin3:
+    executor: central_deployment_agent
+    source: dummy
+  test_plugin4:
+    executor: central_deployment_agent
+    source: dummy
 """
         result = self.parse(yaml)
         self._assert_blueprint(result)
@@ -678,43 +678,43 @@ plugins:
         yaml = self.create_yaml_with_imports(
             [self.BASIC_NODE_TEMPLATES_SECTION, self.BASIC_PLUGIN]) + """
 node_types:
-    test_type:
-        properties:
-            key: {}
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-        derived_from: test_type_parent
+  test_type:
+    properties:
+      key: {}
+    interfaces:
+      test_interface1:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+    derived_from: test_type_parent
 
-    test_type_parent:
-        derived_from: test_type_grandparent
+  test_type_parent:
+    derived_from: test_type_grandparent
 
-    test_type_grandparent:
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: non_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: non_plugin.terminate
-                    inputs: {}
-            test_interface2:
-                start:
-                    implementation: test_plugin2.start
-                    inputs: {}
-                stop:
-                    implementation: test_plugin2.stop
-                    inputs: {}
+  test_type_grandparent:
+    interfaces:
+      test_interface1:
+        install:
+          implementation: non_plugin.install
+          inputs: {}
+        terminate:
+          implementation: non_plugin.terminate
+          inputs: {}
+      test_interface2:
+        start:
+          implementation: test_plugin2.start
+          inputs: {}
+        stop:
+          implementation: test_plugin2.stop
+          inputs: {}
 
 plugins:
-    test_plugin2:
-        executor: central_deployment_agent
-        source: dummy
+  test_plugin2:
+    executor: central_deployment_agent
+    source: dummy
 """
         result = self.parse(yaml)
         self._assert_blueprint(result)
@@ -739,28 +739,28 @@ plugins:
         yaml = self.create_yaml_with_imports(
             [self.BASIC_NODE_TEMPLATES_SECTION, self.BASIC_PLUGIN]) + """
 node_types:
-    test_type:
-        properties:
-            key: {}
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-            test_interface2:
-                install:
-                    implementation: other_test_plugin.install
-                    inputs: {}
-                shutdown:
-                    implementation: other_test_plugin.shutdown
-                    inputs: {}
+  test_type:
+    properties:
+      key: {}
+    interfaces:
+      test_interface1:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+      test_interface2:
+        install:
+          implementation: other_test_plugin.install
+          inputs: {}
+        shutdown:
+          implementation: other_test_plugin.shutdown
+          inputs: {}
 plugins:
-    other_test_plugin:
-        executor: central_deployment_agent
-        source: dummy
+  other_test_plugin:
+    executor: central_deployment_agent
+    source: dummy
 """
         result = self.parse(yaml)
         node = result['nodes'][0]
@@ -792,12 +792,12 @@ plugins:
 
         mid_level_yaml = self.BASIC_PLUGIN + """
 imports:
-    -   \"bottom_level.yaml\""""
+  - \"bottom_level.yaml\""""
         mid_file_name = self.make_yaml_file(mid_level_yaml)
 
         top_level_yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 imports:
-    -   {0}""".format(mid_file_name)
+  - {0}""".format(mid_file_name)
         result = self.parse(top_level_yaml)
         self._assert_blueprint(result)
 
@@ -812,12 +812,12 @@ imports:
 
         mid_level_yaml = self.BASIC_PLUGIN + """
 imports:
-    -   \"bottom_level.yaml\""""
+  - \"bottom_level.yaml\""""
         mid_file_name = self.make_yaml_file(mid_level_yaml)
 
         top_level_yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 imports:
-    -   {0}""".format('file:///' + pathname2url(mid_file_name))
+  - {0}""".format('file:///' + pathname2url(mid_file_name))
         result = self.parse(top_level_yaml)
         self._assert_blueprint(result)
 
@@ -1032,20 +1032,20 @@ plugins:
     def test_deployment_plugins_to_install_in_plan(self):
         yaml = """
 node_templates:
-    test_node1:
-        type: cloudify.nodes.Compute
+  test_node1:
+    type: cloudify.nodes.Compute
 node_types:
-    cloudify.nodes.Compute:
-        interfaces:
-            test_interface:
-                start:
-                    implementation: test_plugin.start
-                    inputs: {}
+  cloudify.nodes.Compute:
+    interfaces:
+      test_interface:
+        start:
+          implementation: test_plugin.start
+          inputs: {}
 
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
 """
         result = self.parse(yaml)
         plugin = result['nodes'][0]['deployment_plugins_to_install'][0]
@@ -1060,7 +1060,7 @@ plugins:
     def test_workflow_plugins_to_install_in_plan(self):
         yaml = self.BASIC_PLUGIN + """
 workflows:
-    workflow1: test_plugin.workflow1
+  workflow1: test_plugin.workflow1
 """
         result = self.parse(yaml)
         workflow_plugins_to_install = result['workflow_plugins_to_install']
@@ -1074,29 +1074,29 @@ workflows:
     def test_executor_override_node_types(self):
         yaml = """
 node_templates:
-    test_node1:
-        type: cloudify.nodes.MyCompute
+  test_node1:
+    type: cloudify.nodes.MyCompute
 node_types:
-    cloudify.nodes.Compute:
-        interfaces:
-            test_interface:
-                start:
-                    executor: central_deployment_agent
-                    implementation: test_plugin.start
-                    inputs: {}
-    cloudify.nodes.MyCompute:
-        derived_from: cloudify.nodes.Compute
-        interfaces:
-            test_interface:
-                start:
-                    executor: host_agent
-                    implementation: test_plugin.start
-                    inputs: {}
+  cloudify.nodes.Compute:
+    interfaces:
+      test_interface:
+        start:
+          executor: central_deployment_agent
+          implementation: test_plugin.start
+          inputs: {}
+  cloudify.nodes.MyCompute:
+    derived_from: cloudify.nodes.Compute
+    interfaces:
+      test_interface:
+        start:
+          executor: host_agent
+          implementation: test_plugin.start
+          inputs: {}
 
 plugins:
-    test_plugin:
-        executor: host_agent
-        source: dummy
+  test_plugin:
+    executor: host_agent
+    source: dummy
 """
         result = self.parse(yaml)
         plugin = result['nodes'][0]['plugins_to_install'][0]
@@ -1106,21 +1106,21 @@ plugins:
     def test_executor_override_plugin_declaration(self):
         yaml = """
 node_templates:
-    test_node1:
-        type: cloudify.nodes.Compute
+  test_node1:
+    type: cloudify.nodes.Compute
 node_types:
-    cloudify.nodes.Compute:
-        interfaces:
-            test_interface:
-                start:
-                    executor: central_deployment_agent
-                    implementation: test_plugin.start
-                    inputs: {}
+  cloudify.nodes.Compute:
+    interfaces:
+      test_interface:
+        start:
+          executor: central_deployment_agent
+          implementation: test_plugin.start
+          inputs: {}
 
 plugins:
-    test_plugin:
-        executor: host_agent
-        source: dummy
+  test_plugin:
+    executor: host_agent
+    source: dummy
 """
         result = self.parse(yaml)
         plugin = result['nodes'][0]['deployment_plugins_to_install'][0]
@@ -1173,20 +1173,20 @@ imports:
     def test_recursive_imports_with_inner_circular(self):
         bottom_level_yaml = """
 imports:
-    -   {0}
+  - {0}
         """.format(
             os.path.join(self._temp_dir, "mid_level.yaml")) + self.BASIC_TYPE
         bottom_file_name = self.make_yaml_file(bottom_level_yaml)
 
         mid_level_yaml = self.BASIC_PLUGIN + """
 imports:
-    -   {0}""".format(bottom_file_name)
+  - {0}""".format(bottom_file_name)
         mid_file_name = self.make_file_with_name(mid_level_yaml,
                                                  'mid_level.yaml')
 
         top_level_yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
 imports:
-    -   {0}""".format(mid_file_name)
+  - {0}""".format(mid_file_name)
 
         result = self.parse(top_level_yaml)
         self._assert_blueprint(result)
@@ -1194,14 +1194,14 @@ imports:
     def test_recursive_imports_with_complete_circle(self):
         bottom_level_yaml = """
 imports:
-    -   {0}
-            """.format(
+  - {0}
+""".format(
             os.path.join(self._temp_dir, "top_level.yaml")) + self.BASIC_TYPE
         bottom_file_name = self.make_yaml_file(bottom_level_yaml)
 
         mid_level_yaml = self.BASIC_PLUGIN + """
 imports:
-    -   {0}""".format(bottom_file_name)
+  - {0}""".format(bottom_file_name)
         mid_file_name = self.make_yaml_file(mid_level_yaml)
 
         top_level_yaml = \
@@ -1209,7 +1209,7 @@ imports:
             self.BASIC_NODE_TEMPLATES_SECTION +\
             """
 imports:
-    -   {0}""".format(mid_file_name)
+  - {0}""".format(mid_file_name)
         top_file_name = self.make_file_with_name(
             top_level_yaml, 'top_level.yaml')
         result = parse_from_path(top_file_name)
@@ -1217,14 +1217,14 @@ imports:
 
     def test_node_without_host_id(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + """
-    test_node2:
-        type: cloudify.nodes.Compute
+  test_node2:
+    type: cloudify.nodes.Compute
 node_types:
-    cloudify.nodes.Compute: {}
-    test_type:
-        properties:
-            key: {}
-        """
+  cloudify.nodes.Compute: {}
+  test_type:
+    properties:
+      key: {}
+"""
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
         nodes = self._sort_result_nodes(result['nodes'], ['test_node',
@@ -1234,9 +1234,9 @@ node_types:
 
     def test_multiple_instances(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-        instances:
-            deploy: 2
-            """
+    instances:
+      deploy: 2
+"""
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
@@ -1247,12 +1247,12 @@ node_types:
 
     def test_import_types_combination(self):
         yaml = self.create_yaml_with_imports([self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type2
-        """]) + """
+  test_node2:
+    type: test_type2
+    """]) + """
 node_types:
-    test_type2: {}
-        """
+  test_type2: {}
+"""
 
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
@@ -1270,23 +1270,23 @@ node_types:
 
     def test_relationship_operation_mapping_with_properties_injection(self):
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: test_relationship
-                target: test_node
-                source_interfaces:
-                    test_interface1:
-                        install:
-                            implementation: test_plugin.install
-                            inputs:
-                                key: value
+  test_node2:
+    type: test_type
+    relationships:
+      - type: test_relationship
+        target: test_node
+        source_interfaces:
+          test_interface1:
+            install:
+              implementation: test_plugin.install
+              inputs:
+                key: value
 relationships:
-    test_relationship: {}
+  test_relationship: {}
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
 """
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))
@@ -1317,7 +1317,7 @@ workflows: {}
     def test_workflow_basic_mapping(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    workflow1: test_plugin.workflow1
+  workflow1: test_plugin.workflow1
 """
         result = self.parse(yaml)
         workflows = result['workflows']
@@ -1331,18 +1331,18 @@ workflows:
     def test_workflow_advanced_mapping(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    workflow1:
-        mapping: test_plugin.workflow1
-        parameters:
-            prop1:
-                default: value1
-            mandatory_prop: {}
-            nested_prop:
-                default:
-                    nested_key: nested_value
-                    nested_list:
-                        - val1
-                        - val2
+  workflow1:
+    mapping: test_plugin.workflow1
+    parameters:
+      prop1:
+        default: value1
+      mandatory_prop: {}
+      nested_prop:
+        default:
+          nested_key: nested_value
+          nested_list:
+            - val1
+            - val2
 """
         result = self.parse(yaml)
         workflows = result['workflows']
@@ -1371,15 +1371,15 @@ workflows:
     def test_workflow_imports(self):
         workflows1 = """
 workflows:
-    workflow1: test_plugin.workflow1
+  workflow1: test_plugin.workflow1
 """
         workflows2 = """
 plugins:
-    test_plugin2:
-        executor: central_deployment_agent
-        source: dummy
+  test_plugin2:
+    executor: central_deployment_agent
+    source: dummy
 workflows:
-    workflow2: test_plugin2.workflow2
+  workflow2: test_plugin2.workflow2
 """
         yaml = self.create_yaml_with_imports([
             self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS,
@@ -1402,9 +1402,9 @@ workflows:
     def test_workflow_parameters_empty_parameters(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    test_workflow:
-        mapping: test_plugin.workflow1
-        parameters: {}
+  test_workflow:
+    mapping: test_plugin.workflow1
+    parameters: {}
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -1417,10 +1417,10 @@ workflows:
     def test_workflow_parameters_empty_parameter(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    test_workflow:
-        mapping: test_plugin.workflow1
-        parameters:
-            key: {}
+  test_workflow:
+    mapping: test_plugin.workflow1
+    parameters:
+      key: {}
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -1433,11 +1433,11 @@ workflows:
     def test_workflow_parameters_parameter_with_description_only(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    test_workflow:
-        mapping: test_plugin.workflow1
-        parameters:
-            key:
-                description: parameter_desc
+  test_workflow:
+    mapping: test_plugin.workflow1
+    parameters:
+      key:
+        description: parameter_desc
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -1451,13 +1451,13 @@ workflows:
     def test_workflow_parameters_standard_parameter(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    test_workflow:
-        mapping: test_plugin.workflow1
-        parameters:
-            key:
-                default: val
-                description: parameter_desc
-                type: string
+  test_workflow:
+    mapping: test_plugin.workflow1
+    parameters:
+      key:
+        default: val
+        description: parameter_desc
+        type: string
 """
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
@@ -1473,12 +1473,12 @@ workflows:
     def test_workflow_availability(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    test_workflow1:
-        mapping: test_plugin.workflow1
-        availability_rules:
-            available: false
-    test_workflow2:
-        mapping: test_plugin.workflow1
+  test_workflow1:
+    mapping: test_plugin.workflow1
+    availability_rules:
+      available: false
+  test_workflow2:
+    mapping: test_plugin.workflow1
 """
         with self.assertRaises(exceptions.DSLParsingLogicException) as cm:
             self.parse(yaml)
@@ -1495,12 +1495,12 @@ workflows:
     def test_workflow_availability_node_instances(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    test_workflow1:
-        mapping: test_plugin.workflow1
-        availability_rules:
-            node_instances_active:
-                - all
-                - partial
+  test_workflow1:
+    mapping: test_plugin.workflow1
+    availability_rules:
+      node_instances_active:
+        - all
+        - partial
 """
         result = self.parse_1_4(yaml)
         workflow1 = result['workflows']['test_workflow1']
@@ -1512,11 +1512,11 @@ workflows:
 
         invalid_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    test_workflow1:
-        mapping: test_plugin.workflow1
-        availability_rules:
-            node_instances_active:
-                - something invalid
+  test_workflow1:
+    mapping: test_plugin.workflow1
+    availability_rules:
+      node_instances_active:
+        - something invalid
 """
         with self.assertRaises(exceptions.DSLParsingLogicException):
             self.parse(invalid_yaml)
@@ -1524,12 +1524,12 @@ workflows:
     def test_workflow_availability_node_types(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    test_workflow1:
-        mapping: test_plugin.workflow1
-        availability_rules:
-            node_types_required:
-                - test_type
-                - some_other_type
+  test_workflow1:
+    mapping: test_plugin.workflow1
+    availability_rules:
+      node_types_required:
+        - test_type
+        - some_other_type
 """
         result = self.parse_1_4(yaml)
         workflow1 = result['workflows']['test_workflow1']
@@ -1665,24 +1665,24 @@ workflows:
     def test_groups_schema_properties_merge(self):
         yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 policy_types:
-    policy_type:
-        properties:
-            key1:
-                default: value1
-            key2:
-                description: key2 description
-            key3:
-                default: value3
-        source: source
+  policy_type:
+    properties:
+      key1:
+        default: value1
+      key2:
+        description: key2 description
+      key3:
+        default: value3
+    source: source
 groups:
-    group:
-        members: [test_node]
-        policies:
-            policy:
-                type: policy_type
-                properties:
-                    key2: group_value2
-                    key3: group_value3
+  group:
+    members: [test_node]
+    policies:
+      policy:
+        type: policy_type
+        properties:
+          key2: group_value2
+          key3: group_value3
 """
         result = self.parse(yaml)
         groups = result['groups']
@@ -1712,15 +1712,15 @@ groups:
                                 triggers={})))}))
         policy_types = """
 policy_types:
-    policy_type:
-        properties: {}
-        source: source
+  policy_type:
+    properties: {}
+    source: source
 """
         yaml = self.create_yaml_with_imports([
             self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS,
             policy_types,
-            yml.safe_dump(groups[0]),
-            yml.safe_dump(groups[1])])
+            yml.safe_dump(groups[0], canonical=True),
+            yml.safe_dump(groups[1], canonical=True)])
 
         expected_result = dict(
             groups=groups[0]['groups'])
@@ -1733,16 +1733,16 @@ policy_types:
     def test_operation_mapping_with_properties_injection(self):
         yaml = self.BASIC_NODE_TEMPLATES_SECTION + self.BASIC_PLUGIN + """
 node_types:
-    test_type:
-        properties:
-            key: {}
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: test_plugin.install
-                    inputs:
-                        key:
-                            default: value
+  test_type:
+    properties:
+      key: {}
+    interfaces:
+      test_interface1:
+        install:
+          implementation: test_plugin.install
+          inputs:
+            key:
+              default: value
 """
         result = self.parse(yaml)
         node = result['nodes'][0]
@@ -1790,28 +1790,28 @@ workflows:
         yaml = self.create_yaml_with_imports(
             [self.BASIC_NODE_TEMPLATES_SECTION, self.BASIC_PLUGIN]) + """
 plugins:
-    other_test_plugin:
-        executor: central_deployment_agent
-        source: dummy
+  other_test_plugin:
+    executor: central_deployment_agent
+    source: dummy
 node_types:
-    test_type:
-        properties:
-            key: {}
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-            test_interface2:
-                start:
-                    implementation: other_test_plugin.start
-                    inputs: {}
-                shutdown:
-                    implementation: other_test_plugin.shutdown
-                    inputs: {}
+  test_type:
+    properties:
+      key: {}
+    interfaces:
+      test_interface1:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+      test_interface2:
+        start:
+          implementation: other_test_plugin.start
+          inputs: {}
+        shutdown:
+          implementation: other_test_plugin.shutdown
+          inputs: {}
 """
         result = self.parse(yaml)
         node = result['nodes'][0]
@@ -1833,15 +1833,15 @@ node_types:
 
     def test_node_interfaces_operation_mapping(self):
         yaml = self.BASIC_PLUGIN + self.BASIC_NODE_TEMPLATES_SECTION + """
-        interfaces:
-            test_interface1:
-                install: test_plugin.install
-                terminate: test_plugin.terminate
+    interfaces:
+      test_interface1:
+        install: test_plugin.install
+        terminate: test_plugin.terminate
 node_types:
-    test_type:
-        properties:
-            key: {}
-            """
+  test_type:
+    properties:
+      key: {}
+"""
         result = self.parse(yaml)
         self._assert_blueprint(result)
 
@@ -1868,93 +1868,93 @@ inputs:
     def test_property_schema_type_property(self):
         yaml = """
 node_templates:
-    test_node:
-        type: test_type
-        properties:
-            string1: val
-            string2: true
-            string3: 5
-            string4: 5.7
-            boolean1: true
-            boolean2: false
-            boolean3: False
-            boolean4: FALSE
-            boolean5: Yes
-            boolean6: On
-            boolean7: No
-            boolean8: Off
-            integer1: 5
-            integer2: -5
-            integer3: 1000000000000
-            integer4: 0
-            float1: 5.7
-            float2: 5.735935
-            float3: 5.0
-            float4: 5
-            float5: -5.7
-            dict1:
-                test: 1
-            dict2: {}
-            list1: [1, 2]
-            list2: []
-            regex: ^.$
+  test_node:
+    type: test_type
+    properties:
+      string1: val
+      string2: true
+      string3: 5
+      string4: 5.7
+      boolean1: true
+      boolean2: false
+      boolean3: False
+      boolean4: FALSE
+      boolean5: Yes
+      boolean6: On
+      boolean7: No
+      boolean8: Off
+      integer1: 5
+      integer2: -5
+      integer3: 1000000000000
+      integer4: 0
+      float1: 5.7
+      float2: 5.735935
+      float3: 5.0
+      float4: 5
+      float5: -5.7
+      dict1:
+        test: 1
+      dict2: {}
+      list1: [1, 2]
+      list2: []
+      regex: ^.$
 
 node_types:
-    test_type:
-        properties:
-            string1:
-                type: string
-            string2:
-                type: string
-            string3:
-                type: string
-            string4:
-                type: string
-            boolean1:
-                type: boolean
-            boolean2:
-                type: boolean
-            boolean3:
-                type: boolean
-            boolean4:
-                type: boolean
-            boolean5:
-                type: boolean
-            boolean6:
-                type: boolean
-            boolean7:
-                type: boolean
-            boolean8:
-                type: boolean
-            integer1:
-                type: integer
-            integer2:
-                type: integer
-            integer3:
-                type: integer
-            integer4:
-                type: integer
-            float1:
-                type: float
-            float2:
-                type: float
-            float3:
-                type: float
-            float4:
-                type: float
-            float5:
-                type: float
-            dict1:
-                type: dict
-            dict2:
-                type: dict
-            list1:
-                type: list
-            list2:
-                type: list
-            regex:
-                type: regex
-            """
+  test_type:
+    properties:
+      string1:
+        type: string
+      string2:
+        type: string
+      string3:
+        type: string
+      string4:
+        type: string
+      boolean1:
+        type: boolean
+      boolean2:
+        type: boolean
+      boolean3:
+        type: boolean
+      boolean4:
+        type: boolean
+      boolean5:
+        type: boolean
+      boolean6:
+        type: boolean
+      boolean7:
+        type: boolean
+      boolean8:
+        type: boolean
+      integer1:
+        type: integer
+      integer2:
+        type: integer
+      integer3:
+        type: integer
+      integer4:
+        type: integer
+      float1:
+        type: float
+      float2:
+        type: float
+      float3:
+        type: float
+      float4:
+        type: float
+      float5:
+        type: float
+      dict1:
+        type: dict
+      dict2:
+        type: dict
+      list1:
+        type: list
+      list2:
+        type: list
+      regex:
+        type: regex
+"""
         result = self.parse(yaml)
         self.assertEqual(1, len(result['nodes']))
         node = result['nodes'][0]
@@ -1997,7 +1997,7 @@ node_types:
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         yaml = """
 imports:
-    -   {0}""".format(imported_yaml_filename) + \
+  - {0}""".format(imported_yaml_filename) + \
                self.BASIC_VERSION_SECTION_DSL_1_0 + \
                self.MINIMAL_BLUEPRINT
         result = dsl_parse(yaml)
@@ -2008,7 +2008,7 @@ imports:
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         yaml = """
 imports:
-    -   {0}""".format(imported_yaml_filename) + \
+  - {0}""".format(imported_yaml_filename) + \
                self.BASIC_VERSION_SECTION_DSL_1_0 + \
                self.MINIMAL_BLUEPRINT
         result = dsl_parse(yaml)
@@ -2255,11 +2255,10 @@ node_templates:
 dsl_definitions:
   - &def1
     prop1:
-        default: val1
+      default: val1
 node_types:
   type1:
     properties: *def1
-
 """
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         yaml = """
@@ -2267,7 +2266,7 @@ dsl_definitions:
   - &def1
     prop1: val2
 imports:
-    - {0}
+  - {0}
 node_templates:
   node1:
     type: type1
@@ -2293,8 +2292,8 @@ node_templates:
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 description: """ + import_description + """
 node_types:
-  type1:
-     properties:
+    type1:
+        properties:
 """
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         app = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -2302,8 +2301,8 @@ description: """ + app_description + """
 imports:
     - {0}
 node_templates:
-  node1:
-    type: type1
+    node1:
+        type: type1
     """.format(imported_yaml_filename)
 
         plan = self.parse(app)
@@ -2314,13 +2313,13 @@ node_templates:
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 description: """ + import_description + """
 node_types:
-  type1:
-     properties:
+    type1:
+        properties:
 """
         imported_yaml_filename = self.make_yaml_file(imported_yaml)
         app = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - {0}
+  - {0}
 node_templates:
   node1:
     type: type1

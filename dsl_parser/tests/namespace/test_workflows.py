@@ -41,7 +41,7 @@ class TestNamespacedWorkflows(AbstractTestParser):
     def basic_blueprint(self):
         return self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    workflow1: test_plugin.workflow1
+  workflow1: test_plugin.workflow1
 """
 
     def test_basic_namespace_multi_import(self):
@@ -50,8 +50,8 @@ workflows:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
-    -   {2}--{1}
+  - {0}--{1}
+  - {2}--{1}
 """.format('test', import_file_name, 'other_test')
         parsed = self.parse_1_3(main_yaml)
         workflows = parsed[constants.WORKFLOWS]
@@ -75,9 +75,9 @@ imports:
 
         main_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 workflows:
-    workflow1: test_plugin.workflow1
+  workflow1: test_plugin.workflow1
 """.format('test', import_file_name)
         parsed = self.parse_1_3(main_yaml)
         workflows = parsed[constants.WORKFLOWS]
@@ -100,9 +100,9 @@ workflows:
 
         main_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 workflows:
-    workflow2: test_plugin.workflow2
+  workflow2: test_plugin.workflow2
 """.format('test', import_file_name)
         parsed = self.parse_1_3(main_yaml)
         workflows = parsed[constants.WORKFLOWS]
@@ -143,25 +143,25 @@ imports:
     def test_workflow_local_namespaced_operation(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
 plugins:
-    script:
-        executor: central_deployment_agent
-        install: false
+  script:
+    executor: central_deployment_agent
+    install: false
 
 workflows:
-    workflow: stub.py
-    workflow2:
-        mapping: stub.py
-        parameters:
-            key:
-                default: value
-        is_cascading: true
+  workflow: stub.py
+  workflow2:
+    mapping: stub.py
+    parameters:
+      key:
+        default: value
+    is_cascading: true
 """
         self.make_file_with_name(content='content',
                                  filename='stub.py')
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
 imports:
-- {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')
@@ -189,18 +189,18 @@ imports:
     def test_workflow_blueprint_import_namespaced_operation(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
 plugins:
-    script:
-        executor: central_deployment_agent
-        install: false
+  script:
+    executor: central_deployment_agent
+    install: false
 
 workflows:
-    workflow: stub.py
-    workflow2:
-        mapping: stub.py
-        parameters:
-            key:
-                default: value
-        is_cascading: false
+  workflow: stub.py
+  workflow2:
+    mapping: stub.py
+    parameters:
+      key:
+        default: value
+    is_cascading: false
 """
         import_base_path = self._temp_dir + '/test'
         self.make_file_with_name(content='content',
@@ -213,7 +213,7 @@ workflows:
                             import_base_path)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
 imports:
-- test--blueprint:test
+  - test--blueprint:test
 """
         main_base_path = self._temp_dir + '/main'
         main_yaml_path = self.make_file_with_name(content=main_yaml,
@@ -245,23 +245,23 @@ imports:
     def test_workflow_advanced_mapping(self):
         imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 workflows:
-    workflow1:
-        mapping: test_plugin.workflow1
-        parameters:
-            prop1:
-                default: value1
-            mandatory_prop: {}
-            nested_prop:
-                default:
-                    nested_key: nested_value
-                    nested_list:
-                        - val1
-                        - val2
+  workflow1:
+    mapping: test_plugin.workflow1
+    parameters:
+      prop1:
+        default: value1
+      mandatory_prop: {}
+      nested_prop:
+        default:
+          nested_key: nested_value
+          nested_list:
+            - val1
+            - val2
 """
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
@@ -293,23 +293,23 @@ imports:
     def test_workflow_parameters_constraints(self):
         yaml_content = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 plugins:
-    script:
-        executor: central_deployment_agent
-        install: false
+  script:
+    executor: central_deployment_agent
+    install: false
 
 workflows:
-    sleep:
-        mapping: stub.py
-        parameters:
-            key:
-                description: a parameter
-                default: hi
-                type: string
-                constraints:
-                  - max_length: 2
-                  - min_length: 1
-                  - valid_values: [ 'hi', 'ho' ]
-                  - pattern: \\w+
+  sleep:
+    mapping: stub.py
+    parameters:
+      key:
+        description: a parameter
+        default: hi
+        type: string
+        constraints:
+          - max_length: 2
+          - min_length: 1
+          - valid_values: [ 'hi', 'ho' ]
+          - pattern: \\w+
 """  # noqa
         yaml_path = self.make_file_with_name(content=yaml_content,
                                              filename='stub.py')

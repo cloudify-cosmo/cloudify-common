@@ -8,16 +8,16 @@ node_templates:
   main:
     type: cloudify.nodes.Root
     relationships:
-    - type: connected_to
-      target: node1
-    - type: connected_to
-      target: node2
-    - type: contained_in
-      target: main_compute
-    - type: connected_to
-      target: node4
-    - type: connected_to
-      target: node5
+      - type: connected_to
+        target: node1
+      - type: connected_to
+        target: node2
+      - type: contained_in
+        target: main_compute
+      - type: connected_to
+        target: node4
+      - type: connected_to
+        target: node5
 
   node1:
     type: cloudify.nodes.Root
@@ -40,17 +40,17 @@ node_templates:
   depends:
     type: cloudify.nodes.Root
     relationships:
-    - type: connected_to
-      target: main_compute
-    - type: connected_to
-      target: main
+      - type: connected_to
+        target: main_compute
+      - type: connected_to
+        target: main
 
 dsl_definitions:
   - &relationship_interfaces
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         establish: p.cloudify.tests.test_builtin_workflows.source_operation
-        unlink:    p.cloudify.tests.test_builtin_workflows.source_operation
+        unlink: p.cloudify.tests.test_builtin_workflows.source_operation
 
 relationships:
   connected_to:

@@ -137,65 +137,65 @@ tosca_definitions_version: cloudify_dsl_1_5
 
     BASIC_NODE_TEMPLATES_SECTION = """
 node_templates:
-    test_node:
-        type: test_type
-        properties:
-            key: "val"
-        """
+  test_node:
+    type: test_type
+    properties:
+      key: "val"
+    """
 
     BASIC_PLUGIN = """
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
 """
 
     PLUGIN_WITH_INSTALL_ARGS = """
 plugins:
-    test_plugin:
-        executor: central_deployment_agent
-        source: dummy
-        install_arguments: -r requirements.txt
+  test_plugin:
+    executor: central_deployment_agent
+    source: dummy
+    install_arguments: -r requirements.txt
 """
 
     BASIC_TYPE = """
 node_types:
-    test_type:
-        interfaces:
-            test_interface1:
-                install:
-                    implementation: test_plugin.install
-                    inputs: {}
-                terminate:
-                    implementation: test_plugin.terminate
-                    inputs: {}
-        properties:
-            install_agent:
-                default: 'false'
-            key: {}
-            """
+  test_type:
+    interfaces:
+      test_interface1:
+        install:
+          implementation: test_plugin.install
+          inputs: {}
+        terminate:
+          implementation: test_plugin.terminate
+          inputs: {}
+    properties:
+      install_agent:
+        default: 'false'
+      key: {}
+"""
 
     BASIC_INPUTS = """
 inputs:
-    test_input:
-        type: string
-        default: test_input_default_value
+  test_input:
+    type: string
+    default: test_input_default_value
 """
 
     BASIC_OUTPUTS = """
 outputs:
-    test_output:
-        value: test_output_value
+  test_output:
+    value: test_output_value
 """
 
     # note that some tests extend the BASIC_NODE_TEMPLATES 'inline',
     # which is why it's appended in the end
     MINIMAL_BLUEPRINT = """
 node_types:
-    test_type:
-        properties:
-            key:
-                default: 'default'
+  test_type:
+    properties:
+      key:
+        default: 'default'
     """ + BASIC_NODE_TEMPLATES_SECTION
 
     BLUEPRINT_WITH_INTERFACES_AND_PLUGINS = BASIC_NODE_TEMPLATES_SECTION + \
@@ -238,7 +238,7 @@ imports:"""
         for content in contents:
             filename = self.make_yaml_file(content)
             yaml += """
-    -   {0}""".format(filename if not as_uri else self._path2url(filename))
+  - {0}""".format(filename if not as_uri else self._path2url(filename))
         return yaml
 
     def _local_resolver_rules(self):

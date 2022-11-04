@@ -2,9 +2,7 @@
 # this is a minimal version of Cloudify types.yaml, to be used only in
 # cloudify-common unittests.
 ###
-
-
-
+---
 plugins:
   default_workflows:
     executor: central_deployment_agent
@@ -53,7 +51,6 @@ node_types:
         uninstall_plugins: {}
         create_amqp: {}
         validate_amqp: {}
-
 
       cloudify.interfaces.host:  # DEPRECATED
         get_state: {}
@@ -279,10 +276,10 @@ workflows:
       install_methods:
         default: null
       validate:
-        default: True
+        default: true
         type: boolean
       install:
-        default: True
+        default: true
         type: boolean
       install_script:
         default: ''

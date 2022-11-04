@@ -24,7 +24,7 @@ class TestCloudifyBasicTypesMark(AbstractTestParser):
     def test_marking(self):
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - http://local-test-resolver/types.yaml
+  - http://local-test-resolver/types.yaml
 
 node_types:
   test_type:

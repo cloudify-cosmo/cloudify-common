@@ -79,9 +79,9 @@ node_templates:
         type: type
 outputs:
     output_1:
-      value: { get_environment_capability: cap_a }
+        value: { get_environment_capability: cap_a }
     output_2:
-      value: { get_environment_capability: cap_b }
+        value: { get_environment_capability: cap_b }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         outputs = parsed.outputs
@@ -108,10 +108,10 @@ node_templates:
         type: type
 outputs:
     output_1:
-      value: { get_input: input_1 }
+        value: { get_input: input_1 }
 
     output_2:
-      value: { get_input: input_2 }
+        value: { get_input: input_2 }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         outputs = parsed.outputs

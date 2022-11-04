@@ -615,8 +615,8 @@ outputs:
 imports:
   - http://local-test-resolver/types.yaml
 inputs:
-    port:
-        default: 90
+  port:
+    default: 90
 node_templates:
   node:
     type: cloudify.nodes.WebServer
@@ -629,7 +629,7 @@ node_templates:
 """
         second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns--blueprint:first_layer
+  - ns--blueprint:first_layer
 """
         resolver = Resolver({
             'blueprint:first_layer': basic_yaml,
@@ -637,7 +637,7 @@ imports:
         }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns2--blueprint:second_layer
+  - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
         for node in parsed[constants.NODES]:
@@ -796,8 +796,8 @@ outputs:
 imports:
   - http://local-test-resolver/types.yaml
 inputs:
-    port:
-        default: 90
+  port:
+    default: 90
 node_templates:
   node:
     type: cloudify.nodes.WebServer
@@ -810,7 +810,7 @@ node_templates:
 """
         second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns--blueprint:first_layer
+  - ns--blueprint:first_layer
 """
         resolver = Resolver({
             'blueprint:first_layer': basic_yaml,
@@ -818,7 +818,7 @@ imports:
         }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns2--blueprint:second_layer
+  - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
         ip = parsed[constants.NODES][0]
@@ -869,11 +869,11 @@ imports:
 class TestConcat(AbstractTestParser):
     def test_concat_with_namespace(self):
         imported_yaml = """
-    outputs:
-        port:
-            description: the port
-            value: { concat: [one, two, three] }
-    """
+outputs:
+    port:
+        description: the port
+        value: { concat: [one, two, three] }
+"""
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
@@ -892,8 +892,8 @@ imports:
 imports:
   - http://local-test-resolver/types.yaml
 inputs:
-    port:
-        default: 90
+  port:
+    default: 90
 node_templates:
   ip:
     type: cloudify.nodes.WebServer
@@ -902,7 +902,7 @@ node_templates:
 """
         second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns--blueprint:first_layer
+  - ns--blueprint:first_layer
 """
         resolver = Resolver({
             'blueprint:first_layer': basic_yaml,
@@ -910,7 +910,7 @@ imports:
         }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns2--blueprint:second_layer
+  - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
         for node in parsed[constants.NODES]:
@@ -929,8 +929,8 @@ imports:
 imports:
   - http://local-test-resolver/types.yaml
 inputs:
-    port:
-        default: 90
+  port:
+    default: 90
 node_types:
   test:
     properties:
@@ -943,7 +943,7 @@ node_templates:
 """
         second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns--blueprint:first_layer
+  - ns--blueprint:first_layer
 """
         resolver = Resolver({
             'blueprint:first_layer': basic_yaml,
@@ -951,7 +951,7 @@ imports:
         }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns2--blueprint:second_layer
+  - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
         inputs = parsed[constants.INPUTS]
@@ -966,15 +966,15 @@ imports:
 imports:
   - http://local-test-resolver/types.yaml
 inputs:
-    port:
-        default: 90
+  port:
+    default: 90
 outputs:
   port:
     value: { concat: [one, { get_input: port }, three] }
 """
         second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns--blueprint:first_layer
+  - ns--blueprint:first_layer
 """
         resolver = Resolver({
             'blueprint:first_layer': basic_yaml,
@@ -982,7 +982,7 @@ imports:
         }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns2--blueprint:second_layer
+  - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
         outputs = parsed[constants.OUTPUTS]
@@ -1088,8 +1088,8 @@ imports:
 imports:
   - http://local-test-resolver/types.yaml
 inputs:
-    port:
-        default: 90
+  port:
+    default: 90
 node_templates:
   ip:
     type: cloudify.nodes.WebServer
@@ -1098,7 +1098,7 @@ node_templates:
 """
         second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns--blueprint:first_layer
+  - ns--blueprint:first_layer
 """
         resolver = Resolver({
             'blueprint:first_layer': basic_yaml,
@@ -1106,7 +1106,7 @@ imports:
         }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns2--blueprint:second_layer
+  - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
         inputs = parsed[constants.INPUTS]
@@ -1117,8 +1117,8 @@ imports:
 imports:
   - http://local-test-resolver/types.yaml
 inputs:
-    port:
-        default: 90
+  port:
+    default: 90
 node_types:
   test:
     properties:
@@ -1137,7 +1137,7 @@ node_templates:
 """
         second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns--blueprint:first_layer
+  - ns--blueprint:first_layer
 """
         resolver = Resolver({
             'blueprint:first_layer': basic_yaml,
@@ -1145,7 +1145,7 @@ imports:
         }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns2--blueprint:second_layer
+  - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
         inputs = parsed[constants.INPUTS]
@@ -1162,18 +1162,18 @@ imports:
 imports:
   - http://local-test-resolver/types.yaml
 inputs:
-    port:
-        default: 90
+  port:
+    default: 90
 dsl_definitions:
   config: &config
     region: { get_input: port }
 node_types:
-    test:
-        properties:
-            port:
-                default: 0
-            data:
-                default: []
+  test:
+    properties:
+      port:
+        default: 0
+      data:
+        default: []
 node_templates:
   vm:
     type: test
@@ -1188,7 +1188,7 @@ node_templates:
 """
         second_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns--blueprint:first_layer
+  - ns--blueprint:first_layer
 """
         resolver = Resolver({
             'blueprint:first_layer': basic_yaml,
@@ -1196,7 +1196,7 @@ imports:
         }, rules=self._local_resolver_rules())
         third_layer = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - ns2--blueprint:second_layer
+  - ns2--blueprint:second_layer
 """
         parsed = self.parse(third_layer, resolver=resolver)
         inputs = parsed[constants.INPUTS]

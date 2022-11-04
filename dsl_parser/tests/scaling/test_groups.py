@@ -3178,4 +3178,4 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
         }
 
         # convert to yaml a parse a multi instance plan
-        return self.parse_multi(yaml.safe_dump(blueprint))
+        return self.parse_multi(yaml.safe_dump(blueprint, canonical=True))

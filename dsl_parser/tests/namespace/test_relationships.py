@@ -23,30 +23,30 @@ class TestNamespacedRelationsships(AbstractTestParser):
     def test_basic_namespaced_relationship(self):
         imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 relationships:
-    empty_rel: {}
-    test_relationship:
-        derived_from: empty_rel
-        source_interfaces:
-            test_interface3:
-                test_interface3_op1: {}
-        target_interfaces:
-            test_interface4:
-                test_interface4_op1:
-                    implementation: test_plugin.task_name
-                    inputs:
-                        key:
-                            type: string
-                            default: value
-                    executor: central_deployment_agent
-                    max_retries: 5
-                    retry_interval: 6
-                test_interface4_op2: test_plugin.task_name
-        """
+  empty_rel: {}
+  test_relationship:
+    derived_from: empty_rel
+    source_interfaces:
+      test_interface3:
+        test_interface3_op1: {}
+    target_interfaces:
+      test_interface4:
+        test_interface4_op1:
+          implementation: test_plugin.task_name
+          inputs:
+            key:
+              type: string
+              default: value
+          executor: central_deployment_agent
+          max_retries: 5
+          retry_interval: 6
+        test_interface4_op2: test_plugin.task_name
+    """
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
@@ -86,30 +86,30 @@ imports:
     def test_basic_namespace_multi_import(self):
         imported_yaml = self.BLUEPRINT_WITH_INTERFACES_AND_PLUGINS + """
 relationships:
-    empty_rel: {}
-    test_relationship:
-        derived_from: empty_rel
-        source_interfaces:
-            test_interface3:
-                test_interface3_op1: {}
-        target_interfaces:
-            test_interface4:
-                test_interface4_op1:
-                    implementation: test_plugin.task_name
-                    inputs:
-                        key:
-                            type: string
-                            default: value
-                    executor: central_deployment_agent
-                    max_retries: 5
-                    retry_interval: 6
-        """
+  empty_rel: {}
+  test_relationship:
+    derived_from: empty_rel
+    source_interfaces:
+      test_interface3:
+        test_interface3_op1: {}
+    target_interfaces:
+      test_interface4:
+        test_interface4_op1:
+          implementation: test_plugin.task_name
+          inputs:
+            key:
+              type: string
+              default: value
+          executor: central_deployment_agent
+          max_retries: 5
+          retry_interval: 6
+"""
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
-    -   {2}--{1}
+  - {0}--{1}
+  - {2}--{1}
 """.format('test', import_file_name, 'other_test')
         parsed_yaml = self.parse_1_3(main_yaml)
         test_relationship = (parsed_yaml[constants.RELATIONSHIPS]
@@ -167,20 +167,20 @@ imports:
     def test_relationship_collision(self):
         imported_yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship:
-        properties:
-            prop:
-                default: 1
+  test_relationship:
+    properties:
+      prop:
+        default: 1
 """
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
   - {0}--{1}
 relationships:
-    test_relationship:
-        properties:
-            prop:
-                default: 2
+  test_relationship:
+    properties:
+      prop:
+        default: 2
 """.format('test', import_file_name)
         parsed = self.parse(main_yaml)
         relationships = parsed[constants.RELATIONSHIPS]
@@ -197,20 +197,20 @@ relationships:
     def test_relationships_merging_with_no_collision(self):
         imported_yaml = self.MINIMAL_BLUEPRINT + """
 relationships:
-    test_relationship1:
-        properties:
-            prop:
-                default: 1
+  test_relationship1:
+    properties:
+      prop:
+        default: 1
 """
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
   - {0}--{1}
 relationships:
-    test_relationship2:
-        properties:
-            prop:
-                default: 2
+  test_relationship2:
+    properties:
+      prop:
+        default: 2
 """.format('test', import_file_name)
         parsed = self.parse(main_yaml)
         relationships = parsed[constants.RELATIONSHIPS]
@@ -227,26 +227,26 @@ relationships:
     def test_namespaced_script_plugin_use(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
 plugins:
-    script:
-        executor: central_deployment_agent
-        install: false
+  script:
+    executor: central_deployment_agent
+    install: false
 relationships:
-    relationship:
-        source_interfaces:
-            test:
-                op:
-                    implementation: stub.py
-                    inputs: {}
-                op2:
-                    implementation: stub.py
-                    inputs:
-                        key:
-                            default: value
-        target_interfaces:
-            test:
-                op:
-                    implementation: stub.py
-                    inputs: {}
+  relationship:
+    source_interfaces:
+      test:
+        op:
+          implementation: stub.py
+          inputs: {}
+        op2:
+          implementation: stub.py
+          inputs:
+            key:
+              default: value
+    target_interfaces:
+      test:
+        op:
+          implementation: stub.py
+          inputs: {}
 """
         self.make_file_with_name(content='content',
                                  filename='stub.py')
@@ -285,16 +285,16 @@ imports:
         assert_operation(target_operation['op'])
 
     def test_partial_path_to_script(self):
-        imported_yaml = self.MINIMAL_BLUEPRINT + """
+        imported_yaml = """
 plugins:
-    script:
-        executor: central_deployment_agent
-        install: false
+  script:
+    executor: central_deployment_agent
+    install: false
 node_types:
-    test_type:
-        properties:
-            key:
-                default: 'default'
+  test_type:
+    properties:
+      key:
+        default: 'default'
 node_templates:
   vm:
     type: cloudify.nodes.Compute
@@ -314,8 +314,8 @@ node_templates:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - http://local-test-resolver/types.yaml
-    -   {0}--{1}
+  - http://local-test-resolver/types.yaml
+  - {0}--{1}
 """.format('test', import_file_name)
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')

@@ -31,9 +31,9 @@ policies:
     targets: [group]
     type: cloudify.policies.scaling
     properties:
-            default_instances: 2
-            min_instances: 1
-            max_instances: 10
+      default_instances: 2
+      min_instances: 1
+      max_instances: 10
 """
 
     def _assert_policy(self,
@@ -61,7 +61,7 @@ policies:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         policy = parsed_yaml[constants.POLICIES]['test--policy']
@@ -80,13 +80,13 @@ imports:
         top_file_name = self.make_yaml_file(self.basic_blueprint)
         middle_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('middle_test', top_file_name)
         middle_file_name = self.make_yaml_file(middle_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', middle_file_name)
         parsed_yaml = self.parse(main_yaml)
         policy = parsed_yaml[constants.POLICIES]['test--middle_test--policy']

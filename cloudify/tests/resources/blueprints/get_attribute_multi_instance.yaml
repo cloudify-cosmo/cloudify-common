@@ -9,10 +9,10 @@ node_templates:
         op:
           implementation: p.cloudify.tests.test_local_get_attribute.op_multi
           inputs:
-            node_ref: { get_attribute: [node2, node_ref_property] }
+            node_ref: {get_attribute: [node2, node_ref_property]}
     relationships:
-    - target: node2
-      type: cloudify.relationships.connected_to
+      - target: node2
+        type: cloudify.relationships.connected_to
   node2:
     type: type
     interfaces:
@@ -20,10 +20,10 @@ node_templates:
         setup: p.cloudify.tests.test_local_get_attribute.populate_multi
 
 relationships:
-    cloudify.relationships.connected_to:
-      properties:
-        connection_type:
-          default: all_to_all
+  cloudify.relationships.connected_to:
+    properties:
+      connection_type:
+        default: all_to_all
 
 node_types:
   type: {}
