@@ -17,6 +17,7 @@ from dsl_parser.elements import blueprint
 from dsl_parser import functions, utils, constraints
 from dsl_parser.import_resolver.default_import_resolver import \
     DefaultImportResolver
+from dsl_parser.linter import validate
 
 
 def parse_from_path(dsl_file_path,
@@ -87,6 +88,7 @@ def _parse(dsl_string,
     :param validate_input_defaults: whether to validate given input constraints
     on input default values.
     """
+    validate(dsl_string, dsl_location)
     resource_base, merged_blueprint_holder =\
         _resolve_blueprint_imports(dsl_location, dsl_string, resolver,
                                    resources_base_path, validate_version)
