@@ -230,6 +230,55 @@ class TestInstallWorkflowFiltering(LifecycleBaseTest):
             else:
                 assert inst.state != 'started'
 
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_uninstall(self, cfy_local):
+        # similar to install, uninstall also has node filtering.
+        # All the kinds of filtering are well tested in the install side of
+        # things, so let's just test all uninstall filters in one test case.
+        instances = cfy_local.storage.get_node_instances(node_id='n3')
+        assert len(instances) == 2
+        selected_instance_id = instances[0].id
+
+        # first, let's install all the nodes, and then uninstall more and more
+        # of them as we go, using various filters
+        cfy_local.execute('install')
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 4}
+
+        # uninstall by node-instance id...
+        cfy_local.execute('uninstall', {
+            'node_instance_ids': [selected_instance_id]
+        })
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 3, 'deleted': 1}
+
+        # uninstall by node id...
+        cfy_local.execute('uninstall', {
+            'node_ids': ['n3']
+        })
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 2, 'deleted': 2}
+
+        # uninstall by type name... this would uninstall n2
+        cfy_local.execute('uninstall', {
+            'type_names': ['type2']
+        })
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 1, 'deleted': 3}
+
+        # and finally, no filter - this uninstalls n1
+        cfy_local.execute('uninstall')
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'deleted': 4}
+
     steps_blueprint = """
         tosca_definitions_version: cloudify_dsl_1_3
         imports: [minimal_types.yaml]

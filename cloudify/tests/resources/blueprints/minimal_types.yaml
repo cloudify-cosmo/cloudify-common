@@ -107,6 +107,12 @@ workflows:
       ignore_failure:
         default: false
         type: boolean
+      type_names:
+        default: []
+      node_ids:
+        default: []
+      node_instance_ids:
+        default: []
 
   start:
     mapping: default_workflows.cloudify.plugins.workflows.start
