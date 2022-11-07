@@ -326,6 +326,7 @@ class TestInstallWorkflowFiltering(LifecycleBaseTest):
             else:
                 assert inst.state != 'started'
 
+
 class TestReinstallWorkflow(LifecycleBaseTest):
     blueprint = """
         tosca_definitions_version: cloudify_dsl_1_3
@@ -342,7 +343,7 @@ class TestReinstallWorkflow(LifecycleBaseTest):
                 type: t1
             n2:
                 type: t1
-    """
+    """  # NOQA
 
     def _invocations(self, cfy_local, node_instance_id):
         instance = cfy_local.storage.get_node_instance(node_instance_id)
