@@ -26,11 +26,20 @@ from cloudify.workflows.tasks import HandlerResult, TASK_SUCCEEDED
 
 
 @workflow(resumable=True)
-def install(ctx, **kwargs):
+def install(ctx, node_ids=None, node_instance_ids=None, type_names=None,
+            **kwargs):
     """Default install workflow"""
+    filtered_node_instances = set(_filter_node_instances(
+        ctx=ctx,
+        node_ids=node_ids,
+        node_instance_ids=node_instance_ids,
+        type_names=type_names))
+
     lifecycle.install_node_instances(
         graph=ctx.graph_mode(),
-        node_instances=set(ctx.node_instances))
+        node_instances=filtered_node_instances,
+        related_nodes=set(ctx.node_instances) - filtered_node_instances,
+    )
 
 
 @workflow(resumable=True)
