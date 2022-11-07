@@ -117,7 +117,7 @@ def _copy_resources(test_source_path, resources, default_dest_path):
 
 class WorkflowTestDecorator(object):
     def __init__(self,
-                 blueprint_path,
+                 path_or_blueprint,
                  copy_plugin_yaml=False,
                  resources_to_copy=None,
                  temp_dir_prefix=None,
@@ -129,7 +129,10 @@ class WorkflowTestDecorator(object):
         Sets the required parameters for future env init. passes the
         environment to the cfy_local argument.
 
-        :param blueprint_path: The relative path to the blueprint
+        :param path_or_blueprint: The relative path to the blueprint, or the
+                blueprint text. If this value contains a declaration of
+                tosca_definitions_version, then it is considered the blueprint
+                contents, otherwise it is considered the path.
         :param copy_plugin_yaml: Tries to find and copy plugin.yaml (optional)
         :param resources_to_copy: Paths to resources to copy (optional)
         :param temp_dir_prefix: prefix for the resources (optional)
@@ -142,7 +145,12 @@ class WorkflowTestDecorator(object):
         """
 
         # blueprint to run
-        self.blueprint_path = blueprint_path
+        if 'tosca_definitions_version' in path_or_blueprint:
+            self.blueprint_path = None
+            self.blueprint_content = path_or_blueprint
+        else:
+            self.blueprint_path = path_or_blueprint
+            self.blueprint_content = None
         self.temp_blueprint_path = None
 
         # Plugin path and name
@@ -178,6 +186,12 @@ class WorkflowTestDecorator(object):
         self.input_func_args = input_func_args or []
         self.input_func_kwargs = input_func_kwargs or {}
 
+    def _make_temp_dir(self, prefix=None):
+        if prefix:
+            self.temp_dir = tempfile.mkdtemp(prefix=prefix)
+        else:
+            self.temp_dir = tempfile.mkdtemp()
+
     def set_up(self, func_self=None):
         """
         Sets up the enviroment variables needed for this test.
@@ -193,19 +207,21 @@ class WorkflowTestDecorator(object):
         else:
             local_file_path, test_method_name = None, None
 
+        temp_dir_prefix = self.temp_dir_prefix or test_method_name
+
         if self.resources_to_copy:
             # user asked to copy some resources, so we'll have to make
             # a tempdir and copy the blueprint as well.
-
-            if self.temp_dir_prefix:
-                self.temp_dir = tempfile.mkdtemp(prefix=self.temp_dir_prefix)
-            elif test_method_name:
-                self.temp_dir = tempfile.mkdtemp(prefix=test_method_name)
-            else:
-                self.temp_dir = tempfile.mkdtemp()
+            self._make_temp_dir(prefix=temp_dir_prefix)
 
             # Adding blueprint to the resources to copy
-            self.resources_to_copy.append(self.blueprint_path)
+            if self.blueprint_path:
+                self.resources_to_copy.append(self.blueprint_path)
+            else:
+                self.blueprint_path = path.join(
+                    self.temp_dir, 'blueprint.yaml')
+                with open(self.blueprint_path, 'w') as f:
+                    f.write(self.blueprint_content)
 
             # Finding and adding the plugin
             if func_self is not None and self.copy_plugin_yaml:
@@ -222,8 +238,16 @@ class WorkflowTestDecorator(object):
             temp_blueprint_path = path.join(self.temp_dir,
                                             path.basename(self.blueprint_path))
         else:
-            temp_blueprint_path = path.join(path.dirname(local_file_path),
-                                            self.blueprint_path)
+            if self.blueprint_path:
+                temp_blueprint_path = path.join(
+                    path.dirname(local_file_path), self.blueprint_path)
+            else:
+                self._make_temp_dir(prefix=temp_dir_prefix)
+                temp_blueprint_path = path.join(
+                    self.temp_dir, 'blueprint.yaml')
+                with open(temp_blueprint_path, 'w') as f:
+                    f.write(self.blueprint_content)
+
 
         # Updating the test_method_name (if not manually set)
         if self.init_args and not self.init_args.get('name'):
@@ -248,7 +272,7 @@ class WorkflowTestDecorator(object):
         Deletes the allocated temp dir
         :return: None
         """
-        if self.resources_to_copy and path.exists(self.temp_dir):
+        if self.temp_dir is not None and path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
     def __call__(self, test):
