@@ -328,6 +328,93 @@ class TestInstallWorkflowFiltering(LifecycleBaseTest):
                 assert inst.state != 'started'
 
 
+class TestReinstallWorkflow(LifecycleBaseTest):
+    blueprint = """
+        tosca_definitions_version: cloudify_dsl_1_3
+        imports: [minimal_types.yaml]
+        node_types:
+            t1:
+                derived_from: cloudify.nodes.Root
+                interfaces:
+                    cloudify.interfaces.lifecycle:
+                        create: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
+                        delete: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
+        node_templates:
+            n1:
+                type: t1
+            n2:
+                type: t1
+    """  # NOQA
+
+    def _invocations(self, cfy_local, node_instance_id):
+        instance = cfy_local.storage.get_node_instance(node_instance_id)
+        return instance.runtime_properties['invocations']
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_reinstall_all(self, cfy_local):
+        cfy_local.execute('install')
+        cfy_local.execute('reinstall')
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 2
+        for instance in instances:
+            invocations = self._invocations(cfy_local, instance.id)
+            assert [inv['operation'] for inv in invocations] == [
+                # first, the ndoe was installed...
+                'cloudify.interfaces.lifecycle.create',
+                # ...and then reinstalled
+                'cloudify.interfaces.lifecycle.delete',
+                'cloudify.interfaces.lifecycle.create',
+            ]
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_reinstall_node_id(self, cfy_local):
+        # both nodes are installed, but only n2 is reinstalled
+        cfy_local.execute('install')
+        cfy_local.execute('reinstall', {
+            'node_ids': ['n2'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 2
+        for instance in instances:
+            invocations = self._invocations(cfy_local, instance.id)
+            expected = ['cloudify.interfaces.lifecycle.create']
+            if instance.node_id == 'n2':
+                # only node2 was reinstalled
+                expected += [
+                    'cloudify.interfaces.lifecycle.delete',
+                    'cloudify.interfaces.lifecycle.create',
+                ]
+            assert [inv['operation'] for inv in invocations] == expected
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_reinstall_without_install(self, cfy_local):
+        # without an install first, instances are still reinstalled,
+        # ie. that STILL calls delete first.
+        # This might very well change in the future, but for right now,
+        # let's assume that the user called reinstall (and not install),
+        # because they knew what they were doing!
+
+        cfy_local.execute('reinstall')
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 2
+        for instance in instances:
+            invocations = self._invocations(cfy_local, instance.id)
+            assert [inv['operation'] for inv in invocations] == [
+                # instance was reinstalled only, not installed first
+                'cloudify.interfaces.lifecycle.delete',
+                'cloudify.interfaces.lifecycle.create',
+            ]
+
+
 class TestExecuteOperationWorkflow(LifecycleBaseTest):
     execute_blueprint_path = path.join('resources', 'blueprints',
                                        'execute_operation-blueprint.yaml')
