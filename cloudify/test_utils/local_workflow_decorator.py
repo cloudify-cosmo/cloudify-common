@@ -248,7 +248,6 @@ class WorkflowTestDecorator(object):
                 with open(temp_blueprint_path, 'w') as f:
                     f.write(self.blueprint_content)
 
-
         # Updating the test_method_name (if not manually set)
         if self.init_args and not self.init_args.get('name'):
             self.init_args['name'] = test_method_name

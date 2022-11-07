@@ -140,6 +140,7 @@ class TestInstallWorkflowFiltering(LifecycleBaseTest):
                         properties:
                             default_instances: 2
     """
+
     @workflow_test(
         blueprint,
         resources_to_copy=['resources/blueprints/minimal_types.yaml'],
@@ -205,6 +206,7 @@ class TestInstallWorkflowFiltering(LifecycleBaseTest):
                 assert inst.state == 'started'
             else:
                 assert inst.state != 'started'
+
     @workflow_test(
         blueprint,
         resources_to_copy=['resources/blueprints/minimal_types.yaml'],
