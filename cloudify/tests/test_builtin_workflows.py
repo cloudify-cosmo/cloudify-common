@@ -16,6 +16,7 @@
 
 import time
 import unittest
+from collections import Counter
 from os import path
 
 import mock
@@ -113,6 +114,166 @@ class TestWorkflowLifecycleOperations(LifecycleBaseTest):
             cfy_local,
             ['cloudify.interfaces.lifecycle.stop',
              'cloudify.interfaces.lifecycle.start'])
+
+
+class TestInstallWorkflowFiltering(LifecycleBaseTest):
+    blueprint = """
+        tosca_definitions_version: cloudify_dsl_1_3
+        imports: [minimal_types.yaml]
+        node_types:
+            type1:
+                derived_from: cloudify.nodes.Root
+            type2:
+                derived_from: cloudify.nodes.Root
+        node_templates:
+            n1:
+                type: type1
+            n2:
+                type: type2
+                relationships:
+                    - target: n1
+                      type: cloudify.relationships.depends_on
+            n3:
+                type: type2
+                capabilities:
+                    scalable:
+                        properties:
+                            default_instances: 2
+    """
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_no_filter(self, cfy_local):
+        # without a filter, all node instances are started
+        cfy_local.execute('install')
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 4}
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_type_name(self, cfy_local):
+        # filter by type_names - only one of type1 is started
+        cfy_local.execute('install', {
+            'type_names': ['type1'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        for inst in instances:
+            if inst.node_id == 'n1':
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_node_name(self, cfy_local):
+        # filter by node id - only n3 are started
+        cfy_local.execute('install', {
+            'node_ids': ['n3'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        for inst in instances:
+            if inst.node_id == 'n3':
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_dependent(self, cfy_local):
+        # filter by node id - only n2 are started; n2 however depends on
+        # n1, but n1 is not started.
+        # It might error out in real cases, because the n1 dependency
+        # is not started, but the user asked for that, so we oblige.
+        cfy_local.execute('install', {
+            'node_ids': ['n2'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        for inst in instances:
+            if inst.node_id == 'n2':
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_instance_id(self, cfy_local):
+        # filter by node instance id - n3 has two instances, but let's
+        # only install one of them!
+        instances = cfy_local.storage.get_node_instances(node_id='n3')
+        assert len(instances) == 2
+
+        selected_instance_id = instances[0].id
+        cfy_local.execute('install', {
+            'node_instance_ids': selected_instance_id,
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        for inst in instances:
+            if inst.id == selected_instance_id:
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
+
+    steps_blueprint = """
+        tosca_definitions_version: cloudify_dsl_1_3
+        imports: [minimal_types.yaml]
+        node_types:
+            type1:
+                derived_from: cloudify.nodes.Root
+        node_templates:
+            step1:
+                type: cloudify.nodes.Root
+            step2:
+                type: cloudify.nodes.Root
+                relationships:
+                    - target: step1
+                      type: cloudify.relationships.depends_on
+            step3:
+                type: cloudify.nodes.Root
+                relationships:
+                    - target: step2
+                      type: cloudify.relationships.depends_on
+    """
+
+    @workflow_test(
+        steps_blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_steps(self, cfy_local):
+        # in this case, we want to install step1 and step3, and step3 depends
+        # on step1 indirectly, through step2. However, step2 is not installed,
+        # but step3 still needs to be installed AFTER step1.
+
+        # I don't know of a good way of testing this automatically :( At least
+        # not in a way that wouldn't result in randomness and flakiness.
+
+        # I tested it manually by adding a sleep to step1, and seeing that
+        # step3 runs after step1 is done. When working on ordering,
+        # edit this test to include some timing checks.
+
+        cfy_local.execute('install', {
+            'node_ids': ['step1', 'step3'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 3
+        for inst in instances:
+            if inst.node_id in ('step1', 'step3'):
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
 
 
 class TestExecuteOperationWorkflow(LifecycleBaseTest):
