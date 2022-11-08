@@ -146,7 +146,7 @@ def _make_virtualenv(python_executable, path):
     installed directly will have precedence.
     """
     runner.run([python_executable, '-m', 'venv', '--without-pip', path])
-    _link_virtualenv(path)
+    _link_virtualenv(python_executable, path)
 
 
 def is_already_installed(dst_dir, plugin_id):
@@ -495,7 +495,7 @@ def path_to_file_url(path):
     return url
 
 
-def _link_virtualenv(venv):
+def _link_virtualenv(executable, venv):
     """Add current venv's libs to the target venv.
 
     Add a .pth file with a link to the current venv, to the target
@@ -503,8 +503,8 @@ def _link_virtualenv(venv):
     Also copy .pth files' contents from the current venv, so that the
     target venv also uses editable packages from the source venv.
     """
-    own_site_packages = get_pth_dir()
-    target = get_pth_dir(venv)
+    own_site_packages = get_pth_dir(executable)
+    target = get_pth_dir(get_python_path(venv))
     with open(os.path.join(target, 'agent.pth'), 'w') as agent_link:
         agent_link.write('# link to the agent virtualenv, created by '
                          'the plugin installer\n')
@@ -518,7 +518,7 @@ def _link_virtualenv(venv):
                 agent_link.write('\n')
 
 
-def get_pth_dir(venv=None):
+def get_pth_dir(executable):
     """Get the directory suitable for .pth files in this venv.
 
     This will return the site-packages directory, which is one of the
@@ -527,7 +527,7 @@ def get_pth_dir(venv=None):
     but sysconfig is not available in 2.6.
     """
     output = runner.run([
-        get_python_path(venv) if venv else sys.executable,
+        executable,
         '-c',
         'import json, sys; print(json.dumps([sys.prefix, sys.version_info]))'
     ]).std_out
