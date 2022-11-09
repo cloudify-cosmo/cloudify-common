@@ -16,6 +16,7 @@
 
 import time
 import unittest
+from collections import Counter
 from os import path
 
 import mock
@@ -113,6 +114,304 @@ class TestWorkflowLifecycleOperations(LifecycleBaseTest):
             cfy_local,
             ['cloudify.interfaces.lifecycle.stop',
              'cloudify.interfaces.lifecycle.start'])
+
+
+class TestInstallWorkflowFiltering(LifecycleBaseTest):
+    blueprint = """
+        tosca_definitions_version: cloudify_dsl_1_3
+        imports: [minimal_types.yaml]
+        node_types:
+            type1:
+                derived_from: cloudify.nodes.Root
+            type2:
+                derived_from: cloudify.nodes.Root
+        node_templates:
+            n1:
+                type: type1
+            n2:
+                type: type2
+                relationships:
+                    - target: n1
+                      type: cloudify.relationships.depends_on
+            n3:
+                type: type2
+                capabilities:
+                    scalable:
+                        properties:
+                            default_instances: 2
+    """
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_no_filter(self, cfy_local):
+        # without a filter, all node instances are started
+        cfy_local.execute('install')
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 4}
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_type_name(self, cfy_local):
+        # filter by type_names - only one of type1 is started
+        cfy_local.execute('install', {
+            'type_names': ['type1'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        for inst in instances:
+            if inst.node_id == 'n1':
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_node_name(self, cfy_local):
+        # filter by node id - only n3 are started
+        cfy_local.execute('install', {
+            'node_ids': ['n3'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        for inst in instances:
+            if inst.node_id == 'n3':
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_dependent(self, cfy_local):
+        # filter by node id - only n2 are started; n2 however depends on
+        # n1, but n1 is not started.
+        # It might error out in real cases, because the n1 dependency
+        # is not started, but the user asked for that, so we oblige.
+        cfy_local.execute('install', {
+            'node_ids': ['n2'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        for inst in instances:
+            if inst.node_id == 'n2':
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_instance_id(self, cfy_local):
+        # filter by node instance id - n3 has two instances, but let's
+        # only install one of them!
+        instances = cfy_local.storage.get_node_instances(node_id='n3')
+        assert len(instances) == 2
+
+        selected_instance_id = instances[0].id
+        cfy_local.execute('install', {
+            'node_instance_ids': selected_instance_id,
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 4
+        for inst in instances:
+            if inst.id == selected_instance_id:
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_uninstall(self, cfy_local):
+        # similar to install, uninstall also has node filtering.
+        # All the kinds of filtering are well tested in the install side of
+        # things, so let's just test all uninstall filters in one test case.
+        instances = cfy_local.storage.get_node_instances(node_id='n3')
+        assert len(instances) == 2
+        selected_instance_id = instances[0].id
+
+        # first, let's install all the nodes, and then uninstall more and more
+        # of them as we go, using various filters
+        cfy_local.execute('install')
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 4}
+
+        # uninstall by node-instance id...
+        cfy_local.execute('uninstall', {
+            'node_instance_ids': [selected_instance_id]
+        })
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 3, 'deleted': 1}
+
+        # uninstall by node id...
+        cfy_local.execute('uninstall', {
+            'node_ids': ['n3']
+        })
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 2, 'deleted': 2}
+
+        # uninstall by type name... this would uninstall n2
+        cfy_local.execute('uninstall', {
+            'type_names': ['type2']
+        })
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'started': 1, 'deleted': 3}
+
+        # and finally, no filter - this uninstalls n1
+        cfy_local.execute('uninstall')
+        instances = cfy_local.storage.get_node_instances()
+        states = Counter(inst.state for inst in instances)
+        assert states == {'deleted': 4}
+
+    steps_blueprint = """
+        tosca_definitions_version: cloudify_dsl_1_3
+        imports: [minimal_types.yaml]
+        node_types:
+            type1:
+                derived_from: cloudify.nodes.Root
+        node_templates:
+            step1:
+                type: cloudify.nodes.Root
+            step2:
+                type: cloudify.nodes.Root
+                relationships:
+                    - target: step1
+                      type: cloudify.relationships.depends_on
+            step3:
+                type: cloudify.nodes.Root
+                relationships:
+                    - target: step2
+                      type: cloudify.relationships.depends_on
+    """
+
+    @workflow_test(
+        steps_blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_filter_steps(self, cfy_local):
+        # in this case, we want to install step1 and step3, and step3 depends
+        # on step1 indirectly, through step2. However, step2 is not installed,
+        # but step3 still needs to be installed AFTER step1.
+
+        # I don't know of a good way of testing this automatically :( At least
+        # not in a way that wouldn't result in randomness and flakiness.
+
+        # I tested it manually by adding a sleep to step1, and seeing that
+        # step3 runs after step1 is done. When working on ordering,
+        # edit this test to include some timing checks.
+
+        cfy_local.execute('install', {
+            'node_ids': ['step1', 'step3'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 3
+        for inst in instances:
+            if inst.node_id in ('step1', 'step3'):
+                assert inst.state == 'started'
+            else:
+                assert inst.state != 'started'
+
+
+class TestReinstallWorkflow(LifecycleBaseTest):
+    blueprint = """
+        tosca_definitions_version: cloudify_dsl_1_3
+        imports: [minimal_types.yaml]
+        node_types:
+            t1:
+                derived_from: cloudify.nodes.Root
+                interfaces:
+                    cloudify.interfaces.lifecycle:
+                        create: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
+                        delete: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
+        node_templates:
+            n1:
+                type: t1
+            n2:
+                type: t1
+    """  # NOQA
+
+    def _invocations(self, cfy_local, node_instance_id):
+        instance = cfy_local.storage.get_node_instance(node_instance_id)
+        return instance.runtime_properties['invocations']
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_reinstall_all(self, cfy_local):
+        cfy_local.execute('install')
+        cfy_local.execute('reinstall')
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 2
+        for instance in instances:
+            invocations = self._invocations(cfy_local, instance.id)
+            assert [inv['operation'] for inv in invocations] == [
+                # first, the ndoe was installed...
+                'cloudify.interfaces.lifecycle.create',
+                # ...and then reinstalled
+                'cloudify.interfaces.lifecycle.delete',
+                'cloudify.interfaces.lifecycle.create',
+            ]
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_reinstall_node_id(self, cfy_local):
+        # both nodes are installed, but only n2 is reinstalled
+        cfy_local.execute('install')
+        cfy_local.execute('reinstall', {
+            'node_ids': ['n2'],
+        })
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 2
+        for instance in instances:
+            invocations = self._invocations(cfy_local, instance.id)
+            expected = ['cloudify.interfaces.lifecycle.create']
+            if instance.node_id == 'n2':
+                # only node2 was reinstalled
+                expected += [
+                    'cloudify.interfaces.lifecycle.delete',
+                    'cloudify.interfaces.lifecycle.create',
+                ]
+            assert [inv['operation'] for inv in invocations] == expected
+
+    @workflow_test(
+        blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_reinstall_without_install(self, cfy_local):
+        # without an install first, instances are still reinstalled,
+        # ie. that STILL calls delete first.
+        # This might very well change in the future, but for right now,
+        # let's assume that the user called reinstall (and not install),
+        # because they knew what they were doing!
+
+        cfy_local.execute('reinstall')
+        instances = cfy_local.storage.get_node_instances()
+        assert len(instances) == 2
+        for instance in instances:
+            invocations = self._invocations(cfy_local, instance.id)
+            assert [inv['operation'] for inv in invocations] == [
+                # instance was reinstalled only, not installed first
+                'cloudify.interfaces.lifecycle.delete',
+                'cloudify.interfaces.lifecycle.create',
+            ]
 
 
 class TestExecuteOperationWorkflow(LifecycleBaseTest):

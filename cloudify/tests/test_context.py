@@ -336,7 +336,7 @@ class NodeContextTests(unittest.TestCase):
         os.path.dirname(os.path.realpath(__file__)),
         "resources/blueprints/test-context-node.yaml")
 
-    @workflow_test(blueprint_path=test_blueprint_path)
+    @workflow_test(test_blueprint_path)
     def test_node_type(self, cfy_local):
         cfy_local.execute('execute_operation', parameters={
             'operation': 'test.interface.create',
