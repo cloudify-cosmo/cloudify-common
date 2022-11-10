@@ -27,7 +27,6 @@ if not hasattr(fractions, 'gcd'):
 from networkx.algorithms import (
     descendants,
     recursive_simple_cycles,
-    topological_sort,
 )
 from networkx.classes import DiGraph
 from networkx.exception import NetworkXUnfeasible
@@ -164,13 +163,14 @@ class Context(object):
     def parsed_value(self):
         return self._root_element.value if self._root_element else None
 
-    def child_elements_iter(self, element):
-        return self._element_tree.successors_iter(element)
+    def child_elements(self, element):
+        return list(self._element_tree.successors(element))
 
     def ancestors_iter(self, element):
         current_element = element
         while True:
-            predecessors = self._element_tree.predecessors(current_element)
+            predecessors = list(self._element_tree.predecessors(
+                current_element))
             if not predecessors:
                 return
             if len(predecessors) > 1:
@@ -473,14 +473,14 @@ class Context(object):
                             for predicate in predicates)
                         if add_dependency:
                             self.element_graph.add_edge(element, dependency)
-        # we reverse the graph because only netorkx 1.9.1 has the reverse
+        # we reverse the graph because only networkx 1.9.1 has the reverse
         # flag in the topological sort function, it is only used by it
         # so this should be good
         self.element_graph.reverse(copy=False)
 
     def elements_graph_topological_sort(self):
         try:
-            return topological_sort(self.element_graph)
+            return utils.old_topological_sort(self.element_graph, reverse=True)
         except NetworkXUnfeasible:
             # Cycle detected
             cycle = recursive_simple_cycles(self.element_graph)[0]

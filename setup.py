@@ -37,10 +37,10 @@ setup(
     ],
     extras_require={
         # for running workflows (in the mgmtworker and the cli), as opposed
-        # to eg. just executing operations (in the agent)
+        # to e.g. just executing operations (in the agent)
         'dispatcher': [
             'PyYAML==6.0',
-            'networkx==1.11',
+            'networkx==2.8.8',
         ],
         'snmp': [
             'pysnmp==4.4.5'
