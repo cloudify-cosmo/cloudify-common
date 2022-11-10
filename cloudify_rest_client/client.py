@@ -22,6 +22,7 @@ from cloudify_rest_client.license import LicenseClient
 from cloudify_rest_client.manager import ManagerClient
 from cloudify_rest_client.plugins import PluginsClient
 from cloudify_rest_client.secrets import SecretsClient
+from cloudify_rest_client.secrets_providers import SecretsProvidersClient
 from cloudify_rest_client.tenants import TenantsClient
 from cloudify_rest_client.evaluate import EvaluateClient
 from cloudify_rest_client.summary import SummariesClient
@@ -476,6 +477,7 @@ class CloudifyClient(object):
         self.users = UsersClient(self._client)
         self.ldap = LdapClient(self._client)
         self.secrets = SecretsClient(self._client)
+        self.secrets_providers = SecretsProvidersClient(self._client)
         self.agents = AgentsClient(self._client)
         self.summary = SummariesClient(self._client)
         self.operations = OperationsClient(self._client)
