@@ -447,7 +447,7 @@ def _validate_input_value(input_name, input_constraints, input_value,
             continue
         if not c.predicate(input_value):
             msg = f'is invalid. {c.error_message}' if c.error_message \
-                else f'violates constraint {c}'
+                else f'violates constraint {c}.'
             raise exceptions.ConstraintException(
                 f"Value {input_value} of input {input_name} {msg}")
     if ((type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT
