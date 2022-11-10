@@ -57,6 +57,8 @@ node_templates:
     def _expected_plugin(name, plugin_def):
         plugin = plugin_def.copy()
         plugin['name'] = name
+        plugin['properties'] = {}
+        plugin['properties_description'] = None
         return plugin
 
     def test_basic_namespaced_plugin_fields(self):

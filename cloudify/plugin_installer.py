@@ -20,6 +20,7 @@ import json
 import errno
 import shutil
 import tempfile
+import platform
 import threading
 
 from os import walk
@@ -49,14 +50,6 @@ try:
     from packaging.version import parse as parse_version
 except ImportError:
     from distutils.version import LooseVersion as parse_version
-
-try:
-    from distro import linux_distribution
-except ImportError:
-    try:
-        from platform import linux_distribution
-    except ImportError:
-        linux_distribution = None
 
 PLUGIN_INSTALL_LOCK = threading.Lock()
 runner = LocalCommandRunner()
@@ -138,23 +131,22 @@ def install(plugin, deployment_id=None, blueprint_id=None):
             source=source,
             args=args)
     else:
-        platform, distro, release = _platform_and_distro()
         name = plugin.get('package_name') or plugin.get('name')
         raise NonRecoverableError(
-            'No source or managed plugin found for {0} '
-            '[current platform={1}, distro={2}, release={3}]'
-            .format(name, platform, distro, release))
+           f'No source or managed plugin found for {name} '
+           f'[current platform={platform.system()}, '
+           f'arch={platform.machine()}]')
 
 
-def _make_virtualenv(path):
+def _make_virtualenv(python_executable, path):
     """Make a venv and link the current venv to it.
 
     The new venv will have the current venv linked, ie. it will be
     able to import libraries from the current venv, but libraries
     installed directly will have precedence.
     """
-    runner.run([sys.executable, '-m', 'venv', '--without-pip', path])
-    _link_virtualenv(path)
+    runner.run([python_executable, '-m', 'venv', '--without-pip', path])
+    _link_virtualenv(python_executable, path)
 
 
 def is_already_installed(dst_dir, plugin_id):
@@ -210,7 +202,7 @@ def _install_managed_plugin(plugin, args):
         ctx.logger.info(
             'Installing managed plugin: %s [%s]',
             plugin.id, _get_plugin_description(plugin))
-        _make_virtualenv(dst_dir)
+        _make_virtualenv(_python_executable(plugin), dst_dir)
         try:
             _wagon_install(plugin, venv=dst_dir, args=args)
             with open(os.path.join(dst_dir, 'plugin.id'), 'w') as f:
@@ -260,7 +252,7 @@ def _install_source_plugin(deployment_id, plugin, source, args):
             return
 
         ctx.logger.info('Installing plugin from source: %s', name)
-        _make_virtualenv(dst_dir)
+        _make_virtualenv(_python_executable(plugin), dst_dir)
         try:
             _pip_install(source=source, venv=dst_dir, args=args)
         except Exception:
@@ -443,30 +435,19 @@ def _is_plugin_supported(plugin):
         return False
     if plugin.supported_platform == 'any':
         return True
-    current_platform, current_dist, current_release = _platform_and_distro()
 
     if os.name == 'posix':
         # for linux,
         # 1) allow manylinux always,
-        # 2) disallow if the distro is specified and different than current
+        # 2) disallow if the arch is specified and different than current
         if plugin.supported_platform.startswith('manylinux'):
             return True
-        if plugin.distribution and plugin.distribution != current_dist:
-            return False
-        if plugin.distribution_release \
-                and plugin.distribution_release != current_release:
-            return False
-    # non-linux, or linux but the distribution fits
-    return plugin.supported_platform == current_platform
-
-
-def _platform_and_distro():
-    current_platform = wagon.get_platform()
-    if linux_distribution is None:
-        raise NonRecoverableError("distro must be installed")
-    distribution, _, distribution_release = linux_distribution(
-        full_distribution_name=False)
-    return current_platform, distribution.lower(), distribution_release.lower()
+        if plugin.supported_platform.startswith('linux_'):
+            if plugin.supported_platform.split('_', 1)[1] != \
+                    platform.machine():
+                return False
+    # non-linux, or linux but the platform fits
+    return plugin.supported_platform == wagon.get_platform()
 
 
 def get_plugin_source(plugin, blueprint_id=None):
@@ -514,7 +495,7 @@ def path_to_file_url(path):
     return url
 
 
-def _link_virtualenv(venv):
+def _link_virtualenv(executable, venv):
     """Add current venv's libs to the target venv.
 
     Add a .pth file with a link to the current venv, to the target
@@ -522,8 +503,8 @@ def _link_virtualenv(venv):
     Also copy .pth files' contents from the current venv, so that the
     target venv also uses editable packages from the source venv.
     """
-    own_site_packages = get_pth_dir()
-    target = get_pth_dir(venv)
+    own_site_packages = get_pth_dir(executable)
+    target = get_pth_dir(get_python_path(venv))
     with open(os.path.join(target, 'agent.pth'), 'w') as agent_link:
         agent_link.write('# link to the agent virtualenv, created by '
                          'the plugin installer\n')
@@ -537,7 +518,7 @@ def _link_virtualenv(venv):
                 agent_link.write('\n')
 
 
-def get_pth_dir(venv=None):
+def get_pth_dir(executable):
     """Get the directory suitable for .pth files in this venv.
 
     This will return the site-packages directory, which is one of the
@@ -546,7 +527,7 @@ def get_pth_dir(venv=None):
     but sysconfig is not available in 2.6.
     """
     output = runner.run([
-        get_python_path(venv) if venv else sys.executable,
+        executable,
         '-c',
         'import json, sys; print(json.dumps([sys.prefix, sys.version_info]))'
     ]).std_out
@@ -558,3 +539,23 @@ def get_pth_dir(venv=None):
         return '{0}/lib/python{1}/site-packages'.format(prefix, version)
     else:
         raise NonRecoverableError('Unsupported OS: {0}'.format(os.name))
+
+
+def _python_executable(plugin):
+    if 'supported_py_versions' not in plugin:
+        # This is the case for source plugins
+        return sys.executable
+
+    v = sys.version_info
+    if f'py{v.major}{v.minor}' in plugin['supported_py_versions']:
+        return sys.executable
+    for v in reversed(plugin['supported_py_versions']):
+        # This won't work with Python>=10, e.g. `py101`
+        file_name = f'python{v[2:3]}.{v[3:]}'
+        for path in os.environ['PATH'].split(os.pathsep):
+            file_path = os.path.join(path, file_name)
+            if os.path.isfile(file_path) and os.access(file_path, os.X_OK):
+                return file_path
+    raise NonRecoverableError(
+        "This version of Cloudify does not support plugins build for Python "
+        f"versions: {plugin['supported_py_versions']}.")

@@ -65,11 +65,25 @@ class User(dict):
         return self.get('active')
 
     @property
+    def created_at(self):
+        """
+        :return: The user creation time.
+        """
+        return self.get('created_at')
+
+    @property
     def last_login_at(self):
         """
         :return: The last time the user logged in.
         """
         return self.get('last_login_at')
+
+    @property
+    def first_login_at(self):
+        """
+        :return: The first time the user logged in.
+        """
+        return self.get('first_login_at')
 
     @property
     def is_locked(self):
@@ -106,12 +120,16 @@ class UsersClient(object):
                             response['metadata'])
 
     def create(self, username, password, role, is_prehashed=None,
-               created_at=None):
+               created_at=None, first_login_at=None, last_login_at=None):
         data = {'username': username, 'password': password, 'role': role}
         if is_prehashed is not None:
             data['is_prehashed'] = is_prehashed
         if created_at:
             data['created_at'] = created_at
+        if first_login_at:
+            data['first_login_at'] = first_login_at
+        if last_login_at:
+            data['last_login_at'] = last_login_at
         response = self.api.put('/users', data=data, expected_status_code=201)
         return User(response)
 

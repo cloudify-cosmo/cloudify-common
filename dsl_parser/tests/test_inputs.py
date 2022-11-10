@@ -1066,6 +1066,51 @@ node_templates: {}
                           self.parse,
                           yaml)
 
+    def test_input_pattern_error_message_old_dsl(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_4
+inputs:
+    x:
+        default: hi
+        constraints:
+            - pattern: '(hi)|(ab)'
+              error_message: The `x` input should be either `hi` or `ab`
+            - max_length: 2
+"""
+        self.assertRaises(DSLParsingLogicException,
+                          self.parse,
+                          yaml)
+
+    def test_input_pattern_error_message_parsing(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_5
+inputs:
+    x:
+        default: hi
+        constraints:
+            - pattern: '(hi)|(ab)'
+              error_message: The `x` input should be either `hi` or `ab`
+            - max_length: 2
+"""
+        self.parse(yaml)
+
+    def test_input_pattern_error_message_content(self):
+        yaml = """
+tosca_definitions_version: cloudify_dsl_1_5
+inputs:
+    x:
+        default: hi
+        default: lorem ipsum
+        constraints:
+            - pattern: '(hi)|(ab)'
+              error_message: The value should be either `hi` or `ab`
+            - max_length: 2
+"""
+        with self.assertRaises(ConstraintException) as ctx:
+            self.parse(yaml)
+        assert str(ctx.exception) == 'Value lorem ipsum of input x is ' + \
+               'invalid. The value should be either `hi` or `ab`'
+
 
 class TestInputsTypeValidation(AbstractTestParser):
     def test_input_default_value_data_type_validation_successful(self):

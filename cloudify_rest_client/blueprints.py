@@ -11,7 +11,6 @@ from cloudify_rest_client import utils
 from cloudify_rest_client import bytes_stream_utils
 from cloudify_rest_client.constants import VisibilityState
 from cloudify_rest_client.exceptions import CloudifyClientError
-from cloudify_rest_client.executions import Execution
 from cloudify_rest_client.responses import ListResponse
 
 from .labels import Label
@@ -179,7 +178,8 @@ class BlueprintsClient(object):
                 created_by=None,
                 state=None,
                 skip_execution=False,
-                validate=False):
+                validate=False,
+                legacy=False):
         def callback_wrapper(watcher):
             if getattr(watcher, 'cfy_progress_complete', False):
                 # Don't print the final line twice
@@ -208,6 +208,22 @@ class BlueprintsClient(object):
             skip_execution,
         )
 
+        if legacy:
+            # Legacy mode is only intended for use with systests, so no
+            # progress callback, sorry!
+            params.pop('blueprint_archive', None)
+            params = json.loads(params.get('params', '{}'))
+            # System tests don't use url based upload
+            data = bytes_stream_utils.request_data_file_stream(
+                archive_location,
+                client=self.api)
+            return self.api.put(
+                uri,
+                params=params,
+                data=data,
+                expected_status_code=expected_status,
+            )
+
         multipart = MultipartEncoder(fields=params)
         if progress_callback:
             multipart = MultipartEncoderMonitor(
@@ -229,7 +245,8 @@ class BlueprintsClient(object):
                             application_file_name=application_file_name,
                             visibility=visibility,
                             progress_callback=progress_callback,
-                            async_upload=False)
+                            async_upload=False,
+                            validate=True)
 
     def _validate_blueprint_size(self, path, tempdir, skip_size_limit):
         blueprint_directory = os.path.dirname(path) or os.getcwd()
@@ -371,7 +388,8 @@ class BlueprintsClient(object):
                created_at=None,
                created_by=None,
                state=None,
-               skip_execution=False):
+               skip_execution=False,
+               legacy=False):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -384,6 +402,8 @@ class BlueprintsClient(object):
                            blueprint folder
         :param labels: The blueprint's labels. A list of 1-entry
             dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
+        :param legacy: Support some parameters for upload to older managers.
+                       Internal use only.
         :return: Created response.
 
         Blueprint path should point to the main yaml file of the response
@@ -408,7 +428,8 @@ class BlueprintsClient(object):
                 created_at=created_at,
                 created_by=created_by,
                 state=state,
-                skip_execution=skip_execution)
+                skip_execution=skip_execution,
+                legacy=legacy)
             if not async_upload:
                 return self._wrapper_cls(response)
         finally:
@@ -458,7 +479,7 @@ class BlueprintsClient(object):
 
         if response:
             # on cloudify earlier than 6.4, response is None (204 no content)
-            return Execution(response)
+            return response
 
     def get(self, blueprint_id, _include=None):
         """

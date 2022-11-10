@@ -1466,18 +1466,22 @@ def _clean_invalid_secrets(data_dict, storage):
     clean_dict = {}
     for k, v in data_dict.items():
         value = v['value']
-        if isinstance(value, dict) and 'get_secret' in value:
-            secret_key = value['get_secret']
-            if isinstance(value['get_secret'], list):
-                secret_key = secret_key[0]
-            try:
-                storage.secret_method(secret_key)
-            except Exception as e:
-                if hasattr(e, 'status_code') and e.status_code == 404:
-                    continue
-                else:
-                    raise
         clean_dict[k] = value
+        if not isinstance(value, dict) or 'get_secret' not in value:
+            continue
+        secret_key = value['get_secret']
+        if isinstance(value['get_secret'], list):
+            secret_key = secret_key[0]
+        if not isinstance(secret_key, str):
+            continue
+        try:
+            storage.secret_method(secret_key)
+        except Exception as e:
+            if hasattr(e, 'status_code') and e.status_code == 404:
+                del clean_dict[k]
+                continue
+            else:
+                raise
     return clean_dict
 
 
