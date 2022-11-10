@@ -122,13 +122,13 @@ node_templates:
         added_nodes_graph, _ = rel_graph.build_previous_deployment_node_graph(
             plan_node_graph=plan_node_graph,
             previous_node_instances=added_and_related)
-        for instance_id, data in added_nodes_graph.nodes_iter(data=True):
+        for instance_id, data in added_nodes_graph.nodes(data=True):
             instance = data['node']
             if instance.get('modification') == 'added':
                 self.assertNotIn(instance_id, previous_graph)
             else:
                 self.assertIn(instance_id, previous_graph)
-        for source, target, in added_nodes_graph.edges_iter():
+        for source, target, in added_nodes_graph.edges():
             self.assertFalse(previous_graph.has_edge(source, target))
 
     def _assert_removed_in_previous(self, plan, modification):
@@ -143,9 +143,9 @@ node_templates:
         removed_nodes_graph, _ = rel_graph.build_previous_deployment_node_graph(  # noqa
             plan_node_graph=plan_node_graph,
             previous_node_instances=removed_and_related)
-        for instance_id, data in removed_nodes_graph.nodes_iter(data=True):
+        for instance_id, data in removed_nodes_graph.nodes(data=True):
             self.assertIn(instance_id, previous_graph)
-        for source, target, in removed_nodes_graph.edges_iter():
+        for source, target, in removed_nodes_graph.edges():
             self.assertTrue(previous_graph.has_edge(source, target))
 
     def _assert_modification(self,
