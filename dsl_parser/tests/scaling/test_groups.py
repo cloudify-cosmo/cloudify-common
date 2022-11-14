@@ -20,7 +20,7 @@ import yaml
 from networkx.algorithms import (
     ancestors,
     number_weakly_connected_components,
-    weakly_connected_component_subgraphs,
+    weakly_connected_components,
 )
 from networkx.classes import DiGraph
 
@@ -2849,10 +2849,10 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                 build_previous_deployment_node_graph(
                     plan_node_graph=plan_graph,
                     previous_node_instances=plan_copy['node_instances'])
-            for n, data in p_contained_graph.nodes_iter(data=True):
+            for n, data in p_contained_graph.nodes(data=True):
                 if n not in contained_graph:
                     contained_graph.add_node(n, stub=True, **data)
-            for s, t in p_contained_graph.edges_iter():
+            for s, t in p_contained_graph.edges():
                 if not contained_graph.has_edge(s, t):
                     contained_graph.add_edge(s, t)
 
@@ -2880,8 +2880,8 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
             # first extract group instances
             group_instances = set(
                 n for n in contained_graph
-                if not contained_graph.node[n].get('stub') and
-                contained_graph.node[n]['node']['name'] == group_name)
+                if not contained_graph.nodes[n].get('stub') and
+                contained_graph.nodes[n]['node']['name'] == group_name)
 
             # now, for each group instance include all its ancestors including
             # itself
@@ -2897,8 +2897,8 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                 contained_in_group_instances)
 
             # split subgraph into weakly connected components.
-            components = weakly_connected_component_subgraphs(
-                group_subgraph)
+            components = [group_subgraph.subgraph(c)
+                          for c in weakly_connected_components(group_subgraph)]
 
             # verify expected number of group instances
             self.assertEqual(
@@ -2908,7 +2908,7 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
             # export all group instances and for each group instance its
             # its members
             instances_and_ancestors = [
-                set(n for n in c if not contained_graph.node[n].get('stub'))
+                set(n for n in c if not contained_graph.nodes[n].get('stub'))
                 for c in components]
             group_components[group_name] = {
                 'instances': group_instances,
@@ -2937,8 +2937,8 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                     expected_total_count += count
                     component_members = [
                         n for n in component if
-                        not component.node[n].get('stub') and
-                        component.node[n]['node']['name'] == member]
+                        not component.nodes[n].get('stub') and
+                        component.nodes[n]['node']['name'] == member]
                     # verify expected node instances member count
                     # component members is a list of all node instances
                     # of a single node contained within the current group
@@ -2946,8 +2946,8 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                     self.assertEqual(count, len(component_members))
                 component_node_members = [
                     n for n in component if
-                    not component.node[n].get('stub') and
-                    not component.node[n]['node'].get('group')]
+                    not component.nodes[n].get('stub') and
+                    not component.nodes[n]['node'].get('group')]
                 # verify group member instances count adds up
                 self.assertEqual(expected_total_count,
                                  len(component_node_members))
@@ -2957,9 +2957,9 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                 # instances).
                 if assert_group_instances_remain:
                     self.assertTrue(
-                        any(component.node[n]['node'].get(
+                        any(component.nodes[n]['node'].get(
                             'modification') != 'removed' for n in component
-                            if not component.node[n]['node'].get('group')))
+                            if not component.nodes[n]['node'].get('group')))
         return group_components
 
     def _assert_modification_groups(
@@ -3049,7 +3049,8 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                                          source_relationship['target_id'])
 
                 # split graph into weakly connected components
-                components = weakly_connected_component_subgraphs(r_graph)
+                components = [r_graph.subgraph(c)
+                              for c in weakly_connected_components(r_graph)]
 
                 # assert expected number of components count
                 self.assertEqual(
@@ -3062,13 +3063,13 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                     # assert expected source node instances count
                     component_source_nodes = [
                         n for n in component
-                        if component.node[n].get('source')]
+                        if component.nodes[n].get('source')]
                     self.assertEqual(source_count, len(component_source_nodes))
 
                     # assert expected target node instances count
                     component_target_nodes = [
                         n for n in component
-                        if not component.node[n].get('source')]
+                        if not component.nodes[n].get('source')]
                     self.assertEqual(target_count, len(component_target_nodes))
 
                     # assert that each source node instance is indeed connected
@@ -3076,7 +3077,8 @@ class TestMultiInstanceGroups(scaling.BaseTestMultiInstance):
                     for component_source_node in component_source_nodes:
                         self.assertEqual(
                             target_count,
-                            len(r_graph.successors(component_source_node)))
+                            len(list(
+                                r_graph.successors(component_source_node))))
 
                     # for each group specified in the expected relationship
                     # verify that a group instance containing all source

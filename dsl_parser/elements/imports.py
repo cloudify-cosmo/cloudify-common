@@ -15,7 +15,6 @@
 
 import os
 
-from networkx.algorithms import topological_sort
 from networkx.classes import DiGraph
 from urllib.request import pathname2url
 
@@ -849,16 +848,16 @@ class ImportsGraph(object):
     def topological_sort(self):
         return reversed(list(
             ({'import': i,
-             'parsed': self._imports_tree.node[i]['parsed'],
-              'cloudify_types': self._imports_tree.node[i]['cloudify_types'],
-              'properties': self._imports_tree.node[i]['properties']}
-             for i in topological_sort(self._imports_tree))))
+             'parsed': self._imports_tree.nodes[i]['parsed'],
+              'cloudify_types': self._imports_tree.nodes[i]['cloudify_types'],
+              'properties': self._imports_tree.nodes[i]['properties']}
+             for i in utils.topological_sort(self._imports_tree))))
 
     def __contains__(self, item):
         return item in self._imports_tree
 
     def __getitem__(self, item):
-        return self._imports_tree.node[item]
+        return self._imports_tree.nodes[item]
 
 
 def _validate_import_dict(_import):

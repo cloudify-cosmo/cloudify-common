@@ -20,6 +20,8 @@ import numbers
 import sys
 import re
 
+from networkx import NetworkXError, NetworkXUnfeasible
+
 import yaml.parser
 
 from urllib.error import URLError
@@ -466,3 +468,55 @@ def get_function(value):
         else:
             return None
     return result
+
+
+def topological_sort(G, nbunch=None, reverse=False):
+    """Return a list of nodes in topological sort order (networkx==1.x algo)
+
+    This is a copy of topological_sort function from networkx 1.11.  The new
+    implementation (networkx==2.x.y) is not backward compatible:
+      - it does not support nbunch parameter (esp. not in case len(nbunch) > 1)
+      - the results are slightly different and not always deterministic, hence
+        taking the first of the sorted elements does not behave as we would
+        expect it to
+
+    https://github.com/networkx/networkx/blob/cabefb75b1e116fc57d5b30e5d93b217d68b3a2e/networkx/algorithms/dag.py#L88-L168
+    """
+    if not G.is_directed():
+        raise NetworkXError(
+            "Topological sort not defined on undirected graphs.")
+
+    # nonrecursive version
+    seen = set()
+    order = []
+    explored = set()
+
+    if nbunch is None:
+        nbunch = G.nodes
+    for v in nbunch:     # process all vertices in G
+        if v in explored:
+            continue
+        fringe = [v]   # nodes yet to look at
+        while fringe:
+            w = fringe[-1]  # depth first search
+            if w in explored:  # already looked down this branch
+                fringe.pop()
+                continue
+            seen.add(w)     # mark as seen
+            # Check successors for cycles and for new nodes
+            new_nodes = []
+            for n in G[w]:
+                if n not in explored:
+                    if n in seen:  # CYCLE !!
+                        raise NetworkXUnfeasible("Graph contains a cycle.")
+                    new_nodes.append(n)
+            if new_nodes:   # Add new_nodes to fringe
+                fringe.extend(new_nodes)
+            else:           # No new nodes so w is fully explored
+                explored.add(w)
+                order.append(w)
+                fringe.pop()    # done considering this node
+    if reverse:
+        return order
+    else:
+        return list(reversed(order))
