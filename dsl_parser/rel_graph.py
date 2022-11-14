@@ -98,7 +98,7 @@ def build_node_graph(nodes, scaling_groups):
                 graph.add_edge(node_id, group_name,
                                relationship=relationship,
                                index=index)
-                top_level_group_name = utils.old_topological_sort(
+                top_level_group_name = utils.topological_sort(
                     groups_graph, nbunch=[group_name])[-1]
                 graph.add_edge(
                     top_level_group_name, target_id,
@@ -405,7 +405,7 @@ def _handle_contained_in(ctx):
     for contained_tree in [g.subgraph(c)
                            for c in weakly_connected_components(g)]:
         # extract tree root node id
-        node_id = utils.old_topological_sort(contained_tree)[0]
+        node_id = utils.topological_sort(contained_tree)[0]
         _build_multi_instance_node_tree_rec(
             node_id=node_id,
             contained_tree=contained_tree,
@@ -921,8 +921,8 @@ class Context(object):
         shared_groups = set(a_groups) & set(b_groups)
         if not shared_groups:
             return None
-        return utils.old_topological_sort(self.plan_contained_graph,
-                                          nbunch=shared_groups)[0]
+        return utils.topological_sort(self.plan_contained_graph,
+                                      nbunch=shared_groups)[0]
 
     def _containing_groups(self, node_id):
         graph = self.plan_contained_graph

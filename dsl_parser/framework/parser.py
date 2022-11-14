@@ -480,7 +480,7 @@ class Context(object):
 
     def elements_graph_topological_sort(self):
         try:
-            return utils.old_topological_sort(self.element_graph, reverse=True)
+            return utils.topological_sort(self.element_graph, reverse=True)
         except NetworkXUnfeasible:
             # Cycle detected
             cycle = recursive_simple_cycles(self.element_graph)[0]

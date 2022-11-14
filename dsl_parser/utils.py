@@ -20,6 +20,8 @@ import numbers
 import sys
 import re
 
+from networkx import NetworkXError, NetworkXUnfeasible
+
 import yaml.parser
 
 from urllib.error import URLError
@@ -468,56 +470,20 @@ def get_function(value):
     return result
 
 
-def old_topological_sort(G, nbunch=None, reverse=False):
-    """Return a list of nodes in topological sort order.
+def topological_sort(G, nbunch=None, reverse=False):
+    """Return a list of nodes in topological sort order (networkx==1.x algo)
 
-    A topological sort is a nonunique permutation of the nodes
-    such that an edge from u to v implies that u appears before v in the
-    topological sort order.
+    This is a copy of topological_sort function from networkx 1.11.  The new
+    implementation (networkx==2.x.y) is not backward compatible:
+      - it does not support nbunch parameter (esp. not in case len(nbunch) > 1)
+      - the results are slightly different and not always deterministic, hence
+        taking the first of the sorted elements does not behave as we would
+        expect it to
 
-    Parameters
-    ----------
-    G : NetworkX digraph
-        A directed graph
-
-    nbunch : container of nodes (optional)
-        Explore graph in specified order given in nbunch
-
-    reverse : bool, optional
-        Return postorder instead of preorder if True.
-        Reverse mode is a bit more efficient.
-
-    Raises
-    ------
-    NetworkXError
-        Topological sort is defined for directed graphs only. If the
-        graph G is undirected, a NetworkXError is raised.
-
-    NetworkXUnfeasible
-        If G is not a directed acyclic graph (DAG) no topological sort
-        exists and a NetworkXUnfeasible exception is raised.
-
-    Notes
-    -----
-    This algorithm is based on a description and proof in
-    The Algorithm Design Manual [1]_ .
-
-    See also
-    --------
-    is_directed_acyclic_graph
-
-    References
-    ----------
-    .. [1] Skiena, S. S. The Algorithm Design Manual  (Springer-Verlag, 1998).
-        http://www.amazon.com/exec/obidos/ASIN/0387948600/ref=ase_thealgorithmrepo/
-
-    Note
-    ----
-    This is a copy of topological_sort function from networkx 1.11
+    https://github.com/networkx/networkx/blob/cabefb75b1e116fc57d5b30e5d93b217d68b3a2e/networkx/algorithms/dag.py#L88-L168
     """
-    import networkx as nx
     if not G.is_directed():
-        raise nx.NetworkXError(
+        raise NetworkXError(
             "Topological sort not defined on undirected graphs.")
 
     # nonrecursive version
@@ -542,7 +508,7 @@ def old_topological_sort(G, nbunch=None, reverse=False):
             for n in G[w]:
                 if n not in explored:
                     if n in seen:  # CYCLE !!
-                        raise nx.NetworkXUnfeasible("Graph contains a cycle.")
+                        raise NetworkXUnfeasible("Graph contains a cycle.")
                     new_nodes.append(n)
             if new_nodes:   # Add new_nodes to fringe
                 fringe.extend(new_nodes)

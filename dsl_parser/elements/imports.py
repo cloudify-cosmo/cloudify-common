@@ -851,7 +851,7 @@ class ImportsGraph(object):
              'parsed': self._imports_tree.nodes[i]['parsed'],
               'cloudify_types': self._imports_tree.nodes[i]['cloudify_types'],
               'properties': self._imports_tree.nodes[i]['properties']}
-             for i in utils.old_topological_sort(self._imports_tree))))
+             for i in utils.topological_sort(self._imports_tree))))
 
     def __contains__(self, item):
         return item in self._imports_tree

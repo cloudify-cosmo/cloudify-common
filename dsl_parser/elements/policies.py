@@ -450,10 +450,10 @@ class Policies(DictElement):
             if node_a == node_b:
                 return True
             if node_a not in containing_nodes:
-                containing_nodes[node_a] = utils.old_topological_sort(
+                containing_nodes[node_a] = utils.topological_sort(
                     node_graph, nbunch=[node_a])
             if node_b not in containing_nodes:
-                containing_nodes[node_b] = utils.old_topological_sort(
+                containing_nodes[node_b] = utils.topological_sort(
                     node_graph, nbunch=[node_b])
             a_containing_nodes = set(containing_nodes[node_a])
             a_containing_nodes.remove(node_a)
@@ -516,17 +516,17 @@ class Policies(DictElement):
         for member in member_graph:
             if member not in node_graph:
                 continue
-            containing_groups = utils.old_topological_sort(member_graph,
-                                                           nbunch=[member])
-            containing_nodes = utils.old_topological_sort(node_graph,
-                                                          nbunch=[member])
+            containing_groups = utils.topological_sort(member_graph,
+                                                       nbunch=[member])
+            containing_nodes = utils.topological_sort(node_graph,
+                                                      nbunch=[member])
             for node in containing_nodes:
                 if node == member:
                     continue
                 if node not in member_graph:
                     continue
 
-                containing_node_groups = utils.old_topological_sort(
+                containing_node_groups = utils.topological_sort(
                     member_graph, nbunch=[node])
                 containing_node_groups_set = set(containing_node_groups)
 
@@ -535,7 +535,7 @@ class Policies(DictElement):
                 if not shared_groups:
                     continue
 
-                minimal_containing_group = utils.old_topological_sort(
+                minimal_containing_group = utils.topological_sort(
                     member_graph, nbunch=shared_groups)[0]
                 direct_member_group = list(member_graph.successors(member))[0]
                 members = scaling_groups[minimal_containing_group]['members']
