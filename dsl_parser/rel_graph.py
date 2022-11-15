@@ -20,13 +20,11 @@ from string import ascii_lowercase, digits
 
 from networkx.algorithms import (
     descendants,
-    topological_sort,
-    weakly_connected_component_subgraphs,
+    weakly_connected_components,
 )
 from networkx.classes import DiGraph
 
-from dsl_parser import (constants,
-                        exceptions)
+from dsl_parser import (constants, exceptions, utils)
 
 NODES = 'nodes'
 RELATIONSHIPS = 'relationships'
@@ -100,7 +98,7 @@ def build_node_graph(nodes, scaling_groups):
                 graph.add_edge(node_id, group_name,
                                relationship=relationship,
                                index=index)
-                top_level_group_name = topological_sort(
+                top_level_group_name = utils.topological_sort(
                     groups_graph, nbunch=[group_name])[-1]
                 graph.add_edge(
                     top_level_group_name, target_id,
@@ -223,7 +221,7 @@ def build_deployment_node_graph(plan_node_graph,
 
     ctx.node_instance_ids = existing_ni_ids or collections.defaultdict(set)
     ctx.deployment_node_instance_ids.clear()
-    for node_instance_id, data in deployment_node_graph.nodes_iter(
+    for node_instance_id, data in deployment_node_graph.nodes(
             data=True):
         node_id = _node_id_from_node_instance(data['node'])
         ctx.node_instance_ids[node_id].add(node_instance_id)
@@ -243,7 +241,7 @@ def extract_node_instances(node_instances_graph,
     contained_graph = contained_graph or ctx.deployment_contained_graph
     added_missing_node_instance_ids = set()
     node_instances = []
-    for node_instance_id, data in node_instances_graph.nodes_iter(data=True):
+    for node_instance_id, data in node_instances_graph.nodes(data=True):
         node_instance = data['node']
         if node_instance.get('group'):
             continue
@@ -253,7 +251,7 @@ def extract_node_instances(node_instances_graph,
         if node_instance_attributes:
             node_instance.update(node_instance_attributes)
         indexed_relationship_instances = []
-        for target_node_instance_id in node_instances_graph.neighbors_iter(
+        for target_node_instance_id in node_instances_graph.neighbors(
                 node_instance_id):
             edge_data = node_instances_graph[node_instance_id][
                 target_node_instance_id]
@@ -290,8 +288,8 @@ def extract_node_instances(node_instances_graph,
                     # no relationships
                     if (target_id not in node_instances_graph and
                             target_id not in added_missing_node_instance_ids):
-                        target_node_instance = contained_graph.node[target_id][
-                            'node']
+                        target_node_instance = contained_graph\
+                            .nodes[target_id]['node']
                         if copy_instances:
                             target_node_instance = copy.deepcopy(
                                 target_node_instance)
@@ -367,17 +365,17 @@ def extract_removed_relationships(previous_deployment_node_graph,
 
 def _graph_diff(G, H, node_instance_attributes):
     result = DiGraph()
-    for n1, data in G.nodes_iter(data=True):
+    for n1, data in G.nodes(data=True):
         if n1 in H:
             continue
-        result.add_node(n1, data,
+        result.add_node(n1, **data,
                         node_instance_attributes=node_instance_attributes)
-        for n2 in G.neighbors_iter(n1):
-            result.add_node(n2, G.node[n2])
-            result.add_edge(n1, n2, G[n1][n2])
-        for n2 in G.predecessors_iter(n1):
-            result.add_node(n2, G.node[n2])
-            result.add_edge(n2, n1, G[n2][n1])
+        for n2 in G.neighbors(n1):
+            result.add_node(n2, **G.nodes[n2])
+            result.add_edge(n1, n2, **G[n1][n2])
+        for n2 in G.predecessors(n1):
+            result.add_node(n2, **G.nodes[n2])
+            result.add_edge(n2, n1, **G[n2][n1])
     return result
 
 
@@ -390,23 +388,24 @@ def _graph_diff_relationships(G, H, node_instance_attributes):
     :return:
     """
     result = DiGraph()
-    for source, dest, data in G.edges_iter(data=True):
+    for source, dest, data in G.edges(data=True):
         if source in H and dest not in H[source]:
-            new_node = copy.deepcopy(G.node[source])
-            result.add_node(source, new_node,
+            new_node = copy.deepcopy(G.nodes[source])
+            result.add_node(source, **new_node,
                             node_instance_attributes=node_instance_attributes)
-            result.add_node(dest, G.node[dest])
-            result.add_edge(source, dest, G[source][dest])
+            result.add_node(dest, **G.nodes[dest])
+            result.add_edge(source, dest, **G[source][dest])
     return result
 
 
 def _handle_contained_in(ctx):
     # for each 'contained' tree, recursively build new trees based on
     # scaling groups with generated ids
-    for contained_tree in weakly_connected_component_subgraphs(
-            ctx.plan_contained_graph.reverse(copy=True)):
+    g = ctx.plan_contained_graph.reverse(copy=True)
+    for contained_tree in [g.subgraph(c)
+                           for c in weakly_connected_components(g)]:
         # extract tree root node id
-        node_id = topological_sort(contained_tree)[0]
+        node_id = utils.topological_sort(contained_tree)[0]
         _build_multi_instance_node_tree_rec(
             node_id=node_id,
             contained_tree=contained_tree,
@@ -421,7 +420,7 @@ def _build_multi_instance_node_tree_rec(node_id,
                                         parent_relationship_index=None,
                                         parent_node_instance_id=None,
                                         current_host_instance_id=None):
-    node = contained_tree.node[node_id]['node']
+    node = contained_tree.nodes[node_id]['node']
     containers = _build_and_update_node_instances(
         ctx=ctx,
         node=node,
@@ -440,7 +439,7 @@ def _build_multi_instance_node_tree_rec(node_id,
                 node_instance_id, parent_node_instance_id,
                 relationship=relationship_instance,
                 index=parent_relationship_index)
-        for child_node_id in contained_tree.neighbors_iter(node_id):
+        for child_node_id in contained_tree.neighbors(node_id):
             _descendants = descendants(contained_tree, child_node_id)
             _descendants.add(child_node_id)
             child_contained_tree = contained_tree.subgraph(_descendants)
@@ -462,7 +461,7 @@ def _build_and_update_node_instances(ctx,
                                      parent_relationship,
                                      current_host_instance_id):
     node_id = node['id']
-    current_instances_num = ctx.plan_node_graph.node[node_id][
+    current_instances_num = ctx.plan_node_graph.nodes[node_id][
         'scale_properties']['current_instances']
     new_instances_num = 0
     previous_containers = []
@@ -496,7 +495,7 @@ def _build_and_update_node_instances(ctx,
             new_instances_num = (current_instances_num -
                                  previous_instances_num)
         previous_node_instances = [
-            ctx.previous_deployment_node_graph.node[node_instance_id]['node']
+            ctx.previous_deployment_node_graph.nodes[node_instance_id]['node']
             for node_instance_id in previous_node_instance_ids]
         previous_containers = [Container(node_instance,
                                          _extract_contained(node,
@@ -662,10 +661,10 @@ def _handle_connected_to_and_depends_on(ctx):
 def _build_previous_target_ids_for_all_to_one(ctx):
     relationship_target_ids = {}
     if ctx.is_modification:
-        for s, t, e_data in ctx.previous_deployment_node_graph.edges_iter(
+        for s, t, e_data in ctx.previous_deployment_node_graph.edges(
                 data=True):
-            s_node = ctx.previous_deployment_node_graph.node[s]['node']
-            t_node = ctx.previous_deployment_node_graph.node[t]['node']
+            s_node = ctx.previous_deployment_node_graph.nodes[s]['node']
+            t_node = ctx.previous_deployment_node_graph.nodes[t]['node']
             rel = e_data['relationship']
             key = (_node_id_from_node_instance(s_node),
                    _node_id_from_node_instance(t_node),
@@ -779,7 +778,7 @@ def _partition_source_and_target_instances(
 
 
 def _build_scaling_groups_map(ctx, node_instance_ids, group):
-    node_instances = [ctx.deployment_node_graph.node[n]['node']
+    node_instances = [ctx.deployment_node_graph.nodes[n]['node']
                       for n in node_instance_ids]
     scaling_groups_map = collections.defaultdict(list)
     for node_instance in node_instances:
@@ -836,7 +835,7 @@ def _relationship_instance_copy(relationship,
 # until we better understand what semantics are required for such
 # relationships
 def _verify_no_unsupported_relationships(graph):
-    for s, t, edge in graph.edges_iter(data=True):
+    for s, t, edge in graph.edges(data=True):
         if not _relationship_type_hierarchy_includes_one_of(
                 edge['relationship'], [
                     DEPENDS_ON_REL_TYPE,
@@ -892,7 +891,7 @@ class Context(object):
         self.deployment_node_instance_ids = collections.defaultdict(set)
         if self.is_modification:
             for node_instance_id, data in \
-                    self.previous_deployment_node_graph.nodes_iter(data=True):
+                    self.previous_deployment_node_graph.nodes(data=True):
                 self.deployment_node_instance_ids[
                     _node_id_from_node_instance(data['node'])].add(
                     node_instance_id)
@@ -900,7 +899,7 @@ class Context(object):
     def get_group_member_mapping(self):
         group_member_mapping = {}
         for instance_id, details in (
-            self.previous_deployment_node_graph.nodes_iter(data=True)
+            self.previous_deployment_node_graph.nodes(data=True)
         ):
             for scaling_group in details.get('node',
                                              {}).get('scaling_groups', []):
@@ -922,8 +921,8 @@ class Context(object):
         shared_groups = set(a_groups) & set(b_groups)
         if not shared_groups:
             return None
-        return topological_sort(self.plan_contained_graph,
-                                nbunch=shared_groups)[0]
+        return utils.topological_sort(self.plan_contained_graph,
+                                      nbunch=shared_groups)[0]
 
     def _containing_groups(self, node_id):
         graph = self.plan_contained_graph
@@ -933,7 +932,7 @@ class Context(object):
             if succ:
                 assert len(succ) == 1
                 node_id = list(succ.keys())[0]
-                if not graph.node[node_id]['node'].get('group'):
+                if not graph.nodes[node_id]['node'].get('group'):
                     continue
                 result.append(node_id)
             else:
@@ -947,7 +946,7 @@ class Context(object):
             if succ:
                 assert len(succ) == 1
                 node_instance_id = list(succ.keys())[0]
-                node = graph.node[node_instance_id]['node']
+                node = graph.nodes[node_instance_id]['node']
                 if not node.get('group'):
                     continue
                 if _node_id_from_node_instance(node) == group_name:
@@ -964,7 +963,7 @@ class Context(object):
             if succ:
                 assert len(succ) == 1
                 node_instance_id = list(succ.keys())[0]
-                node = contained_graph.node[node_instance_id]['node']
+                node = contained_graph.nodes[node_instance_id]['node']
                 instance_id = node['id']
                 result.append({
                     'name': _node_id_from_node_instance(node),
@@ -976,7 +975,7 @@ class Context(object):
                 return result, None
 
     def restore_plan_node_graph(self):
-        for _, data in self.plan_node_graph.nodes_iter(data=True):
+        for _, data in self.plan_node_graph.nodes(data=True):
             node = data['node']
             for relationship in node.get('relationships', []):
                 replaced = relationship.pop('replaced', None)
@@ -999,7 +998,7 @@ class Context(object):
             exclude_types=[])
         # don't forget to include nodes in this graph that no one is contained
         # in them (these will be considered 1 node trees)
-        result.add_nodes_from(graph.nodes_iter(data=True))
+        result.add_nodes_from(graph.nodes(data=True))
         return result
 
     @staticmethod
@@ -1007,16 +1006,16 @@ class Context(object):
                                            build_from_types,
                                            exclude_types):
         relationship_base_graph = DiGraph()
-        for source, target, edge_data in graph.edges_iter(data=True):
+        for source, target, edge_data in graph.edges(data=True):
             include_edge = (
                 _relationship_type_hierarchy_includes_one_of(
                     edge_data['relationship'], build_from_types) and not
                 _relationship_type_hierarchy_includes_one_of(
                     edge_data['relationship'], exclude_types))
             if include_edge:
-                relationship_base_graph.add_node(source, graph.node[source])
-                relationship_base_graph.add_node(target, graph.node[target])
-                relationship_base_graph.add_edge(source, target, edge_data)
+                relationship_base_graph.add_node(source, **graph.nodes[source])
+                relationship_base_graph.add_node(target, **graph.nodes[target])
+                relationship_base_graph.add_edge(source, target, **edge_data)
         return relationship_base_graph
 
 

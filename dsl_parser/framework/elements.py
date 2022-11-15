@@ -183,7 +183,7 @@ class Element(object):
                 if isinstance(e, element_type)]
 
     def child(self, element_type):
-        matches = [e for e in self.context.child_elements_iter(self)
+        matches = [e for e in self.context.child_elements(self)
                    if isinstance(e, element_type)]
         if not matches:
             raise exceptions.DSLParsingElementMatchException(
@@ -195,11 +195,11 @@ class Element(object):
 
     def build_dict_result(self, with_default=True):
         return dict((child.name, child.value)
-                    for child in self.context.child_elements_iter(self)
+                    for child in self.context.child_elements(self)
                     if with_default or child.defined)
 
     def children(self):
-        return list(self.context.child_elements_iter(self))
+        return self.context.child_elements(self)
 
     def sibling(self, element_type):
         return self.parent().child(element_type)
