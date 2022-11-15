@@ -113,7 +113,7 @@ class SecretsProvidersClient(object):
             visibility=VisibilityState.TENANT,
     ):
         """
-        Update already exists Secrets Provider.
+        Update an existing Secrets Provider.
 
         :param name: Secrets Provider name
         :type name: str
@@ -121,11 +121,11 @@ class SecretsProvidersClient(object):
         :type _type: str
         :param connection_parameters: Secrets Provider connection parameters
         :type connection_parameters: dict
-        :param visibility: The visibility of the secret, can be 'private',
-                           'tenant' or 'global'
+        :param visibility: The visibility of the Secrets Provider, can be
+                           'private', 'tenant' or 'global'
         :type visibility: str
         :returns: New secrets provider metadata
-        :rtype: Dict[str]
+        :rtype: SecretsProvider
         """
         data = {
             'name': name,
@@ -141,7 +141,7 @@ class SecretsProvidersClient(object):
 
     def delete(self, name):
         """
-        Deletes single Secrets Providers.
+        Delete a Secrets Provider.
         """
         self.api.delete(f'/secrets-providers/{name}')
 
