@@ -23,14 +23,14 @@ from dsl_parser.tests.utils import ResolverWithBlueprintSupport as Resolver
 class TestDetailNodeTemplateNamespaceImport(AbstractTestParser):
     def test_deploy(self):
         imported_yaml = self.MINIMAL_BLUEPRINT + """
-        instances:
-            deploy: 2
-            """
+    instances:
+      deploy: 2
+"""
         import_file_name = self.make_yaml_file(imported_yaml)
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse(main_yaml)
         self.assertEqual(1, len(parsed_yaml[constants.NODES]))
@@ -75,8 +75,8 @@ node_templates:
     node1:
         type: type
         relationships:
-            -   target: node2
-                type: relationship
+            - target: node2
+              type: relationship
     node2:
         type: type
 """
@@ -85,7 +85,7 @@ node_templates:
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
 imports:
-- {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         main_yaml_path = self.make_file_with_name(content=main_yaml,
                                                   filename='blueprint.yaml')
@@ -166,7 +166,7 @@ node_templates:
                             import_base_path)
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
 imports:
-- test--blueprint:test
+  - test--blueprint:test
 """
         main_base_path = self._temp_dir + '/main'
         main_yaml_path = self.make_file_with_name(content=main_yaml,

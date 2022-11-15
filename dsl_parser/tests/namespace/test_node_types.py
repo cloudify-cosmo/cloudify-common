@@ -78,12 +78,12 @@ node_types:
       prop1:
         default: value2
 node_templates:
-    test_node1:
-        type: test--test_type
-    test_node2:
-        type: test_type
+  test_node1:
+    type: test--test_type
+  test_node2:
+    type: test_type
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
@@ -108,12 +108,12 @@ node_types:
         default: value
 
 node_templates:
-    test_node:
-        type: test--test_type
-    test_node2:
-        type: test_type2
+  test_node:
+    type: test--test_type
+  test_node2:
+    type: test_type2
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)
@@ -154,12 +154,12 @@ node_types:
       prop1:
         default: value3
 node_templates:
-    test_node:
-        type: test_type
-    test_node2:
-        type: test--test_type
-    test_node3:
-        type: test--test1--test_type
+  test_node:
+    type: test_type
+  test_node2:
+    type: test--test_type
+  test_node3:
+    type: test--test1--test_type
 """.format('test', layer2_import_path)
         parsed = self.parse_1_3(main_yaml)
         expected = {
@@ -188,8 +188,8 @@ imports:
   - {0}--{1}
   - {2}
 node_templates:
-    test_node2:
-        type: test--test_type
+  test_node2:
+    type: test--test_type
 """.format('test', layer1_import_path, layer2_import_path)
         parsed = self.parse_1_3(main_yaml)
         test_node = parsed[constants.NODES][0]
@@ -209,10 +209,10 @@ node_types:
   test_type2:
     derived_from: test--test_type
 node_templates:
-    test_node:
-        type: test_type2
+  test_node:
+    type: test_type2
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)

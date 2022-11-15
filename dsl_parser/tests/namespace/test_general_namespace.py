@@ -118,8 +118,8 @@ class TestImportsResolvingTreeConnections(AbstractTestParser):
 tosca_definitions_version: cloudify_dsl_1_3
 
 inputs:
-    port:
-        default: 1
+  port:
+    default: 1
 """
 
     def test_namespace_uncle_import_resolving_with_local_imports(self):
@@ -155,19 +155,14 @@ imports:
 """
 
         main_yaml = self.basic_input + """
-tosca_definitions_version: cloudify_dsl_1_3
-
 imports:
   - other_test--blueprint:layer2
   - test--blueprint:uncle
 """
-        resolver = Resolver({'blueprint:layer1':
-                            self.basic_input,
-                             'blueprint:layer2':
-                                 layer2,
-                             'blueprint:uncle':
-                                 self.basic_input})
-        parsed_yaml = self.parse_1_3(main_yaml, resolver=resolver)
+        resolver = Resolver({'blueprint:layer1': self.basic_input,
+                             'blueprint:layer2': layer2,
+                             'blueprint:uncle': self.basic_input})
+        parsed_yaml = self.parse(main_yaml, resolver=resolver)
         inputs = parsed_yaml[constants.INPUTS]
         self.assertEqual(3, len(inputs))
         self.assertIn('port', inputs)

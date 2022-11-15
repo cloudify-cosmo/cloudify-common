@@ -194,28 +194,28 @@ plugins:
         # "run_on_node"="target" will
         # indeed appear in the output on the target node's plugins section
         yaml = self.MINIMAL_BLUEPRINT + """
-    test_node2:
-        type: test_type
-        relationships:
-            -   type: test_relationship
-                target: test_node
-                source_interfaces:
-                    test_interface1:
-                        install: test_plugin1.install
-            -   type: test_relationship
-                target: test_node
-                target_interfaces:
-                    test_interface1:
-                        install: test_plugin2.install
+  test_node2:
+    type: test_type
+    relationships:
+      - type: test_relationship
+        target: test_node
+        source_interfaces:
+          test_interface1:
+            install: test_plugin1.install
+      - type: test_relationship
+        target: test_node
+        target_interfaces:
+          test_interface1:
+            install: test_plugin2.install
 relationships:
-    test_relationship: {}
+  test_relationship: {}
 plugins:
-    test_plugin1:
-        executor: central_deployment_agent
-        source: dummy
-    test_plugin2:
-        executor: central_deployment_agent
-        source: dummy
+  test_plugin1:
+    executor: central_deployment_agent
+    source: dummy
+  test_plugin2:
+    executor: central_deployment_agent
+    source: dummy
 """
         result = self.parse(yaml)
         self.assertEqual(2, len(result['nodes']))

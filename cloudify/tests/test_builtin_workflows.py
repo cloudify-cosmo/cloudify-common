@@ -118,28 +118,28 @@ class TestWorkflowLifecycleOperations(LifecycleBaseTest):
 
 class TestInstallWorkflowFiltering(LifecycleBaseTest):
     blueprint = """
-        tosca_definitions_version: cloudify_dsl_1_3
-        imports: [minimal_types.yaml]
-        node_types:
-            type1:
-                derived_from: cloudify.nodes.Root
-            type2:
-                derived_from: cloudify.nodes.Root
-        node_templates:
-            n1:
-                type: type1
-            n2:
-                type: type2
-                relationships:
-                    - target: n1
-                      type: cloudify.relationships.depends_on
-            n3:
-                type: type2
-                capabilities:
-                    scalable:
-                        properties:
-                            default_instances: 2
-    """
+tosca_definitions_version: cloudify_dsl_1_3
+imports: [minimal_types.yaml]
+node_types:
+  type1:
+    derived_from: cloudify.nodes.Root
+  type2:
+    derived_from: cloudify.nodes.Root
+node_templates:
+  n1:
+    type: type1
+  n2:
+    type: type2
+    relationships:
+      - target: n1
+        type: cloudify.relationships.depends_on
+  n3:
+    type: type2
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 2
+"""
 
     @workflow_test(
         blueprint,
@@ -279,25 +279,25 @@ class TestInstallWorkflowFiltering(LifecycleBaseTest):
         assert states == {'deleted': 4}
 
     steps_blueprint = """
-        tosca_definitions_version: cloudify_dsl_1_3
-        imports: [minimal_types.yaml]
-        node_types:
-            type1:
-                derived_from: cloudify.nodes.Root
-        node_templates:
-            step1:
-                type: cloudify.nodes.Root
-            step2:
-                type: cloudify.nodes.Root
-                relationships:
-                    - target: step1
-                      type: cloudify.relationships.depends_on
-            step3:
-                type: cloudify.nodes.Root
-                relationships:
-                    - target: step2
-                      type: cloudify.relationships.depends_on
-    """
+tosca_definitions_version: cloudify_dsl_1_3
+imports: [minimal_types.yaml]
+node_types:
+  type1:
+    derived_from: cloudify.nodes.Root
+node_templates:
+  step1:
+    type: cloudify.nodes.Root
+  step2:
+    type: cloudify.nodes.Root
+    relationships:
+      - target: step1
+        type: cloudify.relationships.depends_on
+  step3:
+    type: cloudify.nodes.Root
+    relationships:
+      - target: step2
+        type: cloudify.relationships.depends_on
+"""
 
     @workflow_test(
         steps_blueprint,
@@ -329,21 +329,21 @@ class TestInstallWorkflowFiltering(LifecycleBaseTest):
 
 class TestReinstallWorkflow(LifecycleBaseTest):
     blueprint = """
-        tosca_definitions_version: cloudify_dsl_1_3
-        imports: [minimal_types.yaml]
-        node_types:
-            t1:
-                derived_from: cloudify.nodes.Root
-                interfaces:
-                    cloudify.interfaces.lifecycle:
-                        create: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
-                        delete: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
-        node_templates:
-            n1:
-                type: t1
-            n2:
-                type: t1
-    """  # NOQA
+tosca_definitions_version: cloudify_dsl_1_3
+imports: [minimal_types.yaml]
+node_types:
+  t1:
+    derived_from: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
+        delete: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
+node_templates:
+  n1:
+    type: t1
+  n2:
+    type: t1
+"""  # NOQA
 
     def _invocations(self, cfy_local, node_instance_id):
         instance = cfy_local.storage.get_node_instance(node_instance_id)
@@ -361,7 +361,7 @@ class TestReinstallWorkflow(LifecycleBaseTest):
         for instance in instances:
             invocations = self._invocations(cfy_local, instance.id)
             assert [inv['operation'] for inv in invocations] == [
-                # first, the ndoe was installed...
+                # first, the node was installed...
                 'cloudify.interfaces.lifecycle.create',
                 # ...and then reinstalled
                 'cloudify.interfaces.lifecycle.delete',

@@ -28,9 +28,9 @@ class TestNamespacedCapabilities(AbstractTestParser):
                           name=default_capability_name):
         return """
 capabilities:
-    {2}:
-        description: {0}
-        value: {1}
+  {2}:
+    description: {0}
+    value: {1}
 """.format(description, value, name)
 
     def _assert_capability(self, capability, description, value):
@@ -43,7 +43,7 @@ capabilities:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
+  - {0}--{1}
 """.format('test', import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         capabilities = parsed_yaml[constants.CAPABILITIES]
@@ -60,8 +60,8 @@ imports:
 
         main_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    -   {0}--{1}
-    -   {2}--{1}
+  - {0}--{1}
+  - {2}--{1}
 """.format('test', import_file_name, 'other_test')
 
         parsed_yaml = self.parse_1_3(main_yaml)

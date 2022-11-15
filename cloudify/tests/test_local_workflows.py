@@ -143,7 +143,7 @@ class BaseWorkflowTest(object):
             f.write('content')
         blueprint_path = os.path.join(self.blueprint_dir, 'blueprint.yaml')
         with open(blueprint_path, 'w') as f:
-            f.write(yaml.safe_dump(blueprint))
+            f.write(yaml.safe_dump(blueprint, canonical=True))
         if not self.env or not use_existing_env:
             if load_env:
                 self.env = self._load_env(name)

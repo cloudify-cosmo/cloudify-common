@@ -213,15 +213,15 @@ tosca_definitions_version: cloudify_dsl_1_3
 imports:
   - http://local-test-resolver/types.yaml
 inputs:
-    port:
-        default: 90
+  port:
+    default: 90
 """
         resolver = ResolverWithBlueprintSupport({
             'blueprint:test': imported_yaml
         }, rules=self._local_resolver_rules())
         yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 imports:
-    - http://local-test-resolver/types.yaml
-    - ns--blueprint:test
+  - http://local-test-resolver/types.yaml
+  - ns--blueprint:test
 """
         self.parse(yaml, resolver=resolver)

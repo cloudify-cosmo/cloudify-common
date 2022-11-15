@@ -22,9 +22,9 @@ class TestNamespacedOutputs(AbstractTestParser):
     def _default_output(description, value, name='port'):
         return """
 outputs:
-    {2}:
-        description: {0}
-        value: {1}
+  {2}:
+    description: {0}
+    value: {1}
 """.format(description, value, name)
 
     def _assert_output(self, outputs, name, description, value):

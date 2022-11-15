@@ -63,8 +63,8 @@ imports:
 imports:
   - {0}--{1}
 groups:
-    group:
-        members: ["test--node1"]
+  group:
+    members: ["test--node1"]
 """.format('test', self.import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         groups = parsed_yaml[constants.GROUPS]
@@ -79,8 +79,8 @@ groups:
 imports:
   - {0}--{1}
 groups:
-    group2:
-        members: ["test--node1"]
+  group2:
+    members: ["test--node1"]
 """.format('test', self.import_file_name)
         parsed_yaml = self.parse_1_3(main_yaml)
         groups = parsed_yaml[constants.GROUPS]

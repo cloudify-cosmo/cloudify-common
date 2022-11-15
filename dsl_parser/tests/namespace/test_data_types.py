@@ -91,30 +91,30 @@ node_templates:
     def test_data_type_collision(self):
         imported_yaml = """
 data_types:
-    data1:
-        properties:
-            prop1:
-                default: value1
+  data1:
+    properties:
+      prop1:
+        default: value1
 """
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
   - {0}--{1}
 data_types:
-    data1:
-        properties:
-            prop1:
-                default: value2
+  data1:
+    properties:
+      prop1:
+        default: value2
 node_types:
-    type:
-        properties:
-            prop1:
-                type: test--data1
-            prop2:
-                type: data1
+  type:
+    properties:
+      prop1:
+        type: test--data1
+      prop2:
+        type: data1
 node_templates:
-    node:
-        type: type
+  node:
+    type: type
 """.format('test', import_file_name)
         properties = self.parse_1_3(main_yaml)[NODES][0]['properties']
         self.assertEqual(properties['prop1']['prop1'], 'value1')
@@ -123,42 +123,42 @@ node_templates:
     def test_multi_layer_import_collision(self):
         layer1 = """
 data_types:
-    data1:
-        properties:
-            prop1:
-                default: value1
+  data1:
+    properties:
+      prop1:
+        default: value1
 """
         layer1_import_path = self.make_yaml_file(layer1)
         layer2 = """
 imports:
   - {0}--{1}
 data_types:
-    data1:
-        properties:
-            prop1:
-                default: value2
+  data1:
+    properties:
+      prop1:
+        default: value2
 """.format('test1', layer1_import_path)
         layer2_import_path = self.make_yaml_file(layer2)
         main_yaml = """
 imports:
   - {0}--{1}
 data_types:
-    data1:
-        properties:
-            prop1:
-                default: value3
+  data1:
+    properties:
+      prop1:
+        default: value3
 node_types:
-    type:
-        properties:
-            prop1:
-                type: test--data1
-            prop2:
-                type: data1
-            prop3:
-                type: test--test1--data1
+  type:
+    properties:
+      prop1:
+        type: test--data1
+      prop2:
+        type: data1
+      prop3:
+        type: test--test1--data1
 node_templates:
-    node:
-        type: type
+  node:
+    type: type
 """.format('test', layer2_import_path)
         properties = self.parse_1_3(main_yaml)[NODES][0]['properties']
         self.assertEqual(properties['prop1']['prop1'], 'value2')
@@ -168,30 +168,30 @@ node_templates:
     def test_data_types_merging_with_no_collision(self):
         imported_yaml = """
 data_types:
-    data1:
-        properties:
-            prop1:
-                default: value1
+  data1:
+    properties:
+      prop1:
+        default: value1
 """
         import_file_name = self.make_yaml_file(imported_yaml)
         main_yaml = """
 imports:
   - {0}--{1}
 data_types:
-    data2:
-        properties:
-            prop2:
-                default: value2
+  data2:
+    properties:
+      prop2:
+        default: value2
 node_types:
-    type:
-        properties:
-            prop1:
-                type: test--data1
-            prop2:
-                type: data2
+  type:
+    properties:
+      prop1:
+        type: test--data1
+      prop2:
+        type: data2
 node_templates:
-    node:
-        type: type
+  node:
+    type: type
 """.format('test', import_file_name)
         properties = self.parse_1_3(main_yaml)[NODES][0]['properties']
         self.assertEqual(properties['prop1']['prop1'], 'value1')
@@ -200,19 +200,19 @@ node_templates:
     def test_derives_from_with_namespace_import(self):
         imported_yaml = self.BASIC_VERSION_SECTION_DSL_1_3 + """
 data_types:
-    agent_connection:
-        properties:
-            username:
-                type: string
-                default: ubuntu
-            key:
-                type: string
-                default: ~/.ssh/id_rsa
-    agent_installer:
-        properties:
-            connection:
-                type: agent_connection
-                default: {}
+  agent_connection:
+    properties:
+      username:
+        type: string
+        default: ubuntu
+      key:
+        type: string
+        default: ~/.ssh/id_rsa
+  agent_installer:
+    properties:
+      connection:
+        type: agent_connection
+        default: {}
 """
         import_file_name = self.make_yaml_file(imported_yaml)
 
@@ -220,24 +220,24 @@ data_types:
 imports:
   - {0}--{1}
 node_types:
-    vm_type:
-        properties:
-            agent:
-                type: agent
+  vm_type:
+    properties:
+      agent:
+        type: agent
 node_templates:
-    vm:
-        type: vm_type
-        properties:
-            agent:
-                connection:
-                    key: /home/ubuntu/id_rsa
+  vm:
+    type: vm_type
+    properties:
+      agent:
+        connection:
+          key: /home/ubuntu/id_rsa
 data_types:
-    agent:
-        derived_from: test--agent_installer
-        properties:
-            basedir:
-                type: string
-                default: /home/
+  agent:
+    derived_from: test--agent_installer
+    properties:
+      basedir:
+        type: string
+        default: /home/
 """.format('test', import_file_name)
 
         parsed = self.parse(main_yaml)

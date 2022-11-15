@@ -60,9 +60,9 @@ node_templates:
                     implementation: p.p
                     inputs:
                         a:
-                          get_capability:
-                            - deployment_id
-                            - node_template_capability_id
+                            get_capability:
+                                - deployment_id
+                                - node_template_capability_id
         relationships:
             -   type: cloudify.relationships.contained_in
                 target: node
@@ -76,9 +76,9 @@ node_templates:
                             implementation: p.p
                             inputs:
                                 a:
-                                  get_capability:
-                                    - deployment_id
-                                    - source_op_capability_id
+                                    get_capability:
+                                        - deployment_id
+                                        - source_op_capability_id
                 target_interfaces:
                     test:
                         op_with_no_get_capability:
@@ -89,9 +89,9 @@ node_templates:
                             implementation: p.p
                             inputs:
                                 a:
-                                  get_capability:
-                                    - deployment_id
-                                    - target_op_capability_id
+                                    get_capability:
+                                        - deployment_id
+                                        - target_op_capability_id
 """
         parsed = prepare_deployment_plan(self.parse(yaml))
         webserver_node = None
@@ -151,13 +151,13 @@ node_templates:
     def test_capabilities_in_outputs(self):
         yaml = """
 node_types:
-    type: {}
+  type: {}
 node_templates:
-    node:
-        type: type
+  node:
+    type: type
 outputs:
-    output:
-      value: { get_capability: [ dep_1, cap_a ]}
+  output:
+    value: { get_capability: [ dep_1, cap_a ]}
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         outputs = parsed.outputs
@@ -170,16 +170,16 @@ outputs:
     def test_capabilities_in_inputs(self):
         yaml = """
 inputs:
-    input:
-        default: { get_capability: [ dep_1, cap_a ]}
+  input:
+    default: { get_capability: [ dep_1, cap_a ]}
 node_types:
-    type: {}
+  type: {}
 node_templates:
-    node:
-        type: type
+  node:
+    type: type
 outputs:
-    output:
-      value: { get_input: input }
+  output:
+    value: { get_input: input }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         outputs = parsed.outputs
@@ -251,16 +251,16 @@ node_templates:
     def test_get_capability_registers_to_plan(self):
         yaml = """
 node_types:
-    type: {}
+  type: {}
 node_templates:
-    node:
-        type: type
+  node:
+    type: type
 outputs:
-    output1:
-      value: { get_capability: [ { get_capability: [ dep_1, cap_a ]}, cap_b ]}
-    output2:
-      value: { get_capability:
-                [ { get_attribute: [node, doesnt_matter] }, cap_a ]}
+  output1:
+    value: { get_capability: [ { get_capability: [ dep_1, cap_a ]}, cap_b ]}
+  output2:
+    value: { get_capability:
+               [ { get_attribute: [node, doesnt_matter] }, cap_a ]}
 """
 
         def _assert_capability_is_registered(capability_path, expected_value):

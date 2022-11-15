@@ -868,38 +868,38 @@ inputs:
 
     def test_input_display_invalid_type(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_4
-        inputs:
-            ta:
-                type: string
-                display:
-                    rows: 10
-        """
+tosca_definitions_version: cloudify_dsl_1_4
+inputs:
+    ta:
+        type: string
+        display:
+            rows: 10
+"""
         with self.assertRaises(DSLParsingInputTypeException) as ex:
             self.parse(yaml)
             assert ex.err_code == ERROR_DISPLAY_FOR_INVALID_TYPE
 
     def test_input_textarea_with_display_hints(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_4
-        inputs:
-            ta:
-                type: textarea
-                display:
-                    rows: 10
-        """
+tosca_definitions_version: cloudify_dsl_1_4
+inputs:
+    ta:
+        type: textarea
+        display:
+            rows: 10
+"""
         parsed = self.parse(yaml)
         self.assertEqual(1, len(parsed[consts.INPUTS]))
         self.assertEqual(10, parsed[consts.INPUTS]['ta']['display']['rows'])
 
     def test_input_list_item_type(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_4
-        inputs:
-            li:
-                type: list
-                item_type: blueprint_id
-        """
+tosca_definitions_version: cloudify_dsl_1_4
+inputs:
+    li:
+        type: list
+        item_type: blueprint_id
+"""
         parsed = self.parse(yaml)
         self.assertEqual(1, len(parsed[consts.INPUTS]))
         li = parsed[consts.INPUTS]['li']
@@ -908,24 +908,24 @@ inputs:
 
     def test_input_list_item_type_for_invalid_type(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_4
-        inputs:
-            li:
-                type: string
-                item_type: blueprint_id
-        """
+tosca_definitions_version: cloudify_dsl_1_4
+inputs:
+    li:
+        type: string
+        item_type: blueprint_id
+"""
         with self.assertRaises(DSLParsingLogicException) as ex:
             self.parse(yaml)
             assert ex.err_code == ERROR_INVALID_ITEM_TYPE
 
     def test_input_list_invalid_item_type(self):
         yaml = """
-        tosca_definitions_version: cloudify_dsl_1_4
-        inputs:
-            li:
-                type: list
-                item_type: cloudify.datatypes.AgentConfig
-        """
+tosca_definitions_version: cloudify_dsl_1_4
+inputs:
+    li:
+        type: list
+        item_type: cloudify.datatypes.AgentConfig
+"""
         with self.assertRaises(DSLParsingLogicException) as ex:
             self.parse(yaml)
             assert ex.err_code == ERROR_ITEM_TYPE_FOR_INVALID_TYPE
@@ -1099,7 +1099,6 @@ inputs:
 tosca_definitions_version: cloudify_dsl_1_5
 inputs:
     x:
-        default: hi
         default: lorem ipsum
         constraints:
             - pattern: '(hi)|(ab)'

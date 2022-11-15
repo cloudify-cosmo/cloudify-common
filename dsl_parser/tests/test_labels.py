@@ -75,8 +75,8 @@ tosca_definitions_version: cloudify_dsl_1_3
 labels:
     get_attribute:
         values:
-          - val1
-          - { get_attribute: [ node, attr ] }
+            - val1
+            - { get_attribute: [ node, attr ] }
 """
 
         message_regex = '.*cannot be a runtime property.*'
@@ -90,7 +90,7 @@ tosca_definitions_version: cloudify_dsl_1_3
 labels:
     get_attribute:
         values:
-          - [val1, val2]
+            - [val1, val2]
 """
         message_regex = '.*must be a string or an intrinsic function.*'
         self.assertRaisesRegex(exceptions.DSLParsingException,
@@ -103,8 +103,8 @@ tosca_definitions_version: cloudify_dsl_1_3
 blueprint_labels:
     get_attribute:
         values:
-          - val1
-          - { get_attribute: [ node, attr ] }
+            - val1
+            - { get_attribute: [ node, attr ] }
 """
         message_regex = "blueprint label's value must be a string."
         self.assertRaisesRegex(exceptions.DSLParsingException, message_regex,
@@ -244,9 +244,9 @@ node_templates:
         type: type
 outputs:
     output_1:
-      value: { get_label: { get_input: label_key } }
+        value: { get_label: { get_input: label_key } }
     output_2:
-      value: { get_label: [key2, 0] }
+        value: { get_label: [key2, 0] }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         outputs = parsed.outputs
@@ -272,10 +272,10 @@ node_templates:
         type: type
 outputs:
     output_1:
-      value: { get_input: input_1 }
+        value: { get_input: input_1 }
 
     output_2:
-      value: { get_input: input_2 }
+        value: { get_input: input_2 }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         outputs = parsed.outputs
@@ -300,7 +300,7 @@ node_templates:
         type: type
 outputs:
     output_1:
-      value: { get_capability: [ { get_label: [key3, 0] }, cap_a ] }
+        value: { get_capability: [ { get_label: [key3, 0] }, cap_a ] }
 """
         parsed = prepare_deployment_plan(self.parse_1_3(yaml))
         outputs = parsed.outputs
