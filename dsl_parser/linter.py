@@ -24,7 +24,7 @@ rules:
   indentation:
     level: warning
   key-duplicates:
-    level: error
+    level: warning
   line-length:
     level: warning
   new-line-at-end-of-file:
