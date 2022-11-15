@@ -68,6 +68,11 @@ class SecretsProvidersClient(object):
     def __init__(self, api):
         self.api = api
 
+    def get(self, name):
+        response = self.api.get(f'/secrets-providers/{name}')
+
+        return SecretsProvider(response)
+
     def create(
             self,
             name,
@@ -99,6 +104,46 @@ class SecretsProvidersClient(object):
         response = self.api.put('/secrets-providers', data=data)
 
         return SecretsProvider(response)
+
+    def update(
+            self,
+            name,
+            _type,
+            connection_parameters,
+            visibility=VisibilityState.TENANT,
+    ):
+        """
+        Update an existing Secrets Provider.
+
+        :param name: Secrets Provider name
+        :type name: str
+        :param _type: Secrets Provider type
+        :type _type: str
+        :param connection_parameters: Secrets Provider connection parameters
+        :type connection_parameters: dict
+        :param visibility: The visibility of the Secrets Provider, can be
+                           'private', 'tenant' or 'global'
+        :type visibility: str
+        :returns: New secrets provider metadata
+        :rtype: SecretsProvider
+        """
+        data = {
+            'name': name,
+            'type': _type,
+            'connection_parameters': connection_parameters,
+            'visibility': visibility,
+        }
+        data = dict((k, v) for k, v in data.items() if v is not None)
+
+        response = self.api.patch(f'/secrets-providers/{name}', data=data)
+
+        return SecretsProvider(response)
+
+    def delete(self, name):
+        """
+        Delete a Secrets Provider.
+        """
+        self.api.delete(f'/secrets-providers/{name}')
 
     def list(self):
         """
