@@ -202,7 +202,8 @@ def parse_simple_type_value(value, type_name):
             return value, True
     elif type_name in ('string', 'textarea', 'deployment_id', 'blueprint_id',
                        'node_id', 'node_type', 'node_instance',
-                       'capability_value', 'scaling_group', 'secret_key'):
+                       'capability_value', 'scaling_group', 'secret_key',
+                       'operation_name', ):
         return value, True
     elif type_name == 'regex':
         if isinstance(value, str):

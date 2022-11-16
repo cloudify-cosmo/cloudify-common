@@ -23,7 +23,7 @@ from dsl_parser.constants import (
     CONSTRAINTS as CONSTRAINT_CONST,
     TYPE,
     ITEM_TYPE,
-    TYPES_BASED_ON_DB_ENTITIES,
+    OBJECT_BASED_TYPES,
     TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT,
 )
 
@@ -204,7 +204,8 @@ class InRange(Constraint):
 @register_constraint(name='valid_values', constraint_data_type=_SEQUENCE)
 class ValidValues(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['capability_value', 'scaling_group',
-                            'node_id', 'node_type', 'node_instance']
+                            'node_id', 'node_type', 'node_instance',
+                            'operation_name', ]
 
     def predicate(self, value):
         return _try_predicate_func(
@@ -289,7 +290,8 @@ class Tenants(DataBasedConstraint):
 class NamePattern(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['deployment_id', 'blueprint_id', 'secret_key',
                             'capability_value', 'scaling_group',
-                            'node_id', 'node_type', 'node_instance']
+                            'node_id', 'node_type', 'node_instance',
+                            'operation_name', ]
 
     def query_param(self, data_type=None):
         if data_type == 'blueprint_id':
@@ -308,6 +310,8 @@ class NamePattern(DataBasedConstraint):
             return 'capability_key_specs'
         elif data_type == 'scaling_group':
             return 'scaling_group_name_specs'
+        elif data_type == 'operation_name':
+            return 'operation_name_specs'
         else:
             raise NotImplementedError(
                 "'{0}' constraint is not implemented for data type '{1}'"
@@ -318,7 +322,8 @@ class NamePattern(DataBasedConstraint):
 @register_constraint(name='deployment_id', constraint_data_type=_STRING)
 class DeploymentId(DataBasedConstraint):
     SUPPORTED_DATA_TYPES = ['capability_value', 'scaling_group',
-                            'node_id', 'node_type', 'node_instance']
+                            'node_id', 'node_type', 'node_instance',
+                            'operation_name', ]
 
 
 @register_validation_func(constraint_data_type=_SCALAR)
@@ -421,7 +426,7 @@ def _validate_input_value(input_name, input_constraints, input_value,
             'function and also have '
             'constraints.'.format(input_value, input_name))
 
-    if type_name in TYPES_BASED_ON_DB_ENTITIES:
+    if type_name in OBJECT_BASED_TYPES:
         if not value_getter:
             raise exceptions.ConstraintException(
                 'Invalid call to validate_input_value: value_getter not set')
