@@ -61,6 +61,13 @@ class Secret(dict):
         """
         return self.get('tenant_name')
 
+    @property
+    def schema(self):
+        """
+        :return: the secret's JSON schema
+        """
+        return self.get('schema')
+
 
 class SecretsClient(object):
 
@@ -72,13 +79,14 @@ class SecretsClient(object):
                value,
                update_if_exists=False,
                is_hidden_value=False,
-               visibility=VisibilityState.TENANT):
+               visibility=VisibilityState.TENANT,
+               schema=None):
         """Create secret.
 
         :param key: Secret key
         :type key: unicode
         :param value: Secret value
-        :type value: unicode
+        :type value: any
         :param update_if_exists:
             Update secret value if secret key already exists
         :type update_if_exists: bool
@@ -89,6 +97,8 @@ class SecretsClient(object):
         :param visibility: The visibility of the secret, can be 'private',
                            'tenant' or 'global'
         :type visibility: unicode
+        :param schema: A JSON schema against which the secret will be validated
+        :type schema: dict
         :returns: New secret metadata
         :rtype: Dict[str]
 
@@ -97,8 +107,10 @@ class SecretsClient(object):
             'value': value,
             'update_if_exists': update_if_exists,
             'is_hidden_value': is_hidden_value,
-            'visibility': visibility
+            'visibility': visibility,
         }
+        if schema:
+            data['schema'] = schema
         response = self.api.put('/secrets/{0}'.format(key), data=data)
         return Secret(response)
 
