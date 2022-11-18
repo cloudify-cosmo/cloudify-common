@@ -19,7 +19,6 @@ import time
 import requests
 
 from dsl_parser import exceptions
-from dsl_parser.linter import validate
 
 
 DEFAULT_RETRY_DELAY = 1
@@ -47,11 +46,8 @@ class AbstractImportResolver(abc.ABC):
 
     def fetch_import(self, import_url, **kwargs):
         if is_remote_resource(import_url):
-            document = self.resolve(import_url)
-        else:
-            document = read_import(import_url)
-        validate(document, import_url)
-        return document
+            return self.resolve(import_url)
+        return read_import(import_url)
 
     @abc.abstractmethod
     def retrieve_plugin(self, import_url, **kwargs):
