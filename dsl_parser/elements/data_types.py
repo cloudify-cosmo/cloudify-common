@@ -66,9 +66,12 @@ class SchemaPropertyType(Element):
             raise exceptions.DSLParsingLogicException(
                 exceptions.ERROR_UNKNOWN_TYPE,
                 "Illegal type name '{0}'".format(self.initial_value))
-        if validate_version and self.initial_value and \
-                self.initial_value in constants.TYPES_BASED_ON_DB_ENTITIES:
+        if not validate_version or not self.initial_value:
+            return
+        if self.initial_value in constants.OBJECT_BASED_TYPES_DSL_1_4:
             self.validate_version(version, (1, 4))
+        elif self.initial_value in constants.OBJECT_BASED_TYPES_DSL_1_5:
+            self.validate_version(version, (1, 5))
 
     def calculate_provided(self, component_types, **kwargs):
         return {'component_types': component_types}

@@ -96,17 +96,17 @@ VALIDATE_DEFINITIONS_VERSION = 'validate_definitions_version'
 RESOLVER_IMPLEMENTATION_KEY = 'implementation'
 RESLOVER_PARAMETERS_KEY = 'parameters'
 
-TYPES_BASED_ON_DB_ENTITIES = [
+OBJECT_BASED_TYPES_DSL_1_4 = [
     'blueprint_id', 'deployment_id', 'capability_value', 'scaling_group',
-    'node_id', 'node_type', 'node_instance', 'secret_key'
-]
+    'node_id', 'node_type', 'node_instance', 'secret_key', ]
+OBJECT_BASED_TYPES_DSL_1_5 = ['operation_name', ]
+OBJECT_BASED_TYPES = OBJECT_BASED_TYPES_DSL_1_4 + OBJECT_BASED_TYPES_DSL_1_5
 TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT = [
-    'capability_value', 'scaling_group',
-    'node_id', 'node_type', 'node_instance'
+    'capability_value', 'scaling_group', 'operation_name',
+    'node_id', 'node_type', 'node_instance',
 ]
 USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean', 'list',
-                        'dict', 'regex', 'textarea'] \
-                       + TYPES_BASED_ON_DB_ENTITIES
+                        'dict', 'regex', 'textarea'] + OBJECT_BASED_TYPES
 
 PLUGIN_DSL_KEYS_NOT_FROM_YAML = ['blueprint_labels', 'labels', 'resource_tags']
 PLUGIN_DSL_KEYS_READ_FROM_DB = PLUGIN_DSL_KEYS_NOT_FROM_YAML
