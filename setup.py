@@ -25,7 +25,6 @@ setup(
         'fasteners==0.17.3',
         'distro>=1.7.0',
         'aiohttp>3,<4',
-        'yamllint>=1.28,<2.0',
     ],
     entry_points={
         'console_scripts': [

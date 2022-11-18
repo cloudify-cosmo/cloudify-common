@@ -201,5 +201,3 @@ ERROR_INTRINSIC_FUNCTION_NOT_PERMITTED = 219
 ERROR_INVALID_IMPORT_SPECS = 220
 # Properties defined for imported node do not match the specification
 ERROR_INVALID_IMPORT_PROPERTIES = 221
-# Yaml linter errors
-ERROR_YAMLLINT_ERROR = 222
