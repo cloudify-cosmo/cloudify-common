@@ -22,7 +22,7 @@ rules:
   hyphens:
     level: warning
   indentation:
-    level: warning
+    level: error
   key-duplicates:
     level: error
   line-length:
