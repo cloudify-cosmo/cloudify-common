@@ -32,12 +32,22 @@ class NodeTypeProperties(_data_types.SchemaWithInitialDefault):
     schema = Dict(type=NodeTypeProperty)
 
 
+class NodeTypeRuntimeProperty(_data_types.SchemaProperty):
+    min_version = (1, 5)
+
+
+class NodeTypeRuntimeProperties(_data_types.SchemaWithInitialDefault):
+    min_version = (1, 5)
+    schema = Dict(type=NodeTypeRuntimeProperty)
+
+
 class NodeType(types.Type):
 
     schema = {
         'derived_from': types.TypeDerivedFrom,
         'interfaces': operation.NodeTypeInterfaces,
         'properties': NodeTypeProperties,
+        'runtime_properties': NodeTypeRuntimeProperties,
     }
     requires = {
         'self': [requirements.Value('super_type',
@@ -52,8 +62,14 @@ class NodeType(types.Type):
             node_type.pop('derived_from', None)
         if super_type:
             node_type[constants.PROPERTIES] = utils.merge_schemas(
-                overridden_schema=super_type.get('properties', {}),
-                overriding_schema=node_type.get('properties', {}),
+                overridden_schema=super_type.get(constants.PROPERTIES, {}),
+                overriding_schema=node_type.get(constants.PROPERTIES, {}),
+                data_types=data_types)
+            node_type[constants.RUNTIME_PROPERTIES] = utils.merge_schemas(
+                overridden_schema=super_type.get(
+                    constants.RUNTIME_PROPERTIES, {}),
+                overriding_schema=node_type.get(
+                    constants.RUNTIME_PROPERTIES, {}),
                 data_types=data_types)
             node_type[constants.INTERFACES] = interfaces_parser. \
                 merge_node_type_interfaces(
