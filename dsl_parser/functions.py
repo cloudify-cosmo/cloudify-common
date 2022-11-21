@@ -15,9 +15,9 @@
 
 import abc
 import collections
-
-import pkg_resources
 import json
+import pkg_resources
+from typing import Dict, Union
 
 from functools import wraps
 
@@ -1494,6 +1494,10 @@ def _args_to_str_func(handler, v, scope, context, path):
 
 
 class _EvaluationHandler(object):
+    # if this is True, replace nested functions with their return values
+    # (if this is False, only go through the plan, and don't mutate it)
+    scan_replace = True
+
     @limit_recursion(50, args_to_str_func=_args_to_str_func)
     def __call__(self, v, scope, context, path):
         evaluated_value = v
@@ -1505,7 +1509,7 @@ class _EvaluationHandler(object):
                 scope=scope,
                 context=context,
                 path=path,
-                replace=True)
+                replace=self.scan_replace)
             func = parse(evaluated_value,
                          scope=scope,
                          context=context,
@@ -1657,6 +1661,70 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
     @property
     def runtime_only_evaluation(self):
         return True
+
+
+class IDDSpec(object):
+    """Description of an inter-deployment-dependency.
+
+    Instances of IDDSpec describe a single dependency, based on an
+    IDDCreatingFunction.
+    Based on IDDSpec, we will be able to render actual instances of
+    inter-deployment-dependencies, containing links to actual node instances.
+    """
+    def __init__(
+        self,
+        scope: str,
+        context: Dict[str, str],
+        target_deployment: Union[str, Dict],
+        function_identifier: str,
+    ):
+        """Create an IDDSpec; this should only be created by IDDFindingHandler
+
+        :param scope: func.scope of the creating function ("node_template")
+        :param context: a dict containing optionally the keys:
+            - "node" - the node id - for node_template & relationship IDDs
+            - "target" - the relationship target node id - for rel. IDDs
+        :param target_deployment: the IDDCreatingFunction's target_deployment -
+            either a string target deployment id (if a literal was provided),
+            or a function representation (arbitrarily-nested dict)
+        :param function_identifier: the path of the IDDCreatingFunction,
+            for example "outputs.out1.value.get_capability"
+        """
+        self.scope = scope
+        self.context = context
+        self.target_deployment = target_deployment
+        self.function_identifier = function_identifier
+
+
+class IDDFindingHandler(_EvaluationHandler):
+    """An EvaluationHandler that goes through all functions, and stores IDDs.
+
+    Instead of recursively evaluating the functions, only recursively examine
+    them, and the functions that create inter-deployment-dependencies are
+    registered in the .dependencies list on this instance.
+    """
+    scan_replace = False
+
+    def __init__(self, plan):
+        self._plan = plan
+        self.dependencies = []
+
+    def evaluate_function(self, func):
+        if not isinstance(func, InterDeploymentDependencyCreatingFunction):
+            return
+        context = {}
+        if func.scope == 'node_template':
+            context['node'] = func.context['name']
+        elif func.scope == 'node_template_relationship':
+            context['node'] = func.context['node_template']['name']
+            context['target'] = func.context['relationship']['target_id']
+        dependency = IDDSpec(
+            func.scope,
+            context,
+            func.target_deployment,
+            func.function_identifier,
+        )
+        self.dependencies.append(dependency)
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):

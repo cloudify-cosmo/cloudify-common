@@ -15,6 +15,7 @@
 
 import copy
 import json
+from typing import List
 
 from dsl_parser import (scan,
                         utils,
@@ -148,6 +149,12 @@ def _process_functions(plan, runtime_only_evaluation=False):
         plan, handler, replace=True, search_secrets=True)
 
 
+def _find_idd_creating_functions(plan) -> List[functions.IDDSpec]:
+    handler = functions.IDDFindingHandler(plan)
+    scan.scan_service_template(plan, handler, replace=False)
+    return handler.dependencies
+
+
 def _validate_secrets(plan, get_secret_method):
     if 'secrets' not in plan:
         return
@@ -190,4 +197,6 @@ def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
     _set_plan_inputs(plan, inputs, auto_correct_types, values_getter)
     _process_functions(plan, runtime_only_evaluation)
     _validate_secrets(plan, get_secret_method)
-    return multi_instance.create_deployment_plan(plan, existing_ni_ids)
+    dependencies = _find_idd_creating_functions(plan)
+    dep_plan = multi_instance.create_deployment_plan(plan, existing_ni_ids)
+    return dep_plan
