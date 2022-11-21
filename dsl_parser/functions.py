@@ -1716,8 +1716,11 @@ class IDDFindingHandler(_EvaluationHandler):
         if func.scope == 'node_template':
             context['node'] = func.context['name']
         elif func.scope == 'node_template_relationship':
-            context['node'] = func.context['node_template']['name']
-            context['target'] = func.context['relationship']['target_id']
+            context = {
+                'node': func.context['node_template']['name'],
+                'target': func.context['relationship']['target_id'],
+                'type': func.context['relationship']['type'],
+            }
         dependency = IDDSpec(
             func.scope,
             context,
