@@ -264,10 +264,11 @@ outputs:
 """
 
         def _assert_capability_is_registered(capability_path, expected_value):
-            self.assertIn(capability_path, parsed[INTER_DEPLOYMENT_FUNCTIONS])
-            self.assertEqual(
-                parsed[INTER_DEPLOYMENT_FUNCTIONS][capability_path],
-                expected_value)
+            assert any(
+                capability_path == idd['function_identifier']
+                and expected_value == idd['target_deployment']
+                for idd in parsed[INTER_DEPLOYMENT_FUNCTIONS]
+            )
 
         parsed = prepare_deployment_plan(self.parse(yaml))
         get_cap_path1 = '{0}.output1.value.get_capability'.format(OUTPUTS)
@@ -278,8 +279,81 @@ outputs:
         get_cap_path3 = '{0}.output2.value.get_capability'.format(OUTPUTS)
         cap_path3_func = {'get_attribute': ['node', 'doesnt_matter']}
 
-        self.assertIn(INTER_DEPLOYMENT_FUNCTIONS, parsed)
+        assert INTER_DEPLOYMENT_FUNCTIONS in parsed
         _assert_capability_is_registered(get_cap_path1, (None, cap_path1_func))
         _assert_capability_is_registered(get_cap_path2, ('dep_1',
                                                          cap_path2_func))
         _assert_capability_is_registered(get_cap_path3, (None, cap_path3_func))
+
+    def test_idd_stores_node_context(self):
+        yaml = """
+node_types:
+  type:
+    properties:
+        x: {}
+node_templates:
+  node:
+    type: type
+    properties:
+        x: {get_capability: [{get_attribute: [SELF, x]}, cap_a]}
+"""
+
+        parsed = prepare_deployment_plan(self.parse(yaml))
+        instance_id = parsed['node_instances'][0]['id']
+        idds = parsed[INTER_DEPLOYMENT_FUNCTIONS]
+        assert len(idds) == 1
+        assert 'SELF' in idds[0]['context']
+        assert instance_id == idds[0]['context']['SELF']
+
+
+    def test_idd_stores_relationship_context(self):
+        yaml = """
+node_types:
+  type: {}
+relationships:
+  cloudify.relationships.depends_on:
+    properties:
+      connection_type:
+        default: all_to_one
+plugins:
+  p:
+    executor: central_deployment_agent
+    install: false
+node_templates:
+  node1:
+    type: type
+  node2:
+    type: type
+  node3:
+    type: type
+    relationships:
+      - target: node1
+        type: cloudify.relationships.depends_on
+        source_interfaces:
+          int1:
+            op1:
+              implementation: p.p
+              inputs:
+                a: {get_capability: [dep1, cap1]}
+      - target: node2
+        type: cloudify.relationships.depends_on
+        target_interfaces:
+          int1:
+            op1:
+              implementation: p.p
+              inputs:
+                a: {get_capability: [dep1, cap1]}
+"""
+
+        parsed = prepare_deployment_plan(self.parse(yaml))
+        idds = parsed[INTER_DEPLOYMENT_FUNCTIONS]
+
+        instance_ids = {ni['node_id']: ni['id'] for ni in parsed['node_instances']}
+        contexts = {
+            (idd['context']['SOURCE'], idd['context']['TARGET'])
+            for idd in idds
+        }
+        assert contexts == {
+            (instance_ids['node3'], instance_ids['node1']),
+            (instance_ids['node3'], instance_ids['node2'])
+        }
