@@ -24,7 +24,9 @@ from dsl_parser.constants import (
     TYPE,
     ITEM_TYPE,
     OBJECT_BASED_TYPES,
-    TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT,
+    BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES,
+    DEPLOYMENT_ID_CONSTRAINT_TYPES,
+    ID_CONSTRAINT_TYPES,
 )
 
 _NOT_COMPARABLE_ERROR_MSG = "Value is not comparable, the Constraint " \
@@ -430,13 +432,24 @@ def _validate_input_value(input_name, input_constraints, input_value,
         if not value_getter:
             raise exceptions.ConstraintException(
                 'Invalid call to validate_input_value: value_getter not set')
-        if type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT \
+        if type_name in BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES:
+            if value_getter.has_deployment_id() \
+                    or 'deployment_id' in {c.name for c in input_constraints}:
+                pass
+            elif value_getter.has_blueprint_id()\
+                    or 'blueprint_id' in {c.name for c in input_constraints}:
+                pass
+            else:
+                raise exceptions.ConstraintException(
+                    f"Input '{input_name}' of type '{type_name}' lacks "
+                    "'blueprint_id' or 'deployment_id' constraint.")
+        if type_name in DEPLOYMENT_ID_CONSTRAINT_TYPES \
                 and not value_getter.has_deployment_id() \
                 and 'deployment_id' not in {c.name for c in input_constraints}:
             raise exceptions.ConstraintException(
                 "Input '{0}' of type '{1}' lacks 'deployment_id' constraint."
                 .format(input_name, type_name))
-        if type_name not in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT \
+        if type_name not in ID_CONSTRAINT_TYPES \
                 or ('deployment_id' not in {c.name for c in input_constraints}
                     and value_getter.has_deployment_id()):
             matching_values = value_getter.get(type_name, input_value)
@@ -455,7 +468,7 @@ def _validate_input_value(input_name, input_constraints, input_value,
                 else f'violates constraint {c}.'
             raise exceptions.ConstraintException(
                 f"Value {input_value} of input {input_name} {msg}")
-    if ((type_name in TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT
+    if ((type_name in DEPLOYMENT_ID_CONSTRAINT_TYPES
          or data_based_constraints)
         and not predicate_many(input_value,
                                type_name,

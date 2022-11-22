@@ -36,7 +36,8 @@ node_templates:
 
     def test_fuzzy_with_deployment_id_constraint_1_3(self):
         data_type = random.choice(
-            constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)
+            constants.BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES +
+            constants.DEPLOYMENT_ID_CONSTRAINT_TYPES)
         with pytest.raises(exceptions.DSLParsingLogicException,
                            match="^type '{data_type}' not.*cloudify_dsl_1_3"
                                  .format(data_type=data_type)):
@@ -45,15 +46,17 @@ node_templates:
 
     def test_fuzzy_with_deployment_id_constraint_1_4(self):
         data_type = random.choice(
-            constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)
-        parsed = self.parse_1_4(TypesBasedOnDatabaseTest.YAML_with_dep_id
+            constants.BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES +
+            constants.DEPLOYMENT_ID_CONSTRAINT_TYPES)
+        parsed = self.parse_1_5(TypesBasedOnDatabaseTest.YAML_with_dep_id
                                 .format(data_type=data_type))
         assert parsed['inputs'][data_type]['type'] == data_type
 
     def test_fuzzy_without_deployment_id_constraint_1_3(self):
         data_type = random.choice(
             list(set(constants.OBJECT_BASED_TYPES) -
-                 set(constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)))
+                 set(constants.BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES +
+                     constants.DEPLOYMENT_ID_CONSTRAINT_TYPES)))
         with pytest.raises(exceptions.DSLParsingLogicException,
                            match="^type '{data_type}' not.*cloudify_dsl_1_3"
                                  .format(data_type=data_type)):
@@ -63,15 +66,17 @@ node_templates:
     def test_fuzzy_without_deployment_id_constraint_1_4(self):
         data_type = random.choice(
             list(set(constants.OBJECT_BASED_TYPES) -
-                 set(constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)))
-        parsed = self.parse_1_4(TypesBasedOnDatabaseTest.YAML_without_dep_id
+                 set(constants.BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES +
+                     constants.DEPLOYMENT_ID_CONSTRAINT_TYPES)))
+        parsed = self.parse_1_5(TypesBasedOnDatabaseTest.YAML_without_dep_id
                                 .format(data_type=data_type))
         assert parsed['inputs'][data_type]['type'] == data_type
 
     def test_fuzzy_node_property_1_3(self):
         data_type = random.choice(
             list(set(constants.OBJECT_BASED_TYPES) -
-                 set(constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)))
+                 set(constants.BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES +
+                     constants.DEPLOYMENT_ID_CONSTRAINT_TYPES)))
         with pytest.raises(exceptions.DSLParsingLogicException,
                            match="^type '{data_type}' not.*cloudify_dsl_1_3"
                                  .format(data_type=data_type)):
@@ -81,7 +86,8 @@ node_templates:
     def test_fuzzy_node_property_1_4(self):
         data_type = random.choice(
             list(set(constants.OBJECT_BASED_TYPES) -
-                 set(constants.TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT)))
-        parsed = self.parse_1_4(TypesBasedOnDatabaseTest.YAML_for_node_props
+                 set(constants.BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES +
+                     constants.DEPLOYMENT_ID_CONSTRAINT_TYPES)))
+        parsed = self.parse_1_5(TypesBasedOnDatabaseTest.YAML_for_node_props
                                 .format(data_type=data_type))
         assert parsed['nodes'][0]['properties'][data_type] == 'foobar'
