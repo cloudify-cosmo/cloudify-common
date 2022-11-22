@@ -219,7 +219,7 @@ def _format_idds(plan, dep_specs):
             for ni in nis_by_node[node_name]:
                 idd = idd_base.copy()
                 idd['context'] = {
-                    'SELF': ni['id'],
+                    'self': ni['id'],
                 }
                 idds.append(idd)
 
@@ -236,9 +236,9 @@ def _format_idds(plan, dep_specs):
                 )
                 idd = idd_base.copy()
                 idd['context'] = {
-                    'SELF': ni['id'],
-                    'SOURCE': ni['id'],
-                    'TARGET': target_id,
+                    'self': ni['id'],
+                    'source': ni['id'],
+                    'target': target_id,
                 }
                 idds.append(idd)
         else:
