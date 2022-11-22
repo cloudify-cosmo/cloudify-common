@@ -33,11 +33,6 @@ CAPABILITIES_SCOPE = 'capabilities'
 LABELS_SCOPE = 'labels'
 DEPLOYMENT_SETTINGS_SCOPE = 'deployment_settings'
 
-# Searching for secrets in the blueprint only one time of the few times
-# that scan_service_template is called
-collect_secrets = False
-secrets = set()
-
 
 def scan_properties(value,
                     handler,
@@ -70,25 +65,14 @@ def scan_properties(value,
         for k, v in value.items():
             current_path = '{0}.{1}'.format(path, k)
             result = handler(v, scope, context, current_path)
-            _collect_secret(result)
             if replace and result != v:
                 value[k] = result
     elif isinstance(value, list):
         for index, item in enumerate(value):
             current_path = '{0}[{1}]'.format(path, index)
             result = handler(item, scope, context, current_path)
-            _collect_secret(result)
             if replace and result != item:
                 value[index] = result
-
-
-def _collect_secret(value):
-    if collect_secrets and isinstance(value, dict) and 'get_secret' in value:
-        secret_name = value['get_secret']
-        if isinstance(value['get_secret'], list):
-            secret_name = secret_name[0]
-        if isinstance(secret_name, str):
-            secrets.add(secret_name)
 
 
 def _scan_operations(operations,
@@ -138,10 +122,7 @@ def scan_node_operation_properties(node_template, handler, replace=False):
                          replace=replace)
 
 
-def scan_service_template(plan, handler, replace=False, search_secrets=False):
-    global collect_secrets
-    collect_secrets = search_secrets
-
+def scan_service_template(plan, handler, replace=False):
     for node_template in plan.node_templates:
         scan_node_template(node_template, handler, replace=replace)
         scan_node_operation_properties(node_template, handler, replace=replace)
@@ -195,10 +176,6 @@ def scan_service_template(plan, handler, replace=False, search_secrets=False):
                     context=plan,
                     path=DEPLOYMENT_SETTINGS,
                     replace=replace)
-
-    if collect_secrets and len(secrets) > 0:
-        plan['secrets'] = list(secrets)
-        secrets.clear()
 
 
 def scan_node_template(node_template, handler, replace=False):

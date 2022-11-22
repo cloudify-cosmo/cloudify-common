@@ -1719,6 +1719,24 @@ class IDDFindingHandler(_EvaluationHandler):
         self.dependencies.append(dependency)
 
 
+class SecretFindingHandler(_EvaluationHandler):
+    """An EvaluationHandler that finds secret names used in the plan."""
+    scan_replace = False
+
+    def __init__(self, plan):
+        self._plan = plan
+        self.secrets = set()
+
+    def evaluate_function(self, func):
+        if not isinstance(func, GetSecret):
+            return
+        secret_name = func.secret_id
+        if isinstance(secret_name, list):
+            secret_name = secret_name[0]
+        if isinstance(secret_name, str):
+            self.secrets.add(secret_name)
+
+
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
     return _PlanEvaluationHandler(plan, runtime_only_evaluation)
 

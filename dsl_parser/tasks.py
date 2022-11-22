@@ -147,8 +147,7 @@ def _set_plan_inputs(plan, inputs, auto_correct_types, values_getter):
 
 def _process_functions(plan, runtime_only_evaluation=False):
     handler = functions.plan_evaluation_handler(plan, runtime_only_evaluation)
-    scan.scan_service_template(
-        plan, handler, replace=True, search_secrets=True)
+    scan.scan_service_template(plan, handler, replace=True)
 
 
 def _find_idd_creating_functions(plan) -> List[functions.IDDSpec]:
@@ -251,18 +250,29 @@ def _format_idds(plan, dep_specs):
     return idds
 
 
-def _validate_secrets(plan, get_secret_method):
-    if 'secrets' not in plan:
+def _find_secrets(plan):
+    """Find secret names used in the plan.
+
+    Secret names that are non-evaluated (e.g. based on get_attribute calls)
+    are not returned, only secret names known at plan creation time
+    """
+    handler = functions.SecretFindingHandler(plan)
+    scan.scan_service_template(plan, handler, replace=False)
+    return handler.secrets
+
+
+def _validate_secrets(secrets, get_secret_method):
+    # Mainly for local workflow that doesn't support secrets
+    if not secrets:
         return
 
-    # Mainly for local workflow that doesn't support secrets
     if get_secret_method is None:
         raise exceptions.UnsupportedGetSecretError(
             "The get_secret intrinsic function is not supported"
         )
 
     invalid_secrets = []
-    for secret_key in plan['secrets']:
+    for secret_key in secrets:
         try:
             get_secret_method(secret_key)
         except Exception as exception:
@@ -271,7 +281,6 @@ def _validate_secrets(plan, get_secret_method):
                 invalid_secrets.append(secret_key)
             else:
                 raise
-    plan.pop('secrets')
 
     if invalid_secrets:
         raise exceptions.UnknownSecretError(
@@ -292,7 +301,8 @@ def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
     plan = models.Plan(copy.deepcopy(plan))
     _set_plan_inputs(plan, inputs, auto_correct_types, values_getter)
     _process_functions(plan, runtime_only_evaluation)
-    _validate_secrets(plan, get_secret_method)
+    secrets = _find_secrets(plan)
+    _validate_secrets(secrets, get_secret_method)
     dep_specs = _find_idd_creating_functions(plan)
     dep_plan = multi_instance.create_deployment_plan(plan, existing_ni_ids)
     dep_plan[INTER_DEPLOYMENT_FUNCTIONS] = _format_idds(dep_plan, dep_specs)
