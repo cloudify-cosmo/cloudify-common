@@ -25,7 +25,6 @@ from dsl_parser import exceptions, scan, constants
 from dsl_parser.constants import (OUTPUTS,
                                   CAPABILITIES,
                                   NODE_INSTANCES,
-                                  INTER_DEPLOYMENT_FUNCTIONS,
                                   EVAL_FUNCS_PATH_PREFIX_KEY,
                                   EVAL_FUNCS_PATH_DEFAULT_PREFIX)
 from dsl_parser.utils import (TEMPLATE_FUNCTIONS,

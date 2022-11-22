@@ -305,7 +305,6 @@ node_templates:
         assert 'SELF' in idds[0]['context']
         assert instance_id == idds[0]['context']['SELF']
 
-
     def test_idd_stores_relationship_context(self):
         yaml = """
 node_types:
@@ -348,7 +347,9 @@ node_templates:
         parsed = prepare_deployment_plan(self.parse(yaml))
         idds = parsed[INTER_DEPLOYMENT_FUNCTIONS]
 
-        instance_ids = {ni['node_id']: ni['id'] for ni in parsed['node_instances']}
+        instance_ids = {
+            ni['node_id']: ni['id'] for ni in parsed['node_instances']
+        }
         contexts = {
             (idd['context']['SOURCE'], idd['context']['TARGET'])
             for idd in idds
