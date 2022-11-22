@@ -193,9 +193,6 @@ class Function(abc.ABC):
     def evaluate(self, handler):
         pass
 
-    def register_function_to_plan(self, plan):
-        pass
-
 
 @register(name='get_input', func_eval_type=HYBRID_FUNC)
 class GetInput(Function):
@@ -948,13 +945,6 @@ class MergeDicts(Function):
 
 
 class InterDeploymentDependencyCreatingFunction(Function):
-
-    def register_function_to_plan(self, plan):
-        plan.setdefault(
-            INTER_DEPLOYMENT_FUNCTIONS,
-            {}
-        )[self.function_identifier] = self.target_deployment
-
     @abc.abstractproperty
     def target_deployment(self):
         pass
@@ -1545,7 +1535,6 @@ class _PlanEvaluationHandler(_EvaluationHandler):
             if 'operation' in func.context:
                 func.context['operation']['has_intrinsic_functions'] = True
             return_value = func.raw
-        func.register_function_to_plan(self._plan)
         return return_value
 
     def get_input(self, input_name):

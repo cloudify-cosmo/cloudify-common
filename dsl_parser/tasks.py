@@ -25,7 +25,9 @@ from dsl_parser import (scan,
                         exceptions,
                         constraints,
                         multi_instance)
-from dsl_parser.constants import INPUTS, DEFAULT, DATA_TYPES, TYPE, ITEM_TYPE
+from dsl_parser.constants import (
+    INPUTS, DEFAULT, DATA_TYPES, TYPE, ITEM_TYPE, INTER_DEPLOYMENT_FUNCTIONS,
+)
 from dsl_parser.multi_instance import modify_deployment
 
 
@@ -293,5 +295,5 @@ def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
     _validate_secrets(plan, get_secret_method)
     dep_specs = _find_idd_creating_functions(plan)
     dep_plan = multi_instance.create_deployment_plan(plan, existing_ni_ids)
-    idds = _format_idds(dep_plan, dep_specs)
+    dep_plan[INTER_DEPLOYMENT_FUNCTIONS] = _format_idds(dep_plan, dep_specs)
     return dep_plan
