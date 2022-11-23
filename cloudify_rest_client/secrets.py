@@ -68,6 +68,13 @@ class Secret(dict):
         """
         return self.get('schema')
 
+    @property
+    def provider_name(self):
+        """
+        :return: the secret's provider name
+        """
+        return self.get('provider_name')
+
 
 class SecretsClient(object):
 
@@ -80,7 +87,8 @@ class SecretsClient(object):
                update_if_exists=False,
                is_hidden_value=False,
                visibility=VisibilityState.TENANT,
-               schema=None):
+               schema=None,
+               provider=None):
         """Create secret.
 
         :param key: Secret key
@@ -99,6 +107,8 @@ class SecretsClient(object):
         :type visibility: unicode
         :param schema: A JSON schema against which the secret will be validated
         :type schema: dict
+        :param provider: A Secrets Provider name
+        :type provider: str
         :returns: New secret metadata
         :rtype: Dict[str]
 
@@ -111,6 +121,10 @@ class SecretsClient(object):
         }
         if schema:
             data['schema'] = schema
+
+        if provider:
+            data['provider'] = provider
+
         response = self.api.put('/secrets/{0}'.format(key), data=data)
         return Secret(response)
 
