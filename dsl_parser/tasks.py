@@ -15,6 +15,7 @@
 
 import copy
 import json
+from typing import List
 
 from dsl_parser import (scan,
                         utils,
@@ -24,7 +25,9 @@ from dsl_parser import (scan,
                         exceptions,
                         constraints,
                         multi_instance)
-from dsl_parser.constants import INPUTS, DEFAULT, DATA_TYPES, TYPE, ITEM_TYPE
+from dsl_parser.constants import (
+    INPUTS, DEFAULT, DATA_TYPES, TYPE, ITEM_TYPE, INTER_DEPLOYMENT_FUNCTIONS,
+)
 from dsl_parser.multi_instance import modify_deployment
 
 
@@ -144,22 +147,132 @@ def _set_plan_inputs(plan, inputs, auto_correct_types, values_getter):
 
 def _process_functions(plan, runtime_only_evaluation=False):
     handler = functions.plan_evaluation_handler(plan, runtime_only_evaluation)
-    scan.scan_service_template(
-        plan, handler, replace=True, search_secrets=True)
+    scan.scan_service_template(plan, handler, replace=True)
 
 
-def _validate_secrets(plan, get_secret_method):
-    if 'secrets' not in plan:
+def _find_idd_creating_functions(plan) -> List[functions.IDDSpec]:
+    handler = functions.IDDFindingHandler(plan)
+    scan.scan_service_template(plan, handler, replace=False)
+    return handler.dependencies
+
+
+def _find_rel_target_by_iddspec(relationships, idd_spec):
+    """Find the target instance that matches the relationship in IDDSpec
+
+    The node-instance can have many relationships, so we need to find one
+    that matches the target node name & type.
+    If there's multiple relationships of the same type to the same node,
+    then we will just select the first instance, because we have no way
+    to distinguish them.
+    (that case shouldn't be possible anyway)
+    """
+    assert idd_spec.scope == 'node_template_relationship'
+
+    target_name = idd_spec.context['target_node_name']
+    rel_type = idd_spec.context['relationship_type']
+
+    for relationship in relationships:
+        if (
+            target_name == relationship['target_name']
+            and rel_type == relationship['type']
+        ):
+            return relationship['target_id']
+
+    node_name = idd_spec.context['node']
+    raise ValueError(
+        'IDDs: relationship not found: {0} {1} {2}'
+        .format(node_name, rel_type, target_name),
+    )
+
+
+def _format_idds(plan, dep_specs):
+    """Format IDDSpecs into actual dependencies by choosing the node-instances.
+
+    IDDSpecs will contain just node name, but there can be many node instances
+    for a given node name, so we need to expand every such IDDSpec into
+    multiple actual IDD dicts.
+
+    This returns a list of dicts containing the keys:
+        - function_identifier - the IDDCreatingFunction path
+        - target_deployment - the deployment id, or a dict representing
+          a function call
+        - context - a dict containing possibly the keys SELF, TARGET, SOURCE -
+          this is the context that can be passed into function evaluation,
+          when evaluating the target_deployment (if it is a function)
+    """
+    idds = []
+    nis_by_node = {}
+    for ni in plan.get('node_instances', []):
+        node_name = ni['node_id']
+        nis_by_node.setdefault(node_name, []).append(ni)
+
+    for idd_spec in dep_specs:
+        idd_base = {
+            'function_identifier': idd_spec.function_identifier,
+            'target_deployment': idd_spec.target_deployment,
+        }
+
+        if idd_spec.scope == 'node_template':
+            # the IDDSpec is a node one (e.g. in node properties):
+            # create an instance of IDD, for every node-instance of the node
+            node_name = idd_spec.context['node_name']
+            for ni in nis_by_node[node_name]:
+                idd = idd_base.copy()
+                idd['context'] = {
+                    'self': ni['id'],
+                }
+                idds.append(idd)
+
+        elif idd_spec.scope == 'node_template_relationship':
+            # the IDDSpec is a relationship one (e.g. in relationship operation
+            # inputs) - create an instance of IDD for every node-instance of
+            # the source node
+            node_name = idd_spec.context['source_node_name']
+
+            for ni in nis_by_node[node_name]:
+                target_id = _find_rel_target_by_iddspec(
+                    ni.get('relationships', []),
+                    idd_spec,
+                )
+                idd = idd_base.copy()
+                idd['context'] = {
+                    'self': ni['id'],
+                    'source': ni['id'],
+                    'target': target_id,
+                }
+                idds.append(idd)
+        else:
+            # other IDDSpec - e.g. outputs, capabilities, etc. Those can be
+            # evaluated without any additional context.
+            idd = idd_base.copy()
+            idd['context'] = {}
+            idds.append(idd)
+    return idds
+
+
+def _find_secrets(plan):
+    """Find secret names used in the plan.
+
+    Secret names that are non-evaluated (e.g. based on get_attribute calls)
+    are not returned, only secret names known at plan creation time
+    """
+    handler = functions.SecretFindingHandler(plan)
+    scan.scan_service_template(plan, handler, replace=False)
+    return handler.secrets
+
+
+def _validate_secrets(secrets, get_secret_method):
+    # Mainly for local workflow that doesn't support secrets
+    if not secrets:
         return
 
-    # Mainly for local workflow that doesn't support secrets
     if get_secret_method is None:
         raise exceptions.UnsupportedGetSecretError(
             "The get_secret intrinsic function is not supported"
         )
 
     invalid_secrets = []
-    for secret_key in plan['secrets']:
+    for secret_key in secrets:
         try:
             get_secret_method(secret_key)
         except Exception as exception:
@@ -168,7 +281,6 @@ def _validate_secrets(plan, get_secret_method):
                 invalid_secrets.append(secret_key)
             else:
                 raise
-    plan.pop('secrets')
 
     if invalid_secrets:
         raise exceptions.UnknownSecretError(
@@ -189,5 +301,9 @@ def prepare_deployment_plan(plan, get_secret_method=None, inputs=None,
     plan = models.Plan(copy.deepcopy(plan))
     _set_plan_inputs(plan, inputs, auto_correct_types, values_getter)
     _process_functions(plan, runtime_only_evaluation)
-    _validate_secrets(plan, get_secret_method)
-    return multi_instance.create_deployment_plan(plan, existing_ni_ids)
+    secrets = _find_secrets(plan)
+    _validate_secrets(secrets, get_secret_method)
+    dep_specs = _find_idd_creating_functions(plan)
+    dep_plan = multi_instance.create_deployment_plan(plan, existing_ni_ids)
+    dep_plan[INTER_DEPLOYMENT_FUNCTIONS] = _format_idds(dep_plan, dep_specs)
+    return dep_plan

@@ -28,6 +28,10 @@ class InterDeploymentDependency(dict):
         return self['id']
 
     @property
+    def target_deployment_func(self):
+        return self['target_deployment_func']
+
+    @property
     def dependency_creator(self):
         return self[DEPENDENCY_CREATOR]
 

@@ -15,9 +15,9 @@
 
 import abc
 import collections
-
-import pkg_resources
 import json
+import pkg_resources
+from typing import Dict, Union
 
 from functools import wraps
 
@@ -25,7 +25,6 @@ from dsl_parser import exceptions, scan, constants
 from dsl_parser.constants import (OUTPUTS,
                                   CAPABILITIES,
                                   NODE_INSTANCES,
-                                  INTER_DEPLOYMENT_FUNCTIONS,
                                   EVAL_FUNCS_PATH_PREFIX_KEY,
                                   EVAL_FUNCS_PATH_DEFAULT_PREFIX)
 from dsl_parser.utils import (TEMPLATE_FUNCTIONS,
@@ -191,9 +190,6 @@ class Function(abc.ABC):
 
     @abc.abstractmethod
     def evaluate(self, handler):
-        pass
-
-    def register_function_to_plan(self, plan):
         pass
 
 
@@ -948,13 +944,6 @@ class MergeDicts(Function):
 
 
 class InterDeploymentDependencyCreatingFunction(Function):
-
-    def register_function_to_plan(self, plan):
-        plan.setdefault(
-            INTER_DEPLOYMENT_FUNCTIONS,
-            {}
-        )[self.function_identifier] = self.target_deployment
-
     @abc.abstractproperty
     def target_deployment(self):
         pass
@@ -1494,6 +1483,10 @@ def _args_to_str_func(handler, v, scope, context, path):
 
 
 class _EvaluationHandler(object):
+    # if this is True, replace nested functions with their return values
+    # (if this is False, only go through the plan, and don't mutate it)
+    scan_replace = True
+
     @limit_recursion(50, args_to_str_func=_args_to_str_func)
     def __call__(self, v, scope, context, path):
         evaluated_value = v
@@ -1505,7 +1498,7 @@ class _EvaluationHandler(object):
                 scope=scope,
                 context=context,
                 path=path,
-                replace=True)
+                replace=self.scan_replace)
             func = parse(evaluated_value,
                          scope=scope,
                          context=context,
@@ -1541,7 +1534,6 @@ class _PlanEvaluationHandler(_EvaluationHandler):
             if 'operation' in func.context:
                 func.context['operation']['has_intrinsic_functions'] = True
             return_value = func.raw
-        func.register_function_to_plan(self._plan)
         return return_value
 
     def get_input(self, input_name):
@@ -1657,6 +1649,92 @@ class _RuntimeEvaluationHandler(_EvaluationHandler):
     @property
     def runtime_only_evaluation(self):
         return True
+
+
+class IDDSpec(object):
+    """Description of an inter-deployment-dependency.
+
+    Instances of IDDSpec describe a single dependency, based on an
+    IDDCreatingFunction.
+    Based on IDDSpec, we will be able to render actual instances of
+    inter-deployment-dependencies, containing links to actual node instances.
+    """
+    def __init__(
+        self,
+        scope: str,
+        context: Dict[str, str],
+        target_deployment: Union[str, Dict],
+        function_identifier: str,
+    ):
+        """Create an IDDSpec; this should only be created by IDDFindingHandler
+
+        :param scope: func.scope of the creating function ("node_template")
+        :param context: a dict containing optionally the keys:
+            - "node_name" - the node id - for node_template IDDs
+            - "target_node_name", "source_node_name" - the relationship
+              source and target node names - for relationship IDDs
+        :param target_deployment: the IDDCreatingFunction's target_deployment -
+            either a string target deployment id (if a literal was provided),
+            or a function representation (arbitrarily-nested dict)
+        :param function_identifier: the path of the IDDCreatingFunction,
+            for example "outputs.out1.value.get_capability"
+        """
+        self.scope = scope
+        self.context = context
+        self.target_deployment = target_deployment
+        self.function_identifier = function_identifier
+
+
+class IDDFindingHandler(_EvaluationHandler):
+    """An EvaluationHandler that goes through all functions, and stores IDDs.
+
+    Instead of recursively evaluating the functions, only recursively examine
+    them, and the functions that create inter-deployment-dependencies are
+    registered in the .dependencies list on this instance.
+    """
+    scan_replace = False
+
+    def __init__(self, plan):
+        self._plan = plan
+        self.dependencies = []
+
+    def evaluate_function(self, func):
+        if not isinstance(func, InterDeploymentDependencyCreatingFunction):
+            return
+        context = {}
+        if func.scope == 'node_template':
+            context['node_name'] = func.context['name']
+        elif func.scope == 'node_template_relationship':
+            context = {
+                'source_node_name': func.context['node_template']['name'],
+                'target_node_name': func.context['relationship']['target_id'],
+                'relationship_type': func.context['relationship']['type'],
+            }
+        dependency = IDDSpec(
+            func.scope,
+            context,
+            func.target_deployment,
+            func.function_identifier,
+        )
+        self.dependencies.append(dependency)
+
+
+class SecretFindingHandler(_EvaluationHandler):
+    """An EvaluationHandler that finds secret names used in the plan."""
+    scan_replace = False
+
+    def __init__(self, plan):
+        self._plan = plan
+        self.secrets = set()
+
+    def evaluate_function(self, func):
+        if not isinstance(func, GetSecret):
+            return
+        secret_name = func.secret_id
+        if isinstance(secret_name, list):
+            secret_name = secret_name[0]
+        if isinstance(secret_name, str):
+            self.secrets.add(secret_name)
 
 
 def plan_evaluation_handler(plan, runtime_only_evaluation=False):
