@@ -520,3 +520,54 @@ class TestEvaluateFunctions(AbstractTestParser):
             '.*unambiguously.*',
         ):
             functions.evaluate_functions(payload, {}, storage)
+
+    def test_get_node_instance_id(self):
+        """{get_attribute: [x, node_instance_id]} returns the ID"""
+        node_instances = [{
+            'id': 'node_1',
+            'node_id': 'node',
+        }]
+        nodes = [{'id': 'node'}]
+        storage = self.mock_evaluation_storage(node_instances, nodes)
+        payload = {'value': {'get_attribute': ['node', 'node_instance_id']}}
+        functions.evaluate_functions(payload, {}, storage)
+        assert payload['value'] == 'node_1'
+
+    def test_get_node_instance_id_override(self):
+        """node_instance_id can be overridden by runtime-props"""
+        node_instances = [{
+            'id': 'node_1',
+            'node_id': 'node',
+            'runtime_properties': {'node_instance_id': 'overridden'},
+        }]
+        nodes = [{'id': 'node'}]
+        storage = self.mock_evaluation_storage(node_instances, nodes)
+        payload = {'value': {'get_attribute': ['node', 'node_instance_id']}}
+        functions.evaluate_functions(payload, {}, storage)
+        assert payload['value'] == 'overridden'
+
+    def test_get_node_instance_index(self):
+        """{get_attribute: [x, node_instance_index]} returns the index"""
+        node_instances = [{
+            'id': 'node_1',
+            'node_id': 'node',
+            'index': 1,
+        }]
+        nodes = [{'id': 'node'}]
+        storage = self.mock_evaluation_storage(node_instances, nodes)
+        payload = {'value': {'get_attribute': ['node', 'node_instance_index']}}
+        functions.evaluate_functions(payload, {}, storage)
+        assert payload['value'] == 1
+
+    def test_get_node_instance_index_override(self):
+        """node_instance_id can be overridden by runtime-props"""
+        node_instances = [{
+            'id': 'node_1',
+            'node_id': 'node',
+            'runtime_properties': {'node_instance_index': 42},
+        }]
+        nodes = [{'id': 'node'}]
+        storage = self.mock_evaluation_storage(node_instances, nodes)
+        payload = {'value': {'get_attribute': ['node', 'node_instance_index']}}
+        functions.evaluate_functions(payload, {}, storage)
+        assert payload['value'] == 42
