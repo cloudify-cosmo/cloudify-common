@@ -609,10 +609,13 @@ class DeploymentScalingGroupsClient(object):
     def __init__(self, api):
         self.api = api
 
-    def list(self, deployment_id, constraints=None, _include=None, **kwargs):
+    def list(self, blueprint_id=None, deployment_id=None,
+             constraints=None, _include=None, **kwargs):
         """
         Returns a list of deployment's scaling groups matching constraints.
 
+        :param blueprint_id: An identifier of a blueprint which scaling
+               groups are going to be searched.
         :param deployment_id: An identifier of a deployment which scaling
                groups are going to be searched.
         :param constraints: A list of DSL constraints for scaling_group
@@ -623,7 +626,10 @@ class DeploymentScalingGroupsClient(object):
         :return: DeploymentScalingGroup list.
         """
         params = copy(kwargs) or {}
-        params['deployment_id'] = deployment_id
+        if blueprint_id is not None:
+            params['blueprint_id'] = blueprint_id
+        if deployment_id is not None:
+            params['deployment_id'] = deployment_id
         if _include:
             params['_include'] = ','.join(_include)
 
