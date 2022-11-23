@@ -651,14 +651,14 @@ def _get_attribute_from_node_instance(ni, node, attribute_path, path,
                                 raise_if_not_found=False,
                                 func_name=fn_name)
 
-    if value is None:
-        # attribute not found in instance runtime properties
-        # special case for { get_attributes_list: [
-        #                        ..., node_instance_id] }
-        # returns the node-instance-id
-        if len(attribute_path) == 1\
-                and attribute_path[0] == 'node_instance_id':
+    if value is None and len(attribute_path) == 1:
+        # specialcase some get_attribute parameters:
+        # - node_instance_id returns the node instance ID
+        # - node_instance_index returns the node instance index
+        if attribute_path[0] == 'node_instance_id':
             value = ni['id']
+        elif attribute_path[0] == 'node_instance_index':
+            value = ni['index']
     # still nothing? look in node properties
     if value is None:
         value = _get_property_value(node['id'],
