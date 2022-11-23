@@ -313,11 +313,6 @@ class DeploymentScalingGroup(dict):
         self.update(scaling_groups)
 
     @property
-    def deployment_id(self):
-        """ID of the deployment the capabilities belong to."""
-        return self['deployment_id']
-
-    @property
     def name(self):
         """Name of the scaling group."""
         return self['name']
