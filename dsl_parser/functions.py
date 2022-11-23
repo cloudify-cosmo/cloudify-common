@@ -1670,8 +1670,9 @@ class IDDSpec(object):
 
         :param scope: func.scope of the creating function ("node_template")
         :param context: a dict containing optionally the keys:
-            - "node" - the node id - for node_template & relationship IDDs
-            - "target" - the relationship target node id - for rel. IDDs
+            - "node_name" - the node id - for node_template IDDs
+            - "target_node_name", "source_node_name" - the relationship
+              source and target node names - for relationship IDDs
         :param target_deployment: the IDDCreatingFunction's target_deployment -
             either a string target deployment id (if a literal was provided),
             or a function representation (arbitrarily-nested dict)
@@ -1702,12 +1703,12 @@ class IDDFindingHandler(_EvaluationHandler):
             return
         context = {}
         if func.scope == 'node_template':
-            context['node'] = func.context['name']
+            context['node_name'] = func.context['name']
         elif func.scope == 'node_template_relationship':
             context = {
-                'node': func.context['node_template']['name'],
-                'target': func.context['relationship']['target_id'],
-                'type': func.context['relationship']['type'],
+                'source_node_name': func.context['node_template']['name'],
+                'target_node_name': func.context['relationship']['target_id'],
+                'relationship_type': func.context['relationship']['type'],
             }
         dependency = IDDSpec(
             func.scope,

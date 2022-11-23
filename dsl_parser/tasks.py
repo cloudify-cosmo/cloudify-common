@@ -168,8 +168,8 @@ def _find_rel_target_by_iddspec(relationships, idd_spec):
     """
     assert idd_spec.scope == 'node_template_relationship'
 
-    target_name = idd_spec.context['target']  # target _node_ name
-    rel_type = idd_spec.context['type']
+    target_name = idd_spec.context['target_node_name']
+    rel_type = idd_spec.context['relationship_type']
 
     for relationship in relationships:
         if (
@@ -215,7 +215,7 @@ def _format_idds(plan, dep_specs):
         if idd_spec.scope == 'node_template':
             # the IDDSpec is a node one (e.g. in node properties):
             # create an instance of IDD, for every node-instance of the node
-            node_name = idd_spec.context['node']
+            node_name = idd_spec.context['node_name']
             for ni in nis_by_node[node_name]:
                 idd = idd_base.copy()
                 idd['context'] = {
@@ -227,7 +227,7 @@ def _format_idds(plan, dep_specs):
             # the IDDSpec is a relationship one (e.g. in relationship operation
             # inputs) - create an instance of IDD for every node-instance of
             # the source node
-            node_name = idd_spec.context['node']
+            node_name = idd_spec.context['source_node_name']
 
             for ni in nis_by_node[node_name]:
                 target_id = _find_rel_target_by_iddspec(
