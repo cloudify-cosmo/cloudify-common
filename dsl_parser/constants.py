@@ -102,10 +102,12 @@ OBJECT_BASED_TYPES_DSL_1_4 = [
     'node_id', 'node_type', 'node_instance', 'secret_key', ]
 OBJECT_BASED_TYPES_DSL_1_5 = ['operation_name', ]
 OBJECT_BASED_TYPES = OBJECT_BASED_TYPES_DSL_1_4 + OBJECT_BASED_TYPES_DSL_1_5
-TYPES_WHICH_REQUIRE_DEPLOYMENT_ID_CONSTRAINT = [
-    'capability_value', 'scaling_group', 'operation_name',
-    'node_id', 'node_type', 'node_instance',
-]
+BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES = \
+    ['scaling_group', 'operation_name', 'node_id', 'node_type']
+DEPLOYMENT_ID_CONSTRAINT_TYPES = \
+    ['capability_value', 'node_instance']
+ID_CONSTRAINT_TYPES = BLUEPRINT_OR_DEPLOYMENT_ID_CONSTRAINT_TYPES + \
+                      DEPLOYMENT_ID_CONSTRAINT_TYPES
 USER_PRIMITIVE_TYPES = ['string', 'integer', 'float', 'boolean', 'list',
                         'dict', 'regex', 'textarea'] + OBJECT_BASED_TYPES
 
