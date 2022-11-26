@@ -128,12 +128,20 @@ class SecretsClient(object):
         response = self.api.put('/secrets/{0}'.format(key), data=data)
         return Secret(response)
 
-    def update(self, key,
-               value=None, visibility=None, is_hidden_value=None, **kwargs):
+    def update(
+            self,
+            key,
+            value=None,
+            visibility=None,
+            is_hidden_value=None,
+            provider=None,
+            **kwargs,
+    ):
         kwargs.update({
             'value': value,
             'visibility': visibility,
-            'is_hidden_value': is_hidden_value
+            'is_hidden_value': is_hidden_value,
+            'provider': provider,
         })
         data = dict((k, v) for k, v in kwargs.items() if v is not None)
         response = self.api.patch('/secrets/{0}'.format(key), data=data)
