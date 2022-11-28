@@ -77,7 +77,7 @@ class SecretsProvidersClient(object):
             self,
             name,
             _type,
-            connection_parameters,
+            connection_parameters=None,
             visibility=VisibilityState.TENANT,
     ):
         """
@@ -98,9 +98,12 @@ class SecretsProvidersClient(object):
         data = {
             'name': name,
             'type': _type,
-            'connection_parameters': connection_parameters,
             'visibility': visibility,
         }
+
+        if connection_parameters:
+            data['connection_parameters']: connection_parameters
+
         response = self.api.put('/secrets-providers', data=data)
 
         return SecretsProvider(response)
