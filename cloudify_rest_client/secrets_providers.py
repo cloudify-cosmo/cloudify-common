@@ -102,7 +102,7 @@ class SecretsProvidersClient(object):
         }
 
         if connection_parameters:
-            data['connection_parameters']: connection_parameters
+            data['connection_parameters'] = connection_parameters
 
         response = self.api.put('/secrets-providers', data=data)
 
