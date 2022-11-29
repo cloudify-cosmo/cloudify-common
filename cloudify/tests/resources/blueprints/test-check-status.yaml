@@ -19,8 +19,11 @@ node_templates:
     interfaces:
       cloudify.interfaces.validation:
         check_status: mock.cloudify.tests.test_builtin_workflows.node_operation
-  node_undefined:
+  node_related:
     type: cloudify.nodes.Root
     relationships:
       - type: cloudify.relationships.depends_on
         target: node_failing
+    interfaces:
+      cloudify.interfaces.validation:
+        check_status: mock.cloudify.tests.test_builtin_workflows.node_operation

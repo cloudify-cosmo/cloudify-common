@@ -1188,17 +1188,17 @@ class TestCheckStatus(unittest.TestCase):
             node_id='node_passing')
         fail_instances = cfy_local.storage.get_node_instances(
             node_id='node_failing')
-        noop_instances = cfy_local.storage.get_node_instances(
-            node_id='node_undefined')
+        rel_instances = cfy_local.storage.get_node_instances(
+            node_id='node_related')
         assert len(pass_instances) == 1
         assert len(fail_instances) == 1
-        assert len(noop_instances) == 1
+        assert len(rel_instances) == 1
 
         pass_instance = pass_instances[0]
         assert pass_instance['system_properties']['status']['ok']
 
         # the noop instance did run, even though it depends on a failing one
-        noop_instance = noop_instances[0]
+        noop_instance = rel_instances[0]
         assert 'status' in noop_instance['system_properties']
         assert noop_instance['system_properties']['status']['ok']
 
@@ -1220,10 +1220,10 @@ class TestCheckStatus(unittest.TestCase):
         )
         fail_instances = cfy_local.storage.get_node_instances(
             node_id='node_failing')
-        noop_instances = cfy_local.storage.get_node_instances(
-            node_id='node_undefined')
+        rel_instances = cfy_local.storage.get_node_instances(
+            node_id='node_related')
         assert len(fail_instances) == 1
-        assert len(noop_instances) == 1
+        assert len(rel_instances) == 1
 
         fail_instance = fail_instances[0]
         assert fail_instance['system_properties']['status']
@@ -1231,7 +1231,7 @@ class TestCheckStatus(unittest.TestCase):
 
         # with run_by_dependency_order, the noop instance didn't even run,
         # because it depends on a failing task
-        noop_instance = noop_instances[0]
+        noop_instance = rel_instances[0]
         assert 'status' not in noop_instance['system_properties']
 
 
@@ -1262,7 +1262,6 @@ class TestCheckDrift(unittest.TestCase):
             'target_relationships_configuration_drift'
         }
         assert set(relation_instances[0].system_properties.keys()) == {
-            'configuration_drift',
             'source_relationships_configuration_drift'
         }
 
