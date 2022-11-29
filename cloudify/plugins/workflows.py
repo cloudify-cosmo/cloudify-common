@@ -125,13 +125,17 @@ def _find_healthy_instances(instances, require_task=False):
     for instance in instances:
         try:
             status = instance.system_properties['status']
-            if not status['ok']:
-                continue
-            if require_task and not status['task']:
-                continue
-            healthy_instances.add(instance)
+            task = status['task']
+            ok = status['ok']
         except KeyError:
-            pass
+            task = None
+            ok = None
+
+        if (
+            ok or
+            task is None and not require_task
+        ):
+            healthy_instances.add(instance)
     return healthy_instances
 
 
