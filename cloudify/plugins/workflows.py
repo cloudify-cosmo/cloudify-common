@@ -1029,8 +1029,9 @@ def _make_check_status_graph(
             operation='cloudify.interfaces.validation.check_status'
         )
         task.info = {'instance_id': instance.id}
-        task.on_success = check_status_on_success
-        task.on_failure = on_fail
+        if not task.is_nop():
+            task.on_success = check_status_on_success
+            task.on_failure = on_fail
         graph.add_task(task)
         tasks[instance.id] = task
 
@@ -1101,8 +1102,9 @@ def _make_check_drift_graph(
             operation='cloudify.interfaces.lifecycle.check_drift'
         )
         task.info = {'instance_id': instance.id}
-        task.on_success = check_drift_on_success
-        task.on_failure = on_fail
+        if not task.is_nop():
+            task.on_success = check_drift_on_success
+            task.on_failure = on_fail
         graph.add_task(task)
         tasks[instance.id] = task
         for rel in instance.relationships:
@@ -1110,8 +1112,9 @@ def _make_check_drift_graph(
                 'cloudify.interfaces.relationship_lifecycle.check_drift')
             target_task = rel.execute_target_operation(
                 'cloudify.interfaces.relationship_lifecycle.check_drift')
-            source_task.on_success = check_drift_on_success
-            source_task.on_failure = on_fail
+            if not source_task.is_nop():
+                source_task.on_success = check_drift_on_success
+                source_task.on_failure = on_fail
             graph.add_task(source_task)
             graph.add_dependency(source_task, task)
             source_task.info = {
@@ -1119,8 +1122,9 @@ def _make_check_drift_graph(
                 'relationship_target': rel.target_id,
             }
 
-            target_task.on_success = check_drift_on_success
-            target_task.on_failure = on_fail
+            if not target_task.is_nop():
+                target_task.on_success = check_drift_on_success
+                target_task.on_failure = on_fail
             graph.add_task(target_task)
             graph.add_dependency(target_task, task)
             target_task.info = {
