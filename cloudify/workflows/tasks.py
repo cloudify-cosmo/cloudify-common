@@ -814,7 +814,10 @@ class NOPLocalWorkflowTask(WorkflowTask):
         return self.async_result
 
     def is_nop(self):
-        return True
+        # If a nop has a success/failure handler, then it's not really
+        # a nop, because it does _do_ something, and can't be just dropped
+        # from the graph
+        return self.on_success is None and self.on_failure is None
 
     def is_local(self):
         return True
