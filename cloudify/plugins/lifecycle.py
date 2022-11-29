@@ -243,7 +243,6 @@ class LifecycleProcessor(object):
                 'stub_{0}'.format(instance.id))
 
         graph_finisher_func(self.graph, subgraphs)
-        self.graph.optimize()
         return self.graph
 
     def _finish_install(self, graph, subgraphs):

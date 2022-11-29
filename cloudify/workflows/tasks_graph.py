@@ -337,7 +337,9 @@ class TaskDependencyGraph(object):
         self._op_types_cache[task_type] = op_cls
         return op_cls
 
-    def store(self, name):
+    def store(self, name, optimize=True):
+        if optimize:
+            self.optimize()
         serialized_tasks = []
         for task in self._tasks.values():
             serialized = task.dump()
