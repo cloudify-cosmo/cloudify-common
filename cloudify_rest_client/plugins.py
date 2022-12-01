@@ -327,17 +327,36 @@ class PluginsClient(object):
 
             return output_file
 
-    def download_yaml(self, plugin_id, output_file, progress_callback=None):
+    def download_yaml(
+        self,
+        plugin_id,
+        output_file,
+        dsl_version=None,
+        progress_callback=None
+    ):
         """Downloads a previously uploaded plugin archive from the manager
 
         :param plugin_id: The plugin ID of the plugin yaml to be downloaded.
+        :param dsl_version: Preferred version of the plugin yaml.
         :param output_file: The file path of the downloaded plugin yaml file
         :param progress_callback: Callback function - can be used to print
         a progress bar
         :return: The file path of the downloaded plugin yaml.
         """
+        params = {'dsl_version': dsl_version} if dsl_version else {}
         uri = '/plugins/{0}/yaml'.format(plugin_id)
-        with contextlib.closing(self.api.get(uri, stream=True)) as response:
+        from datetime import datetime
+        with open('/tmp/mateusz.log', 'a+') as fh:
+            fh.write(f'\nPluginsClient.download_yaml {datetime.now()}\n')
+            fh.write(f'  plugin_id={plugin_id}\n')
+            fh.write(f'  output_file={output_file}\n')
+            fh.write(f'  dsl_version={dsl_version}\n')
+            fh.write(f'  progress_callback={progress_callback}\n')
+        with contextlib.closing(
+            self.api.get(uri, params=params, stream=True)
+        ) as response:
+            with open('/tmp/mateusz.log', 'a+') as fh:
+                fh.write(f'  response={response}\n')
             output_file = bytes_stream_utils.write_response_stream_to_file(
                 response, output_file, progress_callback=progress_callback)
 
