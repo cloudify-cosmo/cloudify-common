@@ -1243,7 +1243,8 @@ class TestCheckDrift(unittest.TestCase):
     def test_all_nodes_run(self, cfy_local):
         self.assertRaises(
             exceptions.WorkflowFailed,
-            cfy_local.execute, 'check_drift'
+            cfy_local.execute, 'check_drift',
+            parameters={'run_by_dependency_order': False},
         )
         pass_instances = cfy_local.storage.get_node_instances(
             node_id='node_passing')
@@ -1264,6 +1265,36 @@ class TestCheckDrift(unittest.TestCase):
         assert set(relation_instances[0].system_properties.keys()) == {
             'source_relationships_configuration_drift'
         }
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-check-drift.yaml'))
+    def test_run_with_dependencies(self, cfy_local):
+        self.assertRaises(
+            exceptions.WorkflowFailed,
+            cfy_local.execute, 'check_drift',
+            parameters={'run_by_dependency_order': True},
+        )
+        pass_instances = cfy_local.storage.get_node_instances(
+            node_id='node_passing')
+        fail_instances = cfy_local.storage.get_node_instances(
+            node_id='node_failing')
+        relation_instances = cfy_local.storage.get_node_instances(
+            node_id='node_related')
+        assert len(pass_instances) == 1
+        assert len(fail_instances) == 1
+        assert len(relation_instances) == 1
+        assert set(pass_instances[0].system_properties.keys()) == {
+            'configuration_drift'
+        }
+        assert set(fail_instances[0].system_properties.keys()) == {
+            'configuration_drift',
+            # no target_rel_drift, because main drift check failed, so
+            # we stopped there.
+        }
+        assert not set(relation_instances[0].system_properties.keys())
+
 
 
 class TestRollbackWorkflow(LifecycleBaseTest):
