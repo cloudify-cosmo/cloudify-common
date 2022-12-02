@@ -1520,21 +1520,34 @@ def lifecycle_test_operation(ctx, **_):
 
 
 def _write_operation(ctx):
-    invocations = ctx.instance.runtime_properties.get('invocations', [])
-    invocations.append({
+    operation = {
         'node_id': ctx.node.id,
         'operation': ctx.operation.name,
         'counter': global_counter.get_and_increment()
-    })
-    ctx.instance.runtime_properties['invocations'] = invocations
+    }
+    def _add_operation(_, latest_properties):
+        properties = latest_properties.copy()
+        invocations = properties.setdefault('invocations', [])
+        if not operation in invocations:
+            invocations.append(operation)
+        return properties
+
+    ctx.instance.update(_add_operation)
 
 
 def _write_rel_operation(ctx, runs_on):
-    invocations = ctx.source.instance.runtime_properties.get('invocations', [])
-    invocations.append({
+    operation = {
         'node_id': ctx.source.node.id,
         'operation': ctx.operation.name,
         'target_node': ctx.target.node.name,
         'runs_on': runs_on,
-        'counter': global_counter.get_and_increment()})
-    ctx.source.instance.runtime_properties['invocations'] = invocations
+        'counter': global_counter.get_and_increment(),
+    }
+    def _add_operation(_, latest_properties):
+        properties = latest_properties.copy()
+        invocations = properties.setdefault('invocations', [])
+        if not operation in invocations:
+            invocations.append(operation)
+        return properties
+
+    ctx.source.instance.update(_add_operation)
