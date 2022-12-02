@@ -1296,7 +1296,6 @@ class TestCheckDrift(unittest.TestCase):
         assert not set(relation_instances[0].system_properties.keys())
 
 
-
 class TestRollbackWorkflow(LifecycleBaseTest):
 
     @workflow_test(path.join(
@@ -1525,10 +1524,11 @@ def _write_operation(ctx):
         'operation': ctx.operation.name,
         'counter': global_counter.get_and_increment()
     }
+
     def _add_operation(_, latest_properties):
         properties = latest_properties.copy()
         invocations = properties.setdefault('invocations', [])
-        if not operation in invocations:
+        if operation not in invocations:
             invocations.append(operation)
         return properties
 
@@ -1543,10 +1543,11 @@ def _write_rel_operation(ctx, runs_on):
         'runs_on': runs_on,
         'counter': global_counter.get_and_increment(),
     }
+
     def _add_operation(_, latest_properties):
         properties = latest_properties.copy()
         invocations = properties.setdefault('invocations', [])
-        if not operation in invocations:
+        if operation not in invocations:
             invocations.append(operation)
         return properties
 
