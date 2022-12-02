@@ -1243,7 +1243,8 @@ class TestCheckDrift(unittest.TestCase):
     def test_all_nodes_run(self, cfy_local):
         self.assertRaises(
             exceptions.WorkflowFailed,
-            cfy_local.execute, 'check_drift'
+            cfy_local.execute, 'check_drift',
+            parameters={'run_by_dependency_order': False},
         )
         pass_instances = cfy_local.storage.get_node_instances(
             node_id='node_passing')
@@ -1264,6 +1265,35 @@ class TestCheckDrift(unittest.TestCase):
         assert set(relation_instances[0].system_properties.keys()) == {
             'source_relationships_configuration_drift'
         }
+
+    @workflow_test(path.join(
+        'resources',
+        'blueprints',
+        'test-check-drift.yaml'))
+    def test_run_with_dependencies(self, cfy_local):
+        self.assertRaises(
+            exceptions.WorkflowFailed,
+            cfy_local.execute, 'check_drift',
+            parameters={'run_by_dependency_order': True},
+        )
+        pass_instances = cfy_local.storage.get_node_instances(
+            node_id='node_passing')
+        fail_instances = cfy_local.storage.get_node_instances(
+            node_id='node_failing')
+        relation_instances = cfy_local.storage.get_node_instances(
+            node_id='node_related')
+        assert len(pass_instances) == 1
+        assert len(fail_instances) == 1
+        assert len(relation_instances) == 1
+        assert set(pass_instances[0].system_properties.keys()) == {
+            'configuration_drift'
+        }
+        assert set(fail_instances[0].system_properties.keys()) == {
+            'configuration_drift',
+            # no target_rel_drift, because main drift check failed, so
+            # we stopped there.
+        }
+        assert not set(relation_instances[0].system_properties.keys())
 
 
 class TestRollbackWorkflow(LifecycleBaseTest):
@@ -1489,21 +1519,36 @@ def lifecycle_test_operation(ctx, **_):
 
 
 def _write_operation(ctx):
-    invocations = ctx.instance.runtime_properties.get('invocations', [])
-    invocations.append({
+    operation = {
         'node_id': ctx.node.id,
         'operation': ctx.operation.name,
         'counter': global_counter.get_and_increment()
-    })
-    ctx.instance.runtime_properties['invocations'] = invocations
+    }
+
+    def _add_operation(_, latest_properties):
+        properties = latest_properties.copy()
+        invocations = properties.setdefault('invocations', [])
+        if operation not in invocations:
+            invocations.append(operation)
+        return properties
+
+    ctx.instance.update(_add_operation)
 
 
 def _write_rel_operation(ctx, runs_on):
-    invocations = ctx.source.instance.runtime_properties.get('invocations', [])
-    invocations.append({
+    operation = {
         'node_id': ctx.source.node.id,
         'operation': ctx.operation.name,
         'target_node': ctx.target.node.name,
         'runs_on': runs_on,
-        'counter': global_counter.get_and_increment()})
-    ctx.source.instance.runtime_properties['invocations'] = invocations
+        'counter': global_counter.get_and_increment(),
+    }
+
+    def _add_operation(_, latest_properties):
+        properties = latest_properties.copy()
+        invocations = properties.setdefault('invocations', [])
+        if operation not in invocations:
+            invocations.append(operation)
+        return properties
+
+    ctx.source.instance.update(_add_operation)

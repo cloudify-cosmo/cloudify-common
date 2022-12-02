@@ -327,3 +327,7 @@ workflows:
 
   check_drift:
     mapping: default_workflows.cloudify.plugins.workflows.check_drift
+    is_cascading: false
+    parameters:
+      run_by_dependency_order:
+        default: true

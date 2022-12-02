@@ -1067,7 +1067,7 @@ def check_status(ctx, *args, **kwargs):
 @make_or_get_graph
 def _make_check_drift_graph(
     ctx,
-    run_by_dependency_order=False,
+    run_by_dependency_order=True,
     type_names=None,
     node_ids=None,
     node_instance_ids=None,
