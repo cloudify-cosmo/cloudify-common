@@ -72,6 +72,16 @@ class ExecutionState(object):
         KILL_CANCELLING
     ]
 
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if v not in cls.STATES:
+            raise ValueError(f'{v} is not a valid visibility')
+        return v
+
 
 # needs to be separate because python3 doesn't allow `if` in listcomps
 # using names from class scope
@@ -116,6 +126,16 @@ class VisibilityState(object):
     GLOBAL = 'global'
 
     STATES = [PRIVATE, TENANT, GLOBAL]
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if v not in cls.STATES:
+            raise ValueError(f'{v} is not a valid visibility')
+        return v
 
 
 class AgentState(object):
