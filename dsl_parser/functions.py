@@ -1764,11 +1764,14 @@ def validate_functions(plan):
 
 def find_requirements(plan):
     required_parent_capabilities = []
+    secrets = []
 
     def handler(v, scope, context, path):
         func = parse(v, scope=scope, context=context, path=path)
         if isinstance(func, GetEnvironmentCapability):
             required_parent_capabilities.append(func.capability_path)
+        elif isinstance(func, GetSecret):
+            secrets.append(func.secret_id)
         scan.scan_properties(
             v,
             handler,
@@ -1782,6 +1785,7 @@ def find_requirements(plan):
 
     return {
         'parent_capabilities': required_parent_capabilities,
+        'secrets': secrets,
     }
 
 
