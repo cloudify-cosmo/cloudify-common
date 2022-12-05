@@ -48,6 +48,7 @@ class Plan(dict):
             capabilities={},
             resource_tags=None,
             labels={},
+            requirements={},
         )
         self.update(plan)
 
