@@ -100,6 +100,18 @@ class Blueprint(dict):
         """
         return self.get('tenant_name')
 
+    @property
+    def requirements(self):
+        """Requirements for creating deployments based on this blueprint.
+
+        If set, this is a dict with key describing various requirements,
+        such as "secrets" or "parent_capabilities". It is up to the caller
+        to interpret them.
+
+        :return: A description of blueprint deploy requirements.
+        """
+        return self.get('requirements')
+
 
 class BlueprintsClient(object):
 
