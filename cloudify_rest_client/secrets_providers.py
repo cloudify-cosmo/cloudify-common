@@ -166,8 +166,6 @@ class SecretsProvidersClient(object):
             name='',
             _type='',
             connection_parameters=None,
-            visibility=VisibilityState.TENANT,
-            test=True,
     ):
         """
         Test a Secrets Provider connectivity.
@@ -186,7 +184,7 @@ class SecretsProvidersClient(object):
         data = {
             'name': name,
             'type': _type,
-            'test': test,
+            'test': True,
         }
 
         if connection_parameters:
