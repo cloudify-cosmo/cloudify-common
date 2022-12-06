@@ -154,12 +154,6 @@ class AgentsClient(object):
         if sort:
             kwargs['_sort'] = '-' + sort if is_descending else sort
 
-        if _include is None:
-            # Default the _include to what was available before, to avoid
-            # defaulting to including credentials, etc
-            _include = ['id', 'host_id', 'ip', 'install_method', 'system',
-                        'version', 'node', 'deployment', 'tenant_name']
-
         response = self.api.get('/{self._uri_prefix}'.format(self=self),
                                 _include=_include,
                                 params=kwargs)
