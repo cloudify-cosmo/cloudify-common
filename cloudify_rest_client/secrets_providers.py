@@ -160,3 +160,38 @@ class SecretsProvidersClient(object):
             [SecretsProvider(item) for item in response['items']],
             response['metadata'],
         )
+
+    def check(
+            self,
+            name='',
+            _type='',
+            connection_parameters=None,
+            visibility=VisibilityState.TENANT,
+            test=True,
+    ):
+        """
+        Test a Secrets Provider connectivity.
+
+        :param name: Secrets Provider name
+        :type name: str
+        :param _type: Secrets Provider type
+        :type _type: str
+        :param connection_parameters: Secrets Provider connection parameters
+        :type connection_parameters: dict
+        :param test: Determine if API call should only test a Secrets Provider
+        :type visibility: bool
+        :returns: New secrets provider metadata
+        :rtype: SecretsProvider
+        """
+        data = {
+            'name': name,
+            'type': _type,
+            'test': test,
+        }
+
+        if connection_parameters:
+            data['connection_parameters'] = connection_parameters
+
+        response = self.api.put('/secrets-providers', data=data)
+
+        return response
