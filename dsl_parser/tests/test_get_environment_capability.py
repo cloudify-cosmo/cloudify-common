@@ -45,6 +45,29 @@ class TestGetEnvironmentCapability(AbstractTestParser):
         self.assertEqual(payload['a'], 'value_a_1')
         self.assertEqual(payload['b'], 'value_b_1')
 
+    def test_reports_requirements(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property_1: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property_1: { get_environment_capability: cap_a }
+outputs:
+    out1:
+        value: { get_environment_capability: [cap_b, attr] }
+"""
+        plan = self.parse(yaml)
+        assert 'requirements' in plan
+        requirements = plan['requirements']
+        assert 'parent_capabilities' in requirements
+        parent_capabilities = requirements['parent_capabilities']
+        assert ['cap_a'] in parent_capabilities
+        assert ['cap_b', 'attr'] in parent_capabilities
+
     def test_get_environment_capability_in_properties(self):
         yaml = """
 node_types:

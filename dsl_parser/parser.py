@@ -106,6 +106,7 @@ def _parse(dsl_string,
         constraints.validate_input_defaults(plan)
     if validate_intrinsic_function:
         functions.validate_functions(plan)
+    plan['requirements'] = functions.find_requirements(plan)
     return plan, merged_blueprint_holder
 
 

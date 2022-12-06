@@ -253,6 +253,33 @@ node_templates:
         self.assertFalse(get_secret_mock.called)
         self.assertFalse(hasattr(parsed, 'secrets'))
 
+    def test_reports_requirements(self):
+        yaml = """
+node_types:
+    type:
+        properties:
+            property_1: {}
+node_templates:
+    node:
+        type: type
+        properties:
+            property_1: { get_secret: sec1 }
+outputs:
+    out1:
+        value: { get_secret: [sec2, attr] }
+    out2:
+        value: { get_secret: {get_secret: sec3} }
+"""
+        plan = self.parse(yaml)
+        assert 'requirements' in plan
+        requirements = plan['requirements']
+        assert 'secrets' in requirements
+        required_secrets = requirements['secrets']
+        assert 'sec1' in required_secrets
+        assert ['sec2', 'attr'] in required_secrets
+        assert 'sec3' in required_secrets
+        assert {'get_secret': 'sec3'} in required_secrets
+
 
 class NotFoundException(Exception):
     status_code = 404
