@@ -160,7 +160,6 @@ class AgentsClient(object):
             _include = ['id', 'host_id', 'ip', 'install_method', 'system',
                         'version', 'node', 'deployment', 'tenant_name']
 
-        kwargs.setdefault('state', [AgentState.STARTED])
         response = self.api.get('/{self._uri_prefix}'.format(self=self),
                                 _include=_include,
                                 params=kwargs)
