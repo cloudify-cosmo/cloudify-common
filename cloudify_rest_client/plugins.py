@@ -1,5 +1,6 @@
 import os
 import contextlib
+import re
 from urllib.parse import urlparse
 
 from cloudify_rest_client import bytes_stream_utils
@@ -191,6 +192,13 @@ class Plugin(dict):
         """
         return self.get('resource_tags')
 
+    @property
+    def yaml_files_paths(self):
+        """
+        :return: yaml_files_paths declared for that plugin.
+        """
+        return self.get('yaml_files_paths')
+
 
 class PluginsClient(object):
     """
@@ -342,6 +350,27 @@ class PluginsClient(object):
                 response, output_file, progress_callback=progress_callback)
 
             return output_file
+
+    def list_yaml_files(self, plugin_id, dsl_version=None):
+        """List plugin yaml files compatible with provided dsl_version
+
+        :param plugin_id: The plugin ID of the plugin yaml to be downloaded.
+        :param dsl_version: Preferred version of the plugin yaml.
+        :return: A list of plugin yaml paths.
+        """
+        plugin_dict = self.api.get(f'/plugins/{plugin_id}')
+        plugin = Plugin(plugin_dict)
+        if not plugin.yaml_files_paths or not dsl_version:
+            return plugin.yaml_files_paths or []
+
+        unknown_dsl_version_yaml_files_paths = []
+        for yaml_file_path in plugin.yaml_files_paths:
+            if yaml_file_path.endswith(f'{dsl_version}.yaml'):
+                return [yaml_file_path]
+            if not re.search(r"_\d_\d+.yaml$", yaml_file_path):
+                unknown_dsl_version_yaml_files_paths += [yaml_file_path]
+
+        return unknown_dsl_version_yaml_files_paths
 
     def set_global(self, plugin_id):
         """
