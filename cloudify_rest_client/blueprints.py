@@ -120,16 +120,19 @@ class BlueprintsClient(object):
         self._uri_prefix = 'blueprints'
         self._wrapper_cls = Blueprint
 
-    def _prepare_put_request(self,
-                             archive_location,
-                             application_file_name,
-                             visibility,
-                             async_upload,
-                             labels=None,
-                             created_at=None,
-                             created_by=None,
-                             state=None,
-                             skip_execution=False):
+    def _prepare_put_request(
+        self,
+        archive_location,
+        application_file_name,
+        visibility,
+        async_upload,
+        labels=None,
+        created_at=None,
+        created_by=None,
+        state=None,
+        skip_execution=False,
+        requirements=None,
+    ):
         params = {'visibility': visibility, 'async_upload': async_upload,
                   'skip_execution': skip_execution}
         if application_file_name is not None:
@@ -169,6 +172,8 @@ class BlueprintsClient(object):
                 open(archive_location, 'rb'),
                 'text/plain',
             )
+        if requirements:
+            params['requirements'] = requirements
 
         data = {
             'params': json.dumps(params),
@@ -178,20 +183,23 @@ class BlueprintsClient(object):
 
         return data
 
-    def _upload(self,
-                archive_location,
-                blueprint_id,
-                application_file_name=None,
-                visibility=VisibilityState.TENANT,
-                progress_callback=None,
-                async_upload=False,
-                labels=None,
-                created_at=None,
-                created_by=None,
-                state=None,
-                skip_execution=False,
-                validate=False,
-                legacy=False):
+    def _upload(
+        self,
+        archive_location,
+        blueprint_id,
+        application_file_name=None,
+        visibility=VisibilityState.TENANT,
+        progress_callback=None,
+        async_upload=False,
+        labels=None,
+        created_at=None,
+        created_by=None,
+        state=None,
+        skip_execution=False,
+        validate=False,
+        legacy=False,
+        requirements=None,
+    ):
         def callback_wrapper(watcher):
             if getattr(watcher, 'cfy_progress_complete', False):
                 # Don't print the final line twice
@@ -218,6 +226,7 @@ class BlueprintsClient(object):
             created_by,
             state,
             skip_execution,
+            requirements,
         )
 
         if legacy:
@@ -334,17 +343,20 @@ class BlueprintsClient(object):
             response['metadata']
         )
 
-    def publish_archive(self,
-                        archive_location,
-                        blueprint_id,
-                        blueprint_filename=None,
-                        visibility=VisibilityState.TENANT,
-                        progress_callback=None,
-                        async_upload=False,
-                        labels=None,
-                        created_at=None,
-                        created_by=None,
-                        skip_execution=False):
+    def publish_archive(
+        self,
+        archive_location,
+        blueprint_id,
+        blueprint_filename=None,
+        visibility=VisibilityState.TENANT,
+        progress_callback=None,
+        async_upload=False,
+        labels=None,
+        created_at=None,
+        created_by=None,
+        skip_execution=False,
+        requirements=None,
+    ):
         """Publishes a blueprint archive to the Cloudify manager.
 
         :param archive_location: Path or Url to the archive file.
@@ -355,6 +367,7 @@ class BlueprintsClient(object):
         :param progress_callback: Progress bar callback method
         :param labels: The blueprint's labels. A list of 1-entry
             dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
+        :requirements: A dict representing the blueprint deploy requirements
         :return: Created blueprint.
 
         Archive file should contain a single directory in which there is a
@@ -375,7 +388,9 @@ class BlueprintsClient(object):
             labels=labels,
             created_at=created_at,
             created_by=created_by,
-            skip_execution=skip_execution)
+            skip_execution=skip_execution,
+            requirements=requirements,
+        )
         if not async_upload:
             return self._wrapper_cls(response)
 
@@ -389,19 +404,22 @@ class BlueprintsClient(object):
             shutil.rmtree(tempdir)
         return size
 
-    def upload(self,
-               path,
-               entity_id,
-               visibility=VisibilityState.TENANT,
-               progress_callback=None,
-               skip_size_limit=True,
-               async_upload=False,
-               labels=None,
-               created_at=None,
-               created_by=None,
-               state=None,
-               skip_execution=False,
-               legacy=False):
+    def upload(
+        self,
+        path,
+        entity_id,
+        visibility=VisibilityState.TENANT,
+        progress_callback=None,
+        skip_size_limit=True,
+        async_upload=False,
+        labels=None,
+        created_at=None,
+        created_by=None,
+        state=None,
+        skip_execution=False,
+        legacy=False,
+        requirements=None,
+    ):
         """
         Uploads a blueprint to Cloudify's manager.
 
@@ -416,6 +434,7 @@ class BlueprintsClient(object):
             dictionaries: [{<key1>: <value1>}, {<key2>: <value2>}, ...]'
         :param legacy: Support some parameters for upload to older managers.
                        Internal use only.
+        :requirements: A dict representing the blueprint deploy requirements
         :return: Created response.
 
         Blueprint path should point to the main yaml file of the response
@@ -441,7 +460,9 @@ class BlueprintsClient(object):
                 created_by=created_by,
                 state=state,
                 skip_execution=skip_execution,
-                legacy=legacy)
+                legacy=legacy,
+                requirements=requirements,
+            )
             if not async_upload:
                 return self._wrapper_cls(response)
         finally:
