@@ -103,6 +103,7 @@ class PluginsUpdateClient(object):
                created_by=None, created_at=None,
                execution_id=None, state=None,
                update_id=None, affected_deployments=None,
+               deployments_per_tenants=None
                temp_blueprint_id=None):
         return PluginsUpdate(self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
@@ -115,6 +116,7 @@ class PluginsUpdateClient(object):
                 state=state,
                 update_id=update_id,
                 affected_deployments=affected_deployments,
+                deployments_per_tenants=deployments_per_tenants,
                 temp_blueprint_id=temp_blueprint_id,
             ),
         ))
