@@ -13,9 +13,9 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import mock
 import requests
 import unittest
+from unittest import mock
 
 from dsl_parser.exceptions import DSLParsingLogicException
 from dsl_parser.import_resolver.default_import_resolver import \

@@ -14,16 +14,16 @@
 #    * limitations under the License.
 
 import logging
-import mock
 import sys
 import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 import pytest
 import requests
-from mock import patch, Mock
+from unittest.mock import patch, Mock
 
 from cloudify_rest_client.exceptions import CloudifyClientError
 
