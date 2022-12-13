@@ -17,7 +17,7 @@ import unittest
 from io import StringIO
 from os import path
 
-from mock import patch
+from unittest.mock import patch
 
 from cloudify import context
 from cloudify import decorators

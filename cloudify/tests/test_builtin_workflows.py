@@ -19,7 +19,7 @@ import unittest
 from collections import Counter
 from os import path
 
-import mock
+from unittest import mock
 
 from cloudify import exceptions
 from cloudify.plugins import lifecycle

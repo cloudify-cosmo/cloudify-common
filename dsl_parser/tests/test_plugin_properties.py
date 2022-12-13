@@ -1,5 +1,6 @@
+from unittest.mock import patch
+
 import pytest
-from mock import patch
 
 from dsl_parser.exceptions import (DSLParsingFormatException,
                                    DSLParsingLogicException)

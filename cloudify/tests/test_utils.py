@@ -14,11 +14,10 @@
 #    * limitations under the License.
 
 import os
-import mock
 import shutil
 import logging
 import tempfile
-from unittest import TestCase
+from unittest import TestCase, mock
 from datetime import datetime, timedelta
 
 from cloudify import utils

@@ -15,8 +15,7 @@
 
 import itertools
 import random
-
-from mock import patch
+from unittest.mock import patch
 
 from dsl_parser import exceptions
 from dsl_parser.tests import scaling

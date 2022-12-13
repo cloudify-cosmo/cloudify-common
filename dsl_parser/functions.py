@@ -227,7 +227,6 @@ class GetInput(Function):
                 "unknown input '{0}'.".format(input_value))
 
     def evaluate(self, handler):
-        return_value = None
         if isinstance(self.input_value, list):
             if any(get_function(x) for x in self.input_value):
                 raise exceptions.FunctionEvaluationError(
@@ -236,12 +235,12 @@ class GetInput(Function):
 
             return_value = self._get_input_attribute(
                 handler.get_input(self.input_value[0]))
-
-        if get_function(self.input_value):
-            raise exceptions.FunctionEvaluationError(
-                '{0}: found an unresolved argument: {1}'
-                .format(self.name, self.input_value))
-        return_value = return_value or handler.get_input(self.input_value)
+        else:
+            if get_function(self.input_value):
+                raise exceptions.FunctionEvaluationError(
+                    '{0}: found an unresolved argument: {1}'
+                    .format(self.name, self.input_value))
+            return_value = handler.get_input(self.input_value)
 
         if self.return_type:
             _, ok = parse_simple_type_value(return_value, self.return_type)
