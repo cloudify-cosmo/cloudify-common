@@ -75,20 +75,30 @@ class Secret(dict):
         """
         return self.get('provider_name')
 
+    @property
+    def provider_options(self):
+        """
+        :return: the secret's provider options
+        """
+        return self.get('provider_options')
+
 
 class SecretsClient(object):
 
     def __init__(self, api):
         self.api = api
 
-    def create(self,
-               key,
-               value,
-               update_if_exists=False,
-               is_hidden_value=False,
-               visibility=VisibilityState.TENANT,
-               schema=None,
-               provider=None):
+    def create(
+            self,
+            key,
+            value,
+            update_if_exists=False,
+            is_hidden_value=False,
+            visibility=VisibilityState.TENANT,
+            schema=None,
+            provider=None,
+            provider_options=None,
+    ):
         """Create secret.
 
         :param key: Secret key
@@ -109,6 +119,8 @@ class SecretsClient(object):
         :type schema: dict
         :param provider: A Secrets Provider name
         :type provider: str
+        :param provider_options: A JSON Secrets Provider options
+        :type schema: dict
         :returns: New secret metadata
         :rtype: Dict[str]
 
@@ -125,6 +137,9 @@ class SecretsClient(object):
         if provider:
             data['provider'] = provider
 
+        if provider_options:
+            data['provider_options'] = provider_options
+
         response = self.api.put('/secrets/{0}'.format(key), data=data)
         return Secret(response)
 
@@ -135,6 +150,7 @@ class SecretsClient(object):
             visibility=None,
             is_hidden_value=None,
             provider=None,
+            provider_options=None,
             **kwargs,
     ):
         kwargs.update({
@@ -142,6 +158,7 @@ class SecretsClient(object):
             'visibility': visibility,
             'is_hidden_value': is_hidden_value,
             'provider': provider,
+            'provider_options': provider_options,
         })
         data = dict((k, v) for k, v in kwargs.items() if v is not None)
         response = self.api.patch('/secrets/{0}'.format(key), data=data)
