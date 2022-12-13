@@ -78,7 +78,11 @@ class Secret(dict):
     @property
     def provider_options(self):
         """
-        :return: the secret's provider options
+        :return: the secret's provider options, e.g. additional path
+            where a secret exists:
+            {"path": "vault_sub_path"}
+
+        :rtype: dict
         """
         return self.get('provider_options')
 
@@ -119,7 +123,7 @@ class SecretsClient(object):
         :type schema: dict
         :param provider: A Secrets Provider name
         :type provider: str
-        :param provider_options: A JSON Secrets Provider options
+        :param provider_options: A Secrets Provider options
         :type schema: dict
         :returns: New secret metadata
         :rtype: Dict[str]
