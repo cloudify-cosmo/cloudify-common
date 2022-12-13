@@ -8,7 +8,8 @@ from cloudify import constants, utils
 from cloudify.state import ctx, workflow_ctx, NotInContext
 from cloudify.exceptions import (HttpException,
                                  NonRecoverableError)
-from cloudify.cluster import CloudifyClusterClient
+from cloudify_rest_client.client import CloudifyClient
+from cloudify_async_client.client import AsyncCloudifyClient
 
 
 class NodeInstance(object):
@@ -123,7 +124,7 @@ class NodeInstance(object):
         return self._system_properties
 
 
-def get_rest_client(tenant=None, api_token=None):
+def get_rest_client(tenant=None, api_token=None, async_client=False):
     """
     :param tenant: optional tenant name to connect as
     :param api_token: optional api_token to authenticate with (instead of
@@ -150,7 +151,11 @@ def get_rest_client(tenant=None, api_token=None):
     else:
         token = utils.get_rest_token()
 
-    return CloudifyClusterClient(
+    client_cls = CloudifyClient
+    if async_client:
+        client_cls = AsyncCloudifyClient
+
+    return client_cls(
         headers=headers,
         host=utils.get_manager_rest_service_host(),
         port=utils.get_manager_rest_service_port(),
@@ -159,7 +164,8 @@ def get_rest_client(tenant=None, api_token=None):
         protocol=utils.get_manager_rest_service_protocol(),
         cert=utils.get_local_rest_certificate(),
         kerberos_env=utils.get_kerberos_indication(
-            os.environ.get(constants.KERBEROS_ENV_KEY))
+            os.environ.get(constants.KERBEROS_ENV_KEY)),
+        retries=30,
     )
 
 
