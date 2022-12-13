@@ -14,7 +14,7 @@
 #    * limitations under the License.
 
 import unittest
-from mock import patch, MagicMock, Mock
+from unittest.mock import patch, MagicMock, Mock
 
 from cloudify import dispatch
 from cloudify import exceptions

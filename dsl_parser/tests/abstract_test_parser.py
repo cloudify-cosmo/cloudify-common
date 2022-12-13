@@ -20,7 +20,7 @@ from urllib.request import pathname2url
 from urllib.parse import urljoin
 
 import unittest
-from mock import Mock
+from unittest.mock import Mock
 
 from cloudify.utils import uuid4
 from dsl_parser.exceptions import DSLParsingException

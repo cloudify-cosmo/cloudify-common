@@ -1,7 +1,7 @@
 from cloudify import constants
 from cloudify_rest_client import CloudifyClient
 
-import mock
+from unittest import mock
 
 
 class MockHTTPClient(CloudifyClient.client_class):

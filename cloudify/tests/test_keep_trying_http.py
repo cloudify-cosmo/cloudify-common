@@ -1,5 +1,5 @@
 import pytest
-from mock.mock import patch, Mock
+from unittest.mock import patch, Mock
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from cloudify.context import CloudifyContext

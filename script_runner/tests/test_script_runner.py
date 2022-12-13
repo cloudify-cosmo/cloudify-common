@@ -19,9 +19,9 @@ import shutil
 import os
 import unittest
 from collections import namedtuple
+from unittest.mock import patch
 
 import requests
-from mock import patch
 import pytest
 
 from . import string_in_log

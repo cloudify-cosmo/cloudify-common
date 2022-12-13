@@ -14,7 +14,7 @@
 #    * limitations under the License.
 
 import unittest
-from mock import patch, MagicMock
+from unittest.mock import patch, MagicMock
 
 from dsl_parser import exceptions
 from dsl_parser import constraints

@@ -927,6 +927,38 @@ node_templates:
                 exceptions.InputEvaluationError, 'does not match data type'):
             prepare_deployment_plan(self.parse(yaml))
 
+    def test_get_input_fetch_from_datatype(self):
+        yaml = """
+inputs:
+    inp1:
+        type: type1
+        default: {}
+data_types:
+    type1:
+        properties:
+            property1:
+                default: 'abc'
+            property2:
+                default:
+                    nested:
+                        x:
+                            'def'
+            property3:
+                default: ''
+outputs:
+    out1:
+        value: {get_input: [inp1, property1]}
+    out2:
+        value: {get_input: [inp1, property2, nested, x]}
+    out3:
+        value: {get_input: [inp1, property3]}
+"""
+        plan = prepare_deployment_plan(self.parse_1_5(yaml))
+        assert plan
+        assert plan['outputs']['out1']['value'] == 'abc'
+        assert plan['outputs']['out2']['value'] == 'def'
+        assert plan['outputs']['out3']['value'] == ''
+
 
 class TestGetAttribute(AbstractTestParser):
 
