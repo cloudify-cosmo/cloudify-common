@@ -208,7 +208,6 @@ class PluginsClient(object):
     def __init__(self, api):
         self.api = api
         self._uri_prefix = 'plugins'
-        self._wrapper_cls = Plugin
 
     def get(self, plugin_id, _include=None, **kwargs):
         """
@@ -219,14 +218,11 @@ class PluginsClient(object):
         :return: The plugin details.
         """
         assert plugin_id
-        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=plugin_id)
-        response = self.api.get(uri, _include=_include, params=kwargs)
-        return self._wrapper_cls(response)
-
-    def _wrap_list(self, response):
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
+        return self.api.get(
+            '/{self._uri_prefix}/{id}'.format(self=self, id=plugin_id),
+            _include=_include,
+            params=kwargs,
+            wrapper=Plugin,
         )
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
@@ -243,10 +239,12 @@ class PluginsClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                _include=_include,
-                                params=params)
-        return self._wrap_list(response)
+        return self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            _include=_include,
+            params=params,
+            wrapper=ListResponse.of(Plugin),
+        )
 
     def delete(self, plugin_id, force=False):
         """
@@ -260,7 +258,7 @@ class PluginsClient(object):
         data = {
             'force': force
         }
-        self.api.delete('/plugins/{0}'.format(plugin_id), data=data)
+        return self.api.delete('/plugins/{0}'.format(plugin_id), data=data)
 
     def upload(self,
                plugin_path,
@@ -307,18 +305,21 @@ class PluginsClient(object):
                 progress_callback=progress_callback,
                 client=self.api)
 
-        response = self.api.post(
+        return self.api.post(
             '/{self._uri_prefix}'.format(self=self),
             params=query_params,
             data=data,
             timeout=timeout,
-            expected_status_code=201
+            expected_status_code=201,
+            wrapper=self._wrap_plugins_list
         )
+
+    def _wrap_plugins_list(self, response):
         if 'metadata' in response and 'items' in response:
             # This is a list of plugins - for caravan
-            return self._wrap_list(response)
+            return ListResponse.of(Plugin)(response)
         else:
-            return self._wrapper_cls(response)
+            return Plugin(response)
 
     def download(self, plugin_id, output_file, progress_callback=None):
         """Downloads a previously uploaded plugin archive from the manager
@@ -330,6 +331,7 @@ class PluginsClient(object):
         :return: The file path of the downloaded plugin.
         """
         uri = '/plugins/{0}/archive'.format(plugin_id)
+        # TODO this is not async-friendly
         with contextlib.closing(self.api.get(uri, stream=True)) as response:
             output_file = bytes_stream_utils.write_response_stream_to_file(
                 response, output_file, progress_callback=progress_callback)
@@ -346,6 +348,7 @@ class PluginsClient(object):
         :return: The file path of the downloaded plugin yaml.
         """
         uri = '/plugins/{0}/yaml'.format(plugin_id)
+        # TODO this is not async-friendly
         with contextlib.closing(self.api.get(uri, stream=True)) as response:
             output_file = bytes_stream_utils.write_response_stream_to_file(
                 response, output_file, progress_callback=progress_callback)
@@ -363,6 +366,7 @@ class PluginsClient(object):
         """
         params = {'dsl_version': dsl_version} if dsl_version else {}
         uri = '/plugins/{0}/yaml'.format(plugin_id)
+        # TODO this is not async-friendly
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, 'plugin.yaml')
             response = self.api.get(uri, params=params, stream=True)
@@ -404,7 +408,7 @@ class PluginsClient(object):
         data = {'visibility': VisibilityState.GLOBAL}
         return self.api.patch(
             '/plugins/{0}/set-visibility'.format(plugin_id),
-            data=data
+            data=data,
         )
 
     def set_visibility(self, plugin_id, visibility):
@@ -419,7 +423,7 @@ class PluginsClient(object):
         data = {'visibility': visibility}
         return self.api.patch(
             '/plugins/{0}/set-visibility'.format(plugin_id),
-            data=data
+            data=data,
         )
 
     def install(self, plugin_id, managers=None, agents=None):
@@ -439,8 +443,11 @@ class PluginsClient(object):
             data['managers'] = managers
         if agents:
             data['agents'] = agents
-        response = self.api.post('/plugins/{0}'.format(plugin_id), data=data)
-        return Plugin(response)
+        return self.api.post(
+            '/plugins/{0}'.format(plugin_id),
+            data=data,
+            wrapper=Plugin,
+        )
 
     def set_state(self, plugin_id, state, agent_name=None,
                   manager_name=None, error=None):
@@ -460,16 +467,23 @@ class PluginsClient(object):
             data['manager'] = manager_name
         if error:
             data['error'] = error
-        response = self.api.put('/plugins/{0}'.format(plugin_id), data=data)
-        return Plugin(response)
+        return self.api.put(
+            '/plugins/{0}'.format(plugin_id),
+            data=data,
+            wrapper=Plugin,
+        )
 
     def set_owner(self, plugin_id, creator):
         """Change ownership of the plugin."""
-        response = self.api.patch('/plugins/{0}'.format(plugin_id),
-                                  data={'creator': creator})
-        return Plugin(response)
+        return self.api.patch(
+            '/plugins/{0}'.format(plugin_id),
+            data={'creator': creator},
+            wrapper=Plugin,
+        )
 
     def update(self, plugin_id, **kwargs):
-        response = self.api.patch('/plugins/{0}'.format(plugin_id),
-                                  data=kwargs)
-        return Plugin(response)
+        return self.api.patch(
+            '/plugins/{0}'.format(plugin_id),
+            data=kwargs,
+            wrapper=Plugin,
+        )

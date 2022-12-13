@@ -103,19 +103,20 @@ class TenantsClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/tenants',
-                                _include=_include,
-                                params=params)
-        return ListResponse([Tenant(item) for item in response['items']],
-                            response['metadata'])
+        return self.api.get(
+            '/tenants',
+            _include=_include,
+            params=params,
+            wrapper=ListResponse.of(Tenant),
+        )
 
     def create(self, tenant_name, rabbitmq_password=''):
-        response = self.api.post(
+        return self.api.post(
             '/tenants/{0}'.format(tenant_name),
             expected_status_code=201,
             data={'rabbitmq_password': rabbitmq_password},
+            wrapper=Tenant,
         )
-        return Tenant(response)
 
     def add_user(self, username, tenant_name, role):
         """Add user to a tenant.
@@ -130,8 +131,7 @@ class TenantsClient(object):
             'tenant_name': tenant_name,
             'role': role,
         }
-        response = self.api.put('/tenants/users', data=data)
-        return Tenant(response)
+        return self.api.put('/tenants/users', data=data, wrapper=Tenant)
 
     def update_user(self, username, tenant_name, role):
         """Update user in a tenant.
@@ -149,8 +149,7 @@ class TenantsClient(object):
             'tenant_name': tenant_name,
             'role': role,
         }
-        response = self.api.patch('/tenants/users', data=data)
-        return Tenant(response)
+        return self.api.patch('/tenants/users', data=data, wrapper=Tenant)
 
     def remove_user(self, username, tenant_name):
         data = {'username': username, 'tenant_name': tenant_name}
@@ -169,8 +168,7 @@ class TenantsClient(object):
             'tenant_name': tenant_name,
             'role': role,
         }
-        response = self.api.put('/tenants/user-groups', data=data)
-        return Tenant(response)
+        return self.api.put('/tenants/user-groups', data=data, wrapper=Tenant)
 
     def update_user_group(self, group_name, tenant_name, role):
         """Update user group in a tenant.
@@ -188,8 +186,11 @@ class TenantsClient(object):
             'tenant_name': tenant_name,
             'role': role,
         }
-        response = self.api.patch('/tenants/user-groups', data=data)
-        return Tenant(response)
+        return self.api.patch(
+            '/tenants/user-groups',
+            data=data,
+            wrapper=Tenant,
+        )
 
     def remove_user_group(self, group_name, tenant_name):
         """Remove user group from tenant.
@@ -201,14 +202,14 @@ class TenantsClient(object):
 
         """
         data = {'group_name': group_name, 'tenant_name': tenant_name}
-        self.api.delete('/tenants/user-groups', data=data)
+        return self.api.delete('/tenants/user-groups', data=data)
 
     def get(self, tenant_name, **kwargs):
-        response = self.api.get(
+        return self.api.get(
             '/tenants/{0}'.format(tenant_name),
-            params=kwargs
+            params=kwargs,
+            wrapper=Tenant,
         )
-        return Tenant(response)
 
     def delete(self, tenant_name):
-        self.api.delete('/tenants/{0}'.format(tenant_name))
+        return self.api.delete('/tenants/{0}'.format(tenant_name))

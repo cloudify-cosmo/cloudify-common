@@ -68,11 +68,11 @@ class AuditLogClient(object):
         if get_all:
             params['size'] = 0
             params['offset'] = 0
-        response = self.api.get('/audit', params=params)
-
-        return ListResponse(
-            [AuditLog(item) for item in response['items']],
-            response['metadata'])
+        return self.api.get(
+            '/audit',
+            params=params,
+            wrapper=ListResponse.of(AuditLog),
+        )
 
     def delete(self, **kwargs):
         """Delete (some) of the AuditLogs.
@@ -82,12 +82,15 @@ class AuditLogClient(object):
         :return:       DeletedResponse describing deletion outcome - a number
                        of 'deleted' records.
         """
-        response = self.api.delete('/audit', params=kwargs)
-        return DeletedResponse(**response)
+        return self.api.delete(
+            '/audit',
+            params=kwargs,
+            wrapper=DeletedResponse,
+        )
 
     def inject(self, logs):
         """Inject audit logs. Intended for internal use only.
 
         :param logs: List of dict log entries to inject.
         """
-        self.api.post('/audit', data=logs)
+        return self.api.post('/audit', data=logs)

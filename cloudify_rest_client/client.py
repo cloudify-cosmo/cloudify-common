@@ -1,6 +1,10 @@
+import itertools
 import json
 import logging
 import numbers
+import random
+import re
+import types
 
 import requests
 from base64 import b64encode
@@ -58,7 +62,6 @@ from cloudify_rest_client.filters import (DeploymentsFiltersClient,
 from cloudify_rest_client.workflows import WorkflowsClient
 from cloudify_rest_client.audit_log import AuditLogClient
 from cloudify_rest_client.community_contacts import CommunityContactsClient
-from cloudify_async_client.audit_log import AuditLogAsyncClient
 
 try:
     from requests_kerberos import HTTPKerberosAuth
@@ -80,15 +83,32 @@ CLOUDIFY_TENANT_HEADER = 'Tenant'
 urllib3.disable_warnings(urllib3.exceptions.InsecurePlatformWarning)
 
 
-class HTTPClient(object):
+class HTTPClientBase:
+    def __init__(
+        self,
+        host,
+        port=DEFAULT_PORT,
+        protocol=DEFAULT_PROTOCOL,
+        api_version=DEFAULT_API_VERSION,
+        headers=None,
+        query_params=None,
+        cert=None,
+        trust_all=False,
+        username=None,
+        password=None,
+        token=None,
+        tenant=None,
+        kerberos_env=None,
+        timeout=None,
+        retries=None,
+    ):
+        hosts = list(host) if isinstance(host, list) else [host]
+        hosts = [ipv6_url_compat(h) for h in hosts]
+        random.shuffle(hosts)
+        self.hosts = itertools.cycle(hosts)
+        self.retries = retries or len(hosts)
 
-    def __init__(self, host, port=DEFAULT_PORT,
-                 protocol=DEFAULT_PROTOCOL, api_version=DEFAULT_API_VERSION,
-                 headers=None, query_params=None, cert=None, trust_all=False,
-                 username=None, password=None, token=None, tenant=None,
-                 kerberos_env=None, timeout=None, session=None):
         self.port = port
-        self.host = ipv6_url_compat(host)
         self.protocol = protocol
         self.api_version = api_version
         self.kerberos_env = kerberos_env
@@ -106,270 +126,156 @@ class HTTPClient(object):
                          log_value=False)
         self._set_header(constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER, token)
         self._set_header(CLOUDIFY_TENANT_HEADER, tenant)
-        if session is None:
-            session = requests.Session()
-        self._session = session
+        self._has_kerberos = None
 
-    @property
-    def url(self):
-        return '{0}://{1}:{2}/api/{3}'.format(self.protocol, self.host,
-                                              self.port, self.api_version)
-
-    def has_kerberos(self):
         if self.kerberos_env is not None:
-            return self.kerberos_env
-        return bool(HTTPKerberosAuth) and is_kerberos_env()
+            self.has_kerberos = True
+        else:
+            self.has_kerberos = bool(HTTPKerberosAuth) and is_kerberos_env()
 
-    def has_auth_header(self):
-        auth_headers = [constants.CLOUDIFY_AUTHENTICATION_HEADER,
-                        constants.CLOUDIFY_EXECUTION_TOKEN_HEADER,
-                        constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER]
-        return any(header in self.headers for header in auth_headers)
+        if self.has_kerberos:
+            self.auth = self._make_kerberos_auth()
+        else:
+            self.auth = None
 
-    def _raise_client_error(self, response, url=None):
-        try:
-            result = response.json()
-        except Exception:
-            if response.status_code == 304:
-                error_msg = 'Nothing to modify'
-                self._prepare_and_raise_exception(
-                    message=error_msg,
-                    error_code='not_modified',
-                    status_code=response.status_code,
-                    server_traceback='')
-            else:
-                message = response.content
-                if url:
-                    message = '{0} [{1}]'.format(message, url)
-                error_msg = '{0}: {1}'.format(response.status_code, message)
-            raise exceptions.CloudifyClientError(
-                error_msg,
-                status_code=response.status_code,
-                response=response)
-        # this can be changed after RD-3539
-        message = result.get('message') or result.get('detail')
-        code = result.get('error_code')
-        server_traceback = result.get('server_traceback')
-        self._prepare_and_raise_exception(
-            message=message,
-            error_code=code,
-            status_code=response.status_code,
-            server_traceback=server_traceback,
-            response=response)
-
-    @staticmethod
-    def _prepare_and_raise_exception(message,
-                                     error_code,
-                                     status_code,
-                                     server_traceback=None,
-                                     response=None):
-
-        error = exceptions.ERROR_MAPPING.get(error_code,
-                                             exceptions.CloudifyClientError)
-        raise error(message, server_traceback,
-                    status_code, error_code=error_code, response=response)
-
-    def verify_response_status(self, response, expected_code=200):
-        if response.status_code != expected_code:
-            self._raise_client_error(response)
-
-    def _do_request(self, requests_method, request_url, body, params, headers,
-                    expected_status_code, stream, verify, timeout):
-        """Run a requests method.
-
-        :param request_method: string choosing the method, eg "get" or "post"
-        :param request_url: the URL to run the request against
-        :param body: request body, as a string
-        :param params: querystring parameters, as a dict
-        :param headers: request headers, as a dict
-        :param expected_status_code: check that the response is this
-            status code, can also be an iterable of allowed status codes.
-        :param stream: whether or not to stream the response
-        :param verify: the CA cert path
-        :param timeout: request timeout or a (connect, read) timeouts pair
-        """
-        auth = None
-        if self.has_kerberos() and not self.has_auth_header():
+    def _make_kerberos_auth(self):
+        if self.has_kerberos and not self.has_auth_header():
             if HTTPKerberosAuth is None:
                 raise exceptions.CloudifyClientError(
                     'Trying to create a client with kerberos, '
                     'but kerberos_env does not exist')
-            auth = HTTPKerberosAuth()
-        response = requests_method(request_url,
-                                   data=body,
-                                   params=params,
-                                   headers=headers,
-                                   stream=stream,
-                                   verify=verify,
-                                   timeout=timeout or self.default_timeout_sec,
-                                   auth=auth)
-        if self.logger.isEnabledFor(logging.DEBUG):
-            for hdr, hdr_content in response.request.headers.items():
-                self.logger.debug('request header:  %s: %s', hdr, hdr_content)
-            self.logger.debug('reply:  "%s %s" %s', response.status_code,
-                              response.reason, response.content)
-            for hdr, hdr_content in response.headers.items():
-                self.logger.debug('response header:  %s: %s', hdr, hdr_content)
+            return HTTPKerberosAuth()
 
-        if isinstance(expected_status_code, numbers.Number):
-            expected_status_code = [expected_status_code]
-        if response.status_code not in expected_status_code:
-            self._raise_client_error(response, request_url)
-
-        if response.status_code == 204:
-            return None
-
-        if stream:
-            return StreamedResponse(response)
-
-        response_json = response.json()
-
-        if response.history:
-            response_json['history'] = response.history
-
-        return response_json
-
-    def get_request_verify(self):
-        # disable certificate verification if user asked us to.
-        if self.trust_all:
-            return False
-        # verify will hold the path to the self-signed certificate
-        if self.cert:
-            return self.cert
-        # verify the certificate
-        return True
-
-    def do_request(self,
-                   requests_method,
-                   uri,
-                   data=None,
-                   params=None,
-                   headers=None,
-                   expected_status_code=200,
-                   stream=False,
-                   versioned_url=True,
-                   timeout=None):
-        if versioned_url:
-            request_url = '{0}{1}'.format(self.url, uri)
-        else:
-            # remove version from url ending
-            url = self.url.rsplit('/', 1)[0]
-            request_url = '{0}{1}'.format(url, uri)
-
-        # build headers
-        headers = headers or {}
+    def _get_total_headers(self, headers):
         total_headers = self.headers.copy()
-        total_headers.update(headers)
+        if headers:
+            total_headers.update(headers)
+        return total_headers
 
-        # build query params
-        params = params or {}
+    def _get_total_params(self, params):
         total_params = self.query_params.copy()
-        total_params.update(params)
+        if params:
+            total_params.update(params)
+        return {
+            k: self._format_querystring_param(v)
+            for k, v in total_params.items()
+            if k is not None and v is not None
+        }
 
-        # data is either dict, bytes data or None
-        is_dict_data = isinstance(data, dict)
-        body = json.dumps(data) if is_dict_data else data
-        if self.logger.isEnabledFor(logging.DEBUG):
-            log_message = 'Sending request: {0} {1}'.format(
-                requests_method.__name__.upper(),
-                request_url)
-            if is_dict_data:
-                log_message += '; body: {0}'.format(body)
-            elif data is not None:
-                log_message += '; body: bytes data'
-            self.logger.debug(log_message)
-        try:
-            return self._do_request(
-                requests_method=requests_method, request_url=request_url,
-                body=body, params=total_params, headers=total_headers,
-                expected_status_code=expected_status_code, stream=stream,
-                verify=self.get_request_verify(), timeout=timeout)
-        except requests.exceptions.SSLError as e:
-            # Special handling: SSL Verification Error.
-            # We'd have liked to use `__context__` but this isn't supported in
-            # Py26, so as long as we support Py26, we need to go about this
-            # awkwardly.
-            if len(e.args) > 0 and 'CERTIFICATE_VERIFY_FAILED' in str(
-                    e.args[0]):
-                raise requests.exceptions.SSLError(
-                    'Certificate verification failed; please ensure that the '
-                    'certificate presented by Cloudify Manager is trusted '
-                    '(underlying reason: {0})'.format(e))
-            raise requests.exceptions.SSLError(
-                'An SSL-related error has occurred. This can happen if the '
-                'specified REST certificate does not match the certificate on '
-                'the manager. Underlying reason: {0}'.format(e))
-        except requests.exceptions.ConnectionError as e:
-            raise requests.exceptions.ConnectionError(
-                '{0}'
-                '\nAn error occurred when trying to connect to the manager,'
-                'please make sure it is online and all required ports are '
-                'open.'
-                '\nThis can also happen when the manager is not working with '
-                'SSL, but the client does'.format(e)
-            )
+    def _format_querystring_param(self, param):
+        if isinstance(param, bool):
+            return str(param)
+        return param
+
+    def get_host(self):
+        return next(self.hosts)
+
+    def get_request_url(self, host, uri, versioned=True):
+        base_url = f'{self.protocol}://{host}:{self.port}/api'
+        if not versioned:
+            return f'{base_url}{uri}'
+        return f'{base_url}/{self.api_version}{uri}'
+
+    def _log_request(self, method, uri, data):
+        if not self.logger.isEnabledFor(logging.DEBUG):
+            return
+        self.logger.debug(
+            'Sending request: %s %s; body: %r',
+            method,
+            uri,
+            data if not data or isinstance(data, dict) else '(bytes data)',
+        )
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
-            expected_status_code=200, stream=False, versioned_url=True,
-            timeout=None):
+            expected_status_code=200, stream=False, timeout=None,
+            versioned_url=True, wrapper=None):
         if _include:
             fields = ','.join(_include)
             if not params:
                 params = {}
             params['_include'] = fields
-        return self.do_request(self._session.get,
-                               uri,
-                               data=data,
-                               params=params,
-                               headers=headers,
-                               expected_status_code=expected_status_code,
-                               stream=stream,
-                               versioned_url=versioned_url,
-                               timeout=timeout)
+
+        self._log_request('GET', uri, data=data)
+        return self.do_request(
+            'GET',
+            uri,
+            data=data,
+            params=self._get_total_params(params),
+            headers=self._get_total_headers(headers),
+            expected_status_code=expected_status_code,
+            stream=stream,
+            timeout=timeout,
+            wrapper=wrapper,
+            versioned_url=versioned_url,
+        )
 
     def put(self, uri, data=None, params=None, headers=None,
-            expected_status_code=200, stream=False, timeout=None):
-        return self.do_request(self._session.put,
-                               uri,
-                               data=data,
-                               params=params,
-                               headers=headers,
-                               expected_status_code=expected_status_code,
-                               stream=stream,
-                               timeout=timeout)
+            expected_status_code=200, stream=False, timeout=None,
+            wrapper=None, versioned_url=True):
+        self._log_request('PUT', uri, data)
+        return self.do_request(
+            'PUT',
+            uri,
+            data=data,
+            params=self._get_total_params(params),
+            headers=self._get_total_headers(headers),
+            expected_status_code=expected_status_code,
+            stream=stream,
+            timeout=timeout,
+            wrapper=wrapper,
+            versioned_url=versioned_url,
+        )
 
     def patch(self, uri, data=None, params=None, headers=None,
-              expected_status_code=200, stream=False, timeout=None):
-        return self.do_request(self._session.patch,
-                               uri,
-                               data=data,
-                               params=params,
-                               headers=headers,
-                               expected_status_code=expected_status_code,
-                               stream=stream,
-                               timeout=timeout)
+              expected_status_code=200, stream=False, timeout=None,
+              wrapper=None, versioned_url=True):
+        self._log_request('PATCH', uri, data)
+        return self.do_request(
+            'PATCH',
+            uri,
+            data=data,
+            params=self._get_total_params(params),
+            headers=self._get_total_headers(headers),
+            expected_status_code=expected_status_code,
+            stream=stream,
+            timeout=timeout,
+            wrapper=wrapper,
+            versioned_url=versioned_url,
+        )
 
     def post(self, uri, data=None, params=None, headers=None,
-             expected_status_code=200, stream=False, timeout=None):
-        return self.do_request(self._session.post,
-                               uri,
-                               data=data,
-                               params=params,
-                               headers=headers,
-                               expected_status_code=expected_status_code,
-                               stream=stream,
-                               timeout=timeout)
+             expected_status_code=200, stream=False, timeout=None,
+             wrapper=None, versioned_url=True):
+        self._log_request('POST', uri, data)
+        return self.do_request(
+            'POST',
+            uri,
+            data=data,
+            params=self._get_total_params(params),
+            headers=self._get_total_headers(headers),
+            expected_status_code=expected_status_code,
+            stream=stream,
+            timeout=timeout,
+            wrapper=wrapper,
+            versioned_url=versioned_url,
+        )
 
     def delete(self, uri, data=None, params=None, headers=None,
-               expected_status_code=(200, 204), stream=False, timeout=None):
-        return self.do_request(self._session.delete,
-                               uri,
-                               data=data,
-                               params=params,
-                               headers=headers,
-                               expected_status_code=expected_status_code,
-                               stream=stream,
-                               timeout=timeout)
+               expected_status_code=(200, 204), stream=False, timeout=None,
+               wrapper=None, versioned_url=True):
+        self._log_request('DELETE', uri, data)
+        return self.do_request(
+            'DELETE',
+            uri,
+            data=data,
+            params=self._get_total_params(params),
+            headers=self._get_total_headers(headers),
+            expected_status_code=expected_status_code,
+            stream=stream,
+            timeout=timeout,
+            wrapper=wrapper,
+            versioned_url=versioned_url,
+        )
 
     def _get_auth_header(self, username, password):
         if not username or not password:
@@ -383,7 +289,174 @@ class HTTPClient(object):
             return
         self.headers[key] = value
         value = value if log_value else '*'
-        self.logger.debug('Setting `%s` header: %s', key, value)
+
+    def has_auth_header(self):
+        auth_headers = [constants.CLOUDIFY_AUTHENTICATION_HEADER,
+                        constants.CLOUDIFY_EXECUTION_TOKEN_HEADER,
+                        constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER]
+        return any(header in self.headers for header in auth_headers)
+
+    def _is_fileserver_download(self, response):
+        """Is this response a file-download response?
+
+        404 responses to requests that download files, need to be retried
+        with all managers in the cluster: if some file was not yet
+        replicated, another manager might have this file.
+
+        This is because the file replication is asynchronous.
+        """
+        # str() the url because sometimes (aiohttp) it is a URL object
+        if re.search('/(blueprints|snapshots)/', str(response.url)):
+            return True
+        disposition = response.headers.get('Content-Disposition')
+        if not disposition:
+            return False
+        return disposition.strip().startswith('attachment')
+
+
+class HTTPClient(HTTPClientBase):
+    def __init__(self, *args, **kwargs):
+        session = kwargs.pop('session', None)
+        super().__init__(*args, **kwargs)
+
+        if session is None:
+            session = requests.Session()
+        self._session = session
+
+    def do_request(
+        self,
+        method,
+        uri,
+        data,
+        params,
+        headers,
+        expected_status_code,
+        stream,
+        timeout,
+        wrapper,
+        versioned_url=True,
+    ):
+        """Run a requests method.
+
+        :param request_method: string choosing the method, eg "get" or "post"
+        :param request_url: the URL to run the request against
+        :param data: request data, dict or string
+        :param params: querystring parameters, as a dict
+        :param headers: request headers, as a dict
+        :param expected_status_code: check that the response is this
+            status code, can also be an iterable of allowed status codes.
+        :param stream: whether or not to stream the response
+        :param verify: the CA cert path
+        :param timeout: request timeout or a (connect, read) timeouts pair
+        """
+        requests_method = getattr(self._session, method.lower(), None)
+        if requests_method is None:
+            raise RuntimeError(f'Unknown method: {method}')
+
+        copied_data = None
+        if isinstance(data, types.GeneratorType):
+            copied_data = itertools.tee(data, self.retries)
+        elif isinstance(data, dict):
+            data = json.dumps(data)
+
+        errors = {}
+        for retry in range(self.retries):
+            manager_to_try = self.get_host()
+            request_url = self.get_request_url(
+                manager_to_try,
+                uri,
+                versioned=versioned_url,
+            )
+            if copied_data is not None:
+                data = copied_data[retry]
+            try:
+                response = requests_method(
+                    request_url,
+                    data=data,
+                    params=params,
+                    headers=headers,
+                    stream=stream,
+                    verify=self.get_request_verify(),
+                    timeout=timeout or self.default_timeout_sec,
+                    auth=self.auth,
+                )
+            except requests.exceptions.SSLError as e:
+                errors[manager_to_try] = exceptions.format_ssl_error(e)
+                self.logger.debug(
+                    'HTTP Client error: %s %s: %s', method, uri, e)
+                continue
+            except requests.exceptions.ConnectionError as e:
+                errors[manager_to_try] = exceptions.format_connection_error(e)
+                self.logger.debug(
+                    'HTTP Client error: %s %s: %s', method, uri, e)
+                continue
+            except exceptions.CloudifyClientError as e:
+                self.logger.debug(
+                    'HTTP Client error: %s %s: %s', method, uri, e)
+                errors[manager_to_try] = e.status_code
+                if e.response.status_code == 502:
+                    continue
+                if e.response.status_code == 404 and \
+                        self._is_fileserver_download(e.response):
+                    continue
+                else:
+                    raise
+
+            return self.process_response(
+                response,
+                expected_status_code,
+                stream,
+                wrapper,
+            )
+        mgr_errors = ', '.join(f'{host}: {e}' for host, e in errors.items())
+        raise exceptions.CloudifyClientError(
+            f'HTTP Client error: {method} {uri} ({mgr_errors})')
+
+    def process_response(
+        self,
+        response,
+        expected_status_code,
+        stream,
+        wrapper
+    ):
+        if self.logger.isEnabledFor(logging.DEBUG):
+            for hdr, hdr_content in response.request.headers.items():
+                self.logger.debug('request header:  %s: %s', hdr, hdr_content)
+            self.logger.debug('reply:  "%s %s" %s', response.status_code,
+                              response.reason, response.content)
+            for hdr, hdr_content in response.headers.items():
+                self.logger.debug('response header:  %s: %s', hdr, hdr_content)
+
+        if isinstance(expected_status_code, numbers.Number):
+            expected_status_code = [expected_status_code]
+        if response.status_code not in expected_status_code:
+            raise exceptions.CloudifyClientError.from_response(
+                response, response.status_code, response.content)
+
+        if response.status_code == 204:
+            return None
+
+        if stream:
+            return StreamedResponse(response)
+
+        response_json = response.json()
+
+        if response.history:
+            response_json['history'] = response.history
+
+        if wrapper:
+            return wrapper(response_json)
+        return response_json
+
+    def get_request_verify(self):
+        # disable certificate verification if user asked us to.
+        if self.trust_all:
+            return False
+        # verify will hold the path to the self-signed certificate
+        if self.cert:
+            return self.cert
+        # verify the certificate
+        return True
 
 
 class StreamedResponse(object):
@@ -409,11 +482,25 @@ class CloudifyClient(object):
     """Cloudify's management client."""
     client_class = HTTPClient
 
-    def __init__(self, host='localhost', port=None, protocol=DEFAULT_PROTOCOL,
-                 api_version=DEFAULT_API_VERSION, headers=None,
-                 query_params=None, cert=None, trust_all=False,
-                 username=None, password=None, token=None, tenant=None,
-                 kerberos_env=None, timeout=None, session=None):
+    def __init__(
+        self,
+        host='localhost',
+        port=None,
+        protocol=DEFAULT_PROTOCOL,
+        api_version=DEFAULT_API_VERSION,
+        headers=None,
+        query_params=None,
+        cert=None,
+        trust_all=False,
+        username=None,
+        password=None,
+        token=None,
+        tenant=None,
+        kerberos_env=None,
+        timeout=None,
+        session=None,
+        retries=None,
+    ):
         """
         Creates a Cloudify client with the provided host and optional port.
 
@@ -434,22 +521,38 @@ class CloudifyClient(object):
         :param timeout: Requests timeout value. If not set, will default to
                         (5, None)- 5 seconds connect timeout, no read timeout.
         :param session: a requests.Session to use for all HTTP calls
+        :param retries: requests that fail with a connection error will be
+                        retried this many times
+        :param retry_interval: wait this many seconds between retries
         :return: Cloudify client instance.
         """
 
         if not port:
             if protocol == SECURED_PROTOCOL:
-                # SSL
                 port = SECURED_PORT
             else:
                 port = DEFAULT_PORT
 
         self.host = host
-        self._client = self.client_class(host, port, protocol, api_version,
-                                         headers, query_params, cert,
-                                         trust_all, username, password,
-                                         token, tenant, kerberos_env, timeout,
-                                         session)
+        self._client = self.client_class(
+            host=host,
+            port=port,
+            protocol=protocol,
+            api_version=api_version,
+            headers=headers,
+            query_params=query_params,
+            cert=cert,
+            trust_all=trust_all,
+            username=username,
+            password=password,
+            token=token,
+            tenant=tenant,
+            kerberos_env=kerberos_env,
+            timeout=timeout,
+            session=session,
+            retries=retries,
+        )
+
         self.blueprints = BlueprintsClient(self._client)
         self.idp = IdentityProviderClient(self._client)
         self.permissions = PermissionsClient(self._client)
@@ -493,7 +596,4 @@ class CloudifyClient(object):
         self.blueprints_labels = BlueprintsLabelsClient(self._client)
         self.workflows = WorkflowsClient(self._client)
         self.community_contacts = CommunityContactsClient(self._client)
-        if AuditLogAsyncClient is None:
-            self.auditlog = AuditLogClient(self._client)
-        else:
-            self.auditlog = AuditLogAsyncClient(self._client)
+        self.auditlog = AuditLogClient(self._client)

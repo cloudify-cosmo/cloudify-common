@@ -56,13 +56,6 @@ class InterDeploymentDependencyClient(object):
     def __init__(self, api):
         self.api = api
         self._uri_prefix = 'deployments/inter-deployment-dependencies'
-        self._wrapper_cls = InterDeploymentDependency
-
-    def _wrap_list(self, response):
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
-        )
 
     def create(self, dependency_creator, source_deployment,
                target_deployment=None,
@@ -93,9 +86,11 @@ class InterDeploymentDependencyClient(object):
                                             target_deployment_func,
                                             external_source,
                                             external_target)
-        response = self.api.put(
-            '/{self._uri_prefix}'.format(self=self), data=data)
-        return self._wrapper_cls(response)
+        return self.api.put(
+            '/{self._uri_prefix}'.format(self=self),
+            data=data,
+            wrapper=InterDeploymentDependency,
+        )
 
     def create_many(self, source_deployment_id, inter_deployment_dependencies):
         """Creates a number of inter-deployment dependencies.
@@ -106,12 +101,14 @@ class InterDeploymentDependencyClient(object):
          dependencies descriptions, but without a source_deployment(_id).
         :return: a list of created InterDeploymentDependencies IDs.
         """
-        response = self.api.post(
-            '/{self._uri_prefix}'.format(self=self), data={
+        return self.api.post(
+            '/{self._uri_prefix}'.format(self=self),
+            data={
                 'source_deployment_id': source_deployment_id,
-                'inter_deployment_dependencies': inter_deployment_dependencies}
+                'inter_deployment_dependencies': inter_deployment_dependencies
+            },
+            wrapper=ListResponse.of(InterDeploymentDependency),
         )
-        return self._wrap_list(response)
 
     def update_all(self, source_deployment_id, inter_deployment_dependencies):
         """Update (i.e. rewrite all) inter-deployment dependencies for
@@ -123,14 +120,14 @@ class InterDeploymentDependencyClient(object):
          dependencies descriptions, but without a source_deployment(_id).
         :return: a list of created InterDeploymentDependencies IDs.
         """
-        response = self.api.put(
+        return self.api.put(
             '/deployments/{0}/inter-deployment-dependencies'.format(
                 source_deployment_id),
             data={
                 'inter_deployment_dependencies': inter_deployment_dependencies,
             },
+            wrapper=ListResponse.of(InterDeploymentDependency),
         )
-        return self._wrap_list(response)
 
     def delete(self, dependency_creator, source_deployment,
                target_deployment=None,
@@ -162,7 +159,10 @@ class InterDeploymentDependencyClient(object):
                                             external_source=external_source,
                                             external_target=external_target)
         data['is_component_deletion'] = is_component_deletion
-        self.api.delete('/{self._uri_prefix}'.format(self=self), data=data)
+        return self.api.delete(
+            '/{self._uri_prefix}'.format(self=self),
+            data=data,
+        )
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
@@ -179,10 +179,12 @@ class InterDeploymentDependencyClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                _include=_include,
-                                params=params)
-        return self._wrap_list(response)
+        return self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            _include=_include,
+            params=params,
+            wrapper=ListResponse.of(InterDeploymentDependency),
+        )
 
     def restore(self, deployment_id, update_service_composition):
         """
@@ -194,5 +196,7 @@ class InterDeploymentDependencyClient(object):
             'deployment_id': deployment_id,
             'update_service_composition': update_service_composition,
         }
-        self.api.post('/{self._uri_prefix}/restore'.format(self=self),
-                      data=data)
+        return self.api.post(
+            '/{self._uri_prefix}/restore'.format(self=self),
+            data=data,
+        )

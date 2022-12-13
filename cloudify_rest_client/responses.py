@@ -58,6 +58,12 @@ class Pagination(dict):
 
 
 class ListResponse(object):
+    @classmethod
+    def of(cls, item_cls):
+        return lambda response_json: cls(
+            items=[item_cls(item) for item in response_json.get('items', [])],
+            metadata=response_json.get('metadata', {}),
+        )
 
     def __init__(self, items, metadata):
         self.items = items

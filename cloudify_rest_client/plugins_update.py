@@ -57,7 +57,6 @@ class PluginsUpdateClient(object):
     def __init__(self, api):
         self.api = api
         self._uri_prefix = 'plugins-updates'
-        self._wrapper_cls = PluginsUpdate
 
     def get(self, plugins_update_id, _include=None, **kwargs):
         """
@@ -70,13 +69,11 @@ class PluginsUpdateClient(object):
         assert plugins_update_id
         uri = '/{self._uri_prefix}/{id}'.format(
             self=self, id=plugins_update_id)
-        response = self.api.get(uri, _include=_include, params=kwargs)
-        return self._wrapper_cls(response)
-
-    def _wrap_list(self, response):
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
+        return self.api.get(
+            uri,
+            _include=_include,
+            params=kwargs,
+            wrapper=PluginsUpdate,
         )
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
@@ -94,10 +91,12 @@ class PluginsUpdateClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                _include=_include,
-                                params=params)
-        return self._wrap_list(response)
+        return self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            _include=_include,
+            params=params,
+            wrapper=ListResponse.of(PluginsUpdate),
+        )
 
     def inject(self, blueprint_id, force=False,
                created_by=None, created_at=None,
@@ -105,7 +104,7 @@ class PluginsUpdateClient(object):
                update_id=None, affected_deployments=None,
                deployments_per_tenants=None, all_tenants=None,
                temp_blueprint_id=None):
-        return PluginsUpdate(self.api.post(
+        return self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
                                                             self=self),
             data=_data_from_kwargs(
@@ -120,7 +119,8 @@ class PluginsUpdateClient(object):
                 deployments_per_tenants=deployments_per_tenants,
                 temp_blueprint_id=temp_blueprint_id,
             ),
-        ))
+            wrapper=PluginsUpdate,
+        )
 
     def update_plugins(self, blueprint_id, force=False, plugin_names=None,
                        to_latest=None, all_to_latest=True,
@@ -162,7 +162,7 @@ class PluginsUpdateClient(object):
                           RuntimeWarning)
         else:
             mapping = {}
-        response = self.api.post(
+        return self.api.post(
             '/{self._uri_prefix}/{}/update/initiate'.format(blueprint_id,
                                                             self=self),
             data=_data_from_kwargs(
@@ -176,9 +176,9 @@ class PluginsUpdateClient(object):
                 auto_correct_types=auto_correct_types,
                 reevaluate_active_statuses=reevaluate_active_statuses,
                 all_tenants=all_tenants
-            )
+            ),
+            wrapper=PluginsUpdate,
         )
-        return PluginsUpdate(response)
 
     def finalize_plugins_update(self, plugins_update_id):
         """
@@ -186,11 +186,13 @@ class PluginsUpdateClient(object):
 
         :return: a PluginUpdate object.
         """
-        response = self.api.post(
-            '/{self._uri_prefix}/{}/update/finalize'.format(plugins_update_id,
-                                                            self=self)
+        return self.api.post(
+            '/{self._uri_prefix}/{}/update/finalize'.format(
+                plugins_update_id,
+                self=self,
+            ),
+            wrapper=PluginsUpdate,
         )
-        return PluginsUpdate(response)
 
 
 def _data_from_kwargs(**kwargs):

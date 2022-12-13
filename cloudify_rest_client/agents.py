@@ -140,7 +140,6 @@ class AgentsClient(object):
     def __init__(self, api):
         self.api = api
         self._uri_prefix = 'agents'
-        self._wrapper_cls = Agent
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """List the agents installed from the manager.
@@ -154,12 +153,11 @@ class AgentsClient(object):
         if sort:
             kwargs['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                _include=_include,
-                                params=kwargs)
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
+        return self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            _include=_include,
+            params=kwargs,
+            wrapper=ListResponse.of(Agent),
         )
 
     def get(self, name):
@@ -168,8 +166,10 @@ class AgentsClient(object):
          :param name: The name of the agent
          :return: The details of the agent
          """
-        response = self.api.get('/{0}/{1}'.format(self._uri_prefix, name))
-        return self._wrapper_cls(response)
+        return self.api.get(
+            '/{0}/{1}'.format(self._uri_prefix, name),
+            wrapper=Agent,
+        )
 
     def create(self, name, node_instance_id, state=AgentState.CREATING,
                create_rabbitmq_user=True, **kwargs):
@@ -185,9 +185,11 @@ class AgentsClient(object):
                 'state': state,
                 'create_rabbitmq_user': create_rabbitmq_user}
         data.update(kwargs)
-        response = self.api.put('/{0}/{1}'.format(self._uri_prefix, name),
-                                data=data)
-        return self._wrapper_cls(response)
+        return self.api.put(
+            '/{0}/{1}'.format(self._uri_prefix, name),
+            data=data,
+            wrapper=Agent,
+        )
 
     def update(self, name, state):
         """Update agent with the provided state.
@@ -197,9 +199,11 @@ class AgentsClient(object):
         :return: The updated agent
         """
         data = {'state': state}
-        response = self.api.patch('/{0}/{1}'.format(self._uri_prefix, name),
-                                  data=data)
-        return self._wrapper_cls(response)
+        return self.api.patch(
+            '/{0}/{1}'.format(self._uri_prefix, name),
+            data=data,
+            wrapper=Agent,
+        )
 
     def replace_ca_certs(self,
                          bundle,
@@ -227,6 +231,7 @@ class AgentsClient(object):
             'manager_ca_cert': manager_ca_cert_str
         }
 
-        response = self.api.patch('/' + self._uri_prefix, data=data)
-
-        return response
+        return self.api.patch(
+            '/' + self._uri_prefix,
+            data=data,
+        )

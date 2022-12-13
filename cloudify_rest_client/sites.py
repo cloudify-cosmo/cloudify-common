@@ -57,7 +57,6 @@ class SitesClient(object):
     def __init__(self, api):
         self.api = api
         self._uri_prefix = 'sites'
-        self._wrapper_cls = Site
 
     def create(self, name, location=None, visibility=VisibilityState.TENANT,
                created_by=None, created_at=None):
@@ -79,11 +78,11 @@ class SitesClient(object):
             data['created_by'] = created_by
         if created_at:
             data['created_at'] = created_at
-        response = self.api.put(
+        return self.api.put(
             '/{self._uri_prefix}/{name}'.format(self=self, name=name),
-            data=data
+            data=data,
+            wrapper=Site,
         )
-        return self._wrapper_cls(response)
 
     def update(self, name, location=None, visibility=VisibilityState.TENANT,
                new_name=None):
@@ -104,11 +103,11 @@ class SitesClient(object):
         }
         # Remove the keys with value None
         data = dict((k, v) for k, v in data.items() if v is not None)
-        response = self.api.post(
+        return self.api.post(
             '/{self._uri_prefix}/{name}'.format(self=self, name=name),
-            data=data
+            data=data,
+            wrapper=Site,
         )
-        return self._wrapper_cls(response)
 
     def get(self, name):
         """
@@ -117,10 +116,10 @@ class SitesClient(object):
         :param name: The name of the site
         :return: The details of the site
         """
-        response = self.api.get(
-            '/{self._uri_prefix}/{name}'.format(self=self, name=name)
+        return self.api.get(
+            '/{self._uri_prefix}/{name}'.format(self=self, name=name),
+            wrapper=Site,
         )
-        return self._wrapper_cls(response)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
@@ -137,12 +136,11 @@ class SitesClient(object):
         if sort:
             kwargs['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                _include=_include,
-                                params=kwargs)
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
+        return self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            _include=_include,
+            params=kwargs,
+            wrapper=ListResponse.of(Site),
         )
 
     def delete(self, name):
@@ -152,6 +150,6 @@ class SitesClient(object):
         :param name: The name of the site to be deleted.
         :return: Deleted site.
         """
-        self.api.delete(
+        return self.api.delete(
             '/{self._uri_prefix}/{name}'.format(self=self, name=name)
         )

@@ -52,8 +52,7 @@ class LogBundlesClient(object):
         :return: LogBundle.
         """
         uri = self.base_url + log_bundle_id
-        response = self.api.get(uri, _include=_include)
-        return LogBundle(response)
+        return self.api.get(uri, _include=_include, wrapper=LogBundle)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """Returns a list of currently stored log bundles.
@@ -68,10 +67,12 @@ class LogBundlesClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get(self.base_url.rstrip('/'),
-                                params=params, _include=_include)
-        return ListResponse([LogBundle(item) for item in response['items']],
-                            response['metadata'])
+        return self.api.get(
+            self.base_url.rstrip('/'),
+            params=params,
+            _include=_include,
+            wrapper=ListResponse.of(LogBundle),
+        )
 
     def create(self,
                log_bundle_id,
@@ -84,15 +85,19 @@ class LogBundlesClient(object):
         """
         uri = self.base_url + log_bundle_id
         params = {'queue': queue}
-        response = self.api.put(uri, data=params, expected_status_code=201)
-        return Execution(response)
+        return self.api.put(
+            uri,
+            data=params,
+            expected_status_code=201,
+            wrapper=Execution,
+        )
 
     def delete(self, log_bundle_id):
         """Deletes the log bundle whose id matches the provided log bundle id.
         :param log_bundle_id: The id of the log bundle to be deleted.
         """
         uri = self.base_url + log_bundle_id
-        self.api.delete(uri)
+        return self.api.delete(uri)
 
     def download(self, log_bundle_id, output_file, progress_callback=None):
         """Downloads a previously created log bundle from a manager.
@@ -104,10 +109,10 @@ class LogBundlesClient(object):
         """
         uri = self.base_url + '{}/archive'.format(log_bundle_id)
 
+        # TODO this is not async-friendly
         with contextlib.closing(self.api.get(uri, stream=True)) as response:
             output_file = bytes_stream_utils.write_response_stream_to_file(
                 response, output_file, progress_callback=progress_callback)
-
             return output_file
 
     def update_status(self, log_bundle_id, status, error=None):
@@ -120,4 +125,4 @@ class LogBundlesClient(object):
         params = {'status': status}
         if error:
             params['error'] = error
-        self.api.patch(uri, data=params)
+        return self.api.patch(uri, data=params)

@@ -58,11 +58,10 @@ class TokensClient(object):
         :param kwargs: Optional fields or filter arguments as defined in the
                        restservice.
         """
-        response = self.api.get('/tokens', params=kwargs)
-
-        return ListResponse(
-            [Token(item) for item in response['items']],
-            response['metadata']
+        return self.api.get(
+            '/tokens',
+            params=kwargs,
+            wrapper=ListResponse.of(Token),
         )
 
     def get(self, token_id):
@@ -71,11 +70,11 @@ class TokensClient(object):
 
         :return: Token
         """
-        return Token(self.api.get('/tokens/{}'.format(token_id)))
+        return self.api.get('/tokens/{}'.format(token_id), wrapper=Token)
 
     def delete(self, token_id):
         """Delete an existing token, revoking its access."""
-        self.api.delete('/tokens/{}'.format(token_id))
+        return self.api.delete('/tokens/{}'.format(token_id))
 
     def create(self, description=None, expiration=None):
         """Create a new authentication token for the current user.
@@ -94,7 +93,8 @@ class TokensClient(object):
         if expiration:
             parse_utc_datetime(expiration)
             data['expiration_date'] = expiration
-        return Token(self.api.post(
+        return self.api.post(
             '/tokens',
             data=data,
-        ))
+            wrapper=Token,
+        )

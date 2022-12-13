@@ -262,8 +262,7 @@ class ManagerClient(object):
         """
         :return: Cloudify's management machine status.
         """
-        response = self.api.get('/status')
-        return response
+        return self.api.get('/status')
 
     def get_config(self, name=None, scope=None):
         """Get configuration of the manager.
@@ -272,18 +271,27 @@ class ManagerClient(object):
         provided, return all values for that scope.
         """
         if name and scope:
-            response = self.api.get('/config/{0}.{1}'.format(scope, name))
-            return ConfigItem(response)
+            return self.api.get(
+                '/config/{0}.{1}'.format(scope, name),
+                wrapper=ConfigItem,
+            )
         if name:
-            response = self.api.get('/config/{0}'.format(name))
-            return ConfigItem(response)
+            return self.api.get(
+                '/config/{0}'.format(name),
+                wrapper=ConfigItem,
+            )
 
         if scope:
-            response = self.api.get('/config', params={'scope': scope})
+            return self.api.get(
+                '/config',
+                params={'scope': scope},
+                wrapper=ListResponse.of(ConfigItem),
+            )
         else:
-            response = self.api.get('/config')
-        return ListResponse([ConfigItem(item) for item in response['items']],
-                            response['metadata'])
+            return self.api.get(
+                '/config',
+                wrapper=ListResponse.of(ConfigItem),
+            )
 
     def put_config(self, name, value, force=False):
         """Update a given setting.
@@ -292,11 +300,14 @@ class ManagerClient(object):
 
         :param force: Force changing non-editable settings
         """
-        response = self.api.put('/config/{0}'.format(name), data={
-            'value': value,
-            'force': force
-        })
-        return ConfigItem(response)
+        return self.api.put(
+            '/config/{0}'.format(name),
+            data={
+                'value': value,
+                'force': force
+            },
+            wrapper=ConfigItem,
+        )
 
     def add_manager(self, hostname, private_ip, public_ip, version,
                     edition, distribution, distro_release,
@@ -320,8 +331,7 @@ class ManagerClient(object):
             manager['fs_sync_node_id'] = fs_sync_node_id
         if networks:
             manager['networks'] = networks
-        response = self.api.post('/managers', data=manager)
-        return ManagerItem(response)
+        return self.api.post('/managers', data=manager, wrapper=ManagerItem)
 
     def remove_manager(self, hostname):
         """
@@ -331,7 +341,7 @@ class ManagerClient(object):
         the cluster, not necessarily for uninstalling the manager
         :param hostname: The manager's hostname
         """
-        self.api.delete('/managers/{0}'.format(hostname))
+        return self.api.delete('/managers/{0}'.format(hostname))
 
     def update_manager(self, hostname, fs_sync_node_id, bootstrap_cluster):
         """
@@ -342,11 +352,14 @@ class ManagerClient(object):
         :param bootstrap_cluster: Whether it is the 1st manager in the cluster
             or not
         """
-        response = self.api.put('/managers/{0}'.format(hostname), data={
-            'fs_sync_node_id': fs_sync_node_id,
-            'bootstrap_cluster': bootstrap_cluster
-        })
-        return ManagerItem(response)
+        return self.api.put(
+            '/managers/{0}'.format(hostname),
+            data={
+                'fs_sync_node_id': fs_sync_node_id,
+                'bootstrap_cluster': bootstrap_cluster
+            },
+            wrapper=ManagerItem,
+        )
 
     def get_managers(self, hostname=None, _include=None):
         """
@@ -356,14 +369,18 @@ class ManagerClient(object):
         :param _include: list of columns to include in the returned list
         """
         if hostname:
-            response = self.api.get('/managers', params={'hostname': hostname},
-                                    _include=_include)
+            return self.api.get(
+                '/managers',
+                params={'hostname': hostname},
+                _include=_include,
+                wrapper=ListResponse.of(ManagerItem),
+            )
         else:
-            response = self.api.get('/managers', _include=_include)
-        return ListResponse(
-            [ManagerItem(item) for item in response['items']],
-            response['metadata']
-        )
+            return self.api.get(
+                '/managers',
+                _include=_include,
+                wrapper=ListResponse.of(ManagerItem),
+            )
 
     def add_broker(self, name, address, port=None, networks=None):
         """Add a broker to the brokers table.
@@ -390,8 +407,11 @@ class ManagerClient(object):
             params['port'] = port
         if networks:
             params['networks'] = networks
-        response = self.api.post('/brokers', data=params)
-        return RabbitMQBrokerItem(response)
+        return self.api.post(
+            '/brokers',
+            data=params,
+            wrapper=RabbitMQBrokerItem,
+        )
 
     def remove_broker(self, name):
         """Remove a broker from the brokers table.
@@ -404,7 +424,7 @@ class ManagerClient(object):
 
         :return: The broker that was deleted.
         """
-        self.api.delete('/brokers/{0}'.format(name))
+        return self.api.delete('/brokers/{0}'.format(name))
 
     def update_broker(self, name, networks):
         """Update a broker.
@@ -417,16 +437,18 @@ class ManagerClient(object):
 
         :return: The updated broker.
         """
-        response = self.api.put('/brokers/{0}'.format(name), data={
-            'networks': networks,
-        })
-        return RabbitMQBrokerItem(response)
+        return self.api.put(
+            '/brokers/{0}'.format(name),
+            data={
+                'networks': networks,
+            },
+            wrapper=RabbitMQBrokerItem,
+        )
 
     def get_brokers(self):
-        response = self.api.get('/brokers',)
-        return ListResponse(
-            [RabbitMQBrokerItem(item) for item in response['items']],
-            response['metadata']
+        return self.api.get(
+            '/brokers',
+            wrapper=ListResponse.of(RabbitMQBrokerItem),
         )
 
     def update_db_nodes(self):
@@ -435,25 +457,20 @@ class ManagerClient(object):
         :return: A list of DB nodes in the cluster.
         """
         params = {'action': 'update'}
-        response = self.api.post('/db-nodes', data=params)
-        return ListResponse(
-            [DBNodeItem(item) for item in response['items']],
-            response['metadata']
+        return self.api.post(
+            '/db-nodes',
+            data=params,
+            wrapper=ListResponse.of(DBNodeItem),
         )
 
     def get_db_nodes(self):
-        response = self.api.get('/db-nodes')
-        return ListResponse(
-            [DBNodeItem(item) for item in response['items']],
-            response['metadata']
-        )
+        return self.api.get('/db-nodes', wrapper=ListResponse.of(DBNodeItem))
 
     def get_version(self):
         """
         :return: Cloudify's management machine version information.
         """
-        response = self.api.get('/version', versioned_url=False)
-        return response
+        return self.api.get('/version', versioned_url=False)
 
     def get_context(self, _include=None):
         """
@@ -464,8 +481,7 @@ class ManagerClient(object):
         :param _include: List of fields to include in response.
         :return: Context stored in manager.
         """
-        response = self.api.get('/provider/context', _include=_include)
-        return response
+        return self.api.get('/provider/context', _include=_include)
 
     def create_context(self, name, context):
         """
@@ -478,11 +494,11 @@ class ManagerClient(object):
         :param context: Context as dict.
         :return: Create context result.
         """
-        data = {'name': name, 'context': context}
-        response = self.api.post('/provider/context',
-                                 data,
-                                 expected_status_code=201)
-        return response
+        return self.api.post(
+            '/provider/context',
+            data={'name': name, 'context': context},
+            expected_status_code=201,
+        )
 
     def update_context(self, name, context):
 
@@ -497,9 +513,9 @@ class ManagerClient(object):
         :param context: Context as dict.
 
         """
-
-        data = {'name': name, 'context': context}
-        response = self.api.post('/provider/context', data,
-                                 expected_status_code=200,
-                                 params={'update': 'true'})
-        return response
+        return self.api.post(
+            '/provider/context',
+            data={'name': name, 'context': context},
+            expected_status_code=200,
+            params={'update': 'true'},
+        )

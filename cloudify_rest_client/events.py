@@ -1,4 +1,3 @@
-import warnings
 from datetime import datetime
 
 from cloudify_rest_client.responses import ListResponse
@@ -8,34 +7,6 @@ class EventsClient(object):
 
     def __init__(self, api):
         self.api = api
-
-    def get(self,
-            execution_id,
-            from_event=0,
-            batch_size=100,
-            include_logs=False):
-        """
-        Returns event for the provided execution id.
-
-        :param execution_id: Id of execution to get events for.
-        :param from_event: Index of first event to retrieve on pagination.
-        :param batch_size: Maximum number of events to retrieve per call.
-        :param include_logs: Whether to also get logs.
-        :return: Events list and total number of currently available
-         events (tuple).
-        """
-        warnings.warn('method is deprecated, use "{0}" method instead'
-                      .format(self.list.__name__),
-                      DeprecationWarning)
-
-        response = self.list(execution_id=execution_id,
-                             include_logs=include_logs,
-                             _offset=from_event,
-                             _size=batch_size,
-                             _sort='@timestamp')
-        events = response.items
-        total_events = response.metadata.pagination.total
-        return events, total_events
 
     def list(self, include_logs=False, message=None, from_datetime=None,
              to_datetime=None, _include=None, sort=None, **kwargs):
@@ -59,8 +30,12 @@ class EventsClient(object):
                                     sort=sort,
                                     **kwargs)
 
-        response = self.api.get(uri, _include=_include, params=params)
-        return ListResponse(response['items'], response['metadata'])
+        return self.api.get(
+            uri,
+            _include=_include,
+            params=params,
+            wrapper=ListResponse.of(dict),
+        )
 
     def create(self, events=None, logs=None, execution_id=None,
                agent_name=None, manager_name=None,
@@ -84,7 +59,11 @@ class EventsClient(object):
         if execution_group_id:
             data['execution_group_id'] = execution_group_id
 
-        self.api.post('/events', data=data, expected_status_code=(201, 204))
+        return self.api.post(
+            '/events',
+            data=data,
+            expected_status_code=(201, 204),
+        )
 
     def delete(self, deployment_id, include_logs=False, message=None,
                from_datetime=None, to_datetime=None, sort=None, **kwargs):
@@ -109,9 +88,11 @@ class EventsClient(object):
                                     deployment_id=deployment_id,
                                     **kwargs)
 
-        response = self.api.delete(uri, params=params,
-                                   expected_status_code=200)
-        return ListResponse(response['items'], response['metadata'])
+        return self.api.delete(
+            uri, params=params,
+            expected_status_code=200,
+            wrapper=ListResponse.of(lambda x: x),
+        )
 
     @staticmethod
     def _create_query(include_logs=False, message=None, from_datetime=None,

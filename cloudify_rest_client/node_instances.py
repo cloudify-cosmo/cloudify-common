@@ -134,10 +134,8 @@ class NodeInstance(dict):
 
 
 class NodeInstancesClient(object):
-
     def __init__(self, api):
         self.api = api
-        self._wrapper_cls = NodeInstance
         self._uri_prefix = 'node-instances'
 
     def create_many(self, deployment_id, node_instances):
@@ -149,7 +147,7 @@ class NodeInstancesClient(object):
              keys: id, node_id.
         :return: None
         """
-        self.api.post(
+        return self.api.post(
             '/{self._uri_prefix}'.format(self=self),
             data={
                 'deployment_id': deployment_id,
@@ -168,10 +166,12 @@ class NodeInstancesClient(object):
         :return: The retrieved node instance.
         """
         assert node_instance_id
-        uri = '/{self._uri_prefix}/{id}'.format(self=self, id=node_instance_id)
-        params = {'_evaluate_functions': evaluate_functions}
-        response = self.api.get(uri, params=params, _include=_include)
-        return self._wrapper_cls(response)
+        return self.api.get(
+            '/{self._uri_prefix}/{id}'.format(self=self, id=node_instance_id),
+            params={'_evaluate_functions': evaluate_functions},
+            _include=_include,
+            wrapper=NodeInstance,
+        )
 
     def update(self,
                node_instance_id,
@@ -212,8 +212,12 @@ class NodeInstancesClient(object):
         params = {}
         if force:
             params['force'] = True
-        response = self.api.patch(uri, params=params, data=data)
-        return NodeInstance(response)
+        return self.api.patch(
+            uri,
+            params=params,
+            data=data,
+            wrapper=NodeInstance,
+        )
 
     def _create_filters(
             self,
@@ -266,22 +270,21 @@ class NodeInstancesClient(object):
 
         params = self._create_filters(**kwargs)
         if constraints is None:
-            response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                    params=params,
-                                    _include=_include)
+            return self.api.get(
+                '/{self._uri_prefix}'.format(self=self),
+                params=params,
+                _include=_include,
+                wrapper=ListResponse.of(NodeInstance),
+            )
         else:
             if _include:
                 params['_include'] = ','.join(_include)
-            response = self.api.post(
+            return self.api.post(
                 '/searches/{self._uri_prefix}'.format(self=self),
                 params=params,
-                data={'constraints': constraints}
+                data={'constraints': constraints},
+                wrapper=ListResponse.of(NodeInstance),
             )
-
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
-        )
 
     def search(self, ids, all_tenants=False):
         """Search node instances by their IDs.
@@ -294,17 +297,18 @@ class NodeInstancesClient(object):
         params = {}
         if all_tenants:
             params['_all_tenants'] = True
-        response = self.api.post('/searches/node-instances', data={
-            'filter_rules': [{
-                'key': 'id',
-                'values': ids,
-                'operator': 'any_of',
-                'type': 'attribute'
-            }]
-        }, params=params)
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
+        return self.api.post(
+            '/searches/node-instances',
+            data={
+                'filter_rules': [{
+                    'key': 'id',
+                    'values': ids,
+                    'operator': 'any_of',
+                    'type': 'attribute'
+                }]
+            },
+            params=params,
+            wrapper=ListResponse.of(NodeInstance),
         )
 
     def delete(self, instance_id):
@@ -316,7 +320,7 @@ class NodeInstancesClient(object):
 
         :param instance_id: ID of the instance to be deleted
         """
-        self.api.delete(
+        return self.api.delete(
             '/{self._uri_prefix}/{instance_id}'
             .format(self=self, instance_id=instance_id),
             expected_status_code=204,

@@ -168,11 +168,13 @@ class ExecutionSchedulesClient(object):
         if created_at:
             data['created_at'] = created_at
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
-        response = self.api.put(uri,
-                                data=data,
-                                params=params,
-                                expected_status_code=201)
-        return ExecutionSchedule(response)
+        return self.api.put(
+            uri,
+            data=data,
+            params=params,
+            expected_status_code=201,
+            wrapper=ExecutionSchedule,
+        )
 
     def update(self, schedule_id, deployment_id, since=None, until=None,
                recurrence=None, count=None, weekdays=None, rrule=None,
@@ -224,11 +226,13 @@ class ExecutionSchedulesClient(object):
             'workflow_id': workflow_id,
         }
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
-        response = self.api.patch(uri,
-                                  data=data,
-                                  params=params,
-                                  expected_status_code=201)
-        return ExecutionSchedule(response)
+        return self.api.patch(
+            uri,
+            data=data,
+            params=params,
+            expected_status_code=201,
+            wrapper=ExecutionSchedule,
+        )
 
     def delete(self, schedule_id, deployment_id):
         """
@@ -239,10 +243,11 @@ class ExecutionSchedulesClient(object):
         """
         assert schedule_id
         params = {'deployment_id': deployment_id}
-        self.api.delete('/{self._uri_prefix}/{id}'.format(self=self,
-                                                          id=schedule_id),
-                        params=params,
-                        expected_status_code=204)
+        return self.api.delete(
+            '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id),
+            params=params,
+            expected_status_code=204,
+        )
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
@@ -259,11 +264,12 @@ class ExecutionSchedulesClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                params=params, _include=_include)
-        return ListResponse([ExecutionSchedule(item)
-                             for item in response['items']],
-                            response['metadata'])
+        return self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            params=params,
+            _include=_include,
+            wrapper=ListResponse.of(ExecutionSchedule),
+        )
 
     def get(self, schedule_id, deployment_id, _include=None):
         """Get an execution schedule by its id.
@@ -276,5 +282,9 @@ class ExecutionSchedulesClient(object):
         assert schedule_id
         params = {'deployment_id': deployment_id}
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
-        response = self.api.get(uri, _include=_include, params=params)
-        return ExecutionSchedule(response)
+        return self.api.get(
+            uri,
+            _include=_include,
+            params=params,
+            wrapper=ExecutionSchedule,
+        )

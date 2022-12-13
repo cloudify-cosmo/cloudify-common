@@ -131,9 +131,12 @@ class DeploymentModificationsClient(object):
         params.update(kwargs)
         uri = '/deployment-modifications'
 
-        response = self.api.get(uri, params=params, _include=_include)
-        items = [DeploymentModification(item) for item in response['items']]
-        return ListResponse(items, response['metadata'])
+        return self.api.get(
+            uri,
+            params=params,
+            _include=_include,
+            wrapper=ListResponse.of(DeploymentModification),
+        )
 
     def start(self, deployment_id, nodes, context=None):
         """Start deployment modification.
@@ -152,19 +155,23 @@ class DeploymentModificationsClient(object):
         if context is not None:
             data['context'] = context
 
-        uri = '/deployment-modifications'
-        response = self.api.post(uri, data,
-                                 expected_status_code=201)
-        return DeploymentModification(response)
+        return self.api.post(
+            '/deployment-modifications',
+            data,
+            expected_status_code=201,
+            wrapper=DeploymentModification,
+        )
 
     def get(self, modification_id, _include=None):
         """Get  deployment modification
 
         :param modification_id: The modification id
         """
-        uri = '/deployment-modifications/{0}'.format(modification_id)
-        response = self.api.get(uri, _include=_include)
-        return DeploymentModification(response)
+        return self.api.get(
+            '/deployment-modifications/{0}'.format(modification_id),
+            _include=_include,
+            wrapper=DeploymentModification,
+        )
 
     def finish(self, modification_id):
         """Finish deployment modification
@@ -173,9 +180,10 @@ class DeploymentModificationsClient(object):
         """
 
         assert modification_id
-        uri = '/deployment-modifications/{0}/finish'.format(modification_id)
-        response = self.api.post(uri)
-        return DeploymentModification(response)
+        return self.api.post(
+            '/deployment-modifications/{0}/finish'.format(modification_id),
+            wrapper=DeploymentModification,
+        )
 
     def rollback(self, modification_id):
         """Rollback deployment modification
@@ -184,6 +192,7 @@ class DeploymentModificationsClient(object):
         """
 
         assert modification_id
-        uri = '/deployment-modifications/{0}/rollback'.format(modification_id)
-        response = self.api.post(uri)
-        return DeploymentModification(response)
+        return self.api.post(
+            '/deployment-modifications/{0}/rollback'.format(modification_id),
+            wrapper=DeploymentModification,
+        )

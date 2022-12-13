@@ -15,7 +15,7 @@ def request_data_file_stream(file_path,
     :param progress_callback: Callback function - can be used to print progress
     :return: File data or generator object
     """
-    if client and client.has_kerberos() and not client.has_auth_header():
+    if client and client.has_kerberos and not client.has_auth_header():
         # kerberos currently does not support chunks
         with open(file_path, 'rb') as f:
             data = f.read()

@@ -13,8 +13,67 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import json
+import requests.exceptions
+
+
+def format_ssl_error(e):
+    # Special handling: SSL Verification Error.
+    # We'd have liked to use `__context__` but this isn't supported in
+    # Py26, so as long as we support Py26, we need to go about this
+    # awkwardly.
+    if len(e.args) > 0 and 'CERTIFICATE_VERIFY_FAILED' in str(
+            e.args[0]):
+        return requests.exceptions.SSLError(
+            'Certificate verification failed; please ensure that the '
+            'certificate presented by Cloudify Manager is trusted '
+            '(underlying reason: {0})'.format(e))
+    return requests.exceptions.SSLError(
+        'An SSL-related error has occurred. This can happen if the '
+        'specified REST certificate does not match the certificate on '
+        'the manager. Underlying reason: {0}'.format(e))
+
+
+def format_connection_error(e):
+    return requests.exceptions.ConnectionError(
+        '{0}'
+        '\nAn error occurred when trying to connect to the manager,'
+        'please make sure it is online and all required ports are '
+        'open.'
+        '\nThis can also happen when the manager is not working with '
+        'SSL, but the client does'.format(e)
+    )
+
 
 class CloudifyClientError(Exception):
+    @classmethod
+    def from_response(cls, response, status, response_content):
+        try:
+            result = json.loads(response_content.decode('utf-8'))
+        except Exception:
+            if status == 304:
+                return NotModifiedError(
+                    message='Nothing to modify',
+                    error_code=NotModifiedError.ERROR_CODE,
+                    status_code=status,
+                )
+            return cls(
+                message=f'{status}: {response_content}',
+                status_code=status,
+                response=response,
+            )
+
+        message = result.get('message') or result.get('detail')
+        code = result.get('error_code')
+        server_traceback = result.get('server_traceback')
+        error_cls = ERROR_MAPPING.get(code, cls)
+        return error_cls(
+            message,
+            server_traceback=server_traceback,
+            status_code=status,
+            error_code=code,
+            response=response,
+        )
 
     def __init__(self, message, server_traceback=None,
                  status_code=-1, error_code=None, response=None):
@@ -282,8 +341,8 @@ class InvalidFilterRule(CloudifyClientError):
                  status_code=-1, error_code=None, response=None):
         super(InvalidFilterRule, self).__init__(
             message, server_traceback, status_code, error_code, response)
-        self.err_filter_rule = response.json().get('err_filter_rule')
-        self.err_reason = response.json().get('err_reason')
+        self.err_filter_rule = response.json.get('err_filter_rule')
+        self.err_reason = response.json.get('err_reason')
 
 
 class DeploymentParentNotFound(CloudifyClientError):

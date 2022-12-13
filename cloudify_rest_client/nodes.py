@@ -173,10 +173,8 @@ class NodeTypes(dict):
 
 
 class NodesClient(object):
-
     def __init__(self, api):
         self.api = api
-        self._wrapper_cls = Node
         self._uri_prefix = 'nodes'
         self.types = NodeTypesClient(api)
 
@@ -203,7 +201,7 @@ class NodesClient(object):
         return params
 
     def list(self, _include=None, filter_rules=None, constraints=None,
-             **kwargs):
+             wrapper=None, **kwargs):
         """
         Returns a list of nodes which belong to the deployment identified
         by the provided deployment id.
@@ -227,32 +225,32 @@ class NodesClient(object):
                 'provide either filter_rules or DSL constraints, not both')
 
         params = self._create_filters(**kwargs)
+        wrapper = wrapper or ListResponse.of(Node)
         if filter_rules is not None:
             if _include:
                 params['_include'] = ','.join(_include)
-            response = self.api.post(
+            return self.api.post(
                 '/searches/{self._uri_prefix}'.format(self=self),
                 params=params,
-                data={'filter_rules': filter_rules}
+                data={'filter_rules': filter_rules},
+                wrapper=wrapper,
             )
         elif constraints is not None:
             if _include:
                 params['_include'] = ','.join(_include)
-            response = self.api.post(
+            return self.api.post(
                 '/searches/{self._uri_prefix}'.format(self=self),
                 params=params,
-                data={'constraints': constraints}
+                data={'constraints': constraints},
+                wrapper=wrapper,
             )
         else:
-            response = self.api.get(
+            return self.api.get(
                 '/{self._uri_prefix}'.format(self=self),
                 params=params,
-                _include=_include
+                _include=_include,
+                wrapper=wrapper
             )
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
-        )
 
     def get(self, deployment_id, node_id, _include=None,
             evaluate_functions=False):
@@ -269,14 +267,19 @@ class NodesClient(object):
         """
         assert deployment_id
         assert node_id
-        result = self.list(deployment_id=deployment_id,
-                           id=node_id,
-                           _include=_include,
-                           evaluate_functions=evaluate_functions)
-        if not result:
-            return None
-        else:
-            return result[0]
+
+        def _get_single_node(response):
+            if not response.get('items'):
+                return None
+            return Node(response['items'][0])
+
+        return self.list(
+            deployment_id=deployment_id,
+            id=node_id,
+            _include=_include,
+            evaluate_functions=evaluate_functions,
+            wrapper=_get_single_node,
+        )
 
     def create_many(self, deployment_id, nodes):
         """Create multiple nodes.
@@ -286,7 +289,7 @@ class NodesClient(object):
             Each node dict must contain at least the keys: id, type.
         :return: None
         """
-        self.api.post(
+        return self.api.post(
             '/{self._uri_prefix}'.format(self=self),
             data={
                 'deployment_id': deployment_id,
@@ -306,7 +309,7 @@ class NodesClient(object):
         :param node_id: The node id within the given deployment
         :param kwargs: The new node attributes
         """
-        self.api.patch(
+        return self.api.patch(
             '/{self._uri_prefix}/{deployment_id}/{node_id}'
             .format(self=self, deployment_id=deployment_id, node_id=node_id),
             data=kwargs,
@@ -319,7 +322,7 @@ class NodesClient(object):
         :param deployment_id: The deployment the node belongs to
         :param node_id: The node id within the given deployment
         """
-        self.api.delete(
+        return self.api.delete(
             '/{self._uri_prefix}/{deployment_id}/{node_id}'
             .format(self=self, deployment_id=deployment_id, node_id=node_id),
             expected_status_code=204,
@@ -353,9 +356,8 @@ class NodeTypesClient(object):
         if constraints is None:
             constraints = dict()
 
-        response = self.api.post('/searches/node-types', params=params,
-                                 data={'constraints': constraints})
-        return ListResponse(
-            items=[NodeTypes(item) for item in response['items']],
-            metadata=response['metadata']
+        return self.api.post(
+            '/searches/node-types', params=params,
+            data={'constraints': constraints},
+            wrapper=ListResponse.of(NodeTypes),
         )
