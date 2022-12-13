@@ -369,15 +369,18 @@ class DeploymentGroupsClient(object):
         if _include:
             params['_include'] = ','.join(_include)
 
-        response = self.api.get('/deployment-groups', params=params)
-        return ListResponse(
-            [DeploymentGroup(item) for item in response['items']],
-            response['metadata'])
+        return self.api.get(
+            '/deployment-groups',
+            params=params,
+            wrapper=ListResponse.of(DeploymentGroup),
+        )
 
     def get(self, group_id):
         """Get the specified deployment group."""
-        response = self.api.get('/deployment-groups/{0}'.format(group_id))
-        return DeploymentGroup(response)
+        return self.api.get(
+            '/deployment-groups/{0}'.format(group_id),
+            wrapper=DeploymentGroup,
+        )
 
     def put(self, group_id, visibility=VisibilityState.TENANT,
             description=None, blueprint_id=None, default_inputs=None,
@@ -430,10 +433,10 @@ class DeploymentGroupsClient(object):
             data['created_by'] = created_by
         if creation_counter:
             data['creation_counter'] = creation_counter
-        response = self.api.put(
+        return self.api.put(
             '/deployment-groups/{0}'.format(group_id), data=data,
+            wrapper=DeploymentGroup,
         )
-        return DeploymentGroup(response)
 
     def add_deployments(self, group_id, deployment_ids=None, count=None,
                         new_deployments=None, filter_id=None,
@@ -474,6 +477,7 @@ class DeploymentGroupsClient(object):
         else:
             batches = [new_deployments]
 
+        # TODO this is not async-friendly
         for new_deployments_batch in batches:
             response = self.api.patch(
                 '/deployment-groups/{0}'.format(group_id),
@@ -504,7 +508,7 @@ class DeploymentGroupsClient(object):
             group given by this id
         :return: the updated deployment group
         """
-        response = self.api.patch(
+        return self.api.patch(
             '/deployment-groups/{0}'.format(group_id),
             data={
                 'remove': {
@@ -513,9 +517,9 @@ class DeploymentGroupsClient(object):
                     'filter_rules': filter_rules,
                     'deployments_from_group': deployments_from_group,
                 }
-            }
+            },
+            wrapper=DeploymentGroup,
         )
-        return DeploymentGroup(response)
 
     def delete(self, group_id, delete_deployments=False,
                force=False, with_logs=False):
@@ -527,7 +531,7 @@ class DeploymentGroupsClient(object):
         :param force: same meaning as in deployments.delete
         :param with_logs: same meaning as in deployments.delete
         """
-        self.api.delete(
+        return self.api.delete(
             '/deployment-groups/{0}'.format(group_id),
             params={
                 'delete_deployments': delete_deployments,
@@ -551,8 +555,7 @@ class DeploymentOutputsClient(object):
         """
         assert deployment_id
         uri = '/deployments/{0}/outputs'.format(deployment_id)
-        response = self.api.get(uri)
-        return DeploymentOutputs(response)
+        return self.api.get(uri, wrapper=DeploymentOutputs)
 
 
 class DeploymentCapabilitiesClient(object):
@@ -568,8 +571,7 @@ class DeploymentCapabilitiesClient(object):
         """
         assert deployment_id
         uri = '/deployments/{0}/capabilities'.format(deployment_id)
-        response = self.api.get(uri)
-        return DeploymentCapabilities(response)
+        return self.api.get(uri, wrapper=DeploymentCapabilities)
 
     def list(self, deployment_id, _include=None, constraints=None, **kwargs):
         """
@@ -592,11 +594,11 @@ class DeploymentCapabilitiesClient(object):
             constraints = dict()
         constraints['deployment_id'] = deployment_id
 
-        response = self.api.post('/searches/capabilities', params=params,
-                                 data={'constraints': constraints})
-        return ListResponse(
-            items=[DeploymentCapabilities(item) for item in response['items']],
-            metadata=response['metadata']
+        return self.api.post(
+            '/searches/capabilities',
+            params=params,
+            data={'constraints': constraints},
+            wrapper=ListResponse.of(DeploymentCapabilities),
         )
 
 
@@ -628,11 +630,11 @@ class DeploymentScalingGroupsClient(object):
         if _include:
             params['_include'] = ','.join(_include)
 
-        response = self.api.post('/searches/scaling-groups', params=params,
-                                 data={'constraints': constraints or {}})
-        return ListResponse(
-            items=[DeploymentScalingGroup(item) for item in response['items']],
-            metadata=response['metadata']
+        return self.api.post(
+            '/searches/scaling-groups',
+            params=params,
+            data={'constraints': constraints or {}},
+            wrapper=ListResponse.of(DeploymentScalingGroup),
         )
 
 
@@ -674,16 +676,25 @@ class DeploymentsClient(object):
             params['_filter_id'] = filter_id
 
         if filter_rules:
-            response = self.api.post('/searches/deployments', params=params,
-                                     data={'filter_rules': filter_rules})
+            return self.api.post(
+                '/searches/deployments',
+                params=params,
+                data={'filter_rules': filter_rules},
+                wrapper=ListResponse.of(Deployment),
+            )
         elif constraints:
-            response = self.api.post('/searches/deployments', params=params,
-                                     data={'constraints': constraints})
+            return self.api.post(
+                '/searches/deployments',
+                params=params,
+                data={'constraints': constraints},
+                wrapper=ListResponse.of(Deployment),
+            )
         else:
-            response = self.api.get('/deployments', params=params)
-
-        return ListResponse([Deployment(item) for item in response['items']],
-                            response['metadata'])
+            return self.api.get(
+                '/deployments',
+                params=params,
+                wrapper=ListResponse.of(Deployment),
+            )
 
     def get(self,
             deployment_id,
@@ -704,13 +715,13 @@ class DeploymentsClient(object):
         """
         assert deployment_id
         uri = '/deployments/{0}'.format(deployment_id)
-        response = self.api.get(
+        return self.api.get(
             uri,
             _include=_include,
             params={'all_sub_deployments': all_sub_deployments,
-                    'include_workdir': include_workdir}
+                    'include_workdir': include_workdir},
+            wrapper=Deployment,
         )
-        return Deployment(response)
 
     def create(self,
                blueprint_id,
@@ -822,9 +833,13 @@ class DeploymentsClient(object):
         if async_create is not None:
             # if it's None, we just keep the server's default behaviour
             params['async_create'] = async_create
-        response = self.api.put(
-            uri, data, params=params, expected_status_code=201)
-        return Deployment(response)
+        return self.api.put(
+            uri,
+            data,
+            params=params,
+            expected_status_code=201,
+            wrapper=Deployment,
+        )
 
     def delete(self, deployment_id,
                force=False,
@@ -850,7 +865,7 @@ class DeploymentsClient(object):
             warnings.warn('delete_db_mode is deprecated and does nothing',
                           DeprecationWarning)
 
-        self.api.delete(
+        return self.api.delete(
             '/deployments/{0}'.format(deployment_id), params=params)
 
     def set_visibility(self, deployment_id, visibility):
@@ -900,9 +915,11 @@ class DeploymentsClient(object):
             data['creator'] = creator
         if created_at:
             data['created_at'] = created_at
-        updated_dep = self.api.patch(
-            '/deployments/{0}'.format(deployment_id), data=data)
-        return Deployment(updated_dep)
+        return self.api.patch(
+            '/deployments/{0}'.format(deployment_id),
+            data=data,
+            wrapper=Deployment,
+        )
 
     def set_attributes(self, deployment_id, **kwargs):
         """Set arbitrary properties on the deployment.
@@ -912,6 +929,8 @@ class DeploymentsClient(object):
 
         For internal use only.
         """
-        updated_dep = self.api.patch(
-            '/deployments/{0}'.format(deployment_id), data=kwargs)
-        return Deployment(updated_dep)
+        return self.api.patch(
+            '/deployments/{0}'.format(deployment_id),
+            data=kwargs,
+            wrapper=Deployment,
+        )

@@ -13,16 +13,6 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import os
-import json
-import shutil
-import tempfile
-from urllib.parse import quote as urlquote, urlparse
-from urllib.request import pathname2url
-
-from mimetypes import MimeTypes
-
-from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -96,8 +86,7 @@ class DeploymentUpdatesClient(object):
             'deployment_id': deployment_id,
         }
         data.update(kwargs)
-        response = self.api.put(url, data=data)
-        return DeploymentUpdate(response)
+        return self.api.put(url, data=data, wrapper=DeploymentUpdate)
 
     def set_attributes(self, update_id, **kwargs):
         """Update a deployment-update object with the given attributes.
@@ -105,8 +94,10 @@ class DeploymentUpdatesClient(object):
         This is only useful from within the deployment-update workflow.
         Do not use this otherwise.
         """
-        url = '/deployment-updates/{0}'.format(update_id)
-        self.api.patch(url, data=kwargs)
+        return self.api.patch(
+            '/deployment-updates/{0}'.format(update_id),
+            data=kwargs,
+        )
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """List deployment updates
@@ -123,79 +114,20 @@ class DeploymentUpdatesClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get(uri, params=params, _include=_include)
-        items = [DeploymentUpdate(item) for item in response['items']]
-        return ListResponse(items, response['metadata'])
+        return self.api.get(
+            uri,
+            params=params,
+            _include=_include,
+            wrapper=ListResponse.of(DeploymentUpdate),
+        )
 
     def bulk_insert(self, updates):
         """Bulk insert deployment updates. For internal use only."""
-        uri = '/deployment-updates'
-        self.api.post(uri, {'deployment_updates': updates},
-                      expected_status_code=[201, 204])
-
-    def _update_from_blueprint(self,
-                               deployment_id,
-                               blueprint_path,
-                               inputs=None):
-        """Create a deployment update transaction for blueprint app.
-
-        :param deployment_id: The deployment id
-        :param blueprint_path: the path of the blueprint to stage
-        """
-        assert deployment_id
-
-        tempdir = tempfile.mkdtemp()
-        try:
-            tar_path = utils.tar_blueprint(blueprint_path, tempdir)
-            application_filename = os.path.basename(blueprint_path)
-
-            return self._update_from_archive(deployment_id,
-                                             tar_path,
-                                             application_filename,
-                                             inputs=inputs)
-        finally:
-            shutil.rmtree(tempdir)
-
-    @staticmethod
-    def _update_from_archive(deployment_id,
-                             archive_path,
-                             application_file_name=None,
-                             inputs=None):
-        """Create a deployment update transaction for an archived app.
-
-        :param archive_path: the path for the archived app.
-        :param application_file_name: the main blueprint filename.
-        :param deployment_id: the deployment id to update.
-        :return: DeploymentUpdate dict
-        :rtype: DeploymentUpdate
-        """
-        assert deployment_id
-
-        mime_types = MimeTypes()
-
-        data_form = {}
-        params = {}
-        # all the inputs are passed through the query
-        if inputs:
-            data_form['inputs'] = ('inputs', json.dumps(inputs), 'text/plain')
-
-        if application_file_name:
-            params['application_file_name'] = urlquote(application_file_name)
-
-        # For a Windows path (e.g. "C:\aaa\bbb.zip") scheme is the
-        # drive letter and therefore the 2nd condition is present
-        if all([urlparse(archive_path).scheme,
-                not os.path.exists(archive_path)]):
-            # archive location is URL
-            params['blueprint_archive_url'] = archive_path
-        else:
-            data_form['blueprint_archive'] = (
-                os.path.basename(archive_path),
-                open(archive_path, 'rb'),
-                # Guess the archive mime type
-                mime_types.guess_type(pathname2url(archive_path)))
-
-        return data_form, params
+        return self.api.post(
+            '/deployment-updates',
+            {'deployment_updates': updates},
+            expected_status_code=[201, 204],
+        )
 
     def get(self, update_id, _include=None):
         """Get deployment update
@@ -203,8 +135,7 @@ class DeploymentUpdatesClient(object):
         :param update_id: The update id
         """
         uri = '/deployment-updates/{0}'.format(update_id)
-        response = self.api.get(uri, _include=_include)
-        return DeploymentUpdate(response)
+        return self.api.get(uri, _include=_include, wrapper=DeploymentUpdate)
 
     def update_with_existing_blueprint(
         self,
@@ -254,8 +185,7 @@ class DeploymentUpdatesClient(object):
         if reevaluate_active_statuses is not None:
             data['reevaluate_active_statuses'] = reevaluate_active_statuses
         uri = '/deployment-updates/{0}/update/initiate'.format(deployment_id)
-        response = self.api.post(uri, data=data)
-        return DeploymentUpdate(response)
+        return self.api.post(uri, data=data, wrapper=DeploymentUpdate)
 
     def finalize_commit(self, update_id):
         """Finalize the committing process
@@ -266,5 +196,4 @@ class DeploymentUpdatesClient(object):
         assert update_id
 
         uri = '/deployment-updates/{0}/update/finalize'.format(update_id)
-        response = self.api.post(uri)
-        return DeploymentUpdate(response)
+        return self.api.post(uri, wrapper=DeploymentUpdate)

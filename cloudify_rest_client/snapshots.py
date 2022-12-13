@@ -85,8 +85,7 @@ class SnapshotsClient(object):
         """
         assert snapshot_id
         uri = '/snapshots/{0}'.format(snapshot_id)
-        response = self.api.get(uri, _include=_include)
-        return Snapshot(response)
+        return self.api.get(uri, _include=_include, wrapper=Snapshot)
 
     def list(self, _include=None, sort=None, is_descending=False, **kwargs):
         """
@@ -103,9 +102,12 @@ class SnapshotsClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/snapshots', params=params, _include=_include)
-        return ListResponse([Snapshot(item) for item in response['items']],
-                            response['metadata'])
+        return self.api.get(
+            '/snapshots',
+            params=params,
+            _include=_include,
+            wrapper=ListResponse.of(Snapshot),
+        )
 
     def create(self,
                snapshot_id,
@@ -131,8 +133,12 @@ class SnapshotsClient(object):
             'queue': queue,
             'tempdir_path': tempdir_path,
         }
-        response = self.api.put(uri, data=params, expected_status_code=201)
-        return Execution(response)
+        return self.api.put(
+            uri,
+            data=params,
+            expected_status_code=201,
+            wrapper=Execution,
+        )
 
     def delete(self, snapshot_id):
         """
@@ -142,7 +148,7 @@ class SnapshotsClient(object):
         :return: Deleted snapshot.
         """
         assert snapshot_id
-        self.api.delete('/snapshots/{0}'.format(snapshot_id))
+        return self.api.delete('/snapshots/{0}'.format(snapshot_id))
 
     def restore(self,
                 snapshot_id,
@@ -171,8 +177,7 @@ class SnapshotsClient(object):
             'ignore_plugin_failure':
                 ignore_plugin_failure
         }
-        response = self.api.post(uri, data=params)
-        return Execution(response)
+        return self.api.post(uri, data=params, wrapper=Execution)
 
     def upload(self,
                snapshot_path,
@@ -206,9 +211,13 @@ class SnapshotsClient(object):
                 progress_callback=progress_callback,
                 client=self.api)
 
-        response = self.api.put(uri, params=query_params, data=data,
-                                expected_status_code=201)
-        return Snapshot(response)
+        return self.api.put(
+            uri,
+            params=query_params,
+            data=data,
+            expected_status_code=201,
+            wrapper=Snapshot,
+        )
 
     def download(self, snapshot_id, output_file, progress_callback=None):
         """
@@ -223,6 +232,7 @@ class SnapshotsClient(object):
         """
         uri = '/snapshots/{0}/archive'.format(snapshot_id)
 
+        # TODO this is not async-friendly
         with contextlib.closing(self.api.get(uri, stream=True)) as response:
             output_file = bytes_stream_utils.write_response_stream_to_file(
                 response, output_file, progress_callback=progress_callback)
@@ -241,7 +251,7 @@ class SnapshotsClient(object):
         params = {'status': status}
         if error:
             params['error'] = error
-        self.api.patch(uri, data=params)
+        return self.api.patch(uri, data=params)
 
     def get_status(self):
         """

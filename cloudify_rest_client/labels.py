@@ -32,8 +32,10 @@ class _LabelsClient(object):
         """
         Returns all defined label keys, from all elements of the resource.
         """
-        response = self.api.get('/labels/{0}'.format(self.resource_name))
-        return ListResponse(response['items'], response['metadata'])
+        return self.api.get(
+            '/labels/{0}'.format(self.resource_name),
+            wrapper=ListResponse.of(lambda x: x),
+        )
 
     def list_key_values(self, label_key):
         """
@@ -41,15 +43,18 @@ class _LabelsClient(object):
 
         :param label_key: The resource labels' key to list the values for.
         """
-        response = self.api.get(
-            '/labels/{0}/{1}'.format(self.resource_name, label_key))
-        return ListResponse(response['items'], response['metadata'])
+        return self.api.get(
+            '/labels/{0}/{1}'.format(self.resource_name, label_key),
+            wrapper=ListResponse.of(lambda x: x),
+        )
 
     def get_reserved_labels_keys(self):
         """Returns the reserved labels keys (`csys-` prefixed)."""
-        response = self.api.get('/labels/{0}'.format(self.resource_name),
-                                params={'_reserved': True})
-        return ListResponse(response['items'], response['metadata'])
+        return self.api.get(
+            '/labels/{0}'.format(self.resource_name),
+            params={'_reserved': True},
+            wrapper=ListResponse.of(lambda x: x),
+        )
 
 
 class DeploymentsLabelsClient(_LabelsClient):

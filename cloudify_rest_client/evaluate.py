@@ -55,9 +55,12 @@ class EvaluateClient(object):
         :rtype: EvaluatedFunctions
         """
         assert deployment_id
-        result = self.api.post('/evaluate/functions', data={
-            'deployment_id': deployment_id,
-            'context': context,
-            'payload': payload
-        })
-        return EvaluatedFunctions(result)
+        return self.api.post(
+            '/evaluate/functions',
+            data={
+                'deployment_id': deployment_id,
+                'context': context,
+                'payload': payload
+            },
+            wrapper=EvaluatedFunctions,
+        )

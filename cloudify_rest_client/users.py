@@ -113,11 +113,12 @@ class UsersClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/users',
-                                _include=_include,
-                                params=params)
-        return ListResponse([User(item) for item in response['items']],
-                            response['metadata'])
+        return self.api.get(
+            '/users',
+            _include=_include,
+            params=params,
+            wrapper=ListResponse.of(User),
+        )
 
     def create(self, username, password, role, is_prehashed=None,
                created_at=None, first_login_at=None, last_login_at=None):
@@ -130,55 +131,67 @@ class UsersClient(object):
             data['first_login_at'] = first_login_at
         if last_login_at:
             data['last_login_at'] = last_login_at
-        response = self.api.put('/users', data=data, expected_status_code=201)
-        return User(response)
+        return self.api.put(
+            '/users',
+            data=data,
+            expected_status_code=201,
+            wrapper=User,
+        )
 
     def set_password(self, username, new_password):
         data = {'password': new_password}
-        response = self.api.post('/users/{0}'.format(username), data=data)
-        return User(response)
+        return self.api.post(
+            '/users/{0}'.format(username),
+            data=data,
+            wrapper=User,
+        )
 
     def set_role(self, username, new_role):
         data = {'role': new_role}
-        response = self.api.post('/users/{0}'.format(username), data=data)
-        return User(response)
+        return self.api.post(
+            '/users/{0}'.format(username),
+            data=data,
+            wrapper=User,
+        )
 
     def set_show_getting_started(self, username, flag_value):
         data = {'show_getting_started': flag_value}
-        response = self.api.post('/users/{0}'.format(username), data=data)
-        return User(response)
+        return self.api.post(
+            '/users/{0}'.format(username),
+            data=data,
+            wrapper=User,
+        )
 
     def get(self, username, **kwargs):
-        response = self.api.get(
+        return self.api.get(
             '/users/{0}'.format(username),
-            params=kwargs
+            params=kwargs,
+            wrapper=User,
         )
-        return User(response)
 
     def get_self(self, **kwargs):
-        response = self.api.get('/user', params=kwargs)
-        return User(response)
+        return self.api.get('/user', params=kwargs, wrapper=User)
 
     def delete(self, username):
-        self.api.delete('/users/{0}'.format(username))
+        return self.api.delete('/users/{0}'.format(username))
 
     def activate(self, username):
-        response = self.api.post(
+        return self.api.post(
             '/users/active/{0}'.format(username),
-            data={'action': 'activate'}
+            data={'action': 'activate'},
+            wrapper=User,
         )
-        return User(response)
 
     def deactivate(self, username):
-        response = self.api.post(
+        return self.api.post(
             '/users/active/{0}'.format(username),
-            data={'action': 'deactivate'}
+            data={'action': 'deactivate'},
+            wrapper=User,
         )
-        return User(response)
 
     def unlock(self, username, **kwargs):
-        response = self.api.post(
+        return self.api.post(
             '/users/unlock/{0}'.format(username),
-            params=kwargs
+            params=kwargs,
+            wrapper=User,
         )
-        return User(response)

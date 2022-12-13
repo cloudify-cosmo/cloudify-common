@@ -190,9 +190,10 @@ class ExecutionGroupsClient(object):
             response['metadata'])
 
     def get(self, execution_group_id):
-        response = self.api.get(
-            '/execution-groups/{0}'.format(execution_group_id))
-        return ExecutionGroup(response)
+        return self.api.get(
+            '/execution-groups/{0}'.format(execution_group_id),
+            wrapper=ExecutionGroup,
+        )
 
     def create(self, deployment_group_id, workflow_id, executions,
                force=False, default_parameters=None, parameters=None,
@@ -218,8 +219,11 @@ class ExecutionGroupsClient(object):
             args['created_by'] = created_by
         if created_at:
             args['created_at'] = created_at
-        response = self.api.post('/execution-groups', data=args)
-        return ExecutionGroup(response)
+        return self.api.post(
+            '/execution-groups',
+            data=args,
+            wrapper=ExecutionGroup,
+        )
 
     def start(self, deployment_group_id, workflow_id, force=False,
               default_parameters=None, parameters=None,
@@ -235,15 +239,18 @@ class ExecutionGroupsClient(object):
             the default parameters on a per-deployment basis
         :param concurrency: run this many executions at a time
         """
-        response = self.api.post('/execution-groups', data={
-            'force': force,
-            'deployment_group_id': deployment_group_id,
-            'workflow_id': workflow_id,
-            'parameters': parameters,
-            'default_parameters': default_parameters,
-            'concurrency': concurrency
-        })
-        return ExecutionGroup(response)
+        return self.api.post(
+            '/execution-groups',
+            data={
+                'force': force,
+                'deployment_group_id': deployment_group_id,
+                'workflow_id': workflow_id,
+                'parameters': parameters,
+                'default_parameters': default_parameters,
+                'concurrency': concurrency
+            },
+            wrapper=ExecutionGroup,
+        )
 
     def cancel(self, execution_group_id, force=False, kill=False):
         """Cancel the executions in this group.
@@ -253,18 +260,20 @@ class ExecutionGroupsClient(object):
         Queued executions are marked cancelled immediately.
         """
         action = 'kill' if kill else 'force-cancel' if force else 'cancel'
-        response = self.api.post(
+        return self.api.post(
             '/execution-groups/{0}'.format(execution_group_id),
-            data={'action': action})
-        return ExecutionGroup(response)
+            data={'action': action},
+            wrapper=ExecutionGroup,
+        )
 
     def resume(self, execution_group_id, force=False):
         """Resume the executions in this group."""
         action = 'force-resume' if force else 'resume'
-        response = self.api.post(
+        return self.api.post(
             '/execution-groups/{0}'.format(execution_group_id),
-            data={'action': action})
-        return ExecutionGroup(response)
+            data={'action': action},
+            wrapper=ExecutionGroup,
+        )
 
     def set_target_group(self, execution_group_id,
                          success_group=None, failed_group=None):
@@ -281,14 +290,14 @@ class ExecutionGroupsClient(object):
         :param success_group: ID of the target failure deployment group
         :return: The updated ExecutionGroup
         """
-        response = self.api.patch(
+        return self.api.patch(
             '/execution-groups/{0}'.format(execution_group_id),
             data={
                 'success_group_id': success_group,
                 'failure_group_id': failed_group,
-            }
+            },
+            wrapper=ExecutionGroup,
         )
-        return ExecutionGroup(response)
 
 
 class ExecutionsClient(object):
@@ -296,7 +305,6 @@ class ExecutionsClient(object):
     def __init__(self, api):
         self.api = api
         self._uri_prefix = 'executions'
-        self._wrapper_cls = Execution
 
     def _create_filters(
             self,
@@ -325,8 +333,7 @@ class ExecutionsClient(object):
         assert execution_id
         uri = '/{self._uri_prefix}/{id}/should-start'.format(
             self=self, id=execution_id)
-        response = self.api.get(uri)
-        return response
+        return self.api.get(uri)
 
     def list(self, _include=None, **kwargs):
         """Returns a list of executions.
@@ -343,13 +350,11 @@ class ExecutionsClient(object):
         """
         params = self._create_filters(**kwargs)
 
-        response = self.api.get(
+        return self.api.get(
             '/{self._uri_prefix}'.format(self=self),
             params=params,
-            _include=_include)
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
+            _include=_include,
+            wrapper=ListResponse.of(Execution),
         )
 
     def get(self, execution_id, _include=None):
@@ -361,8 +366,7 @@ class ExecutionsClient(object):
         """
         assert execution_id
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
-        response = self.api.get(uri, _include=_include)
-        return self._wrapper_cls(response)
+        return self.api.get(uri, _include=_include, wrapper=Execution)
 
     def update(self, execution_id, status, error=None):
         """Update execution with the provided status and optional error.
@@ -377,8 +381,7 @@ class ExecutionsClient(object):
         params = {'status': status}
         if error:
             params['error'] = error
-        response = self.api.patch(uri, data=params)
-        return Execution(response)
+        return self.api.patch(uri, data=params, wrapper=Execution)
 
     def start(self, *args, **kwargs):
         """Starts a deployment's workflow execution whose id is provided.
@@ -438,10 +441,12 @@ class ExecutionsClient(object):
             'error': error,
         }
         uri = '/executions'
-        response = self.api.post(uri,
-                                 data=data,
-                                 expected_status_code=201)
-        return Execution(response)
+        return self.api.post(
+            uri,
+            data=data,
+            expected_status_code=201,
+            wrapper=Execution,
+        )
 
     def cancel(self, execution_id, force=False, kill=False):
         """Cancels an execution.
@@ -454,10 +459,12 @@ class ExecutionsClient(object):
         """
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
         action = 'kill' if kill else 'force-cancel' if force else 'cancel'
-        response = self.api.post(uri,
-                                 data={'action': action},
-                                 expected_status_code=200)
-        return self._wrapper_cls(response)
+        return self.api.post(
+            uri,
+            data={'action': action},
+            expected_status_code=200,
+            wrapper=Execution,
+        )
 
     def resume(self, execution_id, force=False):
         """Resume an execution.
@@ -469,10 +476,12 @@ class ExecutionsClient(object):
         """
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
         action = 'force-resume' if force else 'resume'
-        response = self.api.post(uri,
-                                 data={'action': action},
-                                 expected_status_code=200)
-        return self._wrapper_cls(response)
+        return self.api.post(
+            uri,
+            data={'action': action},
+            expected_status_code=200,
+            wrapper=Execution,
+        )
 
     def requeue(self, execution_id):
         """
@@ -482,10 +491,12 @@ class ExecutionsClient(object):
         :return: Requeued execution.
         """
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=execution_id)
-        response = self.api.post(uri,
-                                 data={'action': 'requeue'},
-                                 expected_status_code=200)
-        return self._wrapper_cls(response)
+        return self.api.post(
+            uri,
+            data={'action': 'requeue'},
+            expected_status_code=200,
+            wrapper=Execution,
+        )
 
     def delete(self, to_datetime=None, keep_last=None, **kwargs):
         """Deletes finished executions from the DB.
@@ -503,8 +514,10 @@ class ExecutionsClient(object):
             data['to_datetime'] = to_datetime.isoformat()
         if keep_last:
             data['keep_last'] = keep_last
-        response = self.api.delete('/{self._uri_prefix}'.format(self=self),
-                                   data=data,
-                                   params=kwargs,
-                                   expected_status_code=200)
-        return response['items'][0]['count']
+        return self.api.delete(
+            '/{self._uri_prefix}'.format(self=self),
+            data=data,
+            params=kwargs,
+            expected_status_code=200,
+            wrapper=lambda response: response['items'][0]['count'],
+        )

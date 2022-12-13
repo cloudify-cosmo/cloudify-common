@@ -118,7 +118,6 @@ class BlueprintsClient(object):
     def __init__(self, api):
         self.api = api
         self._uri_prefix = 'blueprints'
-        self._wrapper_cls = Blueprint
 
     def _prepare_put_request(
         self,
@@ -254,6 +253,7 @@ class BlueprintsClient(object):
             data=multipart,
             headers={'Content-Type': multipart.content_type},
             expected_status_code=expected_status,
+            wrapper=Blueprint,
         )
 
     def _validate(self,
@@ -330,18 +330,25 @@ class BlueprintsClient(object):
             params['_filter_id'] = filter_id
 
         if filter_rules:
-            response = self.api.post('/searches/blueprints', params=params,
-                                     data={'filter_rules': filter_rules})
+            return self.api.post(
+                '/searches/blueprints',
+                params=params,
+                data={'filter_rules': filter_rules},
+                wrapper=ListResponse.of(Blueprint),
+            )
         elif constraints:
-            response = self.api.post('/searches/blueprints', params=params,
-                                     data={'constraints': constraints})
+            return self.api.post(
+                '/searches/blueprints',
+                params=params,
+                data={'constraints': constraints},
+                wrapper=ListResponse.of(Blueprint),
+            )
         else:
-            response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                    params=params)
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
-        )
+            return self.api.get(
+                '/{self._uri_prefix}'.format(self=self),
+                params=params,
+                wrapper=ListResponse.of(Blueprint),
+            )
 
     def publish_archive(
         self,
@@ -378,7 +385,7 @@ class BlueprintsClient(object):
         blueprint's unique Id.
         """
 
-        response = self._upload(
+        return self._upload(
             archive_location,
             blueprint_id=blueprint_id,
             application_file_name=blueprint_filename,
@@ -391,8 +398,6 @@ class BlueprintsClient(object):
             skip_execution=skip_execution,
             requirements=requirements,
         )
-        if not async_upload:
-            return self._wrapper_cls(response)
 
     @staticmethod
     def calc_size(blueprint_path):
@@ -448,7 +453,7 @@ class BlueprintsClient(object):
             tar_path, application_file = self._validate_blueprint_size(
                 path, tempdir, skip_size_limit)
 
-            response = self._upload(
+            return self._upload(
                 tar_path,
                 blueprint_id=entity_id,
                 application_file_name=application_file,
@@ -463,8 +468,6 @@ class BlueprintsClient(object):
                 legacy=legacy,
                 requirements=requirements,
             )
-            if not async_upload:
-                return self._wrapper_cls(response)
         finally:
             shutil.rmtree(tempdir)
 
@@ -501,7 +504,7 @@ class BlueprintsClient(object):
                 tar_path, application_file = self._validate_blueprint_size(
                     path, tempdir, skip_size_limit)
 
-            response = self._validate(
+            return self._validate(
                 tar_path or path,
                 blueprint_id=entity_id,
                 application_file_name=application_file or blueprint_filename,
@@ -509,10 +512,6 @@ class BlueprintsClient(object):
                 progress_callback=progress_callback)
         finally:
             shutil.rmtree(tempdir)
-
-        if response:
-            # on cloudify earlier than 6.4, response is None (204 no content)
-            return response
 
     def get(self, blueprint_id, _include=None):
         """
@@ -524,8 +523,11 @@ class BlueprintsClient(object):
         """
         assert blueprint_id
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id)
-        response = self.api.get(uri, _include=_include)
-        return self._wrapper_cls(response)
+        return self.api.get(
+            uri,
+            _include=_include,
+            wrapper=Blueprint,
+        )
 
     def delete(self, blueprint_id, force=False):
         """
@@ -538,7 +540,7 @@ class BlueprintsClient(object):
         """
         assert blueprint_id
 
-        self.api.delete(
+        return self.api.delete(
             '/{self._uri_prefix}/{id}'.format(self=self, id=blueprint_id),
             params={'force': force})
 
@@ -607,12 +609,11 @@ class BlueprintsClient(object):
         :param update_dict: Dictionary of attributes and values to be updated.
         :return: The updated blueprint.
         """
-        response = self.api.patch('/{self._uri_prefix}/{id}'.format(
+        return self.api.patch('/{self._uri_prefix}/{id}'.format(
             self=self, id=blueprint_id),
-            data=update_dict
+            data=update_dict,
+            wrapper=Blueprint,
         )
-
-        return self._wrapper_cls(response)
 
     def upload_archive(self, blueprint_id, archive_path):
         """
@@ -630,7 +631,7 @@ class BlueprintsClient(object):
         archive_data = bytes_stream_utils.request_data_file_stream(
             archive_path,
             client=self.api)
-        self.api.put('/{self._uri_prefix}/{id}/archive'.format(
+        return self.api.put('/{self._uri_prefix}/{id}/archive'.format(
             self=self, id=blueprint_id),
             data=archive_data
         )
@@ -646,7 +647,7 @@ class BlueprintsClient(object):
         icon_data = bytes_stream_utils.request_data_file_stream(
             icon_path,
             client=self.api)
-        self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
+        return self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
             self=self, id=blueprint_id),
             data=icon_data
         )
@@ -657,6 +658,6 @@ class BlueprintsClient(object):
 
         :param blueprint_id: Blueprint's id to update.
         """
-        self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
+        return self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
             self=self, id=blueprint_id),
         )

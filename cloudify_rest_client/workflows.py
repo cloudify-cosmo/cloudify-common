@@ -58,11 +58,15 @@ class WorkflowsClient(object):
             params['_filter_id'] = filter_id
 
         if filter_rules:
-            response = self.api.post('/searches/workflows', params=params,
-                                     data={'filter_rules': filter_rules})
+            return self.api.post(
+                '/searches/workflows',
+                params=params,
+                data={'filter_rules': filter_rules},
+                wrapper=ListResponse.of(Workflow),
+            )
         else:
-            response = self.api.get('/workflows', params=params)
-
-        return ListResponse(
-            [Workflow(item) for item in response['items']],
-            response['metadata'])
+            return self.api.get(
+                '/workflows',
+                params=params,
+                wrapper=ListResponse.of(Workflow),
+            )

@@ -119,8 +119,7 @@ class LdapClient(object):
             with open(ldap_ca_path) as cert_handle:
                 params['ldap_ca_cert'] = cert_handle.read()
         uri = '/ldap'
-        response = self.api.post(uri, params)
-        return LdapResponse(response)
+        return self.api.post(uri, params, wrapper=LdapResponse)
 
     def get_status(self):
         uri = '/ldap'

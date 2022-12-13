@@ -70,7 +70,6 @@ class LicenseClient(object):
 
     def __init__(self, api):
         self.api = api
-        self._wrapper_cls = License
 
     def check(self):
         """Check license state of manager is healthy.
@@ -78,19 +77,14 @@ class LicenseClient(object):
         If this is not the case, the following exception will be thrown:
         cloudify_rest_client.exceptions.MissingCloudifyLicense
         """
-        self.api.get('/license-check')
+        return self.api.get('/license-check')
 
     def list(self):
         """Get the Cloudify license from the Manager.
 
         :rtype: License
         """
-        response = self.api.get('/license')
-
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata']
-        )
+        return self.api.get('/license', wrapper=ListResponse.of(License))
 
     def upload(self, license_path):
         """Uploads a Cloudify license the Manager
@@ -103,14 +97,12 @@ class LicenseClient(object):
             license_path,
             client=self.api)
 
-        response = self.api.put(
+        return self.api.put(
             '/license',
             data=data
         )
 
-        return response
-
     def delete(self):
         """Remove the the Cloudify license from the Manager.
         """
-        self.api.delete('/license')
+        return self.api.delete('/license')

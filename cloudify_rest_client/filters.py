@@ -75,9 +75,11 @@ class FiltersClient(object):
             data['created_at'] = created_at
         if created_by:
             data['created_by'] = created_by
-        response = self.api.put('{0}/{1}'.format(self.uri, filter_id),
-                                data=data)
-        return Filter(response)
+        return self.api.put(
+            '{0}/{1}'.format(self.uri, filter_id),
+            data=data,
+            wrapper=Filter,
+        )
 
     def list(self, sort=None, is_descending=False, **kwargs):
         """Returns a list of all filters.
@@ -94,16 +96,20 @@ class FiltersClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get(self.uri, params=params)
-        return ListResponse([Filter(item) for item in response['items']],
-                            response['metadata'])
+        return self.api.get(
+            self.uri,
+            params=params,
+            wrapper=ListResponse.of(Filter),
+        )
 
     def get(self, filter_id):
-        response = self.api.get('{0}/{1}'.format(self.uri, filter_id))
-        return Filter(response)
+        return self.api.get(
+            '{0}/{1}'.format(self.uri, filter_id),
+            wrapper=Filter,
+        )
 
     def delete(self, filter_id):
-        self.api.delete('{0}/{1}'.format(self.uri, filter_id))
+        return self.api.delete('{0}/{1}'.format(self.uri, filter_id))
 
     def update(self, filter_id, new_filter_rules=None, new_visibility=None):
         """Updates the filter's visibility or rules
@@ -131,9 +137,11 @@ class FiltersClient(object):
         if new_filter_rules:
             data['filter_rules'] = new_filter_rules
 
-        response = self.api.patch('{0}/{1}'.format(self.uri, filter_id),
-                                  data=data)
-        return Filter(response)
+        return self.api.patch(
+            '{0}/{1}'.format(self.uri, filter_id),
+            data=data,
+            wrapper=Filter,
+        )
 
 
 class BlueprintsFiltersClient(FiltersClient):

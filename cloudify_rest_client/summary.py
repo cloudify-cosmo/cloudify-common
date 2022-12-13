@@ -27,11 +27,11 @@ class SummaryClient(object):
             '_sub_field': _sub_field,
         }
         params.update(kwargs)
-        response = self.api.get(
+        return self.api.get(
             '/summary/{summary_type}'.format(summary_type=self.summary_type),
             params=params,
+            wrapper=ListResponse.of(dict),
         )
-        return ListResponse(response['items'], response['metadata'])
 
 
 class SummariesClient(object):

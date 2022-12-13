@@ -7,7 +7,14 @@ import mock
 class MockHTTPClient(CloudifyClient.client_class):
     def __init__(self, *args, **kwargs):
         super(MockHTTPClient, self).__init__(*args, **kwargs)
-        self._do_request = mock.Mock()
+        self.do_request = mock.Mock(side_effect=self._fake_do_request)
+
+    def _fake_do_request(self, *args, **kwargs):
+        data = self.do_request.return_value or {}
+        wrapper = kwargs.get('wrapper')
+        if wrapper:
+            return wrapper(data)
+        return data
 
 
 class MockClient(CloudifyClient):
@@ -24,7 +31,7 @@ class MockClient(CloudifyClient):
 
     @property
     def mock_do_request(self):
-        return self._client._do_request
+        return self._client.do_request
 
     def assert_last_mock_call(self, endpoint, data=None, params=None,
                               expected_status_code=200, stream=False,
@@ -32,17 +39,16 @@ class MockClient(CloudifyClient):
         if not params:
             params = {}
 
-        _, kwargs = self.mock_do_request.call_args_list[-1]
+        args, kwargs = self.mock_do_request.call_args_list[-1]
 
-        called_endpoint = kwargs['request_url'].rpartition('v3.1')[2]
+        method, called_endpoint = args
         assert endpoint == called_endpoint
 
-        assert data == kwargs['body']
+        assert data == kwargs['data']
         assert params == kwargs['params']
         assert expected_status_code == kwargs['expected_status_code']
         assert stream == kwargs['stream']
-
-        assert expected_method == kwargs['requests_method'].__name__
+        assert expected_method == method.lower()
 
     @property
     def last_mock_call_headers(self):

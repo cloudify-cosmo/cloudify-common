@@ -50,7 +50,6 @@ class OperationsClient(object):
     def __init__(self, api):
         self.api = api
         self._uri_prefix = 'operations'
-        self._wrapper_cls = Operation
 
     def list(
         self,
@@ -90,16 +89,18 @@ class OperationsClient(object):
             params['_offset'] = _offset
         if _size is not None:
             params['_size'] = _size
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                params=params, _include=_include)
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata'])
+        return self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            params=params,
+            _include=_include,
+            wrapper=ListResponse.of(Operation),
+        )
 
     def get(self, operation_id):
-        response = self.api.get('/{self._uri_prefix}/{id}'
-                                .format(self=self, id=operation_id))
-        return Operation(response)
+        return self.api.get(
+            '/{self._uri_prefix}/{id}'.format(self=self, id=operation_id),
+            wrapper=Operation,
+        )
 
     def create(self, operation_id, graph_id, name, type, parameters,
                dependencies):
@@ -111,14 +112,18 @@ class OperationsClient(object):
             'parameters': parameters
         }
         uri = '/operations/{0}'.format(operation_id)
-        response = self.api.put(uri, data=data, expected_status_code=201)
-        return Operation(response)
+        return self.api.put(
+            uri,
+            data=data,
+            expected_status_code=201,
+            wrapper=Operation,
+        )
 
     def update(self, operation_id, state, result=None,
                exception=None, exception_causes=None,
                manager_name=None, agent_name=None):
         uri = '/operations/{0}'.format(operation_id)
-        self.api.patch(uri, data={
+        return self.api.patch(uri, data={
             'state': state,
             'result': result,
             'exception': exception,
@@ -144,7 +149,7 @@ class OperationsClient(object):
         :param rel_index: when updating relationship operations, look at
             the relationship at this index
         """
-        self.api.post('/operations', data={
+        return self.api.post('/operations', data={
             'action': 'update-stored',
             'deployment_id': deployment_id,
             'node_id': node_id,
@@ -154,8 +159,7 @@ class OperationsClient(object):
         }, expected_status_code=(200, 204))
 
     def delete(self, operation_id):
-        uri = '/operations/{0}'.format(operation_id)
-        self.api.delete(uri)
+        return self.api.delete('/operations/{0}'.format(operation_id))
 
 
 class TasksGraph(dict):
@@ -179,17 +183,17 @@ class TasksGraphClient(object):
     def __init__(self, api):
         self.api = api
         self._uri_prefix = 'tasks_graphs'
-        self._wrapper_cls = TasksGraph
 
     def list(self, execution_id, name=None, _include=None):
         params = {'execution_id': execution_id}
         if name:
             params['name'] = name
-        response = self.api.get('/{self._uri_prefix}'.format(self=self),
-                                params=params, _include=_include)
-        return ListResponse(
-            [self._wrapper_cls(item) for item in response['items']],
-            response['metadata'])
+        return self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            params=params,
+            _include=_include,
+            wrapper=ListResponse.of(TasksGraph),
+        )
 
     def create(self, execution_id, name, operations=None, created_at=None,
                graph_id=None):
@@ -203,10 +207,17 @@ class TasksGraphClient(object):
         if graph_id:
             params['graph_id'] = graph_id
         uri = '/{self._uri_prefix}/tasks_graphs'.format(self=self)
-        response = self.api.post(uri, data=params, expected_status_code=201)
-        return TasksGraph(response)
+        return self.api.post(
+            uri,
+            data=params,
+            expected_status_code=201,
+            wrapper=TasksGraph,
+        )
 
     def update(self, tasks_graph_id, state):
         uri = '/tasks_graphs/{0}'.format(tasks_graph_id)
-        response = self.api.patch(uri, data={'state': state})
-        return TasksGraph(response)
+        return self.api.patch(
+            uri,
+            data={'state': state},
+            wrapper=TasksGraph,
+        )

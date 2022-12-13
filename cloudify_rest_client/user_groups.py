@@ -78,11 +78,12 @@ class UserGroupsClient(object):
         if sort:
             params['_sort'] = '-' + sort if is_descending else sort
 
-        response = self.api.get('/user-groups',
-                                _include=_include,
-                                params=params)
-        return ListResponse([Group(item) for item in response['items']],
-                            response['metadata'])
+        return self.api.get(
+            '/user-groups',
+            _include=_include,
+            params=params,
+            wrapper=ListResponse.of(Group),
+        )
 
     def create(self, group_name, role, ldap_group_dn=None):
         data = {
@@ -90,32 +91,39 @@ class UserGroupsClient(object):
             'ldap_group_dn': ldap_group_dn,
             'role': role
         }
-        response = self.api.post('/user-groups',
-                                 data=data,
-                                 expected_status_code=201)
-        return Group(response)
+        return self.api.post(
+            '/user-groups',
+            data=data,
+            expected_status_code=201,
+            wrapper=Group,
+        )
 
     def get(self, group_name, **kwargs):
-        response = self.api.get(
+        return self.api.get(
             '/user-groups/{0}'.format(group_name),
-            params=kwargs
+            params=kwargs,
+            wrapper=Group,
         )
-        return Group(response)
 
     def delete(self, group_name):
-        self.api.delete('/user-groups/{0}'.format(group_name))
+        return self.api.delete('/user-groups/{0}'.format(group_name))
 
     def set_role(self, group_name, new_role):
         data = {'role': new_role}
-        response = self.api.post('/user-groups/{0}'.format(group_name),
-                                 data=data)
-        return Group(response)
+        return self.api.post(
+            '/user-groups/{0}'.format(group_name),
+            data=data,
+            wrapper=Group,
+        )
 
     def add_user(self, username, group_name):
         data = {'username': username, 'group_name': group_name}
-        response = self.api.put('/user-groups/users', data=data)
-        return Group(response)
+        return self.api.put(
+            '/user-groups/users',
+            data=data,
+            wrapper=Group,
+        )
 
     def remove_user(self, username, group_name):
         data = {'username': username, 'group_name': group_name}
-        self.api.delete('/user-groups/users', data=data)
+        return self.api.delete('/user-groups/users', data=data)

@@ -77,7 +77,6 @@ class Secret(dict):
 
 
 class SecretsClient(object):
-
     def __init__(self, api):
         self.api = api
 
@@ -125,8 +124,11 @@ class SecretsClient(object):
         if provider:
             data['provider'] = provider
 
-        response = self.api.put('/secrets/{0}'.format(key), data=data)
-        return Secret(response)
+        return self.api.put(
+            '/secrets/{0}'.format(key),
+            data=data,
+            wrapper=Secret,
+        )
 
     def update(
             self,
@@ -144,12 +146,14 @@ class SecretsClient(object):
             'provider': provider,
         })
         data = dict((k, v) for k, v in kwargs.items() if v is not None)
-        response = self.api.patch('/secrets/{0}'.format(key), data=data)
-        return Secret(response)
+        return self.api.patch(
+            '/secrets/{0}'.format(key),
+            data=data,
+            wrapper=Secret,
+        )
 
     def get(self, key):
-        response = self.api.get('/secrets/{0}'.format(key))
-        return Secret(response)
+        return self.api.get('/secrets/{0}'.format(key), wrapper=Secret)
 
     def export(self, _include=None, **kwargs):
         """
@@ -159,9 +163,11 @@ class SecretsClient(object):
         :return: Secrets' list
         """
         params = kwargs
-        response = self.api.get('/secrets/share/export', params=params,
-                                _include=_include)
-        return response
+        return self.api.get(
+            '/secrets/share/export',
+            params=params,
+            _include=_include,
+        )
 
     def import_secrets(self, secrets_list, tenant_map=None,
                        passphrase=None, override_collisions=False):
@@ -183,8 +189,10 @@ class SecretsClient(object):
             'override_collisions': override_collisions
         }
         data = dict((k, v) for k, v in data.items() if v is not None)
-        response = self.api.post('/secrets/share/import', data=data)
-        return response
+        return self.api.post(
+            '/secrets/share/import',
+            data=data,
+        )
 
     def list(self, sort=None, is_descending=False,
              filter_rules=None, constraints=None, **kwargs):
@@ -211,19 +219,28 @@ class SecretsClient(object):
             params['_sort'] = '-' + sort if is_descending else sort
 
         if filter_rules:
-            response = self.api.post('/searches/secrets', params=params,
-                                     data={'filter_rules': filter_rules})
+            return self.api.post(
+                '/searches/secrets',
+                params=params,
+                data={'filter_rules': filter_rules},
+                wrapper=ListResponse.of(Secret),
+            )
         elif constraints:
-            response = self.api.post('/searches/secrets', params=params,
-                                     data={'constraints': constraints})
+            return self.api.post(
+                '/searches/secrets',
+                params=params,
+                data={'constraints': constraints},
+                wrapper=ListResponse.of(Secret),
+            )
         else:
-            response = self.api.get('/secrets', params=params)
-
-        return ListResponse([Secret(item) for item in response['items']],
-                            response['metadata'])
+            return self.api.get(
+                '/secrets',
+                params=params,
+                wrapper=ListResponse.of(Secret),
+            )
 
     def delete(self, key):
-        self.api.delete('/secrets/{0}'.format(key))
+        return self.api.delete('/secrets/{0}'.format(key))
 
     def set_global(self, key):
         """

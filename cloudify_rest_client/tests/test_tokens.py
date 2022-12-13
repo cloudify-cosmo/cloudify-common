@@ -20,7 +20,7 @@ def test_token_create():
     result = client.tokens.create()
 
     client.assert_last_mock_call(endpoint='/tokens',
-                                 data='{}',
+                                 data={},
                                  expected_method='post')
 
     assert isinstance(result, Token)

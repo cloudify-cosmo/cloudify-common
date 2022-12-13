@@ -72,8 +72,7 @@ class MaintenanceModeClient(object):
         :return: Maintenance mode state.
         """
         uri = '/maintenance'
-        response = self.api.get(uri)
-        return Maintenance(response)
+        return self.api.get(uri, wrapper=Maintenance)
 
     def activate(self):
         """
@@ -83,11 +82,10 @@ class MaintenanceModeClient(object):
         """
         uri = '/maintenance/activate'
         try:
-            response = self.api.post(uri)
+            return self.api.post(uri, wrapper=Maintenance)
         except NotModifiedError as e:
             e.message = 'Maintenance mode is already on.'
             raise
-        return Maintenance(response)
 
     def deactivate(self):
         """
@@ -97,8 +95,7 @@ class MaintenanceModeClient(object):
         """
         uri = '/maintenance/deactivate'
         try:
-            response = self.api.post(uri)
+            return self.api.post(uri, wrapper=Maintenance)
         except NotModifiedError as e:
             e.message = 'Maintenance mode is already off.'
             raise
-        return Maintenance(response)
