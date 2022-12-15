@@ -34,16 +34,6 @@ class TestGeneralUtilFunctions(unittest.TestCase):
                 None,
                 None)
 
-    def test_validate_args_raises_with_func_as_input(self):
-        constraint_cls_mock = MagicMock()
-        constraint_cls_mock.constraint_data_type = 'some_type'
-        self.assertRaises(
-            exceptions.DSLParsingLogicException,
-            constraints.validate_args,
-            constraint_cls_mock,
-            {'get_input': 'shouldnt matter'},
-            None)
-
     def test_validate_args_successful(self):
         validation_funcs_mock = {'some_type': lambda _: True}
         with patch.dict('dsl_parser.constraints.VALIDATION_FUNCTIONS',
