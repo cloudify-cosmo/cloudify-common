@@ -374,9 +374,12 @@ def validate_args(constraint_cls, args, ancestor):
     :param ancestor: ancestor element of this constraint.
     :raises DSLParsingFormatException: in case of a violation.
     """
-    if utils.get_function(args) \
-            or not VALIDATION_FUNCTIONS[
-                constraint_cls.constraint_data_type](args):
+    if utils.get_function(args):
+        # allow functions to be constraint values. Those need to be
+        # evaluated before actually checking the constraints (when creating
+        # the deployment, with concrete input values).
+        return
+    if not VALIDATION_FUNCTIONS[constraint_cls.constraint_data_type](args):
         raise exceptions.DSLParsingLogicException(
             exceptions.ERROR_INVALID_CONSTRAINT_ARGUMENT,
             'Invalid constraint operator argument "{0}", for constraint '
