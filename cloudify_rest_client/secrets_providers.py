@@ -8,6 +8,14 @@ class SecretsProvider(dict):
         self.update(secrets_provider)
 
     @property
+    def id(self):
+        """
+        :return: Secrets Provider's id.
+        :rtype: str
+        """
+        return self.get('id')
+
+    @property
     def name(self):
         """
         :return: Secrets Provider's name.
@@ -148,13 +156,20 @@ class SecretsProvidersClient(object):
         """
         self.api.delete(f'/secrets-providers/{name}')
 
-    def list(self):
+    def list(self, _include=None, **kwargs):
         """
         Returns a list of currently stored Secrets Providers.
 
+        :param _include: List of fields to include in response.
+        :param sort: Key for sorting the list.
+        :param kwargs: Additional params are filter keys.
         :return: Secrets Parameters list.
         """
-        response = self.api.get('/secrets-providers')
+        params = kwargs
+        if _include:
+            params['_include'] = ','.join(_include)
+
+        response = self.api.get('/secrets-providers', params=params)
 
         return ListResponse(
             [SecretsProvider(item) for item in response['items']],
