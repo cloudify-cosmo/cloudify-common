@@ -393,7 +393,7 @@ class DeploymentStorage(object):
         if evaluate_functions:
             dsl_functions.evaluate_node_instance_functions(
                 instance, self)
-        return instance
+        return NodeInstance(instance)
 
     def store_instance(self, instance):
         with self._lock(instance['id']):
@@ -409,15 +409,14 @@ class DeploymentStorage(object):
                              force=False):
         with self._lock(node_instance_id):
             instance = self.get_node_instance(node_instance_id)
-            if not force and state is None and version != instance['version']:
-                raise StorageConflictError('version {0} does not match '
-                                           'current version of '
-                                           'node instance {1} which is {2}'
-                                           .format(version,
-                                                   node_instance_id,
-                                                   instance['version']))
+            instance_version = instance.get('version', 0)
+            if not force and state is None and version != instance_version:
+                raise StorageConflictError(
+                    f'version {version} does not match current version of node'
+                    f'instance {node_instance_id} which is {instance_version}'
+                )
             else:
-                instance['version'] += 1
+                instance['version'] = instance_version + 1
             if runtime_properties is not None:
                 instance['runtime_properties'] = runtime_properties
             if system_properties is not None:
@@ -454,7 +453,7 @@ class DeploymentStorage(object):
             for instance in instances:
                 dsl_functions.evaluate_node_instance_functions(
                     instance, self)
-        return instances
+        return [NodeInstance(inst) for inst in instances]
 
     def get_executions(self):
         return self._storage.get_executions(self.name)
@@ -742,7 +741,8 @@ class InMemoryStorage(_Storage):
         return self._node_instances.get(deployment_id).get(node_instance_id)
 
     def store_instance(self, deployment_id, node_instance):
-        self._node_instances[deployment_id][node_instance.id] = node_instance
+        instance_id = node_instance['id']
+        self._node_instances[deployment_id][instance_id] = node_instance
         return node_instance
 
     def create_node_instances(self, deployment_id, node_instances):
@@ -757,7 +757,7 @@ class InMemoryStorage(_Storage):
         instances = list(self._node_instances.get(deployment_id, {}).values())
         if node_id:
             instances = [i for i in instances if i.node_id == node_id]
-        return instances
+        return [NodeInstance(inst) for inst in instances]
 
     def get_workdir(self, deployment_id):
         raise NotImplementedError('get_workdir is not implemented by memory '
@@ -894,7 +894,7 @@ class FileStorage(_Storage):
     def store_instance(self, deployment_id, instance):
         with open(self._instance_path(deployment_id, instance.id), 'w') as f:
             f.write(json.dumps(instance, cls=JSONEncoderWithDatetime))
-        return instance
+        return NodeInstance(instance)
 
     def create_node_instances(self, deployment_id, node_instances):
         for instance in node_instances:
@@ -920,7 +920,7 @@ class FileStorage(_Storage):
                      for instance_id in self._instance_ids(deployment_id)]
         if node_id:
             instances = [i for i in instances if i.node_id == node_id]
-        return instances
+        return [NodeInstance(inst) for inst in instances]
 
     def _instance_ids(self, deployment_id):
         instances_dir = os.path.join(
