@@ -555,13 +555,25 @@ class BlueprintsClient(object):
         uri = '/{self._uri_prefix}/{id}/archive'.format(self=self,
                                                         id=blueprint_id)
 
+        from datetime import datetime
+        with open('/tmp/mateusz.log', 'a+') as fh:
+            fh.write(f'\nBlueprintsClient.download {datetime.now()}\n')
+            fh.write(f'  blueprint_id={blueprint_id}\n')
+            fh.write(f'  output_file={output_file}\n')
+            fh.write(f'  uri={uri}\n')
         with contextlib.closing(
                 self.api.get(uri, stream=True)) as streamed_response:
+
+            with open('/tmp/mateusz.log', 'a+') as fh:
+                fh.write(f'  streamed_response={streamed_response}\n')
 
             output_file = bytes_stream_utils.write_response_stream_to_file(
                 streamed_response,
                 output_file,
                 progress_callback=progress_callback)
+
+            with open('/tmp/mateusz.log', 'a+') as fh:
+                fh.write(f'  output_file={output_file}\n')
 
             return output_file
 
