@@ -1,3 +1,4 @@
+import cgi
 import os
 
 CONTENT_DISPOSITION_HEADER = 'content-disposition'
@@ -69,11 +70,14 @@ def write_response_stream_to_file(streamed_response,
     :param progress_callback: Callback function - can be used to print progress
     :return:
     """
-    output_filename = streamed_response.headers[
-        CONTENT_DISPOSITION_HEADER].split('filename=')[1]
+    header_value = streamed_response.headers.get(CONTENT_DISPOSITION_HEADER)
+    output_filename = None
+    if header_value:
+        _, content_params = cgi.parse_header(header_value)
+        output_filename = content_params.get('filename')
 
     if not output_file:
-        if CONTENT_DISPOSITION_HEADER not in streamed_response.headers:
+        if not output_filename:
             raise RuntimeError(
                 'Cannot determine attachment filename: {0} header not'
                 ' found in response headers'.format(
