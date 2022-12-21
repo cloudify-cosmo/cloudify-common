@@ -205,6 +205,10 @@ class SecretsProvidersClient(object):
         if connection_parameters:
             data['connection_parameters'] = connection_parameters
 
-        response = self.api.put('/secrets-providers', data=data)
+        response = self.api.put(
+            '/secrets-providers',
+            data=data,
+            expected_status_code=204,
+        )
 
         return response
