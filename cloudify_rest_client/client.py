@@ -105,15 +105,29 @@ class HTTPClient(object):
                          self._get_auth_header(username, password),
                          log_value=False)
         self._set_header(constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER, token)
-        self._set_header(CLOUDIFY_TENANT_HEADER, tenant)
+        tenant_from_header = headers.get(CLOUDIFY_TENANT_HEADER) if headers\
+            else None
+        self.tenant_name = tenant or tenant_from_header
         if session is None:
             session = requests.Session()
         self._session = session
 
     @property
+    def tenant_name(self):
+        return self._tenant_name
+
+    @tenant_name.setter
+    def tenant_name(self, name):
+        self._tenant_name = name
+        self._set_header(CLOUDIFY_TENANT_HEADER, name)
+
+    @property
+    def base_url(self):
+        return f'{self.protocol}://{self.host}:{self.port}'
+
+    @property
     def url(self):
-        return '{0}://{1}:{2}/api/{3}'.format(self.protocol, self.host,
-                                              self.port, self.api_version)
+        return f'{self.base_url}/api/{self.api_version}'
 
     def has_kerberos(self):
         if self.kerberos_env is not None:
