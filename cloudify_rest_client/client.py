@@ -56,6 +56,7 @@ from cloudify_rest_client.labels import (DeploymentsLabelsClient,
 from cloudify_rest_client.filters import (DeploymentsFiltersClient,
                                           BlueprintsFiltersClient)
 from cloudify_rest_client.workflows import WorkflowsClient
+from cloudify_rest_client.resources import ResourcesClient
 from cloudify_rest_client.audit_log import AuditLogClient
 from cloudify_rest_client.community_contacts import CommunityContactsClient
 from cloudify_async_client.audit_log import AuditLogAsyncClient
@@ -105,15 +106,29 @@ class HTTPClient(object):
                          self._get_auth_header(username, password),
                          log_value=False)
         self._set_header(constants.CLOUDIFY_TOKEN_AUTHENTICATION_HEADER, token)
-        self._set_header(CLOUDIFY_TENANT_HEADER, tenant)
+        tenant_from_header = headers.get(CLOUDIFY_TENANT_HEADER) if headers\
+            else None
+        self.tenant_name = tenant or tenant_from_header
         if session is None:
             session = requests.Session()
         self._session = session
 
     @property
+    def tenant_name(self):
+        return self._tenant_name
+
+    @tenant_name.setter
+    def tenant_name(self, name):
+        self._tenant_name = name
+        self._set_header(CLOUDIFY_TENANT_HEADER, name)
+
+    @property
+    def base_url(self):
+        return f'{self.protocol}://{self.host}:{self.port}'
+
+    @property
     def url(self):
-        return '{0}://{1}:{2}/api/{3}'.format(self.protocol, self.host,
-                                              self.port, self.api_version)
+        return f'{self.base_url}/api/{self.api_version}'
 
     def has_kerberos(self):
         if self.kerberos_env is not None:
@@ -247,9 +262,12 @@ class HTTPClient(object):
                    headers=None,
                    expected_status_code=200,
                    stream=False,
+                   url_prefix=True,
                    versioned_url=True,
                    timeout=None):
-        if versioned_url:
+        if not url_prefix:
+            request_url = f'{self.base_url}{uri}'
+        elif versioned_url:
             request_url = '{0}{1}'.format(self.url, uri)
         else:
             # remove version from url ending
@@ -310,8 +328,8 @@ class HTTPClient(object):
             )
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
-            expected_status_code=200, stream=False, versioned_url=True,
-            timeout=None):
+            expected_status_code=200, stream=False, url_prefix=True,
+            versioned_url=True, timeout=None):
         if _include:
             fields = ','.join(_include)
             if not params:
@@ -324,11 +342,13 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                versioned_url=versioned_url,
                                timeout=timeout)
 
     def put(self, uri, data=None, params=None, headers=None,
-            expected_status_code=200, stream=False, timeout=None):
+            expected_status_code=200, stream=False, url_prefix=True,
+            timeout=None):
         return self.do_request(self._session.put,
                                uri,
                                data=data,
@@ -336,10 +356,12 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                timeout=timeout)
 
     def patch(self, uri, data=None, params=None, headers=None,
-              expected_status_code=200, stream=False, timeout=None):
+              expected_status_code=200, stream=False, url_prefix=True,
+              timeout=None):
         return self.do_request(self._session.patch,
                                uri,
                                data=data,
@@ -347,10 +369,12 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                timeout=timeout)
 
     def post(self, uri, data=None, params=None, headers=None,
-             expected_status_code=200, stream=False, timeout=None):
+             expected_status_code=200, stream=False, url_prefix=True,
+             timeout=None):
         return self.do_request(self._session.post,
                                uri,
                                data=data,
@@ -358,10 +382,12 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                timeout=timeout)
 
     def delete(self, uri, data=None, params=None, headers=None,
-               expected_status_code=(200, 204), stream=False, timeout=None):
+               expected_status_code=(200, 204), stream=False, url_prefix=True,
+               timeout=None):
         return self.do_request(self._session.delete,
                                uri,
                                data=data,
@@ -369,6 +395,7 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                timeout=timeout)
 
     def _get_auth_header(self, username, password):
@@ -492,6 +519,7 @@ class CloudifyClient(object):
         self.deployments_labels = DeploymentsLabelsClient(self._client)
         self.blueprints_labels = BlueprintsLabelsClient(self._client)
         self.workflows = WorkflowsClient(self._client)
+        self.resources = ResourcesClient(self._client)
         self.community_contacts = CommunityContactsClient(self._client)
         if AuditLogAsyncClient is None:
             self.auditlog = AuditLogClient(self._client)
