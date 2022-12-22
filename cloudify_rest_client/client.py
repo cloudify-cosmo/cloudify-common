@@ -261,9 +261,12 @@ class HTTPClient(object):
                    headers=None,
                    expected_status_code=200,
                    stream=False,
+                   url_prefix=True,
                    versioned_url=True,
                    timeout=None):
-        if versioned_url:
+        if not url_prefix:
+            request_url = f'{self.base_url}{uri}'
+        elif versioned_url:
             request_url = '{0}{1}'.format(self.url, uri)
         else:
             # remove version from url ending
@@ -324,8 +327,8 @@ class HTTPClient(object):
             )
 
     def get(self, uri, data=None, params=None, headers=None, _include=None,
-            expected_status_code=200, stream=False, versioned_url=True,
-            timeout=None):
+            expected_status_code=200, stream=False, url_prefix=True,
+            versioned_url=True, timeout=None):
         if _include:
             fields = ','.join(_include)
             if not params:
@@ -338,11 +341,13 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                versioned_url=versioned_url,
                                timeout=timeout)
 
     def put(self, uri, data=None, params=None, headers=None,
-            expected_status_code=200, stream=False, timeout=None):
+            expected_status_code=200, stream=False, url_prefix=True,
+            timeout=None):
         return self.do_request(self._session.put,
                                uri,
                                data=data,
@@ -350,10 +355,12 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                timeout=timeout)
 
     def patch(self, uri, data=None, params=None, headers=None,
-              expected_status_code=200, stream=False, timeout=None):
+              expected_status_code=200, stream=False, url_prefix=True,
+              timeout=None):
         return self.do_request(self._session.patch,
                                uri,
                                data=data,
@@ -361,10 +368,12 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                timeout=timeout)
 
     def post(self, uri, data=None, params=None, headers=None,
-             expected_status_code=200, stream=False, timeout=None):
+             expected_status_code=200, stream=False, url_prefix=True,
+             timeout=None):
         return self.do_request(self._session.post,
                                uri,
                                data=data,
@@ -372,10 +381,12 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                timeout=timeout)
 
     def delete(self, uri, data=None, params=None, headers=None,
-               expected_status_code=(200, 204), stream=False, timeout=None):
+               expected_status_code=(200, 204), stream=False, url_prefix=True,
+               timeout=None):
         return self.do_request(self._session.delete,
                                uri,
                                data=data,
@@ -383,6 +394,7 @@ class HTTPClient(object):
                                headers=headers,
                                expected_status_code=expected_status_code,
                                stream=stream,
+                               url_prefix=url_prefix,
                                timeout=timeout)
 
     def _get_auth_header(self, username, password):
