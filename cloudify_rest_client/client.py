@@ -56,6 +56,7 @@ from cloudify_rest_client.labels import (DeploymentsLabelsClient,
 from cloudify_rest_client.filters import (DeploymentsFiltersClient,
                                           BlueprintsFiltersClient)
 from cloudify_rest_client.workflows import WorkflowsClient
+from cloudify_rest_client.resources import ResourcesClient
 from cloudify_rest_client.audit_log import AuditLogClient
 from cloudify_rest_client.community_contacts import CommunityContactsClient
 from cloudify_async_client.audit_log import AuditLogAsyncClient
@@ -518,6 +519,7 @@ class CloudifyClient(object):
         self.deployments_labels = DeploymentsLabelsClient(self._client)
         self.blueprints_labels = BlueprintsLabelsClient(self._client)
         self.workflows = WorkflowsClient(self._client)
+        self.resources = ResourcesClient(self._client)
         self.community_contacts = CommunityContactsClient(self._client)
         if AuditLogAsyncClient is None:
             self.auditlog = AuditLogClient(self._client)
