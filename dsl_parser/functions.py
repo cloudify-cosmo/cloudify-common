@@ -1794,6 +1794,7 @@ def get_nested_attribute_value_of_capability(root, path):
         if isinstance(value, dict):
             if attr not in value:
                 raise exceptions.FunctionEvaluationError(
+                    'get_capability',
                     "Attribute '{0}' doesn't exist in '{1}' "
                     "in deployment '{2}'.".format(
                         attr,
@@ -1809,6 +1810,7 @@ def get_nested_attribute_value_of_capability(root, path):
                 value = value[attr]
             except TypeError:
                 raise exceptions.FunctionEvaluationError(
+                    'get_capability',
                     "Item in index {0} in the get_capability arguments "
                     "list [{1}] is expected to be an int "
                     "but got {2}.".format(
@@ -1817,6 +1819,7 @@ def get_nested_attribute_value_of_capability(root, path):
                         type(attr).__name__))
             except IndexError:
                 raise exceptions.FunctionEvaluationError(
+                    'get_capability',
                     "List size of '{0}' is {1}, in "
                     "deployment '{2}', but index {3} is "
                     "retrieved.".format(
@@ -1827,6 +1830,7 @@ def get_nested_attribute_value_of_capability(root, path):
                         attr))
         else:
             raise exceptions.FunctionEvaluationError(
+                'get_capability',
                 "Object {0}, in capability '{1}' in deployment '{2}', "
                 "has no attribute {3}".format(
                     _convert_attribute_list_to_python_syntax_string(
