@@ -35,6 +35,7 @@ import logging
 import os
 import queue
 import sys
+import textwrap
 import threading
 import traceback
 from io import StringIO
@@ -146,7 +147,7 @@ class OperationHandler(TaskHandler):
         try:
             return self.func(*self.args, **kwargs)
         except Exception as e:
-            err = _WrappedTaskError(e, traceback.format_exc())
+            err = _WrappedTaskError(e, sys.exc_info()[2])
             raise err
         finally:
             if ctx.type == constants.NODE_INSTANCE:
@@ -166,8 +167,26 @@ class _WrappedTaskError(Exception):
     """
     def __init__(self, wrapped_exc, wrapped_tb, *args, **kwargs):
         super(_WrappedTaskError, self).__init__(*args, **kwargs)
+
+        # figure out how many lines to show: negative limit means only the
+        # last N lines will be shown. We show all but one, i.e. we skip
+        # the top-most line.
+        stack = traceback.extract_tb(wrapped_tb)
+        limit = -len(stack) + 1
+
+        traceback_lines = traceback.format_tb(wrapped_tb, limit=limit)
+        exception_lines = traceback.format_exception_only(
+            # compat with pythons pre-3.10; the first argument is ignored
+            # in 3.10+
+            type(wrapped_exc),
+            value=wrapped_exc,
+        )
+
         self.wrapped_exc = wrapped_exc
-        self.wrapped_tb = wrapped_tb
+        self.wrapped_tb = (
+            textwrap.dedent(''.join(traceback_lines))
+            + ''.join(exception_lines)
+        )
 
 
 class WorkflowHandler(TaskHandler):
@@ -343,7 +362,7 @@ class WorkflowHandler(TaskHandler):
                 result = {'result': api.EXECUTION_CANCELLED_RESULT}
                 return result
             except BaseException as workflow_ex:
-                err = _WrappedTaskError(workflow_ex, traceback.format_exc())
+                err = _WrappedTaskError(workflow_ex, sys.exc_info()[2])
                 result = {'error': err}
                 return result
             return result

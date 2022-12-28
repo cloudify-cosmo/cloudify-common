@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import sys
 import unittest
 from unittest.mock import patch, MagicMock, Mock
 
@@ -205,3 +206,22 @@ def func1(result):
 
 def func2(*args, **kwargs):
     return args, kwargs
+
+
+class TestWrappedError(unittest.TestCase):
+    def test_skips_first_line(self):
+        def err_func():
+            1 / 0
+
+        try:
+            should_not_display = err_func()  # NOQA
+        except Exception as e:
+            err = dispatch._WrappedTaskError(e, sys.exc_info()[2])
+        else:
+            self.fail()
+
+        # check that the traceback shows the error in the actual function,
+        # but not the caller
+        assert '1 / 0' in err.wrapped_tb
+        assert 'err_func' in err.wrapped_tb
+        assert 'should_not_display' not in err.wrapped_tb
