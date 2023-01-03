@@ -904,6 +904,9 @@ def _make_execute_operation_graph(ctx, operation, operation_kwargs,
 
     # registering actual tasks to sequences
     for instance in filtered_node_instances:
+        if not instance.node.has_operation(operation):
+            continue
+
         start_event_message = 'Starting operation {0}'.format(operation)
         if operation_kwargs:
             start_event_message += ' (Operation parameters: {0})'.format(
