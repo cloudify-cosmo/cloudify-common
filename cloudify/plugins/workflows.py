@@ -904,6 +904,9 @@ def _make_execute_operation_graph(ctx, operation, operation_kwargs,
 
     # registering actual tasks to sequences
     for instance in filtered_node_instances:
+        subgraph = graph.subgraph(instance.id)
+        subgraphs[instance.id] = subgraph
+
         if not instance.node.has_operation(operation):
             continue
 
@@ -911,13 +914,12 @@ def _make_execute_operation_graph(ctx, operation, operation_kwargs,
         if operation_kwargs:
             start_event_message += ' (Operation parameters: {0})'.format(
                 operation_kwargs)
-        subgraph = graph.subgraph(instance.id)
+
         sequence = subgraph.sequence()
         sequence.add(
             instance.send_event(start_event_message),
             instance.execute_operation(**exec_op_params),
             instance.send_event('Finished operation {0}'.format(operation)))
-        subgraphs[instance.id] = subgraph
 
     # adding tasks dependencies if required
     if run_by_dependency_order:
