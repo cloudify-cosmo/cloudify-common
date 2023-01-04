@@ -75,7 +75,7 @@ class ResourcesClient:
                 f"Unable to download single deployment's file "
                 f"from {base_uri}{file_path}: {response}")
         with tempfile.NamedTemporaryFile('wb',
-                                         prefix=f'{dst_dir}{os.path.sep}',
+                                         dir=dst_dir,
                                          delete=False) as tmp_file:
             for chunk in response.bytes_stream():
                 tmp_file.write(chunk)
