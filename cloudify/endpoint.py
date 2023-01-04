@@ -167,6 +167,15 @@ class Endpoint(object):
     def get_execution(self, execution_id):
         raise NotImplementedError('Implemented by subclasses')
 
+    def download_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def upload_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def sync_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class ManagerEndpoint(Endpoint):
     def __init__(self, *args, **kwargs):
@@ -329,6 +338,10 @@ class ManagerEndpoint(Endpoint):
         return self.rest_client.resources.upload_deployment_workdir(
             deployment_id, local_dir)
 
+    def sync_deployment_workdir(self, deployment_id, local_dir):
+        return self.rest_client.resources.sync_deployment_workdir(
+            deployment_id, local_dir)
+
 
 class LocalEndpoint(Endpoint):
 
@@ -456,5 +469,9 @@ class LocalEndpoint(Endpoint):
             f'Deployment workdirs functionality not yet supported by {self}')
 
     def upload_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError(
+            f'Deployment workdirs functionality not yet supported by {self}')
+
+    def sync_deployment_workdir(self, deployment_id, local_dir):
         raise NotImplementedError(
             f'Deployment workdirs functionality not yet supported by {self}')

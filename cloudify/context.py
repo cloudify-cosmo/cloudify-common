@@ -93,7 +93,8 @@ class DeploymentWorkdirMixin:
         if not local_dir:
             return
 
-        self._endpoint.download_deployment_workdir(deployment_id, local_dir)
+        return self._endpoint.download_deployment_workdir(deployment_id,
+                                                          local_dir)
 
     def upload_deployment_workdir(self, deployment_id, tenant_name):
         """Upload a local copy of deployment's working directory to the manager
@@ -105,7 +106,21 @@ class DeploymentWorkdirMixin:
         if not local_dir:
             return
 
-        self._endpoint.upload_deployment_workdir(deployment_id, local_dir)
+        return self._endpoint.upload_deployment_workdir(deployment_id,
+                                                        local_dir)
+
+    def sync_deployment_workdir(self, deployment_id, tenant_name):
+        """Sync a local copy of deployment's working directory to the manager
+
+        :param deployment_id: identifier of a deployment being worked on
+        :param tenant_name: deployment's tenant name
+        """
+        local_dir = local_deployment_workdir(deployment_id, tenant_name)
+        if not local_dir:
+            return
+
+        return self._endpoint.sync_deployment_workdir(deployment_id,
+                                                      local_dir)
 
     @staticmethod
     def get_local_resources_root():
