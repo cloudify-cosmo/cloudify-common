@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 import os
+from contextlib import nullcontext
 
 from cloudify import constants
 from cloudify import manager
@@ -465,13 +466,10 @@ class LocalEndpoint(Endpoint):
         return Execution({'id': execution_id, 'status': 'started'})
 
     def download_deployment_workdir(self, deployment_id, local_dir):
-        raise NotImplementedError(
-            f'Deployment workdirs functionality not yet supported by {self}')
+        pass
 
     def upload_deployment_workdir(self, deployment_id, local_dir):
-        raise NotImplementedError(
-            f'Deployment workdirs functionality not yet supported by {self}')
+        pass
 
     def sync_deployment_workdir(self, deployment_id, local_dir):
-        raise NotImplementedError(
-            f'Deployment workdirs functionality not yet supported by {self}')
+        return nullcontext()
