@@ -115,15 +115,18 @@ def execute_unlink_relationships(graph,
     processor.uninstall()
 
 
-def rollback_node_instances(graph,
-                            node_instances,
-                            related_nodes=None,
-                            name_prefix=''):
+def rollback_node_instances(
+    graph,
+    node_instances,
+    related_nodes=None,
+    name_prefix='',
+    ignore_failure=True,
+):
     processor = LifecycleProcessor(graph=graph,
                                    node_instances=node_instances,
                                    related_nodes=related_nodes,
                                    name_prefix=name_prefix,
-                                   ignore_failure=True)
+                                   ignore_failure=ignore_failure)
 
     processor.rollback()
 
