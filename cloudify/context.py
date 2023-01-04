@@ -109,6 +109,7 @@ class DeploymentWorkdirMixin:
         return self._endpoint.upload_deployment_workdir(deployment_id,
                                                         local_dir)
 
+    @contextmanager
     def sync_deployment_workdir(self, deployment_id, tenant_name):
         """Sync a local copy of deployment's working directory to the manager
 
@@ -119,8 +120,8 @@ class DeploymentWorkdirMixin:
         if not local_dir:
             return
 
-        return self._endpoint.sync_deployment_workdir(deployment_id,
-                                                      local_dir)
+        with self._endpoint.sync_deployment_workdir(deployment_id, local_dir):
+            yield
 
     @staticmethod
     def get_local_resources_root():
