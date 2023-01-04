@@ -686,7 +686,7 @@ def scale_entity(ctx,
                 ctx.logger.error('Scale out failed, scaling back in.')
                 for task in graph.tasks:
                     graph.remove_task(task)
-                lifecycle.uninstall_node_instances(
+
                 # refresh the added instances, to get new and updated
                 # instance statuses, after the failed install
                 ctx.refresh_node_instances()
@@ -696,6 +696,7 @@ def scale_entity(ctx,
                     if i.modification == 'added'
                 }
 
+                lifecycle.rollback_node_instances(
                     graph=graph,
                     node_instances=added,
                     ignore_failure=ignore_failure,
