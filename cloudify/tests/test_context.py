@@ -12,7 +12,7 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-
+import _io
 import logging
 import sys
 import os
@@ -49,6 +49,7 @@ class CloudifyContextTest(unittest.TestCase):
         os.environ[constants.REST_HOST_KEY] = "localhost"
         os.environ[constants.MANAGER_FILE_SERVER_SCHEME] = "http"
         os.environ[constants.LOCAL_REST_CERT_FILE_KEY] = 'somefile'
+        os.environ[constants.LOCAL_RESOURCES_ROOT_ENV_KEY] = '/tmp/resources'
         self.context = context.CloudifyContext({
             'blueprint_id': '',
             'tenant': {'name': 'default_tenant'}
@@ -64,6 +65,7 @@ class CloudifyContextTest(unittest.TestCase):
         os.environ.pop(constants.REST_PORT_KEY)
         os.environ.pop(constants.MANAGER_FILE_SERVER_SCHEME)
         os.environ.pop(constants.LOCAL_REST_CERT_FILE_KEY)
+        os.environ.pop(constants.LOCAL_RESOURCES_ROOT_ENV_KEY)
 
     def setup_tenant_context(self):
         self.context = context.CloudifyContext(
@@ -193,7 +195,7 @@ class CloudifyContextTest(unittest.TestCase):
             'cloudify.utils.get_manager_file_server_url', return_value=[
                 'http://server1', 'http://server2']):
 
-            # can't connect to any managers - thats NonRecoverable
+            # can't connect to any managers - that's NonRecoverable
             with mock.patch('requests.get', side_effect=[
                 requests.ConnectionError(),
                 requests.ConnectionError(),
@@ -328,6 +330,134 @@ class CloudifyContextTest(unittest.TestCase):
             'relationships': ['related-instance-id']
         })
         self.assertEqual(constants.RELATIONSHIP_INSTANCE, ctx.type)
+
+    def test_local_resources_root(self):
+        orig_env_var = os.environ[constants.LOCAL_RESOURCES_ROOT_ENV_KEY]
+        ctx = context.CloudifyContext({})
+        assert ctx.get_local_resources_root() == '/tmp/resources'
+        os.environ[constants.LOCAL_RESOURCES_ROOT_ENV_KEY] = '/test/resources'
+        assert ctx.get_local_resources_root() == '/test/resources'
+        os.environ[constants.LOCAL_RESOURCES_ROOT_ENV_KEY] = orig_env_var
+
+    def test_local_deployment_workdir(self):
+        root = context.CloudifyContext({}).get_local_resources_root()
+        assert context.local_deployment_workdir('dep1', 'tenant1') ==\
+            os.path.join(root, 'deployments', 'tenant1', 'dep1')
+        assert context.local_deployment_workdir(None, 'tenant1') is None
+        assert context.local_deployment_workdir('dep1', None) is None
+
+    def test_download_deployment_workdir_successful(self):
+        deployment_id = 'test_deployment'
+        tenant_name = 'default_tenant'
+        ctx = context.CloudifyContext({
+            'deployment_id': deployment_id,
+            'tenant': {'name': tenant_name},
+        })
+
+        archive_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            'resources/deployment_archive.tar.gz',
+        )
+        with open(archive_path, 'rb') as archive_file:
+            archive_content = archive_file.read()
+        deployment_workdir_path = os.path.join(
+            ctx.get_local_resources_root(),
+            'deployments',
+            tenant_name,
+            deployment_id,
+        )
+        try:
+            mocked_response = Mock(ok=True,
+                                   bytes_stream=lambda: [archive_content])
+            with patch('cloudify_rest_client.client.HTTPClient.get',
+                       return_value=mocked_response):
+                ctx.download_deployment_workdir(deployment_id, tenant_name)
+            extracted_resources_file_name = os.path.join(
+                deployment_workdir_path,
+                'resources',
+                'resource.txt'
+            )
+            with open(extracted_resources_file_name,
+                      'rt', encoding='utf-8') as resource:
+                assert resource.read().strip() == 'Hello from test'
+        finally:
+            shutil.rmtree(deployment_workdir_path)
+
+    def test_download_deployment_workdir_failing(self):
+        deployment_id = 'test_deployment'
+        tenant_name = 'default_tenant'
+        ctx = context.CloudifyContext({
+            'deployment_id': deployment_id,
+            'tenant': {'name': tenant_name},
+        })
+
+        with patch('cloudify_rest_client.client.HTTPClient.get',
+                   return_value=Mock(ok=False)):
+            self.assertRaises(CloudifyClientError,
+                              ctx.download_deployment_workdir,
+                              deployment_id,
+                              tenant_name)
+
+    def test_upload_deployment_workdir_successful(self):
+        deployment_id = 'test_deployment'
+        tenant_name = 'default_tenant'
+        ctx = context.CloudifyContext({
+            'deployment_id': deployment_id,
+            'tenant': {'name': tenant_name},
+        })
+
+        deployment_workdir_path = os.path.join(
+            ctx.get_local_resources_root(),
+            'deployments',
+            tenant_name,
+            deployment_id,
+        )
+        os.makedirs(os.path.join(deployment_workdir_path), exist_ok=True)
+        test_file_name = os.path.join(deployment_workdir_path, 'resource.txt')
+        with open(test_file_name, 'wt', encoding='utf-8') as resource:
+            resource.write('Hello from test')
+
+        try:
+            with patch('cloudify_rest_client.client.HTTPClient.put',
+                       return_value=Mock(ok=True)) as put_call:
+                ctx.upload_deployment_workdir(deployment_id, tenant_name)
+            assert put_call.call_args.args ==\
+                   ('/resources/deployments/default_tenant/test_deployment/',)
+            assert put_call.call_args.kwargs['params'] == {'extract': 'yes'}
+            assert put_call.call_args.kwargs['url_prefix'] is False
+            assert isinstance(put_call.call_args.kwargs['data'],
+                              _io.BufferedReader)
+            assert put_call.call_args.kwargs['data'].name.endswith('.tar.gz')
+        finally:
+            shutil.rmtree(deployment_workdir_path)
+
+    def test_upload_deployment_workdir_failing(self):
+        deployment_id = 'test_deployment'
+        tenant_name = 'default_tenant'
+        ctx = context.CloudifyContext({
+            'deployment_id': deployment_id,
+            'tenant': {'name': tenant_name},
+        })
+
+        deployment_workdir_path = os.path.join(
+            ctx.get_local_resources_root(),
+            'deployments',
+            tenant_name,
+            deployment_id,
+        )
+        os.makedirs(os.path.join(deployment_workdir_path), exist_ok=True)
+        test_file_name = os.path.join(deployment_workdir_path, 'resource.txt')
+        with open(test_file_name, 'wt', encoding='utf-8') as resource:
+            resource.write('Hello from test')
+
+        with patch('cloudify_rest_client.client.HTTPClient.put',
+                   return_value=Mock(ok=False)):
+            self.assertRaises(CloudifyClientError,
+                              ctx.upload_deployment_workdir,
+                              deployment_id,
+                              tenant_name)
+
+        shutil.rmtree(deployment_workdir_path)
 
 
 class NodeContextTests(unittest.TestCase):
