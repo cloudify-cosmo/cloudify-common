@@ -8,6 +8,8 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Dict, Tuple
 
+import requests
+
 from cloudify_rest_client.exceptions import CloudifyClientError
 
 INDEX_JSON_FILENAME = '.cloudify-index.json'
@@ -38,12 +40,18 @@ class ResourcesClient:
         return self._download_deployment_workdir_archive(uri, dst_dir)
 
     def _download_deployment_workdir_archive(self, uri: str, dst_dir: str):
-        response = self.api.get(
-            uri,
-            params={'archive': True},
-            stream=True,
-            url_prefix=False,
-        )
+        try:
+            response = self.api.get(
+                uri,
+                params={'archive': True},
+                stream=True,
+                url_prefix=False,
+            )
+        except requests.RequestException as exception:
+            raise CloudifyClientError(
+                f"Unable to download single deployment's file "
+                f"from {uri}") from exception
+
         with tempfile.NamedTemporaryFile('wb') as tmp_file:
             for data in response.bytes_stream():
                 tmp_file.write(data)
@@ -65,15 +73,16 @@ class ResourcesClient:
                               dst_dir: str,
                               file_path: str,
                               file_mtime: str):
-        response = self.api.get(
-            f'{base_uri}{file_path}',
-            stream=True,
-            url_prefix=False,
-        )
-        if not response.ok:
+        try:
+            response = self.api.get(
+                f'{base_uri}{file_path}',
+                stream=True,
+                url_prefix=False,
+            )
+        except requests.RequestException as exception:
             raise CloudifyClientError(
                 f"Unable to download single deployment's file "
-                f"from {base_uri}{file_path}: {response}")
+                f"from {base_uri}{file_path}") from exception
         with tempfile.NamedTemporaryFile('wb',
                                          dir=dst_dir,
                                          delete=False) as tmp_file:

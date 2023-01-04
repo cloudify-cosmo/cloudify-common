@@ -392,7 +392,7 @@ class CloudifyContextTest(unittest.TestCase):
         })
 
         with patch('cloudify_rest_client.client.HTTPClient.get',
-                   return_value=Mock(ok=False)):
+                   side_effect=requests.RequestException('Failure')):
             self.assertRaises(CloudifyClientError,
                               ctx.download_deployment_workdir,
                               deployment_id,
