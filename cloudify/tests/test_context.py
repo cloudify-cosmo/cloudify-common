@@ -12,7 +12,7 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-import _io
+import io
 import logging
 import sys
 import os
@@ -426,7 +426,7 @@ class CloudifyContextTest(unittest.TestCase):
             assert put_call.call_args.kwargs['params'] == {'extract': 'yes'}
             assert put_call.call_args.kwargs['url_prefix'] is False
             assert isinstance(put_call.call_args.kwargs['data'],
-                              _io.BufferedReader)
+                              io.BufferedReader)
             assert put_call.call_args.kwargs['data'].name.endswith('.tar.gz')
         finally:
             shutil.rmtree(deployment_workdir_path)
