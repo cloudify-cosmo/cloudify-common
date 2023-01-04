@@ -16,7 +16,7 @@
 import errno
 import os
 import warnings
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify.endpoint import ManagerEndpoint, LocalEndpoint
@@ -92,7 +92,6 @@ class DeploymentWorkdirMixin:
         local_dir = local_deployment_workdir(deployment_id, tenant_name)
         if not local_dir:
             return
-
         return self._endpoint.download_deployment_workdir(deployment_id,
                                                           local_dir)
 
@@ -105,23 +104,25 @@ class DeploymentWorkdirMixin:
         local_dir = local_deployment_workdir(deployment_id, tenant_name)
         if not local_dir:
             return
-
         return self._endpoint.upload_deployment_workdir(deployment_id,
                                                         local_dir)
 
-    @contextmanager
     def sync_deployment_workdir(self, deployment_id, tenant_name):
-        """Sync a local copy of deployment's working directory to the manager
+        """Sync a local copy of deployment's working directory to the manager.
+        The method returns a contextmanager, so it should be used like:
+
+        ```
+        with ctx.sync_deployment_workdir(deployment_id, tenant_name):
+            do_something()
+        ```
 
         :param deployment_id: identifier of a deployment being worked on
         :param tenant_name: deployment's tenant name
         """
         local_dir = local_deployment_workdir(deployment_id, tenant_name)
         if not local_dir:
-            return
-
-        with self._endpoint.sync_deployment_workdir(deployment_id, local_dir):
-            yield
+            return nullcontext()
+        return self._endpoint.sync_deployment_workdir(deployment_id, local_dir)
 
     @staticmethod
     def get_local_resources_root():
