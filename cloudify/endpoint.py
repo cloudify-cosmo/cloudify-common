@@ -176,7 +176,7 @@ class ManagerEndpoint(Endpoint):
     @property
     def rest_client(self):
         if self._rest_client is None:
-            self._rest_client = manager.get_rest_client()
+            self._rest_client = manager.get_rest_client(self.ctx.tenant_name)
         return self._rest_client
 
     def get_node(self, node_id):

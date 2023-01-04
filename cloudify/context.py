@@ -280,6 +280,11 @@ class DeploymentContext(EntityContext):
         return self._context.get('deployment_id')
 
     @property
+    def tenant_name(self):
+        """The deployment tenant's name."""
+        return self._context.get('tenant', {}).get('name')
+
+    @property
     def runtime_only_evaluation(self):
         return self._context.get('runtime_only_evaluation')
 
