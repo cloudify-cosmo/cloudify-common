@@ -443,6 +443,10 @@ def get_workflow_parameters():
     return p
 
 
+def get_local_resources_root():
+    return os.environ.get(constants.LOCAL_RESOURCES_ROOT_ENV_KEY)
+
+
 class LocalCommandRunner(object):
 
     def __init__(self, logger=None, host='localhost'):

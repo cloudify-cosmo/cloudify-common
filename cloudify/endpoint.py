@@ -167,6 +167,15 @@ class Endpoint(object):
     def get_execution(self, execution_id):
         raise NotImplementedError('Implemented by subclasses')
 
+    def download_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def upload_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def sync_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class ManagerEndpoint(Endpoint):
     def __init__(self, *args, **kwargs):
@@ -176,7 +185,7 @@ class ManagerEndpoint(Endpoint):
     @property
     def rest_client(self):
         if self._rest_client is None:
-            self._rest_client = manager.get_rest_client()
+            self._rest_client = manager.get_rest_client(self.ctx.tenant_name)
         return self._rest_client
 
     def get_node(self, node_id):
@@ -321,6 +330,18 @@ class ManagerEndpoint(Endpoint):
             manager_name=utils.get_manager_name(),
         )
 
+    def download_deployment_workdir(self, deployment_id, local_dir):
+        return self.rest_client.resources.download_deployment_workdir(
+            deployment_id, local_dir)
+
+    def upload_deployment_workdir(self, deployment_id, local_dir):
+        return self.rest_client.resources.upload_deployment_workdir(
+            deployment_id, local_dir)
+
+    def sync_deployment_workdir(self, deployment_id, local_dir):
+        return self.rest_client.resources.sync_deployment_workdir(
+            deployment_id, local_dir)
+
 
 class LocalEndpoint(Endpoint):
 
@@ -442,3 +463,15 @@ class LocalEndpoint(Endpoint):
     def get_execution(self, execution_id):
         # same issue as get_brokers
         return Execution({'id': execution_id, 'status': 'started'})
+
+    def download_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError(
+            f'Deployment workdirs functionality not yet supported by {self}')
+
+    def upload_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError(
+            f'Deployment workdirs functionality not yet supported by {self}')
+
+    def sync_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError(
+            f'Deployment workdirs functionality not yet supported by {self}')

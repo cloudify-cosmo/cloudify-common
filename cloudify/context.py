@@ -82,7 +82,55 @@ class ContextCapabilities(object):
         return self._relationship_runtimes
 
 
-class CommonContext(object):
+class DeploymentWorkdirMixin:
+    def download_deployment_workdir(self, deployment_id, tenant_name):
+        """Download a copy of deployment's working directory from the manager
+
+        :param deployment_id: identifier of a deployment being worked on
+        :param tenant_name: deployment's tenant name
+        """
+        local_dir = local_deployment_workdir(deployment_id, tenant_name)
+        if not local_dir:
+            return
+
+        return self._endpoint.download_deployment_workdir(deployment_id,
+                                                          local_dir)
+
+    def upload_deployment_workdir(self, deployment_id, tenant_name):
+        """Upload a local copy of deployment's working directory to the manager
+
+        :param deployment_id: identifier of a deployment being worked on
+        :param tenant_name: deployment's tenant name
+        """
+        local_dir = local_deployment_workdir(deployment_id, tenant_name)
+        if not local_dir:
+            return
+
+        return self._endpoint.upload_deployment_workdir(deployment_id,
+                                                        local_dir)
+
+    @contextmanager
+    def sync_deployment_workdir(self, deployment_id, tenant_name):
+        """Sync a local copy of deployment's working directory to the manager
+
+        :param deployment_id: identifier of a deployment being worked on
+        :param tenant_name: deployment's tenant name
+        """
+        local_dir = local_deployment_workdir(deployment_id, tenant_name)
+        if not local_dir:
+            return
+
+        with self._endpoint.sync_deployment_workdir(deployment_id, local_dir):
+            yield
+
+    @staticmethod
+    def get_local_resources_root():
+        """Retrieve local resources root directory. Potentially can used in
+          scripts, plugins etc."""
+        return utils.get_local_resources_root()
+
+
+class CommonContext(DeploymentWorkdirMixin):
 
     def __init__(self, ctx=None):
         self._context = ctx or {}
@@ -278,6 +326,11 @@ class DeploymentContext(EntityContext):
     def id(self):
         """The deployment id the plugin invocation belongs to."""
         return self._context.get('deployment_id')
+
+    @property
+    def tenant_name(self):
+        """The deployment tenant's name."""
+        return self._context.get('tenant', {}).get('name')
 
     @property
     def runtime_only_evaluation(self):
@@ -1276,3 +1329,26 @@ class ImmutableProperties(dict):
 
     def popitem(self):
         self._raise()
+
+
+def local_deployment_workdir(deployment_id, tenant_name):
+    """Generate absolute path to deployment's local working directory.
+
+    The directory is a local copy of relevant directory on the manager.  It is
+    synchronized on every workflow or operation executed on given deployment.
+
+    :param deployment_id: identifier of a deployment being worked on
+    :param tenant_name: name of the deployment's tenant
+    """
+    if not deployment_id or not tenant_name:
+        return
+
+    if local_resources_root := utils.get_local_resources_root():
+        return os.path.join(
+            local_resources_root,
+            os.path.join('deployments', tenant_name, deployment_id),
+        )
+
+    raise exceptions.NonRecoverableError(
+        f'Local resources root directory not defined, is '
+        f'{constants.LOCAL_RESOURCES_ROOT_ENV_KEY} environment variable set?')

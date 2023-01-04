@@ -41,7 +41,7 @@ def put_node_instance(node_instance_id,
 
 class MockRestclient(CloudifyClient):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         pass
 
     @property
