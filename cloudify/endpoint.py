@@ -321,6 +321,14 @@ class ManagerEndpoint(Endpoint):
             manager_name=utils.get_manager_name(),
         )
 
+    def download_deployment_workdir(self, deployment_id, local_dir):
+        return self.rest_client.resources.download_deployment_workdir(
+            deployment_id, local_dir)
+
+    def upload_deployment_workdir(self, deployment_id, local_dir):
+        return self.rest_client.resources.upload_deployment_workdir(
+            deployment_id, local_dir)
+
 
 class LocalEndpoint(Endpoint):
 
@@ -442,3 +450,11 @@ class LocalEndpoint(Endpoint):
     def get_execution(self, execution_id):
         # same issue as get_brokers
         return Execution({'id': execution_id, 'status': 'started'})
+
+    def download_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError(
+            f'Deployment workdirs functionality not yet supported by {self}')
+
+    def upload_deployment_workdir(self, deployment_id, local_dir):
+        raise NotImplementedError(
+            f'Deployment workdirs functionality not yet supported by {self}')
