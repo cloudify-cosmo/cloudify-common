@@ -412,13 +412,13 @@ class CloudifyContextTest(unittest.TestCase):
             with patch('cloudify_rest_client.client.HTTPClient.put',
                        return_value=Mock(ok=True)) as put_call:
                 ctx.upload_deployment_workdir()
-            assert put_call.call_args.args ==\
+            call_args, call_kwargs = put_call.call_args
+            assert call_args ==\
                    ('/resources/deployments/default_tenant/test_deployment/',)
-            assert put_call.call_args.kwargs['params'] == {'extract': 'yes'}
-            assert put_call.call_args.kwargs['url_prefix'] is False
-            assert isinstance(put_call.call_args.kwargs['data'],
-                              io.BufferedReader)
-            assert put_call.call_args.kwargs['data'].name.endswith('.tar.gz')
+            assert call_kwargs['params'] == {'extract': 'yes'}
+            assert call_kwargs['url_prefix'] is False
+            assert isinstance(call_kwargs['data'], io.BufferedReader)
+            assert call_kwargs['data'].name.endswith('.tar.gz')
         finally:
             shutil.rmtree(deployment_workdir_path)
 

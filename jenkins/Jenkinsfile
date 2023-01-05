@@ -1,11 +1,11 @@
 def install_test_dependencies(String cache_prefix) {
-  sh script: '''#!/bin/bash
+  sh script: '''
   pip install -r test-requirements.txt --user
   pip install -e '.[dispatcher]' --user
   ''', label: "install test dependencies"
 }
 def pytest(String target, int cov_target=60){
-  sh script: """#!/bin/bash
+  sh script: """
   pytest \
     -n auto \
     --cov-report term \
@@ -15,9 +15,15 @@ def pytest(String target, int cov_target=60){
     --junitxml=test-results/${target}.xml
   """, label: "pytest << ${target} >>"
 }
+def pytest_nocover(String target, int cov_target=60){
+  sh script: """
+  pytest \
+    -n auto \
+    ${target}/tests \
+  """, label: "pytest << ${target} >>"
+}
 def build_docs(String project){
   sh script: """
-  #!/bin/bash
   sphinx-build \
     -d _build/doctrees \
     -D version="\$(python setup.py --version)" \
@@ -54,36 +60,69 @@ pipeline {
     PATH = "/root/.local/bin:$PATH"
   }
   stages{
-    stage ('flake8') {
-      steps{
-        sh script: "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8", label: "copying repo to separate workspace"
-        container('py310'){
-          dir("${env.WORKSPACE}/flake8") {
-          echo 'install flake 8'
-          sh "pip install flake8 --user"
-          echo 'run flake8'
-          sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client cloudify_async_client"
+    stage ('flake8'){
+      parallel {
+        stage ('flake8_py310') {
+          steps{
+            sh script: "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8", label: "copying repo to separate workspace"
+            container('py310'){
+              dir("${env.WORKSPACE}/flake8") {
+              sh script: "pip install flake8 --user", label: "install flake8"
+              sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client cloudify_async_client"
+              }
+            }
+          }
+        }
+        stage('flake8_py36'){
+          steps{
+            sh script: "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8", label: "copying repo to seperate workspace"
+            container('py36'){
+              dir("${env.WORKSPACE}/flake8") {
+              echo 'install flake 8'
+              sh "pip install flake8 --user"
+              echo 'run flake8'
+              sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client cloudify_async_client"
+              }
+            }
           }
         }
       }
     }
-    stage('tests'){
-      steps{
-        sh script: "mkdir -p ${env.WORKSPACE}/test-py310 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py310", label:
-        "copying repo to separate workspace"
-        container('py310'){
-          dir("${env.WORKSPACE}/test-py310") {
-            install_test_dependencies('py310')
-            pytest('dsl_parser')
-            pytest('script_runner')
-            pytest('cloudify')
-            pytest('cloudify_rest_client', 43)
+    stage ('tests') {
+      parallel {
+        stage('test_py310'){
+          steps{
+            sh script: "mkdir -p ${env.WORKSPACE}/test-py310 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py310", label:
+            "copying repo to separate workspace"
+            container('py310'){
+              dir("${env.WORKSPACE}/test-py310") {
+                install_test_dependencies('py310')
+                pytest('dsl_parser')
+                pytest('script_runner')
+                pytest('cloudify')
+                pytest('cloudify_rest_client', 43)
+              }
+            }
+          }
+          post {
+            always {
+              junit '**/test-results/*.xml'
+            }
           }
         }
-      }
-      post {
-        always {
-          junit '**/test-results/*.xml'
+        stage('test_py36'){
+          steps{
+            sh script: "mkdir -p ${env.WORKSPACE}/test-py36 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py36", label: "copying repo to seperate workspace"
+            container('py36'){
+              dir("${env.WORKSPACE}/test-py36") {
+                install_test_dependencies('py36')
+                pytest_nocover('dsl_parser')
+                pytest_nocover('script_runner')
+                pytest_nocover('cloudify')
+                pytest_nocover('cloudify_rest_client')
+              }
+            }
+          }
         }
       }
     }

@@ -16,7 +16,7 @@
 import errno
 import os
 import warnings
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify.endpoint import ManagerEndpoint, LocalEndpoint
@@ -122,11 +122,11 @@ class DeploymentWorkdirMixin:
         ```
         """
         if not deployment_workdirs_sync_required():
-            return nullcontext()
+            return utils.nullcontext()
 
         local_dir = self.local_deployment_workdir()
         if not local_dir:
-            return nullcontext()
+            return utils.nullcontext()
 
         return self._endpoint.sync_deployment_workdir(self.deployment.id,
                                                       local_dir)
