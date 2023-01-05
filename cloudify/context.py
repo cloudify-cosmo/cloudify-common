@@ -138,7 +138,8 @@ class DeploymentWorkdirMixin:
         if not self.deployment.id or not self.deployment.tenant_name:
             return
 
-        if local_resources_root := utils.get_local_resources_root():
+        local_resources_root = utils.get_local_resources_root()
+        if local_resources_root:
             return os.path.join(
                 local_resources_root,
                 'deployments',
