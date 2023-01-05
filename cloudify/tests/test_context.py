@@ -455,6 +455,30 @@ class CloudifyContextTest(unittest.TestCase):
 
         shutil.rmtree(deployment_workdir_path)
 
+    def test_sync_deployment_workdir_not_required(self):
+        orig_fs_root = os.environ.get(constants.MANAGER_FILE_SERVER_ROOT_KEY)
+        os.environ[constants.MANAGER_FILE_SERVER_ROOT_KEY] = '/tmp/resources'
+        orig_res_root = os.environ.get(constants.LOCAL_RESOURCES_ROOT_ENV_KEY)
+        os.environ[constants.LOCAL_RESOURCES_ROOT_ENV_KEY] = '/tmp/resources'
+
+        deployment_id = 'test_deployment'
+        tenant_name = 'default_tenant'
+        ctx = context.CloudifyContext({
+            'deployment_id': deployment_id,
+            'tenant': {'name': tenant_name},
+        })
+        try:
+            with patch('cloudify_rest_client.client.HTTPClient.get') as call:
+                with ctx.sync_deployment_workdir():
+                    call.assert_not_called()
+        finally:
+            if orig_fs_root:
+                os.environ[constants.MANAGER_FILE_SERVER_ROOT_KEY] =\
+                    orig_fs_root
+            if orig_res_root:
+                os.environ[constants.LOCAL_RESOURCES_ROOT_ENV_KEY] =\
+                    orig_res_root
+
 
 class NodeContextTests(unittest.TestCase):
 

@@ -85,40 +85,52 @@ class ContextCapabilities(object):
 class DeploymentWorkdirMixin:
     def download_deployment_workdir(self):
         """Download a copy of deployment-in-context's working directory from
-        the manager.
+        the manager, but only if these files are not available locally.
         """
+        if not deployment_workdirs_sync_required():
+            return
+
         local_dir = local_deployment_workdir(self.deployment.id,
                                              self.deployment.tenant_name)
         if not local_dir:
             return
+
         return self._endpoint.download_deployment_workdir(self.deployment.id,
                                                           local_dir)
 
     def upload_deployment_workdir(self):
         """Upload a local copy of deployment-in-context's working directory to
-        the manager.
+        the manager, but only if these files are not available locally.
         """
+        if not deployment_workdirs_sync_required():
+            return
+
         local_dir = local_deployment_workdir(self.deployment.id,
                                              self.deployment.tenant_name)
         if not local_dir:
             return
+
         return self._endpoint.upload_deployment_workdir(self.deployment.id,
                                                         local_dir)
 
     def sync_deployment_workdir(self):
         """Sync a local copy of deployment-in-context's working directory to
-        the manager.  The method returns a contextmanager, so it should be
-        used like:
+        the manager, but only if these files are not available locally.  The
+        method returns a contextmanager, so it should be used like:
 
         ```
         with ctx.sync_deployment_workdir():
             do_something()
         ```
         """
+        if not deployment_workdirs_sync_required():
+            return nullcontext()
+
         local_dir = local_deployment_workdir(self.deployment.id,
                                              self.deployment.tenant_name)
         if not local_dir:
             return nullcontext()
+
         return self._endpoint.sync_deployment_workdir(self.deployment.id,
                                                       local_dir)
 
@@ -1351,3 +1363,12 @@ def local_deployment_workdir(deployment_id, tenant_name):
     raise exceptions.NonRecoverableError(
         f'Local resources root directory not defined, is '
         f'{constants.LOCAL_RESOURCES_ROOT_ENV_KEY} environment variable set?')
+
+
+def deployment_workdirs_sync_required():
+    """Returns `True` if mgmtworker and manager are running on different
+    hosts.  The test is just a comparison of environment variables:
+    `CFY_RESOURCES_ROOT` and `MANAGER_FILE_SERVER_ROOT`.
+    """
+    return os.environ.get(constants.LOCAL_RESOURCES_ROOT_ENV_KEY) !=\
+        os.environ.get(constants.MANAGER_FILE_SERVER_ROOT_KEY)
