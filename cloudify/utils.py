@@ -62,6 +62,27 @@ ENV_AGENT_LOG_MAX_HISTORY = 'AGENT_LOG_MAX_HISTORY'
 
 ADMIN_API_TOKEN_PATH = '/opt/mgmtworker/work/admin_token'
 
+try:
+    from contextlib import nullcontext
+except ImportError:
+    # python 3.6 doesn't have nullcontext, so let's pretty much copy over
+    # 3.7+'s implementation'
+    class nullcontext:
+        def __init__(self, enter_result=None):
+            self.enter_result = enter_result
+
+        def __enter__(self):
+            return self.enter_result
+
+        def __exit__(self, *excinfo):
+            pass
+
+        async def __aenter__(self):
+            return self.enter_result
+
+        async def __aexit__(self, *excinfo):
+            pass
+
 
 class ManagerVersion(object):
     """Cloudify manager version helper class."""

@@ -14,7 +14,6 @@
 #    * limitations under the License.
 
 import os
-from contextlib import nullcontext
 
 from cloudify import constants
 from cloudify import manager
@@ -472,4 +471,4 @@ class LocalEndpoint(Endpoint):
         pass
 
     def sync_deployment_workdir(self, deployment_id, local_dir):
-        return nullcontext()
+        return utils.nullcontext()
