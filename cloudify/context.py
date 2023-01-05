@@ -83,46 +83,44 @@ class ContextCapabilities(object):
 
 
 class DeploymentWorkdirMixin:
-    def download_deployment_workdir(self, deployment_id, tenant_name):
-        """Download a copy of deployment's working directory from the manager
-
-        :param deployment_id: identifier of a deployment being worked on
-        :param tenant_name: deployment's tenant name
+    def download_deployment_workdir(self):
+        """Download a copy of deployment-in-context's working directory from
+        the manager.
         """
-        local_dir = local_deployment_workdir(deployment_id, tenant_name)
+        local_dir = local_deployment_workdir(self.deployment.id,
+                                             self.deployment.tenant_name)
         if not local_dir:
             return
-        return self._endpoint.download_deployment_workdir(deployment_id,
+        return self._endpoint.download_deployment_workdir(self.deployment.id,
                                                           local_dir)
 
-    def upload_deployment_workdir(self, deployment_id, tenant_name):
-        """Upload a local copy of deployment's working directory to the manager
-
-        :param deployment_id: identifier of a deployment being worked on
-        :param tenant_name: deployment's tenant name
+    def upload_deployment_workdir(self):
+        """Upload a local copy of deployment-in-context's working directory to
+        the manager.
         """
-        local_dir = local_deployment_workdir(deployment_id, tenant_name)
+        local_dir = local_deployment_workdir(self.deployment.id,
+                                             self.deployment.tenant_name)
         if not local_dir:
             return
-        return self._endpoint.upload_deployment_workdir(deployment_id,
+        return self._endpoint.upload_deployment_workdir(self.deployment.id,
                                                         local_dir)
 
-    def sync_deployment_workdir(self, deployment_id, tenant_name):
-        """Sync a local copy of deployment's working directory to the manager.
-        The method returns a contextmanager, so it should be used like:
+    def sync_deployment_workdir(self):
+        """Sync a local copy of deployment-in-context's working directory to
+        the manager.  The method returns a contextmanager, so it should be
+        used like:
 
         ```
-        with ctx.sync_deployment_workdir(deployment_id, tenant_name):
+        with ctx.sync_deployment_workdir():
             do_something()
         ```
-
-        :param deployment_id: identifier of a deployment being worked on
-        :param tenant_name: deployment's tenant name
         """
-        local_dir = local_deployment_workdir(deployment_id, tenant_name)
+        local_dir = local_deployment_workdir(self.deployment.id,
+                                             self.deployment.tenant_name)
         if not local_dir:
             return nullcontext()
-        return self._endpoint.sync_deployment_workdir(deployment_id, local_dir)
+        return self._endpoint.sync_deployment_workdir(self.deployment.id,
+                                                      local_dir)
 
     @staticmethod
     def get_local_resources_root():
