@@ -371,7 +371,7 @@ class CloudifyContextTest(unittest.TestCase):
                                    bytes_stream=lambda: [archive_content])
             with patch('cloudify_rest_client.client.HTTPClient.get',
                        return_value=mocked_response):
-                ctx.download_deployment_workdir(deployment_id, tenant_name)
+                ctx.download_deployment_workdir()
             extracted_resources_file_name = os.path.join(
                 deployment_workdir_path,
                 'resources',
@@ -394,9 +394,7 @@ class CloudifyContextTest(unittest.TestCase):
         with patch('cloudify_rest_client.client.HTTPClient.get',
                    side_effect=requests.RequestException('Failure')):
             self.assertRaises(CloudifyClientError,
-                              ctx.download_deployment_workdir,
-                              deployment_id,
-                              tenant_name)
+                              ctx.download_deployment_workdir)
 
     def test_upload_deployment_workdir_successful(self):
         deployment_id = 'test_deployment'
@@ -420,7 +418,7 @@ class CloudifyContextTest(unittest.TestCase):
         try:
             with patch('cloudify_rest_client.client.HTTPClient.put',
                        return_value=Mock(ok=True)) as put_call:
-                ctx.upload_deployment_workdir(deployment_id, tenant_name)
+                ctx.upload_deployment_workdir()
             assert put_call.call_args.args ==\
                    ('/resources/deployments/default_tenant/test_deployment/',)
             assert put_call.call_args.kwargs['params'] == {'extract': 'yes'}
@@ -453,9 +451,7 @@ class CloudifyContextTest(unittest.TestCase):
         with patch('cloudify_rest_client.client.HTTPClient.put',
                    return_value=Mock(ok=False)):
             self.assertRaises(CloudifyClientError,
-                              ctx.upload_deployment_workdir,
-                              deployment_id,
-                              tenant_name)
+                              ctx.upload_deployment_workdir)
 
         shutil.rmtree(deployment_workdir_path)
 
