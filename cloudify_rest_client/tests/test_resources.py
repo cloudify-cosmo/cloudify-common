@@ -3,7 +3,6 @@ import shutil
 import tempfile
 import typing
 import uuid
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from unittest.mock import Mock
 
@@ -15,12 +14,17 @@ from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.resources import ResourcesClient
 
 
-@dataclass(init=True)
 class _MockCall:
     function_name: str
     args: typing.Tuple[typing.Any]
     kwargs: typing.Dict[str, typing.Any]
     result: typing.Any
+
+    def __init__(self, function_name, args, kwargs, result):
+        self.function_name = function_name
+        self.args = args
+        self.kwargs = kwargs
+        self.result = result
 
     def __str__(self):
         return _call_fmt(self.function_name, self.args, self.kwargs)
