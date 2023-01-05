@@ -1,4 +1,4 @@
 pytest
 pytest-cov
-pytest-xdist==2.5.0
-coverage==6.4.4
+pytest-xdist
+coverage

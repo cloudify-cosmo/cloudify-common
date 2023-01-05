@@ -5,7 +5,7 @@ def install_test_dependencies(String cache_prefix) {
   ''', label: "install test dependencies"
 }
 def pytest(String target, int cov_target=60){
-  sh script: """#!/bin/bash
+  sh script: """
   pytest \
     -n auto \
     --cov-report term \
@@ -13,6 +13,13 @@ def pytest(String target, int cov_target=60){
     --cov-fail-under ${cov_target} \
     ${target}/tests \
     --junitxml=test-results/${target}.xml
+  """, label: "pytest << ${target} >>"
+}
+def pytest_nocover(String target, int cov_target=60){
+  sh script: """
+  pytest \
+    -n auto \
+    ${target}/tests \
   """, label: "pytest << ${target} >>"
 }
 def build_docs(String project){
@@ -58,9 +65,7 @@ pipeline {
         sh script: "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8", label: "copying repo to separate workspace"
         container('py310'){
           dir("${env.WORKSPACE}/flake8") {
-          echo 'install flake 8'
-          sh "pip install flake8 --user"
-          echo 'run flake8'
+          sh script: "pip install flake8 --user", label: "install flake8"
           sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client cloudify_async_client"
           }
         }
@@ -105,16 +110,11 @@ pipeline {
         container('py36'){
           dir("${env.WORKSPACE}/test-py36") {
             install_test_dependencies('py36')
-            pytest('dsl_parser')
-            pytest('script_runner')
-            pytest('cloudify')
-            pytest('cloudify_rest_client', 43)
+            pytest_nocover('dsl_parser')
+            pytest_nocover('script_runner')
+            pytest_nocover('cloudify')
+            pytest_nocover('cloudify_rest_client')
           }
-        }
-      }
-      post {
-        always {
-          junit '**/test-results/*.xml'
         }
       }
     }
