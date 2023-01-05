@@ -222,17 +222,18 @@ def _archive_type(file_name) -> str:
 def _extract_archive(file_name, dst_dir=None):
     if dst_dir is None:
         dst_dir = tempfile.mkdtemp()
-    archive_type = _archive_type(file_name)
-    match archive_type.lower():
-        case 'tar':
-            with tarfile.open(file_name, 'r:*') as archive:
-                archive.extractall(path=dst_dir)
-            return dst_dir
-        case 'zip':
-            with zipfile.ZipFile(file_name) as archive:
-                archive.extractall(path=dst_dir)
-            return dst_dir
-    raise CloudifyClientError(f'Unknown archive type: `{archive_type}`')
+    archive_type = _archive_type(file_name).lower()
+
+    if archive_type == 'tar':
+        with tarfile.open(file_name, 'r:*') as archive:
+            archive.extractall(path=dst_dir)
+        return dst_dir
+    elif archive_type == 'zip':
+        with zipfile.ZipFile(file_name) as archive:
+            archive.extractall(path=dst_dir)
+        return dst_dir
+    else:
+        raise CloudifyClientError(f'Unknown archive type: `{archive_type}`')
 
 
 def _create_archive(dir_name):
