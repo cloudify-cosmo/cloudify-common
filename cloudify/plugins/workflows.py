@@ -26,20 +26,53 @@ from cloudify.workflows.tasks import HandlerResult, TASK_SUCCEEDED
 
 
 @workflow(resumable=True)
-def install(ctx, **kwargs):
+def install(ctx, node_ids=None, node_instance_ids=None, type_names=None,
+            **kwargs):
     """Default install workflow"""
+    filtered_node_instances = set(_filter_node_instances(
+        ctx=ctx,
+        node_ids=node_ids,
+        node_instance_ids=node_instance_ids,
+        type_names=type_names))
+
     lifecycle.install_node_instances(
         graph=ctx.graph_mode(),
-        node_instances=set(ctx.node_instances))
+        node_instances=filtered_node_instances,
+        related_nodes=set(ctx.node_instances) - filtered_node_instances,
+    )
 
 
 @workflow(resumable=True)
-def uninstall(ctx, ignore_failure=False, **kwargs):
+def uninstall(ctx, ignore_failure=False, node_ids=None, node_instance_ids=None,
+              type_names=None, **kwargs):
     """Default uninstall workflow"""
+    filtered_node_instances = set(_filter_node_instances(
+        ctx=ctx,
+        node_ids=node_ids,
+        node_instance_ids=node_instance_ids,
+        type_names=type_names))
 
     lifecycle.uninstall_node_instances(
         graph=ctx.graph_mode(),
-        node_instances=set(ctx.node_instances),
+        node_instances=filtered_node_instances,
+        related_nodes=set(ctx.node_instances) - filtered_node_instances,
+        ignore_failure=ignore_failure)
+
+
+@workflow(resumable=True)
+def reinstall(ctx, ignore_failure=False, node_ids=None, node_instance_ids=None,
+              type_names=None, **kwargs):
+    """Default reinstall workflow"""
+    filtered_node_instances = set(_filter_node_instances(
+        ctx=ctx,
+        node_ids=node_ids,
+        node_instance_ids=node_instance_ids,
+        type_names=type_names))
+
+    lifecycle.reinstall_node_instances(
+        graph=ctx.graph_mode(),
+        node_instances=filtered_node_instances,
+        related_nodes=set(ctx.node_instances) - filtered_node_instances,
         ignore_failure=ignore_failure)
 
 
@@ -621,15 +654,22 @@ def scale_entity(ctx,
                 # 'removed_ids_include_hint': []
             }
         })
+    ctx.refresh_node_instances()
     graph = ctx.graph_mode()
     try:
         ctx.logger.info('Deployment modification started. '
                         '[modification_id={0}]'.format(modification.id))
         if delta > 0:
-            added_and_related = set(modification.added.node_instances)
-            added = set(i for i in added_and_related
-                        if i.modification == 'added')
-            related = added_and_related - added
+            added = {
+                ctx.get_node_instance(i.id)
+                for i in modification.added.node_instances
+                if i.modification == 'added'
+            }
+            related = {
+                ctx.get_node_instance(i.id)
+                for i in modification.added.node_instances
+                if i.modification != 'added'
+            }
             try:
                 lifecycle.install_node_instances(
                     graph=graph,
@@ -639,21 +679,36 @@ def scale_entity(ctx,
                 if not rollback_if_failed:
                     ctx.logger.error('Scale out failed.')
                     raise
-
                 ctx.logger.error('Scale out failed, scaling back in.')
                 for task in graph.tasks:
                     graph.remove_task(task)
-                lifecycle.uninstall_node_instances(
+
+                # refresh the added instances, to get new and updated
+                # instance statuses, after the failed install
+                ctx.refresh_node_instances()
+                added = {
+                    ctx.get_node_instance(i.id)
+                    for i in modification.added.node_instances
+                    if i.modification == 'added'
+                }
+
+                lifecycle.rollback_node_instances(
                     graph=graph,
                     node_instances=added,
                     ignore_failure=ignore_failure,
                     related_nodes=related)
                 raise
         else:
-            removed_and_related = set(modification.removed.node_instances)
-            removed = set(i for i in removed_and_related
-                          if i.modification == 'removed')
-            related = removed_and_related - removed
+            removed = {
+                ctx.get_node_instance(i.id)
+                for i in modification.removed.node_instances
+                if i.modification == 'removed'
+            }
+            related = {
+                ctx.get_node_instance(i.id)
+                for i in modification.removed.node_instances
+                if i.modification != 'removed'
+            }
             lifecycle.uninstall_node_instances(
                 graph=graph,
                 node_instances=removed,
