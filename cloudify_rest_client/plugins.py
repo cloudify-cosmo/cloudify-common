@@ -320,16 +320,21 @@ class PluginsClient(object):
         else:
             return self._wrapper_cls(response)
 
-    def download(self, plugin_id, output_file, progress_callback=None):
+    def download(self, plugin_id, output_file, progress_callback=None,
+                 full_archive=False):
         """Downloads a previously uploaded plugin archive from the manager
 
         :param plugin_id: The plugin ID of the plugin to be downloaded.
         :param output_file: The file path of the downloaded plugin file
         :param progress_callback: Callback function - can be used to print
         a progress bar
+        :param full_archive: If set to true, download a zip containing the
+        wagon and all yaml files for this plugin.
         :return: The file path of the downloaded plugin.
         """
         uri = '/plugins/{0}/archive'.format(plugin_id)
+        if full_archive:
+            uri += '?full_archive=true'
         with contextlib.closing(self.api.get(uri, stream=True)) as response:
             output_file = bytes_stream_utils.write_response_stream_to_file(
                 response, output_file, progress_callback=progress_callback)
