@@ -138,7 +138,8 @@ class DeploymentWorkdirMixin:
         if not self.deployment.id or not self.deployment.tenant_name:
             return
 
-        if local_resources_root := utils.get_local_resources_root():
+        local_resources_root = utils.get_local_resources_root()
+        if local_resources_root:
             return os.path.join(
                 local_resources_root,
                 'deployments',
@@ -1358,5 +1359,9 @@ def deployment_workdirs_sync_required():
     hosts.  The test is just a comparison of environment variables:
     `CFY_RESOURCES_ROOT` and `MANAGER_FILE_SERVER_ROOT`.
     """
-    return os.environ.get(constants.LOCAL_RESOURCES_ROOT_ENV_KEY) !=\
+    local_resources_root =\
+        os.environ.get(constants.LOCAL_RESOURCES_ROOT_ENV_KEY)
+    file_manager_root =\
         os.environ.get(constants.MANAGER_FILE_SERVER_ROOT_KEY)
+    return (local_resources_root
+            and (local_resources_root != file_manager_root))
