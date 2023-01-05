@@ -11,6 +11,7 @@ from typing import Dict, Tuple
 import requests
 
 from cloudify_rest_client.exceptions import CloudifyClientError
+from cloudify_rest_client._datetime_compat import datetime_fromisoformat
 
 INDEX_JSON_FILENAME = '.cloudify-index.json'
 LAST_MODIFIED_FMT = '%Y-%m-%dT%H:%M:%S%z'
@@ -89,7 +90,7 @@ class ResourcesClient:
             for chunk in response.bytes_stream():
                 tmp_file.write(chunk)
         absolute_file_path = os.path.join(dst_dir, file_path)
-        file_timestamp = datetime.fromisoformat(file_mtime).timestamp()
+        file_timestamp = datetime_fromisoformat(file_mtime).timestamp()
         shutil.move(tmp_file.name, absolute_file_path)
         os.utime(absolute_file_path, (file_timestamp, file_timestamp))
 
