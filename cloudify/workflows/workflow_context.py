@@ -57,10 +57,8 @@ from cloudify.workflows import events
 from cloudify.workflows.tasks_graph import TaskDependencyGraph
 from cloudify.logs import (CloudifyWorkflowLoggingHandler,
                            CloudifyWorkflowNodeLoggingHandler,
-                           SystemWideWorkflowLoggingHandler,
                            init_cloudify_logger,
-                           send_workflow_event,
-                           send_sys_wide_wf_event)
+                           send_workflow_event)
 from cloudify.models_states import DeploymentModificationState
 
 
@@ -1216,14 +1214,6 @@ class CloudifyWorkflowContext(_WorkflowContextBase):
             *args, **kwargs)
 
 
-class CloudifySystemWideWorkflowContext(_WorkflowContextBase):
-    def __init__(self, ctx):
-        super(CloudifySystemWideWorkflowContext, self).__init__(
-            ctx,
-            SystemWideWfRemoteContextHandler
-        )
-
-
 class CloudifyWorkflowContextInternal(object):
 
     def __init__(self, workflow_context, handler):
@@ -1853,22 +1843,6 @@ class RemoteCloudifyWorkflowContextHandler(RemoteContextHandler):
                 deployment_id, _include=['scaling_groups'])
             self._scaling_groups = deployment['scaling_groups']
         return self._scaling_groups
-
-
-class SystemWideWfRemoteContextHandler(RemoteContextHandler):
-
-    def get_context_logging_handler(self):
-        return SystemWideWorkflowLoggingHandler(self.workflow_ctx,
-                                                out_func=logs.manager_log_out)
-
-    def send_workflow_event(self, event_type, message=None, args=None,
-                            additional_context=None):
-        send_sys_wide_wf_event(self.workflow_ctx,
-                               event_type=event_type,
-                               message=message,
-                               args=args,
-                               additional_context=additional_context,
-                               out_func=logs.manager_event_out)
 
 
 class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
