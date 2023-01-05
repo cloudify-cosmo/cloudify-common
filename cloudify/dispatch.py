@@ -201,9 +201,6 @@ class WorkflowHandler(TaskHandler):
         # be imported when handling an operation
         # (only when handling a workflow)
         from cloudify.workflows import workflow_context
-
-        if getattr(self.func, 'workflow_system_wide', False):
-            return workflow_context.CloudifySystemWideWorkflowContext
         return workflow_context.CloudifyWorkflowContext
 
     def handle(self):
