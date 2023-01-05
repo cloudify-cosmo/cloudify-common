@@ -1,5 +1,5 @@
 def install_test_dependencies(String cache_prefix) {
-  sh script: '''#!/bin/bash
+  sh script: '''
   pip install -r test-requirements.txt --user
   pip install -e '.[dispatcher]' --user
   ''', label: "install test dependencies"
@@ -17,7 +17,6 @@ def pytest(String target, int cov_target=60){
 }
 def build_docs(String project){
   sh script: """
-  #!/bin/bash
   sphinx-build \
     -d _build/doctrees \
     -D version="\$(python setup.py --version)" \
