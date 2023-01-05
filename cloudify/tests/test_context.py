@@ -349,9 +349,6 @@ class CloudifyContextTest(unittest.TestCase):
             os.path.join('default_tenant', 'test_deployment')
         )
 
-        # assert context.local_deployment_workdir(None, 'tenant1') is None
-        # assert context.local_deployment_workdir('dep1', None) is None
-
     def test_download_deployment_workdir_successful(self):
         deployment_id = 'test_deployment'
         tenant_name = 'default_tenant'
