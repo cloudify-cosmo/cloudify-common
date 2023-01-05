@@ -437,7 +437,7 @@ class CloudifyContextTest(unittest.TestCase):
             resource.write('Hello from test')
 
         with patch('cloudify_rest_client.client.HTTPClient.put',
-                   return_value=Mock(ok=False)):
+                   side_effect=requests.RequestException('failing')):
             self.assertRaises(CloudifyClientError,
                               ctx.upload_deployment_workdir)
 
