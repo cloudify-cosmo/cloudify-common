@@ -90,8 +90,7 @@ class DeploymentWorkdirMixin:
         if not deployment_workdirs_sync_required():
             return
 
-        local_dir = local_deployment_workdir(self.deployment.id,
-                                             self.deployment.tenant_name)
+        local_dir = self.local_deployment_workdir()
         if not local_dir:
             return
 
@@ -105,8 +104,7 @@ class DeploymentWorkdirMixin:
         if not deployment_workdirs_sync_required():
             return
 
-        local_dir = local_deployment_workdir(self.deployment.id,
-                                             self.deployment.tenant_name)
+        local_dir = self.local_deployment_workdir()
         if not local_dir:
             return
 
@@ -126,19 +124,32 @@ class DeploymentWorkdirMixin:
         if not deployment_workdirs_sync_required():
             return nullcontext()
 
-        local_dir = local_deployment_workdir(self.deployment.id,
-                                             self.deployment.tenant_name)
+        local_dir = self.local_deployment_workdir()
         if not local_dir:
             return nullcontext()
 
         return self._endpoint.sync_deployment_workdir(self.deployment.id,
                                                       local_dir)
 
-    @staticmethod
-    def get_local_resources_root():
-        """Retrieve local resources root directory. Potentially can used in
-          scripts, plugins etc."""
-        return utils.get_local_resources_root()
+    def local_deployment_workdir(self):
+        """Generate absolute path to deployment's local working directory.
+        The directory is a local copy of relevant directory on the manager.
+        """
+        if not self.deployment.id or not self.deployment.tenant_name:
+            return
+
+        if local_resources_root := utils.get_local_resources_root():
+            return os.path.join(
+                local_resources_root,
+                'deployments',
+                self.deployment.tenant_name,
+                self.deployment.id,
+            )
+
+        raise exceptions.NonRecoverableError(
+            'Local resources root directory not defined, is '
+            f'{constants.LOCAL_RESOURCES_ROOT_ENV_KEY} environment variable '
+            'set?')
 
 
 class CommonContext(DeploymentWorkdirMixin):
@@ -1340,29 +1351,6 @@ class ImmutableProperties(dict):
 
     def popitem(self):
         self._raise()
-
-
-def local_deployment_workdir(deployment_id, tenant_name):
-    """Generate absolute path to deployment's local working directory.
-
-    The directory is a local copy of relevant directory on the manager.  It is
-    synchronized on every workflow or operation executed on given deployment.
-
-    :param deployment_id: identifier of a deployment being worked on
-    :param tenant_name: name of the deployment's tenant
-    """
-    if not deployment_id or not tenant_name:
-        return
-
-    if local_resources_root := utils.get_local_resources_root():
-        return os.path.join(
-            local_resources_root,
-            os.path.join('deployments', tenant_name, deployment_id),
-        )
-
-    raise exceptions.NonRecoverableError(
-        f'Local resources root directory not defined, is '
-        f'{constants.LOCAL_RESOURCES_ROOT_ENV_KEY} environment variable set?')
 
 
 def deployment_workdirs_sync_required():

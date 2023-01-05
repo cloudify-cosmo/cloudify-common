@@ -134,17 +134,17 @@ class ResourcesClient:
             if _file_is_empty(file_path):
                 data = b''
 
-            response = self.api.put(
-                uri,
-                params={'extract': 'yes'} if extract else {},
-                url_prefix=False,
-                data=data,
-            )
-            if not response.ok:
+            try:
+                self.api.put(
+                    uri,
+                    params={'extract': 'yes'} if extract else {},
+                    url_prefix=False,
+                    data=data,
+                )
+            except requests.RequestException as exception:
                 raise CloudifyClientError(
                     f"Unable to upload deployment's file {file_path} "
-                    f"into {uri}: {response}")
-            return response
+                    f"into {uri}") from exception
 
     def upload_deployment_file(
             self,
