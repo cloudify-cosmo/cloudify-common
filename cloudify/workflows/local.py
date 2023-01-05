@@ -412,8 +412,13 @@ class DeploymentStorage(object):
             instance_version = instance.get('version', 0)
             if not force and state is None and version != instance_version:
                 raise StorageConflictError(
-                    f'version {version} does not match current version of node'
-                    f'instance {node_instance_id} which is {instance_version}'
+                    'version {version} does not match current version of node'
+                    'instance {node_instance_id} which is {instance_version}'
+                    .format(
+                        version=version,
+                        node_instance_id=node_instance_id,
+                        instance_version=instance_version,
+                    )
                 )
             else:
                 instance['version'] = instance_version + 1
