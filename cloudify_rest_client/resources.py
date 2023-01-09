@@ -3,12 +3,14 @@ import os
 import shutil
 import tarfile
 import tempfile
+import typing
 import zipfile
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Dict, Tuple
 
 import requests
+from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client._datetime_compat import datetime_fromisoformat
@@ -119,28 +121,47 @@ class ResourcesClient:
 
         self._save_local_index(src_dir, local_files)
 
-        for file_path, _ in \
+        for file_path, file_mtime in \
                 self._metadata_diff(local_files, manager_files):
             return self._upload_single_file(
                 f'{uri}{file_path}',
                 os.path.join(src_dir, file_path),
+                file_mtime=file_mtime,
             )
 
-    def _upload_single_file(self, uri: str, file_path: str, extract=False):
+    def _upload_single_file(self,
+                            uri: str,
+                            file_path: str,
+                            file_rel_path=None,
+                            file_mtime=None,
+                            extract=False):
+        # Below is a not very aesthetically pleasing workaround for a known
+        # bug in requests, which should be solved in requests 3.x
+        # https://github.com/psf/requests/issues/4215
         with open(file_path, 'rb') as buffer:
-            # Below is a not very aesthetically pleasing workaround for a known
-            # bug in requests, which should be solved in requests 3.x
-            # https://github.com/psf/requests/issues/4215
             data = buffer
             if _file_is_empty(file_path):
                 data = b''
+            request_kwargs = {'data': data}
+
+            if file_mtime:
+                data = MultipartEncoder(
+                    fields={
+                        'file': (file_rel_path or file_path, data, None),
+                        'mtime': file_mtime,
+                    }
+                )
+                request_kwargs = {
+                    'data': data,
+                    'headers': {'Content-Type': data.content_type},
+                }
 
             try:
                 self.api.put(
                     uri,
                     params={'extract': 'yes'} if extract else {},
                     url_prefix=False,
-                    data=data,
+                    **request_kwargs,
                 )
             except requests.RequestException as exception:
                 raise CloudifyClientError(
@@ -151,25 +172,33 @@ class ResourcesClient:
             self,
             deployment_id: str,
             target_file_path: str,
-            src_file: str):
+            src_file: str,
+            src_file_mtime: typing.Optional[str] = None):
         """Upload a single file to the deployment's working directory"""
         uri = self._deployment_workdir_uri(deployment_id)
-        return self._upload_single_file(f'{uri}{target_file_path}', src_file)
+
+        return self._upload_single_file(
+            f'{uri}{target_file_path}',
+            src_file,
+            file_rel_path=target_file_path,
+            file_mtime=src_file_mtime,
+        )
 
     @contextmanager
     def sync_deployment_workdir(self, deployment_id: str, local_dir: str):
         self.download_deployment_workdir(deployment_id, local_dir)
-        before_metadata = self._read_local_directory_index(local_dir)
+        manager_metadata = self._read_local_directory_index(local_dir)
         try:
             yield
         finally:
-            after_metadata = self._generate_directory_metadata(local_dir)
-            for file_path, _ in \
-                    self._metadata_diff(before_metadata, after_metadata):
+            local_metadata = self._generate_directory_metadata(local_dir)
+            for file_path, file_mtime in \
+                    self._metadata_diff(local_metadata, manager_metadata):
                 self.upload_deployment_file(
                     deployment_id,
                     file_path,
                     os.path.join(local_dir, file_path),
+                    file_mtime,
                 )
 
     def _fetch_manager_directory_index(self, uri: str) -> Dict[str, str]:
