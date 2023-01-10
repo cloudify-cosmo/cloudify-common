@@ -376,7 +376,8 @@ def get_resource_directory_index(
             use_global=False):
         try:
             directory_index = get_resource_from_manager(path)
-            for f in json.loads(directory_index)['files']:
+            directory_index_dict = json.loads(directory_index)
+            for f in directory_index_dict.keys():
                 resource_files.add(f)
         except (ValueError, KeyError, NonRecoverableError):
             tried_paths.append(path)
