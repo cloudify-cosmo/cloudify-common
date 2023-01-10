@@ -69,6 +69,9 @@ class ResourcesClient:
                 self._metadata_diff(manager_files, local_files):
             self._download_single_file(uri, dst_dir, file_path, file_mtime)
 
+        for file_path in set(local_files.keys()) - set(manager_files.keys()):
+            os.remove(os.path.join(dst_dir, file_path))
+
         self._save_local_index(dst_dir, manager_files)
 
     def _download_single_file(self,
@@ -128,6 +131,8 @@ class ResourcesClient:
                 os.path.join(src_dir, file_path),
                 file_mtime=file_mtime,
             )
+        for file_path in set(manager_files.keys()) - set(local_files.keys()):
+            self._delete_single_file(uri, file_path)
 
     def _upload_single_file(self,
                             uri: str,
@@ -187,19 +192,22 @@ class ResourcesClient:
     @contextmanager
     def sync_deployment_workdir(self, deployment_id: str, local_dir: str):
         self.download_deployment_workdir(deployment_id, local_dir)
-        manager_metadata = self._read_local_directory_index(local_dir)
+        manager_files = self._read_local_directory_index(local_dir)
         try:
             yield
         finally:
-            local_metadata = self._generate_directory_metadata(local_dir)
+            local_files = self._generate_directory_metadata(local_dir)
             for file_path, file_mtime in \
-                    self._metadata_diff(local_metadata, manager_metadata):
+                    self._metadata_diff(local_files, manager_files):
                 self.upload_deployment_file(
                     deployment_id,
                     file_path,
                     os.path.join(local_dir, file_path),
                     file_mtime,
                 )
+            for file_path in \
+                    set(manager_files.keys()) - set(local_files.keys()):
+                self.delete_deployment_file(deployment_id, file_path)
 
     def _fetch_manager_directory_index(self, uri: str) -> Dict[str, str]:
         return self.api.get(uri, url_prefix=False)
@@ -239,6 +247,17 @@ class ResourcesClient:
                   'wt',
                   encoding='utf-8') as index_file:
             json.dump(file_metadata, index_file)
+
+    def delete_deployment_file(
+            self,
+            deployment_id: str,
+            file_path: str):
+        """Delete a single file in the deployment's working directory"""
+        uri = self._deployment_workdir_uri(deployment_id)
+        self._delete_single_file(uri, file_path)
+
+    def _delete_single_file(self, base_uri, file_path):
+        return self.api.delete(f'{base_uri}{file_path}', url_prefix=False)
 
 
 def _archive_type(file_name) -> str:
