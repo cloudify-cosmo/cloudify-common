@@ -87,6 +87,8 @@ class SecretsProvidersClient(object):
             _type,
             connection_parameters=None,
             visibility=VisibilityState.TENANT,
+            created_at=None,
+            created_by=None,
     ):
         """
         Create Secrets Provider.
@@ -100,6 +102,8 @@ class SecretsProvidersClient(object):
         :param visibility: The visibility of the secret, can be 'private',
                            'tenant' or 'global'
         :type visibility: str
+        :param created_at: Override the creation timestamp. Internal use only.
+        :param created_by: Override the creator. Internal use only.
         :returns: New secrets provider metadata
         :rtype: Dict[str]
         """
@@ -111,6 +115,12 @@ class SecretsProvidersClient(object):
 
         if connection_parameters:
             data['connection_parameters'] = connection_parameters
+
+        if created_at:
+            data['created_at'] = created_at
+
+        if created_by:
+            data['created_by'] = created_by
 
         response = self.api.put('/secrets-providers', data=data)
 
