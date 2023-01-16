@@ -312,7 +312,7 @@ def process_operation(
     if is_valid_url or local_resource_exists:
         is_script = False
     else:
-        is_script = _is_explicit_script(operation_mapping)
+        is_script = _is_inline_script(operation_mapping)
 
     if (
         is_valid_url or
@@ -439,7 +439,7 @@ def process_operation(
         raise exceptions.DSLParsingLogicException(error_code, error_message)
 
 
-def _is_explicit_script(script):
+def _is_inline_script(script):
     """Check if the string `script` contains a script.
 
     The string, which is coming from an operation mapping in the blueprint,
