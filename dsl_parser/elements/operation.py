@@ -321,13 +321,22 @@ def process_operation(
         (not candidate_plugins and _is_remote_script_resource(
             operation_mapping, remote_resources_namespaces))
     ):
-        if constants.SCRIPT_PATH_PROPERTY in operation_payload:
-            message = "Cannot define '{0}' property in '{1}' for {2} '{3}'" \
-                .format(constants.SCRIPT_PATH_PROPERTY,
-                        operation_mapping,
-                        'workflow' if is_workflows else 'operation',
-                        operation_name)
-            raise exceptions.DSLParsingLogicException(60, message)
+        if (
+            constants.SCRIPT_PATH_PROPERTY in operation_payload or
+            constants.SCRIPT_SOURCE_PROPERTY in operation_payload
+        ):
+            # if `implementation` is already a script source/path,
+            # disallow also providing that argument in inputs
+            wf_or_op = 'workflow' if is_workflows else 'operation'
+            offending_property = constants.SCRIPT_PATH_PROPERTY
+            if constants.SCRIPT_SOURCE_PROPERTY in operation_payload:
+                offending_property = constants.SCRIPT_PATH_PROPERTY
+
+            raise exceptions.DSLParsingLogicException(
+                60,
+                f"Cannot define '{offending_property}' property "
+                f"in '{operation_mapping}' for {wf_or_op} '{operation_name}'"
+            )
 
         script_path = operation_mapping
         operation_payload = copy.deepcopy(operation_payload or {})
