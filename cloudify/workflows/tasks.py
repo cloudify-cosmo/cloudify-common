@@ -660,10 +660,22 @@ class RemoteWorkflowTask(WorkflowTask):
         one that is available via deployment proxying.
         """
         executor = self.cloudify_context['executor']
+        node_instance_id = self.cloudify_context['node_id']
+
+        if executor == 'auto':
+            # for executor=auto, we'll be a host_agent script if we do have
+            # a host, otherwise CDA
+            client = get_rest_client()
+            node_instance = client.node_instances.get(node_instance_id)
+            if node_instance.host_id:
+                executor = 'host_agent'
+            else:
+                executor = 'central_deployment_agent'
+
         if executor == 'host_agent':
             if self._cloudify_agent is None:
                 self._cloudify_agent, tenant = self._get_agent_settings(
-                    node_instance_id=self.cloudify_context['node_id'],
+                    node_instance_id=node_instance_id,
                     deployment_id=self.cloudify_context['deployment_id'],
                     tenant=None)
             return (self._cloudify_agent['queue'],
