@@ -15,6 +15,7 @@
 
 import copy
 import numbers
+import re
 
 from dsl_parser import (constants,
                         exceptions,
@@ -305,12 +306,21 @@ def process_operation(
     candidate_plugins = [p for p in plugins
                          if operation_mapping.startswith('{0}.'.format(p))]
 
-    if (utils.is_valid_url(operation_mapping) or
-        _is_local_script_resource_exists(resource_bases, operation_mapping) or
-        (not candidate_plugins and _is_remote_script_resource(
-            operation_mapping, remote_resources_namespaces))):
+    is_valid_url = utils.is_valid_url(operation_mapping)
+    local_resource_exists = _is_local_script_resource_exists(
+        resource_bases, operation_mapping)
+    if is_valid_url or local_resource_exists:
+        is_script = False
+    else:
+        is_script = _is_explicit_script(operation_mapping)
 
-        operation_payload = copy.deepcopy(operation_payload or {})
+    if (
+        is_valid_url or
+        is_script or
+        local_resource_exists or
+        (not candidate_plugins and _is_remote_script_resource(
+            operation_mapping, remote_resources_namespaces))
+    ):
         if constants.SCRIPT_PATH_PROPERTY in operation_payload:
             message = "Cannot define '{0}' property in '{1}' for {2} '{3}'" \
                 .format(constants.SCRIPT_PATH_PROPERTY,
@@ -318,21 +328,24 @@ def process_operation(
                         'workflow' if is_workflows else 'operation',
                         operation_name)
             raise exceptions.DSLParsingLogicException(60, message)
+
         script_path = operation_mapping
+        operation_payload = copy.deepcopy(operation_payload or {})
+        operation_executor = 'auto'
+
+        script_property = constants.SCRIPT_PATH_PROPERTY
+        if is_script:
+            script_property = constants.SCRIPT_SOURCE_PROPERTY
+
         if is_workflows:
             operation_mapping = constants.SCRIPT_PLUGIN_EXECUTE_WORKFLOW_TASK
-            operation_payload.update({
-                constants.SCRIPT_PATH_PROPERTY: {
-                    'default': script_path,
-                    'description': 'Workflow script executed by the script'
-                                   ' plugin'
-                }
-            })
+            operation_payload[script_property] = {
+                'default': script_path,
+                'description': 'Workflow script executed by the script plugin',
+            }
         else:
             operation_mapping = constants.SCRIPT_PLUGIN_RUN_TASK
-            operation_payload.update({
-                constants.SCRIPT_PATH_PROPERTY: script_path
-            })
+            operation_payload[script_property] = script_path
 
         # There can be more then one script plugin defined in the blueprint,
         # in case of the other one's are namespaced. But they are actually
@@ -415,3 +428,27 @@ def process_operation(
                     'workflow' if is_workflows else 'operation'))
         error_message = base_error_message + partial_error_message
         raise exceptions.DSLParsingLogicException(error_code, error_message)
+
+
+def _is_explicit_script(script):
+    """Check if the string `script` contains a script.
+
+    The string, which is coming from an operation mapping in the blueprint,
+    can contain either an operation dotted import path, or a script written
+    right there in the blueprint.
+    """
+    if script.count('\n') > 1:
+        # multiple lines? this for sure isn't a dotted path
+        return True
+    # a regex to find dotted paths.
+    # match strings of the form:
+    #  - first, optionally a word with two dashes (namespace)
+    #  - then, a word with a separator following it
+    #  - then, optionally multiple words with separators following each
+    #  - finally, a word without a separator
+    # Allowed separators are: dot, forward slash, backslash
+    # If this doesn't match, we'll treat it as a script.
+    return re.match(
+        r'^(\w+--)?\w+[\.\/\\](\w+[\.\/\\]?)*\w+$',
+        script.strip(),
+    ) is None

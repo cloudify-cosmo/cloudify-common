@@ -85,6 +85,7 @@ SCRIPT_PLUGIN_NAME = 'script'
 SCRIPT_PLUGIN_RUN_TASK = 'script_runner.tasks.run'
 SCRIPT_PLUGIN_EXECUTE_WORKFLOW_TASK = 'script_runner.tasks.execute_workflow'
 SCRIPT_PATH_PROPERTY = 'script_path'
+SCRIPT_SOURCE_PROPERTY = 'script_source'
 
 FUNCTION_NAME_PATH_SEPARATOR = '__sep__'
 

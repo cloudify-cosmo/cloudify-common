@@ -2086,7 +2086,7 @@ node_templates:
                 plugin_name=constants.SCRIPT_PLUGIN_NAME,
                 mapping=constants.SCRIPT_PLUGIN_RUN_TASK,
                 inputs=inputs,
-                executor='central_deployment_agent'))
+                executor='auto'))
 
         assert_operation(operation)
         assert_operation(operation2, extra_properties=True)
@@ -2107,6 +2107,46 @@ node_templates:
                          'stub.py')
         self.assertEqual(workflow2['parameters']['key']['default'], 'value')
         self.assertEqual(workflow['plugin'], constants.SCRIPT_PLUGIN_NAME)
+
+    def test_script_mapping_explicit_script(self):
+        yaml = self.BASIC_VERSION_SECTION_DSL_1_0 + """
+plugins:
+    script:
+        executor: central_deployment_agent
+        install: false
+    plugin2:
+        executor: central_deployment_agent
+        install: false
+node_types:
+    type:
+        interfaces:
+            test:
+                op: stub.py
+                op2: plugin2.operation.some_operation
+                op3: "ctx logger info 'hello world'"
+                op4: |
+                    from cloudify import ctx
+                    ctx.logger.info('hello world')
+node_templates:
+    node1:
+        type: type
+"""
+        self.make_file_with_name(content='content',
+                                 filename='stub.py')
+        yaml_path = self.make_file_with_name(content=yaml,
+                                             filename='blueprint.yaml')
+        result = self.parse_from_path(yaml_path)
+        operations = result['nodes'][0]['operations']
+
+        assert operations['op']['inputs'].get('script_path')
+        assert not operations['op']['inputs'].get('script_source')
+
+        assert operations['op2']['plugin'] == 'plugin2'
+        assert operations['op2']['operation'] == 'operation.some_operation'
+
+        for op_name in 'op3', 'op4':
+            assert operations[op_name]['inputs'].get('script_source')
+            assert not operations[op_name]['inputs'].get('script_path')
 
     def test_version(self):
         def assertion(version_str, expected):
