@@ -67,12 +67,16 @@ class BaseScriptRunner(object):
             f.write(script)
         return script_path
 
-    def _run(self, script_path,
-             process=None,
-             workflow_name='execute_operation',
-             parameters=None,
-             env_var='value',
-             task_retries=0):
+    def _run(
+        self,
+        script_path=None,
+        script_source=None,
+        process=None,
+        workflow_name='execute_operation',
+        parameters=None,
+        env_var='value',
+        task_retries=0,
+    ):
 
         process = process or {}
         process.update({
@@ -81,6 +85,7 @@ class BaseScriptRunner(object):
 
         inputs = {
             'script_path': script_path,
+            'script_source': script_source,
             'process': process,
             'env_var': env_var
         }
@@ -585,6 +590,19 @@ if __name__ == '__main__':
 
         # Only delete if test succeeded (to help troubleshooting).
         shutil.rmtree(tmpdir_override)
+
+    def test_script_source_bash(self):
+        props = self._run(script_source='''
+            ctx instance runtime-properties map.key value
+        ''')
+        self.assertEqual(props['map']['key'], 'value')
+
+    def test_script_source_python(self):
+        props = self._run(script_source='''
+            from cloudify import ctx
+            ctx.instance.runtime_properties = {'map': {'key': 'value'} }
+        ''')
+        self.assertEqual(props['map']['key'], 'value')
 
     def _normpath(self, path):
         """Normalize path to behave the same way under windows and unix
