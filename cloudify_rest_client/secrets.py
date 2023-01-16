@@ -100,7 +100,7 @@ class SecretsClient(object):
             is_hidden_value=False,
             visibility=VisibilityState.TENANT,
             schema=None,
-            provider=None,
+            provider_name=None,
             provider_options=None,
     ):
         """Create secret.
@@ -121,8 +121,8 @@ class SecretsClient(object):
         :type visibility: unicode
         :param schema: A JSON schema against which the secret will be validated
         :type schema: dict
-        :param provider: A Secrets Provider name
-        :type provider: str
+        :param provider_name: A Secrets Provider name
+        :type provider_name: str
         :param provider_options: A Secrets Provider options
         :type schema: dict
         :returns: New secret metadata
@@ -138,8 +138,8 @@ class SecretsClient(object):
         if schema:
             data['schema'] = schema
 
-        if provider:
-            data['provider'] = provider
+        if provider_name:
+            data['provider_name'] = provider_name
 
         if provider_options:
             data['provider_options'] = provider_options
@@ -153,7 +153,7 @@ class SecretsClient(object):
             value=None,
             visibility=None,
             is_hidden_value=None,
-            provider=None,
+            provider_name=None,
             provider_options=None,
             **kwargs,
     ):
@@ -161,7 +161,7 @@ class SecretsClient(object):
             'value': value,
             'visibility': visibility,
             'is_hidden_value': is_hidden_value,
-            'provider': provider,
+            'provider_name': provider_name,
             'provider_options': provider_options,
         })
         data = dict((k, v) for k, v in kwargs.items() if v is not None)
