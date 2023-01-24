@@ -864,6 +864,11 @@ class CloudifyContext(CommonContext):
         return self._rest_host
 
     @property
+    def rest_port(self):
+        """REST port"""
+        return self._context.get('rest_port')
+
+    @property
     def rest_token(self):
         """REST service token"""
         return self._context.get('rest_token')
