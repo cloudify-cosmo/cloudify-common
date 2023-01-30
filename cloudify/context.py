@@ -13,17 +13,17 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-import errno
 import os
+import errno
 import warnings
 from contextlib import contextmanager
 
-from cloudify_rest_client.exceptions import CloudifyClientError
-from cloudify.endpoint import ManagerEndpoint, LocalEndpoint
-from cloudify.logs import init_cloudify_logger
+from cloudify import utils
 from cloudify import constants
 from cloudify import exceptions
-from cloudify import utils
+from cloudify.logs import init_cloudify_logger
+from cloudify.endpoint import ManagerEndpoint, LocalEndpoint
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify.constants import DEPLOYMENT, NODE_INSTANCE, RELATIONSHIP_INSTANCE
 
 
@@ -404,7 +404,10 @@ class NodeContext(EntityContext):
         These properties are the properties specified in the blueprint.
         """
         self._get_node_if_needed()
-        return self._node.properties
+        try:
+            return self._node.properties
+        except AttributeError:
+            return self._node.get('properties')
 
     @property
     def type(self):
@@ -423,6 +426,16 @@ class NodeContext(EntityContext):
         """The number of instances of that node."""
         self._get_node_if_needed()
         return self._node.number_of_instances
+
+    @property
+    def is_external(self) -> bool:
+        """If this is a resource that Cloudify manages or not"""
+        return self.properties.get('use_external_resource', False)
+
+    @property
+    def resource_id(self):
+        """The resource's ID outside of Cloudify"""
+        return self.properties.get('resource_id')
 
 
 class NodeInstanceContext(EntityContext):
