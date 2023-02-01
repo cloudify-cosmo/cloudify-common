@@ -130,6 +130,8 @@ def delete_agent_exchange(cloudify_agent):
 def _get_agent_system(cloudify_agent):
     if cloudify_agent.get('windows'):
         system = 'windows'
+    elif cloudify_agent.get('architecture'):
+        system = f"manylinux {cloudify_agent['architecture']}"
     else:
         system = cloudify_agent.get('distro')
         if cloudify_agent.get('distro_codename'):
