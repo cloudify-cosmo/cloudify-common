@@ -266,6 +266,18 @@ def get_manager_rest_service_host():
     return host_ip or os.environ[constants.REST_HOST_KEY].split(',')
 
 
+def get_manager_rest_service_port():
+    """
+    Returns the port the manager REST service is running on.
+    """
+    rest_port = None
+    try:
+        rest_port = _get_current_context().rest_port
+    except RuntimeError:
+        pass
+    return rest_port or int(os.environ[constants.REST_PORT_KEY])
+
+
 def get_broker_ssl_cert_path():
     """
     Returns location of the broker certificate on the agent
@@ -275,13 +287,6 @@ def get_broker_ssl_cert_path():
 
 # maintained for backwards compatibility
 get_manager_ip = get_manager_rest_service_host
-
-
-def get_manager_rest_service_port():
-    """
-    Returns the port the manager REST service is running on.
-    """
-    return int(os.environ[constants.REST_PORT_KEY])
 
 
 def get_local_rest_certificate():

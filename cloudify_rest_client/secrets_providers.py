@@ -201,8 +201,6 @@ class SecretsProvidersClient(object):
         :type _type: str
         :param connection_parameters: Secrets Provider connection parameters
         :type connection_parameters: dict
-        :param test: Determine if API call should only test a Secrets Provider
-        :type visibility: bool
         :returns: New secrets provider metadata
         :rtype: SecretsProvider
         """
