@@ -445,6 +445,11 @@ class TaskDependencyGraph(object):
 
             while self._ready:
                 task = self._ready.pop()
+                if task.dependency_error:
+                    # this task was "ready" because all of its dependencies
+                    # finished (at least one successfully), but one of the
+                    # dependencies finished with an error. It must not run.
+                    continue
                 self._run_task(task)
 
             self._tasks_wait.wait(1)
@@ -503,6 +508,11 @@ class TaskDependencyGraph(object):
                 task = task.failed_task
             result = self._task_error(result, task)
             self._ready -= dependents
+            # mark all the dependent tasks as having a dependency error, so
+            # that they will not run, even if all their other dependencies
+            # finish successfully
+            for d in dependents:
+                d.dependency_error = True
         elif handler_result.action == tasks.HandlerResult.HANDLER_RETRY:
             new_task = handler_result.retried_task
             if self.id is not None:
