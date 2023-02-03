@@ -357,8 +357,12 @@ node_templates:
     def test_dependency_failed(self, cfy_local):
         # in this case, step3 depends on step1 AND step2, but step2 fails.
         # Therefore, step3 must not run, even though step1 succeeded.
-        with self.assertRaises(RuntimeError):
-            cfy_local.execute('install')
+        self.assertRaisesRegex(
+            RuntimeError,
+            'fail_op',
+            cfy_local.execute,
+            'install',
+        )
         states = {
             inst.node_id: inst.state
             for inst in cfy_local.storage.get_node_instances()
