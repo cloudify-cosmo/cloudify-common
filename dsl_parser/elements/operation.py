@@ -465,7 +465,7 @@ def _is_inline_script(script):
         return False
 
     if (
-        script.count('.') > 0 and
+        '.' in script and
         all(part.isidentifier() for part in script.split('.'))
     ):
         # this looks like a dotted path - identifiers separated by dots
