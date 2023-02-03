@@ -281,9 +281,6 @@ node_templates:
     steps_blueprint = """
 tosca_definitions_version: cloudify_dsl_1_3
 imports: [minimal_types.yaml]
-node_types:
-  type1:
-    derived_from: cloudify.nodes.Root
 node_templates:
   step1:
     type: cloudify.nodes.Root
@@ -325,6 +322,52 @@ node_templates:
                 assert inst.state == 'started'
             else:
                 assert inst.state != 'started'
+
+    dependency_failed_blueprint = """
+tosca_definitions_version: cloudify_dsl_1_3
+imports: [minimal_types.yaml]
+node_templates:
+  step1:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
+  step2:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: default_workflows.cloudify.tests.test_builtin_workflows.fail_op
+  step3:
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: default_workflows.cloudify.tests.test_builtin_workflows.node_operation
+    relationships:
+      - target: step2
+        type: cloudify.relationships.depends_on
+      - target: step1
+        type: cloudify.relationships.depends_on
+"""  # NOQA
+
+    @workflow_test(
+        dependency_failed_blueprint,
+        resources_to_copy=['resources/blueprints/minimal_types.yaml'],
+    )
+    def test_dependency_failed(self, cfy_local):
+        # in this case, step3 depends on step1 AND step2, but step2 fails.
+        # Therefore, step3 must not run, even though step1 succeeded.
+        with self.assertRaises(RuntimeError):
+            cfy_local.execute('install')
+        states = {
+            inst.node_id: inst.state
+            for inst in cfy_local.storage.get_node_instances()
+        }
+
+        assert states == {
+            'step1': 'started',
+            'step2': 'creating',  # failed during create
+            'step3': None,  # didn't start creating
+        }
 
 
 class TestReinstallWorkflow(LifecycleBaseTest):
