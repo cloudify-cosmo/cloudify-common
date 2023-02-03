@@ -838,7 +838,10 @@ class LocalWorkflowTest(BaseWorkflowTest):
 
     def test_node_instance_version_conflict(self):
         # run a workflow to create the storage and node instances
-        self._execute_workflow(lambda ctx, **_: None)
+        def wf(ctx, **_):
+            return None
+
+        self._execute_workflow(wf)
         storage = self.env.storage
         instance = storage.get_node_instances()[0]
 
