@@ -231,6 +231,24 @@ class TestTasksGraphExecute(unittest.TestCase):
             assert t.get_state() == 'succeeded'
         assert t2.get_state() == 'pending'
 
+    def test_dependency_failed(self):
+        wctx = MockWorkflowContext()
+        g = TaskDependencyGraph(wctx)
+
+        ft = FailedTask(wctx)
+        t1 = PassedTask(wctx)
+        t2 = PassedTask(wctx)
+        for t in [ft, t1, t2]:
+            g.add_task(t)
+
+        g.add_dependency(t2, t1)
+        g.add_dependency(t2, ft)
+
+        self.assertRaisesRegex(WorkflowFailed, 'failtask', g.execute)
+        assert t1.get_state() == 'succeeded'
+        assert ft.get_state() == 'failed'
+        assert t2.get_state() == 'pending'
+
 
 class _CustomRestorableTask(tasks.WorkflowTask):
     """A custom user-provided task, that can be restored"""
