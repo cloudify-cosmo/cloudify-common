@@ -160,6 +160,10 @@ class WorkflowTask(object):
         # ID of the task that is being retried by this task
         self.retried_task = None
 
+        # this is set when a dependency errors out. Then, this task must not
+        # run!
+        self.dependency_error = False
+
     @classmethod
     def restore(cls, ctx, graph, task_descr):
         params = task_descr.parameters
