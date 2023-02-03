@@ -15,7 +15,6 @@
 
 import copy
 import numbers
-import re
 
 from dsl_parser import (constants,
                         exceptions,
@@ -446,18 +445,25 @@ def _is_inline_script(script):
     can contain either an operation dotted import path, or a script written
     right there in the blueprint.
     """
+    script = script.strip()
     if script.count('\n') > 1:
         # multiple lines? this for sure isn't a dotted path
         return True
-    # a regex to find dotted paths.
-    # match strings of the form:
-    #  - first, optionally a word with two dashes (namespace)
-    #  - then, a word with a separator following it
-    #  - then, optionally multiple words with separators following each
-    #  - finally, a word without a separator
-    # Allowed separators are: dot, forward slash, backslash
-    # If this doesn't match, we'll treat it as a script.
-    return re.match(
-        r'^(\w+--)?\w+[\.\/\\](\w+[\.\/\\]?)*\w+$',
-        script.strip(),
-    ) is None
+
+    if '/' in script or '\\' in script:
+        # script is one line and contains a slash/backslash - interpret
+        # this as a path (posix or windows).
+        # This means it's impossible to have 1-line scripts containing
+        # slashes, but this stays backwards-compatible
+        return False
+
+    if (
+        script.count('.') > 0 and
+        all(part.isidentifier() for part in script.split('.'))
+    ):
+        # this looks like a dotted path - identifiers separated by dots
+        return False
+
+    # it doesn't look like a file path, or a dotted path - it must be a
+    # one-liner script!
+    return True
