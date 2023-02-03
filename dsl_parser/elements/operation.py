@@ -450,6 +450,13 @@ def _is_inline_script(script):
         # multiple lines? this for sure isn't a dotted path
         return True
 
+    if utils.NAMESPACE_DELIMITER in script:
+        ns, _, _rest = script.partition(utils.NAMESPACE_DELIMITER)
+        if ns.isidentifier():
+            # a namespace delimiter, separating a single identifier? this
+            # for sure is not a script!
+            return False
+
     if '/' in script or '\\' in script:
         # script is one line and contains a slash/backslash - interpret
         # this as a path (posix or windows).
