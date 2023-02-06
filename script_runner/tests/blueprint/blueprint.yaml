@@ -2,6 +2,7 @@ tosca_definitions_version: cloudify_dsl_1_0
 
 inputs:
   script_path: {}
+  script_source: {}
   process:     {}
   env_var:
     default: value
@@ -15,6 +16,7 @@ node_templates:
           implementation: script.script_runner.tasks.run
           inputs:
             script_path: { get_input: script_path }
+            script_source: { get_input: script_source }
             process:     { get_input: process     }
             input_as_env_var: { get_input: env_var }
         script: script.script_runner.tasks.run

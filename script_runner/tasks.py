@@ -13,6 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import ast
 import codecs
 import os
 import re
@@ -21,6 +22,7 @@ import sys
 import time
 import json
 import tempfile
+import textwrap
 import subprocess
 from contextlib import contextmanager
 
@@ -59,13 +61,29 @@ DEFAULT_TASK_LOG_DIR = os.path.join(tempfile.gettempdir(), 'cloudify')
 
 
 @operation
-def run(script_path, process=None, ssl_cert_content=None, **kwargs):
+def run(
+    script_path=None,
+    script_source=None,
+    process=None,
+    ssl_cert_content=None,
+    **kwargs,
+):
     ctx = operation_ctx._get_current_object()
-    if script_path is None:
-        raise NonRecoverableError('Script path parameter not defined')
+    if script_path is None and script_source is None:
+        raise NonRecoverableError(
+            'Either script_path or script_source must be provided')
+    if script_source and script_path:
+        raise NonRecoverableError(
+            'Only provide script_path or script_source, not both')
     process = create_process_config(process or {}, kwargs)
-    script_path = download_resource(ctx.download_resource, script_path,
-                                    ssl_cert_content)
+    if script_source:
+        script_path = _script_source_to_file(script_source, process)
+    else:
+        script_path = download_resource(
+            ctx.download_resource,
+            script_path,
+            ssl_cert_content
+        )
     os.chmod(script_path, 0o755)
     script_func = get_run_script_func(script_path, process)
     try:
@@ -77,11 +95,30 @@ def run(script_path, process=None, ssl_cert_content=None, **kwargs):
 
 
 @workflow
-def execute_workflow(script_path, ssl_cert_content=None, **kwargs):
+def execute_workflow(
+    script_path=None,
+    script_source=None,
+    ssl_cert_content=None,
+    **kwargs,
+):
+    if script_path is None and script_source is None:
+        raise NonRecoverableError(
+            'Either script_path or script_source must be provided')
+    if script_source and script_path:
+        raise NonRecoverableError(
+            'Only provide script_path or script_source, not both')
     ctx = workflows_ctx._get_current_object()
-    script_path = download_resource(
-        ctx.internal.handler.download_deployment_resource, script_path,
-        ssl_cert_content)
+    if script_source:
+        script_path = _script_source_to_file(
+            script_source,
+            {'eval_python': True},
+        )
+    else:
+        script_path = download_resource(
+            ctx.internal.handler.download_deployment_resource,
+            script_path,
+            ssl_cert_content,
+        )
     try:
         script_result = process_execution(eval_script, script_path, ctx)
     finally:
@@ -159,6 +196,39 @@ def process_execution(script_func, script_path, ctx, process=None):
             raise NonRecoverableError(str(script_result))
     else:
         return script_result
+
+
+def _script_source_to_file(script_source, process):
+    """Write script_source to a file, with an auto-detected file extension.
+
+    If the script is valid python syntax, we'll consider it a python
+    script, otherwise it's a shell script.
+
+    eval_python still overrides this auto-detection.
+
+    Return a filename in the tempdir.
+    """
+    is_python = False
+    script_source = textwrap.dedent(script_source)
+    if process.get('eval_python'):
+        is_python = True
+    else:
+        try:
+            ast.parse(script_source)
+        except SyntaxError:
+            pass
+        else:
+            is_python = True
+
+    if is_python:
+        filename = 'script.py'
+    else:
+        filename = 'script.sh'
+
+    script_path = os.path.join(create_temp_folder(), filename)
+    with open(script_path, 'w') as f:
+        f.write(script_source)
+    return script_path
 
 
 def treat_script_as_python_script(script_path, process):
@@ -356,8 +426,11 @@ def _get_process_environment(process, proxy):
     return env
 
 
-def download_resource(download_resource_func, script_path,
-                      ssl_cert_content=None):
+def download_resource(
+    download_resource_func,
+    script_path,
+    ssl_cert_content=None,
+):
     split = script_path.split('://')
     schema = split[0]
     target_path = _get_target_path(script_path)

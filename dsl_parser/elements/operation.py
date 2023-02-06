@@ -305,34 +305,55 @@ def process_operation(
     candidate_plugins = [p for p in plugins
                          if operation_mapping.startswith('{0}.'.format(p))]
 
-    if (utils.is_valid_url(operation_mapping) or
-        _is_local_script_resource_exists(resource_bases, operation_mapping) or
-        (not candidate_plugins and _is_remote_script_resource(
-            operation_mapping, remote_resources_namespaces))):
+    is_valid_url = utils.is_valid_url(operation_mapping)
+    local_resource_exists = _is_local_script_resource_exists(
+        resource_bases, operation_mapping)
+    if is_valid_url or local_resource_exists:
+        is_script = False
+    else:
+        is_script = _is_inline_script(operation_mapping)
 
-        operation_payload = copy.deepcopy(operation_payload or {})
-        if constants.SCRIPT_PATH_PROPERTY in operation_payload:
-            message = "Cannot define '{0}' property in '{1}' for {2} '{3}'" \
-                .format(constants.SCRIPT_PATH_PROPERTY,
-                        operation_mapping,
-                        'workflow' if is_workflows else 'operation',
-                        operation_name)
-            raise exceptions.DSLParsingLogicException(60, message)
+    if (
+        is_valid_url or
+        is_script or
+        local_resource_exists or
+        (not candidate_plugins and _is_remote_script_resource(
+            operation_mapping, remote_resources_namespaces))
+    ):
+        if (
+            constants.SCRIPT_PATH_PROPERTY in operation_payload or
+            constants.SCRIPT_SOURCE_PROPERTY in operation_payload
+        ):
+            # if `implementation` is already a script source/path,
+            # disallow also providing that argument in inputs
+            wf_or_op = 'workflow' if is_workflows else 'operation'
+            offending_property = constants.SCRIPT_PATH_PROPERTY
+            if constants.SCRIPT_SOURCE_PROPERTY in operation_payload:
+                offending_property = constants.SCRIPT_PATH_PROPERTY
+
+            raise exceptions.DSLParsingLogicException(
+                60,
+                f"Cannot define '{offending_property}' property "
+                f"in '{operation_mapping}' for {wf_or_op} '{operation_name}'"
+            )
+
         script_path = operation_mapping
+        operation_payload = copy.deepcopy(operation_payload or {})
+        operation_executor = 'auto'
+
+        script_property = constants.SCRIPT_PATH_PROPERTY
+        if is_script:
+            script_property = constants.SCRIPT_SOURCE_PROPERTY
+
         if is_workflows:
             operation_mapping = constants.SCRIPT_PLUGIN_EXECUTE_WORKFLOW_TASK
-            operation_payload.update({
-                constants.SCRIPT_PATH_PROPERTY: {
-                    'default': script_path,
-                    'description': 'Workflow script executed by the script'
-                                   ' plugin'
-                }
-            })
+            operation_payload[script_property] = {
+                'default': script_path,
+                'description': 'Workflow script executed by the script plugin',
+            }
         else:
             operation_mapping = constants.SCRIPT_PLUGIN_RUN_TASK
-            operation_payload.update({
-                constants.SCRIPT_PATH_PROPERTY: script_path
-            })
+            operation_payload[script_property] = script_path
 
         # There can be more then one script plugin defined in the blueprint,
         # in case of the other one's are namespaced. But they are actually
@@ -415,3 +436,41 @@ def process_operation(
                     'workflow' if is_workflows else 'operation'))
         error_message = base_error_message + partial_error_message
         raise exceptions.DSLParsingLogicException(error_code, error_message)
+
+
+def _is_inline_script(script):
+    """Check if the string `script` contains a script.
+
+    The string, which is coming from an operation mapping in the blueprint,
+    can contain either an operation dotted import path, or a script written
+    right there in the blueprint.
+    """
+    script = script.strip()
+    if script.count('\n') > 1:
+        # multiple lines? this for sure isn't a dotted path
+        return True
+
+    if utils.NAMESPACE_DELIMITER in script:
+        ns, _, _rest = script.partition(utils.NAMESPACE_DELIMITER)
+        if ns.isidentifier():
+            # a namespace delimiter, separating a single identifier? this
+            # for sure is not a script!
+            return False
+
+    if '/' in script or '\\' in script:
+        # script is one line and contains a slash/backslash - interpret
+        # this as a path (posix or windows).
+        # This means it's impossible to have 1-line scripts containing
+        # slashes, but this stays backwards-compatible
+        return False
+
+    if (
+        '.' in script and
+        all(part.isidentifier() for part in script.split('.'))
+    ):
+        # this looks like a dotted path - identifiers separated by dots
+        return False
+
+    # it doesn't look like a file path, or a dotted path - it must be a
+    # one-liner script!
+    return True

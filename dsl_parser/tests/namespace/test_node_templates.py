@@ -108,7 +108,7 @@ imports:
                                               constants.SCRIPT_PLUGIN_NAME),
                 mapping=constants.SCRIPT_PLUGIN_RUN_TASK,
                 inputs=inputs,
-                executor='central_deployment_agent'))
+                executor='auto'))
 
         assert_operation(operation)
         assert_operation(operation2, extra_properties=True)
@@ -193,7 +193,7 @@ imports:
                                               constants.SCRIPT_PLUGIN_NAME),
                 mapping=constants.SCRIPT_PLUGIN_RUN_TASK,
                 inputs=inputs,
-                executor='central_deployment_agent'))
+                executor='auto'))
 
         assert_operation(operation)
         assert_operation(operation2, extra_properties=True)
