@@ -189,16 +189,25 @@ class AgentsClient(object):
                                 data=data)
         return self._wrapper_cls(response)
 
-    def update(self, name, state):
-        """Update agent with the provided state.
+    def update(self, name, state=None, **kwargs):
+        """Update agent with the provided settings.
 
         :param name: The name of the agent to update
         :param state: The updated state
+        :param kwargs: Additional agent settings to update, e.g. version
         :return: The updated agent
         """
-        data = {'state': state}
-        response = self.api.patch('/{0}/{1}'.format(self._uri_prefix, name),
-                                  data=data)
+        data = {}
+        # state is kept separate from kwargs, so that old-style (pre-7.0)
+        # invocation with positional args like `.update(name, state)`
+        # still works.
+        if state:
+            data['state'] = state
+        data.update(kwargs)
+        response = self.api.patch(
+            '/{0}/{1}'.format(self._uri_prefix, name),
+            data=data,
+        )
         return self._wrapper_cls(response)
 
     def replace_ca_certs(self,
