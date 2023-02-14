@@ -1699,7 +1699,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         if not plugins:
             return {}
         return self.evaluate_plugin_properties(
-            deployment_id, plugins[0]['properties'])
+            deployment_id, plugins[0].get('properties', {}))
 
     def _get_matching_plugins(self, deployment_id, plugin):
         dep = self.rest_client.deployments.get(deployment_id)
@@ -1958,7 +1958,7 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
         if not plugins or 'properties' not in plugins[0]:
             return {}
         return self.evaluate_plugin_properties(
-            deployment_id, plugins[0]['properties'])
+            deployment_id, plugins[0].get('properties', {}))
 
     def update_node_instance(self, *args, **kwargs):
         return self.storage.update_node_instance(*args, **kwargs)
