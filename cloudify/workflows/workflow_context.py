@@ -500,6 +500,11 @@ class CloudifyWorkflowNode(object):
         return self._node.number_of_instances
 
     @property
+    def planned_number_of_instances(self):
+        """Current planned amount of instances of this node"""
+        return self._node.planned_number_of_instances
+
+    @property
     def relationships(self):
         """The node relationships"""
         return iter(self._relationships.values())
