@@ -290,6 +290,24 @@ class ExecutionGroupsClient(object):
         )
         return ExecutionGroup(response)
 
+    def set_concurrency(self, execution_group_id, concurrency):
+        """Change the concurrency setting of an execution-group.
+
+        This affects the de-queueing mechanism: when starting queued
+        executions, the new concurrency setting will be used.
+
+        :param execution_group_id: ID of the execution group
+        :param concurrency: the new concurrency setting, a natural number
+        :return: The updated ExecutionGroup
+        """
+        response = self.api.patch(
+            '/execution-groups/{0}'.format(execution_group_id),
+            data={
+                'concurrency': concurrency,
+            },
+        )
+        return ExecutionGroup(response)
+
 
 class ExecutionsClient(object):
 
