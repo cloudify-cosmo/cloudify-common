@@ -339,7 +339,7 @@ def process_operation(
 
         script_path = operation_mapping
         operation_payload = copy.deepcopy(operation_payload or {})
-        operation_executor = 'auto'
+        operation_executor = operation_executor or 'auto'
 
         script_property = constants.SCRIPT_PATH_PROPERTY
         if is_script:
