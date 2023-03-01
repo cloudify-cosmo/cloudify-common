@@ -736,6 +736,10 @@ class DeploymentsClient(object):
                description=None,
                deployment_status=None,
                installation_status=None,
+               sub_services_status=None,
+               sub_environments_status=None,
+               sub_services_count=None,
+               sub_environments_count=None,
                _workdir_zip=None):
         """
         Creates a new deployment for the provided blueprint id and
@@ -769,9 +773,17 @@ class DeploymentsClient(object):
         :param capabilities: Set capabilities. Internal use only.
         :param resource_tags: Set resource_tags. Internal use only.
         :param description: Set description. Internal use only.
+        :param created_by: Override the creator. Internal use only.
+        :param created_at: Override the creation timestamp. Internal use only.
         :param deployment_status: Set deployment status. Internal use only.
         :param installation_status: Set installation status.
                                     Internal use only.
+        :param sub_services_status: Set sub-services status. Internal use only.
+        :param sub_environments_status: Set sub-environments status.
+                                        Internal use only.
+        :param sub_services_count: Set sub-services count. Internal use only.
+        :param sub_environments_count: Set sub-environments count.
+                                       Internal use only.
         :return: The created deployment.
         """
         assert blueprint_id
@@ -811,6 +823,14 @@ class DeploymentsClient(object):
             data['deployment_status'] = deployment_status
         if installation_status is not None:
             data['installation_status'] = installation_status
+        if sub_services_status is not None:
+            data['sub_services_status'] = sub_services_status
+        if sub_environments_status is not None:
+            data['sub_environments_status'] = sub_environments_status
+        if sub_services_count is not None:
+            data['sub_services_count'] = sub_services_count
+        if sub_environments_count is not None:
+            data['sub_environments_count'] = sub_environments_count
         data['skip_plugins_validation'] = skip_plugins_validation
         data['runtime_only_evaluation'] = runtime_only_evaluation
         uri = '/deployments/{0}'.format(deployment_id)
