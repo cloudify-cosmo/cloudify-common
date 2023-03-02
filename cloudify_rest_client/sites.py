@@ -68,7 +68,7 @@ class SitesClient(object):
         :param location: The location of the site : "latitude,longitude".
         :param visibility: The visibility of the site, can be 'private',
                            'tenant' or 'global'
-        :param creator: Override the creator. Internal use only.
+        :param created_by: Override the creator. Internal use only.
         :param created_at: Override the creation timestamp. Internal use only.
         :return: The created site.
         """

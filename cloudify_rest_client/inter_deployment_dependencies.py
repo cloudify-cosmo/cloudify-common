@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cloudify.deployment_dependencies import (create_deployment_dependency,
+from cloudify.deployment_dependencies import (build_deployment_dependency,
                                               DEPENDENCY_CREATOR)
 
 from cloudify_rest_client.responses import ListResponse
@@ -64,10 +64,18 @@ class InterDeploymentDependencyClient(object):
             response['metadata']
         )
 
-    def create(self, dependency_creator, source_deployment,
+    def create(self,
+               dependency_creator,
+               source_deployment,
                target_deployment=None,
-               external_source=None, external_target=None,
-               target_deployment_func=None):
+               external_source=None,
+               external_target=None,
+               target_deployment_func=None,
+               _id=None,
+               _visibility=None,
+               _created_at=None,
+               _created_by=None,
+               ):
         """Creates an inter-deployment dependency.
 
         :param dependency_creator: a string representing the entity that
@@ -85,14 +93,24 @@ class InterDeploymentDependencyClient(object):
         metadata, i.e. deployment name, tenant name, and the manager host(s).
         :param target_deployment_func: a function used to determine the target
         deployment.
+        :param _id: Override the identifier. Internal use only.
+        :param _visibility: Override the visibility. Internal use only.
+        :param _created_at: Override the creation timestamp. Internal use only.
+        :param _created_by: Override the creator. Internal use only.
         :return: an InterDeploymentDependency object.
         """
-        data = create_deployment_dependency(dependency_creator,
-                                            source_deployment,
-                                            target_deployment,
-                                            target_deployment_func,
-                                            external_source,
-                                            external_target)
+        data = build_deployment_dependency(
+            dependency_creator,
+            source_deployment=source_deployment,
+            target_deployment=target_deployment,
+            target_deployment_func=target_deployment_func,
+            external_source=external_source,
+            external_target=external_target,
+            id=_id,
+            visibility=_visibility,
+            created_at=_created_at,
+            created_by=_created_by,
+        )
         response = self.api.put(
             '/{self._uri_prefix}'.format(self=self), data=data)
         return self._wrapper_cls(response)
@@ -156,11 +174,13 @@ class InterDeploymentDependencyClient(object):
         metadata, i.e. deployment name, tenant name, and the manager host(s).
         :return: an InterDeploymentDependency object.
         """
-        data = create_deployment_dependency(dependency_creator,
-                                            source_deployment,
-                                            target_deployment,
-                                            external_source=external_source,
-                                            external_target=external_target)
+        data = build_deployment_dependency(
+            dependency_creator,
+            source_deployment=source_deployment,
+            target_deployment=target_deployment,
+            external_source=external_source,
+            external_target=external_target,
+        )
         data['is_component_deletion'] = is_component_deletion
         self.api.delete('/{self._uri_prefix}'.format(self=self), data=data)
 
