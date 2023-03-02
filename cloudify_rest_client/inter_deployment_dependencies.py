@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cloudify.deployment_dependencies import (create_deployment_dependency,
+from cloudify.deployment_dependencies import (build_deployment_dependency,
                                               DEPENDENCY_CREATOR)
 
 from cloudify_rest_client.responses import ListResponse
@@ -87,12 +87,14 @@ class InterDeploymentDependencyClient(object):
         deployment.
         :return: an InterDeploymentDependency object.
         """
-        data = create_deployment_dependency(dependency_creator,
-                                            source_deployment,
-                                            target_deployment,
-                                            target_deployment_func,
-                                            external_source,
-                                            external_target)
+        data = build_deployment_dependency(
+            dependency_creator,
+            source_deployment=source_deployment,
+            target_deployment=target_deployment,
+            target_deployment_func=target_deployment_func,
+            external_source=external_source,
+            external_target=external_target,
+        )
         response = self.api.put(
             '/{self._uri_prefix}'.format(self=self), data=data)
         return self._wrapper_cls(response)
@@ -156,11 +158,13 @@ class InterDeploymentDependencyClient(object):
         metadata, i.e. deployment name, tenant name, and the manager host(s).
         :return: an InterDeploymentDependency object.
         """
-        data = create_deployment_dependency(dependency_creator,
-                                            source_deployment,
-                                            target_deployment,
-                                            external_source=external_source,
-                                            external_target=external_target)
+        data = build_deployment_dependency(
+            dependency_creator,
+            source_deployment=source_deployment,
+            target_deployment=target_deployment,
+            external_source=external_source,
+            external_target=external_target,
+        )
         data['is_component_deletion'] = is_component_deletion
         self.api.delete('/{self._uri_prefix}'.format(self=self), data=data)
 

@@ -21,27 +21,18 @@ EXTERNAL_SOURCE = 'external_source'
 EXTERNAL_TARGET = 'external_target'
 
 
-def create_deployment_dependency(dependency_creator,
-                                 source_deployment=None,
-                                 target_deployment=None,
-                                 target_deployment_func=None,
-                                 external_source=None,
-                                 external_target=None):
+def build_deployment_dependency(dependency_creator, **kwargs) -> dict:
+    """Build dict representation of the inter-deployment dependency."""
     dependency = {
         DEPENDENCY_CREATOR: dependency_creator,
     }
-    if source_deployment:
-        dependency[SOURCE_DEPLOYMENT] = source_deployment
-    if target_deployment:
-        dependency[TARGET_DEPLOYMENT] = target_deployment
-    if target_deployment_func:
-        dependency[TARGET_DEPLOYMENT_FUNC] = target_deployment_func
-    if external_source:
-        dependency[EXTERNAL_SOURCE] = external_source
-    if external_target:
-        dependency[EXTERNAL_TARGET] = external_target
+    for key, value in kwargs.items():
+        if value is not None:
+            dependency[key] = value
     return dependency
 
 
-def dependency_creator_generator(connection_type, to_deployment):
-    return '{0}.{1}'.format(connection_type, to_deployment)
+def format_dependency_creator(connection_type, to_deployment) -> str:
+    """Format a dependency_creator string, which represents the entity
+     responsible for the inter-deployment dependency."""
+    return f'{connection_type}.{to_deployment}'
