@@ -51,7 +51,7 @@ def build_deployment_dependency(dependency_creator, **kwargs) -> dict:
     :param created_at: Override the creation timestamp. Internal use only.
     :param created_by: Override the creator. Internal use only.
     """
-    invalid = VALID_ATTRIBUTES - kwargs.keys()
+    invalid = kwargs.keys() - VALID_ATTRIBUTES
     if invalid:
         raise RuntimeError("Not valid inter-deployment dependency "
                            f"attribute(s): {', '.join(invalid)}")
