@@ -20,9 +20,9 @@ TARGET_DEPLOYMENT_FUNC = 'target_deployment_func'
 EXTERNAL_SOURCE = 'external_source'
 EXTERNAL_TARGET = 'external_target'
 
-VALID_ATTRIBUTES = [DEPENDENCY_CREATOR, SOURCE_DEPLOYMENT, TARGET_DEPLOYMENT,
+VALID_ATTRIBUTES = {DEPENDENCY_CREATOR, SOURCE_DEPLOYMENT, TARGET_DEPLOYMENT,
                     TARGET_DEPLOYMENT_FUNC, EXTERNAL_SOURCE, EXTERNAL_TARGET,
-                    'id', 'visibility', 'created_at', 'created_by']
+                    'id', 'visibility', 'created_at', 'created_by'}
 
 
 def build_deployment_dependency(dependency_creator, **kwargs) -> dict:
@@ -51,13 +51,14 @@ def build_deployment_dependency(dependency_creator, **kwargs) -> dict:
     :param created_at: Override the creation timestamp. Internal use only.
     :param created_by: Override the creator. Internal use only.
     """
+    invalid = VALID_ATTRIBUTES - kwargs.keys()
+    if invalid:
+        raise RuntimeError("Not valid inter-deployment dependency "
+                           f"attribute(s): {', '.join(invalid)}")
     dependency = {
         DEPENDENCY_CREATOR: dependency_creator,
     }
     for key, value in kwargs.items():
-        if key not in VALID_ATTRIBUTES:
-            raise RuntimeError('Not valid inter-deployment dependency '
-                               f'attribute: {key}')
         if value is not None:
             dependency[key] = value
     return dependency
