@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cloudify-common',
-    version='7.0.0',
+    version='7.1.0.dev1',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     packages=find_packages(exclude=('cloudify.tests*',
