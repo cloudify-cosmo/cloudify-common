@@ -118,13 +118,6 @@ class Deployment(dict):
         return self.get('deployment_groups')
 
     @property
-    def latest_execution_status(self):
-        """
-        :return: The deployment latest execution status
-        """
-        return self.get('latest_execution_status')
-
-    @property
     def installation_status(self):
         """
         :return: The deployment installation status
@@ -172,6 +165,29 @@ class Deployment(dict):
         :return: The environment type
         """
         return self.get('environment_type')
+
+    @property
+    def latest_execution_id(self):
+        """
+        :return: The deployment latest execution ID
+        """
+        # this value was called .latest_execution (which was just the string
+        # ID indeed) in 7.0 and before
+        return self.get('latest_execution_id') or self.get('latest_execution')
+
+    @property
+    def latest_execution_workflow_id(self):
+        """
+        :return: The deployment latest execution workflow name
+        """
+        return self.get('latest_execution_workflow_id')
+
+    @property
+    def latest_execution_status(self):
+        """
+        :return: The deployment latest execution status
+        """
+        return self.get('latest_execution_status')
 
     @property
     def latest_execution_total_operations(self):
