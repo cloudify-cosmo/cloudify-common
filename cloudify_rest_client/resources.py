@@ -63,7 +63,6 @@ class ResourcesClient:
         finally:
             os.unlink(tmp_file.name)
 
-
     def _download_deployment_workdir_files(self, uri: str, dst_dir: str):
         manager_files = self._fetch_manager_directory_index(uri)
         local_files = self._read_local_directory_index(dst_dir)
