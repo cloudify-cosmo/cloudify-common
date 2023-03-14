@@ -55,11 +55,14 @@ class ResourcesClient:
                 f"Unable to download single deployment's file "
                 f"from {uri}") from exception
 
-        with tempfile.NamedTemporaryFile('wb') as tmp_file:
+        with tempfile.NamedTemporaryFile('wb', delete=False) as tmp_file:
             for data in response.bytes_stream():
                 tmp_file.write(data)
-            tmp_file.seek(0)
+        try:
             _extract_archive(tmp_file.name, dst_dir)
+        finally:
+            os.unlink(tmp_file.name)
+
 
     def _download_deployment_workdir_files(self, uri: str, dst_dir: str):
         manager_files = self._fetch_manager_directory_index(uri)
