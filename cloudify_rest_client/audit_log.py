@@ -4,8 +4,8 @@ from cloudify_rest_client.responses import DeletedResponse, ListResponse
 class AuditLog(dict):
     """AuditLog describes a single entry in the `audit_log` table.  The table
     is used to to log `operation`s ('create', 'update', 'delete') performed on
-    most of the database tables.  Fields `ref_table` and `ref_id` are used to
-    address referenced records."""
+    most of the database tables.  Fields `ref_table`,`ref_id` and
+    `ref_identifier` are used to address referenced records."""
 
     def __init__(self, audit_log):
         super(AuditLog, self).__init__()
@@ -20,6 +20,11 @@ class AuditLog(dict):
     def ref_id(self):
         """Row ID in the referenced table."""
         return self['ref_id']
+
+    @property
+    def ref_identifier(self):
+        """Row identifier in the referenced table."""
+        return self['ref_identifier']
 
     @property
     def operation(self):
