@@ -255,27 +255,25 @@ def get_manager_rest_service_host():
     """
     Returns the host the manager REST service is running on.
     """
-    host_ip = None
+    if os.environ.get(constants.REST_HOST_KEY):
+        return os.environ[constants.REST_HOST_KEY].split(',')
     try:
         # Context could be not available sometimes
-        host_ip = _get_current_context().rest_host
+        return _get_current_context().rest_host
     except RuntimeError:
         pass
-    # In case host_ip was None or a RuntimeError raise, then fallback from
-    # environment variable
-    return host_ip or os.environ[constants.REST_HOST_KEY].split(',')
 
 
 def get_manager_rest_service_port():
     """
     Returns the port the manager REST service is running on.
     """
-    rest_port = None
+    if os.environ.get(constants.REST_PORT_KEY):
+        return int(os.environ[constants.REST_PORT_KEY])
     try:
-        rest_port = _get_current_context().rest_port
+        return _get_current_context().rest_port
     except RuntimeError:
         pass
-    return rest_port or int(os.environ[constants.REST_PORT_KEY])
 
 
 def get_broker_ssl_cert_path():
@@ -476,7 +474,6 @@ def get_local_resources_root():
 class LocalCommandRunner(object):
 
     def __init__(self, logger=None, host='localhost'):
-
         """
         :param logger: This logger will be used for
                        printing the output and the command.
@@ -493,7 +490,6 @@ class LocalCommandRunner(object):
             cwd=None,
             execution_env=None,
             encoding='utf-8'):
-
         """
         Runs local commands.
 
