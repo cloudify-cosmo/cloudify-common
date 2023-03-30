@@ -219,10 +219,11 @@ def get_manager_name():
 
 
 def get_manager_file_server_scheme():
-    """
-    Returns the manager file server base url.
-    """
-    return os.environ.get(constants.MANAGER_FILE_SERVER_SCHEME, 'https')
+    """Returns the protocol to use for connecting to the fileserver"""
+    return os.environ.get(
+        constants.MANAGER_FILE_SERVER_SCHEME,
+        get_manager_rest_service_protocol(),
+    )
 
 
 def get_manager_file_server_url():
