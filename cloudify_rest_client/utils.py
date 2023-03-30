@@ -106,3 +106,22 @@ def find_executable(executable, path=None):
         return None
     else:
         return executable
+
+
+class StreamedResponse(object):
+
+    def __init__(self, response):
+        self._response = response
+
+    @property
+    def headers(self):
+        return self._response.headers
+
+    def bytes_stream(self, chunk_size=8192):
+        return self._response.iter_content(chunk_size)
+
+    def lines_stream(self):
+        return self._response.iter_lines()
+
+    def close(self):
+        self._response.close()
