@@ -14,6 +14,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client._datetime_compat import datetime_fromisoformat
+from cloudify_rest_client.utils import StreamedResponse
 
 INDEX_JSON_FILENAME = '.cloudify-index.json'
 LAST_MODIFIED_FMT = '%Y-%m-%dT%H:%M:%S%z'
@@ -26,6 +27,24 @@ class ResourcesClient:
     def _deployment_workdir_uri(self, deployment_id: str) -> str:
         return f'/resources/deployments/{self.api.tenant_name}/'\
                f'{deployment_id}/'
+
+    def get_file(self, path: str, **kwargs) -> StreamedResponse:
+        """Fetch a file from the fileserver.
+
+        :param path: the file to download, including the leading /resources
+        :param kwargs: additional kwargs to requests.get
+        """
+        try:
+            return self.api.get(
+                path,
+                stream=True,
+                url_prefix=False,
+                **kwargs,
+            )
+        except requests.RequestException as exception:
+            raise CloudifyClientError(
+                f'Unable to download {path}: {exception}'
+            ) from exception
 
     def download_deployment_workdir(self, deployment_id: str, dst_dir: str):
         """
@@ -43,18 +62,7 @@ class ResourcesClient:
         return self._download_deployment_workdir_archive(uri, dst_dir)
 
     def _download_deployment_workdir_archive(self, uri: str, dst_dir: str):
-        try:
-            response = self.api.get(
-                uri,
-                params={'archive': True},
-                stream=True,
-                url_prefix=False,
-            )
-        except requests.RequestException as exception:
-            raise CloudifyClientError(
-                f"Unable to download single deployment's file "
-                f"from {uri}") from exception
-
+        response = self.get_file(uri, params={'archive': True})
         with tempfile.NamedTemporaryFile('wb', delete=False) as tmp_file:
             for data in response.bytes_stream():
                 tmp_file.write(data)
@@ -81,16 +89,7 @@ class ResourcesClient:
                               dst_dir: str,
                               file_path: str,
                               file_mtime: str):
-        try:
-            response = self.api.get(
-                f'{base_uri}{file_path}',
-                stream=True,
-                url_prefix=False,
-            )
-        except requests.RequestException as exception:
-            raise CloudifyClientError(
-                f"Unable to download single deployment's file "
-                f"from {base_uri}{file_path}") from exception
+        response = self.get_file(f'{base_uri}{file_path}')
         with tempfile.NamedTemporaryFile('wb',
                                          dir=dst_dir,
                                          delete=False) as tmp_file:
