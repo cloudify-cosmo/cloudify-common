@@ -9,7 +9,7 @@ from requests.packages import urllib3
 from cloudify import constants
 from cloudify.utils import ipv6_url_compat
 
-from .utils import is_kerberos_env
+from cloudify_rest_client.utils import is_kerberos_env, StreamedResponse
 from cloudify_rest_client import exceptions
 from cloudify_rest_client.idp import IdentityProviderClient
 from cloudify_rest_client.ldap import LdapClient
@@ -411,25 +411,6 @@ class HTTPClient(object):
         self.headers[key] = value
         value = value if log_value else '*'
         self.logger.debug('Setting `%s` header: %s', key, value)
-
-
-class StreamedResponse(object):
-
-    def __init__(self, response):
-        self._response = response
-
-    @property
-    def headers(self):
-        return self._response.headers
-
-    def bytes_stream(self, chunk_size=8192):
-        return self._response.iter_content(chunk_size)
-
-    def lines_stream(self):
-        return self._response.iter_lines()
-
-    def close(self):
-        self._response.close()
 
 
 class CloudifyClient(object):
