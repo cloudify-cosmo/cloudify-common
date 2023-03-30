@@ -28,18 +28,18 @@ class ResourcesClient:
         return f'/resources/deployments/{self.api.tenant_name}/'\
                f'{deployment_id}/'
 
-    def get_file(self, path: str, params=None) -> StreamedResponse:
+    def get_file(self, path: str, **kwargs) -> StreamedResponse:
         """Fetch a file from the fileserver.
 
         :param path: the file to download, including the leading /resources
-        :param params: additional querystring params
+        :param kwargs: additional kwargs to requests.get
         """
         try:
             return self.api.get(
                 path,
-                params=params,
                 stream=True,
                 url_prefix=False,
+                **kwargs,
             )
         except requests.RequestException as exception:
             raise CloudifyClientError(
