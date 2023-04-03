@@ -113,14 +113,12 @@ class SnapshotsClient(object):
                include_logs=True,
                include_events=True,
                queue=False,
-               include_metrics=None,
                tempdir_path=None,
                legacy=True):
         """
         Creates a new snapshot.
 
         :param snapshot_id: Snapshot id of the snapshot that will be created.
-        :param include_metrics: Deprecated parameter, should not be used.
         :return: The created snapshot.
         """
         assert snapshot_id
