@@ -113,13 +113,12 @@ class SnapshotsClient(object):
                include_logs=True,
                include_events=True,
                queue=False,
-               include_metrics=None,
-               tempdir_path=None):
+               tempdir_path=None,
+               legacy=True):
         """
         Creates a new snapshot.
 
         :param snapshot_id: Snapshot id of the snapshot that will be created.
-        :param include_metrics: Deprecated parameter, should not be used.
         :return: The created snapshot.
         """
         assert snapshot_id
@@ -130,6 +129,7 @@ class SnapshotsClient(object):
             'include_events': include_events,
             'queue': queue,
             'tempdir_path': tempdir_path,
+            'legacy': legacy,
         }
         response = self.api.put(uri, data=params, expected_status_code=201)
         return Execution(response)
