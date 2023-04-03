@@ -114,7 +114,8 @@ class SnapshotsClient(object):
                include_events=True,
                queue=False,
                include_metrics=None,
-               tempdir_path=None):
+               tempdir_path=None,
+               legacy=False):
         """
         Creates a new snapshot.
 
@@ -130,6 +131,7 @@ class SnapshotsClient(object):
             'include_events': include_events,
             'queue': queue,
             'tempdir_path': tempdir_path,
+            'legacy': legacy,
         }
         response = self.api.put(uri, data=params, expected_status_code=201)
         return Execution(response)
