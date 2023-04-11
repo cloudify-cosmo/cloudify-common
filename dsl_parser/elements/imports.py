@@ -392,14 +392,34 @@ def _build_ordered_imports(parsed_dsl_holder,
                            dsl_location,
                            resources_base_path,
                            resolver):
-    def build_ordered_imports_recursive(_current_parsed_dsl_holder,
-                                        _current_import,
-                                        context_namespace=None,
-                                        dsl_version=None):
+
+
+    imports_graph = ImportsGraph()
+    blueprint_imports = set()
+    namespaces_mapping = {}
+
+    imports_graph.add(location(dsl_location), parsed_dsl_holder)
+
+    to_visit = [
+        (
+            parsed_dsl_holder,
+            dsl_location,
+            None,
+            _dsl_version(parsed_dsl_holder),
+        ),
+    ]
+    while to_visit:
+        (
+            _current_parsed_dsl_holder,
+            _current_import,
+            context_namespace,
+            dsl_version,
+        ) = to_visit.pop()
+
         imports_key_holder, imports_value_holder = _current_parsed_dsl_holder.\
             get_item(constants.IMPORTS)
         if not imports_value_holder:
-            return
+            continue
 
         for another_import_raw in imports_value_holder.restore():
             if isinstance(another_import_raw, dict):
@@ -505,20 +525,10 @@ def _build_ordered_imports(parsed_dsl_holder,
                     import_context,
                     namespace,
                     properties)
-                build_ordered_imports_recursive(imported_dsl,
-                                                import_url,
-                                                namespace,
-                                                dsl_version)
+                to_visit.append(
+                    (imported_dsl, import_url, namespace, dsl_version),
+                )
 
-    imports_graph = ImportsGraph()
-    blueprint_imports = set()
-    namespaces_mapping = {}
-
-    imports_graph.add(location(dsl_location), parsed_dsl_holder)
-    build_ordered_imports_recursive(
-        parsed_dsl_holder, dsl_location,
-        dsl_version=_dsl_version(parsed_dsl_holder)
-    )
     sorted_imports_graph = imports_graph.topological_sort()
     return sorted_imports_graph, blueprint_imports, namespaces_mapping
 
