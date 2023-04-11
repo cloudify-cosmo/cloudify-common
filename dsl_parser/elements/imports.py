@@ -392,35 +392,6 @@ def _build_ordered_imports(parsed_dsl_holder,
                            dsl_location,
                            resources_base_path,
                            resolver):
-
-    def resolve_import_graph_key(import_url, namespace):
-        """
-        An import's key in the graph key is a combination with
-        it's namespace and it, but in case that the import is
-        Cloudify basic types the key is without the namespace.
-        """
-        import_key = (import_url, namespace)
-        if import_key in imports_graph:
-            return import_key
-        # In case, of Cloudify basic types
-        import_key = (import_key, None)
-        if import_key in imports_graph:
-            return import_key
-        return import_url, namespace
-
-    def add_namespace_to_mapping(blueprint_id, namespace):
-        """
-        The mapping is saved only for namespaced blueprint import
-        in order of supporting imported scripts, so one-to-one
-        mapping (blueprint-namespace) is a must for to be able to
-        pull the scripts.
-        """
-        if namespaces_mapping.get(namespace, None):
-            raise exceptions.DSLParsingLogicException(
-                214, "Import failed {0}: can not use the same"
-                     " namespace for importing blueprints".format(namespace))
-        namespaces_mapping[namespace] = blueprint_id
-
     def build_ordered_imports_recursive(_current_parsed_dsl_holder,
                                         _current_import,
                                         context_namespace=None,
@@ -463,9 +434,22 @@ def _build_ordered_imports(parsed_dsl_holder,
                 validate_blueprint_import_namespace(namespace, import_url)
                 blueprint_id = utils.remove_blueprint_import_prefix(import_url)
                 blueprint_imports.add(blueprint_id)
-                add_namespace_to_mapping(blueprint_id, namespace)
+                if namespaces_mapping.get(namespace, None):
+                    raise exceptions.DSLParsingLogicException(
+                        214,
+                        f'Import failed {namespace}: can not use the same'
+                        'namespace for importing blueprints'
+                    )
+                namespaces_mapping[namespace] = blueprint_id
 
-            import_key = resolve_import_graph_key(import_url, namespace)
+            if (import_url, namespace) in imports_graph:
+                import_key = (import_url, namespace)
+            elif (import_url, None) in imports_graph:
+                # In case of Cloudify basic types
+                import_key = (import_url, None)
+            else:
+                import_key = (import_url, namespace)
+
             import_context = (location(_current_import), context_namespace)
             if import_key in imports_graph:
                 is_cloudify_types = imports_graph[import_key]['cloudify_types']
