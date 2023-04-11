@@ -298,7 +298,7 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
             _validate_version(version.raw,
                               import_url,
                               parsed_imported_dsl_holder)
-        if import_url != 'root':
+        if import_url != constants.ROOT_ELEMENT_VALUE:
             _validate_and_set_properties(
                 parsed_imported_dsl_holder, imported['properties'])
         is_cloudify_types = imported['cloudify_types']
@@ -317,63 +317,81 @@ def _dsl_version(parsed_dsl_holder):
         return version.replace('cloudify_dsl_', '', 1)
 
 
+def location(value):
+    return value or constants.ROOT_ELEMENT_VALUE
+
+
+def is_parsed_resource(item):
+    """
+    Checking if the given item is in parsed yaml type.
+    """
+    return isinstance(item, Holder)
+
+
+def validate_namespace(namespace):
+    """
+    The namespace delimiter is not allowed in the namespace.
+    """
+    if namespace and constants.NAMESPACE_DELIMITER in namespace:
+        raise exceptions.DSLParsingLogicException(
+            212,
+            'Invalid {0}: import\'s namespace cannot'
+            'contain namespace delimiter'.format(namespace))
+
+
+def is_cloudify_basic_types(imported_holder):
+    """
+    Cloudify basic types can be recognized with the following rules
+    at high assurance:
+    - Has a metadata field named cloudify_types.
+    - Has a node type named cloudify.nodes.Root (for backward capability).
+    """
+    _, metadata = imported_holder.get_item(constants.METADATA)
+    _, node_types = imported_holder.get_item(constants.NODE_TYPES)
+    if (metadata and metadata.get_item('cloudify_types')[1]) or node_types:
+        root_type = node_types.get_item('cloudify.nodes.Root')[1]
+        if root_type and not root_type.is_cloudify_type:
+            # If it was already marked with the flag,
+            # this means that this blueprint is using Cloudify basic types
+            # and not equal to it.
+            return True
+    return False
+
+
+def validate_import_namespace(namespace,
+                              cloudify_basic_types,
+                              context_namespace):
+    """
+    Cloudify basic types can not be imported with namespace,
+    due to that will disrupt core Cloudify types with the namespace prefix
+    which will not allow proper functioning, like: added a prefix to
+    install workflow.
+    """
+    if cloudify_basic_types and namespace:
+        if not context_namespace or namespace != context_namespace:
+            raise exceptions.DSLParsingLogicException(
+                214,
+                'Invalid import namespace {0}: cannot be used'
+                ' on Cloudify basic types.'.format(namespace))
+
+
+def validate_blueprint_import_namespace(namespace, import_url):
+    """
+    Blueprint import must be used with namespace, this is enforced for
+    enabling the use of scripts from the imported blueprint which needs
+    the namespace for maintaining the path to the scripts.
+    """
+    if not namespace:
+        raise exceptions.DSLParsingLogicException(
+            213,
+            'Invalid {0}: blueprint import cannot'
+            'be used without namespace'.format(import_url))
+
+
 def _build_ordered_imports(parsed_dsl_holder,
                            dsl_location,
                            resources_base_path,
                            resolver):
-
-    def location(value):
-        return value or constants.ROOT_ELEMENT_VALUE
-
-    def is_parsed_resource(item):
-        """
-        Checking if the given item is in parsed yaml type.
-        """
-        return isinstance(item, Holder)
-
-    def validate_namespace(namespace):
-        """
-        The namespace delimiter is not allowed in the namespace.
-        """
-        if namespace and constants.NAMESPACE_DELIMITER in namespace:
-            raise exceptions.DSLParsingLogicException(
-                212,
-                'Invalid {0}: import\'s namespace cannot'
-                'contain namespace delimiter'.format(namespace))
-
-    def is_cloudify_basic_types(imported_holder):
-        """
-        Cloudify basic types can be recognized with the following rules
-        at high assurance:
-        - Has a metadata field named cloudify_types.
-        - Has a node type named cloudify.nodes.Root (for backward capability).
-        """
-        _, metadata = imported_holder.get_item(constants.METADATA)
-        _, node_types = imported_holder.get_item(constants.NODE_TYPES)
-        if (metadata and metadata.get_item('cloudify_types')[1]) or node_types:
-            root_type = node_types.get_item('cloudify.nodes.Root')[1]
-            if root_type and not root_type.is_cloudify_type:
-                # If it was already marked with the flag,
-                # this means that this blueprint is using Cloudify basic types
-                # and not equal to it.
-                return True
-        return False
-
-    def validate_import_namespace(namespace,
-                                  cloudify_basic_types,
-                                  context_namespace):
-        """
-        Cloudify basic types can not be imported with namespace,
-        due to that will disrupt core Cloudify types with the namespace prefix
-        which will not allow proper functioning, like: added a prefix to
-        install workflow.
-        """
-        if cloudify_basic_types and namespace:
-            if not context_namespace or namespace != context_namespace:
-                raise exceptions.DSLParsingLogicException(
-                    214,
-                    'Invalid import namespace {0}: cannot be used'
-                    ' on Cloudify basic types.'.format(namespace))
 
     def resolve_import_graph_key(import_url, namespace):
         """
@@ -389,18 +407,6 @@ def _build_ordered_imports(parsed_dsl_holder,
         if import_key in imports_graph:
             return import_key
         return import_url, namespace
-
-    def validate_blueprint_import_namespace(namespace, import_url):
-        """
-        Blueprint import must be used with namespace, this is enforced for
-        enabling the use of scripts from the imported blueprint which needs
-        the namespace for maintaining the path to the scripts.
-        """
-        if not namespace:
-            raise exceptions.DSLParsingLogicException(
-                213,
-                'Invalid {0}: blueprint import cannot'
-                'be used without namespace'.format(import_url))
 
     def add_namespace_to_mapping(blueprint_id, namespace):
         """
