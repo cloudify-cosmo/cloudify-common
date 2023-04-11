@@ -24,8 +24,9 @@ class SummaryClient(object):
     def get(self, _target_field, _sub_field=None, **kwargs):
         params = {
             '_target_field': _target_field,
-            '_sub_field': _sub_field,
         }
+        if _sub_field:
+            params['_sub_field'] = _sub_field
         params.update(kwargs)
         response = self.api.get(
             '/summary/{summary_type}'.format(summary_type=self.summary_type),
