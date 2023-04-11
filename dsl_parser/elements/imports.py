@@ -462,13 +462,7 @@ def _build_ordered_imports(parsed_dsl_holder,
                     )
                 namespaces_mapping[namespace] = blueprint_id
 
-            if (import_url, namespace) in imports_graph:
-                import_key = (import_url, namespace)
-            elif (import_url, None) in imports_graph:
-                # In case of Cloudify basic types
-                import_key = (import_url, None)
-            else:
-                import_key = (import_url, namespace)
+            import_key = (import_url, namespace)
 
             import_context = (location(_current_import), context_namespace)
             if import_key in imports_graph:
