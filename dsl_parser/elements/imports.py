@@ -14,8 +14,8 @@
 #    * limitations under the License.
 
 import os
+from collections import deque, OrderedDict
 
-from networkx.classes import DiGraph
 from urllib.request import pathname2url
 
 from cloudify.exceptions import InvalidBlueprintImport
@@ -291,8 +291,7 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
     holder_result.value = {}
     _insert_imported_list(holder_result, blueprint_imports)
     _insert_namespaces_mapping(holder_result, mapping)
-    for imported in ordered_imports:
-        import_url, namespace = imported['import']
+    for (import_url, namespace), imported in ordered_imports.items():
         parsed_imported_dsl_holder = imported['parsed']
         if validate_version:
             _validate_version(version.raw,
@@ -388,27 +387,33 @@ def _build_ordered_imports(parsed_dsl_holder,
                            dsl_location,
                            resources_base_path,
                            resolver):
-    imports_graph = ImportsGraph()
     blueprint_imports = set()
     namespaces_mapping = {}
-
-    imports_graph.add(dsl_location, parsed_dsl_holder)
-
-    to_visit = [
+    ordered_imports = OrderedDict([
+        (
+            (dsl_location, None),
+            {
+                'parsed': parsed_dsl_holder,
+                'cloudify_types': False,
+                'properties': None,
+            }
+        ),
+    ])
+    to_visit = deque([
         (
             parsed_dsl_holder,
             dsl_location,
             None,
             _dsl_version(parsed_dsl_holder),
         ),
-    ]
+    ])
     while to_visit:
         (
             _current_parsed_dsl_holder,
             _current_import,
             context_namespace,
             dsl_version,
-        ) = to_visit.pop()
+        ) = to_visit.popleft()
 
         _, imports_value_holder = _current_parsed_dsl_holder.\
             get_item(constants.IMPORTS)
@@ -458,16 +463,12 @@ def _build_ordered_imports(parsed_dsl_holder,
 
             import_key = (import_url, namespace)
 
-            import_context = (_current_import, context_namespace)
-            if import_key in imports_graph:
-                is_cloudify_types = imports_graph[import_key]['cloudify_types']
+            if import_key in ordered_imports:
+                is_cloudify_types = \
+                    ordered_imports[import_key]['cloudify_types']
                 validate_import_namespace(namespace,
                                           is_cloudify_types,
                                           context_namespace)
-                imports_graph.add_graph_dependency(
-                    import_url,
-                    import_context,
-                    namespace)
                 continue
 
             imported_dsl = resolver.fetch_import(import_url,
@@ -507,19 +508,16 @@ def _build_ordered_imports(parsed_dsl_holder,
             if cloudify_basic_types:
                 # Remove namespace data from import
                 namespace = None
-            imports_graph.add(
-                import_url,
-                imported_dsl,
-                cloudify_basic_types,
-                import_context,
-                namespace,
-                properties)
+            ordered_imports[import_key] = {
+                'parsed': imported_dsl,
+                'cloudify_types': cloudify_basic_types,
+                'properties': properties,
+            }
             to_visit.append(
                 (imported_dsl, import_url, namespace, dsl_version),
             )
 
-    sorted_imports_graph = imports_graph.topological_sort()
-    return sorted_imports_graph, blueprint_imports, namespaces_mapping
+    return ordered_imports, blueprint_imports, namespaces_mapping
 
 
 def _validate_version(dsl_version,
@@ -802,51 +800,6 @@ def _merge_into_dict_or_throw_on_duplicate(from_dict_holder,
             raise exceptions.DSLParsingLogicException(
                 4, "Import failed: Could not merge '{0}' due to conflict "
                    "on '{1}'".format(key_name, key_holder.value))
-
-
-class ImportsGraph(object):
-
-    def __init__(self):
-        self._imports_tree = DiGraph()
-        self._imports_graph = DiGraph()
-
-    def add(self, import_url, parsed, cloudify_types=False,
-            via_import=None, namespace=None, properties=None):
-        node_key = (import_url, namespace)
-        if import_url not in self._imports_tree:
-            self._imports_tree.add_node(
-                node_key,
-                parsed=parsed,
-                cloudify_types=cloudify_types,
-                properties=properties
-            )
-            self._imports_graph.add_node(
-                node_key,
-                parsed=parsed,
-                cloudify_types=cloudify_types,
-                properties=properties,
-            )
-        if via_import:
-            self._imports_tree.add_edge(node_key, via_import)
-            self._imports_graph.add_edge(node_key, via_import)
-
-    def add_graph_dependency(self, import_url, via_import, namespace):
-        if via_import:
-            self._imports_graph.add_edge((import_url, namespace), via_import)
-
-    def topological_sort(self):
-        return reversed(list(
-            ({'import': i,
-             'parsed': self._imports_tree.nodes[i]['parsed'],
-              'cloudify_types': self._imports_tree.nodes[i]['cloudify_types'],
-              'properties': self._imports_tree.nodes[i]['properties']}
-             for i in utils.topological_sort(self._imports_tree))))
-
-    def __contains__(self, item):
-        return item in self._imports_tree
-
-    def __getitem__(self, item):
-        return self._imports_tree.nodes[item]
 
 
 def _validate_import_dict(_import):
