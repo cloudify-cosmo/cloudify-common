@@ -16,6 +16,7 @@
 import os
 from collections import deque, OrderedDict
 from dataclasses import dataclass
+from typing import Iterable, Tuple
 
 from urllib.request import pathname2url
 
@@ -419,16 +420,27 @@ class _ImportedDSL:
     properties: dict | None = None
 
     @property
-    def key(self):
+    def key(self) -> Tuple[str, str | None]:
         return (self.url, self.namespace)
 
     @property
-    def dsl_version(self):
+    def dsl_version(self) -> str:
         return _dsl_version(self.parsed)
 
     @property
-    def is_cloudify_types(self):
+    def is_cloudify_types(self) -> bool:
         return is_cloudify_basic_types(self.parsed)
+
+    def get_imports(self) -> Iterable[Tuple[str, dict | None]]:
+        _, imports_value_holder = self.parsed.get_item(constants.IMPORTS)
+        if not imports_value_holder:
+            return
+        for raw_import in imports_value_holder.restore():
+            if isinstance(raw_import, dict):
+                # This is actually guaranteed to be a dict of length 1
+                yield list(raw_import.items())[0]
+            else:
+                yield raw_import, None
 
 
 def _build_ordered_imports(parsed_dsl_holder,
@@ -445,22 +457,13 @@ def _build_ordered_imports(parsed_dsl_holder,
     while to_visit:
         parent = to_visit.popleft()
 
-        _, imports_value_holder = parent.parsed.get_item(constants.IMPORTS)
-        if not imports_value_holder:
-            continue
-
-        for another_import_raw in imports_value_holder.restore():
-            if isinstance(another_import_raw, dict):
-                # This is actually guaranteed to be a dict of length 1
-                another_import, properties = \
-                    list(another_import_raw.items())[0]
-            else:
-                another_import = another_import_raw
-                properties = None
-            namespace, import_url = _extract_import_parts(another_import,
-                                                          resources_base_path,
-                                                          parent.url,
-                                                          root_dsl.dsl_version)
+        for original_import_url, properties in parent.get_imports():
+            namespace, import_url = _extract_import_parts(
+                original_import_url,
+                resources_base_path,
+                parent.url,
+                root_dsl.dsl_version,
+            )
             validate_namespace(namespace)
             if parent.namespace:
                 if namespace:
@@ -506,7 +509,7 @@ def _build_ordered_imports(parsed_dsl_holder,
                     raw_yaml=imported_dsl,
                     error_message="Failed to parse import '{0}'"
                                   "(via '{1}')"
-                                  .format(another_import, import_url),
+                                  .format(original_import_url, import_url),
                     filename=import_url)
             try:
                 plugin = resolver.retrieve_plugin(
