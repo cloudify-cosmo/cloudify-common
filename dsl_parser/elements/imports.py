@@ -317,10 +317,6 @@ def _dsl_version(parsed_dsl_holder):
         return version.replace('cloudify_dsl_', '', 1)
 
 
-def location(value):
-    return value or constants.ROOT_ELEMENT_VALUE
-
-
 def is_parsed_resource(item):
     """
     Checking if the given item is in parsed yaml type.
@@ -396,7 +392,7 @@ def _build_ordered_imports(parsed_dsl_holder,
     blueprint_imports = set()
     namespaces_mapping = {}
 
-    imports_graph.add(location(dsl_location), parsed_dsl_holder)
+    imports_graph.add(dsl_location, parsed_dsl_holder)
 
     to_visit = [
         (
@@ -462,7 +458,7 @@ def _build_ordered_imports(parsed_dsl_holder,
 
             import_key = (import_url, namespace)
 
-            import_context = (location(_current_import), context_namespace)
+            import_context = (_current_import, context_namespace)
             if import_key in imports_graph:
                 is_cloudify_types = imports_graph[import_key]['cloudify_types']
                 validate_import_namespace(namespace,
