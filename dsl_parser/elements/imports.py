@@ -15,6 +15,7 @@
 
 import os
 from collections import deque, OrderedDict
+from dataclasses import dataclass
 
 from urllib.request import pathname2url
 
@@ -245,17 +246,27 @@ def _extract_import_parts(import_url,
             namespaced, the returned namespace will be
             None.
     """
-    namespace, _, import_url = \
+    namespace, _, resolved_url = \
         import_url.rpartition(constants.NAMESPACE_DELIMITER)
 
     if namespace == '':
         # The mark of no namespace is None, so we need to use that value.
         namespace = None
 
-    return namespace, _get_resource_location(import_url,
-                                             resources_base_path,
-                                             current_resource_context,
-                                             dsl_version)
+    resolved_url = _get_resource_location(
+        resolved_url,
+        resources_base_path,
+        current_resource_context,
+        dsl_version,
+    )
+    if resolved_url is None:
+        ex = exceptions.DSLParsingLogicException(
+            13, "Import failed: no suitable location found for "
+                "import '{0}'".format(import_url))
+        ex.failed_import = import_url
+        raise ex
+
+    return namespace, resolved_url
 
 
 def _insert_imported_list(blueprint_holder, blueprints_imported):
@@ -291,19 +302,19 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
     holder_result.value = {}
     _insert_imported_list(holder_result, blueprint_imports)
     _insert_namespaces_mapping(holder_result, mapping)
-    for (import_url, namespace), imported in ordered_imports.items():
-        parsed_imported_dsl_holder = imported['parsed']
+    for imported in ordered_imports:
+        parsed_imported_dsl_holder = imported.parsed
         if validate_version:
             _validate_version(version.raw,
-                              import_url,
+                              imported.url,
                               parsed_imported_dsl_holder)
-        if import_url != constants.ROOT_ELEMENT_VALUE:
+        if imported.url != constants.ROOT_ELEMENT_VALUE:
             _validate_and_set_properties(
-                parsed_imported_dsl_holder, imported['properties'])
-        is_cloudify_types = imported['cloudify_types']
+                parsed_imported_dsl_holder, imported.properties)
+        is_cloudify_types = imported.is_cloudify_types
         _merge_parsed_into_combined(
             holder_result, parsed_imported_dsl_holder,
-            version, namespace, is_cloudify_types)
+            version, imported.namespace, is_cloudify_types)
     holder_result.value[version_key_holder] = version_value_holder
     return holder_result
 
@@ -383,40 +394,58 @@ def validate_blueprint_import_namespace(namespace, import_url):
             'be used without namespace'.format(import_url))
 
 
+def _normalize_plugin_import(plugin, imported_dsl, namespace):
+    utils.remove_dsl_keys(
+        imported_dsl,
+        constants.PLUGIN_DSL_KEYS_NOT_FROM_YAML)
+    for key in constants.PLUGIN_DSL_KEYS_READ_FROM_DB:
+        if not plugin.get(key):
+            continue
+        value = plugin[key]
+        if key in constants.PLUGIN_DSL_KEYS_ADD_VALUES_NODE:
+            value = utils.add_values_node_description(value)
+        _merge_into_dict_or_throw_on_duplicate(
+            Holder.of({key: value}),
+            imported_dsl,
+            key,
+            namespace)
+
+
+@dataclass
+class _ImportedDSL:
+    url: str
+    parsed: Holder | None = None
+    namespace: str | None = None
+    properties: dict | None = None
+
+    @property
+    def key(self):
+        return (self.url, self.namespace)
+
+    @property
+    def dsl_version(self):
+        return _dsl_version(self.parsed)
+
+    @property
+    def is_cloudify_types(self):
+        return is_cloudify_basic_types(self.parsed)
+
+
 def _build_ordered_imports(parsed_dsl_holder,
                            dsl_location,
                            resources_base_path,
                            resolver):
     blueprint_imports = set()
     namespaces_mapping = {}
+    root_dsl = _ImportedDSL(url=dsl_location, parsed=parsed_dsl_holder)
     ordered_imports = OrderedDict([
-        (
-            (dsl_location, None),
-            {
-                'parsed': parsed_dsl_holder,
-                'cloudify_types': False,
-                'properties': None,
-            }
-        ),
+        (root_dsl.key, root_dsl),
     ])
-    to_visit = deque([
-        (
-            parsed_dsl_holder,
-            dsl_location,
-            None,
-            _dsl_version(parsed_dsl_holder),
-        ),
-    ])
+    to_visit = deque([root_dsl])
     while to_visit:
-        (
-            _current_parsed_dsl_holder,
-            _current_import,
-            context_namespace,
-            dsl_version,
-        ) = to_visit.popleft()
+        parent = to_visit.popleft()
 
-        _, imports_value_holder = _current_parsed_dsl_holder.\
-            get_item(constants.IMPORTS)
+        _, imports_value_holder = parent.parsed.get_item(constants.IMPORTS)
         if not imports_value_holder:
             continue
 
@@ -430,24 +459,18 @@ def _build_ordered_imports(parsed_dsl_holder,
                 properties = None
             namespace, import_url = _extract_import_parts(another_import,
                                                           resources_base_path,
-                                                          _current_import,
-                                                          dsl_version)
+                                                          parent.url,
+                                                          root_dsl.dsl_version)
             validate_namespace(namespace)
-            if context_namespace:
+            if parent.namespace:
                 if namespace:
                     namespace = utils.generate_namespaced_value(
-                        context_namespace,
+                        parent.namespace,
                         namespace)
                 else:
                     # In case a namespace was added earlier in the import
                     # chain.
-                    namespace = context_namespace
-            if import_url is None:
-                ex = exceptions.DSLParsingLogicException(
-                    13, "Import failed: no suitable location found for "
-                        "import '{0}'".format(another_import))
-                ex.failed_import = another_import
-                raise ex
+                    namespace = parent.namespace
 
             if utils.is_blueprint_import(import_url):
                 validate_blueprint_import_namespace(namespace, import_url)
@@ -461,18 +484,23 @@ def _build_ordered_imports(parsed_dsl_holder,
                     )
                 namespaces_mapping[namespace] = blueprint_id
 
-            import_key = (import_url, namespace)
-
-            if import_key in ordered_imports:
-                is_cloudify_types = \
-                    ordered_imports[import_key]['cloudify_types']
-                validate_import_namespace(namespace,
-                                          is_cloudify_types,
-                                          context_namespace)
+            next_item = _ImportedDSL(
+                url=import_url,
+                namespace=namespace,
+                properties=properties,
+            )
+            if next_item.key in ordered_imports:
+                validate_import_namespace(
+                    namespace,
+                    ordered_imports[next_item.key].is_cloudify_types,
+                    parent.namespace,
+                )
                 continue
 
-            imported_dsl = resolver.fetch_import(import_url,
-                                                 dsl_version=dsl_version)
+            imported_dsl = resolver.fetch_import(
+                import_url,
+                dsl_version=root_dsl.dsl_version,
+            )
             if not is_parsed_resource(imported_dsl):
                 imported_dsl = utils.load_yaml(
                     raw_yaml=imported_dsl,
@@ -481,43 +509,28 @@ def _build_ordered_imports(parsed_dsl_holder,
                                   .format(another_import, import_url),
                     filename=import_url)
             try:
-                plugin = resolver.retrieve_plugin(import_url,
-                                                  dsl_version=dsl_version)
+                plugin = resolver.retrieve_plugin(
+                    import_url,
+                    dsl_version=root_dsl.dsl_version,
+                )
             except InvalidBlueprintImport:
                 plugin = None
             if plugin:
                 # If it is a plugin, then use labels and tags from the DB
-                utils.remove_dsl_keys(
-                    imported_dsl,
-                    constants.PLUGIN_DSL_KEYS_NOT_FROM_YAML)
-                for key in constants.PLUGIN_DSL_KEYS_READ_FROM_DB:
-                    if not plugin.get(key):
-                        continue
-                    value = plugin[key]
-                    if key in constants.PLUGIN_DSL_KEYS_ADD_VALUES_NODE:
-                        value = utils.add_values_node_description(value)
-                    _merge_into_dict_or_throw_on_duplicate(
-                        Holder.of({key: value}),
-                        imported_dsl,
-                        key,
-                        namespace)
-            cloudify_basic_types = is_cloudify_basic_types(imported_dsl)
-            validate_import_namespace(namespace,
-                                      cloudify_basic_types,
-                                      context_namespace)
-            if cloudify_basic_types:
-                # Remove namespace data from import
-                namespace = None
-            ordered_imports[import_key] = {
-                'parsed': imported_dsl,
-                'cloudify_types': cloudify_basic_types,
-                'properties': properties,
-            }
-            to_visit.append(
-                (imported_dsl, import_url, namespace, dsl_version),
-            )
+                _normalize_plugin_import(plugin, imported_dsl, namespace)
 
-    return ordered_imports, blueprint_imports, namespaces_mapping
+            next_item.parsed = imported_dsl
+            validate_import_namespace(next_item.namespace,
+                                      next_item.is_cloudify_types,
+                                      parent.namespace)
+            if next_item.is_cloudify_types:
+                # Remove namespace data from import
+                next_item.namespace = None
+
+            ordered_imports[next_item.key] = next_item
+            to_visit.append(next_item)
+
+    return ordered_imports.values(), blueprint_imports, namespaces_mapping
 
 
 def _validate_version(dsl_version,
