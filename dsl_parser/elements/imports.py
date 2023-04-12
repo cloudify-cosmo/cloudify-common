@@ -271,28 +271,20 @@ def _extract_import_parts(import_url,
 
 
 def _insert_imported_list(blueprint_holder, blueprints_imported):
-    key_holder = Holder(constants.IMPORTED_BLUEPRINTS)
-    blueprint_holder.value[key_holder] = Holder([])
-    value_holder = blueprint_holder.value[key_holder]
-
-    for import_url in blueprints_imported:
-        value_holder.value.append(Holder(import_url))
-
-
-def _insert_namespaces_mapping(blueprint_holder, mapping):
-    key_holder = Holder(constants.NAMESPACES_MAPPING)
-    blueprint_holder.value[key_holder] = Holder({})
-    value_holder = blueprint_holder.value[key_holder]
-
-    for namespace, blueprint_id in mapping.items():
-        namespace_holder = Holder(namespace)
-        value_holder.value[namespace_holder] = Holder(blueprint_id)
+    blueprint_holder.set_item(
+        constants.IMPORTED_BLUEPRINTS,
+        list(blueprints_imported.values())
+    )
+    blueprint_holder.set_item(
+        constants.NAMESPACES_MAPPING,
+        blueprints_imported,
+    )
 
 
 def _combine_imports(parsed_dsl_holder, dsl_location,
                      resources_base_path, version, resolver,
                      validate_version):
-    ordered_imports, blueprint_imports, mapping = _build_ordered_imports(
+    ordered_imports, mapping = _build_ordered_imports(
         parsed_dsl_holder,
         dsl_location,
         resources_base_path,
@@ -301,8 +293,7 @@ def _combine_imports(parsed_dsl_holder, dsl_location,
     version_key_holder, version_value_holder = parsed_dsl_holder.get_item(
         _version.VERSION)
     holder_result.value = {}
-    _insert_imported_list(holder_result, blueprint_imports)
-    _insert_namespaces_mapping(holder_result, mapping)
+    _insert_imported_list(holder_result, mapping)
     for imported in ordered_imports:
         parsed_imported_dsl_holder = imported.parsed
         if validate_version:
@@ -447,7 +438,6 @@ def _build_ordered_imports(parsed_dsl_holder,
                            dsl_location,
                            resources_base_path,
                            resolver):
-    blueprint_imports = set()
     namespaces_mapping = {}
     root_dsl = _ImportedDSL(url=dsl_location, parsed=parsed_dsl_holder)
     ordered_imports = OrderedDict([
@@ -478,7 +468,6 @@ def _build_ordered_imports(parsed_dsl_holder,
             if utils.is_blueprint_import(import_url):
                 validate_blueprint_import_namespace(namespace, import_url)
                 blueprint_id = utils.remove_blueprint_import_prefix(import_url)
-                blueprint_imports.add(blueprint_id)
                 if namespaces_mapping.get(namespace):
                     raise exceptions.DSLParsingLogicException(
                         214,
@@ -533,7 +522,7 @@ def _build_ordered_imports(parsed_dsl_holder,
             ordered_imports[next_item.key] = next_item
             to_visit.append(next_item)
 
-    return ordered_imports.values(), blueprint_imports, namespaces_mapping
+    return ordered_imports.values(), namespaces_mapping
 
 
 def _validate_version(dsl_version,
