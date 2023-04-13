@@ -222,7 +222,8 @@ def _get_resource_location(resource_name,
         return 'file:{0}'.format(
             pathname2url(os.path.abspath(full_path)))
 
-    return None
+    for fn in _possible_resource_locations(resource_name, dsl_version):
+        yield f'resource:{fn}'
 
 
 def _possible_resource_locations(resource_name, dsl_version):

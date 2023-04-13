@@ -19,7 +19,7 @@ import time
 import requests
 
 from dsl_parser import exceptions
-
+from cloudify.manager import get_resource_from_manager
 
 DEFAULT_RETRY_DELAY = 1
 MAX_NUMBER_RETRIES = 5
@@ -61,6 +61,13 @@ def read_import(import_url):
             filename = import_url[len('file:'):]
             with open(filename) as f:
                 return f.read()
+        except Exception as ex:
+            raise exceptions.DSLParsingLogicException(
+                13, f"{error_str} {import_url}; {ex}")
+    elif import_url.startswith('resource:'):
+        try:
+            filename = import_url[len('resource:'):]
+            return get_resource_from_manager(filename)
         except Exception as ex:
             raise exceptions.DSLParsingLogicException(
                 13, f"{error_str} {import_url}; {ex}")
