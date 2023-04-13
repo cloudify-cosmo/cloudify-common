@@ -28,7 +28,7 @@ from dsl_parser import (exceptions,
                         utils)
 from dsl_parser.holder import Holder
 from dsl_parser.import_resolver.abstract_import_resolver import\
-    is_remote_resource
+    is_remote_resource, AbstractImportResolver
 from dsl_parser.framework.elements import (Dict,
                                            DictElement,
                                            Element,
@@ -231,38 +231,6 @@ def _possible_resource_locations(resource_name, dsl_version):
     return ['{0}_{1}{2}'.format(filename, dsl_version, ext), resource_name]
 
 
-def _extract_import_parts(import_url,
-                          resources_base_path,
-                          current_resource_context=None,
-                          dsl_version=None):
-    """
-    :param import_url: a string which is the import path
-    :param resources_base_path: In case of a relative file path, this
-                                is the base path.
-    :param current_resource_context: Current import statement,
-    :param dsl_version: DSL version used by the root blueprint.
-    :return: Will return a breakdown of the URL to
-            (namespace, import_url). If the import is not
-            namespaced, the returned namespace will be
-            None.
-    """
-    namespace, _, resolved_url = \
-        import_url.rpartition(constants.NAMESPACE_DELIMITER)
-
-    if namespace == '':
-        # The mark of no namespace is None, so we need to use that value.
-        namespace = None
-
-    resolved_url = _get_resource_location(
-        resolved_url,
-        resources_base_path,
-        current_resource_context,
-        dsl_version,
-    )
-
-    return namespace, resolved_url
-
-
 def _insert_imported_list(blueprint_holder, blueprints_imported):
     blueprint_holder.set_item(
         constants.IMPORTED_BLUEPRINTS,
@@ -427,6 +395,115 @@ class _ImportedDSL:
                 yield raw_import, None
 
 
+def _prefix_namespace(parent_namespace, namespace):
+    validate_namespace(namespace)
+    if parent_namespace and namespace:
+        return utils.generate_namespaced_value(parent_namespace, namespace)
+    else:
+        return parent_namespace or namespace
+
+
+def _split_import_namespace(import_url):
+    namespace, _, resolved_url = \
+        import_url.rpartition(constants.NAMESPACE_DELIMITER)
+    if namespace:
+        validate_namespace(namespace)
+    else:
+        namespace = None
+    return namespace, resolved_url
+
+
+def _fetch_import(
+    original_import_url: str,
+    resolver: AbstractImportResolver,
+    parent: _ImportedDSL,
+    resources_base_path: str,
+    properties: dict,
+    dsl_version: str,
+    namespaces_mapping: dict[str, _ImportedDSL],
+    already_imported: dict[str, _ImportedDSL],
+) -> dict | None:
+    namespace, resolved_url = \
+        _split_import_namespace(original_import_url)
+    namespace = _prefix_namespace(parent.namespace, namespace)
+    import_urls = _get_resource_location(
+        resolved_url,
+        resources_base_path,
+        parent.url,
+        dsl_version,
+    )
+
+    for import_url in import_urls:
+        next_item = _ImportedDSL(
+            url=import_url,
+            namespace=namespace,
+            properties=properties,
+        )
+        if next_item.key in already_imported:
+            validate_import_namespace(
+                namespace,
+                already_imported[next_item.key].is_cloudify_types,
+                parent.namespace,
+            )
+            return None
+
+        if utils.is_blueprint_import(import_url):
+            validate_blueprint_import_namespace(namespace, import_url)
+            blueprint_id = \
+                utils.remove_blueprint_import_prefix(import_url)
+            if namespaces_mapping.get(namespace):
+                raise exceptions.DSLParsingLogicException(
+                    214,
+                    f'Import failed {namespace}: can not use the same'
+                    'namespace for importing blueprints'
+                )
+            namespaces_mapping[namespace] = blueprint_id
+
+        try:
+            imported_dsl = resolver.fetch_import(
+                import_url,
+                dsl_version=dsl_version,
+            )
+        except Exception:
+            continue
+
+        if utils.is_blueprint_import(import_url):
+            namespaces_mapping[namespace] = blueprint_id
+
+        if not is_parsed_resource(imported_dsl):
+            imported_dsl = utils.load_yaml(
+                raw_yaml=imported_dsl,
+                error_message="Failed to parse import '{0}'"
+                              "(via '{1}')"
+                              .format(original_import_url, import_url),
+                filename=import_url)
+        try:
+            plugin = resolver.retrieve_plugin(
+                import_url,
+                dsl_version=dsl_version,
+            )
+        except InvalidBlueprintImport:
+            plugin = None
+        if plugin:
+            # If it is a plugin, then use labels and tags from the DB
+            _normalize_plugin_import(plugin, imported_dsl, namespace)
+
+        next_item.parsed = imported_dsl
+        validate_import_namespace(next_item.namespace,
+                                  next_item.is_cloudify_types,
+                                  parent.namespace)
+        if next_item.is_cloudify_types:
+            # Remove namespace data from import
+            next_item.namespace = None
+        return next_item
+
+    ex = exceptions.DSLParsingLogicException(
+        13, "Import failed: no suitable location found for "
+            "import '{0}'".format(original_import_url))
+    ex.failed_import = original_import_url
+    raise ex
+
+
 def _build_ordered_imports(parsed_dsl_holder,
                            dsl_location,
                            resources_base_path,
@@ -441,98 +518,20 @@ def _build_ordered_imports(parsed_dsl_holder,
         parent = to_visit.popleft()
 
         for original_import_url, properties in parent.get_imports():
-            namespace, import_urls = _extract_import_parts(
+            next_item = _fetch_import(
                 original_import_url,
+                resolver,
+                parent,
                 resources_base_path,
-                parent.url,
+                properties,
                 root_dsl.dsl_version,
+                namespaces_mapping,
+                ordered_imports,
             )
-            validate_namespace(namespace)
-            if parent.namespace:
-                if namespace:
-                    namespace = utils.generate_namespaced_value(
-                        parent.namespace,
-                        namespace)
-                else:
-                    # In case a namespace was added earlier in the import
-                    # chain.
-                    namespace = parent.namespace
-            found = False
-            for import_url in import_urls:
 
-                next_item = _ImportedDSL(
-                    url=import_url,
-                    namespace=namespace,
-                    properties=properties,
-                )
-                if next_item.key in ordered_imports:
-                    validate_import_namespace(
-                        namespace,
-                        ordered_imports[next_item.key].is_cloudify_types,
-                        parent.namespace,
-                    )
-                    found = True
-                    break
-
-                if utils.is_blueprint_import(import_url):
-                    validate_blueprint_import_namespace(namespace, import_url)
-                    blueprint_id = \
-                        utils.remove_blueprint_import_prefix(import_url)
-                    if namespaces_mapping.get(namespace):
-                        raise exceptions.DSLParsingLogicException(
-                            214,
-                            f'Import failed {namespace}: can not use the same'
-                            'namespace for importing blueprints'
-                        )
-                    namespaces_mapping[namespace] = blueprint_id
-
-                try:
-                    imported_dsl = resolver.fetch_import(
-                        import_url,
-                        dsl_version=root_dsl.dsl_version,
-                    )
-                except Exception:
-                    continue
-
-                if utils.is_blueprint_import(import_url):
-                    namespaces_mapping[namespace] = blueprint_id
-
-                if not is_parsed_resource(imported_dsl):
-                    imported_dsl = utils.load_yaml(
-                        raw_yaml=imported_dsl,
-                        error_message="Failed to parse import '{0}'"
-                                      "(via '{1}')"
-                                      .format(original_import_url, import_url),
-                        filename=import_url)
-                try:
-                    plugin = resolver.retrieve_plugin(
-                        import_url,
-                        dsl_version=root_dsl.dsl_version,
-                    )
-                except InvalidBlueprintImport:
-                    plugin = None
-                if plugin:
-                    # If it is a plugin, then use labels and tags from the DB
-                    _normalize_plugin_import(plugin, imported_dsl, namespace)
-
-                next_item.parsed = imported_dsl
-                validate_import_namespace(next_item.namespace,
-                                          next_item.is_cloudify_types,
-                                          parent.namespace)
-                if next_item.is_cloudify_types:
-                    # Remove namespace data from import
-                    next_item.namespace = None
-
+            if next_item:
                 ordered_imports[next_item.key] = next_item
                 to_visit.append(next_item)
-                found = True
-                break
-            if not found:
-                ex = exceptions.DSLParsingLogicException(
-                    13, "Import failed: no suitable location found for "
-                        "import '{0}'".format(original_import_url))
-                ex.failed_import = original_import_url
-                raise ex
 
     return ordered_imports.values(), namespaces_mapping
 
