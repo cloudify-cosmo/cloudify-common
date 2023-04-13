@@ -313,11 +313,11 @@ def load_yaml(raw_yaml, error_message, filename=None):
 
 
 def url_exists(url):
-    request = Request(url)
     try:
+        request = Request(url)
         with contextlib.closing(urlopen(request)):
             return True
-    except URLError:
+    except (ValueError, URLError):
         return False
 
 
