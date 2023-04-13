@@ -183,8 +183,8 @@ class ImportsLoader(Element):
 
 def _dsl_location_to_url(dsl_location, resources_base_path):
     if dsl_location is not None:
-        dsl_location = _get_resource_location(dsl_location,
-                                              resources_base_path)
+        dsl_location = next(
+            _get_resource_location(dsl_location, resources_base_path))
         if dsl_location is None:
             ex = exceptions.DSLParsingLogicException(
                 30, "Failed converting dsl "
@@ -202,25 +202,23 @@ def _get_resource_location(resource_name,
                            current_resource_context=None,
                            dsl_version=None):
     if is_remote_resource(resource_name):
-        return resource_name
+        yield resource_name
+        return
 
     for fn in _possible_resource_locations(resource_name, dsl_version):
         if os.path.exists(fn):
-            return 'file:{0}'.format(pathname2url(os.path.abspath(fn)))
+            yield f'file:{pathname2url(os.path.abspath(fn))}'
 
     if current_resource_context:
         candidate_url = current_resource_context[
             :current_resource_context.rfind('/') + 1] + resource_name
-        if utils.url_exists(candidate_url):
-            return candidate_url
+        yield candidate_url
 
     if resources_base_path:
         full_path = os.path.join(resources_base_path, resource_name)
         for fn in _possible_resource_locations(full_path, dsl_version):
             if os.path.exists(fn):
-                return 'file:{0}'.format(pathname2url(os.path.abspath(fn)))
-        return 'file:{0}'.format(
-            pathname2url(os.path.abspath(full_path)))
+                yield f'file:{pathname2url(os.path.abspath(fn))}'
 
     for fn in _possible_resource_locations(resource_name, dsl_version):
         yield f'resource:{fn}'
@@ -261,12 +259,6 @@ def _extract_import_parts(import_url,
         current_resource_context,
         dsl_version,
     )
-    if resolved_url is None:
-        ex = exceptions.DSLParsingLogicException(
-            13, "Import failed: no suitable location found for "
-                "import '{0}'".format(import_url))
-        ex.failed_import = import_url
-        raise ex
 
     return namespace, resolved_url
 
@@ -449,7 +441,7 @@ def _build_ordered_imports(parsed_dsl_holder,
         parent = to_visit.popleft()
 
         for original_import_url, properties in parent.get_imports():
-            namespace, import_url = _extract_import_parts(
+            namespace, import_urls = _extract_import_parts(
                 original_import_url,
                 resources_base_path,
                 parent.url,
@@ -465,63 +457,82 @@ def _build_ordered_imports(parsed_dsl_holder,
                     # In case a namespace was added earlier in the import
                     # chain.
                     namespace = parent.namespace
+            found = False
+            for import_url in import_urls:
 
-            if utils.is_blueprint_import(import_url):
-                validate_blueprint_import_namespace(namespace, import_url)
-                blueprint_id = utils.remove_blueprint_import_prefix(import_url)
-                if namespaces_mapping.get(namespace):
-                    raise exceptions.DSLParsingLogicException(
-                        214,
-                        f'Import failed {namespace}: can not use the same'
-                        'namespace for importing blueprints'
+                next_item = _ImportedDSL(
+                    url=import_url,
+                    namespace=namespace,
+                    properties=properties,
+                )
+                if next_item.key in ordered_imports:
+                    validate_import_namespace(
+                        namespace,
+                        ordered_imports[next_item.key].is_cloudify_types,
+                        parent.namespace,
                     )
-                namespaces_mapping[namespace] = blueprint_id
+                    found = True
+                    break
 
-            next_item = _ImportedDSL(
-                url=import_url,
-                namespace=namespace,
-                properties=properties,
-            )
-            if next_item.key in ordered_imports:
-                validate_import_namespace(
-                    namespace,
-                    ordered_imports[next_item.key].is_cloudify_types,
-                    parent.namespace,
-                )
-                continue
+                if utils.is_blueprint_import(import_url):
+                    validate_blueprint_import_namespace(namespace, import_url)
+                    blueprint_id = \
+                        utils.remove_blueprint_import_prefix(import_url)
+                    if namespaces_mapping.get(namespace):
+                        raise exceptions.DSLParsingLogicException(
+                            214,
+                            f'Import failed {namespace}: can not use the same'
+                            'namespace for importing blueprints'
+                        )
+                    namespaces_mapping[namespace] = blueprint_id
 
-            imported_dsl = resolver.fetch_import(
-                import_url,
-                dsl_version=root_dsl.dsl_version,
-            )
-            if not is_parsed_resource(imported_dsl):
-                imported_dsl = utils.load_yaml(
-                    raw_yaml=imported_dsl,
-                    error_message="Failed to parse import '{0}'"
-                                  "(via '{1}')"
-                                  .format(original_import_url, import_url),
-                    filename=import_url)
-            try:
-                plugin = resolver.retrieve_plugin(
-                    import_url,
-                    dsl_version=root_dsl.dsl_version,
-                )
-            except InvalidBlueprintImport:
-                plugin = None
-            if plugin:
-                # If it is a plugin, then use labels and tags from the DB
-                _normalize_plugin_import(plugin, imported_dsl, namespace)
+                try:
+                    imported_dsl = resolver.fetch_import(
+                        import_url,
+                        dsl_version=root_dsl.dsl_version,
+                    )
+                except Exception:
+                    continue
 
-            next_item.parsed = imported_dsl
-            validate_import_namespace(next_item.namespace,
-                                      next_item.is_cloudify_types,
-                                      parent.namespace)
-            if next_item.is_cloudify_types:
-                # Remove namespace data from import
-                next_item.namespace = None
+                if utils.is_blueprint_import(import_url):
+                    namespaces_mapping[namespace] = blueprint_id
 
-            ordered_imports[next_item.key] = next_item
-            to_visit.append(next_item)
+                if not is_parsed_resource(imported_dsl):
+                    imported_dsl = utils.load_yaml(
+                        raw_yaml=imported_dsl,
+                        error_message="Failed to parse import '{0}'"
+                                      "(via '{1}')"
+                                      .format(original_import_url, import_url),
+                        filename=import_url)
+                try:
+                    plugin = resolver.retrieve_plugin(
+                        import_url,
+                        dsl_version=root_dsl.dsl_version,
+                    )
+                except InvalidBlueprintImport:
+                    plugin = None
+                if plugin:
+                    # If it is a plugin, then use labels and tags from the DB
+                    _normalize_plugin_import(plugin, imported_dsl, namespace)
+
+                next_item.parsed = imported_dsl
+                validate_import_namespace(next_item.namespace,
+                                          next_item.is_cloudify_types,
+                                          parent.namespace)
+                if next_item.is_cloudify_types:
+                    # Remove namespace data from import
+                    next_item.namespace = None
+
+                ordered_imports[next_item.key] = next_item
+                to_visit.append(next_item)
+                found = True
+                break
+            if not found:
+                ex = exceptions.DSLParsingLogicException(
+                    13, "Import failed: no suitable location found for "
+                        "import '{0}'".format(original_import_url))
+                ex.failed_import = original_import_url
+                raise ex
 
     return ordered_imports.values(), namespaces_mapping
 
