@@ -454,6 +454,7 @@ def _fetch_import(
         dsl_version,
     )
 
+    fetch_error = None
     for import_url in import_urls:
         next_item = _ImportedDSL(
             url=import_url,
@@ -487,8 +488,10 @@ def _fetch_import(
                 import_url,
                 dsl_version=dsl_version,
             )
-        except Exception:
+        except Exception as exc:
+            fetch_error = exc
             continue
+
         if not is_parsed_resource(imported_dsl):
             imported_dsl = utils.load_yaml(
                 raw_yaml=imported_dsl,
@@ -521,6 +524,10 @@ def _fetch_import(
             next_item.namespace = None
         return next_item
 
+    if fetch_error:
+        # if we weren't able to fetch the imported dsl, and we did see an
+        # error in fetching, reraise that
+        raise fetch_error
     ex = exceptions.DSLParsingLogicException(
         13, "Import failed: no suitable location found for "
             "import '{0}'".format(original_import_url))
