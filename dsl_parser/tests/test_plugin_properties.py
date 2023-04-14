@@ -95,7 +95,7 @@ imports:
   - plugin:dummy
 """
         with patch('dsl_parser.elements.imports._build_ordered_imports',
-                   return_value=({}, set(), {})) as p:
+                   return_value=({}, {})) as p:
             self.parse_1_4(yaml)
         assert p.call_count == 1
 
@@ -107,7 +107,7 @@ imports:
       prop2: bar
 """
         with patch('dsl_parser.elements.imports._build_ordered_imports',
-                   return_value=({}, set(), {})) as p:
+                   return_value=({}, {})) as p:
             self.parse_1_5(yaml)
         assert p.call_count == 1
 
@@ -120,7 +120,7 @@ imports:
       aws_secret_access_key: {get_secret: my_secret}
 """
         with patch('dsl_parser.elements.imports._build_ordered_imports',
-                   return_value=({}, set(), {})) as p:
+                   return_value=({}, {})) as p:
             self.parse_1_5(yaml)
         assert p.call_count == 1
 
@@ -133,7 +133,7 @@ imports:
       aws_secret_access_key: {get_secret: my_secret}
 """
         with patch('dsl_parser.elements.imports._build_ordered_imports',
-                   return_value=({}, set(), {})):
+                   return_value=({}, {})):
             with pytest.raises(DSLParsingLogicException):
                 self.parse_1_4(yaml)
 
@@ -147,7 +147,7 @@ imports:
     plugin:foobar: {}
 """
         with patch('dsl_parser.elements.imports._build_ordered_imports',
-                   return_value=({}, set(), {})):
+                   return_value=({}, {})):
             with pytest.raises(DSLParsingFormatException,
                                match='single-entry dictionary'):
                 self.parse_1_5(yaml)
@@ -160,7 +160,7 @@ imports:
       - bar
 """
         with patch('dsl_parser.elements.imports._build_ordered_imports',
-                   return_value=({}, set(), {})):
+                   return_value=({}, {})):
             with pytest.raises(DSLParsingFormatException):
                 self.parse_1_5(yaml)
 
@@ -176,7 +176,7 @@ imports:
       fn_property: {get_secret: something}
 """
         with patch('dsl_parser.elements.imports._build_ordered_imports',
-                   return_value=({}, set(), {})):
+                   return_value=({}, {})):
             self.parse_1_5(yaml)
 
     def test_invalid_properties(self):
@@ -187,6 +187,6 @@ imports:
       property: { not_a_intrinsic_function: something }
 """
         with patch('dsl_parser.elements.imports._build_ordered_imports',
-                   return_value=({}, set(), {})):
+                   return_value=({}, {})):
             with pytest.raises(DSLParsingFormatException):
                 self.parse_1_5(yaml)
