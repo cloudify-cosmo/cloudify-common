@@ -15,8 +15,7 @@
 
 import os
 from collections import deque, OrderedDict
-from dataclasses import dataclass
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Optional
 
 from urllib.request import pathname2url
 
@@ -364,15 +363,26 @@ def _normalize_plugin_import(plugin, imported_dsl, namespace):
             namespace)
 
 
-@dataclass
 class _ImportedDSL:
     url: str
-    parsed: Holder | None = None
-    namespace: str | None = None
-    properties: dict | None = None
+    parsed: Optional[Holder]
+    namespace: Optional[str]
+    properties: Optional[dict]
+
+    def __init__(
+        self,
+        url,
+        parsed=None,
+        namespace=None,
+        properties=None,
+    ):
+        self.url = url
+        self.parsed = parsed
+        self.namespace = namespace
+        self.properties = properties
 
     @property
-    def key(self) -> Tuple[str, str | None]:
+    def key(self) -> Tuple[str, Optional[str]]:
         return (self.url, self.namespace)
 
     @property
@@ -383,7 +393,7 @@ class _ImportedDSL:
     def is_cloudify_types(self) -> bool:
         return is_cloudify_basic_types(self.parsed)
 
-    def get_imports(self) -> Iterable[Tuple[str, dict | None]]:
+    def get_imports(self) -> Iterable[Tuple[str, Optional[dict]]]:
         _, imports_value_holder = self.parsed.get_item(constants.IMPORTS)
         if not imports_value_holder:
             return
@@ -420,9 +430,9 @@ def _fetch_import(
     resources_base_path: str,
     properties: dict,
     dsl_version: str,
-    namespaces_mapping: dict[str, _ImportedDSL],
-    already_imported: dict[str, _ImportedDSL],
-) -> dict | None:
+    namespaces_mapping: dict,
+    already_imported: dict,
+) -> Optional[dict]:
     namespace, resolved_url = \
         _split_import_namespace(original_import_url)
     namespace = _prefix_namespace(parent.namespace, namespace)
