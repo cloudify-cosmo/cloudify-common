@@ -364,6 +364,11 @@ def _normalize_plugin_import(plugin, imported_dsl, namespace):
 
 
 class _ImportedDSL:
+    """Represents one imported DSL file.
+
+    This is only useful when fetching the imports, in order to keep track
+    of which ones were already downloaded, and to traverse the import tree.
+    """
     url: str
     parsed: Optional[Holder]
     namespace: Optional[str]
@@ -433,6 +438,12 @@ def _fetch_import(
     namespaces_mapping: dict,
     already_imported: dict,
 ) -> Optional[dict]:
+    """Fetch and parse a single import
+
+    Based on the import url, and all the additional required details,
+    return the parsed DSL (or None if this DSL was already imported before).
+    If the url cannot be resolved, an error is raised.
+    """
     namespace, resolved_url = \
         _split_import_namespace(original_import_url)
     namespace = _prefix_namespace(parent.namespace, namespace)
@@ -450,6 +461,7 @@ def _fetch_import(
             properties=properties,
         )
         if next_item.key in already_imported:
+            # this was already seen! let's just check the namespace
             validate_import_namespace(
                 namespace,
                 already_imported[next_item.key].is_cloudify_types,
@@ -469,6 +481,7 @@ def _fetch_import(
                 )
             namespaces_mapping[namespace] = blueprint_id
 
+        # here we actually fetch and parse the DSL
         try:
             imported_dsl = resolver.fetch_import(
                 import_url,
@@ -476,10 +489,6 @@ def _fetch_import(
             )
         except Exception:
             continue
-
-        if utils.is_blueprint_import(import_url):
-            namespaces_mapping[namespace] = blueprint_id
-
         if not is_parsed_resource(imported_dsl):
             imported_dsl = utils.load_yaml(
                 raw_yaml=imported_dsl,
@@ -487,6 +496,8 @@ def _fetch_import(
                               "(via '{1}')"
                               .format(original_import_url, import_url),
                 filename=import_url)
+
+        # if this was a plugin import, the DSL needs to be massaged a bit...
         try:
             plugin = resolver.retrieve_plugin(
                 import_url,
@@ -497,6 +508,9 @@ def _fetch_import(
         if plugin:
             # If it is a plugin, then use labels and tags from the DB
             _normalize_plugin_import(plugin, imported_dsl, namespace)
+
+        if utils.is_blueprint_import(import_url):
+            namespaces_mapping[namespace] = blueprint_id
 
         next_item.parsed = imported_dsl
         validate_import_namespace(next_item.namespace,
@@ -520,9 +534,15 @@ def _build_ordered_imports(parsed_dsl_holder,
                            resolver):
     namespaces_mapping = {}
     root_dsl = _ImportedDSL(url=dsl_location, parsed=parsed_dsl_holder)
+
+    # this is an OrderedDict and not just a list,
     ordered_imports = OrderedDict([
         (root_dsl.key, root_dsl),
     ])
+
+    # BFS over the imports. Necessarily, the traversal order will be such
+    # that parent imports come before child imports (i.e. if A import B,
+    # A comes before B)
     to_visit = deque([root_dsl])
     while to_visit:
         parent = to_visit.popleft()
