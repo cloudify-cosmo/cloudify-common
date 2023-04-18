@@ -152,6 +152,25 @@ class DeploymentWorkdirMixin:
             f'{constants.LOCAL_RESOURCES_ROOT_ENV_KEY} environment variable '
             'set?')
 
+    def upload_deployment_file(
+        self,
+        target_file_path,
+        src_file,
+        src_file_mtime=None,
+    ):
+        return self._endpoint.upload_deployment_file(
+            deployment_id=self.deployment.id,
+            target_file_path=target_file_path,
+            src_file=src_file,
+            src_file_mtime=src_file_mtime,
+        )
+
+    def delete_deployment_file(self, file_path):
+        return self._endpoint.delete_deployment_file(
+        deployment_id=self.deployment.id,
+        file_path=file_path,
+    )
+
 
 class CommonContext(DeploymentWorkdirMixin):
 
