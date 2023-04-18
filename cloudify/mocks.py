@@ -242,3 +242,14 @@ class MockCloudifyContext(CloudifyContext):
 
     def get_brokers(self, network=None):
         return [RabbitMQBrokerItem(b) for b in self._brokers]
+
+    def upload_deployment_file(
+        self,
+        target_file_path,
+        src_file,
+        src_file_mtime=None,
+    ):
+        pass
+
+    def delete_deployment_file(self, file_path):
+        pass
