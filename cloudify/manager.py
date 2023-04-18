@@ -317,17 +317,18 @@ def _resource_paths(blueprint_id, deployment_id, tenant_name, resource_path,
             resource_path
         ).replace('\\', '/')
 
-    client = get_rest_client()
-    blueprint = client.blueprints.get(blueprint_id)
-    if blueprint['visibility'] == VisibilityState.GLOBAL:
-        tenant_name = blueprint['tenant_name']
+    if blueprint_id:
+        client = get_rest_client()
+        blueprint = client.blueprints.get(blueprint_id)
+        if blueprint['visibility'] == VisibilityState.GLOBAL:
+            tenant_name = blueprint['tenant_name']
 
-    yield os.path.join(
-        constants.FILE_SERVER_BLUEPRINTS_FOLDER,
-        tenant_name,
-        blueprint_id,
-        resource_path
-    ).replace('\\', '/')
+        yield os.path.join(
+            constants.FILE_SERVER_BLUEPRINTS_FOLDER,
+            tenant_name,
+            blueprint_id,
+            resource_path
+        ).replace('\\', '/')
 
     if use_global:
         yield resource_path

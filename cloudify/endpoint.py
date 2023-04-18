@@ -176,6 +176,14 @@ class Endpoint(object):
     def sync_deployment_workdir(self, deployment_id, local_dir):
         raise NotImplementedError('Implemented by subclasses')
 
+    def upload_deployment_file(
+        self, target_file_path, src_file, src_file_mtime=None
+    ):
+        raise NotImplementedError('Implemented by subclasses')
+
+    def delete_deployment_file(self, file_path):
+        raise NotImplementedError('Implemented by subclasses')
+
 
 class ManagerEndpoint(Endpoint):
     def __init__(self, *args, **kwargs):
@@ -342,6 +350,22 @@ class ManagerEndpoint(Endpoint):
         return self.rest_client.resources.sync_deployment_workdir(
             deployment_id, local_dir)
 
+    def upload_deployment_file(
+        self, deployment_id, target_file_path, src_file, src_file_mtime=None,
+    ):
+        return self.rest_client.resources.upload_deployment_file(
+            deployment_id=deployment_id,
+            target_file_path=target_file_path,
+            src_file=src_file,
+            src_file_mtime=src_file_mtime,
+        )
+
+    def delete_deployment_file(self, deployment_id, file_path):
+        return self.rest_client.resources.delete_deployment_file(
+            deployment_id=deployment_id,
+            file_path=file_path,
+        )
+
 
 class LocalEndpoint(Endpoint):
 
@@ -472,3 +496,11 @@ class LocalEndpoint(Endpoint):
 
     def sync_deployment_workdir(self, deployment_id, local_dir):
         return utils.nullcontext()
+
+    def upload_deployment_file(
+        self, target_file_path, src_file, src_file_mtime=None
+    ):
+        pass
+
+    def delete_deployment_file(self, file_path):
+        pass
