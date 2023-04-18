@@ -167,9 +167,9 @@ class DeploymentWorkdirMixin:
 
     def delete_deployment_file(self, file_path):
         return self._endpoint.delete_deployment_file(
-        deployment_id=self.deployment.id,
-        file_path=file_path,
-    )
+            deployment_id=self.deployment.id,
+            file_path=file_path,
+        )
 
 
 class CommonContext(DeploymentWorkdirMixin):
