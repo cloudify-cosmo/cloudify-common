@@ -1,19 +1,6 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
 import warnings
 
+from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -321,3 +308,37 @@ class NodeInstancesClient(object):
             .format(self=self, instance_id=instance_id),
             expected_status_code=204,
         )
+
+    def dump(self, output_dir, deployment_ids=None, get_broker_conf=None,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        if not deployment_ids:
+            return []
+        for deployment_id in deployment_ids:
+            data = list(utils.get_all(
+                    self.api.get,
+                    f'/{self._uri_prefix}',
+                    params={'deployment_id': deployment_id},
+                    _include=['id', 'runtime_properties', 'state',
+                              'relationships', 'system_properties',
+                              'scaling_groups', 'host_id', 'index',
+                              'visibility', 'node_id', 'created_by',
+                              'has_configuration_drift', 'is_status_check_ok',
+                              'created_by'],
+            ))
+            if get_broker_conf:
+                # for "agent" node instances, store broker config in
+                # runtime-props as well, so that during agent upgrade, we
+                # can connect to the old rabbitmq. This is later analyzed by
+                # snapshot_restore, _inject_broker_config, and by several
+                # calls in cloudify-agent/operations.py (related to creating
+                # the AMQP client there)
+                for ni in data:
+                    runtime_properties = ni.get('runtime_properties') or {}
+                    if 'cloudify_agent' not in runtime_properties:
+                        continue
+                    broker_conf = get_broker_conf(ni)
+                    runtime_properties['cloudify_agent'].update(broker_conf)
+
+            return utils.dump_all('node_instances', data, entities_per_file,
+                                  output_dir,
+                                  file_name=f'{deployment_id}.json')

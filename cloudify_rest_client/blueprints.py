@@ -7,9 +7,7 @@ from urllib.parse import quote as urlquote, urlparse
 
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
-from cloudify_rest_client import utils
-from cloudify_rest_client import bytes_stream_utils
-from cloudify_rest_client.constants import VisibilityState
+from cloudify_rest_client import bytes_stream_utils, constants, utils
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
@@ -188,7 +186,7 @@ class BlueprintsClient(object):
         archive_location,
         blueprint_id,
         application_file_name=None,
-        visibility=VisibilityState.TENANT,
+        visibility=constants.VisibilityState.TENANT,
         progress_callback=None,
         async_upload=False,
         labels=None,
@@ -260,7 +258,7 @@ class BlueprintsClient(object):
                   archive_location,
                   blueprint_id,
                   application_file_name=None,
-                  visibility=VisibilityState.TENANT,
+                  visibility=constants.VisibilityState.TENANT,
                   progress_callback=None):
         return self._upload(archive_location, blueprint_id,
                             application_file_name=application_file_name,
@@ -348,7 +346,7 @@ class BlueprintsClient(object):
         archive_location,
         blueprint_id,
         blueprint_filename=None,
-        visibility=VisibilityState.TENANT,
+        visibility=constants.VisibilityState.TENANT,
         progress_callback=None,
         async_upload=False,
         labels=None,
@@ -408,7 +406,7 @@ class BlueprintsClient(object):
         self,
         path,
         entity_id,
-        visibility=VisibilityState.TENANT,
+        visibility=constants.VisibilityState.TENANT,
         progress_callback=None,
         skip_size_limit=True,
         async_upload=False,
@@ -472,7 +470,7 @@ class BlueprintsClient(object):
                  path,
                  entity_id,
                  blueprint_filename=None,
-                 visibility=VisibilityState.TENANT,
+                 visibility=constants.VisibilityState.TENANT,
                  progress_callback=None,
                  skip_size_limit=True):
         """
@@ -572,7 +570,7 @@ class BlueprintsClient(object):
         :param blueprint_id: Blueprint's id to update.
         :return: The blueprint.
         """
-        data = {'visibility': VisibilityState.GLOBAL}
+        data = {'visibility': constants.VisibilityState.GLOBAL}
         return self.api.patch(
             '/{self._uri_prefix}/{id}/set-visibility'.format(
                 self=self, id=blueprint_id),
@@ -660,3 +658,18 @@ class BlueprintsClient(object):
         self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
             self=self, id=blueprint_id),
         )
+
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = list(utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                params={'_get_data': True},
+                _include=['id', 'visibility', 'labels', 'created_at',
+                          'created_by', 'state', 'main_file_name', 'plan',
+                          'description', 'error', 'error_traceback',
+                          'is_hidden', 'requirements'],
+        ))
+        utils.dump_blobs('blueprints', data, output_dir / '..', self)
+        return utils.dump_all('blueprints', data, entities_per_file,
+                              output_dir)

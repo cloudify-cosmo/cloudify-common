@@ -1,5 +1,6 @@
 import warnings
 
+from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -191,6 +192,20 @@ class PluginsUpdateClient(object):
                                                             self=self)
         )
         return PluginsUpdate(response)
+
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                params={'_get_data': True},
+                _include=['id', 'state', 'forced', 'all_tenants',
+                          'blueprint_id', 'execution_id', 'created_by',
+                          'created_at', 'deployments_to_update',
+                          'deployments_per_tenant', 'temp_blueprint_id'],
+        )
+        return utils.dump_all('plugins_update', data, entities_per_file,
+                              output_dir)
 
 
 def _data_from_kwargs(**kwargs):
