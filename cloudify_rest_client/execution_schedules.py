@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -278,3 +279,16 @@ class ExecutionSchedulesClient(object):
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.get(uri, _include=_include, params=params)
         return ExecutionSchedule(response)
+
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                _include=['id', 'rule', 'deployment_id', 'workflow_id',
+                          'created_at', 'since', 'until', 'stop_on_fail',
+                          'parameters', 'execution_arguments', 'slip',
+                          'enabled', 'created_by'],
+        )
+        return utils.dump_all('execution_schedules', data, entities_per_file,
+                              output_dir)

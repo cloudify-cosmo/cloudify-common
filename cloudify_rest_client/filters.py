@@ -1,5 +1,5 @@
+from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
-from cloudify_rest_client.constants import VisibilityState
 
 
 class Filter(dict):
@@ -43,12 +43,13 @@ class Filter(dict):
 class FiltersClient(object):
     def __init__(self, api, filtered_resource):
         self.api = api
+        self._filtered_resource = filtered_resource
         self.uri = '/filters/' + filtered_resource
 
     def create(self,
                filter_id,
                filter_rules,
-               visibility=VisibilityState.TENANT,
+               visibility=constants.VisibilityState.TENANT,
                created_at=None,
                created_by=None):
         """Creates a new filter.
@@ -134,6 +135,21 @@ class FiltersClient(object):
         response = self.api.patch('{0}/{1}'.format(self.uri, filter_id),
                                   data=data)
         return Filter(response)
+
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = utils.get_all(
+                self.api.get,
+                self.uri,
+                _include=['created_at', 'id', 'visibility', 'value',
+                          'created_by', 'is_system_filter'],
+        )
+        data = [item for item in data if not item['is_system_filter']]
+        for item in data:
+            item.pop('is_system_filter')
+
+        return utils.dump_all(f'{self._filtered_resource}_filters',
+                              data, entities_per_file, output_dir)
 
 
 class BlueprintsFiltersClient(FiltersClient):

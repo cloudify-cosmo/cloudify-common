@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2016 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import os
 import json
 import shutil
@@ -22,7 +7,7 @@ from urllib.request import pathname2url
 
 from mimetypes import MimeTypes
 
-from cloudify_rest_client import utils
+from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -268,3 +253,22 @@ class DeploymentUpdatesClient(object):
         uri = '/deployment-updates/{0}/update/finalize'.format(update_id)
         response = self.api.post(uri)
         return DeploymentUpdate(response)
+
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = utils.get_all(
+                self.api.get,
+                '/deployment-updates',
+                params={'_get_data': True},
+                _include=['id', 'deployment_id', 'new_blueprint_id', 'state',
+                          'new_inputs', 'created_at', 'created_by',
+                          'execution_id', 'old_blueprint_id',
+                          'runtime_only_evaluation', 'deployment_plan',
+                          'deployment_update_node_instances',
+                          'visibility', 'steps',
+                          'central_plugins_to_uninstall',
+                          'central_plugins_to_install', 'old_inputs',
+                          'deployment_update_nodes', 'modified_entity_ids']
+        )
+        return utils.dump_all('deployment_updates', data, entities_per_file,
+                              output_dir)

@@ -1,8 +1,8 @@
 import warnings
 from copy import copy
 
+from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
-from cloudify_rest_client.constants import VisibilityState
 
 from .labels import Label
 
@@ -395,7 +395,7 @@ class DeploymentGroupsClient(object):
         response = self.api.get('/deployment-groups/{0}'.format(group_id))
         return DeploymentGroup(response)
 
-    def put(self, group_id, visibility=VisibilityState.TENANT,
+    def put(self, group_id, visibility=constants.VisibilityState.TENANT,
             description=None, blueprint_id=None, default_inputs=None,
             labels=None, filter_id=None, deployment_ids=None,
             new_deployments=None, deployments_from_group=None,
@@ -552,6 +552,20 @@ class DeploymentGroupsClient(object):
             },
             expected_status_code=204
         )
+
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = utils.get_all(
+                self.api.get,
+                '/deployment-groups',
+                params={'_get_data': True},
+                _include=['id', 'visibility', 'description', 'labels',
+                          'default_blueprint_id', 'default_inputs',
+                          'deployment_ids', 'created_by', 'created_at',
+                          'creation_counter'],
+        )
+        return utils.dump_all('deployment_groups', data, entities_per_file,
+                              output_dir)
 
 
 class DeploymentOutputsClient(object):
@@ -732,7 +746,7 @@ class DeploymentsClient(object):
                blueprint_id,
                deployment_id,
                inputs=None,
-               visibility=VisibilityState.TENANT,
+               visibility=constants.VisibilityState.TENANT,
                skip_plugins_validation=False,
                site_name=None,
                runtime_only_evaluation=False,
@@ -951,3 +965,23 @@ class DeploymentsClient(object):
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=kwargs)
         return Deployment(updated_dep)
+
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = list(utils.get_all(
+                self.api.get,
+                '/deployments',
+                params={'_get_data': True},
+                _include=['id', 'blueprint_id', 'inputs', 'visibility',
+                          'labels', 'display_name', 'runtime_only_evaluation',
+                          'created_by', 'created_at', 'workflows', 'groups',
+                          'policy_triggers', 'policy_types', 'outputs',
+                          'capabilities', 'description', 'scaling_groups',
+                          'resource_tags', 'deployment_status',
+                          'installation_status', 'sub_services_status',
+                          'sub_environments_status', 'sub_services_count',
+                          'sub_environments_count'],
+        ))
+        utils.dump_blobs('deployments', data, output_dir / '..', self)
+        return utils.dump_all('deployments', data, entities_per_file,
+                              output_dir)

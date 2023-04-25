@@ -1,5 +1,6 @@
 import warnings
 
+from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -308,6 +309,18 @@ class ExecutionGroupsClient(object):
         )
         return ExecutionGroup(response)
 
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = utils.get_all(
+                self.api.get,
+                '/execution-groups',
+                params={'_get_data': True},
+                _include=['id', 'created_at', 'workflow_id', 'execution_ids',
+                          'concurrency', 'deployment_group_id', 'created_by'],
+        )
+        return utils.dump_all('execution_groups', data, entities_per_file,
+                              output_dir)
+
 
 class ExecutionsClient(object):
 
@@ -526,3 +539,20 @@ class ExecutionsClient(object):
                                    params=kwargs,
                                    expected_status_code=200)
         return response['items'][0]['count']
+
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                _include=['deployment_id', 'workflow_id', 'parameters',
+                          'is_dry_run', 'allow_custom_parameters', 'status',
+                          'created_by', 'created_at', 'id', 'started_at',
+                          'ended_at', 'error'],
+                params={
+                    '_get_data': True,
+                    '_include_system_workflows': True,
+                },
+        )
+        return utils.dump_all('executions', data, entities_per_file,
+                              output_dir)
