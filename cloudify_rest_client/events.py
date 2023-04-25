@@ -1,6 +1,8 @@
+import os
 import warnings
 from datetime import datetime
 
+from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -146,3 +148,42 @@ class EventsClient(object):
             params['_sort'] = sort
 
         return params
+
+    def dump(self, output_dir, execution_ids=None, execution_group_ids=None,
+             include_logs=None,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        if execution_ids:
+            self._dump_events(output_dir / '..' / 'executions_events',
+                              include_logs, entities_per_file,
+                              'execution_id', execution_ids)
+        if execution_group_ids:
+            self._dump_events(output_dir / '..' / 'execution_groups_events',
+                              include_logs, entities_per_file,
+                              'execution_group_id', execution_group_ids)
+
+    def _dump_events(self, output_dir, include_logs, entities_per_file,
+                     event_source_id_prop, source_ids):
+        os.makedirs(output_dir, exist_ok=True)
+        params = {
+            '_get_data': True,
+            'type': ['cloudify_event'],
+        }
+        if include_logs:
+            params['type'].append('cloudify_log')
+        for source_id in source_ids:
+            params[event_source_id_prop] = source_id
+            data = utils.get_all(
+                    self.api.get,
+                    '/events',
+                    params=params,
+                    _include=['timestamp', 'reported_timestamp',
+                              'blueprint_id', 'deployment_id',
+                              'deployment_display_name', 'workflow_id',
+                              'message', 'error_causes', 'event_type',
+                              'operation', 'source_id', 'target_id',
+                              'node_instance_id', 'type', 'logger', 'level',
+                              'manager_name', 'agent_name'],
+            )
+            utils.dump_all('events', data, entities_per_file,
+                           output_dir, file_name=f'{source_id}.json')
+        return []

@@ -4,7 +4,7 @@ import re
 import tempfile
 from urllib.parse import urlparse
 
-from cloudify_rest_client import bytes_stream_utils
+from cloudify_rest_client import bytes_stream_utils, constants, utils
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -478,3 +478,15 @@ class PluginsClient(object):
         response = self.api.patch('/plugins/{0}'.format(plugin_id),
                                   data=kwargs)
         return Plugin(response)
+
+    def dump(self, output_dir,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        data = list(utils.get_all(
+                self.api.get,
+                '/plugins',
+                params={'_get_data': True},
+                _include=['id', 'title', 'visibility', 'uploaded_at',
+                          'created_by']
+        ))
+        utils.dump_blobs('plugins', data, output_dir / '..', self)
+        return utils.dump_all('plugins', data, entities_per_file, output_dir)

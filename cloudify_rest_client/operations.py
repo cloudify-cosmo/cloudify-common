@@ -1,3 +1,4 @@
+from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -156,6 +157,25 @@ class OperationsClient(object):
     def delete(self, operation_id):
         uri = '/operations/{0}'.format(operation_id)
         self.api.delete(uri)
+
+    def dump(self, output_dir, execution_ids=None,
+             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        if not execution_ids:
+            return []
+        params = {}
+        for execution_id in execution_ids:
+            params['execution_id'] = execution_id
+            data = utils.get_all(
+                    self.api.get,
+                    f'/{self._uri_prefix}',
+                    params=params,
+                    _include=['agent_name', 'created_at', 'dependencies', 'id',
+                              'manager_name', 'name', 'parameters', 'state',
+                              'type', 'tasks_graph_id'],
+            )
+            utils.dump_all('tasks_graphs', data, entities_per_file,
+                           output_dir, file_name=f'{execution_id}.json')
+        return []
 
 
 class TasksGraph(dict):
