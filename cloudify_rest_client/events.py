@@ -1,4 +1,3 @@
-import os
 import warnings
 from datetime import datetime
 
@@ -163,7 +162,6 @@ class EventsClient(object):
 
     def _dump_events(self, output_dir, include_logs, entities_per_file,
                      event_source_id_prop, source_ids):
-        os.makedirs(output_dir, exist_ok=True)
         params = {
             '_get_data': True,
             'type': ['cloudify_event'],
