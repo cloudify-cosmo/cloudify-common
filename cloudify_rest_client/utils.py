@@ -132,9 +132,11 @@ def dump_all(dump_type, data, entities_per_file, output_dir, file_name=None):
     while True:
         data_batch = []
         for entity in data:
-            data_batch.append(entity)
-            if 'id' in entity:
+            if dump_type == 'events':
+                ids_added.append(entity.pop('_storage_id'))
+            elif 'id' in entity:
                 ids_added.append(entity['id'])
+            data_batch.append(entity)
             if not file_name and len(data_batch) == entities_per_file:
                 break
         if file_name:
