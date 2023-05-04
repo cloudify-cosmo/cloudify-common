@@ -1650,15 +1650,18 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         return self.rest_client.executions.get(execution_id)
 
     def get_nodes(self):
-        if self.workflow_ctx.workflow_id in ('create_deployment_environment',
-                                             'delete_deployment_environment'):
+        dep = self.workflow_ctx.deployment
+        if not dep.id or self.workflow_ctx.workflow_id in (
+            'upload_blueprint',
+            'create_deployment_environment',
+            'delete_deployment_environment',
+        ):
             # If creating a deployment environment, there are clearly
             # no nodes/instances yet.
             # If deleting it we don't care about the nodes/instances,
             # and trying to retrieve them might cause problems if
             # deployment environment creation had a really bad time.
             return []
-        dep = self.workflow_ctx.deployment
         return self.rest_client.nodes.list(
             deployment_id=dep.id,
             _get_all_results=True,
@@ -1666,11 +1669,13 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         )
 
     def get_node_instances(self):
-        if self.workflow_ctx.workflow_id in ('upload_blueprint',
-                                             'create_deployment_environment',
-                                             'delete_deployment_environment'):
-            return []
         dep = self.workflow_ctx.deployment
+        if not dep.id or self.workflow_ctx.workflow_id in (
+            'upload_blueprint',
+            'create_deployment_environment',
+            'delete_deployment_environment',
+        ):
+            return []
         return self.rest_client.node_instances.list(
             deployment_id=dep.id,
             _get_all_results=True,
