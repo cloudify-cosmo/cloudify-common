@@ -148,17 +148,27 @@ class EventsClient(object):
 
         return params
 
-    def dump(self, output_dir, execution_ids=None, execution_group_ids=None,
+    def dump(self, parent_dir, execution_ids=None, execution_group_ids=None,
              include_logs=None,
              entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+        dumped_ids = []
         if execution_ids:
-            self._dump_events(output_dir / '..' / 'executions_events',
-                              include_logs, entities_per_file,
-                              'execution_id', execution_ids)
+            dumped_ids.extend(self._dump_events(
+                    parent_dir / 'executions_events',
+                    include_logs,
+                    entities_per_file,
+                    'execution_id',
+                    execution_ids
+            ))
         if execution_group_ids:
-            self._dump_events(output_dir / '..' / 'execution_groups_events',
-                              include_logs, entities_per_file,
-                              'execution_group_id', execution_group_ids)
+            dumped_ids.extend(self._dump_events(
+                    parent_dir / 'execution_groups_events',
+                    include_logs,
+                    entities_per_file,
+                    'execution_group_id',
+                    execution_group_ids
+            ))
+        return dumped_ids
 
     def _dump_events(self, output_dir, include_logs, entities_per_file,
                      event_source_id_prop, source_ids):
@@ -168,20 +178,22 @@ class EventsClient(object):
         }
         if include_logs:
             params['type'].append('cloudify_log')
+        dumped_ids = []
         for source_id in source_ids:
             params[event_source_id_prop] = source_id
             data = utils.get_all(
                     self.api.get,
                     '/events',
                     params=params,
-                    _include=['timestamp', 'reported_timestamp',
-                              'blueprint_id', 'deployment_id',
-                              'deployment_display_name', 'workflow_id',
+                    _include=['_storage_id', 'timestamp', 'reported_timestamp',
+                              'workflow_id', 'blueprint_id', 'deployment_id',
+                              'deployment_display_name',
                               'message', 'error_causes', 'event_type',
                               'operation', 'source_id', 'target_id',
                               'node_instance_id', 'type', 'logger', 'level',
                               'manager_name', 'agent_name'],
             )
-            utils.dump_all('events', data, entities_per_file,
-                           output_dir, file_name=f'{source_id}.json')
-        return []
+            dumped_ids.extend(utils.dump_all(
+                    'events', data, entities_per_file, output_dir,
+                    file_name=f'{source_id}.json'))
+        return dumped_ids
