@@ -1,5 +1,5 @@
 from cloudify.models_states import AgentState
-from cloudify_rest_client import constants, utils
+from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.utils import get_file_content
 
@@ -226,12 +226,11 @@ class AgentsClient(object):
 
         return response
 
-    def dump(self, output_dir, deployment_ids=None,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
+    def dump(self, deployment_ids=None):
         if not deployment_ids:
             return []
         for deployment_id in deployment_ids:
-            data = utils.get_all(
+            for entity in utils.get_all(
                     self.api.get,
                     f'/{self._uri_prefix}',
                     params={'_get_data': True,
@@ -241,7 +240,5 @@ class AgentsClient(object):
                               'rabbitmq_username', 'rabbitmq_exchange',
                               'version', 'system', 'install_method', 'ip',
                               'visibility'],
-            )
-            return utils.dump_all('agents', data, entities_per_file,
-                                  output_dir,
-                                  file_name=f'{deployment_id}.json')
+            ):
+                yield {'__entity': entity, '__source_id': deployment_id}

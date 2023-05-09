@@ -1,4 +1,4 @@
-from cloudify_rest_client import constants, utils
+from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 
 DEFAULT_TENANT_ROLE = 'user'
@@ -199,11 +199,9 @@ class TenantsClient(object):
     def delete(self, tenant_name):
         self.api.delete('/tenants/{0}'.format(tenant_name))
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = utils.get_all(
+    def dump(self):
+        return utils.get_all(
                 self.api.get,
                 '/tenants',
                 _include=['name', 'rabbitmq_password'],
         )
-        return utils.dump_all('tenants', data, entities_per_file, output_dir)

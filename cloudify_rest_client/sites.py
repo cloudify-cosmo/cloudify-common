@@ -1,4 +1,4 @@
-from cloudify_rest_client import constants, utils
+from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -142,13 +142,11 @@ class SitesClient(object):
             '/{self._uri_prefix}/{name}'.format(self=self, name=name)
         )
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = utils.get_all(
+    def dump(self):
+        return utils.get_all(
                 self.api.get,
                 f'/{self._uri_prefix}',
                 params={'_get_data': True},
                 _include=['name', 'location', 'visibility', 'created_by',
                           'created_at']
         )
-        return utils.dump_all('sites', data, entities_per_file, output_dir)

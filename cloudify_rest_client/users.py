@@ -1,4 +1,4 @@
-from cloudify_rest_client import constants, utils
+from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -184,13 +184,11 @@ class UsersClient(object):
         )
         return User(response)
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = utils.get_all(
+    def dump(self):
+        return utils.get_all(
                 self.api.get,
                 '/users',
                 params={'_get_data': True, '_include_hash': True},
                 _include=['username', 'role', 'tenant_roles',
                           'first_login_at', 'last_login_at', 'created_at'],
         )
-        return utils.dump_all('users', data, entities_per_file, output_dir)

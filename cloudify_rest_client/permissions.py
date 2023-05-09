@@ -1,4 +1,4 @@
-from cloudify_rest_client import constants, utils
+from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -46,11 +46,8 @@ class PermissionsClient(object):
         self.api.delete(
             '{0}/{1}/{2}'.format(self._uri_prefix, role, permission))
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = utils.get_all(
+    def dump(self):
+        return utils.get_all(
             self.api.get,
             self._uri_prefix,
         )
-        return utils.dump_all('permissions', data, entities_per_file,
-                              output_dir)

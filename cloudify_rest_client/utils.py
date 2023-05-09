@@ -1,4 +1,3 @@
-import json
 import os
 import sys
 import stat
@@ -6,7 +5,6 @@ import tarfile
 from os.path import expanduser
 
 SUPPORTED_ARCHIVE_TYPES = ['zip', 'tar', 'tar.gz', 'tar.bz2']
-EMPTY_B64_ZIP = 'UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA=='
 
 
 def tar_blueprint(blueprint_path, dest_dir):
@@ -123,58 +121,6 @@ def get_all(method, *args, **kwargs):
             entities_yielded += 1
         more_data = \
             (entities_yielded < result['metadata']['pagination']['total'])
-
-
-def dump_all(dump_type, data, entities_per_file, output_dir, file_name=None):
-    """Dumps all data of dump_type into JSON files inside output_dir."""
-    file_number = 0
-    ids_added = []
-    while True:
-        data_batch = []
-        for entity in data:
-            if dump_type == 'events':
-                ids_added.append(entity.pop('_storage_id'))
-            elif 'id' in entity:
-                ids_added.append(entity['id'])
-            data_batch.append(entity)
-            if not file_name and len(data_batch) == entities_per_file:
-                break
-        if file_name:
-            with open(output_dir / file_name, 'w') as handle:
-                json.dump({'type': dump_type, 'items': data_batch}, handle)
-            break
-        with open(output_dir / f'{file_number}.json', 'w') as handle:
-            json.dump({'type': dump_type, 'items': data_batch}, handle)
-        file_number += 1
-        if len(data_batch) < entities_per_file:
-            break
-    return ids_added
-
-
-def dump_blobs(dump_type, data, output_dir, client):
-    dest_dir = output_dir / f'{dump_type}_archives'
-    os.makedirs(dest_dir, exist_ok=True)
-    suffix = {
-        'plugins': '.zip',
-        'blueprints': '.tar.gz',
-        'deployments': '.b64zip',
-    }[dump_type]
-    for entity in data:
-        entity_id = entity['id']
-        entity_dest = dest_dir / f'{entity_id}{suffix}'
-        if dump_type == 'deployments':
-            data = client.get(
-               deployment_id=entity_id, _include=['workdir_zip'],
-               include_workdir=True)
-            b64_zip = data['workdir_zip']
-            if b64_zip == EMPTY_B64_ZIP:
-                continue
-            with open(entity_dest, 'w') as dump_handle:
-                dump_handle.write(b64_zip)
-        elif dump_type == 'plugins':
-            client.download(entity_id, entity_dest, full_archive=True)
-        else:
-            client.download(entity_id, entity_dest)
 
 
 class StreamedResponse(object):
