@@ -543,14 +543,14 @@ class DeploymentGroupsClient(object):
         :param force: same meaning as in deployments.delete
         :param with_logs: same meaning as in deployments.delete
         """
-        self.api.delete(
+        return self.api.delete(
             '/deployment-groups/{0}'.format(group_id),
             params={
                 'delete_deployments': delete_deployments,
                 'force': force,
                 'delete_logs': with_logs,
             },
-            expected_status_code=204
+            expected_status_code=(200, 204),
         )
 
     def dump(self):
