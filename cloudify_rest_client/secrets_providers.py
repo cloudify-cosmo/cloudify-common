@@ -1,4 +1,4 @@
-from cloudify_rest_client import constants, utils
+from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -222,13 +222,10 @@ class SecretsProvidersClient(object):
 
         return response
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = utils.get_all(
+    def dump(self):
+        return utils.get_all(
                 self.api.get,
                 '/secrets-providers',
                 _include=['created_at', 'name', 'visibility', 'type',
                           'connection_parameters', 'created_by', 'created_at'],
         )
-        return utils.dump_all('secrets_providers', data, entities_per_file,
-                              output_dir)

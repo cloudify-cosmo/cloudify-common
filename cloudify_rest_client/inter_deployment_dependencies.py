@@ -1,7 +1,7 @@
 from cloudify.deployment_dependencies import (build_deployment_dependency,
                                               DEPENDENCY_CREATOR)
 
-from cloudify_rest_client import constants, utils
+from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -204,9 +204,8 @@ class InterDeploymentDependencyClient(object):
         self.api.post('/{self._uri_prefix}/restore'.format(self=self),
                       data=data)
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = utils.get_all(
+    def dump(self):
+        return utils.get_all(
                 self.api.get,
                 f'/{self._uri_prefix}',
                 _include=['id', 'visibility', 'created_at', 'created_by',
@@ -214,5 +213,3 @@ class InterDeploymentDependencyClient(object):
                           'source_deployment_id', 'target_deployment_id',
                           'external_source', 'external_target'],
         )
-        return utils.dump_all('inter_deployment_dependencies', data,
-                              entities_per_file, output_dir)

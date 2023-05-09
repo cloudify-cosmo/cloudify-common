@@ -1,4 +1,4 @@
-from cloudify_rest_client import constants, utils
+from cloudify_rest_client import utils
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -106,13 +106,10 @@ class UserGroupsClient(object):
         data = {'username': username, 'group_name': group_name}
         self.api.delete('/user-groups/users', data=data)
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = utils.get_all(
+    def dump(self):
+        return utils.get_all(
                 self.api.get,
                 '/user-groups',
                 params={'_get_data': True},
                 _include=['name', 'ldap_dn', 'tenants', 'role']
         )
-        return utils.dump_all('user_groups', data, entities_per_file,
-                              output_dir)

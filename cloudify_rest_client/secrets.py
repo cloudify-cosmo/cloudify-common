@@ -1,4 +1,3 @@
-from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -275,11 +274,9 @@ class SecretsClient(object):
             data=data
         )
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = self.export(
+    def dump(self):
+        return self.export(
                 _include=['key', 'value', 'visibility', 'is_hidden_value',
                           'encrypted', 'tenant_name', 'creator', 'created_at'],
                 _include_metadata=True,
         )
-        return utils.dump_all('secrets', data, entities_per_file, output_dir)
