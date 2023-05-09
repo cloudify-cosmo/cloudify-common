@@ -659,9 +659,8 @@ class BlueprintsClient(object):
             self=self, id=blueprint_id),
         )
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = list(utils.get_all(
+    def dump(self):
+        return utils.get_all(
                 self.api.get,
                 f'/{self._uri_prefix}',
                 params={'_get_data': True},
@@ -669,7 +668,4 @@ class BlueprintsClient(object):
                           'created_by', 'state', 'main_file_name', 'plan',
                           'description', 'error', 'error_traceback',
                           'is_hidden', 'requirements'],
-        ))
-        utils.dump_blobs('blueprints', data, output_dir / '..', self)
-        return utils.dump_all('blueprints', data, entities_per_file,
-                              output_dir)
+        )

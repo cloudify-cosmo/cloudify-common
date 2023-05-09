@@ -136,20 +136,16 @@ class FiltersClient(object):
                                   data=data)
         return Filter(response)
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = utils.get_all(
+    def dump(self):
+        for entity in utils.get_all(
                 self.api.get,
                 self.uri,
                 _include=['created_at', 'id', 'visibility', 'value',
                           'created_by', 'is_system_filter'],
-        )
-        data = [item for item in data if not item['is_system_filter']]
-        for item in data:
-            item.pop('is_system_filter')
-
-        return utils.dump_all(f'{self._filtered_resource}_filters',
-                              data, entities_per_file, output_dir)
+        ):
+            if entity.pop('is_system_filter'):
+                continue
+            yield entity
 
 
 class BlueprintsFiltersClient(FiltersClient):

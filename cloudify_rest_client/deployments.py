@@ -553,9 +553,8 @@ class DeploymentGroupsClient(object):
             expected_status_code=204
         )
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = utils.get_all(
+    def dump(self):
+        return utils.get_all(
                 self.api.get,
                 '/deployment-groups',
                 params={'_get_data': True},
@@ -564,8 +563,6 @@ class DeploymentGroupsClient(object):
                           'deployment_ids', 'created_by', 'created_at',
                           'creation_counter'],
         )
-        return utils.dump_all('deployment_groups', data, entities_per_file,
-                              output_dir)
 
 
 class DeploymentOutputsClient(object):
@@ -966,9 +963,8 @@ class DeploymentsClient(object):
             '/deployments/{0}'.format(deployment_id), data=kwargs)
         return Deployment(updated_dep)
 
-    def dump(self, output_dir,
-             entities_per_file=constants.DUMP_ENTITIES_PER_FILE):
-        data = list(utils.get_all(
+    def dump(self):
+        return utils.get_all(
                 self.api.get,
                 '/deployments',
                 params={'_get_data': True},
@@ -981,7 +977,4 @@ class DeploymentsClient(object):
                           'installation_status', 'sub_services_status',
                           'sub_environments_status', 'sub_services_count',
                           'sub_environments_count'],
-        ))
-        utils.dump_blobs('deployments', data, output_dir / '..', self)
-        return utils.dump_all('deployments', data, entities_per_file,
-                              output_dir)
+        )
