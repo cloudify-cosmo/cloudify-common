@@ -534,7 +534,7 @@ class DeploymentGroupsClient(object):
         return DeploymentGroup(response)
 
     def delete(self, group_id, delete_deployments=False,
-               force=False, with_logs=False):
+               force=False, with_logs=False, recursive=False):
         """Delete a deployment group. By default, keep the deployments.
 
         :param group_id: the group to remove
@@ -542,6 +542,7 @@ class DeploymentGroupsClient(object):
             to this group
         :param force: same meaning as in deployments.delete
         :param with_logs: same meaning as in deployments.delete
+        :param recursive: same meaning as in deployments.delete
         """
         return self.api.delete(
             '/deployment-groups/{0}'.format(group_id),
@@ -549,6 +550,7 @@ class DeploymentGroupsClient(object):
                 'delete_deployments': delete_deployments,
                 'force': force,
                 'delete_logs': with_logs,
+                'recursive': recursive,
             },
             expected_status_code=(200, 204),
         )
@@ -873,10 +875,14 @@ class DeploymentsClient(object):
             uri, data, params=params, expected_status_code=201)
         return Deployment(response)
 
-    def delete(self, deployment_id,
-               force=False,
-               delete_db_mode=False,
-               with_logs=False):
+    def delete(
+        self,
+        deployment_id,
+        force=False,
+        delete_db_mode=False,
+        with_logs=False,
+        recursive=False,
+    ):
         """
         Deletes the deployment whose id matches the provided deployment id.
         By default, deletion of a deployment with live nodes or installations
@@ -889,10 +895,16 @@ class DeploymentsClient(object):
         :param delete_db_mode: deprecated and does nothing
         :param with_logs: when set to true, the management workers' logs for
                the deployment are deleted as well.
+        :param recursive: also delete all service deployments contained in
+               this delployment.
         :return: The deleted deployment.
         """
         assert deployment_id
-        params = {'force': force, 'delete_logs': with_logs}
+        params = {
+            'force': force,
+            'delete_logs': with_logs,
+            'recursive': recursive,
+        }
         if delete_db_mode:
             warnings.warn('delete_db_mode is deprecated and does nothing',
                           DeprecationWarning)
