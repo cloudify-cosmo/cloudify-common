@@ -321,8 +321,7 @@ class NodeInstancesClient(object):
                               'relationships', 'system_properties',
                               'scaling_groups', 'host_id', 'index',
                               'visibility', 'node_id', 'created_by',
-                              'has_configuration_drift', 'is_status_check_ok',
-                              'created_by'],
+                              'has_configuration_drift', 'is_status_check_ok'],
             ):
                 if get_broker_conf:
                     # for "agent" node instances, store broker config in
