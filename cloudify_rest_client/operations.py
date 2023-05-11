@@ -227,3 +227,27 @@ class TasksGraphClient(object):
         uri = '/tasks_graphs/{0}'.format(tasks_graph_id)
         response = self.api.patch(uri, data={'state': state})
         return TasksGraph(response)
+
+    def dump(self, execution_ids=None, operations=None):
+        if not execution_ids:
+            return []
+        params = {}
+        for execution_id in execution_ids:
+            params['execution_id'] = execution_id
+            ops = operations.get(execution_id)
+            for entity in utils.get_all(
+                    self.api.get,
+                    f'/{self._uri_prefix}',
+                    params=params,
+                    _include=['created_at', 'execution_id', 'name', 'id'],
+            ):
+                graph_ops = [op for op in ops
+                             if op['tasks_graph_id'] == entity['id']]
+                ops = [op for op in ops
+                       if op['tasks_graph_id'] != entity['id']]
+                for op in graph_ops:
+                    op.pop('tasks_graph_id')
+                if graph_ops:
+                    entity['operations'] = graph_ops
+
+                yield {'__entity': entity, '__source_id': execution_id}
