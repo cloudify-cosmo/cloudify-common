@@ -15,11 +15,14 @@
 
 import numbers
 import threading
+import time
 from itertools import chain
 from datetime import datetime
 
 from cloudify import constants, utils
 from cloudify.decorators import workflow
+from cloudify.manager import get_rest_client
+from cloudify.models_states import ExecutionState
 from cloudify.plugins import lifecycle
 from cloudify.workflows.tasks_graph import make_or_get_graph
 from cloudify.workflows.tasks import HandlerResult, TASK_SUCCEEDED
@@ -42,10 +45,98 @@ def install(ctx, node_ids=None, node_instance_ids=None, type_names=None,
     )
 
 
+def _uninstall_contained_services(
+    ctx,
+    ignore_failure=False,
+    node_ids=None,
+    node_instance_ids=None,
+    type_names=None,
+    **kwargs,
+):
+    """Uninstall service deployments recursively
+
+    Service deployments are deployments that are using the current
+    deployment as an environment.
+    """
+    # this uses the rest-client directly, which is a bit ugly, and not
+    # going to be supported on cfy local (which environments aren't supported
+    # on either)
+    ctx.logger.info('Uninstalling service deployments recursively')
+    client = get_rest_client(tenant=ctx.tenant_name)
+
+    # create a deployment group containing the service deployments
+    # to be uninstalled
+    group_id = f'{ctx.deployment.id}_services_uninstall'
+    client.deployment_groups.put(group_id)
+    client.deployment_groups.add_deployments(
+        group_id,
+        filter_rules=[{
+            'key': 'csys-obj-parent',
+            'values': [ctx.deployment.id],
+            'operator': 'any_of',
+            'type': 'label',
+        }]
+    )
+
+    # uninstall all the service deployments, with the same arguments that
+    # we're using
+    uninstall_parameters = {
+        'ignore_failure': ignore_failure,
+        'node_ids': node_ids,
+        'node_instance_ids': node_instance_ids,
+        'type_names': type_names,
+        'recursive': True,
+    }
+    uninstall_parameters.update(kwargs)
+    exc_group = client.execution_groups.start(
+        group_id,
+        ctx.workflow_id,
+        default_parameters=uninstall_parameters,
+    )
+
+    last_log = time.time()
+    while True:
+        # wait for the execution group to finish.
+        # I wish I was able to just poll excgroup.status, but that doesn't
+        # seem to work - to be fixed in RND-652.
+        # Instead, list the in-flight executions, and wait until there's
+        # none of them.
+        still_waiting = client.executions.list(
+            execution_group_id=exc_group.id,
+            status=(
+                ExecutionState.WAITING_STATES
+                + ExecutionState.IN_PROGRESS_STATES
+            ),
+        )
+        if len(still_waiting) == 0:
+            break
+        if time.time() - last_log > 600:
+            ctx.logger.info(
+                'Still waiting for %d service deployments to be uninstalled',
+                len(still_waiting),
+            )
+            last_log = time.time()
+
+        time.sleep(1)
+
+    client.deployment_groups.delete(group_id)
+    ctx.logger.info('Service deployments uninstalled')
+
+
 @workflow(resumable=True)
 def uninstall(ctx, ignore_failure=False, node_ids=None, node_instance_ids=None,
-              type_names=None, **kwargs):
+              type_names=None, recursive=False, **kwargs):
     """Default uninstall workflow"""
+    if recursive:
+        _uninstall_contained_services(
+            ctx,
+            ignore_failure=ignore_failure,
+            node_ids=node_ids,
+            node_instance_ids=node_instance_ids,
+            type_names=type_names,
+            **kwargs,
+        )
+
     filtered_node_instances = set(_filter_node_instances(
         ctx=ctx,
         node_ids=node_ids,
