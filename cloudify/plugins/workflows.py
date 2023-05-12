@@ -24,6 +24,7 @@ from cloudify.decorators import workflow
 from cloudify.manager import get_rest_client
 from cloudify.models_states import ExecutionState
 from cloudify.plugins import lifecycle
+from cloudify.workflows import api
 from cloudify.workflows.tasks_graph import make_or_get_graph
 from cloudify.workflows.tasks import HandlerResult, TASK_SUCCEEDED
 
@@ -95,7 +96,7 @@ def _uninstall_contained_services(
     )
 
     last_log = time.time()
-    while True:
+    while not api.has_cancel_request():
         # wait for the execution group to finish.
         # I wish I was able to just poll excgroup.status, but that doesn't
         # seem to work - to be fixed in RND-652.
