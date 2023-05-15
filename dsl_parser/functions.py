@@ -463,7 +463,12 @@ class GetAttribute(Function):
                                        self.path, self.name, self.scope, plan)
 
     def evaluate(self, handler):
-        if self.node_name in [SELF, SOURCE, TARGET]:
+        if 'instance_id_hint' in self.context:
+            # we're evaluating a node in the context of a specific instance,
+            # and we were told exactly which instance is it
+            node_instance = handler.get_node_instance(
+                self.context['instance_id_hint'])
+        elif self.node_name in [SELF, SOURCE, TARGET]:
             node_instance_id = self._resolve_available_node_targets(handler)
             _validate_ref(node_instance_id, self.node_name, self.name,
                           self.path, self.attribute_path)
@@ -1376,8 +1381,14 @@ def parse(raw_function, scope=None, context=None, path=None):
     return raw_function
 
 
-def evaluate_node_functions(node, storage):
+def evaluate_node_functions(node, storage, instance_context=None):
     handler = runtime_evaluation_handler(storage)
+    if instance_context:
+        # instance_context means we're evaluating node functions in the
+        # context of a specific node instance - the ID of that instance is
+        # given as this "context". Let's pass it through to the functions,
+        # so that e.g. get_attribute can decide which instance to use.
+        node['instance_id_hint'] = instance_context
     scan.scan_node_template(node, handler, replace=True)
     return node
 

@@ -241,8 +241,14 @@ class NodesClient(object):
             response['metadata']
         )
 
-    def get(self, deployment_id, node_id, _include=None,
-            evaluate_functions=False):
+    def get(
+        self,
+        deployment_id,
+        node_id,
+        _include=None,
+        evaluate_functions=False,
+        instance_context=None,
+    ):
         """
         Returns the node which belongs to the deployment identified
         by the provided deployment id .
@@ -251,19 +257,32 @@ class NodesClient(object):
         :param node_id: The node id.
         :param _include: List of fields to include in response.
         :param evaluate_functions: Evaluate intrinsic functions
+        :param instance_context: When evaluating functions, do it in context
+            of this node instance id, i.e. get_attribute calls in node
+            properties can be treated as if they were on the node instance
+            with the given id.
         :return: Nodes.
         :rtype: Node
         """
         assert deployment_id
         assert node_id
-        result = self.list(deployment_id=deployment_id,
-                           id=node_id,
-                           _include=_include,
-                           evaluate_functions=evaluate_functions)
-        if not result:
+        params = {
+            'deployment_id': deployment_id,
+            'id': node_id,
+            '_evaluate_functions': evaluate_functions,
+            '_instance_context': instance_context,
+        }
+        if _include:
+            params['_include'] = ','.join(_include)
+        response = self.api.get(
+            '/{self._uri_prefix}'.format(self=self),
+            params=params,
+            _include=_include,
+        )
+        if not response.get('items'):
             return None
-        else:
-            return result[0]
+
+        return self._wrapper_cls(response['items'][0])
 
     def create_many(self, deployment_id, nodes):
         """Create multiple nodes.
