@@ -403,7 +403,10 @@ class NodeContext(EntityContext):
 
     def _get_node_if_needed(self):
         if self._node is None:
-            self._node = self._endpoint.get_node(self.id)
+            self._node = self._endpoint.get_node(
+                self.id,
+                instance_context=self._context.get('node_id'),
+            )
             props = self._node.get('properties', {})
             self._node['properties'] = ImmutableProperties(props)
 
