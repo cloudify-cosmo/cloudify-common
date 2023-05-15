@@ -31,7 +31,7 @@ class Endpoint(object):
     def __init__(self, ctx):
         self.ctx = ctx
 
-    def get_node(self, node_id):
+    def get_node(self, node_id, instance_context=None):
         raise NotImplementedError('Implemented by subclasses')
 
     def get_node_instance(self, node_instance_id):
@@ -196,9 +196,13 @@ class ManagerEndpoint(Endpoint):
             self._rest_client = manager.get_rest_client(self.ctx.tenant_name)
         return self._rest_client
 
-    def get_node(self, node_id):
+    def get_node(self, node_id, instance_context=None):
         return self.rest_client.nodes.get(
-            self.ctx.deployment.id, node_id, evaluate_functions=True)
+            self.ctx.deployment.id,
+            node_id,
+            evaluate_functions=True,
+            instance_context=instance_context,
+        )
 
     def get_node_instance(self, node_instance_id):
         return manager.get_node_instance(node_instance_id,
@@ -373,7 +377,7 @@ class LocalEndpoint(Endpoint):
         super(LocalEndpoint, self).__init__(ctx)
         self.storage = storage
 
-    def get_node(self, node_id):
+    def get_node(self, node_id, instance_context=None):
         return self.storage.get_node(node_id)
 
     def get_node_instance(self, node_instance_id):
