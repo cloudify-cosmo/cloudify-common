@@ -1,3 +1,4 @@
+import os
 import warnings
 from copy import copy
 
@@ -5,6 +6,8 @@ from cloudify_rest_client import constants, utils
 from cloudify_rest_client.responses import ListResponse
 
 from .labels import Label
+
+EMPTY_B64_ZIP = 'UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA=='
 
 
 class Deployment(dict):
@@ -566,6 +569,17 @@ class DeploymentGroupsClient(object):
                           'creation_counter'],
         )
 
+    def restore(self, entities):
+        """Restore deployment groups from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         deployment groups to be restored.
+        """
+        for entity in entities:
+            entity['group_id'] = entity.pop('id')
+            entity['blueprint_id'] = entity.pop('default_blueprint_id')
+            self.put(**entity)
+
 
 class DeploymentOutputsClient(object):
 
@@ -990,3 +1004,28 @@ class DeploymentsClient(object):
                           'sub_environments_status', 'sub_services_count',
                           'sub_environments_count'],
         )
+
+    def restore(self, entities, path_func=None):
+        """Restore deployments from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         deployments to be restored.
+        :param path_func: A function used retrieve deployment's path.
+        """
+        for entity in entities:
+            if path_func:
+                workdir_location = path_func(entity['id'])
+                if workdir_location and os.path.exists(workdir_location):
+                    with open(workdir_location) as workdir_handle:
+                        entity['_workdir_zip'] = workdir_handle.read()
+                    os.unlink(workdir_location)
+                else:
+                    entity['_workdir_zip'] = EMPTY_B64_ZIP
+                entity['deployment_id'] = entity.pop('id')
+                entity['async_create'] = False
+                if entity['workflows']:
+                    entity['workflows'] = {
+                        wf.pop('name'): wf
+                        for wf in entity.pop('workflows', {})
+                    }
+                self.create(**entity)

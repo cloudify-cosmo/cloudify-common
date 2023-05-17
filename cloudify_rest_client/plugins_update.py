@@ -204,6 +204,19 @@ class PluginsUpdateClient(object):
                           'deployments_per_tenant', 'temp_blueprint_id'],
         )
 
+    def restore(self, entities):
+        """Restore plugins updates from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         plugins updates to be restored.
+        """
+        for entity in entities:
+            entity['update_id'] = entity.pop('id')
+            entity['affected_deployments'] = entity.pop(
+                    'deployments_to_update', None)
+            entity['force'] = entity.pop('forced', None)
+            self.inject(**entity)
+
 
 def _data_from_kwargs(**kwargs):
     data = {}

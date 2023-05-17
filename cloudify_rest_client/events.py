@@ -185,3 +185,66 @@ class EventsClient(object):
                               'manager_name', 'agent_name'],
             ):
                 yield {'__entity': entity, '__source_id': source_id}
+
+    def restore(self, entities, source_type, source_id, logger):
+        """Restore events from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         node instances to be restored.
+        :param source_type: Type of events' "parent" entity: `executions`
+         or `execution_groups`.
+        :param source_id: An identifier of the entity, which these events
+         belong to.
+        :param logger: A logger instance.
+        """
+        events = {}
+        logs = {}
+        logger_names = set()
+        for entity in entities:
+            manager = entity.pop('manager_name')
+            agent = entity.pop('agent_name')
+            logger_name = (manager, agent)
+            logger_names.add(logger_name)
+            if entity['type'] == 'cloudify_event':
+                entity['context'] = {
+                    'source_id': entity.pop('source_id'),
+                    'target_id': entity.pop('target_id'),
+                    # This looks wrong, but it's a legacy thing
+                    'node_id': entity.pop('node_instance_id'),
+                }
+                entity['message'] = {
+                    'text': entity.pop('message'),
+                }
+                events.setdefault(logger_name, []).append(entity)
+            elif entity['type'] == 'cloudify_log':
+                entity['context'] = {
+                    'operation': entity.pop('operation'),
+                    'source_id': entity.pop('source_id'),
+                    'target_id': entity.pop('target_id'),
+                    # This looks wrong, but it's a legacy thing
+                    'node_id': entity.pop('node_instance_id'),
+                }
+                entity['message'] = {
+                    'text': entity.pop('message'),
+                }
+                logs.setdefault(logger_name, []).append(entity)
+            else:
+                logger.warn(
+                        'Log/event parsing failed on %s',
+                        entity,
+                )
+
+        for logger_name in logger_names:
+            manager, agent = logger_name
+            kwargs = {
+                'events': events.pop(logger_name, []),
+                'logs': logs.pop(logger_name, []),
+                'manager_name': manager,
+                'agent_name': agent,
+            }
+            if source_type == 'executions':
+                kwargs['execution_id'] = source_id
+            elif source_type == 'execution_groups':
+                kwargs['execution_group_id'] = source_id
+
+            self.create(**kwargs)

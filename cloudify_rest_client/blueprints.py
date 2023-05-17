@@ -669,3 +669,33 @@ class BlueprintsClient(object):
                           'description', 'error', 'error_traceback',
                           'is_hidden', 'requirements'],
         )
+
+    def restore(self, entities, path_func=None):
+        """Restore blueprints from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         blueprints to be restored.
+        :param path_func: A function used retrieve blueprint's path.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            if path_func:
+                entity['archive_location'] = path_func(entity['id'])
+            entity['skip_execution'] = True
+            entity['blueprint_id'] = entity.pop('id')
+            entity['blueprint_filename'] = entity.pop('main_file_name')
+            entity['async_upload'] = True
+            extra_details = {}
+            for detail_name in [
+                'plan', 'state', 'error', 'error_traceback',
+                'is_hidden', 'description', 'labels', 'requirements',
+            ]:
+                detail = entity.pop(detail_name, None)
+                if detail:
+                    extra_details[detail_name] = detail
+            self.publish_archive(**entity)
+            yield {
+                entity['blueprint_id']:
+                    (extra_details, entity['archive_location']),
+            }
