@@ -2123,7 +2123,9 @@ node_types:
             test:
                 op: stub.py
                 op2: plugin2.operation.some_operation
-                op3: "ctx logger info 'hello world'"
+                op3: |
+                    #!/usr/bin/env bash
+                    ctx logger info 'hello world'
                 op4: |
                     from cloudify import ctx
                     ctx.logger.info('hello world')

@@ -445,32 +445,6 @@ def _is_inline_script(script):
     can contain either an operation dotted import path, or a script written
     right there in the blueprint.
     """
-    script = script.strip()
-    if script.count('\n') > 1:
-        # multiple lines? this for sure isn't a dotted path
-        return True
-
-    if utils.NAMESPACE_DELIMITER in script:
-        ns, _, _rest = script.partition(utils.NAMESPACE_DELIMITER)
-        if ns.isidentifier():
-            # a namespace delimiter, separating a single identifier? this
-            # for sure is not a script!
-            return False
-
-    if '/' in script or '\\' in script:
-        # script is one line and contains a slash/backslash - interpret
-        # this as a path (posix or windows).
-        # This means it's impossible to have 1-line scripts containing
-        # slashes, but this stays backwards-compatible
-        return False
-
-    if (
-        '.' in script and
-        all(part.isidentifier() for part in script.split('.'))
-    ):
-        # this looks like a dotted path - identifiers separated by dots
-        return False
-
-    # it doesn't look like a file path, or a dotted path - it must be a
-    # one-liner script!
-    return True
+    # a very simple heuristic: if it's multiple lines, then it's an inline
+    # script. Otherwise it's a filename or a plugin path.
+    return '\n' in script.strip()
