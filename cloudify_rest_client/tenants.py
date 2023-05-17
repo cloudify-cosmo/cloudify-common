@@ -205,3 +205,20 @@ class TenantsClient(object):
                 '/tenants',
                 _include=['name', 'rabbitmq_password'],
         )
+
+    def restore(self, entities, logger=None):
+        """Restore tenants from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         tenants to be restored.
+        :param logger: A logger instance.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            if entity['name'] == 'default_tenant':
+                if logger:
+                    logger.debug('Skipping creation of default tenant')
+                continue
+            entity['tenant_name'] = entity.pop('name')
+            self.create(**entity)

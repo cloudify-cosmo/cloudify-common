@@ -147,6 +147,17 @@ class FiltersClient(object):
                 continue
             yield entity
 
+    def restore(self, entities):
+        """Restore filters from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         filters to be restored.
+        """
+        for entity in entities:
+            entity['filter_id'] = entity.pop('id')
+            entity['filter_rules'] = entity.pop('value')
+            self.create(**entity)
+
 
 class BlueprintsFiltersClient(FiltersClient):
     def __init__(self, api):

@@ -229,3 +229,13 @@ class SecretsProvidersClient(object):
                 _include=['created_at', 'name', 'visibility', 'type',
                           'connection_parameters', 'created_by', 'created_at'],
         )
+
+    def restore(self, entities):
+        """Restore secrets' providers from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         secrets' providers to be restored.
+        """
+        for entity in entities:
+            entity['_type'] = entity.pop('type', None)
+            self.create(**entity)

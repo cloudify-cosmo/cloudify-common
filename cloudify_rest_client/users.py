@@ -192,3 +192,23 @@ class UsersClient(object):
                 _include=['username', 'role', 'tenant_roles',
                           'first_login_at', 'last_login_at', 'created_at'],
         )
+
+    def restore(self, entities, logger=None):
+        """Restore users from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         users to be restored.
+        :param logger: A logger instance.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            if entity['username'] == 'admin':
+                if logger:
+                    logger.debug('Skipping creation of admin user')
+                continue
+            entity['password'] = entity.pop('password_hash')
+            entity['is_prehashed'] = True
+            tenant_roles = entity.pop('tenant_roles')
+            self.create(**entity)
+            yield {entity['username']: tenant_roles}
