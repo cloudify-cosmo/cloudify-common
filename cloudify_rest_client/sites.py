@@ -150,3 +150,12 @@ class SitesClient(object):
                 _include=['name', 'location', 'visibility', 'created_by',
                           'created_at']
         )
+
+    def restore(self, entities):
+        """Restore sites from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         sites to be restored.
+        """
+        for entity in entities:
+            self.create(**entity)

@@ -242,3 +242,13 @@ class AgentsClient(object):
                               'visibility'],
             ):
                 yield {'__entity': entity, '__source_id': deployment_id}
+
+    def restore(self, entities):
+        """Restore agents from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         agents to be restored.
+        """
+        for entity in entities:
+            entity['name'] = entity.pop('id')
+            self.create(create_rabbitmq_user=True, **entity)

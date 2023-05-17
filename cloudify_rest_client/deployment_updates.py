@@ -269,3 +269,15 @@ class DeploymentUpdatesClient(object):
                           'central_plugins_to_install', 'old_inputs',
                           'deployment_update_nodes', 'modified_entity_ids']
         )
+
+    def restore(self, entities):
+        """Restore deployment updates from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         deployment updates to be restored.
+        """
+        for entity in entities:
+            entity['update_id'] = entity.pop('id')
+            entity['blueprint_id'] = entity.pop('new_blueprint_id')
+            entity['inputs'] = entity.pop('new_inputs', None)
+            self.create(**entity)

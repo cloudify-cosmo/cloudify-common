@@ -280,3 +280,13 @@ class SecretsClient(object):
                           'encrypted', 'tenant_name', 'creator', 'created_at'],
                 _include_metadata=True,
         )
+
+    def restore(self, entities):
+        """Restore secrets from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         secrets to be restored.
+        """
+        for entity in entities:
+            entity['_type'] = entity.pop('type', None)
+            self.create(**entity)

@@ -335,3 +335,18 @@ class NodeInstancesClient(object):
                         broker_conf = get_broker_conf(entity)
                         rp['cloudify_agent'].update(broker_conf)
                 yield {'__entity': entity, '__source_id': deployment_id}
+
+    def restore(self, entities, deployment_id, inject_broker_conf=None,):
+        """Restore node instances from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         node instances to be restored.
+        :param deployment_id: A deployment identifier for the entities.
+        :param inject_broker_conf: A function used to inject broker
+         configuration for given node_instance's runtime_properties.
+        """
+        for entity in entities:
+            entity['creator'] = entity.pop('created_by')
+            if inject_broker_conf:
+                inject_broker_conf(entity['runtime_properties'])
+        self.create_many(deployment_id, entities)

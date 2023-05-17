@@ -191,7 +191,7 @@ class InterDeploymentDependencyClient(object):
                                 params=params)
         return self._wrap_list(response)
 
-    def restore(self, deployment_id, update_service_composition):
+    def legacy_restore(self, deployment_id, update_service_composition):
         """
         Updating the inter deployment dependencies table from the specified
         deployment during an upgrade
@@ -213,3 +213,20 @@ class InterDeploymentDependencyClient(object):
                           'source_deployment_id', 'target_deployment_id',
                           'external_source', 'external_target'],
         )
+
+    def restore(self, entities):
+        """Restore inter-deployment dependencies from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         inter-deployment dependencies to be restored.
+        """
+        for entity in entities:
+            entity['_id'] = entity.pop('id')
+            entity['_visibility'] = entity.pop('visibility')
+            entity['_created_at'] = entity.pop('created_at')
+            entity['_created_by'] = entity.pop('created_by')
+            entity['source_deployment'] = \
+                entity.pop('source_deployment_id')
+            entity['target_deployment'] = \
+                entity.pop('target_deployment_id')
+            self.create(**entity)

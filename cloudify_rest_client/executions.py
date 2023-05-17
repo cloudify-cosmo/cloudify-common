@@ -318,6 +318,16 @@ class ExecutionGroupsClient(object):
                           'concurrency', 'deployment_group_id', 'created_by'],
         )
 
+    def restore(self, entities):
+        """Restore execution groups from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         execution groups to be restored.
+        """
+        for entity in entities:
+            entity['executions'] = entity.pop('execution_ids')
+            self.create(**entity)
+
 
 class ExecutionsClient(object):
 
@@ -550,3 +560,16 @@ class ExecutionsClient(object):
                     '_include_system_workflows': True,
                 },
         )
+
+    def restore(self, entities):
+        """Restore executions from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         executions to be restored.
+        """
+        for entity in entities:
+            entity['execution_id'] = entity.pop('id')
+            entity['force_status'] = entity.pop('status')
+            entity['dry_run'] = entity.pop('is_dry_run')
+            entity['deployment_id'] = entity['deployment_id'] or ''
+            self.create(**entity)

@@ -487,3 +487,22 @@ class PluginsClient(object):
                 _include=['id', 'title', 'visibility', 'uploaded_at',
                           'created_by']
         )
+
+    def restore(self, entities, path_func=None):
+        """Restore plugins from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         plugins to be restored.
+        :param path_func: A function used retrieve plugin's path.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            if path_func:
+                entity['plugin_path'] = path_func(entity['id'])
+            entity['_plugin_id'] = entity.pop('id')
+            entity['_uploaded_at'] = entity.pop('uploaded_at')
+            entity['plugin_title'] = entity.pop('title')
+            entity['_created_by'] = entity.pop('created_by')
+            self.upload(**entity)
+            yield {entity['_plugin_id']: entity['plugin_path']}

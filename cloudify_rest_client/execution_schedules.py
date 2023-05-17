@@ -289,3 +289,14 @@ class ExecutionSchedulesClient(object):
                           'parameters', 'execution_arguments', 'slip',
                           'enabled', 'created_by'],
         )
+
+    def restore(self, entities):
+        """Restore execution schedules from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         execution schedules to be restored.
+        """
+        for entity in entities:
+            entity['schedule_id'] = entity.pop('id')
+            entity['rrule'] = entity.pop('rule', {}).pop('rrule')
+            self.create(**entity)

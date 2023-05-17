@@ -51,3 +51,18 @@ class PermissionsClient(object):
             self.api.get,
             self._uri_prefix,
         )
+
+    def restore(self, entities, logger=None):
+        """Restore permissions from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         permissions to be restored.
+        :param logger: A logger instance.
+        """
+        existing_perms = self.list()
+        for entity in entities:
+            if entity in existing_perms:
+                if logger:
+                    logger.debug('Skipping existing perm: %s', entity)
+                continue
+            self.add(**entity)

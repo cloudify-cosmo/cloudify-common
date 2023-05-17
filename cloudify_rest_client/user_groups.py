@@ -113,3 +113,18 @@ class UserGroupsClient(object):
                 params={'_get_data': True},
                 _include=['name', 'ldap_dn', 'tenants', 'role']
         )
+
+    def restore(self, entities):
+        """Restore user_groups from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         user_groups to be restored.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            entity['group_name'] = entity.pop('name')
+            entity['ldap_group_dn'] = entity.pop('ldap_dn')
+            group_tenants = entity.pop('tenants')
+            self.create(**entity)
+            yield {entity['group_name']: group_tenants}
