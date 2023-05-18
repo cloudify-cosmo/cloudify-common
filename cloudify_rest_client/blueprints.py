@@ -659,8 +659,15 @@ class BlueprintsClient(object):
             self=self, id=blueprint_id),
         )
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, blueprint_ids=None):
+        """Generate blueprints' attributes for a snapshot.
+
+        :param blueprint_ids: A list of blueprints identifiers, if not empty,
+         used to select specific blueprints to be dumped.
+        :returns: A generator of dictionaries, which describe blueprints'
+         attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 f'/{self._uri_prefix}',
                 params={'_get_data': True},
@@ -669,6 +676,9 @@ class BlueprintsClient(object):
                           'description', 'error', 'error_traceback',
                           'is_hidden', 'requirements'],
         )
+        if not blueprint_ids:
+            return entities
+        return (e for e in entities if e['id'] in blueprint_ids)
 
     def restore(self, entities, path_func=None):
         """Restore blueprints from a snapshot.

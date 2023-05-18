@@ -204,8 +204,16 @@ class InterDeploymentDependencyClient(object):
         self.api.post('/{self._uri_prefix}/restore'.format(self=self),
                       data=data)
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, inter_deployment_dependency_ids=None):
+        """Generate inter-deployment dependencies' attributes for a snapshot.
+
+        :param inter_deployment_dependency_ids: A list of inter-deployment
+         dependencies' identifiers, if not empty, used to select specific
+         inter-deployment dependencies to be dumped.
+        :returns: A generator of dictionaries, which describe inter-deployment
+         dependencies' attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 f'/{self._uri_prefix}',
                 _include=['id', 'visibility', 'created_at', 'created_by',
@@ -213,6 +221,10 @@ class InterDeploymentDependencyClient(object):
                           'source_deployment_id', 'target_deployment_id',
                           'external_source', 'external_target'],
         )
+        if not inter_deployment_dependency_ids:
+            return entities
+        return (e for e in entities
+                if e['id'] in inter_deployment_dependency_ids)
 
     def restore(self, entities):
         """Restore inter-deployment dependencies from a snapshot.

@@ -107,6 +107,11 @@ class UserGroupsClient(object):
         self.api.delete('/user-groups/users', data=data)
 
     def dump(self):
+        """Generate user groups' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe user groups'
+         attributes.
+        """
         return utils.get_all(
                 self.api.get,
                 '/user-groups',

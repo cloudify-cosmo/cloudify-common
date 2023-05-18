@@ -142,14 +142,24 @@ class SitesClient(object):
             '/{self._uri_prefix}/{name}'.format(self=self, name=name)
         )
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, site_ids=None):
+        """Generate sites' attributes for a snapshot.
+
+        :param site_ids: A list of site identifiers, if not empty,
+         used to select specific sites to be dumped.
+        :returns: A generator of dictionaries, which describe sites'
+         attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 f'/{self._uri_prefix}',
                 params={'_get_data': True},
                 _include=['name', 'location', 'visibility', 'created_by',
                           'created_at']
         )
+        if not site_ids:
+            return entities
+        return (e for e in entities if e['name'] in site_ids)
 
     def restore(self, entities):
         """Restore sites from a snapshot.

@@ -158,9 +158,18 @@ class OperationsClient(object):
         uri = '/operations/{0}'.format(operation_id)
         self.api.delete(uri)
 
-    def dump(self, execution_ids=None):
+    def dump(self, execution_ids=None, operation_ids=None):
+        """Generate operations' attributes for a snapshot.
+
+        :param execution_ids: A list of executions' identifiers used to
+         select operations to be dumped, should not be empty.
+        :param operation_ids: A list of operations' identifiers, if not empty,
+         used to select specific operations to be dumped.
+        :returns: A generator of dictionaries, which describe operations'
+         attributes.
+        """
         if not execution_ids:
-            return []
+            return
         params = {}
         for execution_id in execution_ids:
             params['execution_id'] = execution_id
@@ -172,7 +181,8 @@ class OperationsClient(object):
                               'manager_name', 'name', 'parameters', 'state',
                               'type', 'tasks_graph_id'],
             ):
-                yield {'__entity': entity, '__source_id': execution_id}
+                if not operation_ids or entity['id'] in operation_ids:
+                    yield {'__entity': entity, '__source_id': execution_id}
 
 
 class TasksGraph(dict):
@@ -228,9 +238,20 @@ class TasksGraphClient(object):
         response = self.api.patch(uri, data={'state': state})
         return TasksGraph(response)
 
-    def dump(self, execution_ids=None, operations=None):
+    def dump(self, execution_ids=None, operations=None, tasks_graph_ids=None):
+        """Generate tasks graphs' attributes for a snapshot.
+
+        :param execution_ids: A list of executions' identifiers used to
+         select tasks graphs to be dumped, should not be empty.
+        :param operations: A list of operations, which might be associated
+         with (some of the) tasks graphs.
+        :param tasks_graph_ids: A list of tasks graphs' identifiers, if not
+         empty, used to select specific tasks graphs to be dumped.
+        :returns: A generator of dictionaries, which describe tasks graphs'
+         attributes.
+        """
         if not execution_ids:
-            return []
+            return
         params = {}
         for execution_id in execution_ids:
             params['execution_id'] = execution_id
@@ -250,7 +271,8 @@ class TasksGraphClient(object):
                 if graph_ops:
                     entity['operations'] = graph_ops
 
-                yield {'__entity': entity, '__source_id': execution_id}
+                if not tasks_graph_ids or entity['id'] in tasks_graph_ids:
+                    yield {'__entity': entity, '__source_id': execution_id}
 
     def restore(self, entities, execution_id):
         """Restore tasks graphs from a snapshot.

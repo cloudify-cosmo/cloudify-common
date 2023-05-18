@@ -331,9 +331,18 @@ class NodesClient(object):
             expected_status_code=204,
         )
 
-    def dump(self, deployment_ids=None):
+    def dump(self, deployment_ids=None, node_ids=None):
+        """Generate nodes' attributes for a snapshot.
+
+        :param deployment_ids: A list of deployments' identifiers used to
+         select nodes to be dumped, should not be empty.
+        :param node_ids: A list of nodes' identifiers, if not empty, used to
+         select specific nodes to be dumped.
+        :returns: A generator of dictionaries, which describe nodes'
+         attributes.
+        """
         if not deployment_ids:
-            return []
+            return
         for deployment_id in deployment_ids:
             for entity in utils.get_all(
                     self.api.get,
@@ -348,7 +357,8 @@ class NodesClient(object):
                               'visibility', 'created_by',
                               'number_of_instances'],
             ):
-                yield {'__entity': entity, '__source_id': deployment_id}
+                if not node_ids or entity['id'] in node_ids:
+                    yield {'__entity': entity, '__source_id': deployment_id}
 
     def restore(self, entities, deployment_id):
         """Restore nodes from a snapshot.

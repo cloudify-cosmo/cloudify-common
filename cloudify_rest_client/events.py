@@ -149,17 +149,34 @@ class EventsClient(object):
         return params
 
     def dump(self, execution_ids=None, execution_group_ids=None,
-             include_logs=None):
+             include_logs=None, event_storage_ids=None):
+        """Generate events' attributes for a snapshot.
+
+        :param execution_ids: A list of executions' identifiers used to
+         select events to be dumped.
+        :param execution_group_ids: A list of execution groups' identifiers
+         used to select events to be dumped.
+        :param include_logs: A flag, which determines if `cloudify_log` entries
+         should be included in the snapshot.
+        :param event_storage_ids: A list of events' storage identifiers, if
+         not empty, used to select specific events to be dumped.
+        :returns: A generator of dictionaries, which describe events'
+         attributes.
+        """
         if execution_ids:
             for entity in self._dump_events(include_logs, 'execution_id',
                                             execution_ids):
                 entity.update({'__source': 'executions'})
-                yield entity
+                if not event_storage_ids or \
+                        entity['__entity']['_storage_id'] in event_storage_ids:
+                    yield entity
         if execution_group_ids:
             for entity in self._dump_events(include_logs, 'execution_group_id',
                                             execution_group_ids):
                 entity.update({'__source': 'execution_groups'})
-                yield entity
+                if not event_storage_ids or \
+                        entity['__entity']['_storage_id'] in event_storage_ids:
+                    yield entity
 
     def _dump_events(self, include_logs, event_source_id_key, source_ids):
         if not source_ids:

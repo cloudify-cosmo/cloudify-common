@@ -136,7 +136,14 @@ class FiltersClient(object):
                                   data=data)
         return Filter(response)
 
-    def dump(self):
+    def dump(self, filter_ids=None):
+        """Generate filters' attributes for a snapshot.
+
+        :param filter_ids: A list of filter identifiers, if not empty,
+         used to select specific filters to be dumped.
+        :returns: A generator of dictionaries, which describe filters'
+         attributes.
+        """
         for entity in utils.get_all(
                 self.api.get,
                 self.uri,
@@ -145,7 +152,8 @@ class FiltersClient(object):
         ):
             if entity.pop('is_system_filter'):
                 continue
-            yield entity
+            if not filter_ids or entity['id'] in filter_ids:
+                yield entity
 
     def restore(self, entities):
         """Restore filters from a snapshot.

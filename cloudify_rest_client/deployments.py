@@ -558,8 +558,16 @@ class DeploymentGroupsClient(object):
             expected_status_code=(200, 204),
         )
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, deployment_groups_ids=None):
+        """Generate deployment groups' attributes for a snapshot.
+
+        :param deployment_groups_ids: A list of deployment groups'
+         identifiers, if not empty, used to select deployment groups
+         to be dumped.
+        :returns: A generator of dictionaries, which describe deployment
+         groups' attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 '/deployment-groups',
                 params={'_get_data': True},
@@ -568,6 +576,9 @@ class DeploymentGroupsClient(object):
                           'deployment_ids', 'created_by', 'created_at',
                           'creation_counter'],
         )
+        if not deployment_groups_ids:
+            return entities
+        return (e for e in entities if e['id'] in deployment_groups_ids)
 
     def restore(self, entities):
         """Restore deployment groups from a snapshot.
@@ -989,8 +1000,15 @@ class DeploymentsClient(object):
             '/deployments/{0}'.format(deployment_id), data=kwargs)
         return Deployment(updated_dep)
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, deployment_ids=None):
+        """Generate deployments' attributes for a snapshot.
+
+        :param deployment_ids: A list of deployments' identifiers, if not
+         empty, used to select specific deployments to be dumped.
+        :returns: A generator of dictionaries, which describe deployments'
+         attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 '/deployments',
                 params={'_get_data': True},
@@ -1004,6 +1022,9 @@ class DeploymentsClient(object):
                           'sub_environments_status', 'sub_services_count',
                           'sub_environments_count'],
         )
+        if not deployment_ids:
+            return entities
+        return (e for e in entities if e['id'] in deployment_ids)
 
     def restore(self, entities, path_func=None):
         """Restore deployments from a snapshot.
