@@ -479,14 +479,24 @@ class PluginsClient(object):
                                   data=kwargs)
         return Plugin(response)
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, plugin_ids=None):
+        """Generate plugins' attributes for a snapshot.
+
+        :param plugin_ids: A list of plugin identifiers, if not empty,
+         used to select specific plugins to be dumped.
+        :returns: A generator of dictionaries, which describe plugins'
+         attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 '/plugins',
                 params={'_get_data': True},
                 _include=['id', 'title', 'visibility', 'uploaded_at',
                           'created_by']
         )
+        if not plugin_ids:
+            return entities
+        return (e for e in entities if e['id'] in plugin_ids)
 
     def restore(self, entities, path_func=None):
         """Restore plugins from a snapshot.

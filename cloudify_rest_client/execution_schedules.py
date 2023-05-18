@@ -280,8 +280,16 @@ class ExecutionSchedulesClient(object):
         response = self.api.get(uri, _include=_include, params=params)
         return ExecutionSchedule(response)
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, execution_schedule_ids=None):
+        """Generate execution schedules' attributes for a snapshot.
+
+        :param execution_schedule_ids: A list of execution schedules'
+         identifiers, if not empty, used to select specific execution
+         schedules to be dumped.
+        :returns: A generator of dictionaries, which describe execution
+         schedules' attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 f'/{self._uri_prefix}',
                 _include=['id', 'rule', 'deployment_id', 'workflow_id',
@@ -289,6 +297,9 @@ class ExecutionSchedulesClient(object):
                           'parameters', 'execution_arguments', 'slip',
                           'enabled', 'created_by'],
         )
+        if not execution_schedule_ids:
+            return entities
+        return (e for e in entities if e['id'] in execution_schedule_ids)
 
     def restore(self, entities):
         """Restore execution schedules from a snapshot.

@@ -47,6 +47,11 @@ class PermissionsClient(object):
             '{0}/{1}/{2}'.format(self._uri_prefix, role, permission))
 
     def dump(self):
+        """Generate permissions' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe permissions'
+         attributes.
+        """
         return utils.get_all(
             self.api.get,
             self._uri_prefix,

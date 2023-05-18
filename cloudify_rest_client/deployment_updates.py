@@ -254,8 +254,16 @@ class DeploymentUpdatesClient(object):
         response = self.api.post(uri)
         return DeploymentUpdate(response)
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, deployment_update_ids=None):
+        """Generate deployment updates' attributes for a snapshot.
+
+        :param deployment_update_ids: A list of deployment updates'
+         identifiers, if not empty, used to select specific deployment
+         updates to be dumped.
+        :returns: A generator of dictionaries, which describe deployment
+         updates' attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 '/deployment-updates',
                 params={'_get_data': True},
@@ -269,6 +277,9 @@ class DeploymentUpdatesClient(object):
                           'central_plugins_to_install', 'old_inputs',
                           'deployment_update_nodes', 'modified_entity_ids']
         )
+        if not deployment_update_ids:
+            return entities
+        return (e for e in entities if e['id'] in deployment_update_ids)
 
     def restore(self, entities):
         """Restore deployment updates from a snapshot.

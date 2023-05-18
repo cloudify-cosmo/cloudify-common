@@ -200,6 +200,11 @@ class TenantsClient(object):
         self.api.delete('/tenants/{0}'.format(tenant_name))
 
     def dump(self):
+        """Generate tenants' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe tenants'
+         attributes.
+        """
         return utils.get_all(
                 self.api.get,
                 '/tenants',
