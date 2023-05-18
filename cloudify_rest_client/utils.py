@@ -111,6 +111,8 @@ def find_executable(executable, path=None):
 def get_all(method, *args, **kwargs):
     """Generator of entities retrieved by a method called with args/kwargs."""
     include = kwargs.get('_include')
+    if kwargs.get('params', {}).get('_include_hash'):
+        include.append('password_hash')
     more_data = True
     entities_yielded = 0
     while more_data:

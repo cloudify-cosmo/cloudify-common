@@ -275,18 +275,29 @@ class SecretsClient(object):
         )
 
     def dump(self):
+        """Generate secrets' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe secrets'
+         attributes.
+        """
         return self.export(
                 _include=['key', 'value', 'visibility', 'is_hidden_value',
-                          'encrypted', 'tenant_name', 'creator', 'created_at'],
+                          'encrypted', 'tenant_name', 'creator', 'created_at',
+                          'provider', 'provider_options'],
                 _include_metadata=True,
         )
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore secrets from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          secrets to be restored.
+        :param logger: A logger instance.
         """
-        for entity in entities:
-            entity['_type'] = entity.pop('type', None)
-            self.create(**entity)
+        response = self.import_secrets(secrets_list=entities)
+        collisions = response.get('colliding_secrets')
+        if collisions:
+            logger.warn('The following secrets existed: %s', collisions)
+        errors = response.get('secrets_errors')
+        if errors:
+            yield {'errors': errors}
