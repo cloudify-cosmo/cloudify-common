@@ -193,8 +193,15 @@ class PluginsUpdateClient(object):
         )
         return PluginsUpdate(response)
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, plugins_update_ids=None):
+        """Generate plugins updates' attributes for a snapshot.
+
+        :param plugins_update_ids: A list of plugins updates' identifiers,
+         if not empty, used to select specific plugins updates to be dumped.
+        :returns: A generator of dictionaries, which describe plugins
+         updates' attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 f'/{self._uri_prefix}',
                 params={'_get_data': True},
@@ -203,6 +210,9 @@ class PluginsUpdateClient(object):
                           'created_at', 'deployments_to_update',
                           'deployments_per_tenant', 'temp_blueprint_id'],
         )
+        if not plugins_update_ids:
+            return entities
+        return (e for e in entities if e['id'] in plugins_update_ids)
 
     def restore(self, entities):
         """Restore plugins updates from a snapshot.

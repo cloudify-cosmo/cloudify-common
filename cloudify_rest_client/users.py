@@ -185,6 +185,11 @@ class UsersClient(object):
         return User(response)
 
     def dump(self):
+        """Generate users' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe users'
+         attributes.
+        """
         return utils.get_all(
                 self.api.get,
                 '/users',

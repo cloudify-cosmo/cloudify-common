@@ -222,13 +222,23 @@ class SecretsProvidersClient(object):
 
         return response
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, secrets_provider_ids=None):
+        """Generate secrets' providers' attributes for a snapshot.
+
+        :param secrets_provider_ids: A list of secrets' provider identifiers,
+         if not empty, used to select specific secrets' providers to be dumped.
+        :returns: A generator of dictionaries, which describe secrets'
+         providers' attributes.
+        """
+        for entity in utils.get_all(
                 self.api.get,
                 '/secrets-providers',
-                _include=['created_at', 'name', 'visibility', 'type',
+                _include=['id', 'created_at', 'name', 'visibility', 'type',
                           'connection_parameters', 'created_by', 'created_at'],
-        )
+        ):
+            entity_id = entity.pop('id')
+            if not secrets_provider_ids or entity_id in secrets_provider_ids:
+                yield entity
 
     def restore(self, entities):
         """Restore secrets' providers from a snapshot.

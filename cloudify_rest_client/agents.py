@@ -226,11 +226,20 @@ class AgentsClient(object):
 
         return response
 
-    def dump(self, deployment_ids=None):
+    def dump(self, deployment_ids=None, agent_ids=None):
+        """Generate agents' attributes for a snapshot.
+
+        :param deployment_ids: A list of deployments' identifiers used to
+         select agents to be dumped, should not be empty.
+        :param agent_ids: A list of agents' identifiers, if not empty, used
+         to select specific agents to be dumped.
+        :returns: A generator of dictionaries, which describe agents'
+         attributes.
+        """
         if not deployment_ids:
-            return []
+            return
         for deployment_id in deployment_ids:
-            for entity in utils.get_all(
+            entities = utils.get_all(
                     self.api.get,
                     f'/{self._uri_prefix}',
                     params={'_get_data': True,
@@ -240,8 +249,10 @@ class AgentsClient(object):
                               'rabbitmq_username', 'rabbitmq_exchange',
                               'version', 'system', 'install_method', 'ip',
                               'visibility'],
-            ):
-                yield {'__entity': entity, '__source_id': deployment_id}
+            )
+            for entity in entities:
+                if not agent_ids or entity['id'] in agent_ids:
+                    yield {'__entity': entity, '__source_id': deployment_id}
 
     def restore(self, entities):
         """Restore agents from a snapshot.

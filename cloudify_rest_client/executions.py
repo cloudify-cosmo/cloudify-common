@@ -309,14 +309,24 @@ class ExecutionGroupsClient(object):
         )
         return ExecutionGroup(response)
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, execution_group_ids=None):
+        """Generate execution groups' attributes for a snapshot.
+
+        :param execution_group_ids: A list of execution groups' identifiers,
+         if not empty, used to select specific execution groups to be dumped.
+        :returns: A generator of dictionaries, which describe execution
+         groups' attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 '/execution-groups',
                 params={'_get_data': True},
                 _include=['id', 'created_at', 'workflow_id', 'execution_ids',
                           'concurrency', 'deployment_group_id', 'created_by'],
         )
+        if not execution_group_ids:
+            return entities
+        return (e for e in entities if e['id'] in execution_group_ids)
 
     def restore(self, entities):
         """Restore execution groups from a snapshot.
@@ -547,8 +557,15 @@ class ExecutionsClient(object):
                                    expected_status_code=200)
         return response['items'][0]['count']
 
-    def dump(self):
-        return utils.get_all(
+    def dump(self, execution_ids=None):
+        """Generate executions' attributes for a snapshot.
+
+        :param execution_ids: A list of executions' identifiers, if not
+         empty, used to select specific executions to be dumped.
+        :returns: A generator of dictionaries, which describe executions'
+         attributes.
+        """
+        entities = utils.get_all(
                 self.api.get,
                 f'/{self._uri_prefix}',
                 _include=['deployment_id', 'workflow_id', 'parameters',
@@ -560,6 +577,9 @@ class ExecutionsClient(object):
                     '_include_system_workflows': True,
                 },
         )
+        if not execution_ids:
+            return entities
+        return (e for e in entities if e['id'] in execution_ids)
 
     def restore(self, entities):
         """Restore executions from a snapshot.

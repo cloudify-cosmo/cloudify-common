@@ -309,9 +309,21 @@ class NodeInstancesClient(object):
             expected_status_code=204,
         )
 
-    def dump(self, deployment_ids=None, get_broker_conf=None):
+    def dump(self, deployment_ids=None, get_broker_conf=None,
+             node_instance_ids=None):
+        """Generate node instances' attributes for a snapshot.
+
+        :param deployment_ids: A list of deployments' identifiers used to
+         select node instances to be dumped, should not be empty.
+        :param get_broker_conf: A function used to retrieve broker
+         configuration.
+        :param node_instance_ids: A list of node instances' identifiers, if
+         not empty, used to select specific node instances to be dumped.
+        :returns: A generator of dictionaries, which describe node instances'
+         attributes.
+        """
         if not deployment_ids:
-            return []
+            return
         for deployment_id in deployment_ids:
             for entity in utils.get_all(
                     self.api.get,
@@ -334,7 +346,8 @@ class NodeInstancesClient(object):
                     if 'cloudify_agent' in rp:
                         broker_conf = get_broker_conf(entity)
                         rp['cloudify_agent'].update(broker_conf)
-                yield {'__entity': entity, '__source_id': deployment_id}
+                if not node_instance_ids or entity['id'] in node_instance_ids:
+                    yield {'__entity': entity, '__source_id': deployment_id}
 
     def restore(self, entities, deployment_id, inject_broker_conf=None,):
         """Restore node instances from a snapshot.
