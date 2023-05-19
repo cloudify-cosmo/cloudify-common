@@ -458,7 +458,7 @@ class ExecutionsClient(object):
                queue=False, schedule=None, force_status=None,
                created_by=None, created_at=None, started_at=None,
                ended_at=None, execution_id=None, wait_after_fail=600,
-               error=None):
+               is_system_workflow=None, error=None):
         """Creates an execution on a deployment.
         If force_status is provided, the execution will not be started.
         Otherwise, parameters and return value are identical to 'start'.
@@ -483,6 +483,7 @@ class ExecutionsClient(object):
             'started_at': started_at,
             'ended_at': ended_at,
             'id': execution_id,
+            'is_system_workflow': is_system_workflow,
             'error': error,
         }
         uri = '/executions'
@@ -571,7 +572,7 @@ class ExecutionsClient(object):
                 _include=['deployment_id', 'workflow_id', 'parameters',
                           'is_dry_run', 'allow_custom_parameters', 'status',
                           'created_by', 'created_at', 'id', 'started_at',
-                          'ended_at', 'error'],
+                          'ended_at', 'error', 'is_system_workflow'],
                 params={
                     '_get_data': True,
                     '_include_system_workflows': True,
