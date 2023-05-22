@@ -2,6 +2,7 @@ import warnings
 from datetime import datetime
 
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -203,16 +204,16 @@ class EventsClient(object):
             ):
                 yield {'__entity': entity, '__source_id': source_id}
 
-    def restore(self, entities, source_type, source_id, logger):
+    def restore(self, entities, logger, source_type, source_id):
         """Restore events from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          node instances to be restored.
+        :param logger: A logger instance.
         :param source_type: Type of events' "parent" entity: `executions`
          or `execution_groups`.
         :param source_id: An identifier of the entity, which these events
          belong to.
-        :param logger: A logger instance.
         """
         events = {}
         logs = {}
@@ -264,4 +265,8 @@ class EventsClient(object):
             elif source_type == 'execution_groups':
                 kwargs['execution_group_id'] = source_id
 
-            self.create(**kwargs)
+            try:
+                self.create(**kwargs)
+            except CloudifyClientError as exc:
+                logger.error(f'Error restoring events of {source_type} '
+                             f'{source_id}: {exc}')
