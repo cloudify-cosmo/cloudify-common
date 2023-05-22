@@ -5,6 +5,7 @@ import tempfile
 from urllib.parse import urlparse
 
 from cloudify_rest_client import bytes_stream_utils, utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -498,11 +499,12 @@ class PluginsClient(object):
             return entities
         return (e for e in entities if e['id'] in plugin_ids)
 
-    def restore(self, entities, path_func=None):
+    def restore(self, entities, logger, path_func=None):
         """Restore plugins from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          plugins to be restored.
+        :param logger: A logger instance.
         :param path_func: A function used retrieve plugin's path.
         :returns: A generator of dictionaries, which describe additional data
          used for snapshot restore entities post-processing.
@@ -514,5 +516,9 @@ class PluginsClient(object):
             entity['_uploaded_at'] = entity.pop('uploaded_at')
             entity['plugin_title'] = entity.pop('title')
             entity['_created_by'] = entity.pop('created_by')
-            self.upload(**entity)
-            yield {entity['_plugin_id']: entity['plugin_path']}
+            try:
+                self.upload(**entity)
+                yield {entity['_plugin_id']: entity['plugin_path']}
+            except CloudifyClientError as exc:
+                logger.error("Error restoring plugin "
+                             f"{entity['_plugin_id']}: {exc}")

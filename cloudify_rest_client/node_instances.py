@@ -1,6 +1,7 @@
 import warnings
 
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -349,11 +350,13 @@ class NodeInstancesClient(object):
                 if not node_instance_ids or entity['id'] in node_instance_ids:
                     yield {'__entity': entity, '__source_id': deployment_id}
 
-    def restore(self, entities, deployment_id, inject_broker_conf=None,):
+    def restore(self, entities, logger, deployment_id,
+                inject_broker_conf=None):
         """Restore node instances from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          node instances to be restored.
+        :param logger: A logger instance.
         :param deployment_id: A deployment identifier for the entities.
         :param inject_broker_conf: A function used to inject broker
          configuration for given node_instance's runtime_properties.
@@ -362,4 +365,7 @@ class NodeInstancesClient(object):
             entity['creator'] = entity.pop('created_by')
             if inject_broker_conf:
                 inject_broker_conf(entity['runtime_properties'])
-        self.create_many(deployment_id, entities)
+        try:
+            self.create_many(deployment_id, entities)
+        except CloudifyClientError as exc:
+            logger.error(f'Error restoring node instances: {exc}')

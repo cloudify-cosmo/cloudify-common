@@ -1,4 +1,5 @@
 from cloudify_rest_client import constants, utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -155,16 +156,21 @@ class FiltersClient(object):
             if not filter_ids or entity['id'] in filter_ids:
                 yield entity
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore filters from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          filters to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['filter_id'] = entity.pop('id')
             entity['filter_rules'] = entity.pop('value')
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring filter "
+                             f"{entity['filter_id']}: {exc}")
 
 
 class BlueprintsFiltersClient(FiltersClient):

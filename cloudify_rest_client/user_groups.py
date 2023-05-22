@@ -1,4 +1,5 @@
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -119,11 +120,12 @@ class UserGroupsClient(object):
                 _include=['name', 'ldap_dn', 'tenants', 'role']
         )
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore user_groups from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          user_groups to be restored.
+        :param logger: A logger instance.
         :returns: A generator of dictionaries, which describe additional data
          used for snapshot restore entities post-processing.
         """
@@ -131,5 +133,9 @@ class UserGroupsClient(object):
             entity['group_name'] = entity.pop('name')
             entity['ldap_group_dn'] = entity.pop('ldap_dn')
             group_tenants = entity.pop('tenants')
-            self.create(**entity)
-            yield {entity['group_name']: group_tenants}
+            try:
+                self.create(**entity)
+                yield {entity['group_name']: group_tenants}
+            except CloudifyClientError as exc:
+                logger.error("Error restoring user group "
+                             f"{entity['group_name']}: {exc}")

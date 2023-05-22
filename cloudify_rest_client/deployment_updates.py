@@ -8,6 +8,7 @@ from urllib.request import pathname2url
 from mimetypes import MimeTypes
 
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -281,14 +282,19 @@ class DeploymentUpdatesClient(object):
             return entities
         return (e for e in entities if e['id'] in deployment_update_ids)
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore deployment updates from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          deployment updates to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['update_id'] = entity.pop('id')
             entity['blueprint_id'] = entity.pop('new_blueprint_id')
             entity['inputs'] = entity.pop('new_inputs', None)
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring deployment update "
+                             f"{entity['update_id']}: {exc}")
