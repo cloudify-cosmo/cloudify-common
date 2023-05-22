@@ -3,6 +3,7 @@ import warnings
 from copy import copy
 
 from cloudify_rest_client import constants, utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 from .labels import Label
@@ -580,16 +581,21 @@ class DeploymentGroupsClient(object):
             return entities
         return (e for e in entities if e['id'] in deployment_groups_ids)
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore deployment groups from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          deployment groups to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['group_id'] = entity.pop('id')
             entity['blueprint_id'] = entity.pop('default_blueprint_id')
-            self.put(**entity)
+            try:
+                self.put(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring deployment group "
+                             f"{entity['group_id']}: {exc}")
 
 
 class DeploymentOutputsClient(object):
@@ -1026,11 +1032,12 @@ class DeploymentsClient(object):
             return entities
         return (e for e in entities if e['id'] in deployment_ids)
 
-    def restore(self, entities, path_func=None):
+    def restore(self, entities, logger, path_func=None):
         """Restore deployments from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          deployments to be restored.
+        :param logger: A logger instance.
         :param path_func: A function used retrieve deployment's path.
         """
         for entity in entities:
@@ -1049,4 +1056,8 @@ class DeploymentsClient(object):
                         wf.pop('name'): wf
                         for wf in entity.pop('workflows', {})
                     }
-                self.create(**entity)
+                try:
+                    self.create(**entity)
+                except CloudifyClientError as exc:
+                    logger.error("Error restoring deployment "
+                                 f"{entity['deployment_id']}: {exc}")

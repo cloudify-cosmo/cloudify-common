@@ -1,4 +1,5 @@
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -161,11 +162,16 @@ class SitesClient(object):
             return entities
         return (e for e in entities if e['name'] in site_ids)
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore sites from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          sites to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring site "
+                             f"{entity['name']}: {exc}")

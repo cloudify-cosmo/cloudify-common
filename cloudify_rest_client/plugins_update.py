@@ -1,6 +1,7 @@
 import warnings
 
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -214,18 +215,23 @@ class PluginsUpdateClient(object):
             return entities
         return (e for e in entities if e['id'] in plugins_update_ids)
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore plugins updates from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          plugins updates to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['update_id'] = entity.pop('id')
             entity['affected_deployments'] = entity.pop(
                     'deployments_to_update', None)
             entity['force'] = entity.pop('forced', None)
-            self.inject(**entity)
+            try:
+                self.inject(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring plugins update "
+                             f"{entity['update_id']}: {exc}")
 
 
 def _data_from_kwargs(**kwargs):

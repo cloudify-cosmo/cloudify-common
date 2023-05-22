@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -301,13 +302,18 @@ class ExecutionSchedulesClient(object):
             return entities
         return (e for e in entities if e['id'] in execution_schedule_ids)
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore execution schedules from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          execution schedules to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['schedule_id'] = entity.pop('id')
             entity['rrule'] = entity.pop('rule', {}).pop('rrule')
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring execution schedule "
+                             f"{entity['schedule_id']}: {exc}")

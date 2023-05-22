@@ -1,4 +1,5 @@
 from cloudify_rest_client import utils
+from cloudify_rest_client.executions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -57,7 +58,7 @@ class PermissionsClient(object):
             self._uri_prefix,
         )
 
-    def restore(self, entities, logger=None):
+    def restore(self, entities, logger):
         """Restore permissions from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
@@ -70,4 +71,7 @@ class PermissionsClient(object):
                 if logger:
                     logger.debug('Skipping existing perm: %s', entity)
                 continue
-            self.add(**entity)
+            try:
+                self.add(**entity)
+            except CloudifyClientError as exc:
+                logger.error(f"Error restoring permission {entity}: {exc}")

@@ -1,4 +1,5 @@
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 DEFAULT_TENANT_ROLE = 'user'
@@ -211,7 +212,7 @@ class TenantsClient(object):
                 _include=['name', 'rabbitmq_password'],
         )
 
-    def restore(self, entities, logger=None):
+    def restore(self, entities, logger):
         """Restore tenants from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
@@ -226,4 +227,8 @@ class TenantsClient(object):
                     logger.debug('Skipping creation of default tenant')
                 continue
             entity['tenant_name'] = entity.pop('name')
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring tenant "
+                             f"{entity['tenant_name']}: {exc}")

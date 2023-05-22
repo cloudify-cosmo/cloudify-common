@@ -1,4 +1,5 @@
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -198,7 +199,7 @@ class UsersClient(object):
                           'first_login_at', 'last_login_at', 'created_at'],
         )
 
-    def restore(self, entities, logger=None):
+    def restore(self, entities, logger):
         """Restore users from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
@@ -215,5 +216,9 @@ class UsersClient(object):
             entity['password'] = entity.pop('password_hash')
             entity['is_prehashed'] = True
             tenant_roles = entity.pop('tenant_roles')
-            self.create(**entity)
-            yield {entity['username']: tenant_roles}
+            try:
+                self.create(**entity)
+                yield {entity['username']: tenant_roles}
+            except CloudifyClientError as exc:
+                logger.error("Error restoring user "
+                             f"{entity['username']}: {exc}")

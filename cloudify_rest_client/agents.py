@@ -1,5 +1,6 @@
 from cloudify.models_states import AgentState
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.utils import get_file_content
 
@@ -254,12 +255,16 @@ class AgentsClient(object):
                 if not agent_ids or entity['id'] in agent_ids:
                     yield {'__entity': entity, '__source_id': deployment_id}
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore agents from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          agents to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['name'] = entity.pop('id')
-            self.create(create_rabbitmq_user=True, **entity)
+            try:
+                self.create(create_rabbitmq_user=True, **entity)
+            except CloudifyClientError as exc:
+                logger.error(f"Error restoring agent {entity['name']}: {exc}")

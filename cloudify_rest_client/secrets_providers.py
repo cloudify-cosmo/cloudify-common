@@ -1,4 +1,5 @@
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -240,12 +241,17 @@ class SecretsProvidersClient(object):
             if not secrets_provider_ids or entity_id in secrets_provider_ids:
                 yield entity
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore secrets' providers from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          secrets' providers to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['_type'] = entity.pop('type', None)
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring secrets provider "
+                             f"{entity['id']}: {exc}")

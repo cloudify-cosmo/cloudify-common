@@ -2,6 +2,7 @@ from cloudify.deployment_dependencies import (build_deployment_dependency,
                                               DEPENDENCY_CREATOR)
 
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -226,11 +227,12 @@ class InterDeploymentDependencyClient(object):
         return (e for e in entities
                 if e['id'] in inter_deployment_dependency_ids)
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore inter-deployment dependencies from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          inter-deployment dependencies to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['_id'] = entity.pop('id')
@@ -241,4 +243,8 @@ class InterDeploymentDependencyClient(object):
                 entity.pop('source_deployment_id')
             entity['target_deployment'] = \
                 entity.pop('target_deployment_id')
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring inter-deployment dependency "
+                             f"{entity['_id']}: {exc}")

@@ -1,6 +1,7 @@
 import warnings
 
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -360,16 +361,20 @@ class NodesClient(object):
                 if not node_ids or entity['id'] in node_ids:
                     yield {'__entity': entity, '__source_id': deployment_id}
 
-    def restore(self, entities, deployment_id):
+    def restore(self, entities, logger, deployment_id):
         """Restore nodes from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          nodes to be restored.
+        :param logger: A logger instance.
         :param deployment_id: A deployment identifier for the entities.
         """
         for entity in entities:
             entity['creator'] = entity.pop('created_by')
-        self.create_many(deployment_id, entities)
+        try:
+            self.create_many(deployment_id, entities)
+        except CloudifyClientError as exc:
+            logger.error(f"Error restoring nodes: {exc}")
 
 
 class NodeTypesClient(object):

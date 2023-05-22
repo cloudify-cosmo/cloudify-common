@@ -680,11 +680,12 @@ class BlueprintsClient(object):
             return entities
         return (e for e in entities if e['id'] in blueprint_ids)
 
-    def restore(self, entities, path_func=None):
+    def restore(self, entities, logger, path_func=None):
         """Restore blueprints from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          blueprints to be restored.
+        :param logger: A logger instance.
         :param path_func: A function used retrieve blueprint's path.
         :returns: A generator of dictionaries, which describe additional data
          used for snapshot restore entities post-processing.
@@ -704,8 +705,12 @@ class BlueprintsClient(object):
                 detail = entity.pop(detail_name, None)
                 if detail:
                     extra_details[detail_name] = detail
-            self.publish_archive(**entity)
-            yield {
-                entity['blueprint_id']:
-                    (extra_details, entity['archive_location']),
-            }
+            try:
+                self.publish_archive(**entity)
+                yield {
+                    entity['blueprint_id']:
+                        (extra_details, entity['archive_location']),
+                }
+            except CloudifyClientError as exc:
+                logger.error(f"Error restoring blueprint {entity['id']}: "
+                             f"{exc}")

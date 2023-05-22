@@ -1,6 +1,7 @@
 import warnings
 
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -328,15 +329,20 @@ class ExecutionGroupsClient(object):
             return entities
         return (e for e in entities if e['id'] in execution_group_ids)
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore execution groups from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          execution groups to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['executions'] = entity.pop('execution_ids')
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring execution group "
+                             f"{entity['id']}: {exc}")
 
 
 class ExecutionsClient(object):
@@ -582,15 +588,20 @@ class ExecutionsClient(object):
             return entities
         return (e for e in entities if e['id'] in execution_ids)
 
-    def restore(self, entities):
+    def restore(self, entities, logger):
         """Restore executions from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          executions to be restored.
+        :param logger: A logger instance.
         """
         for entity in entities:
             entity['execution_id'] = entity.pop('id')
             entity['force_status'] = entity.pop('status')
             entity['dry_run'] = entity.pop('is_dry_run')
             entity['deployment_id'] = entity['deployment_id'] or ''
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring execution "
+                             f"{entity['execution_id']}: {exc}")

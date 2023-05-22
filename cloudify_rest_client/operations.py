@@ -1,4 +1,5 @@
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -274,14 +275,19 @@ class TasksGraphClient(object):
                 if not tasks_graph_ids or entity['id'] in tasks_graph_ids:
                     yield {'__entity': entity, '__source_id': execution_id}
 
-    def restore(self, entities, execution_id):
+    def restore(self, entities, logger, execution_id):
         """Restore tasks graphs from a snapshot.
 
         :param entities: An iterable (e.g. a list) of dictionaries describing
          tasks graphs to be restored.
+        :param logger: A logger instance.
         :param execution_id: An execution identifier for the entities.
         """
         for entity in entities:
             entity['graph_id'] = entity.pop('id')
             entity['execution_id'] = execution_id
-            self.create(**entity)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring tasks graph "
+                             f"{entity['graph_id']}: {exc}")
