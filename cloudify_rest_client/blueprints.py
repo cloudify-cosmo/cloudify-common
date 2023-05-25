@@ -712,5 +712,5 @@ class BlueprintsClient(object):
                         (extra_details, entity['archive_location']),
                 }
             except CloudifyClientError as exc:
-                logger.error(f"Error restoring blueprint {entity['id']}: "
-                             f"{exc}")
+                logger.error("Error restoring blueprint "
+                             f"{entity['blueprint_id']}: {exc}")
