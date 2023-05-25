@@ -256,19 +256,19 @@ class TasksGraphClient(object):
         params = {}
         for execution_id in execution_ids:
             params['execution_id'] = execution_id
-            ops = operations.get(execution_id)
+            not_assigned_ops = operations.get(execution_id) or []
             for entity in utils.get_all(
                     self.api.get,
                     f'/{self._uri_prefix}',
                     params=params,
                     _include=['created_at', 'execution_id', 'name', 'id'],
             ):
-                graph_ops = [op for op in ops
+                graph_ops = [op for op in not_assigned_ops
                              if op['tasks_graph_id'] == entity['id']]
-                ops = [op for op in ops
-                       if op['tasks_graph_id'] != entity['id']]
-                for op in graph_ops:
-                    op.pop('tasks_graph_id')
+                not_assigned_ops = [op for op in not_assigned_ops
+                                    if op['tasks_graph_id'] != entity['id']]
+                for operation in graph_ops:
+                    operation.pop('tasks_graph_id')
                 if graph_ops:
                     entity['operations'] = graph_ops
 
