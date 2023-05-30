@@ -191,9 +191,11 @@ class ExecutionGroupsClient(object):
             [ExecutionGroup(item) for item in response['items']],
             response['metadata'])
 
-    def get(self, execution_group_id):
+    def get(self, execution_group_id, _include=None):
         response = self.api.get(
-            '/execution-groups/{0}'.format(execution_group_id))
+            '/execution-groups/{0}'.format(execution_group_id),
+            _include=_include,
+        )
         return ExecutionGroup(response)
 
     def create(self, deployment_group_id, workflow_id, executions,
