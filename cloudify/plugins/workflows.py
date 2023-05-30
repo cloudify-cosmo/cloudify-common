@@ -751,6 +751,7 @@ def scale_entity(ctx,
             }
         })
     ctx.refresh_node_instances()
+    graph_name_prefix = scalable_entity_name + '_'
     graph = ctx.graph_mode()
     try:
         ctx.logger.info('Deployment modification started. '
@@ -770,7 +771,9 @@ def scale_entity(ctx,
                 lifecycle.install_node_instances(
                     graph=graph,
                     node_instances=added,
-                    related_nodes=related)
+                    related_nodes=related,
+                    name_prefix=graph_name_prefix,
+                )
             except Exception:
                 if not rollback_if_failed:
                     ctx.logger.error('Scale out failed.')
@@ -792,7 +795,9 @@ def scale_entity(ctx,
                     graph=graph,
                     node_instances=added,
                     ignore_failure=ignore_failure,
-                    related_nodes=related)
+                    related_nodes=related,
+                    name_prefix=graph_name_prefix,
+                )
                 raise
         else:
             removed = {
@@ -809,7 +814,9 @@ def scale_entity(ctx,
                 graph=graph,
                 node_instances=removed,
                 ignore_failure=ignore_failure,
-                related_nodes=related)
+                related_nodes=related,
+                name_prefix=graph_name_prefix,
+            )
     except Exception:
         if not rollback_if_failed:
             raise
