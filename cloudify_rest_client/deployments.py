@@ -1,10 +1,14 @@
+import os
 import warnings
 from copy import copy
 
+from cloudify_rest_client import constants, utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
-from cloudify_rest_client.constants import VisibilityState
 
 from .labels import Label
+
+EMPTY_B64_ZIP = 'UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA=='
 
 
 class Deployment(dict):
@@ -395,7 +399,7 @@ class DeploymentGroupsClient(object):
         response = self.api.get('/deployment-groups/{0}'.format(group_id))
         return DeploymentGroup(response)
 
-    def put(self, group_id, visibility=VisibilityState.TENANT,
+    def put(self, group_id, visibility=constants.VisibilityState.TENANT,
             description=None, blueprint_id=None, default_inputs=None,
             labels=None, filter_id=None, deployment_ids=None,
             new_deployments=None, deployments_from_group=None,
@@ -534,7 +538,7 @@ class DeploymentGroupsClient(object):
         return DeploymentGroup(response)
 
     def delete(self, group_id, delete_deployments=False,
-               force=False, with_logs=False):
+               force=False, with_logs=False, recursive=False):
         """Delete a deployment group. By default, keep the deployments.
 
         :param group_id: the group to remove
@@ -542,16 +546,56 @@ class DeploymentGroupsClient(object):
             to this group
         :param force: same meaning as in deployments.delete
         :param with_logs: same meaning as in deployments.delete
+        :param recursive: same meaning as in deployments.delete
         """
-        self.api.delete(
+        return self.api.delete(
             '/deployment-groups/{0}'.format(group_id),
             params={
                 'delete_deployments': delete_deployments,
                 'force': force,
                 'delete_logs': with_logs,
+                'recursive': recursive,
             },
-            expected_status_code=204
+            expected_status_code=(200, 204),
         )
+
+    def dump(self, deployment_groups_ids=None):
+        """Generate deployment groups' attributes for a snapshot.
+
+        :param deployment_groups_ids: A list of deployment groups'
+         identifiers, if not empty, used to select deployment groups
+         to be dumped.
+        :returns: A generator of dictionaries, which describe deployment
+         groups' attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                '/deployment-groups',
+                params={'_get_data': True},
+                _include=['id', 'visibility', 'description', 'labels',
+                          'default_blueprint_id', 'default_inputs',
+                          'deployment_ids', 'created_by', 'created_at',
+                          'creation_counter'],
+        )
+        if not deployment_groups_ids:
+            return entities
+        return (e for e in entities if e['id'] in deployment_groups_ids)
+
+    def restore(self, entities, logger):
+        """Restore deployment groups from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         deployment groups to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            entity['group_id'] = entity.pop('id')
+            entity['blueprint_id'] = entity.pop('default_blueprint_id')
+            try:
+                self.put(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring deployment group "
+                             f"{entity['group_id']}: {exc}")
 
 
 class DeploymentOutputsClient(object):
@@ -732,7 +776,7 @@ class DeploymentsClient(object):
                blueprint_id,
                deployment_id,
                inputs=None,
-               visibility=VisibilityState.TENANT,
+               visibility=constants.VisibilityState.TENANT,
                skip_plugins_validation=False,
                site_name=None,
                runtime_only_evaluation=False,
@@ -862,10 +906,14 @@ class DeploymentsClient(object):
             uri, data, params=params, expected_status_code=201)
         return Deployment(response)
 
-    def delete(self, deployment_id,
-               force=False,
-               delete_db_mode=False,
-               with_logs=False):
+    def delete(
+        self,
+        deployment_id,
+        force=False,
+        delete_db_mode=False,
+        with_logs=False,
+        recursive=False,
+    ):
         """
         Deletes the deployment whose id matches the provided deployment id.
         By default, deletion of a deployment with live nodes or installations
@@ -878,10 +926,16 @@ class DeploymentsClient(object):
         :param delete_db_mode: deprecated and does nothing
         :param with_logs: when set to true, the management workers' logs for
                the deployment are deleted as well.
+        :param recursive: also delete all service deployments contained in
+               this delployment.
         :return: The deleted deployment.
         """
         assert deployment_id
-        params = {'force': force, 'delete_logs': with_logs}
+        params = {
+            'force': force,
+            'delete_logs': with_logs,
+            'recursive': recursive,
+        }
         if delete_db_mode:
             warnings.warn('delete_db_mode is deprecated and does nothing',
                           DeprecationWarning)
@@ -951,3 +1005,59 @@ class DeploymentsClient(object):
         updated_dep = self.api.patch(
             '/deployments/{0}'.format(deployment_id), data=kwargs)
         return Deployment(updated_dep)
+
+    def dump(self, deployment_ids=None):
+        """Generate deployments' attributes for a snapshot.
+
+        :param deployment_ids: A list of deployments' identifiers, if not
+         empty, used to select specific deployments to be dumped.
+        :returns: A generator of dictionaries, which describe deployments'
+         attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                '/deployments',
+                params={'_get_data': True},
+                _include=['id', 'blueprint_id', 'inputs', 'visibility',
+                          'labels', 'display_name', 'runtime_only_evaluation',
+                          'created_by', 'created_at', 'workflows', 'groups',
+                          'policy_triggers', 'policy_types', 'outputs',
+                          'capabilities', 'description', 'scaling_groups',
+                          'resource_tags', 'deployment_status',
+                          'installation_status', 'sub_services_status',
+                          'sub_environments_status', 'sub_services_count',
+                          'sub_environments_count'],
+        )
+        if not deployment_ids:
+            return entities
+        return (e for e in entities if e['id'] in deployment_ids)
+
+    def restore(self, entities, logger, path_func=None):
+        """Restore deployments from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         deployments to be restored.
+        :param logger: A logger instance.
+        :param path_func: A function used retrieve deployment's path.
+        """
+        for entity in entities:
+            if path_func:
+                workdir_location = path_func(entity['id'])
+                if workdir_location and os.path.exists(workdir_location):
+                    with open(workdir_location) as workdir_handle:
+                        entity['_workdir_zip'] = workdir_handle.read()
+                    os.unlink(workdir_location)
+                else:
+                    entity['_workdir_zip'] = EMPTY_B64_ZIP
+                entity['deployment_id'] = entity.pop('id')
+                entity['async_create'] = False
+                if entity['workflows']:
+                    entity['workflows'] = {
+                        wf.pop('name'): wf
+                        for wf in entity.pop('workflows', {})
+                    }
+                try:
+                    self.create(**entity)
+                except CloudifyClientError as exc:
+                    logger.error("Error restoring deployment "
+                                 f"{entity['deployment_id']}: {exc}")

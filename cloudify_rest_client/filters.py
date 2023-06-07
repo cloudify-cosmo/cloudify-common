@@ -1,5 +1,6 @@
+from cloudify_rest_client import constants, utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
-from cloudify_rest_client.constants import VisibilityState
 
 
 class Filter(dict):
@@ -43,12 +44,13 @@ class Filter(dict):
 class FiltersClient(object):
     def __init__(self, api, filtered_resource):
         self.api = api
+        self._filtered_resource = filtered_resource
         self.uri = '/filters/' + filtered_resource
 
     def create(self,
                filter_id,
                filter_rules,
-               visibility=VisibilityState.TENANT,
+               visibility=constants.VisibilityState.TENANT,
                created_at=None,
                created_by=None):
         """Creates a new filter.
@@ -134,6 +136,41 @@ class FiltersClient(object):
         response = self.api.patch('{0}/{1}'.format(self.uri, filter_id),
                                   data=data)
         return Filter(response)
+
+    def dump(self, filter_ids=None):
+        """Generate filters' attributes for a snapshot.
+
+        :param filter_ids: A list of filter identifiers, if not empty,
+         used to select specific filters to be dumped.
+        :returns: A generator of dictionaries, which describe filters'
+         attributes.
+        """
+        for entity in utils.get_all(
+                self.api.get,
+                self.uri,
+                _include=['created_at', 'id', 'visibility', 'value',
+                          'created_by', 'is_system_filter'],
+        ):
+            if entity.pop('is_system_filter'):
+                continue
+            if not filter_ids or entity['id'] in filter_ids:
+                yield entity
+
+    def restore(self, entities, logger):
+        """Restore filters from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         filters to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            entity['filter_id'] = entity.pop('id')
+            entity['filter_rules'] = entity.pop('value')
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring filter "
+                             f"{entity['filter_id']}: {exc}")
 
 
 class BlueprintsFiltersClient(FiltersClient):

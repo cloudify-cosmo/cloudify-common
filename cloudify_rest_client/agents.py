@@ -1,19 +1,6 @@
-########
-# Copyright (c) 2018 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 from cloudify.models_states import AgentState
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.utils import get_file_content
 
@@ -239,3 +226,45 @@ class AgentsClient(object):
         response = self.api.patch('/' + self._uri_prefix, data=data)
 
         return response
+
+    def dump(self, deployment_ids=None, agent_ids=None):
+        """Generate agents' attributes for a snapshot.
+
+        :param deployment_ids: A list of deployments' identifiers used to
+         select agents to be dumped, should not be empty.
+        :param agent_ids: A list of agents' identifiers, if not empty, used
+         to select specific agents to be dumped.
+        :returns: A generator of dictionaries, which describe agents'
+         attributes.
+        """
+        if not deployment_ids:
+            return
+        for deployment_id in deployment_ids:
+            entities = utils.get_all(
+                    self.api.get,
+                    f'/{self._uri_prefix}',
+                    params={'_get_data': True,
+                            'deployment_id': deployment_id},
+                    _include=['id', 'node_instance_id', 'state', 'created_at',
+                              'created_by', 'rabbitmq_password',
+                              'rabbitmq_username', 'rabbitmq_exchange',
+                              'version', 'system', 'install_method', 'ip',
+                              'visibility'],
+            )
+            for entity in entities:
+                if not agent_ids or entity['id'] in agent_ids:
+                    yield {'__entity': entity, '__source_id': deployment_id}
+
+    def restore(self, entities, logger):
+        """Restore agents from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         agents to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            entity['name'] = entity.pop('id')
+            try:
+                self.create(create_rabbitmq_user=True, **entity)
+            except CloudifyClientError as exc:
+                logger.error(f"Error restoring agent {entity['name']}: {exc}")

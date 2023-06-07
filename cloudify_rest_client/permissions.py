@@ -1,3 +1,5 @@
+from cloudify_rest_client import utils
+from cloudify_rest_client.executions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -44,3 +46,32 @@ class PermissionsClient(object):
         """
         self.api.delete(
             '{0}/{1}/{2}'.format(self._uri_prefix, role, permission))
+
+    def dump(self):
+        """Generate permissions' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe permissions'
+         attributes.
+        """
+        return utils.get_all(
+            self.api.get,
+            self._uri_prefix,
+        )
+
+    def restore(self, entities, logger):
+        """Restore permissions from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         permissions to be restored.
+        :param logger: A logger instance.
+        """
+        existing_perms = self.list()
+        for entity in entities:
+            if entity in existing_perms:
+                if logger:
+                    logger.debug('Skipping existing perm: %s', entity)
+                continue
+            try:
+                self.add(**entity)
+            except CloudifyClientError as exc:
+                logger.error(f"Error restoring permission {entity}: {exc}")

@@ -1,18 +1,5 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -119,3 +106,36 @@ class UserGroupsClient(object):
     def remove_user(self, username, group_name):
         data = {'username': username, 'group_name': group_name}
         self.api.delete('/user-groups/users', data=data)
+
+    def dump(self):
+        """Generate user groups' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe user groups'
+         attributes.
+        """
+        return utils.get_all(
+                self.api.get,
+                '/user-groups',
+                params={'_get_data': True},
+                _include=['name', 'ldap_dn', 'tenants', 'role']
+        )
+
+    def restore(self, entities, logger):
+        """Restore user_groups from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         user_groups to be restored.
+        :param logger: A logger instance.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            entity['group_name'] = entity.pop('name')
+            entity['ldap_group_dn'] = entity.pop('ldap_dn')
+            group_tenants = entity.pop('tenants')
+            try:
+                self.create(**entity)
+                yield {entity['group_name']: group_tenants}
+            except CloudifyClientError as exc:
+                logger.error("Error restoring user group "
+                             f"{entity['group_name']}: {exc}")

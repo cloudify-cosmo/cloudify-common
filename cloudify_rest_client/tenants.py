@@ -1,18 +1,5 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 DEFAULT_TENANT_ROLE = 'user'
@@ -212,3 +199,36 @@ class TenantsClient(object):
 
     def delete(self, tenant_name):
         self.api.delete('/tenants/{0}'.format(tenant_name))
+
+    def dump(self):
+        """Generate tenants' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe tenants'
+         attributes.
+        """
+        return utils.get_all(
+                self.api.get,
+                '/tenants',
+                _include=['name', 'rabbitmq_password'],
+        )
+
+    def restore(self, entities, logger):
+        """Restore tenants from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         tenants to be restored.
+        :param logger: A logger instance.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            if entity['name'] == 'default_tenant':
+                if logger:
+                    logger.debug('Skipping creation of default tenant')
+                continue
+            entity['tenant_name'] = entity.pop('name')
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring tenant "
+                             f"{entity['tenant_name']}: {exc}")

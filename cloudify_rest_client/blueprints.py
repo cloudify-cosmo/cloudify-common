@@ -7,9 +7,7 @@ from urllib.parse import quote as urlquote, urlparse
 
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
-from cloudify_rest_client import utils
-from cloudify_rest_client import bytes_stream_utils
-from cloudify_rest_client.constants import VisibilityState
+from cloudify_rest_client import bytes_stream_utils, constants, utils
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
@@ -188,7 +186,7 @@ class BlueprintsClient(object):
         archive_location,
         blueprint_id,
         application_file_name=None,
-        visibility=VisibilityState.TENANT,
+        visibility=constants.VisibilityState.TENANT,
         progress_callback=None,
         async_upload=False,
         labels=None,
@@ -260,7 +258,7 @@ class BlueprintsClient(object):
                   archive_location,
                   blueprint_id,
                   application_file_name=None,
-                  visibility=VisibilityState.TENANT,
+                  visibility=constants.VisibilityState.TENANT,
                   progress_callback=None):
         return self._upload(archive_location, blueprint_id,
                             application_file_name=application_file_name,
@@ -348,7 +346,7 @@ class BlueprintsClient(object):
         archive_location,
         blueprint_id,
         blueprint_filename=None,
-        visibility=VisibilityState.TENANT,
+        visibility=constants.VisibilityState.TENANT,
         progress_callback=None,
         async_upload=False,
         labels=None,
@@ -408,7 +406,7 @@ class BlueprintsClient(object):
         self,
         path,
         entity_id,
-        visibility=VisibilityState.TENANT,
+        visibility=constants.VisibilityState.TENANT,
         progress_callback=None,
         skip_size_limit=True,
         async_upload=False,
@@ -472,7 +470,7 @@ class BlueprintsClient(object):
                  path,
                  entity_id,
                  blueprint_filename=None,
-                 visibility=VisibilityState.TENANT,
+                 visibility=constants.VisibilityState.TENANT,
                  progress_callback=None,
                  skip_size_limit=True):
         """
@@ -572,7 +570,7 @@ class BlueprintsClient(object):
         :param blueprint_id: Blueprint's id to update.
         :return: The blueprint.
         """
-        data = {'visibility': VisibilityState.GLOBAL}
+        data = {'visibility': constants.VisibilityState.GLOBAL}
         return self.api.patch(
             '/{self._uri_prefix}/{id}/set-visibility'.format(
                 self=self, id=blueprint_id),
@@ -660,3 +658,59 @@ class BlueprintsClient(object):
         self.api.patch('/{self._uri_prefix}/{id}/icon'.format(
             self=self, id=blueprint_id),
         )
+
+    def dump(self, blueprint_ids=None):
+        """Generate blueprints' attributes for a snapshot.
+
+        :param blueprint_ids: A list of blueprints identifiers, if not empty,
+         used to select specific blueprints to be dumped.
+        :returns: A generator of dictionaries, which describe blueprints'
+         attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                params={'_get_data': True},
+                _include=['id', 'visibility', 'labels', 'created_at',
+                          'created_by', 'state', 'main_file_name', 'plan',
+                          'description', 'error', 'error_traceback',
+                          'is_hidden', 'requirements'],
+        )
+        if not blueprint_ids:
+            return entities
+        return (e for e in entities if e['id'] in blueprint_ids)
+
+    def restore(self, entities, logger, path_func=None):
+        """Restore blueprints from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         blueprints to be restored.
+        :param logger: A logger instance.
+        :param path_func: A function used retrieve blueprint's path.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            if path_func:
+                entity['archive_location'] = path_func(entity['id'])
+            entity['skip_execution'] = True
+            entity['blueprint_id'] = entity.pop('id')
+            entity['blueprint_filename'] = entity.pop('main_file_name')
+            entity['async_upload'] = True
+            extra_details = {}
+            for detail_name in [
+                'plan', 'state', 'error', 'error_traceback',
+                'is_hidden', 'description', 'labels', 'requirements',
+            ]:
+                detail = entity.pop(detail_name, None)
+                if detail:
+                    extra_details[detail_name] = detail
+            try:
+                self.publish_archive(**entity)
+                yield {
+                    entity['blueprint_id']:
+                        (extra_details, entity['archive_location']),
+                }
+            except CloudifyClientError as exc:
+                logger.error("Error restoring blueprint "
+                             f"{entity['blueprint_id']}: {exc}")

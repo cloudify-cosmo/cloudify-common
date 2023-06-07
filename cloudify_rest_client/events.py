@@ -1,6 +1,8 @@
 import warnings
 from datetime import datetime
 
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -146,3 +148,125 @@ class EventsClient(object):
             params['_sort'] = sort
 
         return params
+
+    def dump(self, execution_ids=None, execution_group_ids=None,
+             include_logs=None, event_storage_ids=None):
+        """Generate events' attributes for a snapshot.
+
+        :param execution_ids: A list of executions' identifiers used to
+         select events to be dumped.
+        :param execution_group_ids: A list of execution groups' identifiers
+         used to select events to be dumped.
+        :param include_logs: A flag, which determines if `cloudify_log` entries
+         should be included in the snapshot.
+        :param event_storage_ids: A list of events' storage identifiers, if
+         not empty, used to select specific events to be dumped.
+        :returns: A generator of dictionaries, which describe events'
+         attributes.
+        """
+        if execution_ids:
+            for entity in self._dump_events(include_logs, 'execution_id',
+                                            execution_ids):
+                entity.update({'__source': 'executions'})
+                if not event_storage_ids or \
+                        entity['__entity']['_storage_id'] in event_storage_ids:
+                    yield entity
+        if execution_group_ids:
+            for entity in self._dump_events(include_logs, 'execution_group_id',
+                                            execution_group_ids):
+                entity.update({'__source': 'execution_groups'})
+                if not event_storage_ids or \
+                        entity['__entity']['_storage_id'] in event_storage_ids:
+                    yield entity
+
+    def _dump_events(self, include_logs, event_source_id_key, source_ids):
+        if not source_ids:
+            return []
+        params = {
+            '_get_data': True,
+            'type': ['cloudify_event'],
+        }
+        if include_logs:
+            params['type'].append('cloudify_log')
+        for source_id in source_ids:
+            params[event_source_id_key] = source_id
+            for entity in utils.get_all(
+                    self.api.get,
+                    '/events',
+                    params=params,
+                    _include=['_storage_id', 'timestamp', 'reported_timestamp',
+                              'workflow_id', 'blueprint_id', 'deployment_id',
+                              'deployment_display_name',
+                              'message', 'error_causes', 'event_type',
+                              'operation', 'source_id', 'target_id',
+                              'node_instance_id', 'type', 'logger', 'level',
+                              'manager_name', 'agent_name'],
+            ):
+                yield {'__entity': entity, '__source_id': source_id}
+
+    def restore(self, entities, logger, source_type, source_id):
+        """Restore events from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         node instances to be restored.
+        :param logger: A logger instance.
+        :param source_type: Type of events' "parent" entity: `executions`
+         or `execution_groups`.
+        :param source_id: An identifier of the entity, which these events
+         belong to.
+        """
+        events = {}
+        logs = {}
+        logger_names = set()
+        for entity in entities:
+            manager = entity.pop('manager_name')
+            agent = entity.pop('agent_name')
+            logger_name = (manager, agent)
+            logger_names.add(logger_name)
+            if entity['type'] == 'cloudify_event':
+                entity['context'] = {
+                    'source_id': entity.pop('source_id'),
+                    'target_id': entity.pop('target_id'),
+                    # This looks wrong, but it's a legacy thing
+                    'node_id': entity.pop('node_instance_id'),
+                }
+                entity['message'] = {
+                    'text': entity.pop('message'),
+                }
+                events.setdefault(logger_name, []).append(entity)
+            elif entity['type'] == 'cloudify_log':
+                entity['context'] = {
+                    'operation': entity.pop('operation'),
+                    'source_id': entity.pop('source_id'),
+                    'target_id': entity.pop('target_id'),
+                    # This looks wrong, but it's a legacy thing
+                    'node_id': entity.pop('node_instance_id'),
+                }
+                entity['message'] = {
+                    'text': entity.pop('message'),
+                }
+                logs.setdefault(logger_name, []).append(entity)
+            else:
+                logger.warn(
+                        'Log/event parsing failed on %s',
+                        entity,
+                )
+
+        for logger_name in logger_names:
+            manager, agent = logger_name
+            kwargs = {
+                'events': events.pop(logger_name, []),
+                'logs': logs.pop(logger_name, []),
+                'manager_name': manager,
+                'agent_name': agent,
+            }
+            if source_type == 'executions':
+                kwargs['execution_id'] = source_id
+            elif source_type == 'execution_groups':
+                kwargs['execution_group_id'] = source_id
+
+            try:
+                self.create(**kwargs)
+            except CloudifyClientError as exc:
+                logger.error(f'Error restoring events of {source_type} '
+                             f'{source_id}: {exc}')

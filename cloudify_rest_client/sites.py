@@ -1,18 +1,5 @@
-########
-# Copyright (c) 2013-2019 Cloudify Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -155,3 +142,36 @@ class SitesClient(object):
         self.api.delete(
             '/{self._uri_prefix}/{name}'.format(self=self, name=name)
         )
+
+    def dump(self, site_ids=None):
+        """Generate sites' attributes for a snapshot.
+
+        :param site_ids: A list of site identifiers, if not empty,
+         used to select specific sites to be dumped.
+        :returns: A generator of dictionaries, which describe sites'
+         attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                params={'_get_data': True},
+                _include=['name', 'location', 'visibility', 'created_by',
+                          'created_at']
+        )
+        if not site_ids:
+            return entities
+        return (e for e in entities if e['name'] in site_ids)
+
+    def restore(self, entities, logger):
+        """Restore sites from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         sites to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring site "
+                             f"{entity['name']}: {exc}")

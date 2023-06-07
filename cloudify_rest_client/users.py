@@ -1,3 +1,5 @@
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -182,3 +184,41 @@ class UsersClient(object):
             params=kwargs
         )
         return User(response)
+
+    def dump(self):
+        """Generate users' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe users'
+         attributes.
+        """
+        return utils.get_all(
+                self.api.get,
+                '/users',
+                params={'_get_data': True, '_include_hash': True},
+                _include=['username', 'role', 'tenant_roles',
+                          'first_login_at', 'last_login_at', 'created_at'],
+        )
+
+    def restore(self, entities, logger):
+        """Restore users from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         users to be restored.
+        :param logger: A logger instance.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            if entity['username'] == 'admin':
+                if logger:
+                    logger.debug('Skipping creation of admin user')
+                continue
+            entity['password'] = entity.pop('password_hash')
+            entity['is_prehashed'] = True
+            tenant_roles = entity.pop('tenant_roles')
+            try:
+                self.create(**entity)
+                yield {entity['username']: tenant_roles}
+            except CloudifyClientError as exc:
+                logger.error("Error restoring user "
+                             f"{entity['username']}: {exc}")

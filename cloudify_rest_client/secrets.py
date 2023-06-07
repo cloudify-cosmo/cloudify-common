@@ -273,3 +273,31 @@ class SecretsClient(object):
             '/secrets/{0}/set-visibility'.format(key),
             data=data
         )
+
+    def dump(self):
+        """Generate secrets' attributes for a snapshot.
+
+        :returns: A generator of dictionaries, which describe secrets'
+         attributes.
+        """
+        return self.export(
+                _include=['key', 'value', 'visibility', 'is_hidden_value',
+                          'encrypted', 'tenant_name', 'creator', 'created_at',
+                          'provider', 'provider_options'],
+                _include_metadata=True,
+        )
+
+    def restore(self, entities, logger):
+        """Restore secrets from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         secrets to be restored.
+        :param logger: A logger instance.
+        """
+        response = self.import_secrets(secrets_list=entities)
+        collisions = response.get('colliding_secrets')
+        if collisions:
+            logger.warn('The following secrets existed: %s', collisions)
+        errors = response.get('secrets_errors')
+        if errors:
+            yield {'errors': errors}

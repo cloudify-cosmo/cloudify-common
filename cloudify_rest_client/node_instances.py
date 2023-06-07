@@ -1,19 +1,7 @@
-########
-# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
 import warnings
 
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -321,3 +309,63 @@ class NodeInstancesClient(object):
             .format(self=self, instance_id=instance_id),
             expected_status_code=204,
         )
+
+    def dump(self, deployment_ids=None, get_broker_conf=None,
+             node_instance_ids=None):
+        """Generate node instances' attributes for a snapshot.
+
+        :param deployment_ids: A list of deployments' identifiers used to
+         select node instances to be dumped, should not be empty.
+        :param get_broker_conf: A function used to retrieve broker
+         configuration.
+        :param node_instance_ids: A list of node instances' identifiers, if
+         not empty, used to select specific node instances to be dumped.
+        :returns: A generator of dictionaries, which describe node instances'
+         attributes.
+        """
+        if not deployment_ids:
+            return
+        for deployment_id in deployment_ids:
+            for entity in utils.get_all(
+                    self.api.get,
+                    f'/{self._uri_prefix}',
+                    params={'deployment_id': deployment_id},
+                    _include=['id', 'runtime_properties', 'state',
+                              'relationships', 'system_properties',
+                              'scaling_groups', 'host_id', 'index',
+                              'visibility', 'node_id', 'created_by',
+                              'has_configuration_drift', 'is_status_check_ok'],
+            ):
+                if get_broker_conf:
+                    # for "agent" node instances, store broker config in
+                    # runtime-props as well, so that during agent upgrade, we
+                    # can connect to the old rabbitmq. This is later analyzed
+                    # by snapshot_restore, _inject_broker_config, and by
+                    # several calls in cloudify-agent/operations.py (related
+                    # to creating the AMQP client there)
+                    rp = entity.get('runtime_properties') or {}
+                    if 'cloudify_agent' in rp:
+                        broker_conf = get_broker_conf(entity)
+                        rp['cloudify_agent'].update(broker_conf)
+                if not node_instance_ids or entity['id'] in node_instance_ids:
+                    yield {'__entity': entity, '__source_id': deployment_id}
+
+    def restore(self, entities, logger, deployment_id,
+                inject_broker_conf=None):
+        """Restore node instances from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         node instances to be restored.
+        :param logger: A logger instance.
+        :param deployment_id: A deployment identifier for the entities.
+        :param inject_broker_conf: A function used to inject broker
+         configuration for given node_instance's runtime_properties.
+        """
+        for entity in entities:
+            entity['creator'] = entity.pop('created_by')
+            if inject_broker_conf:
+                inject_broker_conf(entity['runtime_properties'])
+        try:
+            self.create_many(deployment_id, entities)
+        except CloudifyClientError as exc:
+            logger.error(f'Error restoring node instances: {exc}')

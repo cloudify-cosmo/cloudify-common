@@ -216,6 +216,9 @@ def _format_idds(plan, dep_specs):
             # the IDDSpec is a node one (e.g. in node properties):
             # create an instance of IDD, for every node-instance of the node
             node_name = idd_spec.context['node_name']
+            if not nis_by_node.get(node_name):
+                # node with 0 instances - nothing to do
+                continue
             for ni in nis_by_node[node_name]:
                 idd = idd_base.copy()
                 idd['context'] = {
@@ -228,7 +231,9 @@ def _format_idds(plan, dep_specs):
             # inputs) - create an instance of IDD for every node-instance of
             # the source node
             node_name = idd_spec.context['source_node_name']
-
+            if not nis_by_node.get(node_name):
+                # node with 0 instances - nothing to do
+                continue
             for ni in nis_by_node[node_name]:
                 target_id = _find_rel_target_by_iddspec(
                     ni.get('relationships', []),

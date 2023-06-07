@@ -23,7 +23,7 @@ def tar_blueprint(blueprint_path, dest_dir):
 
 def tar_file(file_to_tar, destination_dir, tar_name=''):
     """
-    tar a file into a desintation dir.
+    tar a file into a destination dir.
     :param file_to_tar:
     :param destination_dir:
     :param tar_name: optional tar name.
@@ -106,6 +106,23 @@ def find_executable(executable, path=None):
         return None
     else:
         return executable
+
+
+def get_all(method, *args, **kwargs):
+    """Generator of entities retrieved by a method called with args/kwargs."""
+    include = kwargs.get('_include')
+    if kwargs.get('params', {}).get('_include_hash'):
+        include.append('password_hash')
+    more_data = True
+    entities_yielded = 0
+    while more_data:
+        result = method(*args, **kwargs)
+        for item in result['items']:
+            yield {k: v for k, v in item.items()
+                   if include is None or k in include}
+            entities_yielded += 1
+        more_data = \
+            (entities_yielded < result['metadata']['pagination']['total'])
 
 
 class StreamedResponse(object):

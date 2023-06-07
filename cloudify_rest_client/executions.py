@@ -1,5 +1,7 @@
 import warnings
 
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -189,9 +191,11 @@ class ExecutionGroupsClient(object):
             [ExecutionGroup(item) for item in response['items']],
             response['metadata'])
 
-    def get(self, execution_group_id):
+    def get(self, execution_group_id, _include=None):
         response = self.api.get(
-            '/execution-groups/{0}'.format(execution_group_id))
+            '/execution-groups/{0}'.format(execution_group_id),
+            _include=_include,
+        )
         return ExecutionGroup(response)
 
     def create(self, deployment_group_id, workflow_id, executions,
@@ -307,6 +311,40 @@ class ExecutionGroupsClient(object):
             },
         )
         return ExecutionGroup(response)
+
+    def dump(self, execution_group_ids=None):
+        """Generate execution groups' attributes for a snapshot.
+
+        :param execution_group_ids: A list of execution groups' identifiers,
+         if not empty, used to select specific execution groups to be dumped.
+        :returns: A generator of dictionaries, which describe execution
+         groups' attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                '/execution-groups',
+                params={'_get_data': True},
+                _include=['id', 'created_at', 'workflow_id', 'execution_ids',
+                          'concurrency', 'deployment_group_id', 'created_by'],
+        )
+        if not execution_group_ids:
+            return entities
+        return (e for e in entities if e['id'] in execution_group_ids)
+
+    def restore(self, entities, logger):
+        """Restore execution groups from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         execution groups to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            entity['executions'] = entity.pop('execution_ids')
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring execution group "
+                             f"{entity['id']}: {exc}")
 
 
 class ExecutionsClient(object):
@@ -428,7 +466,7 @@ class ExecutionsClient(object):
                queue=False, schedule=None, force_status=None,
                created_by=None, created_at=None, started_at=None,
                ended_at=None, execution_id=None, wait_after_fail=600,
-               error=None):
+               is_system_workflow=None, error=None):
         """Creates an execution on a deployment.
         If force_status is provided, the execution will not be started.
         Otherwise, parameters and return value are identical to 'start'.
@@ -453,6 +491,7 @@ class ExecutionsClient(object):
             'started_at': started_at,
             'ended_at': ended_at,
             'id': execution_id,
+            'is_system_workflow': is_system_workflow,
             'error': error,
         }
         uri = '/executions'
@@ -526,3 +565,45 @@ class ExecutionsClient(object):
                                    params=kwargs,
                                    expected_status_code=200)
         return response['items'][0]['count']
+
+    def dump(self, execution_ids=None):
+        """Generate executions' attributes for a snapshot.
+
+        :param execution_ids: A list of executions' identifiers, if not
+         empty, used to select specific executions to be dumped.
+        :returns: A generator of dictionaries, which describe executions'
+         attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                _include=['deployment_id', 'workflow_id', 'parameters',
+                          'is_dry_run', 'allow_custom_parameters', 'status',
+                          'created_by', 'created_at', 'id', 'started_at',
+                          'ended_at', 'error', 'is_system_workflow'],
+                params={
+                    '_get_data': True,
+                    '_include_system_workflows': True,
+                },
+        )
+        if not execution_ids:
+            return entities
+        return (e for e in entities if e['id'] in execution_ids)
+
+    def restore(self, entities, logger):
+        """Restore executions from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         executions to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            entity['execution_id'] = entity.pop('id')
+            entity['force_status'] = entity.pop('status')
+            entity['dry_run'] = entity.pop('is_dry_run')
+            entity['deployment_id'] = entity['deployment_id'] or ''
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring execution "
+                             f"{entity['execution_id']}: {exc}")

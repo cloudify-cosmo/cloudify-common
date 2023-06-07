@@ -1,5 +1,7 @@
 import warnings
 
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -191,6 +193,45 @@ class PluginsUpdateClient(object):
                                                             self=self)
         )
         return PluginsUpdate(response)
+
+    def dump(self, plugins_update_ids=None):
+        """Generate plugins updates' attributes for a snapshot.
+
+        :param plugins_update_ids: A list of plugins updates' identifiers,
+         if not empty, used to select specific plugins updates to be dumped.
+        :returns: A generator of dictionaries, which describe plugins
+         updates' attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                params={'_get_data': True},
+                _include=['id', 'state', 'forced', 'all_tenants',
+                          'blueprint_id', 'execution_id', 'created_by',
+                          'created_at', 'deployments_to_update',
+                          'deployments_per_tenant', 'temp_blueprint_id'],
+        )
+        if not plugins_update_ids:
+            return entities
+        return (e for e in entities if e['id'] in plugins_update_ids)
+
+    def restore(self, entities, logger):
+        """Restore plugins updates from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         plugins updates to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            entity['update_id'] = entity.pop('id')
+            entity['affected_deployments'] = entity.pop(
+                    'deployments_to_update', None)
+            entity['force'] = entity.pop('forced', None)
+            try:
+                self.inject(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring plugins update "
+                             f"{entity['update_id']}: {exc}")
 
 
 def _data_from_kwargs(**kwargs):

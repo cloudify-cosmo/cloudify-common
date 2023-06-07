@@ -1,20 +1,8 @@
-# Copyright (c) 2017-2019 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from cloudify.deployment_dependencies import (build_deployment_dependency,
                                               DEPENDENCY_CREATOR)
 
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -204,7 +192,7 @@ class InterDeploymentDependencyClient(object):
                                 params=params)
         return self._wrap_list(response)
 
-    def restore(self, deployment_id, update_service_composition):
+    def legacy_restore(self, deployment_id, update_service_composition):
         """
         Updating the inter deployment dependencies table from the specified
         deployment during an upgrade
@@ -216,3 +204,47 @@ class InterDeploymentDependencyClient(object):
         }
         self.api.post('/{self._uri_prefix}/restore'.format(self=self),
                       data=data)
+
+    def dump(self, inter_deployment_dependency_ids=None):
+        """Generate inter-deployment dependencies' attributes for a snapshot.
+
+        :param inter_deployment_dependency_ids: A list of inter-deployment
+         dependencies' identifiers, if not empty, used to select specific
+         inter-deployment dependencies to be dumped.
+        :returns: A generator of dictionaries, which describe inter-deployment
+         dependencies' attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                _include=['id', 'visibility', 'created_at', 'created_by',
+                          'dependency_creator', 'target_deployment_func',
+                          'source_deployment_id', 'target_deployment_id',
+                          'external_source', 'external_target'],
+        )
+        if not inter_deployment_dependency_ids:
+            return entities
+        return (e for e in entities
+                if e['id'] in inter_deployment_dependency_ids)
+
+    def restore(self, entities, logger):
+        """Restore inter-deployment dependencies from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         inter-deployment dependencies to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            entity['_id'] = entity.pop('id')
+            entity['_visibility'] = entity.pop('visibility')
+            entity['_created_at'] = entity.pop('created_at')
+            entity['_created_by'] = entity.pop('created_by')
+            entity['source_deployment'] = \
+                entity.pop('source_deployment_id')
+            entity['target_deployment'] = \
+                entity.pop('target_deployment_id')
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring inter-deployment dependency "
+                             f"{entity['_id']}: {exc}")

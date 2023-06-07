@@ -1,3 +1,5 @@
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -157,6 +159,32 @@ class OperationsClient(object):
         uri = '/operations/{0}'.format(operation_id)
         self.api.delete(uri)
 
+    def dump(self, execution_ids=None, operation_ids=None):
+        """Generate operations' attributes for a snapshot.
+
+        :param execution_ids: A list of executions' identifiers used to
+         select operations to be dumped, should not be empty.
+        :param operation_ids: A list of operations' identifiers, if not empty,
+         used to select specific operations to be dumped.
+        :returns: A generator of dictionaries, which describe operations'
+         attributes.
+        """
+        if not execution_ids:
+            return
+        params = {}
+        for execution_id in execution_ids:
+            params['execution_id'] = execution_id
+            for entity in utils.get_all(
+                    self.api.get,
+                    f'/{self._uri_prefix}',
+                    params=params,
+                    _include=['agent_name', 'created_at', 'dependencies', 'id',
+                              'manager_name', 'name', 'parameters', 'state',
+                              'type', 'tasks_graph_id'],
+            ):
+                if not operation_ids or entity['id'] in operation_ids:
+                    yield {'__entity': entity, '__source_id': execution_id}
+
 
 class TasksGraph(dict):
     def __init__(self, tasks_graph):
@@ -210,3 +238,56 @@ class TasksGraphClient(object):
         uri = '/tasks_graphs/{0}'.format(tasks_graph_id)
         response = self.api.patch(uri, data={'state': state})
         return TasksGraph(response)
+
+    def dump(self, execution_ids=None, operations=None, tasks_graph_ids=None):
+        """Generate tasks graphs' attributes for a snapshot.
+
+        :param execution_ids: A list of executions' identifiers used to
+         select tasks graphs to be dumped, should not be empty.
+        :param operations: A list of operations, which might be associated
+         with (some of the) tasks graphs.
+        :param tasks_graph_ids: A list of tasks graphs' identifiers, if not
+         empty, used to select specific tasks graphs to be dumped.
+        :returns: A generator of dictionaries, which describe tasks graphs'
+         attributes.
+        """
+        if not execution_ids:
+            return
+        params = {}
+        for execution_id in execution_ids:
+            params['execution_id'] = execution_id
+            not_assigned_ops = operations.get(execution_id) or []
+            for entity in utils.get_all(
+                    self.api.get,
+                    f'/{self._uri_prefix}',
+                    params=params,
+                    _include=['created_at', 'execution_id', 'name', 'id'],
+            ):
+                graph_ops = [op for op in not_assigned_ops
+                             if op['tasks_graph_id'] == entity['id']]
+                not_assigned_ops = [op for op in not_assigned_ops
+                                    if op['tasks_graph_id'] != entity['id']]
+                for operation in graph_ops:
+                    operation.pop('tasks_graph_id')
+                if graph_ops:
+                    entity['operations'] = graph_ops
+
+                if not tasks_graph_ids or entity['id'] in tasks_graph_ids:
+                    yield {'__entity': entity, '__source_id': execution_id}
+
+    def restore(self, entities, logger, execution_id):
+        """Restore tasks graphs from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         tasks graphs to be restored.
+        :param logger: A logger instance.
+        :param execution_id: An execution identifier for the entities.
+        """
+        for entity in entities:
+            entity['graph_id'] = entity.pop('id')
+            entity['execution_id'] = execution_id
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring tasks graph "
+                             f"{entity['graph_id']}: {exc}")

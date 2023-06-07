@@ -1,18 +1,3 @@
-########
-# Copyright (c) 2016 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
-
 import os
 import json
 import shutil
@@ -23,6 +8,7 @@ from urllib.request import pathname2url
 from mimetypes import MimeTypes
 
 from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -268,3 +254,47 @@ class DeploymentUpdatesClient(object):
         uri = '/deployment-updates/{0}/update/finalize'.format(update_id)
         response = self.api.post(uri)
         return DeploymentUpdate(response)
+
+    def dump(self, deployment_update_ids=None):
+        """Generate deployment updates' attributes for a snapshot.
+
+        :param deployment_update_ids: A list of deployment updates'
+         identifiers, if not empty, used to select specific deployment
+         updates to be dumped.
+        :returns: A generator of dictionaries, which describe deployment
+         updates' attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                '/deployment-updates',
+                params={'_get_data': True},
+                _include=['id', 'deployment_id', 'new_blueprint_id', 'state',
+                          'new_inputs', 'created_at', 'created_by',
+                          'execution_id', 'old_blueprint_id',
+                          'runtime_only_evaluation', 'deployment_plan',
+                          'deployment_update_node_instances',
+                          'visibility', 'steps',
+                          'central_plugins_to_uninstall',
+                          'central_plugins_to_install', 'old_inputs',
+                          'deployment_update_nodes', 'modified_entity_ids']
+        )
+        if not deployment_update_ids:
+            return entities
+        return (e for e in entities if e['id'] in deployment_update_ids)
+
+    def restore(self, entities, logger):
+        """Restore deployment updates from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         deployment updates to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            entity['update_id'] = entity.pop('id')
+            entity['blueprint_id'] = entity.pop('new_blueprint_id')
+            entity['inputs'] = entity.pop('new_inputs', None)
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring deployment update "
+                             f"{entity['update_id']}: {exc}")

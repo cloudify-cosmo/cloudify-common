@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from cloudify_rest_client import utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
@@ -278,3 +280,40 @@ class ExecutionSchedulesClient(object):
         uri = '/{self._uri_prefix}/{id}'.format(self=self, id=schedule_id)
         response = self.api.get(uri, _include=_include, params=params)
         return ExecutionSchedule(response)
+
+    def dump(self, execution_schedule_ids=None):
+        """Generate execution schedules' attributes for a snapshot.
+
+        :param execution_schedule_ids: A list of execution schedules'
+         identifiers, if not empty, used to select specific execution
+         schedules to be dumped.
+        :returns: A generator of dictionaries, which describe execution
+         schedules' attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                f'/{self._uri_prefix}',
+                _include=['id', 'rule', 'deployment_id', 'workflow_id',
+                          'created_at', 'since', 'until', 'stop_on_fail',
+                          'parameters', 'execution_arguments', 'slip',
+                          'enabled', 'created_by'],
+        )
+        if not execution_schedule_ids:
+            return entities
+        return (e for e in entities if e['id'] in execution_schedule_ids)
+
+    def restore(self, entities, logger):
+        """Restore execution schedules from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         execution schedules to be restored.
+        :param logger: A logger instance.
+        """
+        for entity in entities:
+            entity['schedule_id'] = entity.pop('id')
+            entity['rrule'] = entity.pop('rule', {}).pop('rrule')
+            try:
+                self.create(**entity)
+            except CloudifyClientError as exc:
+                logger.error("Error restoring execution schedule "
+                             f"{entity['schedule_id']}: {exc}")

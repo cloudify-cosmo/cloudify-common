@@ -4,7 +4,8 @@ import re
 import tempfile
 from urllib.parse import urlparse
 
-from cloudify_rest_client import bytes_stream_utils
+from cloudify_rest_client import bytes_stream_utils, utils
+from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 from cloudify_rest_client.constants import VisibilityState
 
@@ -478,3 +479,46 @@ class PluginsClient(object):
         response = self.api.patch('/plugins/{0}'.format(plugin_id),
                                   data=kwargs)
         return Plugin(response)
+
+    def dump(self, plugin_ids=None):
+        """Generate plugins' attributes for a snapshot.
+
+        :param plugin_ids: A list of plugin identifiers, if not empty,
+         used to select specific plugins to be dumped.
+        :returns: A generator of dictionaries, which describe plugins'
+         attributes.
+        """
+        entities = utils.get_all(
+                self.api.get,
+                '/plugins',
+                params={'_get_data': True},
+                _include=['id', 'title', 'visibility', 'uploaded_at',
+                          'created_by']
+        )
+        if not plugin_ids:
+            return entities
+        return (e for e in entities if e['id'] in plugin_ids)
+
+    def restore(self, entities, logger, path_func=None):
+        """Restore plugins from a snapshot.
+
+        :param entities: An iterable (e.g. a list) of dictionaries describing
+         plugins to be restored.
+        :param logger: A logger instance.
+        :param path_func: A function used retrieve plugin's path.
+        :returns: A generator of dictionaries, which describe additional data
+         used for snapshot restore entities post-processing.
+        """
+        for entity in entities:
+            if path_func:
+                entity['plugin_path'] = path_func(entity['id'])
+            entity['_plugin_id'] = entity.pop('id')
+            entity['_uploaded_at'] = entity.pop('uploaded_at')
+            entity['plugin_title'] = entity.pop('title')
+            entity['_created_by'] = entity.pop('created_by')
+            try:
+                self.upload(**entity)
+                yield {entity['_plugin_id']: entity['plugin_path']}
+            except CloudifyClientError as exc:
+                logger.error("Error restoring plugin "
+                             f"{entity['_plugin_id']}: {exc}")
