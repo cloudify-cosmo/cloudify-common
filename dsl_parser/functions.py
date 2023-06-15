@@ -463,11 +463,18 @@ class GetAttribute(Function):
                                        self.path, self.name, self.scope, plan)
 
     def evaluate(self, handler):
+        node_instance = None
         if 'instance_id_hint' in self.context:
             # we're evaluating a node in the context of a specific instance,
-            # and we were told exactly which instance is it
+            # and we were told exactly which instance is it, that is, unless
+            # we're retrieving an attribute of another node, in which case we
+            # should ignore the hint
             node_instance = handler.get_node_instance(
                 self.context['instance_id_hint'])
+            if node_instance['node_id'] != self.node_name:
+                node_instance = None
+        if node_instance:
+            pass
         elif self.node_name in [SELF, SOURCE, TARGET]:
             node_instance_id = self._resolve_available_node_targets(handler)
             _validate_ref(node_instance_id, self.node_name, self.name,
