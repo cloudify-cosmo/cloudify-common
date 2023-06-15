@@ -463,7 +463,15 @@ class GetAttribute(Function):
                                        self.path, self.name, self.scope, plan)
 
     def evaluate(self, handler):
-        node_instance = self._resolve_node_instance(handler)
+        try:
+            node_instance = self._resolve_node_instance(handler)
+        except exceptions.FunctionEvaluationError as ex:
+            # Only in outputs scope we allow to continue when an error
+            # occurred
+            if not self.context.get('evaluate_outputs'):
+                raise
+            return '<ERROR: {0}>'.format(ex)
+
         node = handler.get_node(node_instance['node_id'])
         if self.context.get('self') and \
                 self.context['self'] != node_instance['id']:
@@ -491,14 +499,7 @@ class GetAttribute(Function):
                           self.path, self.attribute_path)
             return handler.get_node_instance(node_instance_id)
 
-        try:
-            return self._resolve_node_instance_by_name(handler)
-        except exceptions.FunctionEvaluationError as ex:
-            # Only in outputs scope we allow to continue when an error
-            # occurred
-            if not self.context.get('evaluate_outputs'):
-                raise
-            return '<ERROR: {0}>'.format(ex)
+        return self._resolve_node_instance_by_name(handler)
 
     def _resolve_available_node_targets(self, handler):
         node_instance_id = self.context.get(self.node_name.lower())
