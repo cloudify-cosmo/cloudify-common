@@ -17,7 +17,7 @@ import abc
 import collections
 import json
 import pkg_resources
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 from functools import wraps
 
@@ -463,33 +463,7 @@ class GetAttribute(Function):
                                        self.path, self.name, self.scope, plan)
 
     def evaluate(self, handler):
-        node_instance = None
-        if 'instance_id_hint' in self.context:
-            # we're evaluating a node in the context of a specific instance,
-            # and we were told exactly which instance is it, that is, unless
-            # we're retrieving an attribute of another node, in which case we
-            # should ignore the hint
-            node_instance = handler.get_node_instance(
-                self.context['instance_id_hint'])
-            if node_instance['node_id'] != self.node_name:
-                node_instance = None
-        if node_instance:
-            pass
-        elif self.node_name in [SELF, SOURCE, TARGET]:
-            node_instance_id = self._resolve_available_node_targets(handler)
-            _validate_ref(node_instance_id, self.node_name, self.name,
-                          self.path, self.attribute_path)
-            node_instance = handler.get_node_instance(node_instance_id)
-        else:
-            try:
-                node_instance = self._resolve_node_instance_by_name(handler)
-            except exceptions.FunctionEvaluationError as e:
-                # Only in outputs scope we allow to continue when an error
-                # occurred
-                if not self.context.get('evaluate_outputs'):
-                    raise
-                return '<ERROR: {0}>'.format(e)
-
+        node_instance = self._resolve_node_instance(handler)
         node = handler.get_node(node_instance['node_id'])
         if self.context.get('self') and \
                 self.context['self'] != node_instance['id']:
@@ -499,6 +473,32 @@ class GetAttribute(Function):
             node_instance, node, self.attribute_path, self.path,
             handler, self.context, 'get_attribute')
         return value
+
+    def _resolve_node_instance(self, handler) -> Dict[str, Any]:
+        if 'instance_id_hint' in self.context:
+            # we're evaluating a node in the context of a specific instance,
+            # and we were told exactly which instance is it, that is, unless
+            # we're retrieving an attribute of another node, in which case we
+            # should ignore the hint
+            node_instance = handler.get_node_instance(
+                self.context['instance_id_hint'])
+            if node_instance['node_id'] == self.node_name:
+                return node_instance
+
+        if self.node_name in [SELF, SOURCE, TARGET]:
+            node_instance_id = self._resolve_available_node_targets(handler)
+            _validate_ref(node_instance_id, self.node_name, self.name,
+                          self.path, self.attribute_path)
+            return handler.get_node_instance(node_instance_id)
+
+        try:
+            return self._resolve_node_instance_by_name(handler)
+        except exceptions.FunctionEvaluationError as ex:
+            # Only in outputs scope we allow to continue when an error
+            # occurred
+            if not self.context.get('evaluate_outputs'):
+                raise
+            return '<ERROR: {0}>'.format(ex)
 
     def _resolve_available_node_targets(self, handler):
         node_instance_id = self.context.get(self.node_name.lower())
