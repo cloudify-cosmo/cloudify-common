@@ -14,6 +14,7 @@
 #  * limitations under the License.
 
 import os
+import re
 import sys
 import glob
 import json
@@ -22,6 +23,7 @@ import shutil
 import tempfile
 import platform
 import threading
+import subprocess
 
 from os import walk
 from functools import wraps
@@ -416,13 +418,22 @@ def get_managed_plugin(plugin):
         query_parameters['package_version'] = package_version
     client = get_rest_client()
     plugins = client.plugins.list(**query_parameters)
+    return max(plugins, key=_managed_plugin_sort_key)
 
-    supported_plugins = [p for p in plugins if _is_plugin_supported(p)]
-    if not supported_plugins:
-        return None
 
-    return max(supported_plugins,
-               key=lambda plugin: parse_version(plugin['package_version']))
+def _managed_plugin_sort_key(plugin):
+    """Sort key for choosing a managed plugin to install
+
+    The plugin that is the "first" according to this key, will be selected.
+    First, put only "supported" (by OS) plugins in the front.
+    Then, choose highest available plugin package versions.
+    Then, select the highest possible python version among those.
+    """
+    return (
+        _is_plugin_supported(plugin),
+        parse_version(plugin.package_version),
+        available_python_executables.version_for_plugin(plugin),
+    )
 
 
 def _is_plugin_supported(plugin):
@@ -542,20 +553,128 @@ def get_pth_dir(executable):
 
 
 def _python_executable(plugin):
-    if 'supported_py_versions' not in plugin:
-        # This is the case for source plugins
-        return sys.executable
+    version = available_python_executables.version_for_plugin(plugin)
+    return available_python_executables.get_executable(version)
 
-    v = sys.version_info
-    if f'py{v.major}{v.minor}' in plugin['supported_py_versions']:
-        return sys.executable
-    for v in reversed(plugin['supported_py_versions']):
-        # This won't work with Python>=10, e.g. `py101`
-        file_name = f'python{v[2:3]}.{v[3:]}'
+
+class _PythonExecutables(object):
+    """Find python executables available on the local system.
+
+    This examines PATH and decides what Python versions are available.
+    """
+    PYTHON_VERSION_RE = re.compile(
+        'Python ([0-9]+)\\.([0-9]+)\\.([0-9]+)',
+        re.IGNORECASE
+    )
+
+    def __init__(self):
+        self._executables = None
+        self._main_version = (sys.version_info.major, sys.version_info.minor)
+        self._find_executables_lock = threading.Lock()
+
+    def version_for_plugin(self, plugin):
+        """Based on the plugin, select a Python version we can run it with.
+
+        If the version requested by the plugin isn't available, default to
+        the version of the executable we're currently running.
+        Returns a tuple of 2 ints: (major, minor), e.g. (3, 11).
+        """
+        if not plugin.get('supported_py_versions'):
+            # This is the case for source plugins
+            return self._main_version
+
+        available_versions = self._get_available_executables()
+        required_versions = self._parse_supported_versions(
+            plugin['supported_py_versions'])
+        for plugin_version in sorted(required_versions, reverse=True):
+            if plugin_version in available_versions:
+                return plugin_version
+        return self._main_version
+
+    def get_executable(self, version):
+        """Find a Python executable for the requested version.
+
+        Given a Python version (as a tuple of 2 ints), return the path
+        to a Python executable of that version.
+        """
+        return self._get_available_executables()[version]
+
+    def _get_available_executables(self):
+        if self._executables is not None:
+            return self._executables
+        with self._find_executables_lock:
+            # check again, in case we were waiting on the lock, and another
+            # thread ran this already
+            if self._executables is not None:
+                return self._executables
+            self._executables = self._find_executables()
+        return self._executables
+
+    def _find_executables(self):
+        executables = {
+            self._main_version: sys.executable,
+        }
+        executable_filename = os.path.basename(sys.executable)
+        # examine all directories in PATH for executables named the same
+        # as the executable we're running, so either `python` or `Python.exe`
         for path in os.environ['PATH'].split(os.pathsep):
-            file_path = os.path.join(path, file_name)
-            if os.path.isfile(file_path) and os.access(file_path, os.X_OK):
-                return file_path
-    raise NonRecoverableError(
-        "This version of Cloudify does not support plugins build for Python "
-        f"versions: {plugin['supported_py_versions']}.")
+            target_executable = os.path.join(path, executable_filename)
+            version = self._get_executable_version(target_executable)
+            if not version or version in executables:
+                continue
+            executables[version] = target_executable
+        return executables
+
+    def _get_executable_version(self, target_executable):
+        """Examine the executable, and return what Python version is it.
+
+        To find the Python version of the given executable, run it with
+        --version, and parse the resulting output.
+        If the version cannot be determined, return None.
+        """
+        if not os.path.isfile(target_executable):
+            return
+        if not os.access(target_executable, os.X_OK):
+            return
+
+        try:
+            version_string = subprocess.check_output(
+                [target_executable, '--version']
+            ).decode('utf-8', 'replace')
+        except subprocess.CalledProcessError:
+            return
+
+        if m := self.PYTHON_VERSION_RE.match(version_string):
+            major, minor, patch = m.groups()
+            key = int(major), int(minor)
+            return key
+
+    def _parse_supported_versions(self, versions):
+        """Parse the plugin supported_py_version field.
+
+        The plugin field is a list of strings, like ["py310"].
+        This parses it to a list of tuples of 2 ints, like [(3, 10)].
+        Items that cannot be parsed will be omitted.
+        """
+        parsed_versions = []
+        for version in versions:
+            try:
+                # handle inputs of the form:
+                #  "py3.10" -> (3, 10)
+                #  "3.10" -> (3, 10)
+                #  "py310" -> (3, 10)
+                # The last one (which is wagon's default) will however
+                # break when we reach python 10 :) By then, we need to switch
+                # to the dotted format.
+                version = version.replace('py', '')
+                if '.' in version:
+                    parsed = tuple(int(x) for x in version.split('.'))
+                else:
+                    parsed = (int(version[0]), int(version[1:]))
+                parsed_versions.append(parsed)
+            except ValueError:
+                pass
+        return parsed_versions
+
+
+available_python_executables = _PythonExecutables()
