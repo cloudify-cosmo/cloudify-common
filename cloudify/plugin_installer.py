@@ -644,8 +644,9 @@ class _PythonExecutables(object):
         except subprocess.CalledProcessError:
             return
 
-        if m := self.PYTHON_VERSION_RE.match(version_string):
-            major, minor, patch = m.groups()
+        match = self.PYTHON_VERSION_RE.match(version_string)
+        if match:
+            major, minor, patch = match.groups()
             key = int(major), int(minor)
             return key
 
