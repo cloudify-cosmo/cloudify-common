@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 import os
+import sys
 import shutil
 import logging
 import tempfile
@@ -22,6 +23,7 @@ from datetime import datetime, timedelta
 
 from cloudify import utils
 from cloudify.exceptions import CommandExecutionException, NonRecoverableError
+from cloudify.plugin_installer import _PythonExecutables
 from cloudify.utils import (
     setup_logger,
     merge_plugins,
@@ -281,3 +283,40 @@ class TestDateTimeUtils(TestCase):
             (datetime.utcnow().replace(second=0, microsecond=0) +
              timedelta(days=1, hours=2, minutes=59))
         self.assertEqual(parsed_datetime, expected_datetime)
+
+
+class TestAvailablePythonExecutables(TestCase):
+    def setUp(self):
+        self.availables = _PythonExecutables()
+        self.availables._main_version = (3, 10)
+        self.availables._executables = {
+            (3, 10): 'a',
+            (3, 6): 'b',
+        }
+
+    def test_version_for_plugin(self):
+        assert self.availables.version_for_plugin({
+            'supported_py_versions': ['py310']
+        }) == (3, 10)
+
+        # py36 is first, but we'll still choose the greater version
+        assert self.availables.version_for_plugin({
+            'supported_py_versions': ['py36', 'py310']
+        }) == (3, 10)
+
+        # default to main version
+        assert self.availables.version_for_plugin({
+            'supported_py_versions': ['py311']
+        }) == (3, 10)
+
+    def test_get_executable_version(self):
+        assert self.availables._get_executable_version(sys.executable) \
+            == (sys.version_info.major, sys.version_info.minor)
+
+        assert self.availables._get_executable_version('/nonexistent/path') \
+            is None
+
+    def test_parse_supported_version(self):
+        assert self.availables._parse_supported_versions([
+            'py310', '3.9', 'py 3.8', 'py3.7'
+        ]) == [(3, 10), (3, 9), (3, 8), (3, 7)]
