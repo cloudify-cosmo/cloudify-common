@@ -418,6 +418,8 @@ def get_managed_plugin(plugin):
         query_parameters['package_version'] = package_version
     client = get_rest_client()
     plugins = client.plugins.list(**query_parameters)
+    if not plugins:
+        return None
     return max(plugins, key=_managed_plugin_sort_key)
 
 
