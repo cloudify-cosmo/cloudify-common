@@ -147,5 +147,5 @@ def _resolve_blueprint_imports(dsl_location,
         element_cls=blueprint.BlueprintImporter,
         strict=False)
 
-    return result['resource_base'],\
+    return result['resource_base'], \
         result['merged_blueprint']
