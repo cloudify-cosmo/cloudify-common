@@ -54,7 +54,11 @@ class CloudifyContextTest(unittest.TestCase):
         os.environ[constants.LOCAL_RESOURCES_ROOT_ENV_KEY] = '/tmp/resources'
         self.context = context.CloudifyContext({
             'blueprint_id': '',
-            'tenant': {'name': 'default_tenant'}
+            'tenant': {'name': 'default_tenant'},
+            'properties': {
+                'use_external_resource': False,
+                'resource_id': 'foo'
+            }
         })
         # the context logger will try to publish messages to rabbit, which is
         # not available here. instead, we redirect the output to stdout.
@@ -317,6 +321,26 @@ class CloudifyContextTest(unittest.TestCase):
         self.assertIn('ctx.source/ctx.target can only be used in a '
                       'relationship-instance context but used in a '
                       'deployment context.', str(cm.exception))
+
+    def test_node_ctx_properties(self):
+
+        def get_node_mock(*_, **__):
+            return {
+                'properties': {
+                    'use_external_resource': False,
+                    'resource_id': 'foo'
+                }
+            }
+
+        endpoint = Mock()
+        endpoint.get_node = get_node_mock
+        kwargs = {
+            'endpoint': endpoint,
+            'context': {'node_id': 'node_id'},
+        }
+        ctx_node = context.NodeContext(**kwargs)
+        self.assertFalse(ctx_node.is_external)
+        self.assertEqual(ctx_node.resource_id, 'foo')
 
     def test_ctx_type(self):
         ctx = context.CloudifyContext({})
