@@ -13,8 +13,7 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
-SNAPSHOT_RESTORE_FLAG_FILE = ('/opt/manager/snapshot_status'
-                              '/snapshot_restoring')
+SNAPSHOT_RESTORE_FLAG_FILE = '/run/cloudify/snapshot_restoring'
 
 
 class STATES(object):
