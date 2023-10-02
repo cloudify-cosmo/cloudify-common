@@ -114,8 +114,9 @@ def get_all(method, *args, **kwargs):
     if kwargs.get('params', {}).get('_include_hash'):
         include.append('password_hash')
     more_data = True
-    entities_yielded = 0
+    entities_yielded, pagination_offset = 0, 0
     while more_data:
+        kwargs['_offset'] = pagination_offset
         result = method(*args, **kwargs)
         for item in result['items']:
             yield {k: v for k, v in item.items()
@@ -123,6 +124,7 @@ def get_all(method, *args, **kwargs):
             entities_yielded += 1
         more_data = \
             (entities_yielded < result['metadata']['pagination']['total'])
+        pagination_offset = entities_yielded
 
 
 class StreamedResponse(object):
