@@ -111,12 +111,14 @@ def find_executable(executable, path=None):
 def get_all(method, *args, **kwargs):
     """Generator of entities retrieved by a method called with args/kwargs."""
     include = kwargs.get('_include')
-    if kwargs.get('params', {}).get('_include_hash'):
+    params = kwargs.get('params', {})
+    if params.get('_include_hash'):
         include.append('password_hash')
     more_data = True
     entities_yielded, pagination_offset = 0, 0
     while more_data:
-        kwargs['_offset'] = pagination_offset
+        params['_offset'] = pagination_offset
+        kwargs['params'] = params
         result = method(*args, **kwargs)
         for item in result['items']:
             yield {k: v for k, v in item.items()
