@@ -342,7 +342,7 @@ class ExecutionGroupsClient(object):
             entity['executions'] = entity.pop('execution_ids')
             try:
                 self.create(**entity)
-            except CloudifyClientError as exc:
+            except (CloudifyClientError, RuntimeError) as exc:
                 logger.error("Error restoring execution group "
                              f"{entity['id']}: {exc}")
 
