@@ -1,4 +1,5 @@
 import cgi
+import errno
 import os
 
 CONTENT_DISPOSITION_HEADER = 'content-disposition'
@@ -88,7 +89,11 @@ def write_response_stream_to_file(streamed_response,
         output_file = os.path.join(output_file, output_filename)
 
     if os.path.exists(output_file):
-        raise OSError("Output file '{0}' already exists".format(output_file))
+        raise OSError(
+            errno.EEXIST,
+            "Output file '{0}' already exists".format(output_file),
+            output_filename,
+        )
 
     total_file_size = int(streamed_response.headers['content-length'])
     total_bytes_written = 0
