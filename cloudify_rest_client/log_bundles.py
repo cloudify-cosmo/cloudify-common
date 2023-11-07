@@ -114,7 +114,6 @@ class LogBundlesClient(object):
         """Uploads a log bundle archive, e.g. created by mgmtworker.
         :param log_bundle_id: The id of the log bundle to be uploaded.
         :param archive_file: The file path of the log bundle archive to upload.
-        :return: The file path of the downloaded log bundle.
         """
         archive_data = bytes_stream_utils.request_data_file_stream(
             archive_file,
