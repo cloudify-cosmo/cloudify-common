@@ -110,18 +110,19 @@ class LogBundlesClient(object):
 
             return output_file
 
-    def upload_archive(self, log_bundle_id, archive_file):
+    def upload_archive(self, log_bundle_id, archive_path):
         """Uploads a log bundle archive, e.g. created by mgmtworker.
         :param log_bundle_id: The id of the log bundle to be uploaded.
-        :param archive_file: The file path of the log bundle archive to upload.
+        :param archive_path: The file path of the log bundle archive to upload.
         """
         archive_data = bytes_stream_utils.request_data_file_stream(
-            archive_file,
+            archive_path,
             client=self.api,
         )
         self.api.put(
-            f"{self.base_url}/{log_bundle_id}/archive",
+            f"{self.base_url}{log_bundle_id}/archive",
             data=archive_data,
+            expected_status_code=201,
         )
 
     def update_status(self, log_bundle_id, status, error=None):
