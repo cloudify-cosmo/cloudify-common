@@ -1,8 +1,16 @@
 import warnings
 
+from cloudify.models_states import ExecutionState
 from cloudify_rest_client import utils
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
+
+
+RESTORE_STATUS_MAP = dict(zip(
+    ExecutionState.IN_PROGRESS_STATES,
+    len(ExecutionState.IN_PROGRESS_STATES)
+    * [ExecutionState.SNAPSHOT_CANCELLED]
+))
 
 
 class Execution(dict):
@@ -599,7 +607,9 @@ class ExecutionsClient(object):
         """
         for entity in entities:
             entity['execution_id'] = entity.pop('id')
-            entity['force_status'] = entity.pop('status')
+            entity['force_status'] = restore_status_mapped(
+                entity.pop('status')
+            )
             entity['dry_run'] = entity.pop('is_dry_run')
             entity['deployment_id'] = entity['deployment_id'] or ''
             try:
@@ -607,3 +617,7 @@ class ExecutionsClient(object):
             except CloudifyClientError as exc:
                 logger.error("Error restoring execution "
                              f"{entity['execution_id']}: {exc}")
+
+
+def restore_status_mapped(status):
+    return RESTORE_STATUS_MAP.get(status, status)
