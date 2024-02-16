@@ -614,7 +614,7 @@ class ExecutionsClient(object):
                              f"{entity['execution_id']}: {exc}")
 
 
-def restore_status_error_mapped(status: str, error: str) -> tuple[str, str]:
+def restore_status_error_mapped(status, error):
     if status in ExecutionState.IN_PROGRESS_STATES:
         return (
             ExecutionState.CANCELLED,
