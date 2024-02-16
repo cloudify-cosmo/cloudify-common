@@ -1,5 +1,6 @@
 import warnings
 
+from cloudify.models_states import ExecutionState
 from cloudify_rest_client import utils
 from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
@@ -599,7 +600,11 @@ class ExecutionsClient(object):
         """
         for entity in entities:
             entity['execution_id'] = entity.pop('id')
-            entity['force_status'] = entity.pop('status')
+            entity['force_status'], entity['error'] = \
+                restore_status_error_mapped(
+                    entity.pop('status'),
+                    entity.pop('error'),
+                )
             entity['dry_run'] = entity.pop('is_dry_run')
             entity['deployment_id'] = entity['deployment_id'] or ''
             try:
@@ -607,3 +612,12 @@ class ExecutionsClient(object):
             except CloudifyClientError as exc:
                 logger.error("Error restoring execution "
                              f"{entity['execution_id']}: {exc}")
+
+
+def restore_status_error_mapped(status, error):
+    if status in ExecutionState.IN_PROGRESS_STATES:
+        return (
+            ExecutionState.CANCELLED,
+            "Marked as cancelled by snapshot restore",
+        )
+    return status, error
