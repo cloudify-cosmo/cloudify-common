@@ -6,13 +6,6 @@ from cloudify_rest_client.exceptions import CloudifyClientError
 from cloudify_rest_client.responses import ListResponse
 
 
-RESTORE_STATUS_ERROR_MAP = dict(zip(
-    ExecutionState.IN_PROGRESS_STATES,
-    len(ExecutionState.IN_PROGRESS_STATES)
-    * [(ExecutionState.CANCELLED, "Marked as cancelled by snapshot restore")]
-))
-
-
 class Execution(dict):
     """Cloudify workflow execution."""
     TERMINATED = 'terminated'
@@ -622,4 +615,9 @@ class ExecutionsClient(object):
 
 
 def restore_status_error_mapped(status: str, error: str) -> tuple[str, str]:
-    return RESTORE_STATUS_ERROR_MAP.get(status, (status, error))
+    if status in ExecutionState.IN_PROGRESS_STATES:
+        return (
+            ExecutionState.CANCELLED,
+            "Marked as cancelled by snapshot restore",
+        )
+    return status, error
