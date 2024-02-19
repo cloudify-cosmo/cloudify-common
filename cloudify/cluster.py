@@ -1,23 +1,12 @@
 ########
-# Copyright (c) 2017-2019 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-#    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    * See the License for the specific language governing permissions and
-#    * limitations under the License.
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
-import re
-import types
-import random
-import requests
 import itertools
+import random
+import re
+import requests
+import time
+import types
 
 from cloudify.utils import ipv6_url_compat
 
@@ -35,46 +24,57 @@ class ClusterHTTPClient(HTTPClient):
         # (copy the list so that outside mutations don't affect us)
         hosts = list(host) if isinstance(host, list) else [host]
         hosts = [ipv6_url_compat(h) for h in hosts]
+
         random.shuffle(hosts)
         self.hosts = itertools.cycle(hosts)
+
         super(ClusterHTTPClient, self).__init__(hosts[0], *args, **kwargs)
-        self.default_timeout_sec = self.default_timeout_sec or (5, None)
-        self.retries = 30
-        self.retry_interval = 3
+        self.default_timeout_sec = self.default_timeout_sec or (5, 300)
 
     def do_request(self, method, url, *args, **kwargs):
+        errors = {}
+        retry_interval = 1
+        start_time = time.monotonic()
         kwargs.setdefault('timeout', self.default_timeout_sec)
 
-        copied_data = None
+        # if the data is a generator, unforunately we need to load it all into
+        # memory in order to support retries, because if we do have to retry,
+        # but we've already exhausted the generator, it's already too late.
+        # Note: previous versions of this function attempted to save memory
+        # using itertools.tee, but this is futile, because by the time all of
+        # the data has been sent, it is already all stored in memory by tee
+        # anyway, so we might as well attempt to do so up front.
+        buffered_data = None
         if isinstance(kwargs.get('data'), types.GeneratorType):
-            copied_data = itertools.tee(kwargs.pop('data'), self.retries)
+            buffered_data = list(kwargs.pop('data'))
 
-        errors = {}
-        for retry in range(self.retries):
-            manager_to_try = next(self.hosts)
-            self.host = manager_to_try
-            if copied_data is not None:
-                kwargs['data'] = copied_data[retry]
+        while True:
+            if buffered_data is not None:
+                # if we have generator data loaded, make it an iterator,
+                # because requests expects that, and not a list
+                kwargs['data'] = iter(buffered_data)
 
             try:
-                return super(ClusterHTTPClient, self).do_request(
-                    method, url, *args, **kwargs)
-            except (requests.exceptions.ConnectionError) as error:
-                self.logger.debug(
-                    'Connection error when trying to connect to '
-                    'manager {0}'.format(error)
-                )
-                errors[manager_to_try] = error
-                continue
-            except CloudifyClientError as e:
-                errors[manager_to_try] = e.status_code
-                if e.response.status_code == 502:
-                    continue
-                if e.response.status_code == 404 and \
-                        self._is_fileserver_download(e.response):
+                return super().do_request(method, url, *args, **kwargs)
+            except Exception as e:
+                errors[self.host] = e
+                do_retry = self._should_retry_request(
+                    e, start_time, self.logger)
+
+                if do_retry:
+                    # we'll try the next host. If there's only one host, it's
+                    # going to be the same one (self.hosts is a cycle())
+                    self.host = next(self.hosts)
+
+                    # exponential backoff of retries: increase delay by 50%
+                    # each time, but only up to 30 seconds
+                    time.sleep(retry_interval)
+                    retry_interval = min(retry_interval * 1.5, 30)
                     continue
                 else:
-                    raise
+                    # we aren't going to retry - break out of the loop,
+                    # allow the error to be raised
+                    break
 
         raise CloudifyClientError(
             'HTTP Client error: {0} {1} ({2})'.format(
@@ -84,6 +84,82 @@ class ClusterHTTPClient(HTTPClient):
                     '{0}: {1}'.format(host, e) for host, e in errors.items()
                 )
             ))
+
+    def _should_retry_request(self, error, start_time, logger):
+        elapsed = time.monotonic() - start_time
+
+        if elapsed > 3600:
+            # we've been trying this request for more than an hour? whatever it
+            # was, it's really enough...
+            logger.debug('Not retrying anymore after over 1 hour: %s', error)
+            return False
+
+        if isinstance(error, CloudifyClientError):
+            response = error.response
+
+            if (
+                # fileserver downloads need to be retried, because we might be
+                # running a cluster that needs to wait for files to be
+                # replicated, and that might take quite some time
+                response.status_code == 404
+                and self._is_fileserver_download(response)
+                # ...but surely not more than five minutes. Normally it takes
+                # on the order of up to 10 seconds
+                and elapsed < 300
+            ):
+                logger.debug('Retrying fileserver download: %s', error)
+                return True
+
+            if (
+                # a 500 is oftentimes a development error, but we can hope it's
+                # just a fluke - let's retry it and see
+                response.status_code == 500
+                # ...but only for a minute. Normally 500 errors are not going
+                # to persist long
+                and elapsed < 60
+            ):
+                logger.debug('Retrying after an error response: %s', error)
+                return True
+
+            if (
+                # this is a 502 or a 503 (backend unavailable or timeout) and
+                # those tend to be intermittent and only happen for some time,
+                # e.g. when the service is being restarted
+                response.status_code > 500
+                # ...so we should retry these for a long time,
+                # even up to an hour
+                and elapsed < 3600
+            ):
+                logger.debug(
+                    'Retrying after an unavailable response: %s', error)
+                return True
+
+            if (
+                # 403 is normally an authorization error, but it might happen
+                # when authorization backends are being restarted, or crashing,
+                # so let's retry those a few times
+                response.status_code == 403
+                # ...only up to a minute, because there's little chance
+                # retrying this will do any good
+                and elapsed < 60
+            ):
+                logger.debug('Retrying on an unauthorized response: %s', error)
+                return True
+
+        elif isinstance(error, requests.exceptions.ConnectionError):
+            logger.debug(
+                'Connection error when trying to connect to manager: %s', error
+            )
+            if elapsed < 3600:
+                # a connection error? the server is unavailable - perhaps it is
+                # being restarted, or the user brough it down temporarily?
+                # let's make sure to retry this, because this is usually
+                # something very temporary
+                return True
+
+        # most likely not a connection error, but rather something
+        # like a 409, 401, or a similar _real_ error. Don't retry these.
+        return False
 
     def _is_fileserver_download(self, response):
         """Is this response a file-download response?
