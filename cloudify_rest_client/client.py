@@ -93,7 +93,7 @@ class HTTPClient(object):
         self.protocol = protocol
         self.api_version = api_version
         self.kerberos_env = kerberos_env
-        self.default_timeout_sec = timeout or (5, None)
+        self.default_timeout_sec = timeout or (5, 300)
 
         self.headers = headers.copy() if headers else {}
         if not self.headers.get('Content-type'):
@@ -440,7 +440,7 @@ class CloudifyClient(object):
         :param token: Cloudify User token.
         :param tenant: Cloudify Tenant name.
         :param timeout: Requests timeout value. If not set, will default to
-                        (5, None)- 5 seconds connect timeout, no read timeout.
+                        (5, 300)- 5 seconds connect timeout, 300 read timeout.
         :param session: a requests.Session to use for all HTTP calls
         :return: Cloudify client instance.
         """
