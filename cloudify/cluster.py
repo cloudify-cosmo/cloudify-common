@@ -32,7 +32,6 @@ class ClusterHTTPClient(HTTPClient):
         self.default_timeout_sec = self.default_timeout_sec or (5, 300)
 
     def do_request(self, method, url, *args, **kwargs):
-        errors = {}
         retry_interval = 1
         start_time = time.monotonic()
         kwargs.setdefault('timeout', self.default_timeout_sec)
@@ -57,7 +56,6 @@ class ClusterHTTPClient(HTTPClient):
             try:
                 return super().do_request(method, url, *args, **kwargs)
             except Exception as e:
-                errors[self.host] = e
                 do_retry = self._should_retry_request(
                     e, start_time, self.logger)
 
@@ -74,16 +72,12 @@ class ClusterHTTPClient(HTTPClient):
                 else:
                     # we aren't going to retry - break out of the loop,
                     # allow the error to be raised
-                    break
+                    raise
 
-        raise CloudifyClientError(
-            'HTTP Client error: {0} {1} ({2})'.format(
-                method.__name__.upper(),
-                url,
-                ', '.join(
-                    '{0}: {1}'.format(host, e) for host, e in errors.items()
-                )
-            ))
+        # should never reach here: the loop above should exit by either
+        # a `return` or a `raise`. If we did reach here, it means the loop
+        # exited in some other way
+        raise RuntimeError('HTTP Client: unexpected error')
 
     def _should_retry_request(self, error, start_time, logger):
         elapsed = time.monotonic() - start_time
