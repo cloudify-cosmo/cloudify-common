@@ -661,7 +661,7 @@ node_templates:
 
     def test_parse_wrong_dsl_version_format(self):
         expected_err_msg = "Invalid tosca_definitions_version: '{0}', " \
-                           "expected a value following this format: '{1}'"\
+                           "expected a value following this format: '{1}'*"\
             .format('1_0', version.DSL_VERSION_1_0)
         self.assertRaisesRegex(DSLParsingLogicException,
                                expected_err_msg,
