@@ -446,20 +446,20 @@ def _setup_logging():
 def _update_logging_level():
     if not os.path.isfile(LOGGING_CONFIG_FILE):
         return
-    with open(LOGGING_CONFIG_FILE, 'r') as config_file:
-        config_lines = config_file.readlines()
-    for line in config_lines:
-        if not line.strip() or line.startswith('#'):
-            continue
-        level_name, logger_name = line.split()
-        level_id = logging.getLevelName(level_name.upper())
-        if not isinstance(level_id, int):
-            continue
-        logging.getLogger(logger_name).setLevel(level_id)
+    with open(LOGGING_CONFIG_FILE) as config_file:
+        for line in config_file:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            level_name, _, logger_name = line.partition()
+            level_id = logging.getLevelName(level_name.upper())
+            if not isinstance(level_id, int):
+                continue
+            logging.getLogger(logger_name).setLevel(level_id)
 
 
 def main():
-    dispatch_dir = sys.argv[1]
+    dispatch_dir = os.path.abspath(sys.argv[1])
     with open(os.path.join(dispatch_dir, 'input.json')) as f:
         dispatch_inputs = json.load(f)
     cloudify_context = dispatch_inputs['cloudify_context']
