@@ -389,8 +389,16 @@ def setup_logger_base(log_level, log_dir=None):
 
 
 def setup_subprocess_logger():
-    setup_logger_base(os.environ.get(ENV_AGENT_LOG_LEVEL) or 'DEBUG',
-                      os.environ.get(ENV_AGENT_LOG_DIR))
+    log_dir = os.environ.get(ENV_AGENT_LOG_DIR)
+    if log_dir and os.path.exists(log_dir):
+        log_dir = os.path.abspath(log_dir)
+    else:
+        log_dir = None
+
+    setup_logger_base(
+        os.environ.get(ENV_AGENT_LOG_LEVEL) or 'DEBUG',
+        log_dir,
+    )
 
 
 def setup_agent_logger(log_name, log_level=None, log_dir=None,
@@ -400,6 +408,8 @@ def setup_agent_logger(log_name, log_level=None, log_dir=None,
 
     if log_dir is None:
         log_dir = os.environ.get(ENV_AGENT_LOG_DIR)
+        if log_dir:
+            log_dir = os.path.realpath(os.path.abspath(log_dir), strict=True)
 
     setup_logger_base(log_level, log_dir)
 

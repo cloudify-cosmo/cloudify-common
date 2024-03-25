@@ -40,6 +40,7 @@ from cloudify import constants, state, context, exceptions, conflict_handlers
 from cloudify.test_utils import workflow_test
 
 
+@mock.patch('cloudify.utils.get_local_rest_certificate')
 class CloudifyContextTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
@@ -48,7 +49,6 @@ class CloudifyContextTest(unittest.TestCase):
         os.environ[constants.REST_PORT_KEY] = '53333'
         os.environ[constants.REST_HOST_KEY] = "localhost"
         os.environ[constants.MANAGER_FILE_SERVER_SCHEME] = "http"
-        os.environ[constants.LOCAL_REST_CERT_FILE_KEY] = 'somefile'
         os.environ[constants.MANAGER_FILE_SERVER_ROOT_KEY] =\
             '/opt/manager/resources'
         os.environ[constants.LOCAL_RESOURCES_ROOT_ENV_KEY] = '/tmp/resources'
@@ -66,7 +66,6 @@ class CloudifyContextTest(unittest.TestCase):
         os.environ.pop(constants.REST_HOST_KEY)
         os.environ.pop(constants.REST_PORT_KEY)
         os.environ.pop(constants.MANAGER_FILE_SERVER_SCHEME)
-        os.environ.pop(constants.LOCAL_REST_CERT_FILE_KEY)
         os.environ.pop(constants.LOCAL_RESOURCES_ROOT_ENV_KEY)
 
     def setup_tenant_context(self):
@@ -82,7 +81,7 @@ class CloudifyContextTest(unittest.TestCase):
         logger.handlers = [stdout_log_handler]
 
     @mock.patch('cloudify.manager.get_rest_client')
-    def test_get_resource(self, _):
+    def test_get_resource(self, mock_client, mock_cert):
         with patch('requests.get',
                    return_value=Mock(ok=True, content=b'Hello from test')):
             resource = self.context.get_resource(
@@ -90,7 +89,7 @@ class CloudifyContextTest(unittest.TestCase):
         self.assertEqual(resource, b'Hello from test')
 
     @mock.patch('cloudify.manager.get_rest_client')
-    def test_download_resource(self, _):
+    def test_download_resource(self, mock_client, mock_cert):
         with patch('requests.get',
                    return_value=Mock(ok=True, content=b'')) as mock_get:
             resource_path = self.context.download_resource(
@@ -106,14 +105,12 @@ class CloudifyContextTest(unittest.TestCase):
             os.environ[constants.REST_PORT_KEY],
         )
         self.assertTrue(url.startswith(expected_url_prefix))
-        self.assertEqual(kwargs['verify'],
-                         os.environ[constants.LOCAL_REST_CERT_FILE_KEY])
 
         self.assertIsNotNone(resource_path)
         self.assertTrue(os.path.exists(resource_path))
 
     @mock.patch('cloudify.manager.get_rest_client')
-    def test_download_blueprint_from_tenant(self, _):
+    def test_download_blueprint_from_tenant(self, mock_client, mock_cert):
         self.setup_tenant_context()
         with patch('requests.get',
                    return_value=Mock(ok=True, content=b'')) as mock_get:
@@ -136,7 +133,7 @@ class CloudifyContextTest(unittest.TestCase):
         self.assertTrue(os.path.exists(resource_path))
 
     @mock.patch('cloudify.manager.get_rest_client')
-    def test_download_resource_to_specific_file(self, _):
+    def test_download_resource_to_specific_file(self, mock_client, mock_cert):
         target_path = "{0}/for_test_custom.log".format(create_temp_folder())
         with patch('requests.get', return_value=Mock(ok=True, content=b'')):
             resource_path = self.context.download_resource(
@@ -146,13 +143,13 @@ class CloudifyContextTest(unittest.TestCase):
         self.assertTrue(os.path.exists(resource_path))
 
     @mock.patch('cloudify.manager.get_rest_client')
-    def test_get_non_existing_resource(self, _):
+    def test_get_non_existing_resource(self, mock_client, mock_cert):
         self.assertRaises(exceptions.NonRecoverableError,
                           self.context.get_resource,
                           'non_existing.log')
 
     @mock.patch('cloudify.manager.get_rest_client')
-    def test_download_resource_tried_urls(self, _):
+    def test_download_resource_tried_urls(self, mock_client, mock_cert):
         # check that download_resource tries the urls:
         # - http://...//resources/deployments/default_tenant/dep/file.txt
         #   (deployment resource)
@@ -191,7 +188,7 @@ class CloudifyContextTest(unittest.TestCase):
         ])
 
     @mock.patch('cloudify.manager.get_rest_client')
-    def test_get_from_multiple_managers(self, _):
+    def test_get_from_multiple_managers(self, mock_client, mock_cert):
         # get_resource tries all the managers in a cluster
         with mock.patch(
             'cloudify.utils.get_manager_file_server_url', return_value=[
@@ -247,7 +244,7 @@ class CloudifyContextTest(unittest.TestCase):
             assert len(mock_get.mock_calls) == 2
 
     @mock.patch('cloudify.manager.get_rest_client')
-    def test_get_resource_raise_http(self, _):
+    def test_get_resource_raise_http(self, mock_client, mock_cert):
         # get_resource tries 3 paths per manager:
         # - deployment path
         # - blueprint path
@@ -282,7 +279,7 @@ class CloudifyContextTest(unittest.TestCase):
                         'resource.txt')
                 assert len(mock_get.mock_calls) == 6
 
-    def test_ctx_instance_in_relationship(self):
+    def test_ctx_instance_in_relationship(self, mock_cert):
         ctx = context.CloudifyContext({
             'node_id': 'node-instance-id',
             'related': {
@@ -305,7 +302,7 @@ class CloudifyContextTest(unittest.TestCase):
                       'node-instance context but used in a '
                       'relationship-instance context.', str(cm.exception))
 
-    def test_source_target_not_in_relationship(self):
+    def test_source_target_not_in_relationship(self, mock_cert):
         ctx = context.CloudifyContext({})
         with self.assertRaises(exceptions.NonRecoverableError) as cm:
             ctx.source
@@ -318,7 +315,7 @@ class CloudifyContextTest(unittest.TestCase):
                       'relationship-instance context but used in a '
                       'deployment context.', str(cm.exception))
 
-    def test_ctx_type(self):
+    def test_ctx_type(self, mock_cert):
         ctx = context.CloudifyContext({})
         self.assertEqual(constants.DEPLOYMENT, ctx.type)
         ctx = context.CloudifyContext({'node_id': 'node-instance-id'})
@@ -333,7 +330,7 @@ class CloudifyContextTest(unittest.TestCase):
         })
         self.assertEqual(constants.RELATIONSHIP_INSTANCE, ctx.type)
 
-    def test_local_deployment_workdir(self):
+    def test_local_deployment_workdir(self, mock_cert):
         assert context.CloudifyContext({
             'deployment_id': 'test_deployment',
         }).local_deployment_workdir() is None
@@ -349,7 +346,7 @@ class CloudifyContextTest(unittest.TestCase):
             os.path.join('default_tenant', 'test_deployment')
         )
 
-    def test_download_deployment_workdir_successful(self):
+    def test_download_deployment_workdir_successful(self, mock_cert):
         deployment_id = 'test_deployment'
         tenant_name = 'default_tenant'
         ctx = context.CloudifyContext({
@@ -381,7 +378,7 @@ class CloudifyContextTest(unittest.TestCase):
         finally:
             shutil.rmtree(deployment_workdir_path)
 
-    def test_download_deployment_workdir_failing(self):
+    def test_download_deployment_workdir_failing(self, mock_cert):
         deployment_id = 'test_deployment'
         tenant_name = 'default_tenant'
         ctx = context.CloudifyContext({
@@ -394,7 +391,7 @@ class CloudifyContextTest(unittest.TestCase):
             self.assertRaises(CloudifyClientError,
                               ctx.download_deployment_workdir)
 
-    def test_upload_deployment_workdir_successful(self):
+    def test_upload_deployment_workdir_successful(self, mock_cert):
         deployment_id = 'test_deployment'
         tenant_name = 'default_tenant'
         ctx = context.CloudifyContext({
@@ -422,7 +419,7 @@ class CloudifyContextTest(unittest.TestCase):
         finally:
             shutil.rmtree(deployment_workdir_path)
 
-    def test_upload_deployment_workdir_failing(self):
+    def test_upload_deployment_workdir_failing(self, mock_cert):
         deployment_id = 'test_deployment'
         tenant_name = 'default_tenant'
         ctx = context.CloudifyContext({
@@ -443,7 +440,7 @@ class CloudifyContextTest(unittest.TestCase):
 
         shutil.rmtree(deployment_workdir_path)
 
-    def test_sync_deployment_workdir_not_required(self):
+    def test_sync_deployment_workdir_not_required(self, mock_cert):
         orig_fs_root = os.environ.get(constants.MANAGER_FILE_SERVER_ROOT_KEY)
         os.environ[constants.MANAGER_FILE_SERVER_ROOT_KEY] = '/tmp/resources'
         orig_res_root = os.environ.get(constants.LOCAL_RESOURCES_ROOT_ENV_KEY)

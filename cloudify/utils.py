@@ -256,8 +256,20 @@ def get_manager_rest_service_host():
     """
     Returns the host the manager REST service is running on.
     """
-    if os.environ.get(constants.REST_HOST_KEY):
-        return os.environ[constants.REST_HOST_KEY].split(',')
+    environ_rest_host = os.environ.get(constants.REST_HOST_KEY)
+    # hostnames must be ascii, otherwise they're invalid
+    if environ_rest_host and environ_rest_host.isprintable():
+        hosts = []
+        for host in environ_rest_host.split(','):
+            host = host.strip()
+            # hostnames must not have spaces in them
+            if ' ' in host:
+                continue
+            hosts.append(host)
+        # if we seem to have 64 hosts, surely that's an invalid/malformed
+        # input, and we should not use that
+        if 0 < len(hosts) < 64:
+            return hosts
     try:
         # Context could be not available sometimes
         return _get_current_context().rest_host
@@ -269,8 +281,11 @@ def get_manager_rest_service_port():
     """
     Returns the port the manager REST service is running on.
     """
-    if os.environ.get(constants.REST_PORT_KEY):
-        return int(os.environ[constants.REST_PORT_KEY])
+    environ_rest_port = os.environ.get(constants.REST_PORT_KEY)
+    if environ_rest_port and environ_rest_port.isdigit():
+        rest_port = int(environ_rest_port)
+        if 0 < rest_port < 65536:
+            return rest_port
     try:
         return _get_current_context().rest_port
     except RuntimeError:
@@ -292,8 +307,14 @@ def get_local_rest_certificate():
     """
     Returns the path to the local copy of the server's public certificate
     """
+    ssl_cert_key_path = os.environ[constants.LOCAL_REST_CERT_FILE_KEY]
+    if not os.path.isfile(ssl_cert_key_path):
+        raise RuntimeError(f'Local REST certificate file not found, is '
+                           f'{constants.LOCAL_REST_CERT_FILE_KEY} environment '
+                           f'variable set?')
+
     ssl_cert_path = os.path.join(
-        os.path.dirname(os.environ[constants.LOCAL_REST_CERT_FILE_KEY]),
+        os.path.dirname(ssl_cert_key_path),
         'tmp_cloudify_internal_cert.pem'
     )
     ssl_cert_content = None
@@ -307,8 +328,7 @@ def get_local_rest_certificate():
         with open(ssl_cert_path, 'w') as f:
             f.write(ssl_cert_content)
 
-    return ssl_cert_path if ssl_cert_content \
-        else os.environ[constants.LOCAL_REST_CERT_FILE_KEY]
+    return ssl_cert_path if ssl_cert_content else ssl_cert_key_path
 
 
 def _get_current_context():
@@ -410,7 +430,10 @@ def get_exec_tempdir():
     This is needed because some production systems disallow executions from
     the default temporary directory.
     """
-    return os.environ.get(ENV_CFY_EXEC_TEMPDIR) or tempfile.gettempdir()
+    exec_tempdir = os.environ.get(ENV_CFY_EXEC_TEMPDIR)
+    if exec_tempdir and os.path.exists(exec_tempdir):
+        return os.path.abspath(exec_tempdir)
+    return tempfile.gettempdir()
 
 
 def create_temp_folder():
@@ -890,7 +913,10 @@ def _plugins_base_dir():
 
     Default to sys.prefix, which is going to be in the mgmtworker/agent venv.
     """
-    return os.environ.get('CFY_PLUGINS_ROOT') or sys.prefix
+    plugins_root = os.environ.get('CFY_PLUGINS_ROOT')
+    if plugins_root and os.path.exists(plugins_root):
+        return os.path.abspath(plugins_root)
+    return sys.prefix
 
 
 def plugin_prefix(name, tenant_name, version=None, deployment_id=None):
