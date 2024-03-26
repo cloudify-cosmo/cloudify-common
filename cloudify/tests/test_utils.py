@@ -71,7 +71,9 @@ class TempdirTest(TestCase):
 
     @mock.patch.dict(os.environ, {'CFY_EXEC_TEMP': '/fake/temp'})
     def test_executable_override(self):
-        self.assertEqual('/fake/temp', get_exec_tempdir())
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with mock.patch.dict(os.environ, {'CFY_EXEC_TEMP': tmpdir}):
+                self.assertEqual(tmpdir, get_exec_tempdir())
 
 
 class TestPluginFunctions(TestCase):

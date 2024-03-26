@@ -91,9 +91,10 @@ def find_executable(executable, path=None):
     A string listing directories separated by 'os.pathsep'; defaults to
     os.environ['PATH'].  Returns the complete filename or None if not found.
     """
-    if path is None:
-        path = os.environ['PATH']
-    paths = path.split(os.pathsep)
+    if path:
+        paths = path.split(os.pathsep)
+    else:
+        paths = os.get_exec_path()
     base, ext = os.path.splitext(executable)
     if (sys.platform == 'win32') and (ext != '.exe'):
         executable = executable + '.exe'

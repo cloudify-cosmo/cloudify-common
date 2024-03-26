@@ -620,6 +620,10 @@ class _PythonExecutables(object):
         # examine all directories in PATH for executables named the same
         # as the executable we're running, so either `python` or `Python.exe`
         for path in os.environ['PATH'].split(os.pathsep):
+            if path and os.path.exists(path):
+                path = os.path.abspath(path)
+            else:
+                continue
             target_executable = os.path.join(path, executable_filename)
             version = self._get_executable_version(target_executable)
             if not version or version in executables:
