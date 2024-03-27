@@ -27,7 +27,7 @@ setup(
         'pika<2',
         'proxy_tools<1',
         'pytz',
-        'urllib3>=2.0.7'
+        'urllib3>=2.0.7',
         'requests>=2.31.0,<3',
         'requests_toolbelt>=1,<2',
         'wagon>=1,<2',
