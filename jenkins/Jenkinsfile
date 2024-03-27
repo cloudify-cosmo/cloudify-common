@@ -73,19 +73,6 @@ pipeline {
             }
           }
         }
-        stage('flake8_py36'){
-          steps{
-            sh script: "mkdir -p ${env.WORKSPACE}/flake8 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/flake8", label: "copying repo to seperate workspace"
-            container('py36'){
-              dir("${env.WORKSPACE}/flake8") {
-              echo 'install flake 8'
-              sh "pip install flake8 --user"
-              echo 'run flake8'
-              sh "python -m flake8 dsl_parser script_runner cloudify cloudify_rest_client cloudify_async_client"
-              }
-            }
-          }
-        }
       }
     }
     stage ('tests') {
@@ -107,20 +94,6 @@ pipeline {
           post {
             always {
               junit '**/test-results/*.xml'
-            }
-          }
-        }
-        stage('test_py36'){
-          steps{
-            sh script: "mkdir -p ${env.WORKSPACE}/test-py36 && cp -rf ${env.WORKSPACE}/${env.PROJECT}/. ${env.WORKSPACE}/test-py36", label: "copying repo to seperate workspace"
-            container('py36'){
-              dir("${env.WORKSPACE}/test-py36") {
-                install_test_dependencies('py36')
-                pytest_nocover('dsl_parser')
-                pytest_nocover('script_runner')
-                pytest_nocover('cloudify')
-                pytest_nocover('cloudify_rest_client')
-              }
             }
           }
         }

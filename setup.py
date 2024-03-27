@@ -19,7 +19,7 @@ setup(
     description='Cloudify Common',
     zip_safe=False,
     install_requires=[
-        'aiohttp>=3.8.5,<4',
+        'aiohttp>=3.9.1,<4',
         'bottle<1',
         'distro>=1.7.0,<2',
         'fasteners<1',
@@ -27,7 +27,8 @@ setup(
         'pika<2',
         'proxy_tools<1',
         'pytz',
-        'requests<3',
+        'urllib3>=2.0.7'
+        'requests>=2.31.0,<3',
         'requests_toolbelt>=1,<2',
         'wagon>=1,<2',
     ],
@@ -45,11 +46,11 @@ setup(
         # for running workflows (in the mgmtworker and the cli), as opposed
         # to e.g. just executing operations (in the agent)
         'dispatcher': [
-            'PyYAML==6.0.1',
+            'PyYAML>6,<7',
             'networkx>2,<3',
         ],
         'snmp': [
-            'pysnmp==4.4.5',
+            'pysnmp>4,<5',
         ]
     }
 )
