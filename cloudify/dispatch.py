@@ -451,7 +451,10 @@ def _update_logging_level():
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
-            level_name, _, logger_name = line.partition()
+            parts = line.split()
+            if not len(parts) == 2:
+                continue
+            level_name, logger_name = parts
             level_id = logging.getLevelName(level_name.upper())
             if not isinstance(level_id, int):
                 continue
