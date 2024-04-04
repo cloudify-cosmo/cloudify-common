@@ -256,16 +256,16 @@ class AMQPConnection(object):
 
             target_channel = envelope['channel'] or channel
             method = envelope['method']
-            # we use a separate queue to send any possible exceptions back
-            # to the calling thread - see the publish method
+            # we use a separate queue to send any possible results/exceptions
+            # back to the calling thread - see the publish method
             message = envelope['message']
-            err_queue = envelope.get('err_queue')
+            response_queue = envelope.get('response_queue')
 
             try:
                 if callable(method):
-                    method(self, channel, **message)
+                    result = method(self, channel, **message)
                 else:
-                    getattr(target_channel, method)(**message)
+                    result = getattr(target_channel, method)(**message)
             except pika.exceptions.ConnectionClosed:
                 if self._closed:
                     return
@@ -274,12 +274,12 @@ class AMQPConnection(object):
                 self._connection_tasks_queue.put(envelope)
                 raise
             except Exception as e:
-                if err_queue:
-                    err_queue.put(e)
+                if response_queue:
+                    response_queue.put(e)
                 raise
             else:
-                if err_queue:
-                    err_queue.put(None)
+                if response_queue:
+                    response_queue.put(result)
 
     def close(self, wait=True):
         self._closed = True
@@ -309,26 +309,29 @@ class AMQPConnection(object):
                 and self._consumer_thread is threading.current_thread():
             # when sending from the connection thread, we can't wait because
             # then we wouldn't allow the actual send loop (._process_publish)
-            # to run, because we'd block on the err_queue here
+            # to run, because we'd block on the response_queue here
             raise RuntimeError(
                 'Cannot wait when sending from the connection thread')
 
         # the message is going to be sent from another thread (the .consume
-        # thread). If an error happens there, we must have a way to get it
-        # back out, so we pass a Queue together with the message, that will
-        # contain either an exception instance, or None
-        err_queue = queue.Queue() if wait else None
+        # thread). If operation has a result or an error happens there,
+        # we must have a way to get it back out, so we pass a Queue together
+        # with the message, that will contain operation result or
+        # an exception instance
+        response_queue = queue.Queue() if wait else None
         envelope = {
             'method': method,
             'message': kwargs,
-            'err_queue': err_queue,
+            'response_queue': response_queue,
             'channel': channel
         }
         self._connection_tasks_queue.put(envelope)
-        if err_queue:
-            err = err_queue.get(timeout=timeout)
-            if isinstance(err, Exception):
-                raise err
+        if response_queue:
+            response_or_err = response_queue.get(timeout=timeout)
+            if isinstance(response_or_err, Exception):
+                raise response_or_err
+            else:
+                return response_or_err
 
     def publish(self, message, wait=True, timeout=None):
         """Schedule a message to be sent.
@@ -371,14 +374,144 @@ class TaskConsumer(object):
     routing_key = ''
     late_ack = False
 
-    def __init__(self, queue, threadpool_size=5, exchange_type='direct'):
+    def __init__(
+        self,
+        queue,
+        threadpool_size=5,
+        watchdog_period=180,
+        exchange_type='direct',
+    ):
         self.threadpool_size = threadpool_size
         self.exchange = queue
         self.queue = '{0}_{1}'.format(queue, self.routing_key)
         self._sem = threading.Semaphore(threadpool_size)
         self._connection = None
+        self._channel = None
         self.exchange_type = exchange_type
         self._tasks_buffer = deque()
+        self._last_processing_time_lock = threading.Lock()
+        self._last_processing_time = None
+        self._watchdog_period = watchdog_period
+        self._watchdog_thread = threading.Thread(
+            target=self._watch_tasks_processing
+        )
+        self._watchdog_thread.daemon = True
+        self._watchdog_thread.start()
+
+    def _set_last_processing_time(self, new_value):
+        with self._last_processing_time_lock:
+            self._last_processing_time = new_value
+
+    def _get_last_processing_time(self):
+        with self._last_processing_time_lock:
+            return self._last_processing_time
+
+    def _watch_tasks_processing(self):
+        """
+        This is the target function for the watchdog thread.
+        The purpose of this thread is to help prevent possible
+        deadlocks that could occur if a given task spawns more
+        tasks than the thread pool size can handle. To address this,
+        the watchdog will spawn additional worker thread(s) outside
+        the semaphore control, since threads from the pool could hang
+        while waiting for results of dependent tasks.
+
+        Watchdog algorithm:
+        1. Check the stamp of the last task execution.
+        2. If it is not older than the configured period, go idle.
+        3. If the task buffer is not empty, pick a task from the buffer,
+            spawn a worker thread for that task, then go idle.
+        4. If the task buffer was empty, attempt to pull a single message
+            directly from the RabbitMQ channel. If there are no pending
+            messages in RabbitMQ, go idle. It means there is no more
+            pending tasks. Otherwise, spawn a worker thread
+            for the task related to the pulled message and then go idle.
+        After any idle state, start again from point 1.
+
+        Unfortunately, it cannot distinguish deadlocks from long-running tasks.
+        In that case, the watchdog thread will gradually spawn threads for the
+        remaining pending tasks.
+        """
+        while True:
+            if self._is_watchdog_idle():
+                time.sleep(self._watchdog_period)
+                continue
+
+            buffered_task = self._get_task_from_buffer()
+            if buffered_task is not None:
+                self._run_task(buffered_task, threadpool_worker=False)
+                logger.info(
+                    '%s watchdog: Spawned thread for task %s and '
+                    'delivery tag %s based on message pulled from '
+                    'tasks buffer. Going idle for %s seconds',
+                    self.__class__.__name__, buffered_task[2],
+                    buffered_task[3], self._watchdog_period
+                )
+                time.sleep(self._watchdog_period)
+                continue
+
+            # despite tasks buffer being empty, we still have a deadlock e.g.
+            # when rabbitmq's prefetch_count is same (or smaller)
+            # comparing to threadpool size and late_ack is enabled, so
+            # rabbitmq won't send any new message before
+            # at least one ack happen
+
+            get_ok, properties, body = self._connection.channel_method(
+                'basic_get', channel=self._channel,
+                queue=self.queue, auto_ack=False,
+            )
+            if get_ok is None:
+                logger.debug(
+                    '%s watchdog: Going idle for %s seconds, '
+                    'rabbitmq channel was empty',
+                    self.__class__.__name__, self._watchdog_period
+                )
+                time.sleep(self._watchdog_period)
+                continue
+
+            full_task = json.loads(body.decode('utf-8'))
+            task_args = (
+                self._channel, properties, full_task, get_ok.delivery_tag
+            )
+            self._run_task(task_args, threadpool_worker=False)
+            logger.info(
+                '%s watchdog: Spawned thread for task %s and delivery tag %s'
+                ' based on message pulled directly from rabbitmq channel. '
+                'Going idle for %s seconds',
+                self.__class__.__name__, full_task,
+                get_ok.delivery_tag, self._watchdog_period
+            )
+            time.sleep(self._watchdog_period)
+
+    def _is_watchdog_idle(self):
+        if self._connection is None or self._channel is None:
+            logger.debug(
+                '%s watchdog: rabbitmq connection and/or channel '
+                'was not set up yet. Going idle for %s seconds',
+                self.__class__.__name__, self._watchdog_period
+            )
+            return True
+
+        last_time = self._get_last_processing_time()
+        if last_time is None:
+            logger.debug(
+                '%s watchdog: there was not task execution yet. '
+                'Going idle for %s seconds',
+                self.__class__.__name__, self._watchdog_period
+            )
+            return True
+
+        last_execution_ago = time.monotonic() - last_time
+        if last_execution_ago < self._watchdog_period:
+            logger.debug(
+                '%s watchdog: recent task execution took place %s '
+                'seconds ago. Going idle for %s seconds',
+                self.__class__.__name__, last_execution_ago,
+                self._watchdog_period
+            )
+            return True
+
+        return False
 
     def register(self, connection, channel):
         self._connection = connection
@@ -398,6 +531,7 @@ class TaskConsumer(object):
             channel.basic_consume(self.process, self.queue)
         else:
             channel.basic_consume(self.queue, self.process)
+        self._channel = channel
 
     def process(self, channel, method, properties, body):
         try:
@@ -408,13 +542,52 @@ class TaskConsumer(object):
 
         task_args = (channel, properties, full_task, method.delivery_tag)
         if self._sem.acquire(blocking=False):
-            self._run_task(task_args)
+            self._run_task(task_args, threadpool_worker=True)
         else:
             self._tasks_buffer.append(task_args)
 
-    def _process_message(self, channel, properties, full_task, delivery_tag):
+    def _watchdog_worker(
+        self,
+        channel,
+        properties,
+        full_task,
+        delivery_tag,
+    ):
+        self._set_last_processing_time(time.monotonic())
+        self._process_message(channel, properties, full_task, delivery_tag)
+
+    def _threadpool_worker(
+        self,
+        channel,
+        properties,
+        full_task,
+        delivery_tag,
+    ):
+        self._set_last_processing_time(time.monotonic())
+        self._process_message(channel, properties, full_task, delivery_tag)
+        buffered_task = self._get_task_from_buffer()
+        if buffered_task is not None:
+            self._run_task(buffered_task, threadpool_worker=True)
+        else:
+            self._sem.release()
+
+    def _process_message(
+        self,
+        channel,
+        properties,
+        full_task,
+        delivery_tag,
+    ):
+        logger.debug(
+            '%s started processing task %s, delivery_tag: %s',
+            self.__class__.__name__, full_task, delivery_tag
+        )
         if not self.late_ack:
             self._connection.ack(channel, delivery_tag)
+            logger.debug(
+                '%s gave ACK on task %s delivery_tag: %s',
+                self.__class__.__name__, full_task, delivery_tag
+            )
         try:
             result = self.handle_task(full_task)
         except Exception as e:
@@ -425,6 +598,10 @@ class TaskConsumer(object):
             )
         if self.late_ack:
             self._connection.ack(channel, delivery_tag)
+            logger.debug(
+                '%s gave ACK on task %s delivery_tag: %s',
+                self.__class__.__name__, full_task, delivery_tag
+            )
         if properties.reply_to:
             if result is NO_RESPONSE:
                 self.delete_queue(properties.reply_to)
@@ -443,25 +620,24 @@ class TaskConsumer(object):
         if result is STOP_AGENT:
             # the operation asked us to exit, so drop everything and exit
             os._exit(0)
-        if not self._maybe_run_next_task():
-            self._sem.release()
 
-    def _run_task(self, task_args):
+    def _run_task(self, task_args, threadpool_worker=True):
+        if threadpool_worker:
+            target = self._threadpool_worker
+        else:
+            target = self._watchdog_worker
         new_thread = threading.Thread(
-            target=self._process_message,
+            target=target,
             args=task_args
         )
         new_thread.daemon = True
         new_thread.start()
 
-    def _maybe_run_next_task(self):
+    def _get_task_from_buffer(self):
         try:
-            task_args = self._tasks_buffer.popleft()
+            return self._tasks_buffer.popleft()
         except IndexError:
-            return False
-        else:
-            self._run_task(task_args)
-            return True
+            return None
 
     def handle_task(self, full_task):
         raise NotImplementedError()
