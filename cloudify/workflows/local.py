@@ -745,8 +745,11 @@ class InMemoryStorage(_Storage):
         return node_instance
 
     def create_node_instances(self, deployment_id, node_instances):
+        stored = []
         for instance in node_instances:
-            self.store_instance(deployment_id, instance)
+            stored_ni = self.store_instance(deployment_id, instance)
+            stored.append(stored_ni)
+        return stored
 
     def get_nodes(self, deployment_id):
         dep = self.get_deployment(deployment_id)
@@ -896,8 +899,11 @@ class FileStorage(_Storage):
         return NodeInstance(instance)
 
     def create_node_instances(self, deployment_id, node_instances):
+        stored = []
         for instance in node_instances:
-            self.store_instance(deployment_id, instance)
+            stored_ni = self.store_instance(deployment_id, instance)
+            stored.append(stored_ni)
+        return stored
 
     def _instance_path(self, deployment_id, node_instance_id):
         return os.path.join(

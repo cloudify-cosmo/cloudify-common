@@ -793,14 +793,14 @@ def _build_scaling_groups_map(ctx, node_instance_ids, group):
 
 
 def _node_instance_id(node_id, ctx):
-    new_node_instance_id = '{0}_{1}'.format(node_id, _generate_id())
+    new_node_instance_id = '{0}_{1}'.format(node_id, generate_id())
     while new_node_instance_id in ctx.node_instance_ids[node_id]:
-        new_node_instance_id = '{0}_{1}'.format(node_id, _generate_id())
+        new_node_instance_id = '{0}_{1}'.format(node_id, generate_id())
     ctx.node_instance_ids[node_id].add(new_node_instance_id)
     return new_node_instance_id
 
 
-def _generate_id():
+def generate_id():
     return ''.join(choice(NI_ID_ALPHABET) for _ in range(NI_ID_LEN))
 
 

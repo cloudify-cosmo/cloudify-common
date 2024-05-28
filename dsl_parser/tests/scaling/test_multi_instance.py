@@ -470,7 +470,7 @@ node_templates:
 node_types:
   type: {1}
 '''.format(instances, '{}')
-        with patch('dsl_parser.rel_graph._generate_id',
+        with patch('dsl_parser.rel_graph.generate_id',
                    lambda: random.randint(1, instances)):
             plan = self.parse_multi(blueprint)
         self.assertEqual(instances, len(plan['node_instances']))
