@@ -4,3 +4,4 @@ pytest-xdist
 coverage
 # Pin urllib3 to the version which does not depend on appengine
 urllib3<1.27,>=1.21.1
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
