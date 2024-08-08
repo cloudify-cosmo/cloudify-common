@@ -1079,7 +1079,7 @@ class _WorkflowContextBase(object):
         self.internal.handler.create_nodes(deployment_id, nodes)
 
     def create_node_instances(self, deployment_id, node_instances):
-        self.internal.handler.create_node_instances(
+        return self.internal.handler.create_node_instances(
             deployment_id, node_instances)
 
     def list_execution_schedules(self, **kwargs):
@@ -1756,7 +1756,7 @@ class RemoteContextHandler(CloudifyWorkflowContextHandler):
         self.rest_client.nodes.create_many(deployment_id, nodes)
 
     def create_node_instances(self, deployment_id, node_instances):
-        self.rest_client.node_instances.create_many(
+        return self.rest_client.node_instances.create_many(
             deployment_id, node_instances)
 
     def list_execution_schedules(self, **kwargs):
@@ -2022,7 +2022,9 @@ class LocalCloudifyWorkflowContextHandler(CloudifyWorkflowContextHandler):
         self.storage.create_nodes(deployment_id, nodes)
 
     def create_node_instances(self, deployment_id, node_instances):
-        self.storage.create_node_instances(deployment_id, node_instances)
+        return self.storage.create_node_instances(
+            deployment_id, node_instances
+        )
 
     def list_execution_schedules(self, **kwargs):
         return []

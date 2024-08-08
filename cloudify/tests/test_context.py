@@ -256,14 +256,14 @@ class CloudifyContextTest(unittest.TestCase):
             [mock.Mock(ok=False, status_code=404, reason='Not found')] * 6,
 
             # 5x 404 + connectionerror - still wraps with httpexception
-            [mock.Mock(ok=False, status_code=404, reason='Not found')] * 5 + \
+            [mock.Mock(ok=False, status_code=404, reason='Not found')] * 5 +
             [requests.ConnectionError()],
 
             # all calls return connectionerror
             [requests.ConnectionError()] * 6,
 
             # 5 connectionerror, and then 404 - all paths are tried
-            [requests.ConnectionError()] * 5 + \
+            [requests.ConnectionError()] * 5 +
             [mock.Mock(ok=False, status_code=404, reason='Not found')]
         ]
         for case in cases_to_try:
