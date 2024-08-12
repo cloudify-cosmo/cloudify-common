@@ -137,7 +137,7 @@ class NodeInstancesClient(object):
              keys: id, node_id.
         :return: None
         """
-        self.api.post(
+        response = self.api.post(
             '/{self._uri_prefix}'.format(self=self),
             data={
                 'deployment_id': deployment_id,
@@ -145,6 +145,11 @@ class NodeInstancesClient(object):
             },
             expected_status_code=(201, 204),
         )
+        if response:
+            return ListResponse(
+                [self._wrapper_cls(item) for item in response['items']],
+                response['metadata']
+            )
 
     def get(self, node_instance_id, _include=None, evaluate_functions=False):
         """
