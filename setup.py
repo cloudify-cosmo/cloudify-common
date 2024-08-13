@@ -19,7 +19,7 @@ setup(
     description='Cloudify Common',
     zip_safe=False,
     install_requires=[
-        'aiohttp==3.9.5',
+        'aiohttp==3.10.2',
         'bottle<1',
         'distro>=1.7.0,<2',
         'fasteners<1',
